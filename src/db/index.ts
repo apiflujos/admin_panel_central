@@ -5,7 +5,7 @@ let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
 
 /**
- * Retorna el pool de conexión, asegurando que la DB esté reparada antes de usarla
+ * Retorna el pool de conexión, bloqueando cualquier consulta hasta que la DB esté lista.
  */
 export async function getPool() {
   if (!pool) {
@@ -19,10 +19,10 @@ export async function getPool() {
     });
   }
 
-  // Si no se ha inicializado, esperamos a que termine la reparación
+  // Si alguien intenta usar la DB y no está lista, lo obligamos a esperar la reparación
   if (!isInitialized) {
     if (!initializationPromise) {
-      initializationPromise = forceQuickFix(pool);
+      initializationPromise = repairDatabase(pool);
     }
     await initializationPromise;
   }
@@ -31,49 +31,58 @@ export async function getPool() {
 }
 
 /**
- * REPARACIÓN CRÍTICA: Bloquea el acceso hasta terminar
+ * REPARACIÓN DE EMERGENCIA: Crea tablas y columnas faltantes.
  */
-async function forceQuickFix(p: Pool) {
+async function repairDatabase(p: Pool) {
   try {
-    console.log("🛠️ Iniciando reparación de emergencia de la base de datos...");
+    console.log("🛠️ Iniciando reparación de base de datos...");
     
-    // Reparar SYNC_LOGS
+    // 1. Asegurar SYNC_LOGS y todas sus columnas
     await p.query(`CREATE TABLE IF NOT EXISTS sync_logs (id SERIAL PRIMARY KEY);`);
     const syncLogsCols = [
-      `organization_id INTEGER`, `entity TEXT`, `action TEXT`, `status TEXT`, 
-      `message TEXT`, `request_json JSONB`, `response_json JSONB`, 
-      `retry_count INTEGER DEFAULT 0`, `error_details TEXT`, 
-      `last_attempt TIMESTAMP`, `created_at TIMESTAMP DEFAULT NOW()`
+      "organization_id INTEGER",
+      "entity TEXT",
+      "action TEXT",
+      "status TEXT",
+      "message TEXT",
+      "request_json JSONB",
+      "response_json JSONB",
+      "retry_count INTEGER DEFAULT 0",
+      "error_details TEXT",
+      "last_attempt TIMESTAMP",
+      "created_at TIMESTAMP DEFAULT NOW()"
     ];
     for (const col of syncLogsCols) {
       await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS ${col};`);
     }
 
-    // Reparar RETRY_QUEUE
+    // 2. Asegurar RETRY_QUEUE y todas sus columnas
     await p.query(`CREATE TABLE IF NOT EXISTS retry_queue (id SERIAL PRIMARY KEY);`);
     const retryCols = [
-      `sync_log_id INTEGER`, `payload JSONB`, `attempts INTEGER DEFAULT 0`, 
-      `next_retry TIMESTAMP`, `created_at TIMESTAMP DEFAULT NOW()`
+      "sync_log_id INTEGER",
+      "payload JSONB",
+      "attempts INTEGER DEFAULT 0",
+      "next_retry TIMESTAMP",
+      "created_at TIMESTAMP DEFAULT NOW()"
     ];
     for (const col of retryCols) {
       await p.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS ${col};`);
     }
 
-    // Reparar ORGANIZATIONS
+    // 3. Asegurar tabla ORGANIZATIONS
     await p.query(`CREATE TABLE IF NOT EXISTS organizations (id SERIAL PRIMARY KEY, name TEXT);`);
-    await p.query(`INSERT INTO organizations (id, name) VALUES (1, 'Org 1') ON CONFLICT DO NOTHING;`);
+    await p.query(`INSERT INTO organizations (id, name) VALUES (1, 'Default Org') ON CONFLICT DO NOTHING;`);
 
     isInitialized = true;
-    console.log("✅ Base de datos reparada y lista para consultas.");
+    console.log("✅ Base de datos reparada y desbloqueada.");
   } catch (err) {
     console.error("❌ Error crítico en reparación:", err);
-    // No marcamos como inicializado para que el siguiente intento lo repita
     initializationPromise = null; 
     throw err;
   }
 }
 
-// Exportamos una versión síncrona para compatibilidad, pero la función de arriba es la clave
+// Versión síncrona para compatibilidad (usar con precaución)
 export function getPoolSync() {
   if (!pool) {
     pool = new Pool({ 
@@ -85,7 +94,7 @@ export function getPoolSync() {
 }
 
 export async function ensureOrganization(poolInstance: Pool, orgId: number) {
-  await getPool(); // Esto dispara la reparación
+  await getPool();
 }
 
 export async function ensureRetryQueueTable(poolInstance: Pool) {
