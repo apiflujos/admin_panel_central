@@ -17,8 +17,46 @@ export function getPool() {
   return pool;
 }
 
+/**
+ * REPARACIÓN FORZADA E INMEDIATA
+ * Esta función se encarga de que las columnas existan sí o sí.
+ */
+async function forceQuickFix() {
+  const p = getPool();
+  try {
+    // Reparar sync_logs
+    await p.query(`CREATE TABLE IF NOT EXISTS sync_logs (id SERIAL PRIMARY KEY);`);
+    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS organization_id INTEGER;`);
+    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS entity TEXT;`);
+    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS action TEXT;`);
+    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS status TEXT;`);
+    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS message TEXT;`);
+    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS request_json JSONB;`);
+    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS response_json JSONB;`);
+    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS retry_count INTEGER DEFAULT 0;`);
+    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS error_details TEXT;`);
+    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS last_attempt TIMESTAMP;`);
+    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();`);
+
+    // Reparar retry_queue
+    await p.query(`CREATE TABLE IF NOT EXISTS retry_queue (id SERIAL PRIMARY KEY);`);
+    await p.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS sync_log_id INTEGER;`);
+    await p.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS payload JSONB;`);
+    await p.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS attempts INTEGER DEFAULT 0;`);
+    await p.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS next_retry TIMESTAMP;`);
+    await p.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();`);
+    
+    console.log("✅ Base de datos reparada con éxito.");
+  } catch (err) {
+    console.error("❌ Error en reparación rápida:", err);
+  }
+}
+
+// Ejecutar reparación al cargar el módulo
+forceQuickFix();
+
 export async function ensureOrganization(poolInstance: Pool, orgId: number) {
-  // 1. ORGANIZATIONS
+  // Asegurar tabla organizations
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS organizations (
       id SERIAL PRIMARY KEY, 
@@ -27,65 +65,7 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
     );
   `);
 
-  // 2. RETRY QUEUE - Asegurando estructura completa
-  await poolInstance.query(`
-    CREATE TABLE IF NOT EXISTS retry_queue (
-      id SERIAL PRIMARY KEY,
-      payload JSONB,
-      attempts INTEGER DEFAULT 0,
-      next_retry TIMESTAMP,
-      sync_log_id INTEGER,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-  // Reparación de columnas retry_queue
-  await poolInstance.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS sync_log_id INTEGER;`);
-
-  // 3. SYNC LOGS - ¡ESTO SOLUCIONA TUS ERRORES ACTUALES!
-  await poolInstance.query(`
-    CREATE TABLE IF NOT EXISTS sync_logs (
-      id SERIAL PRIMARY KEY,
-      organization_id INTEGER REFERENCES organizations(id),
-      entity TEXT,
-      action TEXT,
-      status TEXT,
-      message TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  // Inyectamos TODAS las columnas que el sistema podría pedir para evitar más reinicios
-  const syncLogsFixes = [
-    `ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS request_json JSONB;`,
-    `ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS response_json JSONB;`,
-    `ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS retry_count INTEGER DEFAULT 0;`,
-    `ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS error_details TEXT;`,
-    `ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS last_attempt TIMESTAMP;`,
-    `ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS organization_id INTEGER;`
-  ];
-
-  for (const sql of syncLogsFixes) {
-    try {
-      await poolInstance.query(sql);
-    } catch (e) {
-      console.log("Columna ya existía o error ignorado");
-    }
-  }
-
-  // 4. SYNC CHECKPOINTS
-  await poolInstance.query(`
-    CREATE TABLE IF NOT EXISTS sync_checkpoints (
-      id SERIAL PRIMARY KEY,
-      organization_id INTEGER REFERENCES organizations(id),
-      entity TEXT NOT NULL,
-      last_start INTEGER DEFAULT 0,
-      total INTEGER,
-      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      UNIQUE (organization_id, entity)
-    );
-  `);
-
-  // 5. Insertar organización por defecto
+  // Insertar organización inicial
   await poolInstance.query(
     `INSERT INTO organizations (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`,
     [orgId, `Org ${orgId}`]
@@ -93,11 +73,22 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
 }
 
 export async function ensureRetryQueueTable(poolInstance: Pool) {
-  await ensureOrganization(poolInstance, getOrgId());
+  await forceQuickFix();
 }
 
 export async function ensureSyncCheckpointTable(poolInstance: Pool) {
-  await ensureOrganization(poolInstance, getOrgId());
+  const p = poolInstance;
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS sync_checkpoints (
+      id SERIAL PRIMARY KEY,
+      organization_id INTEGER,
+      entity TEXT NOT NULL,
+      last_start INTEGER DEFAULT 0,
+      total INTEGER,
+      updated_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE (organization_id, entity)
+    );
+  `);
 }
 
 export async function ensureInvoiceSettingsColumns(poolInstance: Pool) {
@@ -120,25 +111,6 @@ export async function ensureInvoiceSettingsColumns(poolInstance: Pool) {
   await ensureInvoiceSettingsPromise;
 }
 
-let ensureInventoryRulesPromise: Promise<void> | null = null;
-export async function ensureInventoryRulesColumns(poolInstance: Pool) {
-  if (!ensureInventoryRulesPromise) {
-    ensureInventoryRulesPromise = poolInstance
-      .query(`
-        ALTER TABLE inventory_rules
-          ADD COLUMN IF NOT EXISTS auto_publish_on_webhook BOOLEAN NOT NULL DEFAULT false,
-          ADD COLUMN IF NOT EXISTS auto_publish_status TEXT NOT NULL DEFAULT 'draft'
-      `)
-      .then(() => undefined)
-      .catch((error) => {
-        ensureInventoryRulesPromise = null;
-        throw error;
-      });
-  }
-  await ensureInventoryRulesPromise;
-}
-
 export function getOrgId() {
-  const orgId = process.env.APP_ORG_ID || "1";
-  return Number(orgId);
+  return Number(process.env.APP_ORG_ID || "1");
 }
