@@ -39,6 +39,7 @@ app.use((req, res, next) => {
 });
 
 app.use(express.static("public"));
+
 app.use(
   "/api",
   (req, res, next) => {
@@ -58,10 +59,18 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-const port = Number(process.env.APP_PORT || 3000);
-const host = process.env.APP_HOST || "127.0.0.1";
+// MODIFICACIÓN PARA RENDER:
+// 1. Usamos process.env.PORT que es lo que Render espera (puerto 10000)
+const port = Number(process.env.PORT || process.env.APP_PORT || 3000);
+
+// 2. Escuchamos en 0.0.0.0 para que el tráfico externo pueda entrar
+const host = "0.0.0.0";
+
 app.listen(port, host, () => {
-  console.log(`Server listening on ${port}`);
+  console.log(`🚀 Servidor listo en http://${host}:${port}`);
+  console.log(`📡 Salud disponible en http://${host}:${port}/health`);
+  
+  // Iniciar pollers
   startInventoryAdjustmentsPoller();
   startRetryQueuePoller();
 });
