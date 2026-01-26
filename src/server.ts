@@ -9,7 +9,7 @@ import { startRetryQueuePoller } from "./jobs/retry-queue";
 
 const app = express();
 
-// Middlewares de Seguridad y Logs
+// Middlewares
 app.use(helmet());
 app.use(morgan("combined"));
 app.use(
@@ -21,7 +21,7 @@ app.use(
   })
 );
 
-// Configuración de rutas públicas
+// Rutas públicas
 const allowUnauthed = (path: string) =>
   path === "/login.html" ||
   path === "/login.js" ||
@@ -29,7 +29,7 @@ const allowUnauthed = (path: string) =>
   path === "/favicon.png" ||
   path.startsWith("/assets/");
 
-// Middleware de autenticación global
+// Auth Middleware
 app.use((req, res, next) => {
   if (req.path.startsWith("/api")) return next();
   if (req.path === "/health") return next();
@@ -43,7 +43,7 @@ app.use((req, res, next) => {
 
 app.use(express.static("public"));
 
-// Rutas de la API
+// API Routes
 app.use(
   "/api",
   (req, res, next) => {
@@ -59,29 +59,26 @@ app.use(
   router
 );
 
-// Endpoint de Salud (Vital para que Render se ponga en verde)
+// EL SALVAVIDAS: Endpoint de salud
 app.get("/health", (_req, res) => {
-  res.status(200).json({ status: "ok", uptime: process.uptime() });
+  res.status(200).json({ status: "ok" });
 });
 
 /**
- * CONFIGURACIÓN MAESTRA DE CONEXIÓN PARA RENDER
+ * CONFIGURACIÓN PARA RENDER (OBLIGATORIA)
  */
+// Render usa la variable PORT (10000). Si no existe (local), usamos 3000.
+const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
-// 1. Priorizamos process.env.PORT que Render inyecta (10000)
-const port = Number(process.env.PORT || 3000);
-
-// 2. Usamos '0.0.0.0' para que el tráfico externo pueda entrar
+// DEBE SER '0.0.0.0' para que el tráfico de internet entre al contenedor.
 const host = '0.0.0.0'; 
 
 app.listen(port, host, () => {
-  console.log("-------------------------------------------");
-  console.log(`🚀 SERVIDOR DESPLEGADO CON ÉXITO`);
-  console.log(`🌍 URL: http://${host}:${port}`);
-  console.log(`🏥 Health Check: http://${host}:${port}/health`);
-  console.log("-------------------------------------------");
+  console.log("-----------------------------------------");
+  console.log(`🚀 SERVIDOR ESCUCHANDO EN: http://${host}:${port}`);
+  console.log("-----------------------------------------");
   
-  // Iniciar pollers una vez que el puerto está abierto
+  // Iniciar tareas de fondo
   startInventoryAdjustmentsPoller();
   startRetryQueuePoller();
 });
