@@ -5,33 +5,32 @@ let dbReady = false;
 let repairPromise: Promise<void> | null = null;
 
 /**
- * REPARACIÓN INTEGRAL: Agrega todas las variantes de nombres de columnas
- * para que el código antiguo y el nuevo funcionen.
+ * REPARACIÓN INTEGRAL DE ESQUEMA
  */
 async function performRepair(p: Pool) {
   try {
     console.log("🛠️ AGREGANDO VARIANTES DE COLUMNAS (next_run_at, status, etc)...");
-    
+
     const queries = [
       "CREATE TABLE IF NOT EXISTS sync_logs (id SERIAL PRIMARY KEY);",
       "CREATE TABLE IF NOT EXISTS retry_queue (id SERIAL PRIMARY KEY);",
       "CREATE TABLE IF NOT EXISTS sync_checkpoints (id SERIAL PRIMARY KEY);",
       "CREATE TABLE IF NOT EXISTS organizations (id SERIAL PRIMARY KEY, name TEXT);",
-      
+
       // Reparar SYNC_LOGS
       "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS organization_id INTEGER;",
       "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS status TEXT;",
-      "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS retry_count INTEGER DEFAULT 0;",
       "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS entity TEXT;",
       "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS last_attempt TIMESTAMP;",
+      "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();",
 
-      // Reparar RETRY_QUEUE (Añadimos todas las variantes posibles de nombres)
+      // Reparar RETRY_QUEUE (Crucial para rq.next_run_at)
       "ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS status TEXT;", 
       "ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS sync_log_id INTEGER;",
       "ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS payload JSONB;",
       "ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS attempts INTEGER DEFAULT 0;",
       "ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS next_retry TIMESTAMP;",
-      "ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS next_run_at TIMESTAMP;", // <--- LA QUE PIDE EL LOG
+      "ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS next_run_at TIMESTAMP;", 
       "ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();",
 
       // Reparar SYNC_CHECKPOINTS
@@ -55,32 +54,39 @@ async function performRepair(p: Pool) {
   }
 }
 
+/**
+ * GET POOL PROTEGIDO
+ */
 export function getPool(): Pool {
   if (!pool) {
-    pool = new Pool({
+    const rawPool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false }
     });
-    repairPromise = performRepair(pool);
+
+    repairPromise = performRepair(rawPool);
 
     const handler: ProxyHandler<Pool> = {
       get: (target: any, prop: string) => {
         const original = target[prop];
         if (typeof original === 'function' && (prop === 'query' || prop === 'connect')) {
           return async (...args: any[]) => {
-            if (!dbReady) await repairPromise;
+            if (!dbReady) {
+              console.log(`⏳ Pausando consulta (${prop}) hasta reparación...`);
+              await repairPromise;
+            }
             return original.apply(target, args);
           };
         }
         return original;
       }
     };
-    pool = new Proxy(pool, handler) as Pool;
+    pool = new Proxy(rawPool, handler) as Pool;
   }
   return pool;
 }
 
-// Exportaciones de compatibilidad para los servicios
+// Exportaciones de compatibilidad
 export const getPoolSync = getPool;
 export async function ensureSyncCheckpointTable(p: Pool) { if (!dbReady) await repairPromise; }
 export async function ensureRetryQueueTable(p: Pool) { if (!dbReady) await repairPromise; }
