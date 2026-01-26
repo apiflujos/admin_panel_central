@@ -5,39 +5,13 @@ let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
 
 /**
- * Retorna el pool de conexión, bloqueando cualquier consulta hasta que la DB esté lista.
- */
-export async function getPool() {
-  if (!pool) {
-    const connectionString = process.env.DATABASE_URL;
-    if (!connectionString) {
-      throw new Error("DATABASE_URL is required");
-    }
-    pool = new Pool({ 
-      connectionString,
-      ssl: { rejectUnauthorized: false } 
-    });
-  }
-
-  // Si alguien intenta usar la DB y no está lista, lo obligamos a esperar la reparación
-  if (!isInitialized) {
-    if (!initializationPromise) {
-      initializationPromise = repairDatabase(pool);
-    }
-    await initializationPromise;
-  }
-
-  return pool;
-}
-
-/**
  * REPARACIÓN DE EMERGENCIA: Crea tablas y columnas faltantes.
  */
 async function repairDatabase(p: Pool) {
   try {
     console.log("🛠️ Iniciando reparación de base de datos...");
     
-    // 1. Asegurar SYNC_LOGS y todas sus columnas
+    // 1. Asegurar SYNC_LOGS
     await p.query(`CREATE TABLE IF NOT EXISTS sync_logs (id SERIAL PRIMARY KEY);`);
     const syncLogsCols = [
       "organization_id INTEGER",
@@ -56,7 +30,7 @@ async function repairDatabase(p: Pool) {
       await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS ${col};`);
     }
 
-    // 2. Asegurar RETRY_QUEUE y todas sus columnas
+    // 2. Asegurar RETRY_QUEUE
     await p.query(`CREATE TABLE IF NOT EXISTS retry_queue (id SERIAL PRIMARY KEY);`);
     const retryCols = [
       "sync_log_id INTEGER",
@@ -69,7 +43,7 @@ async function repairDatabase(p: Pool) {
       await p.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS ${col};`);
     }
 
-    // 3. Asegurar tabla ORGANIZATIONS
+    // 3. Asegurar ORGANIZATIONS
     await p.query(`CREATE TABLE IF NOT EXISTS organizations (id SERIAL PRIMARY KEY, name TEXT);`);
     await p.query(`INSERT INTO organizations (id, name) VALUES (1, 'Default Org') ON CONFLICT DO NOTHING;`);
 
@@ -82,28 +56,43 @@ async function repairDatabase(p: Pool) {
   }
 }
 
-// Versión síncrona para compatibilidad (usar con precaución)
-export function getPoolSync() {
+/**
+ * Retorna el pool de conexión. 
+ * IMPORTANTE: Si la DB no está lista, la repara primero.
+ */
+export function getPool() {
   if (!pool) {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      throw new Error("DATABASE_URL is required");
+    }
     pool = new Pool({ 
-      connectionString: process.env.DATABASE_URL,
+      connectionString,
       ssl: { rejectUnauthorized: false } 
     });
   }
-  return pool;
+
+  // Iniciamos la reparación en segundo plano si no se ha hecho
+  if (!isInitialized && !initializationPromise) {
+    initializationPromise = repairDatabase(pool);
+  }
+
+  return pool; 
 }
 
+// Alias para evitar errores de nombres en otros archivos
+export const getPoolSync = getPool;
+
 export async function ensureOrganization(poolInstance: Pool, orgId: number) {
-  await getPool();
+  if (!isInitialized) await repairDatabase(poolInstance);
 }
 
 export async function ensureRetryQueueTable(poolInstance: Pool) {
-  await getPool();
+  if (!isInitialized) await repairDatabase(poolInstance);
 }
 
 export async function ensureSyncCheckpointTable(poolInstance: Pool) {
-  const p = poolInstance;
-  await p.query(`
+  await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS sync_checkpoints (
       id SERIAL PRIMARY KEY,
       organization_id INTEGER,
@@ -117,8 +106,7 @@ export async function ensureSyncCheckpointTable(poolInstance: Pool) {
 }
 
 export async function ensureInvoiceSettingsColumns(poolInstance: Pool) {
-  const p = poolInstance;
-  await p.query(`
+  await poolInstance.query(`
     DO $$ 
     BEGIN 
       IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'invoice_settings') THEN
