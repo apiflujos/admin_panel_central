@@ -9,26 +9,26 @@ export function getPool() {
     if (!connectionString) {
       throw new Error("DATABASE_URL is required");
     }
-    pool = new Pool({ connectionString });
+    pool = new Pool({ 
+      connectionString,
+      ssl: { rejectUnauthorized: false } 
+    });
   }
   return pool;
 }
 
-/**
- * Esta función es el "corazón" del inicio. 
- * Crea todas las tablas críticas si no existen para evitar errores de "relation does not exist".
- */
+// ESTA FUNCIÓN CREA TODAS LAS TABLAS QUE TE DAN ERROR
 export async function ensureOrganization(poolInstance: Pool, orgId: number) {
-  // 1. Crear tabla de Organizaciones
+  // Crear tabla organizations
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS organizations (
-      id SERIAL PRIMARY KEY,
+      id SERIAL PRIMARY KEY, 
       name TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
-  // 2. Crear tabla de Retry Queue (La que falló en el último log)
+  // Crear tabla retry_queue (LA QUE FALLA AHORA)
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS retry_queue (
       id SERIAL PRIMARY KEY,
@@ -39,7 +39,7 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
     );
   `);
 
-  // 3. Crear tabla de Sync Checkpoints
+  // Crear tabla sync_checkpoints
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS sync_checkpoints (
       id SERIAL PRIMARY KEY,
@@ -52,18 +52,13 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
     );
   `);
 
-  // 4. Insertar la organización por defecto
+  // Insertar la organización inicial
   await poolInstance.query(
-    `
-    INSERT INTO organizations (id, name)
-    VALUES ($1, $2)
-    ON CONFLICT (id) DO NOTHING
-    `,
+    `INSERT INTO organizations (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`,
     [orgId, `Org ${orgId}`]
   );
 }
 
-// Mantenemos esta función por compatibilidad, aunque el trabajo pesado ya se hizo arriba
 export async function ensureRetryQueueTable(poolInstance: Pool) {
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS retry_queue (
@@ -79,16 +74,14 @@ export async function ensureRetryQueueTable(poolInstance: Pool) {
 export async function ensureInvoiceSettingsColumns(poolInstance: Pool) {
   if (!ensureInvoiceSettingsPromise) {
     ensureInvoiceSettingsPromise = poolInstance
-      .query(
-        `
+      .query(`
         ALTER TABLE invoice_settings
           ADD COLUMN IF NOT EXISTS payment_method TEXT,
           ADD COLUMN IF NOT EXISTS observations_template TEXT,
           ADD COLUMN IF NOT EXISTS bank_account_id TEXT,
           ADD COLUMN IF NOT EXISTS apply_payment BOOLEAN NOT NULL DEFAULT false,
           ADD COLUMN IF NOT EXISTS einvoice_enabled BOOLEAN NOT NULL DEFAULT false
-        `
-      )
+      `)
       .then(() => undefined)
       .catch((error) => {
         ensureInvoiceSettingsPromise = null;
@@ -104,13 +97,11 @@ let ensureSyncCheckpointPromise: Promise<void> | null = null;
 export async function ensureInventoryRulesColumns(poolInstance: Pool) {
   if (!ensureInventoryRulesPromise) {
     ensureInventoryRulesPromise = poolInstance
-      .query(
-        `
+      .query(`
         ALTER TABLE inventory_rules
           ADD COLUMN IF NOT EXISTS auto_publish_on_webhook BOOLEAN NOT NULL DEFAULT false,
           ADD COLUMN IF NOT EXISTS auto_publish_status TEXT NOT NULL DEFAULT 'draft'
-        `
-      )
+      `)
       .then(() => undefined)
       .catch((error) => {
         ensureInventoryRulesPromise = null;
@@ -121,11 +112,9 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
 }
 
 export async function ensureSyncCheckpointTable(poolInstance: Pool) {
-  // Ahora llama a la lógica unificada arriba para mayor seguridad
   if (!ensureSyncCheckpointPromise) {
     ensureSyncCheckpointPromise = poolInstance
-      .query(
-        `
+      .query(`
         CREATE TABLE IF NOT EXISTS sync_checkpoints (
           id SERIAL PRIMARY KEY,
           organization_id INTEGER NOT NULL REFERENCES organizations(id),
@@ -135,8 +124,7 @@ export async function ensureSyncCheckpointTable(poolInstance: Pool) {
           updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
           UNIQUE (organization_id, entity)
         )
-        `
-      )
+      `)
       .then(() => undefined)
       .catch((error) => {
         ensureSyncCheckpointPromise = null;
@@ -147,13 +135,7 @@ export async function ensureSyncCheckpointTable(poolInstance: Pool) {
 }
 
 export function getOrgId() {
-  const orgId = process.env.APP_ORG_ID;
-  if (!orgId) {
-    throw new Error("APP_ORG_ID is required");
-  }
+  const orgId = process.env.APP_ORG_ID || "1";
   const parsed = Number(orgId);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error("APP_ORG_ID must be a positive integer");
-  }
   return parsed;
 }
