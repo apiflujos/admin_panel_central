@@ -59,17 +59,19 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-// --- CONFIGURACIÓN CRÍTICA PARA RENDER ---
-// Priorizamos process.env.PORT (que Render pone en 10000)
-const port = Number(process.env.PORT || process.env.APP_PORT || 3000);
-
-// Usamos '0.0.0.0' para que el tráfico externo pueda entrar al contenedor
-const host = "0.0.0.0";
+/**
+ * CONFIGURACIÓN PARA RENDER
+ * 1. Port: Render inyecta la variable PORT (normalmente 10000).
+ * 2. Host: Debe ser '0.0.0.0' para ser visible fuera del contenedor.
+ */
+const port = Number(process.env.PORT || 3000);
+const host = '0.0.0.0'; 
 
 app.listen(port, host, () => {
-  console.log(`🚀 Servidor escuchando en puerto ${port} (Host: ${host})`);
+  console.log(`🚀 Servidor iniciado exitosamente`);
+  console.log(`📡 Puerto: ${port} | Host: ${host}`);
   
-  // Iniciar procesos de fondo
+  // Iniciar pollers una vez que el servidor está arriba
   startInventoryAdjustmentsPoller();
   startRetryQueuePoller();
 });
