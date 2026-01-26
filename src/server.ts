@@ -59,18 +59,17 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-// MODIFICACIÓN PARA RENDER:
-// 1. Usamos process.env.PORT que es lo que Render espera (puerto 10000)
+// --- CONFIGURACIÓN CRÍTICA PARA RENDER ---
+// Priorizamos process.env.PORT (que Render pone en 10000)
 const port = Number(process.env.PORT || process.env.APP_PORT || 3000);
 
-// 2. Escuchamos en 0.0.0.0 para que el tráfico externo pueda entrar
+// Usamos '0.0.0.0' para que el tráfico externo pueda entrar al contenedor
 const host = "0.0.0.0";
 
 app.listen(port, host, () => {
-  console.log(`🚀 Servidor listo en http://${host}:${port}`);
-  console.log(`📡 Salud disponible en http://${host}:${port}/health`);
+  console.log(`🚀 Servidor escuchando en puerto ${port} (Host: ${host})`);
   
-  // Iniciar pollers
+  // Iniciar procesos de fondo
   startInventoryAdjustmentsPoller();
   startRetryQueuePoller();
 });
