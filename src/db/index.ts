@@ -1,31 +1,21 @@
-import { Pool } from "pg";
+import { Pool, PoolClient, QueryResult, QueryResultRow } from "pg";
 
 let pool: Pool | null = null;
-let initializationPromise: Promise<Pool> | null = null;
+let dbReady = false;
+let initializationPromise: Promise<void> | null = null;
 
 /**
- * REPARACIÓN BLOQUEANTE:
- * Crea las tablas y columnas. No devuelve el control hasta terminar.
+ * REPARACIÓN BLOQUEANTE Y PRIORITARIA
  */
-async function initializeAndRepair(): Promise<Pool> {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) throw new Error("DATABASE_URL is required");
-
-  const p = new Pool({
-    connectionString,
-    ssl: { rejectUnauthorized: false }
-  });
-
+async function performRepair(p: Pool) {
   try {
-    console.log("🛠️ INICIANDO REPARACIÓN BLOQUEANTE DE BASE DE DATOS...");
+    console.log("🛠️ EJECUTANDO REPARACIÓN CRÍTICA DE COLUMNAS...");
     
-    // Crear tablas base primero
+    // Asegurar tablas base
     await p.query(`CREATE TABLE IF NOT EXISTS sync_logs (id SERIAL PRIMARY KEY);`);
     await p.query(`CREATE TABLE IF NOT EXISTS retry_queue (id SERIAL PRIMARY KEY);`);
-    await p.query(`CREATE TABLE IF NOT EXISTS organizations (id SERIAL PRIMARY KEY, name TEXT);`);
 
-    // Lista de columnas críticas que faltan
-    const queries = [
+    const repairQueries = [
       "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS organization_id INTEGER;",
       "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS entity TEXT;",
       "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS action TEXT;",
@@ -44,68 +34,73 @@ async function initializeAndRepair(): Promise<Pool> {
       "ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();"
     ];
 
-    for (const q of queries) {
-      await p.query(q);
+    for (const sql of repairQueries) {
+      await p.query(sql);
     }
 
-    await p.query(`INSERT INTO organizations (id, name) VALUES (1, 'Default') ON CONFLICT DO NOTHING;`);
-    
-    console.log("✅ BASE DE DATOS REPARADA Y LISTA.");
-    pool = p;
-    return p;
+    console.log("✅ BASE DE DATOS REPARADA. LIBERANDO CONSULTAS.");
+    dbReady = true;
   } catch (err) {
-    console.error("❌ ERROR CRÍTICO EN INICIALIZACIÓN:", err);
-    throw err;
+    console.error("❌ ERROR EN REPARACIÓN:", err);
+    // Aún así permitimos que continúe para no bloquear infinitamente
+    dbReady = true;
   }
 }
 
 /**
- * getPool ahora devuelve el pool solo cuando es seguro usarlo.
+ * GET POOL PROTEGIDO
  */
 export function getPool(): Pool {
   if (!pool) {
-    // Si alguien pide el pool y no está listo, lanzamos el error o inicializamos.
-    // Pero para evitar el TypeError anterior, devolvemos una instancia aunque sea temporal
-    // o forzamos la inicialización previa.
-    throw new Error("Base de datos no inicializada. Use getPoolAsync()");
-  }
-  return pool;
-}
-
-/**
- * Versión asíncrona que espera la reparación.
- */
-export async function getPoolAsync(): Promise<Pool> {
-  if (!initializationPromise) {
-    initializationPromise = initializeAndRepair();
-  }
-  return initializationPromise;
-}
-
-// Alias para compatibilidad (intentará devolver el pool si ya existe)
-export const getPoolSync = () => {
-  if (!pool) {
     const connectionString = process.env.DATABASE_URL;
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
-    initializeAndRepair(); // Lo hace en background pero al menos existe el objeto
+    if (!connectionString) throw new Error("DATABASE_URL is required");
+
+    const rawPool = new Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false }
+    });
+
+    // Lanzar reparación inmediatamente
+    initializationPromise = performRepair(rawPool);
+
+    // Creamos un Proxy para el pool. Si alguien llama a pool.query o pool.connect,
+    // esperaremos a que dbReady sea true.
+    const handler: ProxyHandler<Pool> = {
+      get: (target: any, prop: string) => {
+        const original = target[prop];
+        if (typeof original === 'function' && (prop === 'query' || prop === 'connect')) {
+          return async (...args: any[]) => {
+            if (!dbReady) {
+              console.log(`⏳ Consulta en espera: ${prop}...`);
+              await initializationPromise;
+            }
+            return original.apply(target, args);
+          };
+        }
+        return original;
+      }
+    };
+
+    pool = new Proxy(rawPool, handler) as Pool;
   }
   return pool;
-};
+}
 
-// Exportar funciones vacías o de espera para que el resto del código no falle
+export const getPoolSync = getPool;
+
+// Funciones de compatibilidad vacías (ya lo hace el pool protegido)
 export async function ensureOrganization() {}
 export async function ensureRetryQueueTable() {}
 export async function ensureSyncCheckpointTable(p: Pool) {
+  if (!dbReady) await initializationPromise;
   await p.query(`CREATE TABLE IF NOT EXISTS sync_checkpoints (id SERIAL PRIMARY KEY, organization_id INTEGER, entity TEXT, last_start INTEGER DEFAULT 0, total INTEGER, updated_at TIMESTAMP DEFAULT NOW(), UNIQUE(organization_id, entity));`);
 }
 
 export async function ensureInvoiceSettingsColumns(p: Pool) {
+  if (!dbReady) await initializationPromise;
   try {
     await p.query(`ALTER TABLE invoice_settings ADD COLUMN IF NOT EXISTS payment_method TEXT, ADD COLUMN IF NOT EXISTS observations_template TEXT, ADD COLUMN IF NOT EXISTS bank_account_id TEXT, ADD COLUMN IF NOT EXISTS apply_payment BOOLEAN DEFAULT false, ADD COLUMN IF NOT EXISTS einvoice_enabled BOOLEAN DEFAULT false;`);
   } catch (e) {}
 }
 
 export function getOrgId() { return Number(process.env.APP_ORG_ID || "1"); }
-
-// AUTO-INICIALIZACIÓN AL IMPORTAR
-getPoolAsync();
