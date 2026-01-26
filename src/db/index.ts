@@ -14,7 +14,16 @@ export function getPool() {
   return pool;
 }
 
+// ESTA FUNCIÓN AHORA CREA LA TABLA SI NO EXISTE
 export async function ensureOrganization(poolInstance: Pool, orgId: number) {
+  await poolInstance.query(`
+    CREATE TABLE IF NOT EXISTS organizations (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   await poolInstance.query(
     `
     INSERT INTO organizations (id, name)
@@ -23,6 +32,19 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
     `,
     [orgId, `Org ${orgId}`]
   );
+}
+
+// TAMBIÉN AGREGAMOS ESTA PARA LA OTRA TABLA QUE DABA ERROR
+export async function ensureRetryQueueTable(poolInstance: Pool) {
+  await poolInstance.query(`
+    CREATE TABLE IF NOT EXISTS retry_queue (
+      id SERIAL PRIMARY KEY,
+      payload JSONB,
+      attempts INTEGER DEFAULT 0,
+      next_retry TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 }
 
 export async function ensureInvoiceSettingsColumns(poolInstance: Pool) {
