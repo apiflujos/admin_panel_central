@@ -60,18 +60,17 @@ app.get("/health", (_req, res) => {
 });
 
 /**
- * CONFIGURACIÓN PARA RENDER
- * 1. Port: Render inyecta la variable PORT (normalmente 10000).
- * 2. Host: Debe ser '0.0.0.0' para ser visible fuera del contenedor.
+ * CONFIGURACIÓN CRÍTICA PARA RENDER
+ * 1. Port: Render inyecta process.env.PORT (10000).
+ * 2. Host: Debe ser '0.0.0.0' para ser accesible externamente.
  */
 const port = Number(process.env.PORT || 3000);
 const host = '0.0.0.0'; 
 
 app.listen(port, host, () => {
-  console.log(`🚀 Servidor iniciado exitosamente`);
-  console.log(`📡 Puerto: ${port} | Host: ${host}`);
+  console.log(`🚀 Servidor escuchando en puerto ${port} (Host: ${host})`);
   
-  // Iniciar pollers una vez que el servidor está arriba
+  // Iniciar pollers una vez que el puerto está abierto
   startInventoryAdjustmentsPoller();
   startRetryQueuePoller();
 });
