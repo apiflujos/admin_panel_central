@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ApiFlujos - Alegra Integraciones</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <button class="ghost sidebar-toggle" id="sidebar-toggle" aria-label="Colapsar menu" title="Colapsar menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M15 6l-6 6 6 6" />
+            </svg>
+          </button>
+        </div>
+        <nav class="nav">
+          <button class="nav-item is-active" data-target="dashboard" title="Metricas">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+              </svg>
+            </span>
+            <span class="nav-label">Metricas</span>
+          </button>
+          <button class="nav-item" data-target="operations" title="Pedidos">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M7 8h10M7 12h10M7 16h6" />
+                <path d="M6 4h12a2 2 0 0 1 2 2v12l-3-2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" />
+              </svg>
+            </span>
+            <span class="nav-label">Pedidos</span>
+          </button>
+          <button class="nav-item" data-target="products" title="Productos">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M3 7h18v13H3z" />
+                <path d="M7 7l5-4 5 4" />
+              </svg>
+            </span>
+            <span class="nav-label">Productos</span>
+          </button>
+          <button class="nav-item" data-target="logs" title="Logs de API">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M5 4h10l4 4v12H5z" />
+                <path d="M8 12h8M8 16h8M8 8h4" />
+              </svg>
+            </span>
+            <span class="nav-label">Logs de API</span>
+          </button>
+          <button class="nav-item" data-target="settings" title="Configuraciones">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <circle cx="12" cy="12" r="3.2" />
+                <path d="M19.4 15a7.5 7.5 0 0 0 0-6l2-1.2-2-3.4-2.3 1a7.4 7.4 0 0 0-5.2-2.2L11 1H7l-.6 2.2a7.4 7.4 0 0 0-5.2 2.2l-2.3-1-2 3.4 2 1.2a7.5 7.5 0 0 0 0 6l-2 1.2 2 3.4 2.3-1a7.4 7.4 0 0 0 5.2 2.2L7 23h4l.6-2.2a7.4 7.4 0 0 0 5.2-2.2l2.3 1 2-3.4-2-1.2z" />
+              </svg>
+            </span>
+            <span class="nav-label">Configuraciones</span>
+          </button>
+          <button class="nav-item nav-logout" id="logout-btn" type="button" title="Cerrar sesion">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M16 17l5-5-5-5" />
+                <path d="M21 12H9" />
+                <path d="M13 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h6" />
+              </svg>
+            </span>
+            <span class="nav-label">Cerrar sesion</span>
+          </button>
+        </nav>
+        <div class="sidebar-footer"></div>
+      </aside>
+
+      <main class="content">
+        <header class="topbar">
+          <div class="topbar-left">
+            <h1>Metricas Olivia Shoes</h1>
+            <p class="subtitle">Visibilidad operativa en tiempo real.</p>
+          </div>
+          <div class="topbar-center"></div>
+          <div class="topbar-actions">
+            <div class="topbar-brand apiflujos-brand">
+              <img src="/assets/logo.png" alt="ApiFlujos" />
+            </div>
+          </div>
+        </header>
+        <div class="sync-progress" id="sync-progress" aria-hidden="true">
+          <div class="sync-progress-track">
+            <div class="sync-progress-bar" id="sync-progress-bar"></div>
+          </div>
+          <span class="sync-progress-label" id="sync-progress-label">Sincronizando 0%</span>
+        </div>
+
+        <section class="section is-active" id="dashboard">
+          <div class="metrics-layout">
+            <div class="metrics-right">
+              <div class="metrics-hero">
+                <div>
+                  <p class="metrics-kicker">Metricas</p>
+                  <h2>Panorama operativo Olivia Shoes</h2>
+                  <p class="metrics-sub">Ventas, pedidos y actividad de sincronizacion en un solo lugar.</p>
+                </div>
+                <div class="metrics-controls">
+                  <div class="metrics-control">
+                    <label for="metrics-range">Rango</label>
+                    <select id="metrics-range">
+                      <option value="7">Ultimos 7 dias</option>
+                      <option value="30" selected>Ultimos 30 dias</option>
+                      <option value="90">Ultimos 90 dias</option>
+                    </select>
+                  </div>
+                  <div class="metrics-status">
+                    <span class="status-pill" id="metrics-shopify-status">Shopify</span>
+                    <span class="status-pill" id="metrics-alegra-status">Alegra</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="kpi-grid metrics-kpi-grid">
+                <div class="kpi-card">
+                  <p>Ventas</p>
+                  <h2 id="kpi-sales">Sin datos</h2>
+                  <span class="kpi-sub" id="kpi-sales-sub">Alegra</span>
+                </div>
+                <div class="kpi-card">
+                  <p>Pedidos</p>
+                  <h2 id="kpi-orders">Sin datos</h2>
+                </div>
+                <div class="kpi-card">
+                  <p>Pendientes</p>
+                  <h2 id="kpi-pending">Sin datos</h2>
+                  <span class="kpi-sub" id="kpi-pending-sub">Cartera</span>
+                </div>
+              </div>
+
+              <div class="metrics-charts metrics-charts-single">
+                <div class="panel">
+                  <div class="panel-header">
+                    <h3>Ventas por metodo</h3>
+                    <span class="panel-tag">Alegra</span>
+                  </div>
+                  <div class="chart-placeholder" id="chart-payments">
+                    <p>Sin datos para graficar.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="metrics-charts">
+                <div class="panel">
+                  <div class="panel-header">
+                    <h3>Pedidos vs Facturas</h3>
+                    <span class="panel-tag">Shopify · Alegra</span>
+                  </div>
+                  <div class="chart-placeholder chart-compact" id="chart-orders">
+                    <p>Sin datos para graficar.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="metrics-reports">
+                <div class="panel">
+                  <div class="panel-header">
+                    <h3>Top productos</h3>
+                    <span class="panel-tag">Reporte</span>
+                  </div>
+                  <div class="table-card">
+                    <table class="table" id="metrics-top-products">
+                      <thead>
+                        <tr>
+                          <th>Producto</th>
+                          <th>Ventas</th>
+                          <th>Monto</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td colspan="3" class="empty">Sin datos.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="panel">
+                  <div class="panel-header">
+                    <h3>Ultimos pedidos</h3>
+                    <span class="panel-tag">Shopify</span>
+                  </div>
+                  <div class="table-card">
+                    <table class="table" id="metrics-latest-orders">
+                      <thead>
+                        <tr>
+                          <th>Pedido</th>
+                          <th>Cliente</th>
+                          <th>Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td colspan="3" class="empty">Sin datos.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-header">
+                  <h3>Resumen rapido</h3>
+                  <span class="panel-tag">Operacion</span>
+                </div>
+                <div class="metrics-mini">
+                  <div>
+                    <p>Pedidos hoy</p>
+                    <h4 id="metrics-orders-today">--</h4>
+                  </div>
+                  <div>
+                    <p>Facturas hoy</p>
+                    <h4 id="metrics-invoices-today">--</h4>
+                  </div>
+                  <div>
+                    <p>Ultimo webhook</p>
+                    <h4 id="metrics-last-webhook">--</h4>
+                  </div>
+                  <div>
+                    <p>Fallos 24h</p>
+                    <h4 id="metrics-failed-syncs">--</h4>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <aside class="metrics-assistant">
+              <div class="panel assistant-panel">
+                <div class="panel-header assistant-header">
+                  <div class="assistant-header-title">
+                    <img src="/assets/avatar.png" alt="Olivia IA" class="assistant-avatar" />
+                    <h3>Asistente IA</h3>
+                  </div>
+                  <span class="panel-tag">Olivia</span>
+                </div>
+                <div class="assistant-messages" id="assistant-messages"></div>
+                <div class="assistant-controls">
+                  <span class="assistant-hint">Enter para enviar · Ctrl+Enter para salto de linea</span>
+                </div>
+                <div class="assistant-input">
+                  <div class="assistant-attachments" id="assistant-attachments"></div>
+                  <div class="assistant-composer">
+                    <label class="ghost assistant-attach" id="assistant-attach" for="assistant-file" title="Adjuntar archivo">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M7 12l6-6a4 4 0 1 1 6 6l-8 8a6 6 0 0 1-8-8l9-9" />
+                      </svg>
+                    </label>
+                    <textarea id="assistant-input" rows="2" placeholder="Escribe una instruccion para Olivia IA..."></textarea>
+                    <button class="primary assistant-send" id="assistant-send" type="button" title="Enviar">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M4 12l16-8-6 8 6 8-16-8z" />
+                      </svg>
+                    </button>
+                  </div>
+                  <input id="assistant-file" type="file" multiple accept="image/*,application/pdf" />
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="section" id="operations">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Gestion de pedidos</h3>
+              <span class="panel-tag">Pedidos</span>
+            </div>
+            <div class="toolbar products-toolbar">
+              <input type="text" id="ops-search" placeholder="Buscar por orden, cliente o producto" />
+              <input type="date" id="orders-date-filter" />
+              <select id="orders-days">
+                <option value="7">Ultimos 7 dias</option>
+                <option value="15">Ultimos 15 dias</option>
+                <option value="30" selected>Ultimos 30 dias</option>
+                <option value="60">Ultimos 60 dias</option>
+                <option value="90">Ultimos 90 dias</option>
+              </select>
+              <select id="orders-sort">
+                <option value="date_desc">Orden: Fecha (recientes)</option>
+                <option value="date_asc">Orden: Fecha (antiguos)</option>
+                <option value="order_asc">Orden: Numero (asc)</option>
+                <option value="order_desc">Orden: Numero (desc)</option>
+              </select>
+              <input type="number" id="orders-limit" min="1" placeholder="Filas por pagina" />
+              <button class="ghost" id="ops-search-btn">Buscar</button>
+              <button class="primary" id="orders-refresh">Refrescar</button>
+              <button class="ghost" id="orders-clear">Borrar filtros</button>
+            </div>
+            <div class="sync-progress" id="orders-progress" aria-hidden="true">
+              <div class="sync-progress-track">
+                <div class="sync-progress-bar" id="orders-progress-bar"></div>
+              </div>
+              <span class="sync-progress-label" id="orders-progress-label">Sincronizando 0%</span>
+            </div>
+            <div class="table-card orders-table">
+              <table class="table" id="ops-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Nro. Orden</th>
+                    <th>Cliente</th>
+                    <th>Productos</th>
+                    <th>Estado Alegra</th>
+                    <th>Accion</th>
+                    <th>Nro. Factura</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="7" class="empty">Sin ordenes para mostrar.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="products-footer orders-footer">
+              <span id="orders-page">Pagina 1</span>
+              <div class="products-pagination">
+                <button class="ghost" id="orders-prev">Anterior</button>
+                <button class="ghost" id="orders-next">Siguiente</button>
+              </div>
+              <div class="products-pagination">
+                <input type="number" id="orders-page-input" min="1" placeholder="Ir a" />
+                <button class="ghost" id="orders-page-go">Ir</button>
+              </div>
+              <span id="orders-count">Mostrando 0 de 0</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="products">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Gestion de productos</h3>
+              <span class="panel-tag">Alegra → Shopify</span>
+            </div>
+            <div class="toolbar products-toolbar">
+              <input type="text" id="products-search" placeholder="Buscar por nombre o referencia" />
+              <input type="date" id="products-date-filter" />
+              <select id="products-sort">
+                <option value="date_desc">Orden: Fecha (recientes)</option>
+                <option value="date_asc">Orden: Fecha (antiguos)</option>
+                <option value="ref_asc">Orden: Referencia (A-Z)</option>
+                <option value="ref_desc">Orden: Referencia (Z-A)</option>
+              </select>
+              <input type="number" id="products-limit" min="1" max="30" value="30" placeholder="Limite listado" />
+              <select id="products-publish-filter">
+                <option value="all">Estado: Todos</option>
+                <option value="published">Publicado</option>
+                <option value="unpublished">No publicado</option>
+                <option value="active">Activo</option>
+                <option value="draft">Borrador</option>
+                <option value="archived">Archivado</option>
+              </select>
+              <button class="ghost" id="products-search-btn">Buscar</button>
+              <button class="primary" id="products-refresh">Refrescar</button>
+              <button class="ghost" id="products-clear">Borrar filtros</button>
+            </div>
+            <div class="sync-progress" id="products-progress" aria-hidden="true">
+              <div class="sync-progress-track">
+                <div class="sync-progress-bar" id="products-progress-bar"></div>
+              </div>
+              <span class="sync-progress-label" id="products-progress-label">Sincronizando 0%</span>
+            </div>
+            <div class="table-card products-table">
+                <table class="table" id="products-table">
+                  <thead>
+                    <tr>
+                      <th>Producto / Referencia</th>
+                      <th>ID Alegra</th>
+                      <th>ID Shopify</th>
+                      <th>Referencia/SKU</th>
+                      <th>Fecha</th>
+                      <th>Stock total</th>
+                      <th>Estado Shopify</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td colspan="8" class="empty">Sin productos para mostrar.</td>
+                    </tr>
+                  </tbody>
+                </table>
+            </div>
+            <div class="products-footer">
+              <span id="products-page">Pagina 1</span>
+              <div class="products-pagination">
+                <button class="ghost" id="products-prev">Anterior</button>
+                <button class="ghost" id="products-next">Siguiente</button>
+              </div>
+              <div class="products-pagination">
+                <input type="number" id="products-page-input" min="1" placeholder="Ir a" />
+                <button class="ghost" id="products-page-go">Ir</button>
+              </div>
+              <span id="products-count">Mostrando 0 de 0</span>
+              <span class="products-status" id="products-status">Listo para sincronizar</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="logs">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Logs de API</h3>
+              <span class="panel-tag">Trazabilidad</span>
+            </div>
+            <div class="toolbar">
+              <input type="text" placeholder="ID de pedido" id="log-order-id" />
+              <select id="log-status">
+                <option value="">Todos</option>
+                <option value="success">Exitosos</option>
+                <option value="fail">Errores</option>
+                <option value="retrying">Reintentando</option>
+              </select>
+              <button class="ghost" id="log-filter">Filtrar</button>
+              <button class="primary" id="log-retry">Reintentar fallidos</button>
+              <span class="status-pill" id="queue-status">Sin datos</span>
+            </div>
+            <table class="table" id="log-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Entidad</th>
+                  <th>Direccion</th>
+                  <th>Estado</th>
+                  <th>Detalle</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="6" class="empty">Sin datos.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="section" id="settings">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Conexiones y Tokens</h3>
+              <span class="panel-tag">Seguridad</span>
+            </div>
+            <div class="settings-grid">
+              <div class="field">
+                <label>Shopify dominio</label>
+                <input type="text" id="shopify-domain" placeholder="tu-tienda.myshopify.com" />
+              </div>
+              <div class="field">
+                <label>Shopify access token</label>
+                <input type="password" id="shopify-token" placeholder="shpat_********" autocomplete="new-password" />
+              </div>
+              <div class="field">
+                <label>Email usuario</label>
+                <input type="email" id="alegra-email" placeholder="correo@empresa.com" />
+              </div>
+              <div class="field">
+                <label>API Key</label>
+                <input type="password" id="alegra-key" placeholder="********" autocomplete="new-password" />
+              </div>
+              <div class="field">
+                <label>Ambiente</label>
+                <div class="toggle">
+                  <button type="button" data-env="sandbox" class="toggle-btn">Sandbox</button>
+                  <button type="button" data-env="prod" class="toggle-btn is-active">Produccion</button>
+                </div>
+              </div>
+              <div class="status-card">
+                <div class="status-row">
+                  <span class="status-led" id="status-led-shopify"></span>
+                  <div>
+                    <p>Shopify</p>
+                    <span id="status-shopify">Sin validar</span>
+                  </div>
+                  <button class="ghost" id="test-shopify">Probar Shopify</button>
+                </div>
+                <div class="status-row">
+                  <span class="status-led" id="status-led-alegra"></span>
+                  <div>
+                    <p>Alegra</p>
+                    <span id="status-alegra">Sin validar</span>
+                  </div>
+                  <button class="ghost" id="test-alegra">Probar Alegra</button>
+                </div>
+              </div>
+              <div class="status-card">
+                <div class="status-row">
+                  <span class="status-led" id="inventory-cron-led"></span>
+                  <div>
+                    <p>Cron inventario</p>
+                    <span id="inventory-cron-status">Sin datos</span>
+                  </div>
+                </div>
+                <div class="status-row">
+                  <div>
+                    <p>Ultimo checkpoint</p>
+                    <span id="inventory-cron-checkpoint">-</span>
+                  </div>
+                  <div>
+                    <p>Intervalo</p>
+                    <span id="inventory-cron-interval">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>IA</h3>
+              <span class="panel-tag">Asistente</span>
+            </div>
+            <div class="settings-grid">
+              <div class="field">
+                <label>IA API Key</label>
+                <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
+              </div>
+              <div class="field field-actions">
+                <label>&nbsp;</label>
+                <button class="primary" id="ai-save" type="button">Guardar token</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Seguridad</h3>
+              <span class="panel-tag">Acceso</span>
+            </div>
+            <div class="settings-grid">
+              <div class="field">
+                <label>Contrasena actual</label>
+                <input type="password" id="password-current" autocomplete="current-password" />
+              </div>
+              <div class="field">
+                <label>Nueva contrasena</label>
+                <input type="password" id="password-new" autocomplete="new-password" />
+              </div>
+              <div class="field">
+                <label>Confirmar contrasena</label>
+                <input type="password" id="password-confirm" autocomplete="new-password" />
+              </div>
+              <div class="field field-actions">
+                <label>&nbsp;</label>
+                <button class="primary" id="password-save" type="button">Cambiar contrasena</button>
+              </div>
+              <div class="field field-span">
+                <p class="field-hint" id="password-message"></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Conexiones guardadas</h3>
+              <span class="panel-tag">Resumen</span>
+            </div>
+            <div class="table-card">
+              <table id="connections-table">
+                <thead>
+                  <tr>
+                    <th>Servicio</th>
+                    <th>Cuenta</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="3" class="empty">Sin conexiones.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Publicacion Shopify</h3>
+              <span class="panel-tag">Productos</span>
+            </div>
+            <div class="settings-grid products-settings">
+              <div class="field">
+                <label>Estado Shopify</label>
+                <select id="products-publish-status">
+                  <option value="draft">Draft</option>
+                  <option value="active">Active</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Imagenes activas</label>
+                <input type="checkbox" id="products-include-images" />
+              </div>
+              <div class="field">
+                <label>Vendor (opcional)</label>
+                <input type="text" id="products-vendor" placeholder="Alegra" />
+              </div>
+              <div class="field">
+                <label>Auto publicar en webhooks</label>
+                <input type="checkbox" id="rules-auto-publish" />
+              </div>
+              <div class="field">
+                <label>Estado automatico</label>
+                <select id="rules-auto-status">
+                  <option value="draft">Draft</option>
+                  <option value="active">Active</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Sincronizacion productos</h3>
+              <span class="panel-tag">Alegra</span>
+            </div>
+            <div class="settings-grid products-settings">
+              <div class="field">
+                <label>Productos desde</label>
+                <input type="date" id="products-date-start" />
+              </div>
+              <div class="field">
+                <label>Productos hasta</label>
+                <input type="date" id="products-date-end" />
+              </div>
+              <div class="field">
+                <label>Limite de sincronizacion</label>
+                <input type="number" id="products-sync-limit" min="1" placeholder="Sin limite" />
+              </div>
+              <div class="field">
+                <label>Referencia o nombre</label>
+                <input type="text" id="products-sync-query" placeholder="Ej: SADBS0276" />
+              </div>
+              <div class="field">
+                <label>Publicar en Shopify</label>
+                <input type="checkbox" id="products-sync-publish" checked />
+              </div>
+              <div class="field">
+                <label>Solo publicados en Shopify</label>
+                <input type="checkbox" id="products-sync-only-published" checked />
+              </div>
+            </div>
+            <div class="toolbar">
+              <button class="primary" id="products-sync-filtered">Sincronizar productos</button>
+              <button class="ghost" id="products-sync-stop" type="button">Parar sincronizacion</button>
+              <button class="ghost" id="products-sync-clear">Borrar filtros</button>
+              <span class="kpi-sub" id="products-sync-status">Listo</span>
+            </div>
+            <div class="sync-progress" id="products-sync-progress" aria-hidden="true">
+              <div class="sync-progress-track">
+                <div class="sync-progress-bar" id="products-sync-progress-bar"></div>
+              </div>
+              <span class="sync-progress-label" id="products-sync-progress-label">Sincronizando 0%</span>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Sincronizacion pedidos</h3>
+              <span class="panel-tag">Shopify</span>
+            </div>
+            <div class="settings-grid products-settings">
+              <div class="field">
+                <label>Pedidos desde</label>
+                <input type="date" id="orders-date-start" />
+              </div>
+              <div class="field">
+                <label>Pedidos hasta</label>
+                <input type="date" id="orders-date-end" />
+              </div>
+              <div class="field">
+                <label>Numero de pedido</label>
+                <input type="text" id="orders-sync-number" placeholder="Ej: 1054" />
+              </div>
+            </div>
+            <div class="toolbar">
+              <button class="primary" id="orders-sync">Sincronizar pedidos</button>
+              <button class="ghost" id="orders-sync-clear">Borrar filtros</button>
+              <span class="kpi-sub" id="orders-sync-status">Listo</span>
+            </div>
+            <div class="sync-progress" id="orders-sync-progress" aria-hidden="true">
+              <div class="sync-progress-track">
+                <div class="sync-progress-bar" id="orders-sync-progress-bar"></div>
+              </div>
+              <span class="sync-progress-label" id="orders-sync-progress-label">Sincronizando 0%</span>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Factura de venta</h3>
+              <span class="panel-tag">Configuracion</span>
+            </div>
+            <div class="settings-grid">
+              <div class="field">
+                <label>Facturar automaticamente</label>
+                <input type="checkbox" id="cfg-generate-invoice" />
+              </div>
+              <div class="field">
+                <label>Habilitar factura electronica</label>
+                <input type="checkbox" id="cfg-einvoice-enabled" />
+              </div>
+              <div class="field">
+                <label>Resolucion DIAN</label>
+                <select id="cfg-resolution"></select>
+              </div>
+              <div class="field">
+                <label>Centro de costos</label>
+                <select id="cfg-cost-center"></select>
+              </div>
+              <div class="field">
+                <label>Bodega</label>
+                <select id="cfg-warehouse"></select>
+              </div>
+              <div class="field">
+                <label>Vendedor</label>
+                <select id="cfg-seller"></select>
+              </div>
+              <div class="field">
+                <label>Metodo de pago</label>
+                <select id="cfg-payment-method"></select>
+              </div>
+              <div class="field">
+                <label>Cuenta bancaria</label>
+                <select id="cfg-bank-account"></select>
+              </div>
+              <div class="field">
+                <label>Aplicar pago</label>
+                <input type="checkbox" id="cfg-apply-payment" />
+              </div>
+              <div class="field">
+                <label>Observaciones</label>
+                <input type="text" id="cfg-observations" placeholder="Pedido {{order.name}}" />
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Mapeo de cuentas</h3>
+              <span class="panel-tag">Pagos</span>
+            </div>
+            <div class="mapping-grid">
+              <select id="map-payment-method"></select>
+              <select id="map-bank-account"></select>
+              <button class="ghost" id="map-add">Agregar</button>
+            </div>
+            <table class="table" id="map-table">
+              <thead>
+                <tr>
+                  <th>Metodo</th>
+                  <th>Cuenta bancaria</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="3" class="empty">Sin mapeos.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal" id="payload-modal" aria-hidden="true">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4>Detalle de payload</h4>
+          <button id="modal-close">Cerrar</button>
+        </div>
+        <pre id="modal-body">Sin datos</pre>
+      </div>
+    </div>
+
+    <div class="modal" id="einvoice-modal" aria-hidden="true">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h4>Factura electronica</h4>
+            <p class="kpi-sub" id="einvoice-order">Pedido: -</p>
+          </div>
+          <button id="einvoice-close">Cerrar</button>
+        </div>
+        <div class="settings-grid modal-form">
+          <div class="field">
+            <label>Facturar electronicamente</label>
+            <input type="checkbox" id="einvoice-flag" />
+          </div>
+          <div class="field">
+            <label>Nombre fiscal</label>
+            <input type="text" id="einvoice-name" placeholder="Nombre o razon social" />
+          </div>
+          <div class="field">
+            <label>Tipo de documento</label>
+            <select id="einvoice-id-type">
+              <option value="">Seleccionar</option>
+              <option value="CC">CC</option>
+              <option value="NIT">NIT</option>
+              <option value="CE">CE</option>
+              <option value="TI">TI</option>
+              <option value="PP">Pasaporte</option>
+              <option value="OTRO">Otro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Numero de documento</label>
+            <input type="text" id="einvoice-id-number" placeholder="Documento" />
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="einvoice-email" placeholder="correo@cliente.com" />
+          </div>
+          <div class="field">
+            <label>Telefono</label>
+            <input type="text" id="einvoice-phone" placeholder="Telefono" />
+          </div>
+          <div class="field">
+            <label>Direccion</label>
+            <input type="text" id="einvoice-address" placeholder="Calle 123 # 4-56" />
+          </div>
+          <div class="field">
+            <label>Ciudad</label>
+            <input type="text" id="einvoice-city" placeholder="Ciudad" />
+          </div>
+          <div class="field">
+            <label>Departamento</label>
+            <input type="text" id="einvoice-state" placeholder="Departamento" />
+          </div>
+          <div class="field">
+            <label>Pais</label>
+            <input type="text" id="einvoice-country" placeholder="Colombia" />
+          </div>
+          <div class="field">
+            <label>Codigo postal</label>
+            <input type="text" id="einvoice-zip" placeholder="Codigo postal" />
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="primary" id="einvoice-save" type="button">Guardar</button>
+          <span class="kpi-sub" id="einvoice-status">-</span>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
