@@ -1,9 +1,13 @@
 import { Pool } from "pg";
 
 let pool: Pool | null = null;
-let ensureInvoiceSettingsPromise: Promise<void> | null = null;
+let isInitialized = false;
+let initializationPromise: Promise<void> | null = null;
 
-export function getPool() {
+/**
+ * Retorna el pool de conexión, asegurando que la DB esté reparada antes de usarla
+ */
+export async function getPool() {
   if (!pool) {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
@@ -14,66 +18,78 @@ export function getPool() {
       ssl: { rejectUnauthorized: false } 
     });
   }
+
+  // Si no se ha inicializado, esperamos a que termine la reparación
+  if (!isInitialized) {
+    if (!initializationPromise) {
+      initializationPromise = forceQuickFix(pool);
+    }
+    await initializationPromise;
+  }
+
   return pool;
 }
 
 /**
- * REPARACIÓN FORZADA E INMEDIATA
- * Esta función se encarga de que las columnas existan sí o sí.
+ * REPARACIÓN CRÍTICA: Bloquea el acceso hasta terminar
  */
-async function forceQuickFix() {
-  const p = getPool();
+async function forceQuickFix(p: Pool) {
   try {
-    // Reparar sync_logs
-    await p.query(`CREATE TABLE IF NOT EXISTS sync_logs (id SERIAL PRIMARY KEY);`);
-    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS organization_id INTEGER;`);
-    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS entity TEXT;`);
-    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS action TEXT;`);
-    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS status TEXT;`);
-    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS message TEXT;`);
-    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS request_json JSONB;`);
-    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS response_json JSONB;`);
-    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS retry_count INTEGER DEFAULT 0;`);
-    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS error_details TEXT;`);
-    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS last_attempt TIMESTAMP;`);
-    await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();`);
-
-    // Reparar retry_queue
-    await p.query(`CREATE TABLE IF NOT EXISTS retry_queue (id SERIAL PRIMARY KEY);`);
-    await p.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS sync_log_id INTEGER;`);
-    await p.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS payload JSONB;`);
-    await p.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS attempts INTEGER DEFAULT 0;`);
-    await p.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS next_retry TIMESTAMP;`);
-    await p.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();`);
+    console.log("🛠️ Iniciando reparación de emergencia de la base de datos...");
     
-    console.log("✅ Base de datos reparada con éxito.");
+    // Reparar SYNC_LOGS
+    await p.query(`CREATE TABLE IF NOT EXISTS sync_logs (id SERIAL PRIMARY KEY);`);
+    const syncLogsCols = [
+      `organization_id INTEGER`, `entity TEXT`, `action TEXT`, `status TEXT`, 
+      `message TEXT`, `request_json JSONB`, `response_json JSONB`, 
+      `retry_count INTEGER DEFAULT 0`, `error_details TEXT`, 
+      `last_attempt TIMESTAMP`, `created_at TIMESTAMP DEFAULT NOW()`
+    ];
+    for (const col of syncLogsCols) {
+      await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS ${col};`);
+    }
+
+    // Reparar RETRY_QUEUE
+    await p.query(`CREATE TABLE IF NOT EXISTS retry_queue (id SERIAL PRIMARY KEY);`);
+    const retryCols = [
+      `sync_log_id INTEGER`, `payload JSONB`, `attempts INTEGER DEFAULT 0`, 
+      `next_retry TIMESTAMP`, `created_at TIMESTAMP DEFAULT NOW()`
+    ];
+    for (const col of retryCols) {
+      await p.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS ${col};`);
+    }
+
+    // Reparar ORGANIZATIONS
+    await p.query(`CREATE TABLE IF NOT EXISTS organizations (id SERIAL PRIMARY KEY, name TEXT);`);
+    await p.query(`INSERT INTO organizations (id, name) VALUES (1, 'Org 1') ON CONFLICT DO NOTHING;`);
+
+    isInitialized = true;
+    console.log("✅ Base de datos reparada y lista para consultas.");
   } catch (err) {
-    console.error("❌ Error en reparación rápida:", err);
+    console.error("❌ Error crítico en reparación:", err);
+    // No marcamos como inicializado para que el siguiente intento lo repita
+    initializationPromise = null; 
+    throw err;
   }
 }
 
-// Ejecutar reparación al cargar el módulo
-forceQuickFix();
+// Exportamos una versión síncrona para compatibilidad, pero la función de arriba es la clave
+export function getPoolSync() {
+  if (!pool) {
+    pool = new Pool({ 
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false } 
+    });
+  }
+  return pool;
+}
 
 export async function ensureOrganization(poolInstance: Pool, orgId: number) {
-  // Asegurar tabla organizations
-  await poolInstance.query(`
-    CREATE TABLE IF NOT EXISTS organizations (
-      id SERIAL PRIMARY KEY, 
-      name TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  // Insertar organización inicial
-  await poolInstance.query(
-    `INSERT INTO organizations (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`,
-    [orgId, `Org ${orgId}`]
-  );
+  await getPool(); // Esto dispara la reparación
 }
 
 export async function ensureRetryQueueTable(poolInstance: Pool) {
-  await forceQuickFix();
+  await getPool();
 }
 
 export async function ensureSyncCheckpointTable(poolInstance: Pool) {
@@ -92,23 +108,19 @@ export async function ensureSyncCheckpointTable(poolInstance: Pool) {
 }
 
 export async function ensureInvoiceSettingsColumns(poolInstance: Pool) {
-  if (!ensureInvoiceSettingsPromise) {
-    ensureInvoiceSettingsPromise = poolInstance
-      .query(`
-        ALTER TABLE invoice_settings
-          ADD COLUMN IF NOT EXISTS payment_method TEXT,
-          ADD COLUMN IF NOT EXISTS observations_template TEXT,
-          ADD COLUMN IF NOT EXISTS bank_account_id TEXT,
-          ADD COLUMN IF NOT EXISTS apply_payment BOOLEAN NOT NULL DEFAULT false,
-          ADD COLUMN IF NOT EXISTS einvoice_enabled BOOLEAN NOT NULL DEFAULT false
-      `)
-      .then(() => undefined)
-      .catch((error) => {
-        ensureInvoiceSettingsPromise = null;
-        throw error;
-      });
-  }
-  await ensureInvoiceSettingsPromise;
+  const p = poolInstance;
+  await p.query(`
+    DO $$ 
+    BEGIN 
+      IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'invoice_settings') THEN
+        ALTER TABLE invoice_settings ADD COLUMN IF NOT EXISTS payment_method TEXT;
+        ALTER TABLE invoice_settings ADD COLUMN IF NOT EXISTS observations_template TEXT;
+        ALTER TABLE invoice_settings ADD COLUMN IF NOT EXISTS bank_account_id TEXT;
+        ALTER TABLE invoice_settings ADD COLUMN IF NOT EXISTS apply_payment BOOLEAN DEFAULT false;
+        ALTER TABLE invoice_settings ADD COLUMN IF NOT EXISTS einvoice_enabled BOOLEAN DEFAULT false;
+      END IF;
+    END $$;
+  `);
 }
 
 export function getOrgId() {
