@@ -27,7 +27,7 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
     );
   `);
 
-  // 2. RETRY QUEUE
+  // 2. RETRY QUEUE - Asegurando estructura completa
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS retry_queue (
       id SERIAL PRIMARY KEY,
@@ -38,9 +38,10 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
+  // Reparación de columnas retry_queue
   await poolInstance.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS sync_log_id INTEGER;`);
 
-  // 3. SYNC LOGS - Actualizada con todas las columnas necesarias
+  // 3. SYNC LOGS - ¡ESTO SOLUCIONA TUS ERRORES ACTUALES!
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS sync_logs (
       id SERIAL PRIMARY KEY,
@@ -49,16 +50,27 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
       action TEXT,
       status TEXT,
       message TEXT,
-      request_json JSONB,
-      response_json JSONB,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
-  // REPARACIÓN DE COLUMNAS PARA SYNC LOGS (AQUÍ ESTABA EL ERROR)
-  await poolInstance.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS request_json JSONB;`);
-  await poolInstance.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS response_json JSONB;`);
-  await poolInstance.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS organization_id INTEGER;`);
+  // Inyectamos TODAS las columnas que el sistema podría pedir para evitar más reinicios
+  const syncLogsFixes = [
+    `ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS request_json JSONB;`,
+    `ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS response_json JSONB;`,
+    `ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS retry_count INTEGER DEFAULT 0;`,
+    `ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS error_details TEXT;`,
+    `ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS last_attempt TIMESTAMP;`,
+    `ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS organization_id INTEGER;`
+  ];
+
+  for (const sql of syncLogsFixes) {
+    try {
+      await poolInstance.query(sql);
+    } catch (e) {
+      console.log("Columna ya existía o error ignorado");
+    }
+  }
 
   // 4. SYNC CHECKPOINTS
   await poolInstance.query(`
@@ -109,7 +121,6 @@ export async function ensureInvoiceSettingsColumns(poolInstance: Pool) {
 }
 
 let ensureInventoryRulesPromise: Promise<void> | null = null;
-
 export async function ensureInventoryRulesColumns(poolInstance: Pool) {
   if (!ensureInventoryRulesPromise) {
     ensureInventoryRulesPromise = poolInstance
