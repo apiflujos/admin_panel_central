@@ -14,8 +14,12 @@ export function getPool() {
   return pool;
 }
 
-// ESTA FUNCIÓN AHORA CREA LA TABLA SI NO EXISTE
+/**
+ * Esta función es el "corazón" del inicio. 
+ * Crea todas las tablas críticas si no existen para evitar errores de "relation does not exist".
+ */
 export async function ensureOrganization(poolInstance: Pool, orgId: number) {
+  // 1. Crear tabla de Organizaciones
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS organizations (
       id SERIAL PRIMARY KEY,
@@ -24,6 +28,31 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
     );
   `);
 
+  // 2. Crear tabla de Retry Queue (La que falló en el último log)
+  await poolInstance.query(`
+    CREATE TABLE IF NOT EXISTS retry_queue (
+      id SERIAL PRIMARY KEY,
+      payload JSONB,
+      attempts INTEGER DEFAULT 0,
+      next_retry TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // 3. Crear tabla de Sync Checkpoints
+  await poolInstance.query(`
+    CREATE TABLE IF NOT EXISTS sync_checkpoints (
+      id SERIAL PRIMARY KEY,
+      organization_id INTEGER NOT NULL REFERENCES organizations(id),
+      entity TEXT NOT NULL,
+      last_start INTEGER NOT NULL DEFAULT 0,
+      total INTEGER,
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      UNIQUE (organization_id, entity)
+    );
+  `);
+
+  // 4. Insertar la organización por defecto
   await poolInstance.query(
     `
     INSERT INTO organizations (id, name)
@@ -34,7 +63,7 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
   );
 }
 
-// TAMBIÉN AGREGAMOS ESTA PARA LA OTRA TABLA QUE DABA ERROR
+// Mantenemos esta función por compatibilidad, aunque el trabajo pesado ya se hizo arriba
 export async function ensureRetryQueueTable(poolInstance: Pool) {
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS retry_queue (
@@ -92,6 +121,7 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
 }
 
 export async function ensureSyncCheckpointTable(poolInstance: Pool) {
+  // Ahora llama a la lógica unificada arriba para mayor seguridad
   if (!ensureSyncCheckpointPromise) {
     ensureSyncCheckpointPromise = poolInstance
       .query(
