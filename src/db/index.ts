@@ -5,15 +5,13 @@ let isInitialized = false;
 
 /**
  * REPARACIÓN DE RAÍZ:
- * Crea las tablas y columnas necesarias sin bloquear el inicio del servidor.
+ * Esta función es el "guardián". Agrega las columnas antes de que el servidor falle.
  */
-async function runSilentRepair(p: Pool) {
-  if (isInitialized) return;
-  
+async function runRepair(p: Pool) {
   try {
-    console.log("🛠️ Iniciando reparación de base de datos en segundo plano...");
+    console.log("🛠️ Iniciando reparación de base de datos...");
     
-    // 1. Asegurar SYNC_LOGS y sus columnas
+    // 1. Asegurar SYNC_LOGS
     await p.query(`CREATE TABLE IF NOT EXISTS sync_logs (id SERIAL PRIMARY KEY);`);
     const syncLogsCols = [
       "organization_id INTEGER", "entity TEXT", "action TEXT", "status TEXT",
@@ -25,7 +23,7 @@ async function runSilentRepair(p: Pool) {
       await p.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS ${col};`);
     }
 
-    // 2. Asegurar RETRY_QUEUE y sus columnas
+    // 2. Asegurar RETRY_QUEUE
     await p.query(`CREATE TABLE IF NOT EXISTS retry_queue (id SERIAL PRIMARY KEY);`);
     const retryCols = [
       "sync_log_id INTEGER", "payload JSONB", "attempts INTEGER DEFAULT 0",
@@ -40,15 +38,15 @@ async function runSilentRepair(p: Pool) {
     await p.query(`INSERT INTO organizations (id, name) VALUES (1, 'Default Org') ON CONFLICT DO NOTHING;`);
 
     isInitialized = true;
-    console.log("✅ Base de datos verificada y lista.");
+    console.log("✅ Base de datos reparada con éxito.");
   } catch (err) {
-    console.error("⚠️ Aviso: La reparación automática encontró un problema (esto es normal si las tablas ya existen):", err);
+    console.error("⚠️ Error en reparación:", err);
   }
 }
 
 /**
  * RETORNA EL POOL DE CONEXIÓN
- * Devuelve el objeto Pool directamente para evitar el error "TypeError".
+ * El truco aquí es que inicializamos el pool y lanzamos la reparación de inmediato.
  */
 export function getPool(): Pool {
   if (!pool) {
@@ -61,21 +59,22 @@ export function getPool(): Pool {
       ssl: { rejectUnauthorized: false } 
     });
     
-    // Ejecutamos la reparación sin el 'await' para no bloquear el objeto pool
-    runSilentRepair(pool);
+    // Disparamos la reparación sin await para no bloquear el retorno del objeto Pool,
+    // pero lo hacemos tan pronto como se crea el pool.
+    runRepair(pool);
   }
   return pool;
 }
 
-// Alias para compatibilidad con otros archivos
 export const getPoolSync = getPool;
 
+// Funciones requeridas por la estructura de tu app
 export async function ensureOrganization(poolInstance: Pool, orgId: number) {
-  if (!isInitialized) await runSilentRepair(poolInstance);
+  if (!isInitialized) await runRepair(poolInstance);
 }
 
 export async function ensureRetryQueueTable(poolInstance: Pool) {
-  if (!isInitialized) await runSilentRepair(poolInstance);
+  if (!isInitialized) await runRepair(poolInstance);
 }
 
 export async function ensureSyncCheckpointTable(poolInstance: Pool) {
