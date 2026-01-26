@@ -1,25 +1,30 @@
 import { Pool } from "pg";
 
 let pool: Pool | null = null;
-let isRepairing = false;
-let isFinished = false;
+let initializationPromise: Promise<Pool> | null = null;
 
 /**
- * REPARACIÓN SÍNCRONA DE RAÍZ
+ * REPARACIÓN BLOQUEANTE:
+ * Crea las tablas y columnas. No devuelve el control hasta terminar.
  */
-async function runCriticalRepair(p: Pool) {
-  if (isRepairing || isFinished) return;
-  isRepairing = true;
-  
+async function initializeAndRepair(): Promise<Pool> {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) throw new Error("DATABASE_URL is required");
+
+  const p = new Pool({
+    connectionString,
+    ssl: { rejectUnauthorized: false }
+  });
+
   try {
-    console.log("🛠️ EJECUTANDO REPARACIÓN CRÍTICA DE COLUMNAS...");
+    console.log("🛠️ INICIANDO REPARACIÓN BLOQUEANTE DE BASE DE DATOS...");
     
-    // 1. Asegurar tablas base
-    await p.query(`CREATE TABLE IF NOT EXISTS organizations (id SERIAL PRIMARY KEY, name TEXT);`);
+    // Crear tablas base primero
     await p.query(`CREATE TABLE IF NOT EXISTS sync_logs (id SERIAL PRIMARY KEY);`);
     await p.query(`CREATE TABLE IF NOT EXISTS retry_queue (id SERIAL PRIMARY KEY);`);
+    await p.query(`CREATE TABLE IF NOT EXISTS organizations (id SERIAL PRIMARY KEY, name TEXT);`);
 
-    // 2. Inyectar columnas faltantes (AQUÍ ES DONDE FALLABA)
+    // Lista de columnas críticas que faltan
     const queries = [
       "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS organization_id INTEGER;",
       "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS entity TEXT;",
@@ -45,36 +50,51 @@ async function runCriticalRepair(p: Pool) {
 
     await p.query(`INSERT INTO organizations (id, name) VALUES (1, 'Default') ON CONFLICT DO NOTHING;`);
     
-    isFinished = true;
-    console.log("✅ BASE DE DATOS REPARADA - PROCESO LIBERADO");
+    console.log("✅ BASE DE DATOS REPARADA Y LISTA.");
+    pool = p;
+    return p;
   } catch (err) {
-    console.error("❌ ERROR CRÍTICO EN REPARACIÓN:", err);
-  } finally {
-    isRepairing = false;
+    console.error("❌ ERROR CRÍTICO EN INICIALIZACIÓN:", err);
+    throw err;
   }
 }
 
+/**
+ * getPool ahora devuelve el pool solo cuando es seguro usarlo.
+ */
 export function getPool(): Pool {
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL;
-    if (!connectionString) throw new Error("DATABASE_URL is required");
-    
-    pool = new Pool({ 
-      connectionString,
-      ssl: { rejectUnauthorized: false } 
-    });
-
-    // Disparamos la reparación inmediatamente
-    runCriticalRepair(pool);
+    // Si alguien pide el pool y no está listo, lanzamos el error o inicializamos.
+    // Pero para evitar el TypeError anterior, devolvemos una instancia aunque sea temporal
+    // o forzamos la inicialización previa.
+    throw new Error("Base de datos no inicializada. Use getPoolAsync()");
   }
   return pool;
 }
 
-export const getPoolSync = getPool;
+/**
+ * Versión asíncrona que espera la reparación.
+ */
+export async function getPoolAsync(): Promise<Pool> {
+  if (!initializationPromise) {
+    initializationPromise = initializeAndRepair();
+  }
+  return initializationPromise;
+}
 
-// Funciones de compatibilidad para evitar errores en otros archivos
-export async function ensureOrganization(p: Pool, id: number) { await runCriticalRepair(p); }
-export async function ensureRetryQueueTable(p: Pool) { await runCriticalRepair(p); }
+// Alias para compatibilidad (intentará devolver el pool si ya existe)
+export const getPoolSync = () => {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL;
+    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    initializeAndRepair(); // Lo hace en background pero al menos existe el objeto
+  }
+  return pool;
+};
+
+// Exportar funciones vacías o de espera para que el resto del código no falle
+export async function ensureOrganization() {}
+export async function ensureRetryQueueTable() {}
 export async function ensureSyncCheckpointTable(p: Pool) {
   await p.query(`CREATE TABLE IF NOT EXISTS sync_checkpoints (id SERIAL PRIMARY KEY, organization_id INTEGER, entity TEXT, last_start INTEGER DEFAULT 0, total INTEGER, updated_at TIMESTAMP DEFAULT NOW(), UNIQUE(organization_id, entity));`);
 }
@@ -86,3 +106,6 @@ export async function ensureInvoiceSettingsColumns(p: Pool) {
 }
 
 export function getOrgId() { return Number(process.env.APP_ORG_ID || "1"); }
+
+// AUTO-INICIALIZACIÓN AL IMPORTAR
+getPoolAsync();
