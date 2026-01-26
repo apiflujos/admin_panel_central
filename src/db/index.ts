@@ -6,7 +6,7 @@ let repairPromise: Promise<void> | null = null;
 
 /**
  * REPARACIÓN PRIORITARIA
- * Crea las tablas y columnas necesarias.
+ * Ejecuta los cambios de esquema antes de liberar las consultas.
  */
 async function performRepair(p: Pool) {
   try {
@@ -44,12 +44,12 @@ async function performRepair(p: Pool) {
     dbReady = true;
   } catch (err) {
     console.error("❌ ERROR EN REPARACIÓN:", err);
-    dbReady = true; // Liberamos para evitar bloqueo total si algo falla
+    dbReady = true; // Liberamos para evitar un bloqueo infinito si algo sale mal
   }
 }
 
 /**
- * GET POOL (LA SOLUCIÓN RAÍZ)
+ * LA SOLUCIÓN: getPool con Proxy
  * Devuelve el pool pero intercepta las consultas si la DB no está lista.
  */
 export function getPool(): Pool {
@@ -64,14 +64,14 @@ export function getPool(): Pool {
 
     repairPromise = performRepair(rawPool);
 
-    // Creamos un Proxy: si alguien llama a .query(), esperará a repairPromise
+    // El Proxy intercepta las llamadas a .query y .connect
     pool = new Proxy(rawPool, {
       get: (target, prop) => {
         const val = (target as any)[prop];
         if (typeof val === 'function' && (prop === 'query' || prop === 'connect')) {
           return async (...args: any[]) => {
             if (!dbReady) {
-              console.log(`⏳ Consulta pausada: Esperando reparación de columnas...`);
+              console.log(`⏳ Consulta pausada: Esperando reparación de columnas (${prop})...`);
               await repairPromise;
             }
             return val.apply(target, args);
@@ -86,7 +86,7 @@ export function getPool(): Pool {
 
 export const getPoolSync = getPool;
 
-// Compatibilidad con el resto de la app
+// Funciones de compatibilidad para el resto de la app
 export async function ensureOrganization() {}
 export async function ensureRetryQueueTable() {}
 export async function ensureSyncCheckpointTable(p: Pool) {
