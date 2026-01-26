@@ -5,7 +5,7 @@ let dbReady = false;
 let repairPromise: Promise<void> | null = null;
 
 /**
- * REPARACIÓN TOTAL
+ * REPARACIÓN INTEGRAL DE ESQUEMA
  */
 async function performRepair(p: Pool) {
   try {
@@ -31,7 +31,7 @@ async function performRepair(p: Pool) {
       "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS last_attempt TIMESTAMP;",
       "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();",
 
-      // 3. Reparar RETRY_QUEUE
+      // 3. Reparar RETRY_QUEUE (Añadimos status para evitar el error de rq.status)
       "ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS status TEXT;", 
       "ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS sync_log_id INTEGER;",
       "ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS payload JSONB;",
@@ -55,7 +55,7 @@ async function performRepair(p: Pool) {
     // Asegurar Org por defecto
     await p.query("INSERT INTO organizations (id, name) VALUES (1, 'Default') ON CONFLICT DO NOTHING;");
 
-    console.log("✅ BASE DE DATOS REPARADA TOTALMENTE.");
+    console.log("✅ BASE DE DATOS REPARADA Y LISTA.");
     dbReady = true;
   } catch (err) {
     console.error("❌ ERROR EN REPARACIÓN:", err);
@@ -64,26 +64,30 @@ async function performRepair(p: Pool) {
 }
 
 /**
- * GET POOL PROTEGIDO
+ * GET POOL PROTEGIDO CON PROXY
  */
 export function getPool(): Pool {
   if (!pool) {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) throw new Error("DATABASE_URL is required");
 
-    pool = new Pool({
+    const rawPool = new Pool({
       connectionString,
       ssl: { rejectUnauthorized: false }
     });
 
-    repairPromise = performRepair(pool);
+    repairPromise = performRepair(rawPool);
 
-    pool = new Proxy(pool, {
+    // Bloqueamos cualquier consulta hasta que la reparación termine
+    pool = new Proxy(rawPool, {
       get: (target, prop) => {
         const val = (target as any)[prop];
         if (typeof val === 'function' && (prop === 'query' || prop === 'connect')) {
           return async (...args: any[]) => {
-            if (!dbReady) await repairPromise;
+            if (!dbReady) {
+              console.log(`⏳ Pausando consulta (${prop}) hasta que la DB esté lista...`);
+              await repairPromise;
+            }
             return val.apply(target, args);
           };
         }
@@ -94,7 +98,8 @@ export function getPool(): Pool {
   return pool;
 }
 
-// FUNCIONES QUE TU APP NECESITA PARA NO FALLAR
+// --- EXPORTACIONES PARA COMPATIBILIDAD CON SERVICIOS ---
+
 export const getPoolSync = getPool;
 
 export async function ensureSyncCheckpointTable(p: Pool) {
