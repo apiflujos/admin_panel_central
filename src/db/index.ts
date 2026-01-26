@@ -1,7 +1,11 @@
 import { Pool } from "pg";
 
 let pool: Pool | null = null;
+let ensureInvoiceSettingsPromise: Promise<void> | null = null;
 
+/**
+ * Configura y retorna el pool de conexión a PostgreSQL
+ */
 export function getPool() {
   if (!pool) {
     const connectionString = process.env.DATABASE_URL;
@@ -16,8 +20,11 @@ export function getPool() {
   return pool;
 }
 
+/**
+ * Función principal que repara y asegura la estructura de la base de datos
+ */
 export async function ensureOrganization(poolInstance: Pool, orgId: number) {
-  // 1. ORGANIZATIONS
+  // 1. Crear tabla de Organizaciones
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS organizations (
       id SERIAL PRIMARY KEY, 
@@ -26,26 +33,24 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
     );
   `);
 
-  // 2. RETRY QUEUE (CON LA COLUMNA sync_log_id QUE FALTA)
+  // 2. Crear tabla Retry Queue
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS retry_queue (
       id SERIAL PRIMARY KEY,
       payload JSONB,
       attempts INTEGER DEFAULT 0,
       next_retry TIMESTAMP,
-      sync_log_id INTEGER,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
-  // Intentar agregar la columna por si la tabla ya existía sin ella
-  try {
-    await poolInstance.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS sync_log_id INTEGER;`);
-  } catch (e) {
-    console.log("Columna sync_log_id ya presente o error menor.");
-  }
+  // SOLUCIÓN AL ERROR: Forzar la columna sync_log_id que falta
+  await poolInstance.query(`
+    ALTER TABLE retry_queue 
+    ADD COLUMN IF NOT EXISTS sync_log_id INTEGER;
+  `);
 
-  // 3. SYNC LOGS
+  // 3. Crear tabla Sync Logs
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS sync_logs (
       id SERIAL PRIMARY KEY,
@@ -58,26 +63,80 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
     );
   `);
 
-  // 4. SYNC CHECKPOINTS
+  // 4. Crear tabla Sync Checkpoints
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS sync_checkpoints (
       id SERIAL PRIMARY KEY,
       organization_id INTEGER REFERENCES organizations(id),
       entity TEXT NOT NULL,
       last_start INTEGER DEFAULT 0,
-      updated_at TIMESTAMP DEFAULT NOW(),
+      total INTEGER,
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
       UNIQUE (organization_id, entity)
     );
   `);
 
-  // Insertar organización inicial
+  // 5. Insertar la organización por defecto
   await poolInstance.query(
     `INSERT INTO organizations (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`,
     [orgId, `Org ${orgId}`]
   );
 }
 
-export async function ensureSyncCheckpointTable(poolInstance: Pool) { await ensureOrganization(poolInstance, 1); }
-export async function ensureRetryQueueTable(poolInstance: Pool) { await ensureOrganization(poolInstance, 1); }
+/**
+ * Funciones de soporte requeridas por otros módulos
+ */
+export async function ensureRetryQueueTable(poolInstance: Pool) {
+  await ensureOrganization(poolInstance, getOrgId());
+}
 
-export function getOrgId() { return Number(process.env.APP_ORG_ID || "1"); }
+export async function ensureSyncCheckpointTable(poolInstance: Pool) {
+  await ensureOrganization(poolInstance, getOrgId());
+}
+
+export async function ensureInvoiceSettingsColumns(poolInstance: Pool) {
+  if (!ensureInvoiceSettingsPromise) {
+    ensureInvoiceSettingsPromise = poolInstance
+      .query(`
+        ALTER TABLE invoice_settings
+          ADD COLUMN IF NOT EXISTS payment_method TEXT,
+          ADD COLUMN IF NOT EXISTS observations_template TEXT,
+          ADD COLUMN IF NOT EXISTS bank_account_id TEXT,
+          ADD COLUMN IF NOT EXISTS apply_payment BOOLEAN NOT NULL DEFAULT false,
+          ADD COLUMN IF NOT EXISTS einvoice_enabled BOOLEAN NOT NULL DEFAULT false
+      `)
+      .then(() => undefined)
+      .catch((error) => {
+        ensureInvoiceSettingsPromise = null;
+        throw error;
+      });
+  }
+  await ensureInvoiceSettingsPromise;
+}
+
+let ensureInventoryRulesPromise: Promise<void> | null = null;
+
+export async function ensureInventoryRulesColumns(poolInstance: Pool) {
+  if (!ensureInventoryRulesPromise) {
+    ensureInventoryRulesPromise = poolInstance
+      .query(`
+        ALTER TABLE inventory_rules
+          ADD COLUMN IF NOT EXISTS auto_publish_on_webhook BOOLEAN NOT NULL DEFAULT false,
+          ADD COLUMN IF NOT EXISTS auto_publish_status TEXT NOT NULL DEFAULT 'draft'
+      `)
+      .then(() => undefined)
+      .catch((error) => {
+        ensureInventoryRulesPromise = null;
+        throw error;
+      });
+  }
+  await ensureInventoryRulesPromise;
+}
+
+/**
+ * Obtiene el ID de la organización desde variables de entorno
+ */
+export function getOrgId() {
+  const orgId = process.env.APP_ORG_ID || "1";
+  return Number(orgId);
+}
