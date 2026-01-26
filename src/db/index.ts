@@ -3,9 +3,6 @@ import { Pool } from "pg";
 let pool: Pool | null = null;
 let ensureInvoiceSettingsPromise: Promise<void> | null = null;
 
-/**
- * Configura y retorna el pool de conexión a PostgreSQL
- */
 export function getPool() {
   if (!pool) {
     const connectionString = process.env.DATABASE_URL;
@@ -20,11 +17,8 @@ export function getPool() {
   return pool;
 }
 
-/**
- * Función principal que repara y asegura la estructura de la base de datos
- */
 export async function ensureOrganization(poolInstance: Pool, orgId: number) {
-  // 1. Crear tabla de Organizaciones
+  // 1. ORGANIZATIONS
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS organizations (
       id SERIAL PRIMARY KEY, 
@@ -33,24 +27,20 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
     );
   `);
 
-  // 2. Crear tabla Retry Queue
+  // 2. RETRY QUEUE
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS retry_queue (
       id SERIAL PRIMARY KEY,
       payload JSONB,
       attempts INTEGER DEFAULT 0,
       next_retry TIMESTAMP,
+      sync_log_id INTEGER,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
+  await poolInstance.query(`ALTER TABLE retry_queue ADD COLUMN IF NOT EXISTS sync_log_id INTEGER;`);
 
-  // SOLUCIÓN AL ERROR: Forzar la columna sync_log_id que falta
-  await poolInstance.query(`
-    ALTER TABLE retry_queue 
-    ADD COLUMN IF NOT EXISTS sync_log_id INTEGER;
-  `);
-
-  // 3. Crear tabla Sync Logs
+  // 3. SYNC LOGS - Actualizada con todas las columnas necesarias
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS sync_logs (
       id SERIAL PRIMARY KEY,
@@ -59,11 +49,18 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
       action TEXT,
       status TEXT,
       message TEXT,
+      request_json JSONB,
+      response_json JSONB,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
-  // 4. Crear tabla Sync Checkpoints
+  // REPARACIÓN DE COLUMNAS PARA SYNC LOGS (AQUÍ ESTABA EL ERROR)
+  await poolInstance.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS request_json JSONB;`);
+  await poolInstance.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS response_json JSONB;`);
+  await poolInstance.query(`ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS organization_id INTEGER;`);
+
+  // 4. SYNC CHECKPOINTS
   await poolInstance.query(`
     CREATE TABLE IF NOT EXISTS sync_checkpoints (
       id SERIAL PRIMARY KEY,
@@ -76,16 +73,13 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
     );
   `);
 
-  // 5. Insertar la organización por defecto
+  // 5. Insertar organización por defecto
   await poolInstance.query(
     `INSERT INTO organizations (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`,
     [orgId, `Org ${orgId}`]
   );
 }
 
-/**
- * Funciones de soporte requeridas por otros módulos
- */
 export async function ensureRetryQueueTable(poolInstance: Pool) {
   await ensureOrganization(poolInstance, getOrgId());
 }
@@ -133,9 +127,6 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
   await ensureInventoryRulesPromise;
 }
 
-/**
- * Obtiene el ID de la organización desde variables de entorno
- */
 export function getOrgId() {
   const orgId = process.env.APP_ORG_ID || "1";
   return Number(orgId);
