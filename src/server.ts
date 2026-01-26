@@ -21,7 +21,7 @@ app.use(
   })
 );
 
-// Rutas públicas
+// Configuración de rutas públicas
 const allowUnauthed = (path: string) =>
   path === "/login.html" ||
   path === "/login.js" ||
@@ -29,7 +29,7 @@ const allowUnauthed = (path: string) =>
   path === "/favicon.png" ||
   path.startsWith("/assets/");
 
-// Auth Middleware
+// Middleware de autenticación global
 app.use((req, res, next) => {
   if (req.path.startsWith("/api")) return next();
   if (req.path === "/health") return next();
@@ -43,7 +43,7 @@ app.use((req, res, next) => {
 
 app.use(express.static("public"));
 
-// API Routes
+// Rutas de la API
 app.use(
   "/api",
   (req, res, next) => {
@@ -59,26 +59,26 @@ app.use(
   router
 );
 
-// EL SALVAVIDAS: Endpoint de salud
+// Endpoint de Salud (Vital para Render)
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
 /**
- * CONFIGURACIÓN PARA RENDER (OBLIGATORIA)
+ * CONFIGURACIÓN PARA RENDER
  */
-// Render usa la variable PORT (10000). Si no existe (local), usamos 3000.
-const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+// 1. Usamos process.env.PORT que Render inyecta (10000)
+const port = Number(process.env.PORT || 3000);
 
-// DEBE SER '0.0.0.0' para que el tráfico de internet entre al contenedor.
+// 2. Escuchamos en 0.0.0.0 para que el tráfico externo entre al contenedor
 const host = '0.0.0.0'; 
 
 app.listen(port, host, () => {
-  console.log("-----------------------------------------");
+  console.log("-------------------------------------------");
   console.log(`🚀 SERVIDOR ESCUCHANDO EN: http://${host}:${port}`);
-  console.log("-----------------------------------------");
+  console.log("-------------------------------------------");
   
-  // Iniciar tareas de fondo
+  // Iniciar pollers
   startInventoryAdjustmentsPoller();
   startRetryQueuePoller();
 });
