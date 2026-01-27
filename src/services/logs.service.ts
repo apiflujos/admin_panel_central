@@ -132,7 +132,17 @@ export async function listSyncLogs(
     response_json: Record<string, unknown> | null;
     created_at: string;
   }>(query, params);
-  const items: SyncLogListItem[] = result.rows.map((row) => ({
+  const items: SyncLogListItem[] = result.rows.map(
+    (row: {
+      id: number;
+      entity: string;
+      direction: string;
+      status: string;
+      message: string | null;
+      request_json: Record<string, unknown> | null;
+      response_json: Record<string, unknown> | null;
+      created_at: string;
+    }) => ({
     id: row.id,
     entity: row.entity,
     direction: row.direction,
@@ -142,7 +152,8 @@ export async function listSyncLogs(
     order_id: row.request_json?.orderId || null,
     request_json: row.request_json || null,
     response_json: row.response_json || null,
-  }));
+    })
+  );
 
   return { items, filters };
 }
@@ -165,7 +176,7 @@ export async function retryFailedLogs() {
     return { retried: 0 };
   }
 
-  const ids = failed.rows.map((row) => row.id);
+  const ids = failed.rows.map((row: { id: number }) => row.id);
 
   const inserted = await pool.query<{ sync_log_id: number }>(
     `
@@ -181,7 +192,7 @@ export async function retryFailedLogs() {
     [ids]
   );
 
-  const insertedIds = inserted.rows.map((row) => row.sync_log_id);
+  const insertedIds = inserted.rows.map((row: { sync_log_id: number }) => row.sync_log_id);
   if (!insertedIds.length) {
     return { retried: 0 };
   }

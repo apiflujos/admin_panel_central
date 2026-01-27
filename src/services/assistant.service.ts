@@ -877,14 +877,15 @@ async function buildLogAnalysis(filters: {
     `,
     params
   );
-  const statusCounts = totals.rows.reduce<Record<string, number>>((acc, row) => {
-    acc[row.status] = Number(row.total || 0);
-    return acc;
-  }, {});
-  const total = Object.values(statusCounts).reduce(
-    (sum: number, value: number) => sum + value,
-    0
+  const statusCounts = totals.rows.reduce<Record<string, number>>(
+    (acc: Record<string, number>, row: { status: string; total: string }) => {
+      acc[row.status] = Number(row.total || 0);
+      return acc;
+    },
+    {}
   );
+  const totalsList = Object.values(statusCounts) as number[];
+  const total = totalsList.reduce((sum: number, value: number) => sum + value, 0);
   const failed = statusCounts.fail || 0;
   const success = statusCounts.success || 0;
   const failRate = total ? Math.round((failed / total) * 1000) / 10 : 0;

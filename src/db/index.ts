@@ -124,7 +124,7 @@ async function performRepair(poolInstance: Pool) {
       for (const query of queries) {
         try {
           await poolInstance.query(query);
-        } catch (error) {
+        } catch (error: unknown) {
           console.error("DB repair query failed:", query, error);
         }
       }
@@ -132,7 +132,7 @@ async function performRepair(poolInstance: Pool) {
         "INSERT INTO organizations (id, name) VALUES (1, 'Default') ON CONFLICT DO NOTHING;"
       );
       dbReady = true;
-    })().catch((error) => {
+    })().catch((error: unknown) => {
       dbReady = true;
       repairPromise = null;
       throw error;
