@@ -48,7 +48,8 @@ const extractAdjustmentItems = (payload: unknown) => {
 
 export async function syncInventoryAdjustments(query: URLSearchParams) {
   if (!query.has("metadata")) query.set("metadata", "true");
-  const limit = Number(query.get("limit") || 30);
+  const rawLimit = Number(query.get("limit"));
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 30) : 30;
   const adjustments: Array<{
     id?: string | number;
     items?: Array<{ id?: string | number }>;
