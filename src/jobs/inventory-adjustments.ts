@@ -58,15 +58,19 @@ export function startInventoryAdjustmentsPoller() {
       } catch {
         // ignore logging failures
       }
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Inventory adjustments poll failed";
       // keep lastDate so we retry the same window next time
       try {
         await createSyncLog({
           entity: "inventory_adjustments",
           direction: "alegra->shopify",
           status: "fail",
-          message: "Inventory adjustments poll failed",
+          message,
           request: { date: query.get("date") },
+          response: {
+            error: message,
+          },
         });
       } catch {
         // ignore logging failures
