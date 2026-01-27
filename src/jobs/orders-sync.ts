@@ -22,7 +22,7 @@ const extractUpdatedAt = (order: { updatedAt?: string | null; processedAt?: stri
 };
 
 export function startOrdersSyncPoller() {
-  const intervalSeconds = Number(process.env.ORDERS_SYNC_POLL_SECONDS || 0);
+  const intervalSeconds = Number(process.env.ORDERS_SYNC_POLL_SECONDS || 300);
   const intervalMs =
     intervalSeconds > 0
       ? intervalSeconds * 1000
@@ -33,7 +33,7 @@ export function startOrdersSyncPoller() {
 
   const batchSize = Math.max(1, Math.min(Number(process.env.ORDERS_SYNC_BATCH_SIZE || 5), 20));
   const maxOrders = Math.max(0, Number(process.env.ORDERS_SYNC_MAX_ORDERS || 0));
-  const lookbackMinutes = Math.max(10, Number(process.env.ORDERS_SYNC_LOOKBACK_MINUTES || 120));
+  const lookbackMinutes = Math.max(10, Number(process.env.ORDERS_SYNC_LOOKBACK_MINUTES || 180));
 
   let running = false;
 
