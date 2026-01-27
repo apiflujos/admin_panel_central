@@ -49,6 +49,16 @@ type SettingsPayload = {
   }>;
 };
 
+const normalizeShopDomain = (value?: string) => {
+  if (!value) return value;
+  const trimmed = value.trim();
+  const noProtocol = trimmed.replace(/^https?:\/\//, "");
+  const withoutPath = noProtocol.replace(/\/.*$/, "");
+  return withoutPath.includes("@")
+    ? withoutPath.slice(withoutPath.lastIndexOf("@") + 1)
+    : withoutPath;
+};
+
 export async function saveSettings(payload: SettingsPayload) {
   const pool = getPool();
   const orgId = getOrgId();
@@ -64,6 +74,7 @@ export async function saveSettings(payload: SettingsPayload) {
       JSON.stringify({
         ...existingShopify,
         ...payload.shopify,
+        shopDomain: normalizeShopDomain(payload.shopify.shopDomain),
         accessToken,
       })
     );
