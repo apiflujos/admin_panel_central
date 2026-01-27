@@ -38,13 +38,15 @@ export async function handleAlegraWebhook(req: Request, res: Response) {
       ? { data: rawBody?.data || rawBody?.message?.data || rawBody?.message?.item }
       : rawBody;
   const normalizedEventType = normalizeAlegraEvent(eventType);
-  await enqueueWebhookEvent({
-    source: "alegra",
-    eventType: normalizedEventType,
-    payload: normalizedPayload,
+  setImmediate(() => {
+    enqueueWebhookEvent({
+      source: "alegra",
+      eventType: normalizedEventType,
+      payload: normalizedPayload,
+    }).catch(() => null);
   });
 
-  return res.status(200).json({ status: "accepted" });
+  return res.status(202).json({ status: "accepted" });
 }
 
 function normalizeAlegraEvent(eventType: string) {
