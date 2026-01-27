@@ -85,13 +85,12 @@ export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload) {
   };
   const rawPhone = payload.customer?.phone || "";
   const phoneId = rawPhone.replace(/\D/g, "");
-  const fallbackId = String(payload.id || payload.name || "").replace(/\D/g, "");
   const identification =
     einvoiceActive && override?.idNumber
       ? override.idNumber
       : phoneId.startsWith("57") && phoneId.length > 10
       ? phoneId.slice(2)
-      : phoneId || fallbackId || "9999999999";
+      : phoneId || "3000000000";
   const createContactPayload = {
     ...contactPayload,
     identificationType: einvoiceActive && override?.idType ? override.idType : "CC",
@@ -101,10 +100,40 @@ export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload) {
   let contactId: string;
   if (existing && existing.length > 0) {
     contactId = String(existing[0].id);
-    await ctx.alegra.updateContact(contactId, createContactPayload);
+    try {
+      await ctx.alegra.updateContact(contactId, createContactPayload);
+    } catch (error) {
+      const message = (error as { message?: string })?.message || "Contact update failed";
+      if (message.includes("2035") || message.toLowerCase().includes("identificaci")) {
+        await createSyncLog({
+          entity: "order",
+          direction: "shopify->alegra",
+          status: "fail",
+          message: "Missing identification type",
+          request: { orderId, contactId },
+        });
+        return { handled: false, reason: "missing_identification_type" };
+      }
+      throw error;
+    }
   } else {
-    const created = (await ctx.alegra.createContact(createContactPayload)) as { id: string };
-    contactId = String(created.id);
+    try {
+      const created = (await ctx.alegra.createContact(createContactPayload)) as { id: string };
+      contactId = String(created.id);
+    } catch (error) {
+      const message = (error as { message?: string })?.message || "Contact creation failed";
+      if (message.includes("2035") || message.toLowerCase().includes("identificaci")) {
+        await createSyncLog({
+          entity: "order",
+          direction: "shopify->alegra",
+          status: "fail",
+          message: "Missing identification type",
+          request: { orderId },
+        });
+        return { handled: false, reason: "missing_identification_type" };
+      }
+      throw error;
+    }
   }
 
   const bankAccountId = await resolveBankAccountId(
