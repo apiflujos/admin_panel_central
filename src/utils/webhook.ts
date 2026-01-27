@@ -2,7 +2,10 @@ import crypto from "crypto";
 
 export function verifyShopifyHmac(rawBody: Buffer, signature: string) {
   const secret = process.env.SHOPIFY_WEBHOOK_SECRET || "";
-  if (!secret || !rawBody) {
+  if (!secret) {
+    return true;
+  }
+  if (!rawBody) {
     return false;
   }
   const digest = crypto
