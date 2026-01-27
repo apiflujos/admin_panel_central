@@ -100,7 +100,7 @@ export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload) {
   let contactId: string;
   if (existing && existing.length > 0) {
     contactId = String(existing[0].id);
-    await ctx.alegra.updateContact(contactId, contactPayload);
+    await ctx.alegra.updateContact(contactId, createContactPayload);
   } else {
     const created = (await ctx.alegra.createContact(createContactPayload)) as { id: string };
     contactId = String(created.id);
