@@ -52,7 +52,9 @@ export async function listLatestOrderLogs(orderIds: string[]) {
   return map;
 }
 
-export async function getLatestInvoicePayload(orderId: string) {
+export async function getLatestInvoicePayload(
+  orderId: string
+): Promise<Record<string, unknown> | null> {
   const { getOrgId, getPool } = await import("../db");
   const pool = getPool();
   const orgId = getOrgId();
@@ -75,7 +77,11 @@ export async function getLatestInvoicePayload(orderId: string) {
     return null;
   }
   const request = result.rows[0].request_json || {};
-  return request.invoicePayload || null;
+  const payload = request.invoicePayload;
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+    return payload as Record<string, unknown>;
+  }
+  return null;
 }
 
 export async function listSyncLogs(
@@ -149,7 +155,11 @@ export async function listSyncLogs(
     status: row.status,
     message: row.message,
     created_at: row.created_at,
-    order_id: row.request_json?.orderId || null,
+    order_id:
+      typeof row.request_json?.orderId === "string" ||
+      typeof row.request_json?.orderId === "number"
+        ? String(row.request_json.orderId)
+        : null,
     request_json: row.request_json || null,
     response_json: row.response_json || null,
     })
