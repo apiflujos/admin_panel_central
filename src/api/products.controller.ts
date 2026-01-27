@@ -4,6 +4,8 @@ import { getAlegraCredential, getShopifyCredential } from "../services/settings.
 import { ShopifyClient } from "../connectors/shopify";
 import { getAlegraBaseUrl } from "../utils/alegra-env";
 import { syncInventoryAdjustments } from "../services/inventory-adjustments.service";
+import { mapOrderToPayload } from "../services/operations.service";
+import { getMappingByShopifyId } from "../services/mapping.service";
 import { createSyncLog } from "../services/logs.service";
 import { clearSyncCheckpoint, getSyncCheckpoint, saveSyncCheckpoint } from "../services/sync-checkpoints.service";
 
@@ -1312,14 +1314,35 @@ export async function syncOrdersHandler(req: Request, res: Response) {
     const total = orders.length;
     sendStream({ type: "start", startedAt, total });
     let processed = 0;
+    let synced = 0;
+    let skipped = 0;
+    let failed = 0;
     const step = Math.max(1, Math.ceil(total / 20));
     for (const _order of orders) {
       processed += 1;
+      try {
+        const mapping = await getMappingByShopifyId("order", _order.id);
+        if (mapping?.alegraId) {
+          skipped += 1;
+        } else {
+          const payload = mapOrderToPayload(_order);
+          const result = await syncShopifyOrderToAlegra(payload);
+          if (result && typeof result === "object" && "skipped" in result) {
+            skipped += 1;
+          } else if (result && typeof result === "object" && (result as { handled?: boolean }).handled === false) {
+            failed += 1;
+          } else {
+            synced += 1;
+          }
+        }
+      } catch {
+        failed += 1;
+      }
       if (processed % step === 0 || processed === total) {
-        sendStream({ type: "progress", processed, total });
+        sendStream({ type: "progress", processed, total, synced, skipped, failed });
       }
     }
-    const responsePayload = { ok: true, count: total, orders };
+    const responsePayload = { ok: true, count: total, orders, synced, skipped, failed };
     if (stream) {
       sendStream({ type: "complete", processed, total, ...responsePayload });
       streamOpen = false;
@@ -1330,7 +1353,7 @@ export async function syncOrdersHandler(req: Request, res: Response) {
         status: "success",
         message: "Sync pedidos ok",
         request: { filters },
-        response: { count: total, processed, total },
+        response: { count: total, processed, total, synced, skipped, failed },
       });
       return;
     }
@@ -1341,7 +1364,7 @@ export async function syncOrdersHandler(req: Request, res: Response) {
       status: "success",
       message: "Sync pedidos ok",
       request: { filters },
-      response: { count: total, processed, total },
+      response: { count: total, processed, total, synced, skipped, failed },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Orders sync error";
