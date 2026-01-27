@@ -223,10 +223,26 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
     ensureInventoryRulesPromise = poolInstance
       .query(
         `
-        ALTER TABLE inventory_rules
-          ADD COLUMN IF NOT EXISTS auto_publish_on_webhook BOOLEAN NOT NULL DEFAULT false,
-          ADD COLUMN IF NOT EXISTS auto_publish_status TEXT NOT NULL DEFAULT 'draft'
+        CREATE TABLE IF NOT EXISTS inventory_rules (
+          id SERIAL PRIMARY KEY,
+          organization_id INTEGER NOT NULL REFERENCES organizations(id),
+          publish_on_stock BOOLEAN NOT NULL DEFAULT TRUE,
+          min_stock INTEGER NOT NULL DEFAULT 0,
+          warehouse_id TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          auto_publish_on_webhook BOOLEAN NOT NULL DEFAULT false,
+          auto_publish_status TEXT NOT NULL DEFAULT 'draft'
+        )
         `
+      )
+      .then(() =>
+        poolInstance.query(
+          `
+          ALTER TABLE inventory_rules
+            ADD COLUMN IF NOT EXISTS auto_publish_on_webhook BOOLEAN NOT NULL DEFAULT false,
+            ADD COLUMN IF NOT EXISTS auto_publish_status TEXT NOT NULL DEFAULT 'draft'
+          `
+        )
       )
       .then(() => undefined)
       .catch((error) => {
