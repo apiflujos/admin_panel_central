@@ -19,8 +19,11 @@ const resolveStartDate = async () => {
 };
 
 export function startInventoryAdjustmentsPoller() {
-  const intervalSeconds = Number(process.env.INVENTORY_ADJUSTMENTS_POLL_SECONDS || 0);
-  const intervalMs = intervalSeconds > 0 ? intervalSeconds * 1000 : Number(process.env.INVENTORY_ADJUSTMENTS_POLL_MS || 0);
+  const intervalSeconds = Number(process.env.INVENTORY_ADJUSTMENTS_POLL_SECONDS || 300);
+  const intervalMs =
+    intervalSeconds > 0
+      ? intervalSeconds * 1000
+      : Number(process.env.INVENTORY_ADJUSTMENTS_POLL_MS || 0);
   if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
     return;
   }
