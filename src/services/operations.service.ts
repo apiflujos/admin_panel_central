@@ -223,7 +223,7 @@ export async function seedOperations() {
   return { processed: results.length, results };
 }
 
-function mapOrderToPayload(order: ShopifyOrder) {
+export function mapOrderToPayload(order: ShopifyOrder) {
   return {
     id: order.id,
     name: order.name,

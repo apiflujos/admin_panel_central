@@ -239,6 +239,7 @@ export type ShopifyOrder = {
   name: string;
   email?: string | null;
   displayFinancialStatus?: string | null;
+  updatedAt?: string | null;
   processedAt?: string | null;
   shippingAddress?: {
     address1?: string | null;
@@ -334,6 +335,7 @@ const ORDER_BY_ID_QUERY = `
       name
       email
       displayFinancialStatus
+      updatedAt
       processedAt
       shippingAddress { address1 city province zip countryCodeV2 }
       totalPriceSet {
@@ -375,15 +377,16 @@ const ORDERS_UPDATED_SINCE_QUERY = `
     orders(first: 50, query: $query) {
       edges {
         node {
-          id
-          name
-          email
-          displayFinancialStatus
-          processedAt
-          shippingAddress { address1 city province zip countryCodeV2 }
-          totalPriceSet {
-            shopMoney { amount currencyCode }
-          }
+      id
+      name
+      email
+      displayFinancialStatus
+      updatedAt
+      processedAt
+      shippingAddress { address1 city province zip countryCodeV2 }
+      totalPriceSet {
+        shopMoney { amount currencyCode }
+      }
           customer { id email firstName lastName phone }
           lineItems(first: 250) {
             edges {

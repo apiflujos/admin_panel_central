@@ -4,6 +4,8 @@ import helmet from "helmet";
 import morgan from "morgan";
 import { router } from "./api/routes";
 import { startInventoryAdjustmentsPoller } from "./jobs/inventory-adjustments";
+import { startOrdersSyncPoller } from "./jobs/orders-sync";
+import { startProductsSyncPoller } from "./jobs/products-sync";
 import { startRetryQueuePoller } from "./jobs/retry-queue";
 
 const app = express();
@@ -37,5 +39,7 @@ app.listen(port, host, () => {
   console.log(`Server listening on http://${host}:${port}`);
   console.log("-------------------------------------------");
   startInventoryAdjustmentsPoller();
+  startOrdersSyncPoller();
+  startProductsSyncPoller();
   startRetryQueuePoller();
 });

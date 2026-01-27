@@ -15,8 +15,11 @@ export class AlegraClient {
     return this.request(`/items/${itemId}`);
   }
 
-  async listItemsUpdatedSince(updatedAtMin: string) {
-    return this.request(`/items?updated_at_start=${encodeURIComponent(updatedAtMin)}`);
+  async listItemsUpdatedSince(queryOrDate: string) {
+    const query = queryOrDate.includes("=")
+      ? queryOrDate
+      : `updated_at_start=${encodeURIComponent(queryOrDate)}`;
+    return this.request(`/items?${query}`);
   }
 
   async findContactByEmail(email: string) {
