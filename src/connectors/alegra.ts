@@ -122,7 +122,7 @@ export class AlegraClient {
       "base64"
     );
     const controller = new AbortController();
-    const timeoutMs = Number(process.env.ALEGRA_TIMEOUT_MS || 10000);
+    const timeoutMs = Number(process.env.ALEGRA_TIMEOUT_MS || 30000);
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: options.method || "GET",
