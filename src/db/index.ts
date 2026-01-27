@@ -124,8 +124,8 @@ async function performRepair(poolInstance: Pool) {
       for (const query of queries) {
         try {
           await poolInstance.query(query);
-        } catch {
-          // best-effort repair; ignore if not applicable
+        } catch (error) {
+          console.error("DB repair query failed:", query, error);
         }
       }
       await poolInstance.query(
@@ -149,7 +149,11 @@ export function getPool() {
     }
     const ssl =
       process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined;
-    const rawPool = new Pool({ connectionString, ssl });
+    const rawPool = new Pool({
+      connectionString,
+      ssl,
+      options: "-c search_path=public",
+    });
     void performRepair(rawPool);
     const handler: ProxyHandler<Pool> = {
       get(target, prop, receiver) {
