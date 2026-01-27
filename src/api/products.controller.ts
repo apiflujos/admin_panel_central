@@ -6,6 +6,8 @@ import { getAlegraBaseUrl } from "../utils/alegra-env";
 import { syncInventoryAdjustments } from "../services/inventory-adjustments.service";
 import { mapOrderToPayload } from "../services/operations.service";
 import { getMappingByShopifyId } from "../services/mapping.service";
+import { syncShopifyOrderToAlegra } from "../services/shopify-to-alegra.service";
+import type { ShopifyOrder } from "../connectors/shopify";
 import { createSyncLog } from "../services/logs.service";
 import { clearSyncCheckpoint, getSyncCheckpoint, saveSyncCheckpoint } from "../services/sync-checkpoints.service";
 
@@ -1293,7 +1295,7 @@ export async function syncOrdersHandler(req: Request, res: Response) {
       accessToken: shopifyCredential.accessToken,
       apiVersion: shopifyCredential.apiVersion || DEFAULT_SHOPIFY_VERSION,
     });
-    let orders: Array<Record<string, unknown>> = [];
+    let orders: ShopifyOrder[] = [];
     const limit = Number(filters.limit || 0);
     const orderNumber = String(filters.orderNumber || "").replace(/^#/, "").trim();
     if (orderNumber) {
@@ -1321,7 +1323,7 @@ export async function syncOrdersHandler(req: Request, res: Response) {
     for (const _order of orders) {
       processed += 1;
       try {
-        const mapping = await getMappingByShopifyId("order", _order.id);
+        const mapping = await getMappingByShopifyId("order", String(_order.id));
         if (mapping?.alegraId) {
           skipped += 1;
         } else {
