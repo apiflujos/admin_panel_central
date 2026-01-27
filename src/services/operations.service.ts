@@ -16,8 +16,8 @@ import { ShopifyOrder } from "../connectors/shopify";
 export async function listOperations(days = 7) {
   const ctx = await buildSyncContext();
   const updatedAtMin = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-  const result = await ctx.shopify.listOrdersUpdatedSince(updatedAtMin);
-  const orders = result.orders?.edges?.map((edge) => edge.node) || [];
+  const query = `updated_at:>='${updatedAtMin}'`;
+  const orders = await ctx.shopify.listAllOrdersByQuery(query);
   const orderIds = orders.map((order) => order.id);
   const latestLogs = await listLatestOrderLogs(orderIds);
   const overrides = await listOrderInvoiceOverrides(orderIds);
@@ -197,8 +197,7 @@ export async function seedOperations() {
   const orders = result.orders?.edges?.map((edge) => edge.node) || [];
   const eligible = orders
     .filter((order) => String(order.displayFinancialStatus || "").toUpperCase() === "PAID")
-    .sort((a, b) => String(b.processedAt || "").localeCompare(String(a.processedAt || "")))
-    .slice(0, 30);
+    .sort((a, b) => String(b.processedAt || "").localeCompare(String(a.processedAt || "")));
 
   const batches = chunkArray(eligible, 5);
   const results = [];
