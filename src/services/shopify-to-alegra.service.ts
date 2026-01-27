@@ -3,6 +3,7 @@ import { getMappingByShopifyId, saveMapping, updateMappingMetadata } from "./map
 import { createSyncLog } from "./logs.service";
 import { acquireIdempotencyKey, markIdempotencyKey } from "./idempotency.service";
 import { getOrderInvoiceOverride, validateEinvoiceData } from "./order-invoice-overrides.service";
+import type { Pool } from "pg";
 
 type ShopifyOrderPayload = {
   id?: number | string;
@@ -291,7 +292,7 @@ type InvoiceSettings = {
   einvoiceEnabled: boolean;
 };
 
-async function loadInvoiceSettings(pool: ReturnType<typeof getPool>, orgId: number) {
+async function loadInvoiceSettings(pool: Pool, orgId: number): Promise<InvoiceSettings> {
   const { ensureInvoiceSettingsColumns } = await import("../db");
   await ensureInvoiceSettingsColumns(pool);
   const result = await pool.query<{
@@ -324,6 +325,8 @@ async function loadInvoiceSettings(pool: ReturnType<typeof getPool>, orgId: numb
       warehouseId: "",
       sellerId: "",
       paymentMethod: "",
+      bankAccountId: "",
+      applyPayment: false,
       observationsTemplate: "",
       einvoiceEnabled: false,
     };
@@ -345,7 +348,7 @@ async function loadInvoiceSettings(pool: ReturnType<typeof getPool>, orgId: numb
 }
 
 async function resolveBankAccountId(
-  pool: ReturnType<typeof getPool>,
+  pool: Pool,
   orgId: number,
   paymentMethod: string,
   defaultBankAccountId: string

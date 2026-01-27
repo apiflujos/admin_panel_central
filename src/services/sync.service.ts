@@ -1,12 +1,14 @@
 import {
   syncAlegraInventoryPayloadToShopify,
   syncAlegraItemPayloadToShopify,
+  type AlegraItem,
 } from "./alegra-to-shopify.service";
 import {
   syncShopifyOrderToAlegra,
   createInventoryAdjustmentFromRefund,
 } from "./shopify-to-alegra.service";
 import { createSyncLog } from "./logs.service";
+import { buildSyncContext } from "./sync-context";
 
 type WebhookEvent = {
   source: "shopify" | "alegra";
@@ -36,11 +38,12 @@ export async function enqueueWebhookEvent(event: WebhookEvent) {
     return { status: "queued", event };
   } catch (error) {
     const meta = buildLogMeta(event);
+    const message = error instanceof Error ? error.message : "Unhandled error";
     await createSyncLog({
       entity: meta.entity,
       direction: meta.direction,
       status: "fail",
-      message: error.message || "Unhandled error",
+      message,
       request: meta.request,
     });
     throw error;
@@ -134,7 +137,7 @@ async function handleAlegraItem(payload: unknown) {
   if (item.inventory) {
     inventoryResult = await syncAlegraInventoryPayloadToShopify({
       id: alegraItemId,
-      status: item.status,
+      status: typeof item.status === "string" ? item.status : undefined,
       inventory: item.inventory,
     });
   }
@@ -149,17 +152,17 @@ async function handleAlegraInventory(payload: unknown) {
   }
   const result = await syncAlegraInventoryPayloadToShopify({
     id: alegraItemId,
-    status: item.status,
+    status: typeof item.status === "string" ? item.status : undefined,
     inventory: item.inventory,
   });
   return { handled: true, type: "alegra-inventory", alegraItemId, result };
 }
 
-function extractAlegraData(payload: unknown) {
+function extractAlegraData(payload: unknown): AlegraItem | undefined {
   if (payload && typeof payload === "object") {
     const record = payload as Record<string, unknown>;
     if (record.data && typeof record.data === "object") {
-      return record.data as Record<string, unknown>;
+      return record.data as AlegraItem;
     }
   }
   return undefined;

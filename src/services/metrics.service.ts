@@ -1,6 +1,8 @@
 import { buildSyncContext } from "./sync-context";
 import { getOrgId, getPool } from "../db";
 
+type MetricItem = Record<string, unknown>;
+
 export async function getMetrics(rangeDays = 30) {
   try {
     const ctx = await buildSyncContext();
@@ -11,20 +13,23 @@ export async function getMetrics(rangeDays = 30) {
     const maxPages = Math.max(1, Number(process.env.METRICS_MAX_PAGES || 10));
     const metricsTimeoutMs = Math.max(1000, Number(process.env.METRICS_TIMEOUT_MS || 8000));
     const [payments, invoices, contacts] = await Promise.all([
-      fetchAllPages(
-        (start) => ctx.alegra.listPayments({ limit: pageSize, start }),
+      fetchAllPages<MetricItem>(
+        (start) =>
+          ctx.alegra.listPayments({ limit: pageSize, start }) as Promise<Array<MetricItem>>,
         pageSize,
         maxPages,
         metricsTimeoutMs
       ),
-      fetchAllPages(
-        (start) => ctx.alegra.listInvoices({ limit: pageSize, start }),
+      fetchAllPages<MetricItem>(
+        (start) =>
+          ctx.alegra.listInvoices({ limit: pageSize, start }) as Promise<Array<MetricItem>>,
         pageSize,
         maxPages,
         metricsTimeoutMs
       ),
-      fetchAllPages(
-        (start) => ctx.alegra.listContacts({ limit: pageSize, start }),
+      fetchAllPages<MetricItem>(
+        (start) =>
+          ctx.alegra.listContacts({ limit: pageSize, start }) as Promise<Array<MetricItem>>,
         pageSize,
         maxPages,
         metricsTimeoutMs
@@ -69,28 +74,29 @@ export async function getMetrics(rangeDays = 30) {
       latestOrders: [],
     };
   } catch (error) {
+    const message = error instanceof Error ? error.message : "No disponible";
     return {
       sales: "Sin datos",
       orders: "Sin datos",
       customers: "Sin datos",
       pending: "Sin datos",
-      error: error.message || "No disponible",
+      error: message,
     };
   }
 }
 
-function sumByDate(items: Array<Record<string, unknown>>, date: string) {
+function sumByDate(items: Array<MetricItem>, date: string) {
   return items
     .filter((item) => String(item.date || "").startsWith(date))
     .reduce((acc, item) => acc + Number(item.amount || 0), 0);
 }
 
-function countByDate(items: Array<Record<string, unknown>>, date: string) {
+function countByDate(items: Array<MetricItem>, date: string) {
   return items.filter((item) => String(item.date || item.createdAt || "").startsWith(date))
     .length;
 }
 
-function sumPending(invoices: Array<Record<string, unknown>>) {
+function sumPending(invoices: Array<MetricItem>) {
   return invoices.reduce((acc, item) => acc + Number(item.balance || 0), 0);
 }
 
@@ -98,19 +104,19 @@ function formatCurrency(value: number) {
   return value ? new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(value) : "0";
 }
 
-function sumByDateRange(items: Array<Record<string, unknown>>, days: number) {
+function sumByDateRange(items: Array<MetricItem>, days: number) {
   const dates = buildDateSet(days);
   return items
     .filter((item) => dates.has(extractDate(item)))
     .reduce((acc, item) => acc + Number(item.amount || 0), 0);
 }
 
-function countByDateRange(items: Array<Record<string, unknown>>, days: number) {
+function countByDateRange(items: Array<MetricItem>, days: number) {
   const dates = buildDateSet(days);
   return items.filter((item) => dates.has(extractDate(item))).length;
 }
 
-function groupPaymentsByMethod(items: Array<Record<string, unknown>>) {
+function groupPaymentsByMethod(items: Array<MetricItem>) {
   const totals = new Map<string, number>();
   for (const item of items) {
     const method =
@@ -124,7 +130,7 @@ function groupPaymentsByMethod(items: Array<Record<string, unknown>>) {
     .slice(0, 6);
 }
 
-function buildDailySeries(items: Array<Record<string, unknown>>, days: number) {
+function buildDailySeries(items: Array<MetricItem>, days: number) {
   const series = [];
   const dates = buildDateList(days);
   const totals = new Map<string, number>();
@@ -139,7 +145,7 @@ function buildDailySeries(items: Array<Record<string, unknown>>, days: number) {
   return series;
 }
 
-function buildDailyCountSeries(items: Array<Record<string, unknown>>, days: number) {
+function buildDailyCountSeries(items: Array<MetricItem>, days: number) {
   const series = [];
   const dates = buildDateList(days);
   const totals = new Map<string, number>();
@@ -184,7 +190,7 @@ function buildDateSet(days: number) {
   return new Set(buildDateList(days));
 }
 
-function extractDate(item: Record<string, unknown>) {
+function extractDate(item: MetricItem) {
   return String(item.date || item.createdAt || item.datetime || "").slice(0, 10);
 }
 

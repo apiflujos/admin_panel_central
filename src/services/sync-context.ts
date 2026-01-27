@@ -14,6 +14,12 @@ type SyncContext = {
   alegraWarehouseId?: string;
 };
 
+type InventoryRules = {
+  publishOnStock: boolean;
+  autoPublishOnWebhook: boolean;
+  autoPublishStatus: "draft" | "active";
+};
+
 export async function buildSyncContext(): Promise<SyncContext> {
   const pool = getPool();
   const orgId = getOrgId();
@@ -78,7 +84,10 @@ async function loadCredential(
   return JSON.parse(decrypted) as ProviderSettings;
 }
 
-async function loadInventoryRules(pool: ReturnType<typeof getPool>, orgId: number) {
+async function loadInventoryRules(
+  pool: ReturnType<typeof getPool>,
+  orgId: number
+): Promise<InventoryRules> {
   await ensureInventoryRulesColumns(pool);
   const result = await pool.query<{
     publish_on_stock: boolean;

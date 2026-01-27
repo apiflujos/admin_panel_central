@@ -9,9 +9,13 @@ export async function emitPaymentForOrder(orderId: string) {
     return { status: "missing_invoice" };
   }
 
-  const invoice = (await ctx.alegra.getInvoice(mapping.alegraId)) as Record<string, unknown>;
-  const clientId = invoice?.client?.id ? String(invoice.client.id) : undefined;
-  const amount = Number(invoice?.total || invoice?.amount || 0);
+  const invoice = (await ctx.alegra.getInvoice(mapping.alegraId)) as {
+    client?: { id?: string | number };
+    total?: number | string;
+    amount?: number | string;
+  };
+  const clientId = invoice.client?.id ? String(invoice.client.id) : undefined;
+  const amount = Number(invoice.total ?? invoice.amount ?? 0);
   if (!clientId || !amount) {
     return { status: "missing_invoice_data" };
   }

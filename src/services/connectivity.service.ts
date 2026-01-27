@@ -24,7 +24,8 @@ export async function validateConnections(payload: ConnectionPayload) {
       await testShopify(payload.shopify);
       results.shopify = "ok";
     } catch (error) {
-      results.shopify = `fail: ${error.message}`;
+      const message = error instanceof Error ? error.message : "No disponible";
+      results.shopify = `fail: ${message}`;
     }
   }
 
@@ -33,7 +34,8 @@ export async function validateConnections(payload: ConnectionPayload) {
       await testAlegra(payload.alegra);
       results.alegra = "ok";
     } catch (error) {
-      results.alegra = `fail: ${error.message}`;
+      const message = error instanceof Error ? error.message : "No disponible";
+      results.alegra = `fail: ${message}`;
     }
   }
 

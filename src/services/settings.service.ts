@@ -161,7 +161,8 @@ export async function listInvoiceResolutions() {
     const resolutions = await alegra.listInvoiceResolutions();
     return { items: resolutions || [] };
   } catch (error) {
-    return { items: [], error: error.message || "No disponible" };
+    const message = error instanceof Error ? error.message : "No disponible";
+    return { items: [], error: message };
   }
 }
 
@@ -183,7 +184,8 @@ export async function listAlegraCatalogItems(catalog: string) {
         return { items: [], error: "Catálogo no soportado" };
     }
   } catch (error) {
-    return { items: [], error: error.message || "No disponible" };
+    const message = error instanceof Error ? error.message : "No disponible";
+    return { items: [], error: message };
   }
 }
 
@@ -549,7 +551,7 @@ async function readTaxRules(pool: ReturnType<typeof getPool>, orgId: number) {
     `,
     [orgId]
   );
-  return result.rows.map((row) => ({
+  return result.rows.map((row: { shopify_tax_id: string; alegra_tax_id: string; type: string }) => ({
     shopifyTaxId: row.shopify_tax_id,
     alegraTaxId: row.alegra_tax_id,
     type: row.type,
@@ -594,10 +596,12 @@ async function readPaymentMappings(pool: ReturnType<typeof getPool>, orgId: numb
     `,
     [orgId]
   );
-  return result.rows.map((row) => ({
+  return result.rows.map(
+    (row: { method_id: string; account_id: string; method_label: string | null; account_label: string | null }) => ({
     methodId: row.method_id,
     accountId: row.account_id,
     methodLabel: row.method_label || "",
     accountLabel: row.account_label || "",
-  }));
+    })
+  );
 }
