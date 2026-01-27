@@ -19,6 +19,9 @@ const resolveStartDate = async () => {
 };
 
 export function startInventoryAdjustmentsPoller() {
+  if (process.env.INVENTORY_ADJUSTMENTS_POLL_DISABLED === "true") {
+    return;
+  }
   const intervalSeconds = Number(process.env.INVENTORY_ADJUSTMENTS_POLL_SECONDS || 300);
   const intervalMs =
     intervalSeconds > 0
