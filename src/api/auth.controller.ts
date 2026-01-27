@@ -66,7 +66,8 @@ export async function changePasswordHandler(req: Request, res: Response) {
     }
     res.status(200).json({ ok: true });
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = error instanceof Error ? error.message : "No disponible";
+    res.status(400).json({ error: message });
   }
 }
 

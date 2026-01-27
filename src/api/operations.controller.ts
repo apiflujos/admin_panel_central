@@ -12,18 +12,22 @@ const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
   }
 };
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "No disponible";
+
 export async function listOperationsHandler(req: Request, res: Response) {
   try {
     const days = req.query.days ? Number(req.query.days) : 7;
     const result = await listOperations(Number.isFinite(days) ? days : 7);
     res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = getErrorMessage(error);
+    res.status(400).json({ error: message });
     await safeCreateLog({
       entity: "operations_list",
       direction: "shopify->alegra",
       status: "fail",
-      message: error.message || "No disponible",
+      message,
       request: { days: req.query.days },
     });
   }
@@ -43,12 +47,13 @@ export async function syncOperationHandler(req: Request, res: Response) {
       response: result as Record<string, unknown>,
     });
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = getErrorMessage(error);
+    res.status(400).json({ error: message });
     await safeCreateLog({
       entity: "operation_sync",
       direction: "shopify->alegra",
       status: "fail",
-      message: error.message || "No disponible",
+      message,
       request: { orderId: req.params.orderId },
     });
   }
@@ -68,12 +73,13 @@ export async function retryInvoiceHandler(req: Request, res: Response) {
       response: result as Record<string, unknown>,
     });
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = getErrorMessage(error);
+    res.status(400).json({ error: message });
     await safeCreateLog({
       entity: "invoice_retry",
       direction: "shopify->alegra",
       status: "fail",
-      message: error.message || "No disponible",
+      message,
       request: { orderId: req.params.orderId },
     });
   }
@@ -91,12 +97,13 @@ export async function seedOperationsHandler(_req: Request, res: Response) {
       response: result as Record<string, unknown>,
     });
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = getErrorMessage(error);
+    res.status(400).json({ error: message });
     await safeCreateLog({
       entity: "operations_seed",
       direction: "shopify->alegra",
       status: "fail",
-      message: error.message || "No disponible",
+      message,
     });
   }
 }
@@ -121,7 +128,8 @@ export async function getEinvoiceOverrideHandler(req: Request, res: Response) {
     const einvoiceEnabled = Boolean(result.rows[0]?.einvoice_enabled);
     res.status(200).json({ override, einvoiceEnabled });
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = getErrorMessage(error);
+    res.status(400).json({ error: message });
   }
 }
 
@@ -145,6 +153,7 @@ export async function saveEinvoiceOverrideHandler(req: Request, res: Response) {
     });
     res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = getErrorMessage(error);
+    res.status(400).json({ error: message });
   }
 }

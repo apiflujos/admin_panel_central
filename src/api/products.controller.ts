@@ -359,13 +359,13 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
     if (!query.has("metadata")) query.set("metadata", "true");
     const response = await fetchAlegra("/items", query);
     const payload = await response.json();
-    const items = Array.isArray(payload?.items)
-      ? payload.items
+    const items: AlegraItem[] = Array.isArray(payload?.items)
+      ? (payload.items as AlegraItem[])
       : Array.isArray(payload?.data)
-        ? payload.data
+        ? (payload.data as AlegraItem[])
         : [];
     if (rawQueryValue && looksLikeIdentifier(identifierQuery)) {
-      const matched = items.filter((item) => matchesIdentifier(item, identifierQuery));
+      const matched = items.filter((item: AlegraItem) => matchesIdentifier(item, identifierQuery));
       if (items.length === 0 || matched.length === 0) {
         const scanItems = await scanAlegraItemsByIdentifier(identifierQuery);
         const detailQuery = new URLSearchParams();
@@ -1027,7 +1027,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
       if (hasDateFilter) {
         const startDate = filters.dateStart ? new Date(filters.dateStart).getTime() : null;
         const endDate = filters.dateEnd ? new Date(filters.dateEnd).getTime() : null;
-        items = items.filter((item) => {
+        items = items.filter((item: AlegraItem) => {
           const itemDate = resolveItemDate(item);
           if (!itemDate) return false;
           if (startDate && itemDate < startDate) return false;
@@ -1041,7 +1041,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
 
       const shouldScan = rawQuery && looksLikeIdentifier(rawQuery);
       if (shouldScan && items.length) {
-        const matched = items.filter((item) => matchesIdentifier(item, rawQuery));
+        const matched = items.filter((item: AlegraItem) => matchesIdentifier(item, rawQuery));
         if (matched.length) {
           items = matched;
           total = matched.length;

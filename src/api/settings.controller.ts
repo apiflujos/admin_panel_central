@@ -1,7 +1,12 @@
 import type { Request, Response } from "express";
 import { validateConnections } from "../services/connectivity.service";
 import { createSyncLog } from "../services/logs.service";
-import { getSettings, listAlegraCatalogItems, listInvoiceResolutions, saveSettings } from "../services/settings.service";
+import {
+  getSettings as getSettingsService,
+  listAlegraCatalogItems,
+  listInvoiceResolutions,
+  saveSettings,
+} from "../services/settings.service";
 
 const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
   try {
@@ -76,7 +81,7 @@ export async function updateSettings(req: Request, res: Response) {
 
 export async function getSettings(_req: Request, res: Response) {
   try {
-    const result = await getSettings();
+    const result = await getSettingsService();
     res.status(200).json(result);
     await safeCreateLog({
       entity: "settings_get",

@@ -22,12 +22,13 @@ export async function listMetrics(req: Request, res: Response) {
       message: "Metricas cargadas",
     });
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = error instanceof Error ? error.message : "No disponible";
+    res.status(400).json({ error: message });
     await safeCreateLog({
       entity: "metrics_list",
       direction: "shopify->alegra",
       status: "fail",
-      message: error.message || "No disponible",
+      message,
     });
   }
 }

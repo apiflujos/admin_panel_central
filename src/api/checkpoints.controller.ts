@@ -11,6 +11,7 @@ export async function getInventoryAdjustmentsCheckpoint(_req: Request, res: Resp
         : Number(process.env.INVENTORY_ADJUSTMENTS_POLL_MS || 0);
     res.status(200).json({ checkpoint, intervalMs });
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = error instanceof Error ? error.message : "No disponible";
+    res.status(400).json({ error: message });
   }
 }

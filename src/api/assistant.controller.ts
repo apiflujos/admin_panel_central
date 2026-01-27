@@ -15,8 +15,10 @@ export async function assistantQueryHandler(req: Request, res: Response) {
     const message = String(req.body?.message || "");
     const mode = String(req.body?.mode || "command");
     const intro = Boolean(req.body?.intro);
-    const attachments = Array.isArray(req.body?.attachments) ? req.body.attachments : [];
-    const sanitized = attachments.map((file) => ({
+    const attachments = Array.isArray(req.body?.attachments)
+      ? (req.body.attachments as Array<{ name?: string; type?: string; size?: number }>)
+      : [];
+    const sanitized = attachments.map((file: { name?: string; type?: string; size?: number }) => ({
       name: file?.name,
       type: file?.type,
       size: file?.size,

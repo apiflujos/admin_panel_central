@@ -24,12 +24,13 @@ export async function emitPaymentHandler(req: Request, res: Response) {
       response: result as Record<string, unknown>,
     });
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = error instanceof Error ? error.message : "No disponible";
+    res.status(400).json({ error: message });
     await safeCreateLog({
       entity: "emit_payment",
       direction: "shopify->alegra",
       status: "fail",
-      message: error.message || "No disponible",
+      message,
       request: { orderId: req.params.orderId },
     });
   }
@@ -49,12 +50,13 @@ export async function voidInvoiceHandler(req: Request, res: Response) {
       response: result as Record<string, unknown>,
     });
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = error instanceof Error ? error.message : "No disponible";
+    res.status(400).json({ error: message });
     await safeCreateLog({
       entity: "void_invoice",
       direction: "shopify->alegra",
       status: "fail",
-      message: error.message || "No disponible",
+      message,
       request: { orderId: req.params.orderId },
     });
   }
