@@ -90,6 +90,9 @@ export function startProductsSyncPoller() {
           const batch = items.slice(i, i + batchSize);
           await Promise.allSettled(
             batch.map(async (item) => {
+              if (!item.id) {
+                return;
+              }
               await syncAlegraItemPayloadToShopify(item);
               if (item.inventory) {
                 await syncAlegraInventoryPayloadToShopify({
