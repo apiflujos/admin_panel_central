@@ -214,7 +214,7 @@ async function buildOrderSeries(days: number) {
     `,
     [orgId, since]
   );
-  return result.rows.map((row) => ({
+  return result.rows.map((row: { date: string; total: string }) => ({
     date: row.date,
     total: Number(row.total || 0),
   }));

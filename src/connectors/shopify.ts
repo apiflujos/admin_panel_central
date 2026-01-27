@@ -79,13 +79,15 @@ export class ShopifyClient {
     let hasNextPage = true;
     const orders: ShopifyOrder[] = [];
     while (hasNextPage) {
-      const data = await this.request<{ orders: ShopifyOrderConnection }>(
+      const data: { orders: ShopifyOrderConnection } =
+        await this.request<{ orders: ShopifyOrderConnection }>(
         <GraphQlRequest>{
           query: ORDERS_PAGED_QUERY,
           variables: { query, cursor },
         }
       );
-      const page = data.orders?.edges?.map((edge) => edge.node) || [];
+      const page =
+        data.orders?.edges?.map((edge: { node: ShopifyOrder }) => edge.node) || [];
       orders.push(...page);
       if (limit && orders.length >= limit) {
         return orders.slice(0, limit);

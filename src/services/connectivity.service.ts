@@ -21,7 +21,8 @@ export async function validateConnections(payload: ConnectionPayload) {
 
   if (payload.shopify?.shopDomain && payload.shopify?.accessToken) {
     try {
-      await testShopify(payload.shopify);
+      const { shopDomain, accessToken, apiVersion } = payload.shopify;
+      await testShopify({ shopDomain, accessToken, apiVersion });
       results.shopify = "ok";
     } catch (error) {
       const message = error instanceof Error ? error.message : "No disponible";
@@ -31,7 +32,8 @@ export async function validateConnections(payload: ConnectionPayload) {
 
   if (payload.alegra?.email && payload.alegra?.apiKey) {
     try {
-      await testAlegra(payload.alegra);
+      const { email, apiKey, environment } = payload.alegra;
+      await testAlegra({ email, apiKey, environment });
       results.alegra = "ok";
     } catch (error) {
       const message = error instanceof Error ? error.message : "No disponible";

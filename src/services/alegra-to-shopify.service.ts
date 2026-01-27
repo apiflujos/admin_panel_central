@@ -45,9 +45,10 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem) {
     item.inventory,
     ctx.alegraWarehouseId
   );
+  const effectiveQuantity = availableQuantity ?? 0;
   const statusInactive = item.status && item.status.toLowerCase() === "inactive";
   const publishEligible =
-    !statusInactive && (ctx.publishOnStock ? availableQuantity > 0 : true);
+    !statusInactive && (ctx.publishOnStock ? effectiveQuantity > 0 : true);
   const desiredPublish =
     ctx.autoPublishStatus === "active" ? publishEligible : false;
   const itemPrice = resolvePrice(item.price);

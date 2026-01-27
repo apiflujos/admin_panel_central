@@ -24,6 +24,16 @@ type AssistantQueryResult = {
   clientAction?: AssistantAction;
 };
 
+type LogAnalysis = {
+  total: number;
+  success: number;
+  failed: number;
+  failRate: number;
+  topMessages: Array<{ message: string; total: number }>;
+  recentHour: number;
+  comparison: null | { previousTotal: number; previousFrom: string; previousTo: string };
+};
+
 const HELP_TEXT = [
   "Comandos disponibles:",
   "- buscar producto <texto|SKU|ID>",
@@ -150,7 +160,7 @@ export async function handleAssistantQuery(
   ) {
     const result = await retryFailedLogs();
     return {
-      reply: withIntro(`Listo. Reintente ${result?.queued || 0} log(s) fallidos.`),
+      reply: withIntro(`Listo. Reintente ${result?.retried || 0} log(s) fallidos.`),
       report: result || {},
     };
   }
@@ -186,7 +196,7 @@ export async function handleAssistantQuery(
   if (normalized.includes("confirmar publicar")) {
     const sku = extractSku(cleaned) || extractLooseSku(cleaned);
     const alegraId = extractId(cleaned);
-    const action = sku
+    const action: AssistantAction | null = sku
       ? { type: "publish_item", payload: { sku } }
       : alegraId
         ? { type: "publish_item", payload: { alegraId } }
@@ -201,7 +211,7 @@ export async function handleAssistantQuery(
   if (normalized.includes("confirmar ocultar")) {
     const sku = extractSku(cleaned) || extractLooseSku(cleaned);
     const alegraId = extractId(cleaned);
-    const action = sku
+    const action: AssistantAction | null = sku
       ? { type: "hide_item", payload: { sku } }
       : alegraId
         ? { type: "hide_item", payload: { alegraId } }
@@ -257,7 +267,12 @@ export async function handleAssistantQuery(
     if (!items.length) {
       return { reply: withIntro("No encontre logs con ese criterio. Quieres ampliar el rango?") };
     }
-    const limited = items.slice(0, 20);
+    const limited = items.slice(0, 20) as Array<{
+      created_at: string;
+      entity?: string;
+      status?: string;
+      message?: string | null;
+    }>;
     const summary = buildLogSummaryText(analysis);
     const suggestions = buildLogSuggestions(analysis, logQuery.filters);
     return {
@@ -815,7 +830,7 @@ async function buildLogAnalysis(filters: {
   to?: string;
   entity?: string;
   direction?: string;
-}) {
+}): Promise<LogAnalysis> {
   const pool = getPool();
   const orgId = getOrgId();
   const conditions: string[] = ["organization_id = $1"];
@@ -866,7 +881,10 @@ async function buildLogAnalysis(filters: {
     acc[row.status] = Number(row.total || 0);
     return acc;
   }, {});
-  const total = Object.values(statusCounts).reduce((sum, value) => sum + value, 0);
+  const total = Object.values(statusCounts).reduce(
+    (sum: number, value: number) => sum + value,
+    0
+  );
   const failed = statusCounts.fail || 0;
   const success = statusCounts.success || 0;
   const failRate = total ? Math.round((failed / total) * 1000) / 10 : 0;
@@ -900,7 +918,7 @@ async function buildLogAnalysis(filters: {
     success,
     failed,
     failRate,
-    topMessages: topMessages.rows.map((row) => ({
+    topMessages: topMessages.rows.map((row: { message: string | null; total: string }) => ({
       message: row.message || "Sin detalle",
       total: Number(row.total || 0),
     })),
@@ -966,14 +984,7 @@ async function buildLogComparison(filters: {
   };
 }
 
-function buildLogSummaryText(analysis: {
-  total: number;
-  success: number;
-  failed: number;
-  failRate: number;
-  recentHour: number;
-  comparison: null | { previousTotal: number };
-}) {
+function buildLogSummaryText(analysis: LogAnalysis) {
   if (!analysis) return "Resumen no disponible.";
   const base = `Resumen: ${analysis.total} registros · ${analysis.failed} fallidos · ${analysis.success} exitosos · ${analysis.failRate}% fallo.`;
   const recent = analysis.recentHour ? ` Ultima hora: ${analysis.recentHour}.` : " Sin actividad en la ultima hora.";
@@ -987,10 +998,7 @@ function buildLogSummaryText(analysis: {
   return `${base}${recent}${comp}`;
 }
 
-function buildLogSuggestions(
-  analysis: { failed: number; failRate: number; topMessages: Array<{ message: string; total: number }> },
-  filters: { status?: string }
-) {
+function buildLogSuggestions(analysis: LogAnalysis, filters: { status?: string }) {
   if (!analysis) return "";
   if (filters.status === "success") {
     return " Todo se ve estable. Quieres ver errores recientes?";
@@ -1068,7 +1076,7 @@ function extractLooseSku(message: string) {
 }
 
 function buildCustomerName(order: {
-  customer?: { firstName?: string | null; lastName?: string | null };
+  customer?: { firstName?: string | null; lastName?: string | null } | null;
   email?: string | null;
 }) {
   const first = order.customer?.firstName || "";

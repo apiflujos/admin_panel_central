@@ -7,6 +7,18 @@ type LogFilters = {
   to?: string;
 };
 
+export type SyncLogListItem = {
+  id: number;
+  entity: string;
+  direction: string;
+  status: string;
+  message: string | null;
+  created_at: string;
+  order_id: string | null;
+  request_json: Record<string, unknown> | null;
+  response_json: Record<string, unknown> | null;
+};
+
 export async function listLatestOrderLogs(orderIds: string[]) {
   const { getOrgId, getPool } = await import("../db");
   const pool = getPool();
@@ -14,7 +26,11 @@ export async function listLatestOrderLogs(orderIds: string[]) {
   if (!orderIds.length) {
     return new Map<string, { status: string; message?: string | null }>();
   }
-  const result = await pool.query(
+  const result = await pool.query<{
+    order_id: string;
+    status: string;
+    message: string | null;
+  }>(
     `
     SELECT DISTINCT ON (request_json->>'orderId')
       request_json->>'orderId' AS order_id,
@@ -40,7 +56,9 @@ export async function getLatestInvoicePayload(orderId: string) {
   const { getOrgId, getPool } = await import("../db");
   const pool = getPool();
   const orgId = getOrgId();
-  const result = await pool.query(
+  const result = await pool.query<{
+    request_json: Record<string, unknown> | null;
+  }>(
     `
     SELECT request_json
     FROM sync_logs
@@ -60,7 +78,9 @@ export async function getLatestInvoicePayload(orderId: string) {
   return request.invoicePayload || null;
 }
 
-export async function listSyncLogs(filters: LogFilters) {
+export async function listSyncLogs(
+  filters: LogFilters
+): Promise<{ items: SyncLogListItem[]; filters: LogFilters }> {
   const { getOrgId, getPool } = await import("../db");
   const pool = getPool();
   const orgId = getOrgId();
@@ -102,8 +122,17 @@ export async function listSyncLogs(filters: LogFilters) {
     LIMIT 200
   `;
 
-  const result = await pool.query(query, params);
-  const items = result.rows.map((row) => ({
+  const result = await pool.query<{
+    id: number;
+    entity: string;
+    direction: string;
+    status: string;
+    message: string | null;
+    request_json: Record<string, unknown> | null;
+    response_json: Record<string, unknown> | null;
+    created_at: string;
+  }>(query, params);
+  const items: SyncLogListItem[] = result.rows.map((row) => ({
     id: row.id,
     entity: row.entity,
     direction: row.direction,

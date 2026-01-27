@@ -204,7 +204,7 @@ export async function ensureInvoiceSettingsColumns(poolInstance: Pool) {
         `
       )
       .then(() => undefined)
-      .catch((error) => {
+      .catch((error: unknown) => {
         ensureInvoiceSettingsPromise = null;
         throw error;
       });
@@ -245,7 +245,7 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
         )
       )
       .then(() => undefined)
-      .catch((error) => {
+      .catch((error: unknown) => {
         ensureInventoryRulesPromise = null;
         throw error;
       });
@@ -273,7 +273,7 @@ export async function ensureSyncCheckpointTable(poolInstance: Pool) {
         `
       )
       .then(() => undefined)
-      .catch((error) => {
+      .catch((error: unknown) => {
         ensureSyncCheckpointPromise = null;
         throw error;
       });

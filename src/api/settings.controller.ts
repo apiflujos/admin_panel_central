@@ -11,6 +11,9 @@ const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
   }
 };
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "No disponible";
+
 const summarizeSettingsPayload = (payload: Record<string, unknown>) => ({
   hasShopify: Boolean((payload.shopify as Record<string, unknown> | undefined)?.accessToken),
   hasAlegra: Boolean((payload.alegra as Record<string, unknown> | undefined)?.apiKey),
@@ -34,12 +37,13 @@ export async function testConnections(req: Request, res: Response) {
       response: result as Record<string, unknown>,
     });
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = getErrorMessage(error);
+    res.status(400).json({ error: message });
     await safeCreateLog({
       entity: "connections_test",
       direction: "shopify->alegra",
       status: "fail",
-      message: error.message || "No disponible",
+      message,
       request: summarizeSettingsPayload(req.body || {}),
     });
   }
@@ -58,12 +62,13 @@ export async function updateSettings(req: Request, res: Response) {
       response: result as Record<string, unknown>,
     });
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = getErrorMessage(error);
+    res.status(400).json({ error: message });
     await safeCreateLog({
       entity: "settings_update",
       direction: "shopify->alegra",
       status: "fail",
-      message: error.message || "No disponible",
+      message,
       request: summarizeSettingsPayload(req.body || {}),
     });
   }
@@ -81,12 +86,13 @@ export async function getSettings(_req: Request, res: Response) {
       response: result as Record<string, unknown>,
     });
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = getErrorMessage(error);
+    res.status(400).json({ error: message });
     await safeCreateLog({
       entity: "settings_get",
       direction: "shopify->alegra",
       status: "fail",
-      message: error.message || "No disponible",
+      message,
     });
   }
 }
@@ -103,12 +109,13 @@ export async function listResolutions(_req: Request, res: Response) {
       response: result as Record<string, unknown>,
     });
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = getErrorMessage(error);
+    res.status(400).json({ error: message });
     await safeCreateLog({
       entity: "resolutions_list",
       direction: "alegra->shopify",
       status: "fail",
-      message: error.message || "No disponible",
+      message,
     });
   }
 }
@@ -127,12 +134,13 @@ export async function listAlegraCatalog(req: Request, res: Response) {
       response: result as Record<string, unknown>,
     });
   } catch (error) {
-    res.status(400).json({ error: error.message || "No disponible" });
+    const message = getErrorMessage(error);
+    res.status(400).json({ error: message });
     await safeCreateLog({
       entity: "alegra_catalog",
       direction: "alegra->shopify",
       status: "fail",
-      message: error.message || "No disponible",
+      message,
       request: { catalog: req.params.catalog },
     });
   }
