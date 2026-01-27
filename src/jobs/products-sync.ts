@@ -1,6 +1,6 @@
 import { AlegraClient } from "../connectors/alegra";
 import { createSyncLog } from "../services/logs.service";
-import { syncAlegraInventoryPayloadToShopify, syncAlegraItemPayloadToShopify, type AlegraInventoryPayload } from "../services/alegra-to-shopify.service";
+import { syncAlegraInventoryPayloadToShopify, syncAlegraItemPayloadToShopify, type AlegraInventoryPayload, type AlegraItem } from "../services/alegra-to-shopify.service";
 import { getAlegraCredential } from "../services/settings.service";
 import { getSyncCheckpoint, saveSyncCheckpoint } from "../services/sync-checkpoints.service";
 import { getAlegraBaseUrl } from "../utils/alegra-env";
@@ -31,6 +31,9 @@ const extractUpdatedAt = (item: AlegraItemRow) => {
   const parsed = Date.parse(raw);
   return Number.isFinite(parsed) ? parsed : null;
 };
+
+const hasItemId = (item: AlegraItemRow): item is AlegraItemRow & { id: string | number } =>
+  item.id !== undefined && item.id !== null;
 
 const normalizeItemsResponse = (payload: unknown): AlegraItemRow[] => {
   if (!payload || typeof payload !== "object") return [];
@@ -90,10 +93,11 @@ export function startProductsSyncPoller() {
           const batch = items.slice(i, i + batchSize);
           await Promise.allSettled(
             batch.map(async (item) => {
-              if (!item.id) {
+              if (!hasItemId(item)) {
                 return;
               }
-              await syncAlegraItemPayloadToShopify(item);
+              const resolvedItem = item as AlegraItem;
+              await syncAlegraItemPayloadToShopify(resolvedItem);
               if (item.inventory) {
                 await syncAlegraInventoryPayloadToShopify({
                   id: item.id,
