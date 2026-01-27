@@ -85,12 +85,13 @@ export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload) {
   };
   const rawPhone = payload.customer?.phone || "";
   const phoneId = rawPhone.replace(/\D/g, "");
+  const fallbackId = String(payload.id || payload.name || "").replace(/\D/g, "");
   const identification =
     einvoiceActive && override?.idNumber
       ? override.idNumber
       : phoneId.startsWith("57") && phoneId.length > 10
       ? phoneId.slice(2)
-      : phoneId;
+      : phoneId || fallbackId || "9999999999";
   const createContactPayload = {
     ...contactPayload,
     identificationType: einvoiceActive && override?.idType ? override.idType : "CC",
