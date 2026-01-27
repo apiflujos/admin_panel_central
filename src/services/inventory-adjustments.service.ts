@@ -15,7 +15,8 @@ const fetchAlegraAdjustments = async (query: URLSearchParams) => {
   });
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `Alegra HTTP ${response.status}`);
+    const details = text ? `: ${text}` : "";
+    throw new Error(`Alegra HTTP ${response.status} ${response.statusText}${details}`);
   }
   return response.json() as Promise<unknown>;
 };
