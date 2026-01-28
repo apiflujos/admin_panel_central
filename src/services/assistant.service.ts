@@ -750,18 +750,14 @@ async function inferIntent(cleaned: string, normalized: string, introPrefix: str
     return { reply: withIntro("Quieres ver logs de hoy, 24h, 7 dias, 30 dias o por pedido (ej: #1234)?") };
   }
 
-  const aiResult = await handleAssistantWithAi(cleaned, withIntro, mode);
+  const aiResult = await handleAssistantWithAi(cleaned, withIntro);
   return aiResult || { reply: withIntro("No pude interpretar la solicitud. Prueba con 'ayuda'.") };
 }
 
 async function handleAssistantWithAi(
   message: string,
-  withIntro: (text: string) => string,
-  mode: string
+  withIntro: (text: string) => string
 ): Promise<AssistantQueryResult | null> {
-  if (mode === "command") {
-    return null;
-  }
   let aiKey: string;
   try {
     const credential = await getAiCredential();
