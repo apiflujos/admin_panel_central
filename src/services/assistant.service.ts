@@ -1,14 +1,28 @@
 import { buildSyncContext } from "./sync-context";
 import { listSyncLogs, retryFailedLogs } from "./logs.service";
-import { getAlegraCredential, getAiCredential } from "./settings.service";
+import { getAlegraCredential, getAiCredential, getSettings, saveSettings } from "./settings.service";
 import { getAlegraBaseUrl } from "../utils/alegra-env";
 import { getMappingByAlegraId } from "./mapping.service";
 import { syncAlegraItemToShopify } from "./alegra-to-shopify.service";
 import { getOrgId, getPool } from "../db";
 import { ASSISTANT_MASTER_PROMPT } from "./assistant-prompt";
+import { listOperations } from "./operations.service";
 
 type AssistantAction = {
-  type: "publish_item" | "hide_item" | "sync_products" | "sync_orders" | "retry_failed_logs";
+  type:
+    | "publish_item"
+    | "hide_item"
+    | "sync_products"
+    | "sync_orders"
+    | "retry_failed_logs"
+    | "get_sales_summary"
+    | "get_orders_summary"
+    | "get_orders_list"
+    | "get_products_search"
+    | "get_logs"
+    | "get_settings"
+    | "update_invoice_settings"
+    | "update_rules";
   payload?: Record<string, unknown>;
   label?: string;
   clientAction?: boolean;
@@ -53,6 +67,23 @@ const ACTION_TYPES = new Set<AssistantAction["type"]>([
   "sync_products",
   "sync_orders",
   "retry_failed_logs",
+  "get_sales_summary",
+  "get_orders_summary",
+  "get_orders_list",
+  "get_products_search",
+  "get_logs",
+  "get_settings",
+  "update_invoice_settings",
+  "update_rules",
+]);
+const WRITE_ACTIONS = new Set<AssistantAction["type"]>([
+  "publish_item",
+  "hide_item",
+  "sync_products",
+  "sync_orders",
+  "retry_failed_logs",
+  "update_invoice_settings",
+  "update_rules",
 ]);
 
 let lastLogFilters: {
@@ -364,6 +395,9 @@ export async function executeAssistantAction(action: AssistantAction) {
   if (!action?.type) {
     return { reply: "Accion invalida." };
   }
+  if (WRITE_ACTIONS.has(action.type) && action.payload?.confirmed !== true) {
+    return { reply: "Necesito confirmacion para ejecutar esa accion." };
+  }
   if (action.type === "publish_item" || action.type === "hide_item") {
     const alegraId = String(action.payload?.alegraId || "");
     const sku = String(action.payload?.sku || "");
@@ -383,6 +417,99 @@ export async function executeAssistantAction(action: AssistantAction) {
           : `No se pudo actualizar el item ${alegraId}.`,
       report: result,
     };
+  }
+  if (action.type === "retry_failed_logs") {
+    const result = await retryFailedLogs();
+    return { reply: `Listo. Reintente ${result?.retried || 0} log(s).`, report: result || {} };
+  }
+  if (action.type === "get_sales_summary") {
+    const range = resolveDateRange(action.payload || {});
+    const summary = await getSalesSummary(range);
+    return {
+      reply: `Ventas ${summary.label}: ${summary.totalFormatted} · Pedidos: ${summary.count}`,
+      report: summary,
+    };
+  }
+  if (action.type === "get_orders_summary") {
+    const range = resolveDateRange(action.payload || {});
+    const summary = await getOrdersSummary(range);
+    return {
+      reply: `Pedidos ${summary.label}: ${summary.count}`,
+      report: summary,
+    };
+  }
+  if (action.type === "get_orders_list") {
+    const days = Number(action.payload?.days || 30);
+    const limit = Number(action.payload?.limit || 50);
+    const orders = await listOperations(days);
+    const items = orders.items.slice(0, Math.max(1, Math.min(limit, orders.items.length)));
+    return {
+      reply: `Encontre ${items.length} pedidos en los ultimos ${days} dias.`,
+      items,
+      itemsHeaders: ["Pedido", "Cliente", "Estado"],
+      itemsRows: items.map((order) => [
+        String(order.orderNumber || order.id || "-"),
+        String(order.customer || "-"),
+        String(order.alegraStatus || "-"),
+      ]),
+    };
+  }
+  if (action.type === "get_products_search") {
+    const query = String(action.payload?.query || "").trim();
+    if (!query) {
+      return { reply: "Indica el nombre, SKU o ID del producto." };
+    }
+    const items = await searchAlegraItems(query);
+    return {
+      reply: items.length
+        ? `Encontre ${items.length} productos para "${query}".`
+        : `No encontre productos para "${query}".`,
+      items,
+      itemsHeaders: ["ID", "Nombre", "Referencia"],
+      itemsRows: items.map((item) => [
+        String(item.id || "-"),
+        String(item.name || "-"),
+        String(item.reference || item.code || "-"),
+      ]),
+    };
+  }
+  if (action.type === "get_logs") {
+    const days = Number(action.payload?.days || 7);
+    const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const filters = {
+      status: action.payload?.status as string | undefined,
+      entity: action.payload?.entity as string | undefined,
+      direction: action.payload?.direction as string | undefined,
+      from,
+    };
+    const data = await listSyncLogs(filters);
+    return {
+      reply: `Logs encontrados: ${data.items.length}`,
+      items: data.items,
+      itemsHeaders: ["Fecha", "Entidad", "Estado", "Mensaje"],
+      itemsRows: data.items.slice(0, 20).map((item) => [
+        String(item.created_at || "-"),
+        String(item.entity || "-"),
+        String(item.status || "-"),
+        String(item.message || "-"),
+      ]),
+      report: data as Record<string, unknown>,
+    };
+  }
+  if (action.type === "get_settings") {
+    const settings = await getSettings();
+    return {
+      reply: "Estos son los ajustes actuales.",
+      report: settings as Record<string, unknown>,
+    };
+  }
+  if (action.type === "update_invoice_settings") {
+    await saveSettings({ invoice: action.payload || {} });
+    return { reply: "Ajustes de facturacion actualizados." };
+  }
+  if (action.type === "update_rules") {
+    await saveSettings({ rules: action.payload || {} });
+    return { reply: "Reglas actualizadas." };
   }
   return { reply: "Esta accion debe ejecutarse desde el cliente." };
 }
@@ -805,19 +932,25 @@ async function handleAssistantWithAi(
   const reply = typeof parsed.reply === "string" ? parsed.reply : "Listo.";
   const action = parsed.action as AssistantAction | undefined;
   if (action && ACTION_TYPES.has(action.type)) {
-    if ((action.type === "publish_item" || action.type === "hide_item") && !/confirmar/i.test(message)) {
-      const target =
-        (action.payload && (action.payload.sku as string | undefined)) ||
-        (action.payload && (action.payload.alegraId as string | undefined)) ||
-        "el item";
-      const verb = action.type === "publish_item" ? "publicar" : "ocultar";
-      return { reply: withIntro(`Para ${verb} ${target}, confirma con: confirmar ${verb} ${target}`) };
+    const confirmed = /confirmar|confirmo|confirmada|confirmado/i.test(message);
+    if (WRITE_ACTIONS.has(action.type) && !confirmed) {
+      return { reply: withIntro("Para ejecutar esa accion necesito confirmacion. Responde con: confirmar.") };
     }
-    const clientAction: AssistantAction = {
-      ...action,
-      clientAction: action.type === "sync_products" || action.type === "sync_orders",
+    if (confirmed && action.payload) {
+      action.payload.confirmed = true;
+    }
+    if (action.type === "sync_products" || action.type === "sync_orders") {
+      const clientAction: AssistantAction = { ...action, clientAction: true };
+      return { reply: withIntro(reply), clientAction };
+    }
+    const result = await executeAssistantAction(action);
+    return {
+      reply: withIntro(result.reply || reply),
+      report: result.report,
+      items: result.items,
+      itemsHeaders: result.itemsHeaders,
+      itemsRows: result.itemsRows,
     };
-    return { reply: withIntro(reply), clientAction };
   }
   return { reply: withIntro(reply) };
 }
@@ -845,6 +978,89 @@ function tryParseJson(text: string) {
   } catch {
     return null;
   }
+}
+
+function resolveDateRange(payload: Record<string, unknown>) {
+  const days = Number(payload.days || 0);
+  if (Number.isFinite(days) && days > 0) {
+    const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    return { from, to: new Date(), label: `ultimos ${days} dias` };
+  }
+  const month = Number(payload.month || 0);
+  const year = Number(payload.year || new Date().getFullYear());
+  if (month >= 1 && month <= 12) {
+    const from = new Date(year, month - 1, 1);
+    const to = new Date(year, month, 0, 23, 59, 59, 999);
+    return { from, to, label: `mes ${month}/${year}` };
+  }
+  const current = new Date();
+  const from = new Date(current.getFullYear(), current.getMonth(), 1);
+  return { from, to: new Date(), label: "mes actual" };
+}
+
+async function getSalesSummary(range: { from: Date; to: Date; label: string }) {
+  const ctx = await buildSyncContext();
+  const invoices = await listAlegraInvoicesInRange(ctx, range);
+  const total = invoices.reduce((acc, invoice) => {
+    const amount = Number(
+      invoice.total ||
+        invoice.totalTaxed ||
+        invoice.subtotal ||
+        invoice.amount ||
+        0
+    );
+    return acc + (Number.isFinite(amount) ? amount : 0);
+  }, 0);
+  return {
+    label: range.label,
+    count: invoices.length,
+    total,
+    totalFormatted: new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+    }).format(total),
+  };
+}
+
+async function getOrdersSummary(range: { from: Date; to: Date; label: string }) {
+  const ctx = await buildSyncContext();
+  const fromIso = range.from.toISOString().slice(0, 10);
+  const toIso = range.to.toISOString().slice(0, 10);
+  const query = `status:any created_at:>='${fromIso}' created_at:<='${toIso}'`;
+  const orders = await ctx.shopify.listAllOrdersByQuery(query);
+  return {
+    label: range.label,
+    count: orders.length,
+  };
+}
+
+async function listAlegraInvoicesInRange(
+  ctx: Awaited<ReturnType<typeof buildSyncContext>>,
+  range: { from: Date; to: Date }
+) {
+  const pageSize = 30;
+  const maxPages = Math.max(1, Number(process.env.METRICS_MAX_PAGES || 10));
+  const invoices: Array<Record<string, unknown>> = [];
+  for (let page = 0; page < maxPages; page += 1) {
+    const batch = (await ctx.alegra.listInvoices({
+      limit: pageSize,
+      start: page * pageSize,
+    })) as Array<Record<string, unknown>>;
+    if (!Array.isArray(batch) || batch.length === 0) {
+      break;
+    }
+    invoices.push(...batch);
+    if (batch.length < pageSize) {
+      break;
+    }
+  }
+  return invoices.filter((invoice) => {
+    const date =
+      String(invoice.date || invoice.datetime || invoice.createdAt || "").slice(0, 10);
+    if (!date) return false;
+    const invoiceDate = Date.parse(`${date}T00:00:00.000Z`);
+    return invoiceDate >= range.from.getTime() && invoiceDate <= range.to.getTime();
+  });
 }
 
 async function getLatestProductSync() {
