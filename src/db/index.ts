@@ -231,7 +231,8 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
           warehouse_id TEXT,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           auto_publish_on_webhook BOOLEAN NOT NULL DEFAULT false,
-          auto_publish_status TEXT NOT NULL DEFAULT 'draft'
+          auto_publish_status TEXT NOT NULL DEFAULT 'draft',
+          inventory_adjustments_enabled BOOLEAN NOT NULL DEFAULT true
         )
         `
       )
@@ -240,7 +241,8 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
           `
           ALTER TABLE inventory_rules
             ADD COLUMN IF NOT EXISTS auto_publish_on_webhook BOOLEAN NOT NULL DEFAULT false,
-            ADD COLUMN IF NOT EXISTS auto_publish_status TEXT NOT NULL DEFAULT 'draft'
+            ADD COLUMN IF NOT EXISTS auto_publish_status TEXT NOT NULL DEFAULT 'draft',
+            ADD COLUMN IF NOT EXISTS inventory_adjustments_enabled BOOLEAN NOT NULL DEFAULT true
           `
         )
       )
@@ -265,12 +267,20 @@ export async function ensureSyncCheckpointTable(poolInstance: Pool) {
           id SERIAL PRIMARY KEY,
           organization_id INTEGER NOT NULL REFERENCES organizations(id),
           entity TEXT NOT NULL,
-          last_start INTEGER NOT NULL DEFAULT 0,
+          last_start BIGINT NOT NULL DEFAULT 0,
           total INTEGER,
           updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
           UNIQUE (organization_id, entity)
         )
         `
+      )
+      .then(() =>
+        poolInstance.query(
+          `
+          ALTER TABLE sync_checkpoints
+            ALTER COLUMN last_start TYPE BIGINT
+          `
+        )
       )
       .then(() => undefined)
       .catch((error: unknown) => {
