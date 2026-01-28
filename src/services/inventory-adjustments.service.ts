@@ -6,7 +6,7 @@ const fetchAlegraAdjustments = async (query: URLSearchParams) => {
   const alegra = await getAlegraCredential();
   const baseUrl = getAlegraBaseUrl(alegra.environment || "prod");
   const auth = Buffer.from(`${alegra.email}:${alegra.apiKey}`).toString("base64");
-  const url = `${baseUrl}/inventory/adjustments?${query.toString()}`;
+  const url = `${baseUrl}/inventory-adjustments?${query.toString()}`;
   const response = await fetch(url, {
     headers: {
       Accept: "application/json",

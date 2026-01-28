@@ -39,7 +39,7 @@ export class AlegraClient {
   }
 
   async createInventoryAdjustment(payload: Record<string, unknown>) {
-    return this.request(`/inventory/adjustments`, { method: "POST", body: payload });
+    return this.request(`/inventory-adjustments`, { method: "POST", body: payload });
   }
 
   async listInvoiceResolutions() {

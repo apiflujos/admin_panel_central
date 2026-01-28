@@ -470,7 +470,7 @@ export async function listInventoryAdjustmentsHandler(req: Request, res: Respons
     const rawLimit = Number(query.get("limit"));
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 30) : 30;
     query.set("limit", String(limit));
-    const response = await fetchAlegra("/inventory/adjustments", query);
+    const response = await fetchAlegra("/inventory-adjustments", query);
     const payload = await response.json();
     res.status(response.status).json(payload);
   } catch (error) {
