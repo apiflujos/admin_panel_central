@@ -23,6 +23,7 @@ type SettingsPayload = {
     publishOnStock?: boolean;
     autoPublishOnWebhook?: boolean;
     autoPublishStatus?: "draft" | "active";
+    inventoryAdjustmentsEnabled?: boolean;
   };
   invoice?: {
     generateInvoice?: boolean;
@@ -166,6 +167,13 @@ export async function getSettings() {
   };
 }
 
+export async function getInventoryAdjustmentsEnabled() {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const rules = await readRules(pool, orgId);
+  return rules.inventoryAdjustmentsEnabled !== false;
+}
+
 export async function listInvoiceResolutions() {
   try {
     const alegra = await getAlegraClient();
@@ -236,6 +244,16 @@ export async function getAlegraCredential() {
   };
 }
 
+export async function getAiCredential() {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const ai = await readCredential(pool, orgId, "ai");
+  if (!ai?.apiKey) {
+    throw new Error("Missing AI credentials in DB");
+  }
+  return ai as { apiKey: string };
+}
+
 async function getAlegraClient() {
   const pool = getPool();
   const orgId = getOrgId();
@@ -294,6 +312,7 @@ async function upsertRules(
     publishOnStock?: boolean;
     autoPublishOnWebhook?: boolean;
     autoPublishStatus?: "draft" | "active";
+    inventoryAdjustmentsEnabled?: boolean;
   }
 ) {
   await ensureInventoryRulesColumns(pool);
@@ -313,27 +332,30 @@ async function upsertRules(
       UPDATE inventory_rules
       SET publish_on_stock = $1,
           auto_publish_on_webhook = $2,
-          auto_publish_status = $3
-      WHERE id = $4
+          auto_publish_status = $3,
+          inventory_adjustments_enabled = $4
+      WHERE id = $5
       `,
       [
         rules.publishOnStock ?? true,
         rules.autoPublishOnWebhook ?? false,
         rules.autoPublishStatus === "active" ? "active" : "draft",
+        rules.inventoryAdjustmentsEnabled ?? true,
         existing.rows[0].id,
       ]
     );
   } else {
     await pool.query(
       `
-      INSERT INTO inventory_rules (organization_id, publish_on_stock, auto_publish_on_webhook, auto_publish_status)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO inventory_rules (organization_id, publish_on_stock, auto_publish_on_webhook, auto_publish_status, inventory_adjustments_enabled)
+      VALUES ($1, $2, $3, $4, $5)
       `,
       [
         orgId,
         rules.publishOnStock ?? true,
         rules.autoPublishOnWebhook ?? false,
         rules.autoPublishStatus === "active" ? "active" : "draft",
+        rules.inventoryAdjustmentsEnabled ?? true,
       ]
     );
   }
@@ -474,9 +496,10 @@ async function readRules(pool: ReturnType<typeof getPool>, orgId: number) {
     publish_on_stock: boolean;
     auto_publish_on_webhook: boolean;
     auto_publish_status: string | null;
+    inventory_adjustments_enabled: boolean | null;
   }>(
     `
-    SELECT publish_on_stock, auto_publish_on_webhook, auto_publish_status
+    SELECT publish_on_stock, auto_publish_on_webhook, auto_publish_status, inventory_adjustments_enabled
     FROM inventory_rules
     WHERE organization_id = $1
     ORDER BY created_at DESC
@@ -492,6 +515,9 @@ async function readRules(pool: ReturnType<typeof getPool>, orgId: number) {
         ? "active"
         : "draft"
       : "draft",
+    inventoryAdjustmentsEnabled: inventory.rows.length
+      ? inventory.rows[0].inventory_adjustments_enabled !== false
+      : true,
   };
 }
 

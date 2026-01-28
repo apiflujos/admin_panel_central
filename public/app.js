@@ -12,6 +12,7 @@ const inventoryCronLed = document.getElementById("inventory-cron-led");
 const inventoryCronStatus = document.getElementById("inventory-cron-status");
 const inventoryCronCheckpoint = document.getElementById("inventory-cron-checkpoint");
 const inventoryCronInterval = document.getElementById("inventory-cron-interval");
+const inventoryCronEnabled = document.getElementById("inventory-cron-enabled");
 const queueStatus = document.getElementById("queue-status");
 const syncProgress = document.getElementById("sync-progress");
 const syncProgressBar = document.getElementById("sync-progress-bar");
@@ -174,6 +175,7 @@ let inventoryRules = {
   publishOnStock: true,
   autoPublishOnWebhook: true,
   autoPublishStatus: "draft",
+  inventoryAdjustmentsEnabled: true,
 };
 
 const PRODUCT_SETTINGS_KEY = "apiflujos-products-settings";
@@ -812,10 +814,14 @@ async function loadSettings() {
       publishOnStock: data.rules.publishOnStock !== false,
       autoPublishOnWebhook: Boolean(data.rules.autoPublishOnWebhook),
       autoPublishStatus: data.rules.autoPublishStatus === "active" ? "active" : "draft",
+      inventoryAdjustmentsEnabled: data.rules.inventoryAdjustmentsEnabled !== false,
     };
   }
   if (rulesAutoPublish) rulesAutoPublish.checked = inventoryRules.autoPublishOnWebhook;
   if (rulesAutoStatus) rulesAutoStatus.value = inventoryRules.autoPublishStatus;
+  if (inventoryCronEnabled) {
+    inventoryCronEnabled.checked = inventoryRules.inventoryAdjustmentsEnabled !== false;
+  }
   if (Array.isArray(data.paymentMappings)) {
     paymentMappings = data.paymentMappings.map((item) => ({
       methodId: item.methodId,
@@ -873,6 +879,15 @@ function renderConnections(settings) {
 
 async function loadInventoryCheckpoint() {
   if (!inventoryCronStatus || !inventoryCronCheckpoint || !inventoryCronInterval) {
+    return;
+  }
+  if (inventoryCronEnabled && inventoryCronEnabled.checked === false) {
+    inventoryCronStatus.textContent = "Apagado";
+    inventoryCronCheckpoint.textContent = "-";
+    inventoryCronInterval.textContent = "Inactivo";
+    if (inventoryCronLed) {
+      inventoryCronLed.classList.remove("is-ok");
+    }
     return;
   }
   try {
@@ -2284,7 +2299,7 @@ async function sendAssistantMessage() {
     }
     const payload = {
       message: text,
-      mode: "command",
+      mode: "assistant",
       intro: shouldIntro,
       attachments,
     };
@@ -2522,6 +2537,7 @@ async function saveSettings() {
       publishOnStock: inventoryRules.publishOnStock,
       autoPublishOnWebhook: rulesAutoPublish ? rulesAutoPublish.checked : false,
       autoPublishStatus: rulesAutoStatus && rulesAutoStatus.value === "active" ? "active" : "draft",
+      inventoryAdjustmentsEnabled: inventoryCronEnabled ? inventoryCronEnabled.checked : true,
     },
     paymentMappings,
   };
@@ -2703,6 +2719,16 @@ logFilter.addEventListener("click", loadLogs);
 logRetry.addEventListener("click", retryFailed);
 testShopifyButton.addEventListener("click", testShopifyConnection);
 testAlegraButton.addEventListener("click", testAlegraConnection);
+if (inventoryCronEnabled) {
+  inventoryCronEnabled.addEventListener("change", async () => {
+    try {
+      await saveSettings();
+      await loadInventoryCheckpoint();
+    } catch {
+      // ignore save errors here
+    }
+  });
+}
 opsSearchBtn.addEventListener("click", () => {
   ordersStart = 0;
   loadOperations();

@@ -1,6 +1,6 @@
 import { buildSyncContext } from "./sync-context";
 import { listSyncLogs, retryFailedLogs } from "./logs.service";
-import { getAlegraCredential } from "./settings.service";
+import { getAlegraCredential, getAiCredential } from "./settings.service";
 import { getAlegraBaseUrl } from "../utils/alegra-env";
 import { getMappingByAlegraId } from "./mapping.service";
 import { syncAlegraItemToShopify } from "./alegra-to-shopify.service";
@@ -44,6 +44,16 @@ const HELP_TEXT = [
   "- reporte db",
   "- prompt maestro",
 ].join("\n");
+
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
+const ACTION_TYPES = new Set<AssistantAction["type"]>([
+  "publish_item",
+  "hide_item",
+  "sync_products",
+  "sync_orders",
+  "retry_failed_logs",
+]);
 
 let lastLogFilters: {
   status?: string;
@@ -740,7 +750,105 @@ async function inferIntent(cleaned: string, normalized: string, introPrefix: str
     return { reply: withIntro("Quieres ver logs de hoy, 24h, 7 dias, 30 dias o por pedido (ej: #1234)?") };
   }
 
+  const aiResult = await handleAssistantWithAi(cleaned, withIntro, mode);
+  return aiResult || { reply: withIntro("No pude interpretar la solicitud. Prueba con 'ayuda'.") };
+}
+
+async function handleAssistantWithAi(
+  message: string,
+  withIntro: (text: string) => string,
+  mode: string
+): Promise<AssistantQueryResult | null> {
+  if (mode === "command") {
+    return null;
+  }
+  let aiKey: string;
+  try {
+    const credential = await getAiCredential();
+    aiKey = credential.apiKey;
+  } catch {
+    return { reply: withIntro("Configura la API key de IA en Ajustes para activar el asistente.") };
+  }
+  const systemPrompt = [
+    ASSISTANT_MASTER_PROMPT,
+    "",
+    "Responde siempre en JSON valido con esta forma:",
+    '{ "reply": "...", "action": { "type": "...", "payload": { ... } } }',
+    "Si no hay accion, omite el campo action.",
+    "Solo usa tipos de accion permitidos: publish_item, hide_item, sync_products, sync_orders, retry_failed_logs.",
+  ].join("\n");
+
+  const body = {
+    model: OPENAI_MODEL,
+    temperature: 0.2,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: message },
+    ],
+  };
+  const response = await fetch(OPENAI_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${aiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    return { reply: withIntro(text || "No pude responder en este momento.") };
+  }
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const content = data.choices?.[0]?.message?.content || "";
+  const parsed = parseAiJson(content);
+  if (!parsed) {
+    return { reply: withIntro(content || "No pude responder en este momento.") };
+  }
+  const reply = typeof parsed.reply === "string" ? parsed.reply : "Listo.";
+  const action = parsed.action as AssistantAction | undefined;
+  if (action && ACTION_TYPES.has(action.type)) {
+    if ((action.type === "publish_item" || action.type === "hide_item") && !/confirmar/i.test(message)) {
+      const target =
+        (action.payload && (action.payload.sku as string | undefined)) ||
+        (action.payload && (action.payload.alegraId as string | undefined)) ||
+        "el item";
+      const verb = action.type === "publish_item" ? "publicar" : "ocultar";
+      return { reply: withIntro(`Para ${verb} ${target}, confirma con: confirmar ${verb} ${target}`) };
+    }
+    const clientAction: AssistantAction = {
+      ...action,
+      clientAction: action.type === "sync_products" || action.type === "sync_orders",
+    };
+    return { reply: withIntro(reply), clientAction };
+  }
+  return { reply: withIntro(reply) };
+}
+
+function parseAiJson(content: string) {
+  if (!content) return null;
+  const trimmed = content.trim();
+  const direct = tryParseJson(trimmed);
+  if (direct) return direct;
+  const fenced = trimmed.match(/```json\\s*([\\s\\S]*?)```/i);
+  if (fenced && fenced[1]) {
+    return tryParseJson(fenced[1].trim());
+  }
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start !== -1 && end !== -1 && end > start) {
+    return tryParseJson(trimmed.slice(start, end + 1));
+  }
   return null;
+}
+
+function tryParseJson(text: string) {
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
 }
 
 async function getLatestProductSync() {
