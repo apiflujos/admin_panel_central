@@ -1288,6 +1288,14 @@ export async function syncProductsHandler(req: Request, res: Response) {
     logEvent(
       `Sincronizacion completada: ${scanned} items revisados, ${processed} procesados, ${rateLimitRetries} reintentos por tasa, ${failed} errores.`
     );
+    let inventoryAdjustmentsResult: unknown = null;
+    try {
+      inventoryAdjustmentsResult = await syncInventoryAdjustments(new URLSearchParams());
+    } catch (error) {
+      inventoryAdjustmentsResult = {
+        error: error instanceof Error ? error.message : "Inventory adjustments sync failed",
+      };
+    }
     if (usesCheckpoint) {
       await clearSyncCheckpoint("products");
     }
@@ -1310,6 +1318,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
       message: searchMessage,
       attempts: searchAttempts.length ? searchAttempts : undefined,
       events: events.length ? events : undefined,
+      inventoryAdjustments: inventoryAdjustmentsResult,
     };
     if (stream) {
       sendStream({ type: "complete", ...responsePayload });
