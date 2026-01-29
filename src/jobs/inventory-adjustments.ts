@@ -3,11 +3,6 @@ import { createSyncLog } from "../services/logs.service";
 import { getInventoryAdjustmentsSettings } from "../services/settings.service";
 import { getSyncCheckpoint, saveSyncCheckpoint } from "../services/sync-checkpoints.service";
 
-const buildDateRange = (start: string, end: string) => {
-  if (start === end) return start;
-  return `${start},${end}`;
-};
-
 const toIsoDate = (value: Date | number) =>
   new Date(value).toISOString().slice(0, 10);
 
@@ -37,7 +32,7 @@ export function startInventoryAdjustmentsPoller() {
     const today = toIsoDate(Date.now());
     const query = new URLSearchParams();
     query.set("metadata", "true");
-    query.set("date", buildDateRange(lastDate, today));
+    query.set("date", today);
     try {
       const result = await syncInventoryAdjustments(query, {
         autoPublish: settings.autoPublish,
