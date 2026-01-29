@@ -25,6 +25,11 @@ async function performRepair(poolInstance: Pool) {
         "CREATE TABLE IF NOT EXISTS payment_mappings (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), method_id TEXT NOT NULL, account_id TEXT NOT NULL, method_label TEXT, account_label TEXT);",
         "CREATE TABLE IF NOT EXISTS idempotency_keys (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), key TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'processing', last_error TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (organization_id, key));",
         "CREATE TABLE IF NOT EXISTS order_invoice_overrides (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), order_id TEXT NOT NULL, einvoice_requested BOOLEAN NOT NULL DEFAULT false, id_type TEXT, id_number TEXT, fiscal_name TEXT, email TEXT, phone TEXT, address TEXT, city TEXT, state TEXT, country TEXT, zip TEXT, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (organization_id, order_id));",
+        "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), email TEXT NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'agent', name TEXT, phone TEXT, photo_base64 TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
+        "CREATE UNIQUE INDEX IF NOT EXISTS users_org_email_idx ON users (organization_id, email);",
+        "CREATE TABLE IF NOT EXISTS user_sessions (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), token TEXT NOT NULL, expires_at TIMESTAMPTZ NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW());",
+        "CREATE UNIQUE INDEX IF NOT EXISTS user_sessions_token_idx ON user_sessions (token);",
+        "CREATE TABLE IF NOT EXISTS company_profiles (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), name TEXT, phone TEXT, address TEXT, logo_base64 TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS organization_id INTEGER;",
         "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS direction TEXT;",
         "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS status TEXT;",
@@ -214,6 +219,7 @@ export async function ensureInvoiceSettingsColumns(poolInstance: Pool) {
 
 let ensureInventoryRulesPromise: Promise<void> | null = null;
 let ensureSyncCheckpointPromise: Promise<void> | null = null;
+let ensureUsersPromise: Promise<void> | null = null;
 
 export async function ensureInventoryRulesColumns(poolInstance: Pool) {
   if (!dbReady && repairPromise) {
@@ -232,7 +238,9 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           auto_publish_on_webhook BOOLEAN NOT NULL DEFAULT false,
           auto_publish_status TEXT NOT NULL DEFAULT 'draft',
-          inventory_adjustments_enabled BOOLEAN NOT NULL DEFAULT true
+          inventory_adjustments_enabled BOOLEAN NOT NULL DEFAULT true,
+          inventory_adjustments_interval_minutes INTEGER NOT NULL DEFAULT 5,
+          inventory_adjustments_autopublish BOOLEAN NOT NULL DEFAULT true
         )
         `
       )
@@ -242,7 +250,9 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
           ALTER TABLE inventory_rules
             ADD COLUMN IF NOT EXISTS auto_publish_on_webhook BOOLEAN NOT NULL DEFAULT false,
             ADD COLUMN IF NOT EXISTS auto_publish_status TEXT NOT NULL DEFAULT 'draft',
-            ADD COLUMN IF NOT EXISTS inventory_adjustments_enabled BOOLEAN NOT NULL DEFAULT true
+            ADD COLUMN IF NOT EXISTS inventory_adjustments_enabled BOOLEAN NOT NULL DEFAULT true,
+            ADD COLUMN IF NOT EXISTS inventory_adjustments_interval_minutes INTEGER NOT NULL DEFAULT 5,
+            ADD COLUMN IF NOT EXISTS inventory_adjustments_autopublish BOOLEAN NOT NULL DEFAULT true
           `
         )
       )
@@ -253,6 +263,79 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
       });
   }
   await ensureInventoryRulesPromise;
+}
+
+export async function ensureUsersTables(poolInstance: Pool) {
+  if (!dbReady && repairPromise) {
+    await repairPromise;
+  }
+  if (!ensureUsersPromise) {
+    ensureUsersPromise = poolInstance
+      .query(
+        `
+        CREATE TABLE IF NOT EXISTS users (
+          id SERIAL PRIMARY KEY,
+          organization_id INTEGER NOT NULL REFERENCES organizations(id),
+          email TEXT NOT NULL,
+          password_hash TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'agent',
+          name TEXT,
+          phone TEXT,
+          photo_base64 TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        `
+      )
+      .then(() =>
+        poolInstance.query(
+          `
+          CREATE UNIQUE INDEX IF NOT EXISTS users_org_email_idx ON users (organization_id, email)
+          `
+        )
+      )
+      .then(() =>
+        poolInstance.query(
+          `
+          CREATE TABLE IF NOT EXISTS user_sessions (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            token TEXT NOT NULL,
+            expires_at TIMESTAMPTZ NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          )
+          `
+        )
+      )
+      .then(() =>
+        poolInstance.query(
+          `
+          CREATE UNIQUE INDEX IF NOT EXISTS user_sessions_token_idx ON user_sessions (token)
+          `
+        )
+      )
+      .then(() =>
+        poolInstance.query(
+          `
+          CREATE TABLE IF NOT EXISTS company_profiles (
+            id SERIAL PRIMARY KEY,
+            organization_id INTEGER NOT NULL REFERENCES organizations(id),
+            name TEXT,
+            phone TEXT,
+            address TEXT,
+            logo_base64 TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          )
+          `
+        )
+      )
+      .then(() => undefined)
+      .catch((error: unknown) => {
+        ensureUsersPromise = null;
+        throw error;
+      });
+  }
+  await ensureUsersPromise;
 }
 
 export async function ensureSyncCheckpointTable(poolInstance: Pool) {
