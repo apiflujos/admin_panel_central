@@ -591,6 +591,15 @@ button {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 700;
+  margin-top: 4px;
+}
+
 .metrics-charts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -605,6 +614,37 @@ button {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.metrics-victories {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metrics-attention {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.panel-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.panel-subtitle {
+  margin: 0 0 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.kpi-chart .chart-placeholder {
+  min-height: 90px;
 }
 
 .metrics-mini {
@@ -1459,7 +1499,10 @@ textarea {
   }
 
   .metrics-charts,
-  .metrics-reports {
+  .metrics-reports,
+  .metrics-victories,
+  .metrics-attention,
+  .panel-split {
     grid-template-columns: 1fr;
   }
 

@@ -58,26 +58,22 @@ const logFilter = document.getElementById("log-filter");
 const logRetry = document.getElementById("log-retry");
 const connectionsTableBody = document.querySelector("#connections-table tbody");
 
-const kpiSales = document.getElementById("kpi-sales");
-const kpiOrders = document.getElementById("kpi-orders");
-const kpiCustomers = document.getElementById("kpi-customers");
-const kpiPending = document.getElementById("kpi-pending");
-const kpiSalesSub = document.getElementById("kpi-sales-sub");
-const kpiOrdersSub = document.getElementById("kpi-orders-sub");
-const kpiCustomersSub = document.getElementById("kpi-customers-sub");
-const kpiPendingSub = document.getElementById("kpi-pending-sub");
-const chartPayments = document.getElementById("chart-payments");
+const kpiSalesToday = document.getElementById("kpi-sales-today");
+const kpiSalesTodaySub = document.getElementById("kpi-sales-today-sub");
+const kpiEffectiveness = document.getElementById("kpi-effectiveness");
+const kpiEffectivenessSub = document.getElementById("kpi-effectiveness-sub");
 const chartWeekly = document.getElementById("chart-weekly");
-const chartOrders = document.getElementById("chart-orders");
+const winsTopProducts = document.getElementById("wins-top-products");
+const winsTopCities = document.getElementById("wins-top-cities");
+const winsPaymentMethods = document.getElementById("wins-payment-methods");
+const winsTopRevenueBody = document.querySelector("#wins-top-revenue tbody");
+const winsTopCustomersBody = document.querySelector("#wins-top-customers tbody");
+const alertLowStockBody = document.querySelector("#alert-low-stock tbody");
+const alertInactiveBody = document.querySelector("#alert-inactive-products tbody");
+const alertIssuesBody = document.querySelector("#alert-issues tbody");
 const metricsRange = document.getElementById("metrics-range");
 const metricsShopifyStatus = document.getElementById("metrics-shopify-status");
 const metricsAlegraStatus = document.getElementById("metrics-alegra-status");
-const metricsOrdersToday = document.getElementById("metrics-orders-today");
-const metricsInvoicesToday = document.getElementById("metrics-invoices-today");
-const metricsLastWebhook = document.getElementById("metrics-last-webhook");
-const metricsFailedSyncs = document.getElementById("metrics-failed-syncs");
-const metricsTopProductsBody = document.querySelector("#metrics-top-products tbody");
-const metricsLatestOrdersBody = document.querySelector("#metrics-latest-orders tbody");
 const assistantMessages = document.getElementById("assistant-messages");
 const assistantInput = document.getElementById("assistant-input");
 const assistantSend = document.getElementById("assistant-send");
@@ -2092,57 +2088,58 @@ function ensureProductsLoaded() {
 
 async function loadMetrics() {
   try {
-    const rangeDays = metricsRange ? Number(metricsRange.value) : 30;
-    const query = Number.isFinite(rangeDays) ? `?days=${rangeDays}` : "";
+    const range = metricsRange ? String(metricsRange.value || "month") : "month";
+    const query = range ? `?range=${encodeURIComponent(range)}` : "";
     const data = await fetchJson(`/api/metrics${query}`);
-    const rangeLabel = data.rangeDays || rangeDays || 30;
-    if (kpiSales) kpiSales.textContent = data.sales || "Sin datos";
-    if (kpiOrders) kpiOrders.textContent = data.orders || "Sin datos";
-    if (kpiCustomers) kpiCustomers.textContent = data.customers || "Sin datos";
-    if (kpiPending) kpiPending.textContent = data.pending || "Sin datos";
-    if (kpiSalesSub) {
-      kpiSalesSub.textContent = `${rangeLabel}d ${data.salesRange || data.sales30d || "0"}`;
+    if (kpiSalesToday) kpiSalesToday.textContent = data.salesToday || "Sin datos";
+    if (kpiSalesTodaySub) {
+      const pct = typeof data.salesTodayPct === "number" ? `${Math.abs(data.salesTodayPct)}%` : "--";
+      const sign = data.salesTodayTrend === "down" ? "-" : "+";
+      const delta =
+        typeof data.salesTodayDelta === "string" ? `${sign}${data.salesTodayDelta}` : "--";
+      kpiSalesTodaySub.textContent = `Vs ayer ${delta} (${pct})`;
     }
-    if (kpiOrdersSub) {
-      kpiOrdersSub.textContent = `${rangeLabel}d ${data.ordersRange ?? data.orders30d ?? 0}`;
+    if (kpiEffectiveness) {
+      kpiEffectiveness.textContent =
+        typeof data.effectivenessRate === "number" ? `${data.effectivenessRate}%` : "--";
     }
-    if (kpiCustomersSub) {
-      kpiCustomersSub.textContent = `${rangeLabel}d ${data.customersRange ?? data.customers30d ?? 0}`;
+    if (kpiEffectivenessSub) {
+      const total = Number(data.effectivenessTotal || 0);
+      kpiEffectivenessSub.textContent = total ? `${total} pedidos` : "Sin datos";
     }
-    if (kpiPendingSub) {
-      kpiPendingSub.textContent = "Cartera vigente";
-    }
-    if (metricsOrdersToday) metricsOrdersToday.textContent = data.ordersToday ?? "--";
-    if (metricsInvoicesToday) metricsInvoicesToday.textContent = data.invoicesToday ?? "--";
-    if (metricsLastWebhook) {
-      metricsLastWebhook.textContent = data.lastWebhookAt
-        ? formatDate(data.lastWebhookAt)
-        : "--";
-    }
-    if (metricsFailedSyncs) metricsFailedSyncs.textContent = data.failedSyncs24h ?? "--";
-    renderPaymentsChart(data.paymentsByMethod || []);
     renderWeeklyChart(data.weeklyRevenue || []);
-    renderOrdersChart(data.ordersVsInvoices || []);
-    renderTopProducts(data.topProducts || []);
-    renderLatestOrders(data.latestOrders || []);
+    renderBarChart(winsTopProducts, data.topProductsUnits || [], {
+      labelKey: "name",
+      valueKey: "units",
+      valueFormatter: (value) => `${value} u`,
+    });
+    renderBarChart(winsTopCities, data.topCities || [], {
+      labelKey: "city",
+      valueKey: "total",
+      valueFormatter: (value) => `${value} pedidos`,
+    });
+    renderBarChart(winsPaymentMethods, data.paymentsByMethod || [], {
+      labelKey: "method",
+      valueKey: "amount",
+      valueFormatter: (value) => formatCurrencyValue(Number(value || 0)),
+    });
+    renderTopRevenueTable(data.topProductsRevenue || []);
+    renderTopCustomersTable(data.topCustomers || []);
+    renderInventoryAlerts(data.lowStock || [], data.inactiveProducts || []);
+    renderIssuesTable(data.issues || []);
   } catch {
-    if (kpiSales) kpiSales.textContent = "Sin datos";
-    if (kpiOrders) kpiOrders.textContent = "Sin datos";
-    if (kpiCustomers) kpiCustomers.textContent = "Sin datos";
-    if (kpiPending) kpiPending.textContent = "Sin datos";
-    if (kpiSalesSub) kpiSalesSub.textContent = "Sin datos";
-    if (kpiOrdersSub) kpiOrdersSub.textContent = "Sin datos";
-    if (kpiCustomersSub) kpiCustomersSub.textContent = "Sin datos";
-    if (kpiPendingSub) kpiPendingSub.textContent = "Sin datos";
-    if (metricsOrdersToday) metricsOrdersToday.textContent = "--";
-    if (metricsInvoicesToday) metricsInvoicesToday.textContent = "--";
-    if (metricsLastWebhook) metricsLastWebhook.textContent = "--";
-    if (metricsFailedSyncs) metricsFailedSyncs.textContent = "--";
-    renderPaymentsChart([]);
+    if (kpiSalesToday) kpiSalesToday.textContent = "Sin datos";
+    if (kpiSalesTodaySub) kpiSalesTodaySub.textContent = "Sin datos";
+    if (kpiEffectiveness) kpiEffectiveness.textContent = "--";
+    if (kpiEffectivenessSub) kpiEffectivenessSub.textContent = "Sin datos";
     renderWeeklyChart([]);
-    renderOrdersChart([]);
-    renderTopProducts([]);
-    renderLatestOrders([]);
+    renderBarChart(winsTopProducts, []);
+    renderBarChart(winsTopCities, []);
+    renderBarChart(winsPaymentMethods, []);
+    renderTopRevenueTable([]);
+    renderTopCustomersTable([]);
+    renderInventoryAlerts([], []);
+    renderIssuesTable([]);
   }
 }
 
@@ -2291,34 +2288,6 @@ function formatCurrencyValue(value) {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(value);
 }
 
-function renderPaymentsChart(items) {
-  if (!chartPayments) return;
-  if (!Array.isArray(items) || !items.length) {
-    chartPayments.innerHTML = "<p>Sin datos para graficar.</p>";
-    return;
-  }
-  const maxValue = Math.max(...items.map((item) => Number(item.amount || 0)), 1);
-  chartPayments.innerHTML = `
-    <div class="chart-bars">
-      ${items
-        .map((item) => {
-          const amount = Number(item.amount || 0);
-          const width = Math.round((amount / maxValue) * 100);
-          return `
-            <div class="bar-row">
-              <span class="bar-label">${item.method || "Metodo"}</span>
-              <div class="bar-track">
-                <div class="bar-fill" style="width: ${width}%"></div>
-              </div>
-              <span class="bar-value">${formatCurrencyValue(amount)}</span>
-            </div>
-          `;
-        })
-        .join("")}
-    </div>
-  `;
-}
-
 function renderWeeklyChart(items) {
   if (!chartWeekly) return;
   if (!Array.isArray(items) || !items.length) {
@@ -2350,61 +2319,134 @@ function renderWeeklyChart(items) {
   `;
 }
 
-function renderOrdersChart(items) {
-  if (!chartOrders) return;
+function renderBarChart(container, items, options = {}) {
+  if (!container) return;
   if (!Array.isArray(items) || !items.length) {
-    chartOrders.innerHTML = "<p>Sin datos para graficar.</p>";
+    container.innerHTML = "<p>Sin datos para graficar.</p>";
     return;
   }
-  const totals = items.reduce(
-    (acc, item) => ({
-      orders: acc.orders + Number(item.orders || 0),
-      invoices: acc.invoices + Number(item.invoices || 0),
-    }),
-    { orders: 0, invoices: 0 }
-  );
-  chartOrders.innerHTML = `
-    <div class="metrics-total">
-      <p>Total pedidos vs facturas</p>
-      <h4>${totals.orders} / ${totals.invoices}</h4>
+  const labelKey = options.labelKey || "name";
+  const valueKey = options.valueKey || "value";
+  const valueFormatter =
+    typeof options.valueFormatter === "function"
+      ? options.valueFormatter
+      : (value) => String(value);
+  const maxValue = Math.max(...items.map((item) => Number(item[valueKey] || 0)), 1);
+  container.innerHTML = `
+    <div class="chart-bars">
+      ${items
+        .slice(0, 10)
+        .map((item) => {
+          const value = Number(item[valueKey] || 0);
+          const width = Math.round((value / maxValue) * 100);
+          return `
+            <div class="bar-row">
+              <span class="bar-label">${item[labelKey] || "-"}</span>
+              <div class="bar-track">
+                <div class="bar-fill" style="width: ${width}%"></div>
+              </div>
+              <span class="bar-value">${valueFormatter(value)}</span>
+            </div>
+          `;
+        })
+        .join("")}
     </div>
   `;
 }
 
-function renderTopProducts(items) {
-  if (!metricsTopProductsBody) return;
+function renderTopRevenueTable(items) {
+  if (!winsTopRevenueBody) return;
   if (!Array.isArray(items) || !items.length) {
-    metricsTopProductsBody.innerHTML = `<tr><td colspan="3" class="empty">Sin datos.</td></tr>`;
+    winsTopRevenueBody.innerHTML = `<tr><td colspan="3" class="empty">Sin datos.</td></tr>`;
     return;
   }
-  metricsTopProductsBody.innerHTML = items
-    .slice(0, 8)
+  winsTopRevenueBody.innerHTML = items
+    .slice(0, 10)
     .map(
       (item) => `
       <tr>
         <td>${item.name || "-"}</td>
+        <td>${formatCurrencyValue(Number(item.amount || 0))}</td>
         <td>${item.units ?? "-"}</td>
-        <td>${item.amount ? formatCurrencyValue(Number(item.amount)) : "-"}</td>
       </tr>
     `
     )
     .join("");
 }
 
-function renderLatestOrders(items) {
-  if (!metricsLatestOrdersBody) return;
+function renderTopCustomersTable(items) {
+  if (!winsTopCustomersBody) return;
   if (!Array.isArray(items) || !items.length) {
-    metricsLatestOrdersBody.innerHTML = `<tr><td colspan="3" class="empty">Sin datos.</td></tr>`;
+    winsTopCustomersBody.innerHTML = `<tr><td colspan="3" class="empty">Sin datos.</td></tr>`;
     return;
   }
-  metricsLatestOrdersBody.innerHTML = items
-    .slice(0, 8)
+  winsTopCustomersBody.innerHTML = items
+    .slice(0, 10)
     .map(
       (item) => `
       <tr>
-        <td>${item.orderNumber || item.name || "-"}</td>
-        <td>${item.customer || "-"}</td>
-        <td>${item.status || "-"}</td>
+        <td>${item.name || item.email || "-"}</td>
+        <td>${formatCurrencyValue(Number(item.avgTicket || 0))}</td>
+        <td>${formatCurrencyValue(Number(item.total || 0))}</td>
+      </tr>
+    `
+    )
+    .join("");
+}
+
+function renderInventoryAlerts(lowStock, inactive) {
+  if (alertLowStockBody) {
+    if (!Array.isArray(lowStock) || !lowStock.length) {
+      alertLowStockBody.innerHTML = `<tr><td colspan="3" class="empty">Sin datos.</td></tr>`;
+    } else {
+      alertLowStockBody.innerHTML = lowStock
+        .slice(0, 10)
+        .map(
+          (item) => `
+          <tr>
+            <td>${item.name || "-"}</td>
+            <td>${item.stock ?? "-"}</td>
+            <td>${item.sold ?? 0}</td>
+          </tr>
+        `
+        )
+        .join("");
+    }
+  }
+  if (alertInactiveBody) {
+    if (!Array.isArray(inactive) || !inactive.length) {
+      alertInactiveBody.innerHTML = `<tr><td colspan="3" class="empty">Sin datos.</td></tr>`;
+    } else {
+      alertInactiveBody.innerHTML = inactive
+        .slice(0, 10)
+        .map(
+          (item) => `
+          <tr>
+            <td>${item.name || "-"}</td>
+            <td>${item.stock ?? "-"}</td>
+            <td>0</td>
+          </tr>
+        `
+        )
+        .join("");
+    }
+  }
+}
+
+function renderIssuesTable(items) {
+  if (!alertIssuesBody) return;
+  if (!Array.isArray(items) || !items.length) {
+    alertIssuesBody.innerHTML = `<tr><td colspan="3" class="empty">Sin datos.</td></tr>`;
+    return;
+  }
+  alertIssuesBody.innerHTML = items
+    .slice(0, 10)
+    .map(
+      (item) => `
+      <tr>
+        <td>${item.problem || "-"}</td>
+        <td>${item.cause || "-"}</td>
+        <td>${item.action || "-"}</td>
       </tr>
     `
     )

@@ -118,9 +118,9 @@
                   <div class="metrics-control">
                     <label for="metrics-range">Rango</label>
                     <select id="metrics-range">
-                      <option value="7">Ultimos 7 dias</option>
-                      <option value="30" selected>Ultimos 30 dias</option>
-                      <option value="90">Ultimos 90 dias</option>
+                      <option value="day">Hoy</option>
+                      <option value="week">Semana</option>
+                      <option value="month" selected>Mes</option>
                     </select>
                   </div>
                   <div class="metrics-status">
@@ -130,60 +130,48 @@
                 </div>
               </div>
 
-              <div class="kpi-grid metrics-kpi-grid">
+              <div class="section-title">Panel de Victorias</div>
+              <div class="kpi-grid metrics-kpi-grid victories-kpis">
                 <div class="kpi-card">
-                  <p>Ventas</p>
-                  <h2 id="kpi-sales">Sin datos</h2>
-                  <span class="kpi-sub" id="kpi-sales-sub">Alegra</span>
+                  <p>Ventas Totales Hoy</p>
+                  <h2 id="kpi-sales-today">--</h2>
+                  <span class="kpi-sub" id="kpi-sales-today-sub">Vs ayer</span>
                 </div>
                 <div class="kpi-card">
-                  <p>Pedidos</p>
-                  <h2 id="kpi-orders">Sin datos</h2>
+                  <p>Tasa de Efectividad</p>
+                  <h2 id="kpi-effectiveness">--</h2>
+                  <span class="kpi-sub" id="kpi-effectiveness-sub">Pedidos ok</span>
                 </div>
-                <div class="kpi-card">
-                  <p>Pendientes</p>
-                  <h2 id="kpi-pending">Sin datos</h2>
-                  <span class="kpi-sub" id="kpi-pending-sub">Cartera</span>
-                </div>
-              </div>
-
-              <div class="metrics-charts metrics-charts-single">
-                <div class="panel">
-                  <div class="panel-header">
-                    <h3>Ventas por metodo</h3>
-                    <span class="panel-tag">Alegra</span>
-                  </div>
-                  <div class="chart-placeholder" id="chart-payments">
+                <div class="kpi-card kpi-chart">
+                  <p>Crecimiento Semanal</p>
+                  <div class="chart-placeholder chart-compact" id="chart-weekly">
                     <p>Sin datos para graficar.</p>
                   </div>
                 </div>
               </div>
 
-              <div class="metrics-charts">
+              <div class="metrics-victories">
                 <div class="panel">
                   <div class="panel-header">
-                    <h3>Pedidos vs Facturas</h3>
-                    <span class="panel-tag">Shopify · Alegra</span>
+                    <h3>Top 10 Productos Estrella</h3>
+                    <span class="panel-tag">Unidades</span>
                   </div>
-                  <div class="chart-placeholder chart-compact" id="chart-orders">
+                  <div class="chart-placeholder" id="wins-top-products">
                     <p>Sin datos para graficar.</p>
                   </div>
                 </div>
-              </div>
-
-              <div class="metrics-reports">
                 <div class="panel">
                   <div class="panel-header">
-                    <h3>Top productos</h3>
-                    <span class="panel-tag">Reporte</span>
+                    <h3>Top 10 Generadores de Caja</h3>
+                    <span class="panel-tag">Facturacion</span>
                   </div>
                   <div class="table-card">
-                    <table class="table" id="metrics-top-products">
+                    <table class="table" id="wins-top-revenue">
                       <thead>
                         <tr>
                           <th>Producto</th>
-                          <th>Ventas</th>
-                          <th>Monto</th>
+                          <th>Total</th>
+                          <th>Unidades</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -196,16 +184,25 @@
                 </div>
                 <div class="panel">
                   <div class="panel-header">
-                    <h3>Ultimos pedidos</h3>
-                    <span class="panel-tag">Shopify</span>
+                    <h3>Top 10 Ciudades Destino</h3>
+                    <span class="panel-tag">Colombia</span>
+                  </div>
+                  <div class="chart-placeholder" id="wins-top-cities">
+                    <p>Sin datos para graficar.</p>
+                  </div>
+                </div>
+                <div class="panel">
+                  <div class="panel-header">
+                    <h3>Top 10 Clientes VIP</h3>
+                    <span class="panel-tag">Ticket promedio</span>
                   </div>
                   <div class="table-card">
-                    <table class="table" id="metrics-latest-orders">
+                    <table class="table" id="wins-top-customers">
                       <thead>
                         <tr>
-                          <th>Pedido</th>
                           <th>Cliente</th>
-                          <th>Estado</th>
+                          <th>Ticket Promedio</th>
+                          <th>Total</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -216,28 +213,81 @@
                     </table>
                   </div>
                 </div>
-              </div>
-              <div class="panel">
-                <div class="panel-header">
-                  <h3>Resumen rapido</h3>
-                  <span class="panel-tag">Operacion</span>
+                <div class="panel">
+                  <div class="panel-header">
+                    <h3>Participacion por Metodos de Pago</h3>
+                    <span class="panel-tag">Alegra</span>
+                  </div>
+                  <div class="chart-placeholder" id="wins-payment-methods">
+                    <p>Sin datos para graficar.</p>
+                  </div>
                 </div>
-                <div class="metrics-mini">
-                  <div>
-                    <p>Pedidos hoy</p>
-                    <h4 id="metrics-orders-today">--</h4>
+              </div>
+
+              <div class="section-title">Panel de Control y Ajustes</div>
+              <div class="metrics-attention">
+                <div class="panel">
+                  <div class="panel-header">
+                    <h3>Alertas de Inventario y Stock</h3>
+                    <span class="panel-tag">Operativo</span>
                   </div>
-                  <div>
-                    <p>Facturas hoy</p>
-                    <h4 id="metrics-invoices-today">--</h4>
+                  <div class="panel-split">
+                    <div class="table-card">
+                      <h4 class="panel-subtitle">Proximos a agotarse</h4>
+                      <table class="table" id="alert-low-stock">
+                        <thead>
+                          <tr>
+                            <th>Producto</th>
+                            <th>Stock</th>
+                            <th>Ventas 7d</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td colspan="3" class="empty">Sin datos.</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div class="table-card">
+                      <h4 class="panel-subtitle">Productos inactivos</h4>
+                      <table class="table" id="alert-inactive-products">
+                        <thead>
+                          <tr>
+                            <th>Producto</th>
+                            <th>Stock</th>
+                            <th>Ventas 7d</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td colspan="3" class="empty">Sin datos.</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                  <div>
-                    <p>Ultimo webhook</p>
-                    <h4 id="metrics-last-webhook">--</h4>
+                </div>
+                <div class="panel">
+                  <div class="panel-header">
+                    <h3>Novedades y Fallos</h3>
+                    <span class="panel-tag">Gestion de crisis</span>
                   </div>
-                  <div>
-                    <p>Fallos 24h</p>
-                    <h4 id="metrics-failed-syncs">--</h4>
+                  <div class="table-card">
+                    <table class="table" id="alert-issues">
+                      <thead>
+                        <tr>
+                          <th>Problema</th>
+                          <th>Causa Comercial</th>
+                          <th>Accion Sugerida</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td colspan="3" class="empty">Sin datos.</td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>

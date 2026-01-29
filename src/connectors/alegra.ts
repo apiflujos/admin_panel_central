@@ -82,6 +82,18 @@ export class AlegraClient {
     return this.request(`/payments${query ? `?${query}` : ""}`);
   }
 
+  async listItems(options?: { limit?: number; start?: number }) {
+    const params = new URLSearchParams();
+    if (typeof options?.limit === "number") {
+      params.set("limit", String(options.limit));
+    }
+    if (typeof options?.start === "number") {
+      params.set("start", String(options.start));
+    }
+    const query = params.toString();
+    return this.request(`/items${query ? `?${query}` : ""}`);
+  }
+
   async listInvoices(options?: { limit?: number; start?: number }) {
     const params = new URLSearchParams();
     if (typeof options?.limit === "number") {

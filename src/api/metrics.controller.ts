@@ -12,8 +12,8 @@ const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
 
 export async function listMetrics(req: Request, res: Response) {
   try {
-    const days = Number(req.query.days || 30);
-    const result = await getMetrics(Number.isFinite(days) ? days : 30);
+    const range = typeof req.query.range === "string" ? req.query.range : undefined;
+    const result = await getMetrics({ range });
     res.status(200).json(result);
     await safeCreateLog({
       entity: "metrics_list",
