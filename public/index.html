@@ -422,6 +422,21 @@
               <button class="primary" id="products-refresh">Refrescar</button>
               <button class="ghost" id="products-clear">Borrar filtros</button>
             </div>
+            <div class="toolbar products-filters">
+              <div class="filter-group">
+                <label class="filter-label">Bodegas</label>
+                <div class="checkbox-grid" id="products-warehouse-filter"></div>
+              </div>
+              <label class="filter-inline">
+                <input type="checkbox" id="products-instock-only" />
+                <span>Solo con existencias</span>
+              </label>
+              <select id="products-status-filter">
+                <option value="all">Estado Alegra: Todos</option>
+                <option value="active">Activos</option>
+                <option value="inactive">Inactivos</option>
+              </select>
+            </div>
             <div class="sync-progress" id="products-progress" aria-hidden="true">
               <div class="sync-progress-track">
                 <div class="sync-progress-bar" id="products-progress-bar"></div>
@@ -732,6 +747,10 @@
                   <option value="draft">Draft</option>
                   <option value="active">Active</option>
                 </select>
+              </div>
+              <div class="field span-2">
+                <label>Bodegas a sincronizar</label>
+                <div class="checkbox-grid" id="cfg-warehouse-sync"></div>
               </div>
             </div>
           </div>

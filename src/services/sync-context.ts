@@ -12,12 +12,14 @@ type SyncContext = {
   autoPublishOnWebhook: boolean;
   autoPublishStatus: "draft" | "active";
   alegraWarehouseId?: string;
+  alegraWarehouseIds?: string[];
 };
 
 type InventoryRules = {
   publishOnStock: boolean;
   autoPublishOnWebhook: boolean;
   autoPublishStatus: "draft" | "active";
+  warehouseIds: string[];
 };
 
 export async function buildSyncContext(): Promise<SyncContext> {
@@ -57,6 +59,7 @@ export async function buildSyncContext(): Promise<SyncContext> {
     autoPublishOnWebhook: rules.autoPublishOnWebhook,
     autoPublishStatus: rules.autoPublishStatus,
     alegraWarehouseId: warehouseId,
+    alegraWarehouseIds: rules.warehouseIds,
   };
 }
 
@@ -93,9 +96,10 @@ async function loadInventoryRules(
     publish_on_stock: boolean;
     auto_publish_on_webhook: boolean;
     auto_publish_status: string | null;
+    warehouse_ids: string | null;
   }>(
     `
-    SELECT publish_on_stock, auto_publish_on_webhook, auto_publish_status
+    SELECT publish_on_stock, auto_publish_on_webhook, auto_publish_status, warehouse_ids
     FROM inventory_rules
     WHERE organization_id = $1
     ORDER BY created_at DESC
@@ -108,13 +112,23 @@ async function loadInventoryRules(
       publishOnStock: true,
       autoPublishOnWebhook: true,
       autoPublishStatus: "draft" as const,
+      warehouseIds: [],
     };
   }
   return {
     publishOnStock: result.rows[0].publish_on_stock,
     autoPublishOnWebhook: result.rows[0].auto_publish_on_webhook,
     autoPublishStatus: result.rows[0].auto_publish_status === "active" ? "active" : "draft",
+    warehouseIds: normalizeWarehouseIds(result.rows[0].warehouse_ids),
   };
+}
+
+function normalizeWarehouseIds(value?: string | null) {
+  if (!value) return [];
+  return String(value)
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
 }
 
 async function loadWarehouseId(pool: ReturnType<typeof getPool>, orgId: number) {

@@ -38,13 +38,17 @@ export async function syncAlegraItemToShopify(alegraItemId: string) {
 export async function syncAlegraItemPayloadToShopify(item: AlegraItem) {
   const ctx = await buildSyncContext();
   const alegraItemId = String(item.id);
+  const allowedWarehouseIds = Array.isArray(ctx.alegraWarehouseIds)
+    ? ctx.alegraWarehouseIds
+    : [];
+
+  if (shouldSkipByWarehouse(item, allowedWarehouseIds)) {
+    return { skipped: true, reason: "warehouse_filtered" };
+  }
 
   const mapped = await getMappingByAlegraId("item", alegraItemId);
   const identifiers = extractIdentifiers(item);
-  const availableQuantity = resolveAvailableQuantity(
-    item.inventory,
-    ctx.alegraWarehouseId
-  );
+  const availableQuantity = resolveAvailableQuantity(item.inventory, allowedWarehouseIds);
   const effectiveQuantity = availableQuantity ?? 0;
   const statusInactive = item.status && item.status.toLowerCase() === "inactive";
   const publishEligible =
@@ -162,10 +166,13 @@ export async function syncAlegraInventoryPayloadToShopify(
     return { handled: false, reason: "missing_location_id" };
   }
 
-  const availableQuantity = resolveAvailableQuantity(
-    payload.inventory,
-    ctx.alegraWarehouseId
-  );
+  const allowedWarehouseIds = Array.isArray(ctx.alegraWarehouseIds)
+    ? ctx.alegraWarehouseIds
+    : [];
+  if (shouldSkipByWarehouse({ id: alegraItemId, inventory: payload.inventory }, allowedWarehouseIds)) {
+    return { handled: true, skipped: true, reason: "warehouse_filtered" };
+  }
+  const availableQuantity = resolveAvailableQuantity(payload.inventory, allowedWarehouseIds);
   if (availableQuantity === null) {
     return { handled: false, reason: "missing_available_quantity" };
   }
@@ -263,21 +270,26 @@ function resolvePrice(
 
 function resolveAvailableQuantity(
   inventory: AlegraItem["inventory"] | AlegraInventoryPayload["inventory"] | undefined,
-  warehouseId?: string
+  warehouseIds: string[] = []
 ) {
   if (!inventory) {
     return null;
   }
-  if (warehouseId && inventory.warehouses) {
-    const match = inventory.warehouses.find(
-      (warehouse) => String(warehouse.id) === warehouseId
-    );
-    if (typeof match?.availableQuantity === "number") {
-      return match.availableQuantity;
-    }
+  if (warehouseIds.length && inventory.warehouses) {
+    const total = inventory.warehouses
+      .filter((warehouse) => warehouseIds.includes(String(warehouse.id)))
+      .reduce((acc, warehouse) => acc + Number(warehouse.availableQuantity || 0), 0);
+    return Number.isFinite(total) ? total : null;
   }
   if (typeof inventory.availableQuantity === "number") {
     return inventory.availableQuantity;
   }
   return null;
+}
+
+function shouldSkipByWarehouse(item: AlegraItem, warehouseIds: string[]) {
+  if (!warehouseIds.length) return false;
+  const warehouses = Array.isArray(item.inventory?.warehouses) ? item.inventory.warehouses : [];
+  if (!warehouses.length) return false;
+  return !warehouses.some((warehouse) => warehouseIds.includes(String(warehouse.id)));
 }

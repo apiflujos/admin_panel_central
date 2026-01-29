@@ -160,6 +160,9 @@ const productsDateFilter = document.getElementById("products-date-filter");
 const productsSort = document.getElementById("products-sort");
 const productsLimitInput = document.getElementById("products-limit");
 const productsPublishFilter = document.getElementById("products-publish-filter");
+const productsWarehouseFilter = document.getElementById("products-warehouse-filter");
+const productsInStockOnly = document.getElementById("products-instock-only");
+const productsStatusFilter = document.getElementById("products-status-filter");
 const productsTableBody = document.querySelector("#products-table tbody");
 const productsPageLabel = document.getElementById("products-page");
 const productsPrevBtn = document.getElementById("products-prev");
@@ -198,6 +201,7 @@ const ordersDaysSelect = document.getElementById("orders-days");
 const ordersSort = document.getElementById("orders-sort");
 const rulesAutoPublish = document.getElementById("rules-auto-publish");
 const rulesAutoStatus = document.getElementById("rules-auto-status");
+const cfgWarehouseSync = document.getElementById("cfg-warehouse-sync");
 
 let shopifyAdminBase = "";
 let currentUserRole = "agent";
@@ -209,6 +213,7 @@ let inventoryRules = {
   inventoryAdjustmentsEnabled: true,
   inventoryAdjustmentsIntervalMinutes: 5,
   inventoryAdjustmentsAutoPublish: true,
+  warehouseIds: [],
 };
 
 const PRODUCT_SETTINGS_KEY = "apiflujos-products-settings";
@@ -238,6 +243,9 @@ const DEFAULT_PRODUCT_SETTINGS = {
     productsDate: "",
     productsSort: "date_desc",
     listLimit: "30",
+    warehouseIds: [],
+    inStockOnly: false,
+    statusFilter: "all",
     ordersDate: "",
     ordersDateTouched: false,
     ordersDays: "30",
@@ -258,6 +266,8 @@ let productsQuery = "";
 let productsList = [];
 let productsRows = [];
 let shopifyLookup = {};
+let warehousesCatalog = [];
+let settingsWarehousesCatalog = [];
 const expandedParents = new Set();
 let operationsList = [];
 let ordersStart = 0;
@@ -791,6 +801,15 @@ function loadProductSettings() {
       Object.prototype.hasOwnProperty.call(parsed.filters, "listLimit");
     const nextSync = { ...DEFAULT_PRODUCT_SETTINGS.sync, ...(parsed.sync || {}) };
     const nextFilters = { ...DEFAULT_PRODUCT_SETTINGS.filters, ...(parsed.filters || {}) };
+    if (!Array.isArray(nextFilters.warehouseIds)) {
+      nextFilters.warehouseIds = [];
+    }
+    if (typeof nextFilters.inStockOnly !== "boolean") {
+      nextFilters.inStockOnly = false;
+    }
+    if (!nextFilters.statusFilter) {
+      nextFilters.statusFilter = "all";
+    }
     if (!hasListLimit) {
       nextFilters.listLimit = parsed?.sync?.limit || DEFAULT_PRODUCT_SETTINGS.filters.listLimit;
       nextSync.limit = DEFAULT_PRODUCT_SETTINGS.sync.limit;
@@ -966,6 +985,12 @@ function applyProductSettings() {
   if (productsPublishFilter) productsPublishFilter.value = productSettings.filters.publishStatus || "all";
   if (productsDateFilter) productsDateFilter.value = productSettings.filters.productsDate || "";
   if (productsSort) productsSort.value = productSettings.filters.productsSort || "date_desc";
+  if (productsInStockOnly) {
+    productsInStockOnly.checked = Boolean(productSettings.filters.inStockOnly);
+  }
+  if (productsStatusFilter) {
+    productsStatusFilter.value = productSettings.filters.statusFilter || "all";
+  }
   if (ordersDateStart) ordersDateStart.value = productSettings.orders.dateStart;
   if (ordersDateEnd) ordersDateEnd.value = productSettings.orders.dateEnd;
   if (ordersLimit) ordersLimit.value = productSettings.orders.limit;
@@ -1004,6 +1029,9 @@ function refreshProductSettingsFromInputs() {
       productsDate: productsDateFilter ? productsDateFilter.value : "",
       productsSort: productsSort ? productsSort.value : "date_desc",
       listLimit: productsLimitInput ? productsLimitInput.value : "",
+      warehouseIds: getSelectedWarehouseIds(),
+      inStockOnly: productsInStockOnly ? productsInStockOnly.checked : false,
+      statusFilter: productsStatusFilter ? productsStatusFilter.value : "all",
       ordersDate: ordersDateFilter ? ordersDateFilter.value : "",
       ordersDateTouched: Boolean(ordersDateFilter ? ordersDateFilter.value : ""),
       ordersDays: ordersDaysSelect ? ordersDaysSelect.value : DEFAULT_PRODUCT_SETTINGS.filters.ordersDays,
@@ -1062,6 +1090,7 @@ async function loadSettings() {
       inventoryAdjustmentsEnabled: data.rules.inventoryAdjustmentsEnabled !== false,
       inventoryAdjustmentsIntervalMinutes: Number(data.rules.inventoryAdjustmentsIntervalMinutes || 5),
       inventoryAdjustmentsAutoPublish: data.rules.inventoryAdjustmentsAutoPublish !== false,
+      warehouseIds: Array.isArray(data.rules.warehouseIds) ? data.rules.warehouseIds : [],
     };
   }
   if (rulesAutoPublish) rulesAutoPublish.checked = inventoryRules.autoPublishOnWebhook;
@@ -1076,6 +1105,7 @@ async function loadSettings() {
   }
   setMetricsStatusPills(data.shopify?.hasAccessToken, data.alegra?.hasApiKey);
   renderConnections(data);
+  loadSettingsWarehouses().catch(() => null);
   loadInventoryCheckpoint().catch(() => null);
 }
 
@@ -1307,6 +1337,9 @@ function normalizeProduct(item) {
     return null;
   };
   const warehouses = Array.isArray(item.inventory?.warehouses) ? item.inventory.warehouses : [];
+  const warehouseIds = warehouses
+    .map((warehouse) => String(warehouse?.id || ""))
+    .filter((id) => Boolean(id));
   const warehouseSum = warehouses.reduce((total, warehouse) => {
     const qty = parseNumber(warehouse?.availableQuantity);
     return qty !== null ? total + qty : total;
@@ -1360,6 +1393,9 @@ function normalizeProduct(item) {
     const variantWarehouses = Array.isArray(variant?.inventory?.warehouses)
       ? variant.inventory.warehouses
       : [];
+    const variantWarehouseIds = variantWarehouses
+      .map((warehouse) => String(warehouse?.id || ""))
+      .filter((id) => Boolean(id));
     const variantWarehouseSum = variantWarehouses.reduce((total, warehouse) => {
       const qty = parseNumber(warehouse?.availableQuantity);
       return qty !== null ? total + qty : total;
@@ -1399,6 +1435,7 @@ function normalizeProduct(item) {
       inventoryQuantity: variantQty,
       warehouseLabel: variantWarehouseLabel,
       warehouseBreakdown: variantWarehouseBreakdown,
+      warehouseIds: variantWarehouseIds,
       images: variantImages,
       status: variant?.status || item.status || "active",
       variantCount: 0,
@@ -1422,6 +1459,7 @@ function normalizeProduct(item) {
     inventoryQuantity: quantity,
     warehouseLabel,
     warehouseBreakdown,
+    warehouseIds,
     images,
     status: item.status || "active",
     variantCount: variantList.length,
@@ -1441,6 +1479,130 @@ function setProductsStatus(message) {
   if (productsStatus) {
     productsStatus.textContent = message || "Listo para sincronizar";
   }
+}
+
+function getSelectedSettingsWarehouseIds() {
+  if (!cfgWarehouseSync) return inventoryRules.warehouseIds || [];
+  const inputs = Array.from(cfgWarehouseSync.querySelectorAll("input[data-warehouse-id]"));
+  if (!inputs.length) return inventoryRules.warehouseIds || [];
+  return inputs
+    .filter((input) => input.checked)
+    .map((input) => String(input.dataset.warehouseId || ""));
+}
+
+function renderSettingsWarehouseFilters() {
+  if (!cfgWarehouseSync) return;
+  const selected = new Set(inventoryRules.warehouseIds || []);
+  cfgWarehouseSync.innerHTML = "";
+  if (!settingsWarehousesCatalog.length) {
+    const empty = document.createElement("span");
+    empty.className = "empty";
+    empty.textContent = "Sin bodegas";
+    cfgWarehouseSync.appendChild(empty);
+    return;
+  }
+  settingsWarehousesCatalog.forEach((warehouse) => {
+    const id = String(warehouse.id || warehouse._id || "");
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.dataset.warehouseId = id;
+    input.checked = selected.has(id);
+    const text = document.createElement("span");
+    text.textContent = warehouse.name || `Bodega ${id}`;
+    label.appendChild(input);
+    label.appendChild(text);
+    cfgWarehouseSync.appendChild(label);
+  });
+}
+
+async function loadSettingsWarehouses() {
+  if (!cfgWarehouseSync) return;
+  try {
+    const data = await fetchJson("/api/alegra/warehouses");
+    settingsWarehousesCatalog = Array.isArray(data.items) ? data.items : [];
+  } catch {
+    settingsWarehousesCatalog = [];
+  }
+  renderSettingsWarehouseFilters();
+}
+
+function getSelectedWarehouseIds() {
+  if (!productsWarehouseFilter) return [];
+  return Array.from(
+    productsWarehouseFilter.querySelectorAll("input[data-warehouse-id]")
+  )
+    .filter((input) => input.checked)
+    .map((input) => String(input.dataset.warehouseId || ""));
+}
+
+function renderWarehouseFilters() {
+  if (!productsWarehouseFilter) return;
+  const selected = new Set(productSettings.filters?.warehouseIds || []);
+  productsWarehouseFilter.innerHTML = "";
+  if (!warehousesCatalog.length) {
+    const empty = document.createElement("span");
+    empty.className = "empty";
+    empty.textContent = "Sin bodegas";
+    productsWarehouseFilter.appendChild(empty);
+    return;
+  }
+  warehousesCatalog.forEach((warehouse) => {
+    const id = String(warehouse.id || warehouse._id || "");
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.dataset.warehouseId = id;
+    input.checked = selected.has(id);
+    const text = document.createElement("span");
+    text.textContent = warehouse.name || `Bodega ${id}`;
+    label.appendChild(input);
+    label.appendChild(text);
+    productsWarehouseFilter.appendChild(label);
+  });
+}
+
+async function loadWarehouseFilters() {
+  if (!productsWarehouseFilter) return;
+  try {
+    const data = await fetchJson("/api/alegra/warehouses");
+    warehousesCatalog = Array.isArray(data.items) ? data.items : [];
+  } catch {
+    warehousesCatalog = [];
+  }
+  renderWarehouseFilters();
+}
+
+function normalizeStatus(status) {
+  const normalized = String(status || "").toLowerCase();
+  if (normalized === "inactive" || normalized === "inactivo" || normalized === "disabled") {
+    return "inactive";
+  }
+  return "active";
+}
+
+function resolveInventoryQuantity(product) {
+  const baseQty = Number(product.inventoryQuantity);
+  if (Number.isFinite(baseQty)) return baseQty;
+  if (Array.isArray(product.variants)) {
+    return product.variants.reduce(
+      (acc, variant) => acc + (Number(variant.inventoryQuantity) || 0),
+      0
+    );
+  }
+  return 0;
+}
+
+function matchesWarehouseFilter(product, selected) {
+  if (!selected.size) return true;
+  const direct = Array.isArray(product.warehouseIds) ? product.warehouseIds : [];
+  if (direct.some((id) => selected.has(String(id)))) return true;
+  if (Array.isArray(product.variants)) {
+    return product.variants.some((variant) =>
+      (variant.warehouseIds || []).some((id) => selected.has(String(id)))
+    );
+  }
+  return false;
 }
 
 async function loadShopifyLookup(products) {
@@ -1481,6 +1643,9 @@ function renderProducts() {
   const publishFilter = productSettings.filters?.publishStatus || "all";
   const dateFilter = productSettings.filters?.productsDate || "";
   const sortMode = productSettings.filters?.productsSort || "date_desc";
+  const inStockOnly = Boolean(productSettings.filters?.inStockOnly);
+  const statusFilter = productSettings.filters?.statusFilter || "all";
+  const selectedWarehouses = new Set(productSettings.filters?.warehouseIds || []);
   const parentRows = productsRows.filter((row) => row.type === "parent");
   const filteredParents = parentRows.filter((row) => {
     if (publishFilter === "all") return true;
@@ -1504,9 +1669,22 @@ function renderProducts() {
         return String(created).slice(0, 10) === dateFilter;
       })
     : filteredParents;
-  const useFilteredCount = publishFilter !== "all" || Boolean(dateFilter);
+  const fullyFilteredParents = dateFilteredParents.filter((row) => {
+    const product = row.item;
+    const matchesStatus = statusFilter === "all" || normalizeStatus(product.status) === statusFilter;
+    const qty = resolveInventoryQuantity(product);
+    const matchesStock = !inStockOnly || qty > 0;
+    const matchesWarehouse = matchesWarehouseFilter(product, selectedWarehouses);
+    return matchesStatus && matchesStock && matchesWarehouse;
+  });
+  const useFilteredCount =
+    publishFilter !== "all" ||
+    Boolean(dateFilter) ||
+    inStockOnly ||
+    statusFilter !== "all" ||
+    selectedWarehouses.size > 0;
 
-  const pageParents = [...dateFilteredParents].sort((a, b) => {
+  const pageParents = [...fullyFilteredParents].sort((a, b) => {
     if (sortMode === "ref_asc") {
       return String(a.item.sku || "").localeCompare(String(b.item.sku || ""));
     }
@@ -1528,7 +1706,7 @@ function renderProducts() {
     return expandedParents.has(row.parentId);
   });
 
-  renderProductsPagination(useFilteredCount ? dateFilteredParents.length : undefined);
+  renderProductsPagination(useFilteredCount ? fullyFilteredParents.length : undefined);
 
   productsTableBody.innerHTML = visibleRows
     .map((row) => {
@@ -2067,6 +2245,7 @@ function ensureProductsLoaded() {
   if (productsLoaded) return;
   productsLoaded = true;
   applyProductSettings();
+  loadWarehouseFilters().catch(() => null);
   if (productsLimitInput) {
     productsLimitInput.value = String(clampProductsLimit(Number(productsLimitInput.value || 30)));
   }
@@ -2903,6 +3082,7 @@ async function saveSettings() {
         ? Number(inventoryCronIntervalSelect.value || 5)
         : 5,
       inventoryAdjustmentsAutoPublish: inventoryRules.inventoryAdjustmentsAutoPublish !== false,
+      warehouseIds: getSelectedSettingsWarehouseIds(),
     },
   };
   await fetchJson("/api/settings", {
@@ -3117,6 +3297,15 @@ if (inventoryCronIntervalSelect) {
     }
   });
 }
+if (cfgWarehouseSync) {
+  cfgWarehouseSync.addEventListener("change", async () => {
+    try {
+      await saveSettings();
+    } catch {
+      // ignore save errors here
+    }
+  });
+}
 if (profileSave) {
   profileSave.addEventListener("click", () => {
     saveProfile();
@@ -3237,6 +3426,30 @@ if (productsRefreshBtn) {
     productsQuery = productsSearchInput ? productsSearchInput.value.trim() : "";
     productsStart = 0;
     loadProducts();
+  });
+}
+
+if (productsWarehouseFilter) {
+  productsWarehouseFilter.addEventListener("change", () => {
+    productsStart = 0;
+    refreshProductSettingsFromInputs();
+    renderProducts();
+  });
+}
+
+if (productsInStockOnly) {
+  productsInStockOnly.addEventListener("change", () => {
+    productsStart = 0;
+    refreshProductSettingsFromInputs();
+    renderProducts();
+  });
+}
+
+if (productsStatusFilter) {
+  productsStatusFilter.addEventListener("change", () => {
+    productsStart = 0;
+    refreshProductSettingsFromInputs();
+    renderProducts();
   });
 }
 
@@ -3438,6 +3651,15 @@ if (productsClearBtn) {
     if (productsLimitInput) productsLimitInput.value = "30";
     if (productsDateFilter) productsDateFilter.value = "";
     if (productsSort) productsSort.value = "date_desc";
+    if (productsInStockOnly) productsInStockOnly.checked = false;
+    if (productsStatusFilter) productsStatusFilter.value = "all";
+    if (productsWarehouseFilter) {
+      productsWarehouseFilter
+        .querySelectorAll("input[data-warehouse-id]")
+        .forEach((input) => {
+          input.checked = false;
+        });
+    }
     productsQuery = "";
     productsStart = 0;
     refreshProductSettingsFromInputs();
@@ -3470,6 +3692,8 @@ const productSettingInputs = [
   productsDateFilter,
   productsSort,
   productsLimitInput,
+  productsInStockOnly,
+  productsStatusFilter,
   ordersDateStart,
   ordersDateEnd,
   ordersLimit,

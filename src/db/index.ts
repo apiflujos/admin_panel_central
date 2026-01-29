@@ -15,7 +15,7 @@ async function performRepair(poolInstance: Pool) {
         "CREATE TABLE IF NOT EXISTS shopify_stores (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), shop_domain TEXT NOT NULL, access_token_encrypted TEXT NOT NULL, scopes TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE TABLE IF NOT EXISTS alegra_accounts (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), user_email TEXT NOT NULL, api_key_encrypted TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE TABLE IF NOT EXISTS sync_mappings (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), entity TEXT NOT NULL, shopify_id TEXT, alegra_id TEXT, parent_id TEXT, metadata_json JSONB NOT NULL DEFAULT '{}');",
-        "CREATE TABLE IF NOT EXISTS inventory_rules (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), publish_on_stock BOOLEAN NOT NULL DEFAULT TRUE, min_stock INTEGER NOT NULL DEFAULT 0, warehouse_id TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
+        "CREATE TABLE IF NOT EXISTS inventory_rules (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), publish_on_stock BOOLEAN NOT NULL DEFAULT TRUE, min_stock INTEGER NOT NULL DEFAULT 0, warehouse_id TEXT, warehouse_ids TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE TABLE IF NOT EXISTS tax_rules (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), shopify_tax_id TEXT NOT NULL, alegra_tax_id TEXT NOT NULL, type TEXT NOT NULL);",
         "CREATE TABLE IF NOT EXISTS invoice_settings (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), generate_invoice BOOLEAN NOT NULL DEFAULT FALSE, resolution_id TEXT, cost_center_id TEXT, warehouse_id TEXT, seller_id TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE TABLE IF NOT EXISTS webhook_events (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), source TEXT NOT NULL, event_type TEXT NOT NULL, payload_json JSONB NOT NULL, received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), processed_at TIMESTAMPTZ, status TEXT NOT NULL DEFAULT 'pending');",
@@ -73,6 +73,7 @@ async function performRepair(poolInstance: Pool) {
         "ALTER TABLE inventory_rules ADD COLUMN IF NOT EXISTS publish_on_stock BOOLEAN NOT NULL DEFAULT TRUE;",
         "ALTER TABLE inventory_rules ADD COLUMN IF NOT EXISTS min_stock INTEGER NOT NULL DEFAULT 0;",
         "ALTER TABLE inventory_rules ADD COLUMN IF NOT EXISTS warehouse_id TEXT;",
+        "ALTER TABLE inventory_rules ADD COLUMN IF NOT EXISTS warehouse_ids TEXT;",
         "ALTER TABLE inventory_rules ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();",
         "ALTER TABLE tax_rules ADD COLUMN IF NOT EXISTS organization_id INTEGER;",
         "ALTER TABLE tax_rules ADD COLUMN IF NOT EXISTS shopify_tax_id TEXT;",
@@ -239,6 +240,7 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
           publish_on_stock BOOLEAN NOT NULL DEFAULT TRUE,
           min_stock INTEGER NOT NULL DEFAULT 0,
           warehouse_id TEXT,
+          warehouse_ids TEXT,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           auto_publish_on_webhook BOOLEAN NOT NULL DEFAULT false,
           auto_publish_status TEXT NOT NULL DEFAULT 'draft',
@@ -256,7 +258,8 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
             ADD COLUMN IF NOT EXISTS auto_publish_status TEXT NOT NULL DEFAULT 'draft',
             ADD COLUMN IF NOT EXISTS inventory_adjustments_enabled BOOLEAN NOT NULL DEFAULT true,
             ADD COLUMN IF NOT EXISTS inventory_adjustments_interval_minutes INTEGER NOT NULL DEFAULT 5,
-            ADD COLUMN IF NOT EXISTS inventory_adjustments_autopublish BOOLEAN NOT NULL DEFAULT true
+            ADD COLUMN IF NOT EXISTS inventory_adjustments_autopublish BOOLEAN NOT NULL DEFAULT true,
+            ADD COLUMN IF NOT EXISTS warehouse_ids TEXT
           `
         )
       )
