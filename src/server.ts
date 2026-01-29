@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import path from "path";
 import helmet from "helmet";
 import morgan from "morgan";
 import { router } from "./api/routes";
@@ -21,7 +22,16 @@ app.use(
   })
 );
 
-app.use(express.static("public"));
+const publicDir = path.resolve("public");
+app.use(
+  express.static(publicDir, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".html")) {
+        res.setHeader("Cache-Control", "no-store");
+      }
+    },
+  })
+);
 
 // Endpoint de salud para Render
 app.get("/health", (_req, res) => {
