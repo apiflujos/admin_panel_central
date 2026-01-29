@@ -54,20 +54,23 @@ export async function getMetrics(options: { range?: MetricsRange; days?: number 
     const salesTodayPct = salesYesterday ? (salesTodayDelta / salesYesterday) * 100 : null;
 
     const paymentsByMethod = groupPaymentsByMethod(paymentsInRange);
-    const salesRangeValue = sumByRange(paymentsInRange, current.from, current.to);
-    const paymentsPrev = filterByRange(payments, previous.from, previous.to);
-    const salesRangePrevValue = sumByRange(paymentsPrev, previous.from, previous.to);
+    const shopifyOrders = await listShopifyOrdersInRange(ctx, current.from, current.to);
+    const shopifyOrdersPrev = await listShopifyOrdersInRange(ctx, previous.from, previous.to);
+    const salesRangeValue = sumShopifyOrders(shopifyOrders);
+    const salesRangePrevValue = sumShopifyOrders(shopifyOrdersPrev);
     const salesRangeDeltaValue = salesRangeValue - salesRangePrevValue;
     const salesRangePct =
       salesRangePrevValue > 0 ? Math.round((salesRangeDeltaValue / salesRangePrevValue) * 100) : null;
-    const weeklyRevenue = buildDailySeriesRange(paymentsInRange, current.from, current.to);
+    const weeklyRevenue = buildDailyShopifySeriesRange(shopifyOrders, current.from, current.to);
     const invoiceSeries = buildDailyCountSeriesRange(invoicesInRange, current.from, current.to);
     const orderSeries = await buildOrderSeriesRange(current.from, current.to);
-    const ordersVsInvoices = buildOrdersVsInvoices(orderSeries, invoiceSeries, buildDateListRange(current.from, current.to));
+    const ordersVsInvoices = buildOrdersVsInvoices(
+      orderSeries,
+      invoiceSeries,
+      buildDateListRange(current.from, current.to)
+    );
     const { failedSyncs24h, lastWebhookAt } = await getLogInsights();
     const effectiveness = await getOrderEffectiveness(current.from, current.to);
-
-    const shopifyOrders = await listShopifyOrdersInRange(ctx, current.from, current.to);
     const aggregations = buildShopifyAggregations(shopifyOrders);
     const inventoryAlerts = await buildInventoryAlerts(ctx);
     const issues = await listIssues(current.from, current.to);
@@ -368,6 +371,28 @@ function buildDailySeriesRange(items: Array<MetricItem>, from: Date, to: Date) {
   return series;
 }
 
+function sumShopifyOrders(orders: ShopifyOrder[]) {
+  return orders.reduce(
+    (acc, order) => acc + Number(order.totalPriceSet?.shopMoney.amount || 0),
+    0
+  );
+}
+
+function buildDailyShopifySeriesRange(orders: ShopifyOrder[], from: Date, to: Date) {
+  const series = [];
+  const dates = buildDateListRange(from, to);
+  const totals = new Map<string, number>();
+  for (const order of orders) {
+    const date = extractShopifyDate(order);
+    if (!date) continue;
+    totals.set(date, (totals.get(date) || 0) + Number(order.totalPriceSet?.shopMoney.amount || 0));
+  }
+  for (const date of dates) {
+    series.push({ date, amount: totals.get(date) || 0 });
+  }
+  return series;
+}
+
 function buildDailyCountSeriesRange(items: Array<MetricItem>, from: Date, to: Date) {
   const series = [];
   const dates = buildDateListRange(from, to);
@@ -427,6 +452,10 @@ function buildDateSet(days: number) {
 
 function extractDate(item: MetricItem) {
   return String(item.date || item.createdAt || item.datetime || "").slice(0, 10);
+}
+
+function extractShopifyDate(order: ShopifyOrder) {
+  return String(order.processedAt || order.updatedAt || "").slice(0, 10);
 }
 
 async function getOrderEffectiveness(from: Date, to: Date) {
