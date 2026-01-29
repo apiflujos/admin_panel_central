@@ -62,16 +62,6 @@
             </span>
             <span class="nav-label">Configuraciones</span>
           </button>
-          <button class="nav-item nav-logout" id="logout-btn" type="button" title="Cerrar sesion">
-            <span class="nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                <path d="M16 17l5-5-5-5" />
-                <path d="M21 12H9" />
-                <path d="M13 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h6" />
-              </svg>
-            </span>
-            <span class="nav-label">Cerrar sesion</span>
-          </button>
         </nav>
         <div class="sidebar-footer"></div>
       </aside>
@@ -84,8 +74,26 @@
           </div>
           <div class="topbar-center"></div>
           <div class="topbar-actions">
+            <div class="topbar-user" id="topbar-user">
+              <button class="ghost topbar-user-trigger" id="topbar-user-toggle" type="button">
+                <img id="user-avatar" src="/assets/avatar.png" alt="Usuario" />
+                <div class="topbar-user-meta">
+                  <span id="user-name">Usuario</span>
+                  <span id="user-role">Agente</span>
+                </div>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              <div class="topbar-user-menu" id="topbar-user-menu">
+                <button class="ghost" data-user-action="profile">Perfil usuario</button>
+                <button class="ghost admin-only" data-user-action="company">Perfil empresa</button>
+                <button class="ghost admin-only" data-user-action="users">Usuarios</button>
+                <button class="ghost" data-user-action="logout">Cerrar sesion</button>
+              </div>
+            </div>
             <div class="topbar-brand apiflujos-brand">
-              <img src="/assets/logo.png" alt="ApiFlujos" />
+              <img id="company-logo" src="/assets/logo.png" alt="ApiFlujos" />
             </div>
           </div>
         </header>
@@ -446,7 +454,7 @@
         </section>
 
         <section class="section" id="settings">
-          <div class="panel">
+          <div class="panel admin-only">
             <div class="panel-header">
               <h3>Conexiones y Tokens</h3>
               <span class="panel-tag">Seguridad</span>
@@ -502,6 +510,28 @@
                   </div>
                 </div>
                 <div class="status-row">
+                  <label>
+                    <input type="checkbox" id="inventory-cron-enabled" />
+                    <span>Cron inventario activo</span>
+                  </label>
+                </div>
+                <div class="status-row">
+                  <div class="field">
+                    <label>Intervalo del cron</label>
+                    <select id="inventory-cron-interval-select">
+                      <option value="5">Cada 5 minutos</option>
+                      <option value="10">Cada 10 minutos</option>
+                      <option value="15">Cada 15 minutos</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="status-row">
+                  <label>
+                    <input type="checkbox" id="inventory-cron-autopublish" />
+                    <span>Publicar ajustes en Shopify automaticamente</span>
+                  </label>
+                </div>
+                <div class="status-row">
                   <div>
                     <p>Ultimo checkpoint</p>
                     <span id="inventory-cron-checkpoint">-</span>
@@ -515,7 +545,7 @@
             </div>
           </div>
 
-          <div class="panel">
+          <div class="panel admin-only">
             <div class="panel-header">
               <h3>IA</h3>
               <span class="panel-tag">Asistente</span>
@@ -532,12 +562,32 @@
             </div>
           </div>
 
-          <div class="panel">
+          <div class="panel" id="profile-panel">
             <div class="panel-header">
-              <h3>Seguridad</h3>
-              <span class="panel-tag">Acceso</span>
+              <h3>Perfil</h3>
+              <span class="panel-tag">Usuario</span>
             </div>
             <div class="settings-grid">
+              <div class="field">
+                <label>Nombre</label>
+                <input type="text" id="profile-name" placeholder="Nombre completo" />
+              </div>
+              <div class="field">
+                <label>Email</label>
+                <input type="email" id="profile-email" placeholder="correo@empresa.com" />
+              </div>
+              <div class="field">
+                <label>Telefono</label>
+                <input type="tel" id="profile-phone" placeholder="+57..." />
+              </div>
+              <div class="field">
+                <label>Foto de perfil</label>
+                <input type="file" id="profile-photo" accept="image/*" />
+              </div>
+              <div class="field field-actions">
+                <label>&nbsp;</label>
+                <button class="primary" id="profile-save" type="button">Guardar perfil</button>
+              </div>
               <div class="field">
                 <label>Contrasena actual</label>
                 <input type="password" id="password-current" autocomplete="current-password" />
@@ -558,9 +608,95 @@
                 <p class="field-hint" id="password-message"></p>
               </div>
             </div>
+            <p class="field-hint" id="profile-message"></p>
           </div>
 
-          <div class="panel">
+          <div class="panel admin-only" id="company-panel">
+            <div class="panel-header">
+              <h3>Empresa</h3>
+              <span class="panel-tag">Personalizacion</span>
+            </div>
+            <div class="settings-grid">
+              <div class="field">
+                <label>Nombre</label>
+                <input type="text" id="company-name" placeholder="Nombre de la empresa" />
+              </div>
+              <div class="field">
+                <label>Telefono</label>
+                <input type="tel" id="company-phone" placeholder="+57..." />
+              </div>
+              <div class="field">
+                <label>Direccion</label>
+                <input type="text" id="company-address" placeholder="Direccion (opcional)" />
+              </div>
+              <div class="field">
+                <label>Logo</label>
+                <input type="file" id="company-logo-input" accept="image/*" />
+              </div>
+              <div class="field field-actions">
+                <label>&nbsp;</label>
+                <button class="primary" id="company-save" type="button">Guardar empresa</button>
+              </div>
+            </div>
+            <p class="field-hint" id="company-message"></p>
+          </div>
+
+          <div class="panel admin-only" id="users-panel">
+            <div class="panel-header">
+              <h3>Usuarios</h3>
+              <span class="panel-tag">Admin</span>
+            </div>
+            <div class="settings-grid">
+              <div class="field">
+                <label>Nombre</label>
+                <input type="text" id="user-create-name" placeholder="Nombre completo" />
+              </div>
+              <div class="field">
+                <label>Email</label>
+                <input type="email" id="user-create-email" placeholder="correo@empresa.com" />
+              </div>
+              <div class="field">
+                <label>Telefono</label>
+                <input type="tel" id="user-create-phone" placeholder="+57..." />
+              </div>
+              <div class="field">
+                <label>Rol</label>
+                <select id="user-create-role">
+                  <option value="agent">Agente</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Contrasena</label>
+                <input type="password" id="user-create-password" placeholder="********" />
+              </div>
+              <div class="field field-actions">
+                <label>&nbsp;</label>
+                <button class="primary" id="user-create" type="button">Crear usuario</button>
+              </div>
+            </div>
+            <div class="table-card">
+              <table id="users-table">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Rol</th>
+                    <th>Telefono</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="5" class="empty">Sin usuarios.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="field-hint" id="users-message"></p>
+          </div>
+
+          <div class="panel admin-only">
             <div class="panel-header">
               <h3>Conexiones guardadas</h3>
               <span class="panel-tag">Resumen</span>
@@ -583,7 +719,7 @@
             </div>
           </div>
 
-          <div class="panel">
+          <div class="panel admin-only">
             <div class="panel-header">
               <h3>Publicacion Shopify</h3>
               <span class="panel-tag">Productos</span>
@@ -618,7 +754,7 @@
             </div>
           </div>
 
-          <div class="panel">
+          <div class="panel admin-only">
             <div class="panel-header">
               <h3>Sincronizacion productos</h3>
               <span class="panel-tag">Alegra</span>

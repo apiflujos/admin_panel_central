@@ -3,7 +3,6 @@ const sections = document.querySelectorAll(".section");
 const refreshButton = document.getElementById("refresh-all");
 const sidebarToggle = document.getElementById("sidebar-toggle");
 const appShell = document.querySelector(".app-shell");
-const logoutButton = document.getElementById("logout-btn");
 const statusLedShopify = document.getElementById("status-led-shopify");
 const statusTextShopify = document.getElementById("status-shopify");
 const statusLedAlegra = document.getElementById("status-led-alegra");
@@ -13,6 +12,8 @@ const inventoryCronStatus = document.getElementById("inventory-cron-status");
 const inventoryCronCheckpoint = document.getElementById("inventory-cron-checkpoint");
 const inventoryCronInterval = document.getElementById("inventory-cron-interval");
 const inventoryCronEnabled = document.getElementById("inventory-cron-enabled");
+const inventoryCronIntervalSelect = document.getElementById("inventory-cron-interval-select");
+const inventoryCronAutoPublish = document.getElementById("inventory-cron-autopublish");
 const queueStatus = document.getElementById("queue-status");
 const syncProgress = document.getElementById("sync-progress");
 const syncProgressBar = document.getElementById("sync-progress-bar");
@@ -83,6 +84,12 @@ const assistantSend = document.getElementById("assistant-send");
 const assistantAttach = document.getElementById("assistant-attach");
 const assistantFileInput = document.getElementById("assistant-file");
 const assistantAttachments = document.getElementById("assistant-attachments");
+const userAvatar = document.getElementById("user-avatar");
+const userName = document.getElementById("user-name");
+const userRole = document.getElementById("user-role");
+const userMenu = document.getElementById("topbar-user-menu");
+const userMenuToggle = document.getElementById("topbar-user-toggle");
+const companyLogo = document.getElementById("company-logo");
 
 const shopifyDomain = document.getElementById("shopify-domain");
 const shopifyToken = document.getElementById("shopify-token");
@@ -99,6 +106,26 @@ const passwordMessage = document.getElementById("password-message");
 const testShopifyButton = document.getElementById("test-shopify");
 const testAlegraButton = document.getElementById("test-alegra");
 const envButtons = document.querySelectorAll(".toggle-btn");
+const profileName = document.getElementById("profile-name");
+const profileEmail = document.getElementById("profile-email");
+const profilePhone = document.getElementById("profile-phone");
+const profilePhoto = document.getElementById("profile-photo");
+const profileSave = document.getElementById("profile-save");
+const profileMessage = document.getElementById("profile-message");
+const companyName = document.getElementById("company-name");
+const companyPhone = document.getElementById("company-phone");
+const companyAddress = document.getElementById("company-address");
+const companyLogoInput = document.getElementById("company-logo-input");
+const companySave = document.getElementById("company-save");
+const companyMessage = document.getElementById("company-message");
+const usersTableBody = document.querySelector("#users-table tbody");
+const userNameInput = document.getElementById("user-create-name");
+const userEmailInput = document.getElementById("user-create-email");
+const userPhoneInput = document.getElementById("user-create-phone");
+const userRoleInput = document.getElementById("user-create-role");
+const userPasswordInput = document.getElementById("user-create-password");
+const userCreate = document.getElementById("user-create");
+const usersMessage = document.getElementById("users-message");
 
 const cfgResolution = document.getElementById("cfg-resolution");
 const cfgCostCenter = document.getElementById("cfg-cost-center");
@@ -171,11 +198,15 @@ const rulesAutoStatus = document.getElementById("rules-auto-status");
 let paymentMappings = [];
 let alegraEnvironment = "prod";
 let shopifyAdminBase = "";
+let currentUserRole = "agent";
+let currentUserId = null;
 let inventoryRules = {
   publishOnStock: true,
   autoPublishOnWebhook: true,
   autoPublishStatus: "draft",
   inventoryAdjustmentsEnabled: true,
+  inventoryAdjustmentsIntervalMinutes: 5,
+  inventoryAdjustmentsAutoPublish: true,
 };
 
 const PRODUCT_SETTINGS_KEY = "apiflujos-products-settings";
@@ -333,6 +364,225 @@ async function fetchJson(url, options) {
     throw new Error(text || "Error de red");
   }
   return response.json();
+}
+
+function applyRoleAccess(role) {
+  currentUserRole = role || "agent";
+  const settingsNav = document.querySelector('.nav-item[data-target="settings"]');
+  const adminOnlyPanels = document.querySelectorAll(".admin-only");
+  if (currentUserRole !== "admin") {
+    if (settingsNav) settingsNav.style.display = "none";
+    adminOnlyPanels.forEach((panel) => {
+      panel.style.display = "none";
+    });
+    const settingsSection = document.getElementById("settings");
+    if (settingsSection && settingsSection.classList.contains("is-active")) {
+      activateNav("dashboard");
+    }
+  } else {
+    if (settingsNav) settingsNav.style.display = "";
+    adminOnlyPanels.forEach((panel) => {
+      panel.style.display = "";
+    });
+  }
+}
+
+async function loadCurrentUser() {
+  try {
+    const data = await fetchJson("/api/profile");
+    const user = data.user || {};
+    currentUserId = user.id || null;
+    const roleLabel = user.role === "admin" ? "Admin" : "Agente";
+    if (userName) userName.textContent = user.name || user.email || "Usuario";
+    if (userRole) userRole.textContent = roleLabel;
+    if (userAvatar) {
+      userAvatar.src = user.photoBase64 || "/assets/avatar.png";
+    }
+    if (profileName) profileName.value = user.name || "";
+    if (profileEmail) profileEmail.value = user.email || "";
+    if (profilePhone) profilePhone.value = user.phone || "";
+    applyRoleAccess(user.role);
+  } catch {
+    applyRoleAccess("agent");
+  }
+}
+
+function openSettingsPanel(panelId) {
+  activateNav("settings");
+  const panel = document.getElementById(panelId);
+  if (panel) {
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function toggleUserMenu(forceState) {
+  if (!userMenu) return;
+  const next = typeof forceState === "boolean" ? forceState : !userMenu.classList.contains("is-open");
+  userMenu.classList.toggle("is-open", next);
+}
+
+async function loadCompanyProfile() {
+  try {
+    const data = await fetchJson("/api/company");
+    if (companyLogo && data.logoBase64) {
+      companyLogo.src = data.logoBase64;
+    }
+    if (companyName) companyName.value = data.name || "";
+    if (companyPhone) companyPhone.value = data.phone || "";
+    if (companyAddress) companyAddress.value = data.address || "";
+  } catch {
+    // ignore load errors
+  }
+}
+
+async function saveProfile() {
+  if (!profileSave) return;
+  try {
+    if (profileMessage) profileMessage.textContent = "Guardando...";
+    const payload = {
+      name: profileName ? profileName.value.trim() : "",
+      email: profileEmail ? profileEmail.value.trim() : "",
+      phone: profilePhone ? profilePhone.value.trim() : "",
+    };
+    if (profilePhoto && profilePhoto.files && profilePhoto.files[0]) {
+      if (profilePhoto.files[0].size > 2 * 1024 * 1024) {
+        throw new Error("La foto supera 2MB.");
+      }
+      payload.photoBase64 = await readFileAsDataUrl(profilePhoto.files[0]);
+    }
+    const result = await fetchJson("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (profileMessage) profileMessage.textContent = "Perfil actualizado.";
+    if (result?.user) {
+      if (userName) userName.textContent = result.user.name || result.user.email || "Usuario";
+      if (userAvatar) {
+        userAvatar.src = result.user.photoBase64 || "/assets/avatar.png";
+      }
+    }
+  } catch (error) {
+    if (profileMessage) {
+      profileMessage.textContent = error?.message || "No se pudo guardar el perfil.";
+    }
+  }
+}
+
+async function saveCompany() {
+  if (!companySave) return;
+  try {
+    if (companyMessage) companyMessage.textContent = "Guardando...";
+    const payload = {
+      name: companyName ? companyName.value.trim() : "",
+      phone: companyPhone ? companyPhone.value.trim() : "",
+      address: companyAddress ? companyAddress.value.trim() : "",
+    };
+    if (companyLogoInput && companyLogoInput.files && companyLogoInput.files[0]) {
+      if (companyLogoInput.files[0].size > 2 * 1024 * 1024) {
+        throw new Error("El logo supera 2MB.");
+      }
+      payload.logoBase64 = await readFileAsDataUrl(companyLogoInput.files[0]);
+    }
+    const data = await fetchJson("/api/company", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (companyMessage) companyMessage.textContent = "Empresa actualizada.";
+    if (companyLogo) {
+      companyLogo.src = data.logoBase64 || "/assets/logo.png";
+    }
+  } catch (error) {
+    if (companyMessage) {
+      companyMessage.textContent = error?.message || "No se pudo guardar la empresa.";
+    }
+  }
+}
+
+function renderUsers(items) {
+  if (!usersTableBody) return;
+  if (!Array.isArray(items) || !items.length) {
+    usersTableBody.innerHTML = `<tr><td colspan="5" class="empty">Sin usuarios.</td></tr>`;
+    return;
+  }
+  usersTableBody.innerHTML = items
+    .map(
+      (user) => `
+      <tr>
+        <td>${user.name || "-"}</td>
+        <td>${user.email || "-"}</td>
+        <td>${user.role === "admin" ? "Admin" : "Agente"}</td>
+        <td>${user.phone || "-"}</td>
+        <td>
+          ${
+            currentUserRole === "admin"
+              ? `<button class="ghost" data-user-delete="${user.id}">Eliminar</button>`
+              : "-"
+          }
+        </td>
+      </tr>
+    `
+    )
+    .join("");
+  usersTableBody.querySelectorAll("button[data-user-delete]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const userId = Number(button.dataset.userDelete);
+      if (!userId) return;
+      const confirmDelete = window.confirm("Seguro que deseas eliminar este usuario?");
+      if (!confirmDelete) return;
+      try {
+        await fetchJson(`/api/users/${userId}`, { method: "DELETE" });
+        await loadUsers();
+      } catch (error) {
+        if (usersMessage) {
+          usersMessage.textContent = error?.message || "No se pudo eliminar.";
+        }
+      }
+    });
+  });
+}
+
+async function loadUsers() {
+  if (currentUserRole !== "admin") return;
+  try {
+    const data = await fetchJson("/api/users");
+    renderUsers(data.items || []);
+  } catch (error) {
+    if (usersMessage) {
+      usersMessage.textContent = error?.message || "No se pudieron cargar usuarios.";
+    }
+  }
+}
+
+async function createUserFromForm() {
+  if (!userCreate) return;
+  try {
+    if (usersMessage) usersMessage.textContent = "Creando usuario...";
+    const payload = {
+      name: userNameInput ? userNameInput.value.trim() : "",
+      email: userEmailInput ? userEmailInput.value.trim() : "",
+      phone: userPhoneInput ? userPhoneInput.value.trim() : "",
+      role: userRoleInput ? userRoleInput.value : "agent",
+      password: userPasswordInput ? userPasswordInput.value : "",
+    };
+    const data = await fetchJson("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (usersMessage) usersMessage.textContent = "Usuario creado.";
+    if (userNameInput) userNameInput.value = "";
+    if (userEmailInput) userEmailInput.value = "";
+    if (userPhoneInput) userPhoneInput.value = "";
+    if (userPasswordInput) userPasswordInput.value = "";
+    await loadUsers();
+    return data;
+  } catch (error) {
+    if (usersMessage) {
+      usersMessage.textContent = error?.message || "No se pudo crear el usuario.";
+    }
+  }
 }
 
 async function loadLogs() {
@@ -815,12 +1065,22 @@ async function loadSettings() {
       autoPublishOnWebhook: Boolean(data.rules.autoPublishOnWebhook),
       autoPublishStatus: data.rules.autoPublishStatus === "active" ? "active" : "draft",
       inventoryAdjustmentsEnabled: data.rules.inventoryAdjustmentsEnabled !== false,
+      inventoryAdjustmentsIntervalMinutes: Number(data.rules.inventoryAdjustmentsIntervalMinutes || 5),
+      inventoryAdjustmentsAutoPublish: data.rules.inventoryAdjustmentsAutoPublish !== false,
     };
   }
   if (rulesAutoPublish) rulesAutoPublish.checked = inventoryRules.autoPublishOnWebhook;
   if (rulesAutoStatus) rulesAutoStatus.value = inventoryRules.autoPublishStatus;
   if (inventoryCronEnabled) {
     inventoryCronEnabled.checked = inventoryRules.inventoryAdjustmentsEnabled !== false;
+  }
+  if (inventoryCronIntervalSelect) {
+    inventoryCronIntervalSelect.value = String(
+      inventoryRules.inventoryAdjustmentsIntervalMinutes || 5
+    );
+  }
+  if (inventoryCronAutoPublish) {
+    inventoryCronAutoPublish.checked = inventoryRules.inventoryAdjustmentsAutoPublish !== false;
   }
   if (Array.isArray(data.paymentMappings)) {
     paymentMappings = data.paymentMappings.map((item) => ({
@@ -2538,6 +2798,12 @@ async function saveSettings() {
       autoPublishOnWebhook: rulesAutoPublish ? rulesAutoPublish.checked : false,
       autoPublishStatus: rulesAutoStatus && rulesAutoStatus.value === "active" ? "active" : "draft",
       inventoryAdjustmentsEnabled: inventoryCronEnabled ? inventoryCronEnabled.checked : true,
+      inventoryAdjustmentsIntervalMinutes: inventoryCronIntervalSelect
+        ? Number(inventoryCronIntervalSelect.value || 5)
+        : 5,
+      inventoryAdjustmentsAutoPublish: inventoryCronAutoPublish
+        ? inventoryCronAutoPublish.checked
+        : true,
     },
     paymentMappings,
   };
@@ -2705,16 +2971,6 @@ if (assistantAttach && assistantFileInput) {
     renderAssistantAttachments();
   });
 }
-if (logoutButton) {
-  logoutButton.addEventListener("click", async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } catch {
-      // ignore errors
-    }
-    window.location.href = "/login.html";
-  });
-}
 logFilter.addEventListener("click", loadLogs);
 logRetry.addEventListener("click", retryFailed);
 testShopifyButton.addEventListener("click", testShopifyConnection);
@@ -2729,6 +2985,81 @@ if (inventoryCronEnabled) {
     }
   });
 }
+if (inventoryCronIntervalSelect) {
+  inventoryCronIntervalSelect.addEventListener("change", async () => {
+    try {
+      await saveSettings();
+      await loadInventoryCheckpoint();
+    } catch {
+      // ignore save errors here
+    }
+  });
+}
+if (inventoryCronAutoPublish) {
+  inventoryCronAutoPublish.addEventListener("change", async () => {
+    try {
+      await saveSettings();
+      await loadInventoryCheckpoint();
+    } catch {
+      // ignore save errors here
+    }
+  });
+}
+if (profileSave) {
+  profileSave.addEventListener("click", () => {
+    saveProfile();
+  });
+}
+if (companySave) {
+  companySave.addEventListener("click", () => {
+    saveCompany();
+  });
+}
+if (userCreate) {
+  userCreate.addEventListener("click", () => {
+    createUserFromForm();
+  });
+}
+if (userMenuToggle) {
+  userMenuToggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleUserMenu();
+  });
+}
+  if (userMenu) {
+    userMenu.addEventListener("click", (event) => {
+      const target = event.target instanceof HTMLElement ? event.target.closest("button") : null;
+      if (!target) return;
+      const action = target.getAttribute("data-user-action");
+      toggleUserMenu(false);
+      if (action === "profile") {
+        openSettingsPanel("profile-panel");
+        return;
+      }
+      if (action === "company") {
+        openSettingsPanel("company-panel");
+        return;
+      }
+      if (action === "users") {
+        openSettingsPanel("users-panel");
+        return;
+      }
+      if (action === "logout") {
+        fetch("/api/auth/logout", { method: "POST" })
+          .catch(() => null)
+          .finally(() => {
+            window.location.href = "/login.html";
+          });
+      }
+    });
+  }
+document.addEventListener("click", (event) => {
+  if (!userMenu || !userMenuToggle) return;
+  if (event.target instanceof HTMLElement && event.target.closest("#topbar-user")) {
+    return;
+  }
+  toggleUserMenu(false);
+});
 opsSearchBtn.addEventListener("click", () => {
   ordersStart = 0;
   loadOperations();
@@ -3016,19 +3347,38 @@ async function init() {
   };
   loadSidebarState();
   applyProductSettings();
+  await safeLoad(loadCurrentUser());
+  await safeLoad(loadCompanyProfile());
+  await safeLoad(loadUsers());
   await safeLoad(loadLogs());
   await safeLoad(loadMetrics());
   await safeLoad(loadOperations());
-  await safeLoad(loadSettings());
-  await safeLoad(loadResolutions());
+  if (currentUserRole === "admin") {
+    await safeLoad(loadSettings());
+    await safeLoad(loadResolutions());
+  }
   await Promise.all([
-    safeLoad(loadCatalog(cfgCostCenter, "cost-centers")),
-    safeLoad(loadCatalog(cfgWarehouse, "warehouses")),
-    safeLoad(loadCatalog(cfgSeller, "sellers")),
-    safeLoad(loadCatalog(cfgPaymentMethod, "payment-methods")),
-    safeLoad(loadCatalog(cfgBankAccount, "bank-accounts")),
-    safeLoad(loadCatalog(mapPaymentMethod, "payment-methods")),
-    safeLoad(loadCatalog(mapBankAccount, "bank-accounts")),
+    currentUserRole === "admin"
+      ? safeLoad(loadCatalog(cfgCostCenter, "cost-centers"))
+      : Promise.resolve(null),
+    currentUserRole === "admin"
+      ? safeLoad(loadCatalog(cfgWarehouse, "warehouses"))
+      : Promise.resolve(null),
+    currentUserRole === "admin"
+      ? safeLoad(loadCatalog(cfgSeller, "sellers"))
+      : Promise.resolve(null),
+    currentUserRole === "admin"
+      ? safeLoad(loadCatalog(cfgPaymentMethod, "payment-methods"))
+      : Promise.resolve(null),
+    currentUserRole === "admin"
+      ? safeLoad(loadCatalog(cfgBankAccount, "bank-accounts"))
+      : Promise.resolve(null),
+    currentUserRole === "admin"
+      ? safeLoad(loadCatalog(mapPaymentMethod, "payment-methods"))
+      : Promise.resolve(null),
+    currentUserRole === "admin"
+      ? safeLoad(loadCatalog(mapBankAccount, "bank-accounts"))
+      : Promise.resolve(null),
   ]);
   renderMappings();
 }

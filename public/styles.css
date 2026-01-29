@@ -210,15 +210,6 @@ body {
   transform: rotate(180deg);
 }
 
-.sidebar-footer {
-  margin-top: auto;
-  display: grid;
-  gap: 10px;
-}
-
-.nav-logout {
-  margin-top: 6px;
-}
 
 .bot-card {
   display: grid;
@@ -318,6 +309,67 @@ body {
   width: 120px;
   height: auto;
   object-fit: contain;
+}
+
+.topbar-user {
+  display: flex;
+  position: relative;
+}
+
+.topbar-user-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.topbar-user-trigger img {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.topbar-user-meta span {
+  display: block;
+  text-align: left;
+}
+
+#user-name {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 0.9rem;
+}
+
+#user-role {
+  font-size: 0.7rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.topbar-user-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 180px;
+  padding: 8px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--stroke);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
+  display: none;
+  flex-direction: column;
+}
+
+.topbar-user-menu.is-open {
+  display: flex;
+}
+
+.topbar-user-menu .ghost {
+  justify-content: flex-start;
 }
 
 .sync-progress {
