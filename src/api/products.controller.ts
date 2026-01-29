@@ -330,6 +330,67 @@ const resolveInventoryQuantity = (
   );
 };
 
+const resolveInventoryQuantityForFilter = (
+  inventory: AlegraItem["inventory"] | AlegraVariant["inventory"] | undefined,
+  warehouseIds: string[]
+) => {
+  if (!inventory) return null;
+  const warehouses = Array.isArray(inventory.warehouses) ? inventory.warehouses : [];
+  if (warehouseIds.length && warehouses.length) {
+    const totals = warehouses.reduce(
+      (acc, warehouse) => {
+        if (!warehouseIds.includes(String(warehouse.id))) return acc;
+        const qty = Number(warehouse.availableQuantity);
+        if (Number.isFinite(qty)) {
+          acc.sum += qty;
+          acc.count += 1;
+        }
+        return acc;
+      },
+      { sum: 0, count: 0 }
+    );
+    return totals.count ? totals.sum : null;
+  }
+  const raw = inventory.quantity ?? inventory.availableQuantity ?? inventory.initialQuantity;
+  if (raw === null || raw === undefined || raw === "") return null;
+  const qty = Number(raw);
+  return Number.isFinite(qty) ? qty : null;
+};
+
+const resolveItemQuantityForFilter = (item: AlegraItem, warehouseIds: string[]) => {
+  const base = resolveInventoryQuantityForFilter(item.inventory, warehouseIds);
+  const variants = Array.isArray(item.itemVariants) ? item.itemVariants : [];
+  if (!variants.length) return base;
+  const totals = variants.reduce(
+    (acc, variant) => {
+      const qty = resolveInventoryQuantityForFilter(variant.inventory, warehouseIds);
+      if (typeof qty === "number") {
+        acc.sum += qty;
+        acc.count += 1;
+      }
+      return acc;
+    },
+    { sum: 0, count: 0 }
+  );
+  if (!totals.count) return base;
+  if (typeof base === "number") return Math.max(base, totals.sum);
+  return totals.sum;
+};
+
+const matchesItemWarehouses = (item: AlegraItem, warehouseIds: string[]) => {
+  if (!warehouseIds.length) return true;
+  const warehouses = Array.isArray(item.inventory?.warehouses) ? item.inventory.warehouses : [];
+  if (warehouses.some((warehouse) => warehouseIds.includes(String(warehouse.id)))) return true;
+  const variants = Array.isArray(item.itemVariants) ? item.itemVariants : [];
+  return variants.some((variant) =>
+    Array.isArray(variant.inventory?.warehouses)
+      ? variant.inventory.warehouses.some((warehouse) =>
+          warehouseIds.includes(String(warehouse.id))
+        )
+      : false
+  );
+};
+
 const shouldSyncByWarehouse = (
   inventory: AlegraItem["inventory"] | AlegraVariant["inventory"] | undefined,
   warehouseIds: string[]
@@ -415,6 +476,13 @@ const buildShopifyPayload = (
 
 export async function listAlegraItemsHandler(req: Request, res: Response) {
   try {
+    const inStockOnly =
+      String(req.query.inStockOnly || "").toLowerCase() === "1" ||
+      String(req.query.inStockOnly || "").toLowerCase() === "true";
+    const warehouseFilterIds = String(req.query.warehouseIds || "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
     const rawQueryValue = typeof req.query.query === "string" ? req.query.query : "";
     const identifierQuery = extractIdentifier(rawQueryValue);
     const query = new URLSearchParams();
@@ -423,6 +491,8 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         query.set(key, String(value));
       }
     });
+    query.delete("inStockOnly");
+    query.delete("warehouseIds");
     if (!query.has("mode")) query.set("mode", "advanced");
     if (!query.has("fields")) {
       query.set(
@@ -431,13 +501,57 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
       );
     }
     if (!query.has("metadata")) query.set("metadata", "true");
-    const response = await fetchAlegra("/items", query);
-    const payload = await response.json();
-    const items: AlegraItem[] = Array.isArray(payload?.items)
-      ? (payload.items as AlegraItem[])
-      : Array.isArray(payload?.data)
-        ? (payload.data as AlegraItem[])
-        : [];
+    const scanLimit = Number(query.get("limit") || "30");
+    const maxPages = 6;
+    let page = 0;
+    let scanStart = Number(query.get("start") || "0");
+    let payload: Record<string, unknown> | null = null;
+    let items: AlegraItem[] = [];
+    let total: number | null = null;
+
+    const filterItems = (input: AlegraItem[]) => {
+      if (!inStockOnly && warehouseFilterIds.length === 0) return input;
+      return input.filter((item) => {
+        const matchesWarehouse =
+          warehouseFilterIds.length === 0 || matchesItemWarehouses(item, warehouseFilterIds);
+        if (!matchesWarehouse) return false;
+        if (!inStockOnly) return true;
+        const qty = resolveItemQuantityForFilter(item, warehouseFilterIds);
+        return qty === null ? true : qty > 0;
+      });
+    };
+
+    while (page === 0 || (items.length < scanLimit && page < maxPages)) {
+      query.set("start", String(scanStart));
+      query.set("limit", String(scanLimit));
+      const response = await fetchAlegra("/items", query);
+      payload = (await response.json()) as Record<string, unknown>;
+      const batch: AlegraItem[] = Array.isArray((payload as any)?.items)
+        ? ((payload as any).items as AlegraItem[])
+        : Array.isArray((payload as any)?.data)
+          ? ((payload as any).data as AlegraItem[])
+          : [];
+      const filtered = filterItems(batch);
+      items = items.concat(filtered);
+      if (total === null) {
+        const metaTotal =
+          (payload as any)?.metadata?.total ?? (payload as any)?.metadata?.totalItems;
+        total = typeof metaTotal === "number" ? metaTotal : null;
+      }
+      if (batch.length < scanLimit) {
+        break;
+      }
+      if (!inStockOnly && warehouseFilterIds.length === 0) {
+        break;
+      }
+      scanStart += scanLimit;
+      page += 1;
+    }
+
+    if (!payload) {
+      payload = { items: [] };
+    }
+    items = items.slice(0, scanLimit);
     const needsInventoryHydration = items.some((item) => {
       const inv = item?.inventory;
       if (!inv) return true;
@@ -500,12 +614,21 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         return;
       }
     }
-    if (Array.isArray(payload?.items)) {
-      payload.items = resolvedItems;
-    } else if (Array.isArray(payload?.data)) {
-      payload.data = resolvedItems;
+    if (Array.isArray((payload as any)?.items)) {
+      (payload as any).items = resolvedItems;
+    } else if (Array.isArray((payload as any)?.data)) {
+      (payload as any).data = resolvedItems;
+    } else {
+      (payload as any).items = resolvedItems;
     }
-    res.status(response.status).json(payload);
+    if (!((payload as any).metadata && typeof (payload as any).metadata === "object")) {
+      (payload as any).metadata = {};
+    }
+    if (typeof total === "number") {
+      (payload as any).metadata.total = total;
+    }
+    (payload as any).metadata.filtered = inStockOnly || warehouseFilterIds.length > 0;
+    res.status(200).json(payload);
   } catch (error) {
     res.status(502).json({ error: error instanceof Error ? error.message : "Alegra proxy error" });
     await safeCreateLog({

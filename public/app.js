@@ -1750,11 +1750,22 @@ function buildProductRows(items) {
     const mergedVariantBarcodes = Array.from(
       new Set([...(baseParent.variantBarcodes || []), ...variantSkus])
     );
-    const variantSum = variants.reduce((sum, variant) => {
-      const qty = Number.isFinite(variant.inventoryQuantity) ? variant.inventoryQuantity : 0;
-      return sum + qty;
-    }, 0);
-    const parentInventory = variants.length ? variantSum : baseParent.inventoryQuantity;
+    const variantTotals = variants.reduce(
+      (acc, variant) => {
+        const qty = Number(variant.inventoryQuantity);
+        if (Number.isFinite(qty)) {
+          acc.sum += qty;
+          acc.count += 1;
+        }
+        return acc;
+      },
+      { sum: 0, count: 0 }
+    );
+    const parentInventory = variants.length
+      ? variantTotals.count
+        ? variantTotals.sum
+        : null
+      : baseParent.inventoryQuantity;
 
     rows.push({
       type: "parent",
@@ -2151,14 +2162,24 @@ function normalizeStatus(status) {
 
 function resolveInventoryQuantity(product) {
   const baseQty = Number(product.inventoryQuantity);
-  if (Number.isFinite(baseQty)) return baseQty;
-  if (Array.isArray(product.variants)) {
-    return product.variants.reduce(
-      (acc, variant) => acc + (Number(variant.inventoryQuantity) || 0),
-      0
-    );
+  if (product.inventoryQuantity !== null && product.inventoryQuantity !== undefined) {
+    if (Number.isFinite(baseQty)) return baseQty;
   }
-  return 0;
+  if (Array.isArray(product.variants)) {
+    const totals = product.variants.reduce(
+      (acc, variant) => {
+        const qty = Number(variant.inventoryQuantity);
+        if (Number.isFinite(qty)) {
+          acc.sum += qty;
+          acc.count += 1;
+        }
+        return acc;
+      },
+      { sum: 0, count: 0 }
+    );
+    return totals.count ? totals.sum : null;
+  }
+  return null;
 }
 
 function matchesWarehouseFilter(product, selected) {
@@ -2241,7 +2262,7 @@ function renderProducts() {
     const product = row.item;
     const matchesStatus = statusFilter === "all" || normalizeStatus(product.status) === statusFilter;
     const qty = resolveInventoryQuantity(product);
-    const matchesStock = !inStockOnly || qty > 0;
+    const matchesStock = !inStockOnly || qty === null || qty > 0;
     const matchesWarehouse = matchesWarehouseFilter(product, selectedWarehouses);
     return matchesStatus && matchesStock && matchesWarehouse;
   });
@@ -2422,6 +2443,12 @@ async function loadProducts() {
     params.set("start", String(productsStart));
     params.set("limit", String(limit));
     if (productsQuery) params.set("query", productsQuery);
+    const inStockOnly = Boolean(productSettings.filters?.inStockOnly);
+    if (inStockOnly) params.set("inStockOnly", "1");
+    const warehouseIds = Array.isArray(productSettings.filters?.warehouseIds)
+      ? productSettings.filters.warehouseIds
+      : [];
+    if (warehouseIds.length) params.set("warehouseIds", warehouseIds.join(","));
     const payload = await fetchJson(`/api/alegra/items?${params.toString()}`);
     const { items, total } = extractAlegraItems(payload);
     productsList = items.map(normalizeProduct);
