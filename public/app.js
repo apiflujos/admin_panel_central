@@ -1226,9 +1226,30 @@ function renderStoreConfigs(items) {
   items.forEach((store) => {
     storeConfigState.set(store.shopDomain, store);
   });
-  storeConfigsContainer.innerHTML = items
-    .map((store) => buildStoreConfigCard(store))
-    .join("");
+  if (items.length === 1) {
+    storeConfigsContainer.innerHTML = buildStoreConfigSingle(items[0]);
+    const configCard = storeConfigsContainer.querySelector(".store-config-single");
+    if (configCard) {
+      configCard.dataset.hydrated = "true";
+      hydrateStoreConfig(items[0]).catch(() => null);
+    }
+    return;
+  }
+  storeConfigsContainer.innerHTML = items.map((store) => buildStoreConfigCard(store)).join("");
+}
+
+function buildStoreConfigSingle(store) {
+  const key = String(store.shopDomain || "store").replace(/[^a-z0-9]/gi, "_");
+  const alegraLabel = store.alegraAccountId ? `Alegra #${store.alegraAccountId}` : "Alegra sin asignar";
+  return `
+    <div class="store-config-single" data-store="${store.shopDomain}">
+      <div class="store-config-header">
+        <h4>${store.shopDomain} <span class="tag">${alegraLabel}</span></h4>
+        <span class="muted">Configuracion principal</span>
+      </div>
+      ${buildStoreConfigBody(store, key)}
+    </div>
+  `;
 }
 
 function buildStoreConfigCard(store) {
@@ -1240,6 +1261,13 @@ function buildStoreConfigCard(store) {
         <span>${store.shopDomain}<span class="tag">${alegraLabel}</span></span>
         <span class="muted">Configurar</span>
       </summary>
+      ${buildStoreConfigBody(store, key)}
+    </details>
+  `;
+}
+
+function buildStoreConfigBody(store, key) {
+  return `
       <div class="store-config-body">
         <div class="store-config-section">
           <h4>Traslados de inventario</h4>
@@ -1395,7 +1423,6 @@ function buildStoreConfigCard(store) {
           <button class="primary" data-store-save="${store.shopDomain}">Guardar</button>
         </div>
       </div>
-    </details>
   `;
 }
 
