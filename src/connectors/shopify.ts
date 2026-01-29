@@ -239,6 +239,7 @@ export type ShopifyOrder = {
   name: string;
   email?: string | null;
   displayFinancialStatus?: string | null;
+  paymentGatewayNames?: string[] | null;
   updatedAt?: string | null;
   processedAt?: string | null;
   shippingAddress?: {
@@ -335,6 +336,7 @@ const ORDER_BY_ID_QUERY = `
       name
       email
       displayFinancialStatus
+      paymentGatewayNames
       updatedAt
       processedAt
       shippingAddress { address1 city province zip countryCodeV2 }
@@ -381,6 +383,7 @@ const ORDERS_UPDATED_SINCE_QUERY = `
       name
       email
       displayFinancialStatus
+      paymentGatewayNames
       updatedAt
       processedAt
       shippingAddress { address1 city province zip countryCodeV2 }
@@ -420,6 +423,7 @@ const ORDERS_PAGED_QUERY = `
           name
           email
           displayFinancialStatus
+          paymentGatewayNames
           processedAt
           shippingAddress { address1 city province zip countryCodeV2 }
           totalPriceSet {

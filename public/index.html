@@ -246,8 +246,14 @@
               <div class="panel assistant-panel">
                 <div class="panel-header assistant-header">
                   <div class="assistant-header-title">
-                    <img src="/assets/avatar.png" alt="Olivia IA" class="assistant-avatar" />
-                    <h3>Asistente IA</h3>
+                    <div class="assistant-avatar-wrap">
+                      <img src="/assets/logo.png" alt="Apiflujos" class="assistant-avatar-badge" />
+                      <img src="/assets/avatar.png" alt="Olivia IA" class="assistant-avatar" />
+                    </div>
+                    <div class="assistant-title">
+                      <h3>Asistente IA</h3>
+                      <span class="assistant-byline">By apiflujos</span>
+                    </div>
                   </div>
                   <span class="panel-tag">Olivia</span>
                 </div>
@@ -889,6 +895,7 @@
               <span class="panel-tag">Pagos</span>
             </div>
             <div class="mapping-grid">
+              <input type="text" id="map-source-method" placeholder="Metodo Shopify (ej: Bold, PSE)" />
               <select id="map-payment-method"></select>
               <select id="map-bank-account"></select>
               <button class="ghost" id="map-add">Agregar</button>
@@ -896,14 +903,15 @@
             <table class="table" id="map-table">
               <thead>
                 <tr>
-                  <th>Metodo</th>
+                  <th>Metodo Shopify</th>
+                  <th>Metodo Alegra</th>
                   <th>Cuenta bancaria</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td colspan="3" class="empty">Sin mapeos.</td>
+                  <td colspan="4" class="empty">Sin mapeos.</td>
                 </tr>
               </tbody>
             </table>

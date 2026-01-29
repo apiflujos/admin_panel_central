@@ -228,6 +228,9 @@ export function mapOrderToPayload(order: ShopifyOrder) {
     name: order.name,
     email: order.email || undefined,
     financial_status: order.displayFinancialStatus || undefined,
+    payment_gateway_names: Array.isArray(order.paymentGatewayNames)
+      ? order.paymentGatewayNames.filter(Boolean)
+      : undefined,
     total_price: order.totalPriceSet?.shopMoney?.amount || "0",
     currency: order.totalPriceSet?.shopMoney?.currencyCode || "COP",
     customer: order.customer

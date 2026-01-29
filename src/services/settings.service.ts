@@ -45,10 +45,14 @@ type SettingsPayload = {
     type: string;
   }>;
   paymentMappings?: Array<{
-    methodId: string;
+    sourceMethod: string;
+    paymentMethod: string;
     accountId: string;
-    methodLabel?: string;
+    sourceLabel?: string;
+    paymentMethodLabel?: string;
     accountLabel?: string;
+    methodId?: string;
+    methodLabel?: string;
   }>;
 };
 
@@ -639,7 +643,16 @@ async function readTaxRules(pool: ReturnType<typeof getPool>, orgId: number) {
 async function replacePaymentMappings(
   pool: ReturnType<typeof getPool>,
   orgId: number,
-  mappings: Array<{ methodId: string; accountId: string; methodLabel?: string; accountLabel?: string }>
+  mappings: Array<{
+    sourceMethod?: string;
+    paymentMethod?: string;
+    accountId?: string;
+    sourceLabel?: string;
+    paymentMethodLabel?: string;
+    accountLabel?: string;
+    methodId?: string;
+    methodLabel?: string;
+  }>
 ) {
   await pool.query(
     `
@@ -650,12 +663,21 @@ async function replacePaymentMappings(
   );
 
   for (const mapping of mappings) {
+    const sourceMethod = mapping.sourceMethod || mapping.methodId || "";
+    const paymentMethod = mapping.paymentMethod || "";
+    const accountId = mapping.accountId || "";
+    const sourceLabel = mapping.sourceLabel || mapping.methodLabel || "";
+    const paymentMethodLabel = mapping.paymentMethodLabel || "";
+    const accountLabel = mapping.accountLabel || "";
+    if (!sourceMethod || !accountId) {
+      continue;
+    }
     await pool.query(
       `
-      INSERT INTO payment_mappings (organization_id, method_id, account_id, method_label, account_label)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO payment_mappings (organization_id, method_id, account_id, method_label, account_label, payment_method, payment_method_label)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       `,
-      [orgId, mapping.methodId, mapping.accountId, mapping.methodLabel || null, mapping.accountLabel || null]
+      [orgId, sourceMethod, accountId, sourceLabel || null, accountLabel || null, paymentMethod || null, paymentMethodLabel || null]
     );
   }
 }
@@ -666,19 +688,30 @@ async function readPaymentMappings(pool: ReturnType<typeof getPool>, orgId: numb
     account_id: string;
     method_label: string | null;
     account_label: string | null;
+    payment_method: string | null;
+    payment_method_label: string | null;
   }>(
     `
-    SELECT method_id, account_id, method_label, account_label
+    SELECT method_id, account_id, method_label, account_label, payment_method, payment_method_label
     FROM payment_mappings
     WHERE organization_id = $1
     `,
     [orgId]
   );
   return result.rows.map(
-    (row: { method_id: string; account_id: string; method_label: string | null; account_label: string | null }) => ({
-    methodId: row.method_id,
+    (row: {
+      method_id: string;
+      account_id: string;
+      method_label: string | null;
+      account_label: string | null;
+      payment_method: string | null;
+      payment_method_label: string | null;
+    }) => ({
+    sourceMethod: row.method_id,
+    paymentMethod: row.payment_method || "",
     accountId: row.account_id,
-    methodLabel: row.method_label || "",
+    sourceLabel: row.method_label || "",
+    paymentMethodLabel: row.payment_method_label || "",
     accountLabel: row.account_label || "",
     })
   );

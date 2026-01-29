@@ -138,6 +138,7 @@ const cfgObservations = document.getElementById("cfg-observations");
 const cfgGenerateInvoice = document.getElementById("cfg-generate-invoice");
 const cfgEinvoiceEnabled = document.getElementById("cfg-einvoice-enabled");
 
+const mapSourceMethod = document.getElementById("map-source-method");
 const mapPaymentMethod = document.getElementById("map-payment-method");
 const mapBankAccount = document.getElementById("map-bank-account");
 const mapAdd = document.getElementById("map-add");
@@ -1086,9 +1087,11 @@ async function loadSettings() {
   }
   if (Array.isArray(data.paymentMappings)) {
     paymentMappings = data.paymentMappings.map((item) => ({
-      methodId: item.methodId,
+      sourceMethod: item.sourceMethod || item.methodId || "",
+      paymentMethod: item.paymentMethod || "",
       accountId: item.accountId,
-      methodLabel: item.methodLabel,
+      sourceLabel: item.sourceLabel || item.methodLabel || "",
+      paymentMethodLabel: item.paymentMethodLabel || "",
       accountLabel: item.accountLabel,
     }));
   }
@@ -2420,11 +2423,19 @@ function buildAssistantMessage(role, content, options = {}) {
   if (role === "user") {
     bubble.textContent = content;
   } else {
+    const avatarWrap = document.createElement("div");
+    avatarWrap.className = "assistant-avatar-wrap";
+    const badge = document.createElement("img");
+    badge.src = "/assets/logo.png";
+    badge.alt = "Apiflujos";
+    badge.className = "assistant-avatar-badge";
     const avatar = document.createElement("img");
     avatar.src = "/assets/avatar.png";
     avatar.alt = "Olivia IA";
     avatar.className = "assistant-message-avatar";
-    message.appendChild(avatar);
+    avatarWrap.appendChild(badge);
+    avatarWrap.appendChild(avatar);
+    message.appendChild(avatarWrap);
     bubble.innerHTML = content || "";
   }
   message.appendChild(bubble);
@@ -2685,14 +2696,15 @@ async function loadResolutions() {
 
 function renderMappings() {
   if (!paymentMappings.length) {
-    mapTableBody.innerHTML = `<tr><td colspan="3" class="empty">Sin mapeos.</td></tr>`;
+    mapTableBody.innerHTML = `<tr><td colspan="4" class="empty">Sin mapeos.</td></tr>`;
     return;
   }
   mapTableBody.innerHTML = paymentMappings
     .map(
       (item, index) => `
       <tr>
-        <td>${item.methodLabel}</td>
+        <td>${item.sourceLabel || item.sourceMethod || "-"}</td>
+        <td>${item.paymentMethodLabel || item.paymentMethod || "-"}</td>
         <td>${item.accountLabel}</td>
         <td><button class="ghost" data-index="${index}">Quitar</button></td>
       </tr>
@@ -2710,17 +2722,23 @@ function renderMappings() {
 }
 
 mapAdd.addEventListener("click", () => {
+  const sourceValue = mapSourceMethod ? mapSourceMethod.value.trim() : "";
   const methodLabel = mapPaymentMethod.options[mapPaymentMethod.selectedIndex]?.textContent;
   const accountLabel = mapBankAccount.options[mapBankAccount.selectedIndex]?.textContent;
-  if (!mapPaymentMethod.value || !mapBankAccount.value) {
+  if (!sourceValue || !mapPaymentMethod.value || !mapBankAccount.value) {
     return;
   }
   paymentMappings.push({
-    methodId: mapPaymentMethod.value,
+    sourceMethod: sourceValue,
+    paymentMethod: mapPaymentMethod.value,
     accountId: mapBankAccount.value,
-    methodLabel,
+    sourceLabel: sourceValue,
+    paymentMethodLabel: methodLabel,
     accountLabel,
   });
+  if (mapSourceMethod) {
+    mapSourceMethod.value = "";
+  }
   renderMappings();
 });
 

@@ -251,6 +251,37 @@ body {
   gap: 8px;
 }
 
+.assistant-title {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.assistant-byline {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.assistant-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.assistant-avatar-badge {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--stroke);
+  object-fit: contain;
+  pointer-events: none;
+}
+
 .assistant-avatar {
   width: 40px;
   height: 40px;
@@ -662,6 +693,13 @@ button {
   border-radius: 8px;
   object-fit: cover;
   border: 1px solid var(--stroke);
+}
+
+.assistant-message .assistant-avatar-badge {
+  width: 9px;
+  height: 9px;
+  top: -3px;
+  left: -3px;
 }
 
 .assistant-message.is-thinking .assistant-message-avatar {

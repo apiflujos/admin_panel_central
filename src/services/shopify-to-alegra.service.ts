@@ -11,6 +11,8 @@ type ShopifyOrderPayload = {
   email?: string;
   total_price?: string;
   currency?: string;
+  payment_gateway_names?: string[];
+  gateway?: string;
   customer?: {
     first_name?: string;
     last_name?: string;
@@ -136,13 +138,17 @@ export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload) {
     }
   }
 
-  const bankAccountId = await resolveBankAccountId(
+  const paymentGateways = extractPaymentGateways(payload);
+  const defaultBankAccountId = await resolveBankAccountId(
     pool,
     orgId,
     invoiceSettings.paymentMethod,
     invoiceSettings.bankAccountId
   );
-  const invoicePayload = buildInvoicePayload(payload, contactId, invoiceSettings);
+  const sourceMapping = await resolvePaymentMappingBySource(pool, orgId, paymentGateways);
+  const paymentMethod = sourceMapping?.paymentMethod || invoiceSettings.paymentMethod;
+  const bankAccountId = sourceMapping?.accountId || defaultBankAccountId;
+  const invoicePayload = buildInvoicePayload(payload, contactId, invoiceSettings, paymentMethod);
   if (!invoiceSettings.generateInvoice) {
     return { handled: true, contactId, invoice: null, payment: null, adjustment: null };
   }
@@ -219,7 +225,7 @@ export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload) {
       invoiceId,
       clientId: contactId,
       amount: payload.total_price ? Number(payload.total_price) : 0,
-      paymentMethod: invoiceSettings.paymentMethod,
+      paymentMethod,
       bankAccountId,
       observations: interpolateObservations(invoiceSettings.observationsTemplate, payload),
     });
@@ -284,9 +290,11 @@ function buildContactName(payload: ShopifyOrderPayload) {
 function buildInvoicePayload(
   payload: ShopifyOrderPayload,
   contactId: string,
-  settings: InvoiceSettings
+  settings: InvoiceSettings,
+  paymentMethodOverride?: string
 ) {
   const today = new Date().toISOString().slice(0, 10);
+  const resolvedPaymentMethod = paymentMethodOverride || settings.paymentMethod;
   return {
     client: contactId,
     date: today,
@@ -295,7 +303,7 @@ function buildInvoicePayload(
     costCenter: settings.costCenterId ? { id: settings.costCenterId } : undefined,
     warehouse: settings.warehouseId ? { id: settings.warehouseId } : undefined,
     seller: settings.sellerId ? { id: settings.sellerId } : undefined,
-    paymentMethod: settings.paymentMethod || undefined,
+    paymentMethod: resolvedPaymentMethod || undefined,
     observations: interpolateObservations(settings.observationsTemplate, payload),
     items: (payload.line_items || []).map((item) => ({
       name: item.title || item.sku || "Item",
@@ -390,7 +398,7 @@ async function resolveBankAccountId(
     `
     SELECT account_id
     FROM payment_mappings
-    WHERE organization_id = $1 AND method_id = $2
+    WHERE organization_id = $1 AND (payment_method = $2 OR method_id = $2)
     LIMIT 1
     `,
     [orgId, paymentMethod]
@@ -399,6 +407,53 @@ async function resolveBankAccountId(
     return result.rows[0].account_id;
   }
   return defaultBankAccountId;
+}
+
+async function resolvePaymentMappingBySource(
+  pool: Pool,
+  orgId: number,
+  sources: string[]
+) {
+  if (!sources.length) return null;
+  const normalized = sources.map((item) => item.trim().toLowerCase()).filter(Boolean);
+  if (!normalized.length) return null;
+  const result = await pool.query<{
+    method_id: string;
+    method_label: string | null;
+    account_id: string;
+    payment_method: string | null;
+    payment_method_label: string | null;
+  }>(
+    `
+    SELECT method_id, method_label, account_id, payment_method, payment_method_label
+    FROM payment_mappings
+    WHERE organization_id = $1 AND lower(method_id) = ANY($2)
+    LIMIT 1
+    `,
+    [orgId, normalized]
+  );
+  if (!result.rows.length) {
+    return null;
+  }
+  const row = result.rows[0];
+  return {
+    sourceMethod: row.method_id,
+    sourceLabel: row.method_label || "",
+    accountId: row.account_id,
+    paymentMethod: row.payment_method || "",
+    paymentMethodLabel: row.payment_method_label || "",
+  };
+}
+
+function extractPaymentGateways(payload: ShopifyOrderPayload) {
+  const names: string[] = [];
+  if (Array.isArray(payload.payment_gateway_names)) {
+    names.push(...payload.payment_gateway_names);
+  }
+  if (payload.gateway) {
+    names.push(payload.gateway);
+  }
+  return names;
 }
 
 function interpolateObservations(

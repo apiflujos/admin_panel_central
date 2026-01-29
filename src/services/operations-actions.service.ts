@@ -111,7 +111,7 @@ async function resolveBankAccountId(
     `
     SELECT account_id
     FROM payment_mappings
-    WHERE organization_id = $1 AND method_id = $2
+    WHERE organization_id = $1 AND (payment_method = $2 OR method_id = $2)
     LIMIT 1
     `,
     [orgId, paymentMethod]
