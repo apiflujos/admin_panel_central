@@ -1370,10 +1370,70 @@ textarea {
   grid-column: span 2;
 }
 
+.cron-card {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.cron-card .status-row {
+  margin: 0;
+}
+
+.cron-card .status-row.span-2 {
+  grid-column: span 2;
+}
+
+.cron-card .status-row label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cron-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.users-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.users-layout .settings-grid {
+  grid-template-columns: 1fr;
+}
+
+.users-layout .table-card {
+  overflow-x: auto;
+}
+
 .status-row {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.status-compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.status-compact .status-row {
+  justify-content: space-between;
+}
+
+.status-compact .status-row > div {
+  flex: 1;
+}
+
+.status-compact .status-row p {
+  margin: 0;
+}
+
+.status-compact .status-row span {
+  display: inline-block;
 }
 
 .status-led {
@@ -1499,6 +1559,10 @@ textarea {
 
   .metrics-controls {
     align-items: flex-start;
+  }
+
+  .users-layout {
+    grid-template-columns: 1fr;
   }
 }
 

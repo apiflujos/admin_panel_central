@@ -500,21 +500,14 @@
                 <label>API Key</label>
                 <input type="password" id="alegra-key" placeholder="********" autocomplete="new-password" />
               </div>
-              <div class="field">
-                <label>Ambiente</label>
-                <div class="toggle">
-                  <button type="button" data-env="sandbox" class="toggle-btn">Sandbox</button>
-                  <button type="button" data-env="prod" class="toggle-btn is-active">Produccion</button>
-                </div>
-              </div>
-              <div class="status-card">
+              <div class="status-card status-compact">
                 <div class="status-row">
                   <span class="status-led" id="status-led-shopify"></span>
                   <div>
                     <p>Shopify</p>
                     <span id="status-shopify">Sin validar</span>
                   </div>
-                  <button class="ghost" id="test-shopify">Probar Shopify</button>
+                  <button class="ghost" id="test-shopify">Probar</button>
                 </div>
                 <div class="status-row">
                   <span class="status-led" id="status-led-alegra"></span>
@@ -522,11 +515,11 @@
                     <p>Alegra</p>
                     <span id="status-alegra">Sin validar</span>
                   </div>
-                  <button class="ghost" id="test-alegra">Probar Alegra</button>
+                  <button class="ghost" id="test-alegra">Probar</button>
                 </div>
               </div>
-              <div class="status-card">
-                <div class="status-row">
+              <div class="status-card cron-card">
+                <div class="status-row span-2">
                   <span class="status-led" id="inventory-cron-led"></span>
                   <div>
                     <p>Cron inventario</p>
@@ -555,7 +548,7 @@
                     <span>Publicar ajustes en Shopify automaticamente</span>
                   </label>
                 </div>
-                <div class="status-row">
+                <div class="status-row span-2 cron-stats">
                   <div>
                     <p>Ultimo checkpoint</p>
                     <span id="inventory-cron-checkpoint">-</span>
@@ -621,52 +614,54 @@
               <h3>Usuarios</h3>
               <span class="panel-tag">Admin</span>
             </div>
-            <div class="settings-grid">
-              <div class="field">
-                <label>Nombre</label>
-                <input type="text" id="user-create-name" placeholder="Nombre completo" />
+            <div class="users-layout">
+              <div class="settings-grid">
+                <div class="field">
+                  <label>Nombre</label>
+                  <input type="text" id="user-create-name" placeholder="Nombre completo" />
+                </div>
+                <div class="field">
+                  <label>Email</label>
+                  <input type="email" id="user-create-email" placeholder="correo@empresa.com" />
+                </div>
+                <div class="field">
+                  <label>Telefono</label>
+                  <input type="tel" id="user-create-phone" placeholder="+57..." />
+                </div>
+                <div class="field">
+                  <label>Rol</label>
+                  <select id="user-create-role">
+                    <option value="agent">Agente</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Contrasena</label>
+                  <input type="password" id="user-create-password" placeholder="********" />
+                </div>
+                <div class="field field-actions">
+                  <label>&nbsp;</label>
+                  <button class="primary" id="user-create" type="button">Crear usuario</button>
+                </div>
               </div>
-              <div class="field">
-                <label>Email</label>
-                <input type="email" id="user-create-email" placeholder="correo@empresa.com" />
+              <div class="table-card">
+                <table id="users-table">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Email</th>
+                      <th>Rol</th>
+                      <th>Telefono</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td colspan="5" class="empty">Sin usuarios.</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              <div class="field">
-                <label>Telefono</label>
-                <input type="tel" id="user-create-phone" placeholder="+57..." />
-              </div>
-              <div class="field">
-                <label>Rol</label>
-                <select id="user-create-role">
-                  <option value="agent">Agente</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Contrasena</label>
-                <input type="password" id="user-create-password" placeholder="********" />
-              </div>
-              <div class="field field-actions">
-                <label>&nbsp;</label>
-                <button class="primary" id="user-create" type="button">Crear usuario</button>
-              </div>
-            </div>
-            <div class="table-card">
-              <table id="users-table">
-                <thead>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>Email</th>
-                    <th>Rol</th>
-                    <th>Telefono</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td colspan="5" class="empty">Sin usuarios.</td>
-                  </tr>
-                </tbody>
-              </table>
             </div>
             <p class="field-hint" id="users-message"></p>
           </div>
@@ -710,10 +705,6 @@
               <div class="field">
                 <label>Imagenes activas</label>
                 <input type="checkbox" id="products-include-images" />
-              </div>
-              <div class="field">
-                <label>Vendor (opcional)</label>
-                <input type="text" id="products-vendor" placeholder="Alegra" />
               </div>
               <div class="field">
                 <label>Auto publicar en webhooks</label>
@@ -855,33 +846,7 @@
             </div>
           </div>
 
-          <div class="panel">
-            <div class="panel-header">
-              <h3>Mapeo de cuentas</h3>
-              <span class="panel-tag">Pagos</span>
-            </div>
-            <div class="mapping-grid">
-              <input type="text" id="map-source-method" placeholder="Metodo Shopify (ej: Bold, PSE)" />
-              <select id="map-payment-method"></select>
-              <select id="map-bank-account"></select>
-              <button class="ghost" id="map-add">Agregar</button>
-            </div>
-            <table class="table" id="map-table">
-              <thead>
-                <tr>
-                  <th>Metodo Shopify</th>
-                  <th>Metodo Alegra</th>
-                  <th>Cuenta bancaria</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td colspan="4" class="empty">Sin mapeos.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          
         </section>
       </main>
     </div>
