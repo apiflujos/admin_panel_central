@@ -70,7 +70,17 @@ const winsTopRevenueBody = document.querySelector("#wins-top-revenue tbody");
 const winsTopCustomersBody = document.querySelector("#wins-top-customers tbody");
 const alertLowStockBody = document.querySelector("#alert-low-stock tbody");
 const alertInactiveBody = document.querySelector("#alert-inactive-products tbody");
-const alertIssuesBody = document.querySelector("#alert-issues tbody");
+const panelTopProducts = document.getElementById("panel-top-products");
+const panelTopRevenue = document.getElementById("panel-top-revenue");
+const panelTopCities = document.getElementById("panel-top-cities");
+const panelTopCustomers = document.getElementById("panel-top-customers");
+const panelPaymentMethods = document.getElementById("panel-payment-methods");
+const panelInventoryAlerts = document.getElementById("panel-inventory-alerts");
+const cardLowStock = document.getElementById("card-low-stock");
+const cardInactiveProducts = document.getElementById("card-inactive-products");
+const assistantLaunch = document.getElementById("assistant-launch");
+const assistantDrawer = document.getElementById("assistant-drawer");
+const assistantClose = document.getElementById("assistant-close");
 const metricsRange = document.getElementById("metrics-range");
 const metricsShopifyStatus = document.getElementById("metrics-shopify-status");
 const metricsAlegraStatus = document.getElementById("metrics-alegra-status");
@@ -2091,7 +2101,7 @@ async function loadMetrics() {
     const range = metricsRange ? String(metricsRange.value || "month") : "month";
     const query = range ? `?range=${encodeURIComponent(range)}` : "";
     const data = await fetchJson(`/api/metrics${query}`);
-    if (kpiSalesToday) kpiSalesToday.textContent = data.salesToday || "Sin datos";
+    if (kpiSalesToday) kpiSalesToday.textContent = data.salesToday || "0";
     if (kpiSalesTodaySub) {
       const pct = typeof data.salesTodayPct === "number" ? `${Math.abs(data.salesTodayPct)}%` : "--";
       const sign = data.salesTodayTrend === "down" ? "-" : "+";
@@ -2105,7 +2115,7 @@ async function loadMetrics() {
     }
     if (kpiEffectivenessSub) {
       const total = Number(data.effectivenessTotal || 0);
-      kpiEffectivenessSub.textContent = total ? `${total} pedidos` : "Sin datos";
+      kpiEffectivenessSub.textContent = total ? `${total} pedidos` : "0 pedidos";
     }
     renderWeeklyChart(data.weeklyRevenue || []);
     renderBarChart(winsTopProducts, data.topProductsUnits || [], {
@@ -2126,12 +2136,12 @@ async function loadMetrics() {
     renderTopRevenueTable(data.topProductsRevenue || []);
     renderTopCustomersTable(data.topCustomers || []);
     renderInventoryAlerts(data.lowStock || [], data.inactiveProducts || []);
-    renderIssuesTable(data.issues || []);
+    updatePanelVisibility(data);
   } catch {
-    if (kpiSalesToday) kpiSalesToday.textContent = "Sin datos";
-    if (kpiSalesTodaySub) kpiSalesTodaySub.textContent = "Sin datos";
-    if (kpiEffectiveness) kpiEffectiveness.textContent = "--";
-    if (kpiEffectivenessSub) kpiEffectivenessSub.textContent = "Sin datos";
+    if (kpiSalesToday) kpiSalesToday.textContent = "0";
+    if (kpiSalesTodaySub) kpiSalesTodaySub.textContent = "Vs ayer --";
+    if (kpiEffectiveness) kpiEffectiveness.textContent = "0%";
+    if (kpiEffectivenessSub) kpiEffectivenessSub.textContent = "0 pedidos";
     renderWeeklyChart([]);
     renderBarChart(winsTopProducts, []);
     renderBarChart(winsTopCities, []);
@@ -2139,7 +2149,7 @@ async function loadMetrics() {
     renderTopRevenueTable([]);
     renderTopCustomersTable([]);
     renderInventoryAlerts([], []);
-    renderIssuesTable([]);
+    updatePanelVisibility({});
   }
 }
 
@@ -2291,7 +2301,7 @@ function formatCurrencyValue(value) {
 function renderWeeklyChart(items) {
   if (!chartWeekly) return;
   if (!Array.isArray(items) || !items.length) {
-    chartWeekly.innerHTML = "<p>Sin datos para graficar.</p>";
+    chartWeekly.innerHTML = "";
     return;
   }
   const sliceItems = chartWeekly.classList.contains("chart-compact")
@@ -2322,7 +2332,7 @@ function renderWeeklyChart(items) {
 function renderBarChart(container, items, options = {}) {
   if (!container) return;
   if (!Array.isArray(items) || !items.length) {
-    container.innerHTML = "<p>Sin datos para graficar.</p>";
+    container.innerHTML = "";
     return;
   }
   const labelKey = options.labelKey || "name";
@@ -2357,7 +2367,7 @@ function renderBarChart(container, items, options = {}) {
 function renderTopRevenueTable(items) {
   if (!winsTopRevenueBody) return;
   if (!Array.isArray(items) || !items.length) {
-    winsTopRevenueBody.innerHTML = `<tr><td colspan="3" class="empty">Sin datos.</td></tr>`;
+    winsTopRevenueBody.innerHTML = "";
     return;
   }
   winsTopRevenueBody.innerHTML = items
@@ -2377,7 +2387,7 @@ function renderTopRevenueTable(items) {
 function renderTopCustomersTable(items) {
   if (!winsTopCustomersBody) return;
   if (!Array.isArray(items) || !items.length) {
-    winsTopCustomersBody.innerHTML = `<tr><td colspan="3" class="empty">Sin datos.</td></tr>`;
+    winsTopCustomersBody.innerHTML = "";
     return;
   }
   winsTopCustomersBody.innerHTML = items
@@ -2397,7 +2407,7 @@ function renderTopCustomersTable(items) {
 function renderInventoryAlerts(lowStock, inactive) {
   if (alertLowStockBody) {
     if (!Array.isArray(lowStock) || !lowStock.length) {
-      alertLowStockBody.innerHTML = `<tr><td colspan="3" class="empty">Sin datos.</td></tr>`;
+      alertLowStockBody.innerHTML = "";
     } else {
       alertLowStockBody.innerHTML = lowStock
         .slice(0, 10)
@@ -2415,7 +2425,7 @@ function renderInventoryAlerts(lowStock, inactive) {
   }
   if (alertInactiveBody) {
     if (!Array.isArray(inactive) || !inactive.length) {
-      alertInactiveBody.innerHTML = `<tr><td colspan="3" class="empty">Sin datos.</td></tr>`;
+      alertInactiveBody.innerHTML = "";
     } else {
       alertInactiveBody.innerHTML = inactive
         .slice(0, 10)
@@ -2433,24 +2443,34 @@ function renderInventoryAlerts(lowStock, inactive) {
   }
 }
 
-function renderIssuesTable(items) {
-  if (!alertIssuesBody) return;
-  if (!Array.isArray(items) || !items.length) {
-    alertIssuesBody.innerHTML = `<tr><td colspan="3" class="empty">Sin datos.</td></tr>`;
-    return;
-  }
-  alertIssuesBody.innerHTML = items
-    .slice(0, 10)
-    .map(
-      (item) => `
-      <tr>
-        <td>${item.problem || "-"}</td>
-        <td>${item.cause || "-"}</td>
-        <td>${item.action || "-"}</td>
-      </tr>
-    `
-    )
-    .join("");
+function setVisible(element, visible) {
+  if (!element) return;
+  element.style.display = visible ? "" : "none";
+}
+
+function updatePanelVisibility(data) {
+  const hasTopProducts = Array.isArray(data.topProductsUnits) && data.topProductsUnits.length > 0;
+  const hasTopRevenue = Array.isArray(data.topProductsRevenue) && data.topProductsRevenue.length > 0;
+  const hasTopCities = Array.isArray(data.topCities) && data.topCities.length > 0;
+  const hasTopCustomers = Array.isArray(data.topCustomers) && data.topCustomers.length > 0;
+  const hasPaymentMethods = Array.isArray(data.paymentsByMethod) && data.paymentsByMethod.length > 0;
+  const hasLowStock = Array.isArray(data.lowStock) && data.lowStock.length > 0;
+  const hasInactive = Array.isArray(data.inactiveProducts) && data.inactiveProducts.length > 0;
+  const hasWeekly = Array.isArray(data.weeklyRevenue) && data.weeklyRevenue.length > 0;
+
+  setVisible(panelTopProducts, hasTopProducts);
+  setVisible(panelTopRevenue, hasTopRevenue);
+  setVisible(panelTopCities, hasTopCities);
+  setVisible(panelTopCustomers, hasTopCustomers);
+  setVisible(panelPaymentMethods, hasPaymentMethods);
+
+  const showInventory = hasLowStock || hasInactive;
+  setVisible(panelInventoryAlerts, showInventory);
+  setVisible(cardLowStock, hasLowStock);
+  setVisible(cardInactiveProducts, hasInactive);
+
+  const weeklyCard = chartWeekly ? chartWeekly.closest(".kpi-card") : null;
+  setVisible(weeklyCard, hasWeekly);
 }
 
 function buildAssistantMessage(role, content, options = {}) {
@@ -3015,6 +3035,25 @@ if (assistantInput) {
 }
 if (assistantSend) {
   assistantSend.addEventListener("click", sendAssistantMessage);
+}
+if (assistantLaunch && assistantDrawer) {
+  const openDrawer = () => {
+    assistantDrawer.classList.add("is-open");
+    assistantDrawer.setAttribute("aria-hidden", "false");
+  };
+  const closeDrawer = () => {
+    assistantDrawer.classList.remove("is-open");
+    assistantDrawer.setAttribute("aria-hidden", "true");
+  };
+  assistantLaunch.addEventListener("click", openDrawer);
+  if (assistantClose) {
+    assistantClose.addEventListener("click", closeDrawer);
+  }
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeDrawer();
+    }
+  });
 }
 if (assistantAttach && assistantFileInput) {
   assistantFileInput.addEventListener("change", () => {

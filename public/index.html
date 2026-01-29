@@ -144,23 +144,19 @@
                 </div>
                 <div class="kpi-card kpi-chart">
                   <p>Crecimiento Semanal</p>
-                  <div class="chart-placeholder chart-compact" id="chart-weekly">
-                    <p>Sin datos para graficar.</p>
-                  </div>
+                  <div class="chart-placeholder chart-compact" id="chart-weekly"></div>
                 </div>
               </div>
 
               <div class="metrics-victories">
-                <div class="panel">
+                <div class="panel" id="panel-top-products">
                   <div class="panel-header">
                     <h3>Top 10 Productos Estrella</h3>
                     <span class="panel-tag">Unidades</span>
                   </div>
-                  <div class="chart-placeholder" id="wins-top-products">
-                    <p>Sin datos para graficar.</p>
-                  </div>
+                  <div class="chart-placeholder" id="wins-top-products"></div>
                 </div>
-                <div class="panel">
+                <div class="panel" id="panel-top-revenue">
                   <div class="panel-header">
                     <h3>Top 10 Generadores de Caja</h3>
                     <span class="panel-tag">Facturacion</span>
@@ -174,24 +170,18 @@
                           <th>Unidades</th>
                         </tr>
                       </thead>
-                      <tbody>
-                        <tr>
-                          <td colspan="3" class="empty">Sin datos.</td>
-                        </tr>
-                      </tbody>
+                      <tbody></tbody>
                     </table>
                   </div>
                 </div>
-                <div class="panel">
+                <div class="panel" id="panel-top-cities">
                   <div class="panel-header">
                     <h3>Top 10 Ciudades Destino</h3>
                     <span class="panel-tag">Colombia</span>
                   </div>
-                  <div class="chart-placeholder" id="wins-top-cities">
-                    <p>Sin datos para graficar.</p>
-                  </div>
+                  <div class="chart-placeholder" id="wins-top-cities"></div>
                 </div>
-                <div class="panel">
+                <div class="panel" id="panel-top-customers">
                   <div class="panel-header">
                     <h3>Top 10 Clientes VIP</h3>
                     <span class="panel-tag">Ticket promedio</span>
@@ -205,34 +195,28 @@
                           <th>Total</th>
                         </tr>
                       </thead>
-                      <tbody>
-                        <tr>
-                          <td colspan="3" class="empty">Sin datos.</td>
-                        </tr>
-                      </tbody>
+                      <tbody></tbody>
                     </table>
                   </div>
                 </div>
-                <div class="panel">
+                <div class="panel" id="panel-payment-methods">
                   <div class="panel-header">
                     <h3>Participacion por Metodos de Pago</h3>
                     <span class="panel-tag">Alegra</span>
                   </div>
-                  <div class="chart-placeholder" id="wins-payment-methods">
-                    <p>Sin datos para graficar.</p>
-                  </div>
+                  <div class="chart-placeholder" id="wins-payment-methods"></div>
                 </div>
               </div>
 
               <div class="section-title">Panel de Control y Ajustes</div>
               <div class="metrics-attention">
-                <div class="panel">
+                <div class="panel" id="panel-inventory-alerts">
                   <div class="panel-header">
                     <h3>Alertas de Inventario y Stock</h3>
                     <span class="panel-tag">Operativo</span>
                   </div>
                   <div class="panel-split">
-                    <div class="table-card">
+                    <div class="table-card" id="card-low-stock">
                       <h4 class="panel-subtitle">Proximos a agotarse</h4>
                       <table class="table" id="alert-low-stock">
                         <thead>
@@ -242,14 +226,10 @@
                             <th>Ventas 7d</th>
                           </tr>
                         </thead>
-                        <tbody>
-                          <tr>
-                            <td colspan="3" class="empty">Sin datos.</td>
-                          </tr>
-                        </tbody>
+                        <tbody></tbody>
                       </table>
                     </div>
-                    <div class="table-card">
+                    <div class="table-card" id="card-inactive-products">
                       <h4 class="panel-subtitle">Productos inactivos</h4>
                       <table class="table" id="alert-inactive-products">
                         <thead>
@@ -259,77 +239,13 @@
                             <th>Ventas 7d</th>
                           </tr>
                         </thead>
-                        <tbody>
-                          <tr>
-                            <td colspan="3" class="empty">Sin datos.</td>
-                          </tr>
-                        </tbody>
+                        <tbody></tbody>
                       </table>
                     </div>
                   </div>
                 </div>
-                <div class="panel">
-                  <div class="panel-header">
-                    <h3>Novedades y Fallos</h3>
-                    <span class="panel-tag">Gestion de crisis</span>
-                  </div>
-                  <div class="table-card">
-                    <table class="table" id="alert-issues">
-                      <thead>
-                        <tr>
-                          <th>Problema</th>
-                          <th>Causa Comercial</th>
-                          <th>Accion Sugerida</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td colspan="3" class="empty">Sin datos.</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
               </div>
             </div>
-            <aside class="metrics-assistant">
-              <div class="panel assistant-panel">
-                <div class="panel-header assistant-header">
-                  <div class="assistant-header-title">
-                    <div class="assistant-avatar-wrap">
-                      <img src="/assets/logo.png" alt="Apiflujos" class="assistant-avatar-badge" />
-                      <img src="/assets/avatar.png" alt="Olivia IA" class="assistant-avatar" />
-                    </div>
-                    <div class="assistant-title">
-                      <h3>Asistente IA</h3>
-                      <span class="assistant-byline">By apiflujos</span>
-                    </div>
-                  </div>
-                  <span class="panel-tag">Olivia</span>
-                </div>
-                <div class="assistant-messages" id="assistant-messages"></div>
-                <div class="assistant-controls">
-                  <span class="assistant-hint">Enter para enviar · Ctrl+Enter para salto de linea</span>
-                </div>
-                <div class="assistant-input">
-                  <div class="assistant-attachments" id="assistant-attachments"></div>
-                  <div class="assistant-composer">
-                    <label class="ghost assistant-attach" id="assistant-attach" for="assistant-file" title="Adjuntar archivo">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <path d="M7 12l6-6a4 4 0 1 1 6 6l-8 8a6 6 0 0 1-8-8l9-9" />
-                      </svg>
-                    </label>
-                    <textarea id="assistant-input" rows="2" placeholder="Escribe una instruccion para Olivia IA..."></textarea>
-                    <button class="primary assistant-send" id="assistant-send" type="button" title="Enviar">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <path d="M4 12l16-8-6 8 6 8-16-8z" />
-                      </svg>
-                    </button>
-                  </div>
-                  <input id="assistant-file" type="file" multiple accept="image/*,application/pdf" />
-                </div>
-              </div>
-            </aside>
           </div>
         </section>
 
@@ -970,6 +886,49 @@
       </main>
     </div>
 
+    <button class="assistant-launch" id="assistant-launch" type="button">Asistente</button>
+    <div class="assistant-drawer" id="assistant-drawer" aria-hidden="true">
+      <div class="panel assistant-panel">
+        <div class="panel-header assistant-header">
+          <div class="assistant-header-title">
+            <div class="assistant-avatar-wrap">
+              <img src="/assets/logo.png" alt="Apiflujos" class="assistant-avatar-badge" />
+              <img src="/assets/avatar.png" alt="Olivia IA" class="assistant-avatar" />
+            </div>
+            <div class="assistant-title">
+              <h3>Asistente IA</h3>
+              <span class="assistant-byline">By apiflujos</span>
+            </div>
+          </div>
+          <div class="assistant-header-actions">
+            <span class="panel-tag">Olivia</span>
+            <button class="ghost" id="assistant-close" type="button">Cerrar</button>
+          </div>
+        </div>
+        <div class="assistant-messages" id="assistant-messages"></div>
+        <div class="assistant-controls">
+          <span class="assistant-hint">Enter para enviar · Ctrl+Enter para salto de linea</span>
+        </div>
+        <div class="assistant-input">
+          <div class="assistant-attachments" id="assistant-attachments"></div>
+          <div class="assistant-composer">
+            <label class="ghost assistant-attach" id="assistant-attach" for="assistant-file" title="Adjuntar archivo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M7 12l6-6a4 4 0 1 1 6 6l-8 8a6 6 0 0 1-8-8l9-9" />
+              </svg>
+            </label>
+            <textarea id="assistant-input" rows="2" placeholder="Escribe una instruccion para Olivia IA..."></textarea>
+            <button class="primary assistant-send" id="assistant-send" type="button" title="Enviar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M4 12l16-8-6 8 6 8-16-8z" />
+              </svg>
+            </button>
+          </div>
+          <input id="assistant-file" type="file" multiple accept="image/*,application/pdf" />
+        </div>
+      </div>
+    </div>
+
     <div class="modal" id="payload-modal" aria-hidden="true">
       <div class="modal-content">
         <div class="modal-header">
@@ -1050,6 +1009,6 @@
       </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js" type="module"></script>
   </body>
 </html>
