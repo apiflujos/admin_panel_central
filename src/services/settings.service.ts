@@ -24,6 +24,8 @@ type SettingsPayload = {
     autoPublishOnWebhook?: boolean;
     autoPublishStatus?: "draft" | "active";
     inventoryAdjustmentsEnabled?: boolean;
+    inventoryAdjustmentsIntervalMinutes?: number;
+    inventoryAdjustmentsAutoPublish?: boolean;
   };
   invoice?: {
     generateInvoice?: boolean;
@@ -58,6 +60,13 @@ const normalizeShopDomain = (value?: string) => {
   return withoutPath.includes("@")
     ? withoutPath.slice(withoutPath.lastIndexOf("@") + 1)
     : withoutPath;
+};
+
+const normalizeInventoryInterval = (value?: number | null) => {
+  if (!value || value <= 0) return 0;
+  if (value <= 5) return 5;
+  if (value <= 10) return 10;
+  return 15;
 };
 
 export async function saveSettings(payload: SettingsPayload) {
@@ -97,9 +106,8 @@ export async function saveSettings(payload: SettingsPayload) {
   }
   if (payload.ai) {
     const existingAi = await readCredential(pool, orgId, "ai");
-    const apiKey = payload.ai.apiKey?.trim()
-      ? payload.ai.apiKey
-      : existingAi?.apiKey;
+    const trimmed = payload.ai.apiKey?.trim() || "";
+    const apiKey = trimmed ? trimmed : existingAi?.apiKey;
     const data = encryptString(
       JSON.stringify({
         ...existingAi,
@@ -313,6 +321,8 @@ async function upsertRules(
     autoPublishOnWebhook?: boolean;
     autoPublishStatus?: "draft" | "active";
     inventoryAdjustmentsEnabled?: boolean;
+    inventoryAdjustmentsIntervalMinutes?: number;
+    inventoryAdjustmentsAutoPublish?: boolean;
   }
 ) {
   await ensureInventoryRulesColumns(pool);
@@ -333,22 +343,27 @@ async function upsertRules(
       SET publish_on_stock = $1,
           auto_publish_on_webhook = $2,
           auto_publish_status = $3,
-          inventory_adjustments_enabled = $4
-      WHERE id = $5
+          inventory_adjustments_enabled = $4,
+          inventory_adjustments_interval_minutes = $5,
+          inventory_adjustments_autopublish = $6
+      WHERE id = $7
       `,
       [
         rules.publishOnStock ?? true,
         rules.autoPublishOnWebhook ?? false,
         rules.autoPublishStatus === "active" ? "active" : "draft",
         rules.inventoryAdjustmentsEnabled ?? true,
+        normalizeInventoryInterval(rules.inventoryAdjustmentsIntervalMinutes),
+        rules.inventoryAdjustmentsAutoPublish ?? true,
         existing.rows[0].id,
       ]
     );
   } else {
     await pool.query(
       `
-      INSERT INTO inventory_rules (organization_id, publish_on_stock, auto_publish_on_webhook, auto_publish_status, inventory_adjustments_enabled)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO inventory_rules
+        (organization_id, publish_on_stock, auto_publish_on_webhook, auto_publish_status, inventory_adjustments_enabled, inventory_adjustments_interval_minutes, inventory_adjustments_autopublish)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       `,
       [
         orgId,
@@ -356,6 +371,8 @@ async function upsertRules(
         rules.autoPublishOnWebhook ?? false,
         rules.autoPublishStatus === "active" ? "active" : "draft",
         rules.inventoryAdjustmentsEnabled ?? true,
+        normalizeInventoryInterval(rules.inventoryAdjustmentsIntervalMinutes),
+        rules.inventoryAdjustmentsAutoPublish ?? true,
       ]
     );
   }
@@ -497,9 +514,16 @@ async function readRules(pool: ReturnType<typeof getPool>, orgId: number) {
     auto_publish_on_webhook: boolean;
     auto_publish_status: string | null;
     inventory_adjustments_enabled: boolean | null;
+    inventory_adjustments_interval_minutes: number | null;
+    inventory_adjustments_autopublish: boolean | null;
   }>(
     `
-    SELECT publish_on_stock, auto_publish_on_webhook, auto_publish_status, inventory_adjustments_enabled
+    SELECT publish_on_stock,
+           auto_publish_on_webhook,
+           auto_publish_status,
+           inventory_adjustments_enabled,
+           inventory_adjustments_interval_minutes,
+           inventory_adjustments_autopublish
     FROM inventory_rules
     WHERE organization_id = $1
     ORDER BY created_at DESC
@@ -518,6 +542,23 @@ async function readRules(pool: ReturnType<typeof getPool>, orgId: number) {
     inventoryAdjustmentsEnabled: inventory.rows.length
       ? inventory.rows[0].inventory_adjustments_enabled !== false
       : true,
+    inventoryAdjustmentsIntervalMinutes: inventory.rows.length
+      ? normalizeInventoryInterval(inventory.rows[0].inventory_adjustments_interval_minutes)
+      : 5,
+    inventoryAdjustmentsAutoPublish: inventory.rows.length
+      ? inventory.rows[0].inventory_adjustments_autopublish !== false
+      : true,
+  };
+}
+
+export async function getInventoryAdjustmentsSettings() {
+  const pool = getPool();
+  const orgId = await getOrgId(pool);
+  const rules = await readRules(pool, orgId);
+  return {
+    enabled: rules.inventoryAdjustmentsEnabled !== false,
+    intervalMinutes: normalizeInventoryInterval(rules.inventoryAdjustmentsIntervalMinutes),
+    autoPublish: rules.inventoryAdjustmentsAutoPublish !== false,
   };
 }
 

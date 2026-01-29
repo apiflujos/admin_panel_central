@@ -99,13 +99,13 @@ export async function handleAssistantQuery(
   message: string,
   mode = "command",
   intro = false,
-  attachments: Array<{ name?: string; type?: string; size?: number }> = []
+  attachments: Array<{ name?: string; type?: string; size?: number }> = [],
+  role: "admin" | "agent" = "admin"
 ) {
   const cleaned = String(message || "").trim();
   if (!cleaned) {
     return { reply: "Necesito una instruccion para continuar." };
   }
-  const normalized = cleaned.toLowerCase();
   const introPrefix = intro
     ? "Hola, soy Olivia IA. Puedo ayudarte con productos, pedidos, sincronizaciones y reportes. "
     : "";
@@ -119,276 +119,8 @@ export async function handleAssistantQuery(
       ),
     };
   }
-
-  if (normalized.includes("prompt maestro")) {
-    return { reply: withIntro("Aqui tienes el prompt maestro."), report: { prompt: ASSISTANT_MASTER_PROMPT } };
-  }
-
-  if (normalized === "ayuda" || normalized === "help") {
-    return { reply: withIntro(HELP_TEXT) };
-  }
-
-  if (isOrderSearchIntent(normalized)) {
-    const orderNumber = extractOrderNumber(cleaned);
-    if (!orderNumber) {
-      return { reply: "Que numero de pedido quieres buscar?" };
-    }
-    const orders = await searchShopifyOrders(orderNumber);
-    return {
-      reply: withIntro(
-        orders.length
-        ? `Encontre ${orders.length} pedidos para #${orderNumber}.`
-        : `No encontre pedidos para #${orderNumber}.`
-      ),
-      items: orders,
-      itemsHeaders: ["Pedido", "Cliente", "Estado"],
-      itemsRows: orders.map((order) => [
-        String(order.orderNumber || order.name || "-"),
-        String(order.customer || "-"),
-        String(order.status || "-"),
-      ]),
-    };
-  }
-
-  if (
-    normalized.includes("ultimo producto") ||
-    normalized.includes("último producto") ||
-    normalized.includes("ultimo item") ||
-    normalized.includes("último item") ||
-    normalized.includes("ultima sincronizacion") ||
-    normalized.includes("última sincronizacion") ||
-    normalized.includes("ultima sincronización") ||
-    normalized.includes("última sincronización")
-  ) {
-    const latest = await getLatestProductSync();
-    if (!latest) {
-      return { reply: withIntro("No encuentro sincronizaciones recientes de productos. Quieres iniciar una?") };
-    }
-    const detail = latest.name
-      ? `${latest.name}${latest.reference ? ` · ${latest.reference}` : ""}`
-      : latest.alegraItemId
-        ? `Item ${latest.alegraItemId}`
-        : "Producto sin ID";
-    const when = latest.createdAt
-      ? new Date(latest.createdAt).toLocaleString("es-CO")
-      : "fecha desconocida";
-    return {
-      reply: withIntro(`El ultimo producto sincronizado es: ${detail} (${when}).`),
-    };
-  }
-
-  if (
-    normalized.includes("ultimo pedido") ||
-    normalized.includes("último pedido") ||
-    normalized.includes("ultima orden") ||
-    normalized.includes("última orden")
-  ) {
-    const latestOrder = await getLatestOrderSync();
-    if (!latestOrder) {
-      return { reply: withIntro("No encuentro pedidos sincronizados recientemente. Quieres iniciar una sincronizacion?") };
-    }
-    const when = latestOrder.createdAt
-      ? new Date(latestOrder.createdAt).toLocaleString("es-CO")
-      : "fecha desconocida";
-    return {
-      reply: withIntro(`El ultimo pedido sincronizado es #${latestOrder.orderId} (${when}).`),
-    };
-  }
-
-  if (
-    normalized.includes("confirmar reintentar") &&
-    (normalized.includes("fallidos") || normalized.includes("errores"))
-  ) {
-    const result = await retryFailedLogs();
-    return {
-      reply: withIntro(`Listo. Reintente ${result?.retried || 0} log(s) fallidos.`),
-      report: result || {},
-    };
-  }
-
-  if (normalized.includes("reintentar") && (normalized.includes("fallidos") || normalized.includes("errores"))) {
-    return {
-      reply: withIntro("Quieres que reintente los logs fallidos ahora?"),
-    };
-  }
-
-  if (isProductSearchIntent(normalized)) {
-    const query = extractProductQuery(cleaned);
-    if (!query) {
-      return { reply: "Que producto quieres buscar? Dime nombre, SKU o ID." };
-    }
-    const items = await searchAlegraItems(query);
-    return {
-      reply: withIntro(
-        items.length
-        ? `Encontre ${items.length} productos relacionados con "${query}".`
-        : `No encontre productos para "${query}".`
-      ),
-      items,
-      itemsHeaders: ["ID", "Nombre", "Referencia"],
-      itemsRows: items.map((item) => [
-        String(item.id || "-"),
-        String(item.name || "-"),
-        String(item.reference || item.code || "-"),
-      ]),
-    };
-  }
-
-  if (normalized.includes("confirmar publicar")) {
-    const sku = extractSku(cleaned) || extractLooseSku(cleaned);
-    const alegraId = extractId(cleaned);
-    const action: AssistantAction | null = sku
-      ? { type: "publish_item", payload: { sku } }
-      : alegraId
-        ? { type: "publish_item", payload: { alegraId } }
-        : null;
-    if (!action) {
-      return { reply: "Que item quieres publicar? Puedo usar ID de Alegra o SKU." };
-    }
-    const result = await executeAssistantAction(action);
-    return { reply: result.reply || "Accion completada.", report: result.report };
-  }
-
-  if (normalized.includes("confirmar ocultar")) {
-    const sku = extractSku(cleaned) || extractLooseSku(cleaned);
-    const alegraId = extractId(cleaned);
-    const action: AssistantAction | null = sku
-      ? { type: "hide_item", payload: { sku } }
-      : alegraId
-        ? { type: "hide_item", payload: { alegraId } }
-        : null;
-    if (!action) {
-      return { reply: "Que item quieres ocultar? Puedo usar ID de Alegra o SKU." };
-    }
-    const result = await executeAssistantAction(action);
-    return { reply: result.reply || "Accion completada.", report: result.report };
-  }
-
-  if (isPublishIntent(normalized)) {
-    const sku = extractSku(cleaned) || extractLooseSku(cleaned);
-    if (sku) {
-      return {
-        reply: withIntro(`Para publicar el SKU ${sku}, escribe: confirmar publicar sku ${sku}`),
-      };
-    }
-    const alegraId = extractId(cleaned);
-    if (!alegraId) {
-      return { reply: "Que item quieres publicar? Dime el ID de Alegra o el SKU." };
-    }
-    return {
-      reply: withIntro(`Para publicar el item ${alegraId}, escribe: confirmar publicar item ${alegraId}`),
-    };
-  }
-
-  if (isHideIntent(normalized)) {
-    const sku = extractSku(cleaned) || extractLooseSku(cleaned);
-    if (sku) {
-      return {
-        reply: withIntro(`Para ocultar el SKU ${sku}, escribe: confirmar ocultar sku ${sku}`),
-      };
-    }
-    const alegraId = extractId(cleaned);
-    if (!alegraId) {
-      return { reply: "Que item quieres ocultar? Dime el ID de Alegra o el SKU." };
-    }
-    return {
-      reply: withIntro(`Para ocultar el item ${alegraId}, escribe: confirmar ocultar item ${alegraId}`),
-    };
-  }
-
-  if (looksLikeLogRequest(normalized)) {
-    const logQuery = parseLogQuery(cleaned, normalized);
-    if (logQuery.ask) {
-      return { reply: withIntro(logQuery.ask) };
-    }
-    lastLogFilters = logQuery.filters;
-    const result = await listSyncLogs(logQuery.filters);
-    const analysis = await buildLogAnalysis(logQuery.filters);
-    const items = result.items || [];
-    if (!items.length) {
-      return { reply: withIntro("No encontre logs con ese criterio. Quieres ampliar el rango?") };
-    }
-    const limited = items.slice(0, 20) as Array<{
-      created_at: string;
-      entity?: string;
-      status?: string;
-      message?: string | null;
-    }>;
-    const summary = buildLogSummaryText(analysis);
-    const suggestions = buildLogSuggestions(analysis, logQuery.filters);
-    return {
-      reply: withIntro(
-        `${summary}${suggestions ? ` ${suggestions}` : ""} Encontre ${items.length} registros. Te muestro los ${limited.length} mas recientes.`
-      ),
-      items: limited,
-      itemsHeaders: ["Fecha", "Entidad", "Estado", "Detalle"],
-      itemsRows: limited.map((row) => [
-        new Date(row.created_at).toLocaleString("es-CO"),
-        String(row.entity || "-"),
-        String(row.status || "-"),
-        String(row.message || "-"),
-      ]),
-      report: analysis,
-    };
-  }
-
-  if (normalized.includes("confirmar sync productos")) {
-    return {
-      reply: withIntro("Inicio la sincronizacion de productos."),
-      clientAction: {
-        type: "sync_products",
-        clientAction: true,
-      },
-    };
-  }
-
-  if (normalized.includes("confirmar sync pedidos")) {
-    return {
-      reply: withIntro("Inicio la sincronizacion de pedidos."),
-      clientAction: {
-        type: "sync_orders",
-        clientAction: true,
-      },
-    };
-  }
-
-  if (isSyncProductsIntent(normalized)) {
-    return {
-      reply: withIntro("Puedo iniciar la sincronizacion de productos. Confirmas que la ejecute ahora?"),
-    };
-  }
-
-  if (isSyncOrdersIntent(normalized)) {
-    return {
-      reply: withIntro("Puedo iniciar la sincronizacion de pedidos. Confirmas que la ejecute ahora?"),
-    };
-  }
-
-  if (normalized.includes("reporte") || normalized.includes("db")) {
-    const report = await buildDbReport();
-    return {
-      reply: withIntro("Reporte rapido de base de datos listo."),
-      report,
-    };
-  }
-
-  if (mode === "analysis") {
-    return {
-      reply:
-        withIntro(
-          "Puedo ayudarte con productos, pedidos, sincronizaciones y reportes. Que necesitas hacer?"
-        ),
-    };
-  }
-
-  const inferred = await inferIntent(cleaned, normalized, introPrefix);
-  if (inferred) {
-    return inferred;
-  }
-
-  return {
-    reply: withIntro(buildClarifyingQuestion(cleaned, normalized)),
-  };
+  const aiResult = await handleAssistantWithAi(cleaned, withIntro, role);
+  return aiResult || { reply: withIntro("No pude interpretar la solicitud. Prueba con 'ayuda'.") };
 }
 
 export async function executeAssistantAction(action: AssistantAction) {
@@ -424,7 +156,7 @@ export async function executeAssistantAction(action: AssistantAction) {
   }
   if (action.type === "get_sales_summary") {
     const range = resolveDateRange(action.payload || {});
-    const summary = await getSalesSummary(range);
+    const summary = await getSalesSummary(range, action.payload || {});
     return {
       reply: `Ventas ${summary.label}: ${summary.totalFormatted} · Pedidos: ${summary.count}`,
       report: summary,
@@ -883,7 +615,8 @@ async function inferIntent(cleaned: string, normalized: string, introPrefix: str
 
 async function handleAssistantWithAi(
   message: string,
-  withIntro: (text: string) => string
+  withIntro: (text: string) => string,
+  role: "admin" | "agent"
 ): Promise<AssistantQueryResult | null> {
   let aiKey: string;
   try {
@@ -894,11 +627,6 @@ async function handleAssistantWithAi(
   }
   const systemPrompt = [
     ASSISTANT_MASTER_PROMPT,
-    "",
-    "Responde siempre en JSON valido con esta forma:",
-    '{ "reply": "...", "action": { "type": "...", "payload": { ... } } }',
-    "Si no hay accion, omite el campo action.",
-    "Solo usa tipos de accion permitidos: publish_item, hide_item, sync_products, sync_orders, retry_failed_logs.",
   ].join("\n");
 
   const body = {
@@ -932,6 +660,9 @@ async function handleAssistantWithAi(
   const reply = typeof parsed.reply === "string" ? parsed.reply : "Listo.";
   const action = parsed.action as AssistantAction | undefined;
   if (action && ACTION_TYPES.has(action.type)) {
+    if (role !== "admin" && (action.type === "get_settings" || action.type === "update_invoice_settings" || action.type === "update_rules")) {
+      return { reply: withIntro("No tienes permisos para acceder a configuraciones.") };
+    }
     const confirmed = /confirmar|confirmo|confirmada|confirmado/i.test(message);
     if (WRITE_ACTIONS.has(action.type) && !confirmed) {
       return { reply: withIntro("Para ejecutar esa accion necesito confirmacion. Responde con: confirmar.") };
@@ -951,6 +682,14 @@ async function handleAssistantWithAi(
       itemsHeaders: result.itemsHeaders,
       itemsRows: result.itemsRows,
     };
+  }
+  if (looksLikeSalesQuestion(message)) {
+    const result = await executeAssistantAction({ type: "get_sales_summary", payload: {} });
+    return { reply: withIntro(result.reply), report: result.report };
+  }
+  if (looksLikeOrdersQuestion(message)) {
+    const result = await executeAssistantAction({ type: "get_orders_summary", payload: {} });
+    return { reply: withIntro(result.reply), report: result.report };
   }
   return { reply: withIntro(reply) };
 }
@@ -980,6 +719,16 @@ function tryParseJson(text: string) {
   }
 }
 
+function looksLikeSalesQuestion(message: string) {
+  const normalized = message.toLowerCase();
+  return normalized.includes("venta") || normalized.includes("factur");
+}
+
+function looksLikeOrdersQuestion(message: string) {
+  const normalized = message.toLowerCase();
+  return normalized.includes("pedido") || normalized.includes("orden");
+}
+
 function resolveDateRange(payload: Record<string, unknown>) {
   const days = Number(payload.days || 0);
   if (Number.isFinite(days) && days > 0) {
@@ -998,8 +747,32 @@ function resolveDateRange(payload: Record<string, unknown>) {
   return { from, to: new Date(), label: "mes actual" };
 }
 
-async function getSalesSummary(range: { from: Date; to: Date; label: string }) {
+async function getSalesSummary(
+  range: { from: Date; to: Date; label: string },
+  payload: Record<string, unknown> = {}
+) {
   const ctx = await buildSyncContext();
+  const methodFilter = String(payload.paymentMethod || "").trim().toLowerCase();
+  if (methodFilter) {
+    const payments = await listAlegraPaymentsInRange(ctx, range);
+    const filtered = payments.filter((payment) => {
+      const method = resolvePaymentMethodLabel(payment).toLowerCase();
+      return method.includes(methodFilter);
+    });
+    const total = filtered.reduce((acc, payment) => {
+      const amount = Number(payment.amount || payment.total || 0);
+      return acc + (Number.isFinite(amount) ? amount : 0);
+    }, 0);
+    return {
+      label: `${range.label} (${methodFilter})`,
+      count: filtered.length,
+      total,
+      totalFormatted: new Intl.NumberFormat("es-CO", {
+        style: "currency",
+        currency: "COP",
+      }).format(total),
+    };
+  }
   const invoices = await listAlegraInvoicesInRange(ctx, range);
   const total = invoices.reduce((acc, invoice) => {
     const amount = Number(
@@ -1061,6 +834,46 @@ async function listAlegraInvoicesInRange(
     const invoiceDate = Date.parse(`${date}T00:00:00.000Z`);
     return invoiceDate >= range.from.getTime() && invoiceDate <= range.to.getTime();
   });
+}
+
+async function listAlegraPaymentsInRange(
+  ctx: Awaited<ReturnType<typeof buildSyncContext>>,
+  range: { from: Date; to: Date }
+) {
+  const pageSize = 30;
+  const maxPages = Math.max(1, Number(process.env.METRICS_MAX_PAGES || 10));
+  const payments: Array<Record<string, unknown>> = [];
+  for (let page = 0; page < maxPages; page += 1) {
+    const batch = (await ctx.alegra.listPayments({
+      limit: pageSize,
+      start: page * pageSize,
+    })) as Array<Record<string, unknown>>;
+    if (!Array.isArray(batch) || batch.length === 0) {
+      break;
+    }
+    payments.push(...batch);
+    if (batch.length < pageSize) {
+      break;
+    }
+  }
+  return payments.filter((payment) => {
+    const date =
+      String(payment.date || payment.datetime || payment.createdAt || "").slice(0, 10);
+    if (!date) return false;
+    const paymentDate = Date.parse(`${date}T00:00:00.000Z`);
+    return paymentDate >= range.from.getTime() && paymentDate <= range.to.getTime();
+  });
+}
+
+function resolvePaymentMethodLabel(payment: Record<string, unknown>) {
+  const method = (payment.paymentMethod || payment.method || payment.type) as
+    | string
+    | { name?: string };
+  if (typeof method === "string") return method;
+  if (method && typeof method === "object" && "name" in method) {
+    return String(method.name || "");
+  }
+  return "Otro";
 }
 
 async function getLatestProductSync() {

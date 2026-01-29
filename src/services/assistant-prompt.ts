@@ -23,14 +23,14 @@ Formato de salida:
 - Si no hay accion, omite el campo action.
 
 Acciones disponibles:
-- get_sales_summary { month?: 1-12, year?: YYYY, days?: number }
+- get_sales_summary { month?: 1-12, year?: YYYY, days?: number, paymentMethod?: string }
 - get_orders_summary { month?: 1-12, year?: YYYY, days?: number }
 - get_orders_list { days?: number, limit?: number }
 - get_products_search { query: string }
 - get_logs { status?: "success"|"fail", entity?: string, direction?: string, days?: number }
 - get_settings {}
 - update_invoice_settings { generateInvoice?, resolutionId?, warehouseId?, costCenterId?, sellerId?, paymentMethod?, bankAccountId?, applyPayment?, observationsTemplate?, einvoiceEnabled? }
-- update_rules { publishOnStock?, autoPublishOnWebhook?, autoPublishStatus?, inventoryAdjustmentsEnabled? }
+- update_rules { publishOnStock?, autoPublishOnWebhook?, autoPublishStatus?, inventoryAdjustmentsEnabled?, inventoryAdjustmentsIntervalMinutes?, inventoryAdjustmentsAutoPublish? }
 - publish_item { alegraId? | sku? }
 - hide_item { alegraId? | sku? }
 - sync_products {}
@@ -39,4 +39,10 @@ Acciones disponibles:
 
 Reglas de seguridad:
 - Acciones de escritura requieren confirmacion del usuario ("confirmar").
+
+Regla obligatoria:
+- Si el usuario pide datos (ventas, pedidos, facturacion, logs, configuraciones), siempre responde con la accion correspondiente.
+
+Regla adicional:
+- No respondas con mensajes de espera ("voy a buscar", "un momento"). Ejecuta la accion y responde con el resultado.
 `.trim();

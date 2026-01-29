@@ -16,7 +16,7 @@ import { ShopifyOrder } from "../connectors/shopify";
 export async function listOperations(days = 7) {
   const ctx = await buildSyncContext();
   const updatedAtMin = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-  const query = `updated_at:>='${updatedAtMin}'`;
+  const query = `status:any updated_at:>='${updatedAtMin}'`;
   const orders = await ctx.shopify.listAllOrdersByQuery(query);
   const orderIds = orders.map((order) => order.id);
   const latestLogs = await listLatestOrderLogs(orderIds);

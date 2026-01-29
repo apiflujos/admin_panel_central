@@ -407,8 +407,10 @@ async function loadCurrentUser() {
   }
 }
 
-function openSettingsPanel(panelId) {
-  activateNav("settings");
+function openPanelInSection(sectionId, panelId) {
+  sections.forEach((section) => {
+    section.classList.toggle("is-active", section.id === sectionId);
+  });
   const panel = document.getElementById(panelId);
   if (panel) {
     panel.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -3066,18 +3068,18 @@ if (userMenuToggle) {
       if (!target) return;
       const action = target.getAttribute("data-user-action");
       toggleUserMenu(false);
-      if (action === "profile") {
-        openSettingsPanel("profile-panel");
-        return;
-      }
-      if (action === "company") {
-        openSettingsPanel("company-panel");
-        return;
-      }
-      if (action === "users") {
-        openSettingsPanel("users-panel");
-        return;
-      }
+    if (action === "profile") {
+      openPanelInSection("profile", "profile-panel");
+      return;
+    }
+    if (action === "company") {
+      openPanelInSection("settings", "company-panel");
+      return;
+    }
+    if (action === "users") {
+      openPanelInSection("settings", "users-panel");
+      return;
+    }
       if (action === "logout") {
         fetch("/api/auth/logout", { method: "POST" })
           .catch(() => null)

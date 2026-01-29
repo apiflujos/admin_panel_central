@@ -117,6 +117,7 @@ async function performRepair(poolInstance: Pool) {
         "ALTER TABLE order_invoice_overrides ADD COLUMN IF NOT EXISTS country TEXT;",
         "ALTER TABLE order_invoice_overrides ADD COLUMN IF NOT EXISTS zip TEXT;",
         "ALTER TABLE order_invoice_overrides ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_base64 TEXT;",
         "CREATE INDEX IF NOT EXISTS sync_mappings_shopify_idx ON sync_mappings (entity, shopify_id);",
         "CREATE INDEX IF NOT EXISTS sync_mappings_alegra_idx ON sync_mappings (entity, alegra_id);",
         "CREATE INDEX IF NOT EXISTS sync_logs_org_status_idx ON sync_logs (organization_id, status, created_at);",

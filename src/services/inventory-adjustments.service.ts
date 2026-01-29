@@ -47,7 +47,10 @@ const extractAdjustmentItems = (payload: unknown) => {
   }>;
 };
 
-export async function syncInventoryAdjustments(query: URLSearchParams) {
+export async function syncInventoryAdjustments(
+  query: URLSearchParams,
+  options?: { autoPublish?: boolean }
+) {
   if (!query.has("metadata")) query.set("metadata", "true");
   const rawLimit = Number(query.get("limit"));
   const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 30) : 30;
@@ -78,7 +81,10 @@ export async function syncInventoryAdjustments(query: URLSearchParams) {
     });
   });
   const ids = Array.from(itemIds);
-  const results = await Promise.allSettled(ids.map((id) => syncAlegraInventoryById(id)));
+  const autoPublish = options?.autoPublish !== false;
+  const results = autoPublish
+    ? await Promise.allSettled(ids.map((id) => syncAlegraInventoryById(id)))
+    : [];
   const synced = results.filter((r) => r.status === "fulfilled").length;
   const failed = results.length - synced;
 
@@ -87,5 +93,6 @@ export async function syncInventoryAdjustments(query: URLSearchParams) {
     itemCount: ids.length,
     synced,
     failed,
+    autoPublish,
   };
 }

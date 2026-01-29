@@ -1,5 +1,6 @@
 import { syncInventoryAdjustments } from "../services/inventory-adjustments.service";
 import { createSyncLog } from "../services/logs.service";
+import { getInventoryAdjustmentsSettings } from "../services/settings.service";
 import { getSyncCheckpoint, saveSyncCheckpoint } from "../services/sync-checkpoints.service";
 
 const buildDateRange = (start: string, end: string) => {
@@ -22,18 +23,14 @@ export function startInventoryAdjustmentsPoller() {
   if (process.env.INVENTORY_ADJUSTMENTS_POLL_DISABLED === "true") {
     return;
   }
-  const intervalSeconds = Number(process.env.INVENTORY_ADJUSTMENTS_POLL_SECONDS || 300);
-  const intervalMs =
-    intervalSeconds > 0
-      ? intervalSeconds * 1000
-      : Number(process.env.INVENTORY_ADJUSTMENTS_POLL_MS || 0);
-  if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
-    return;
-  }
 
   let lastDate = toIsoDate(Date.now());
 
   const run = async () => {
+    const settings = await getInventoryAdjustmentsSettings();
+    if (!settings.enabled || settings.intervalMinutes <= 0) {
+      return;
+    }
     if (!lastDate) {
       lastDate = await resolveStartDate();
     }
@@ -42,7 +39,9 @@ export function startInventoryAdjustmentsPoller() {
     query.set("metadata", "true");
     query.set("date", buildDateRange(lastDate, today));
     try {
-      const result = await syncInventoryAdjustments(query);
+      const result = await syncInventoryAdjustments(query, {
+        autoPublish: settings.autoPublish,
+      });
       lastDate = today;
       await saveSyncCheckpoint({
         entity: "inventory_adjustments",
@@ -81,12 +80,24 @@ export function startInventoryAdjustmentsPoller() {
     }
   };
 
+  const scheduleNext = async () => {
+    const settings = await getInventoryAdjustmentsSettings();
+    const intervalMinutes = settings.enabled ? settings.intervalMinutes : 0;
+    if (intervalMinutes <= 0) {
+      return;
+    }
+    setTimeout(async () => {
+      await run();
+      await scheduleNext();
+    }, intervalMinutes * 60 * 1000);
+  };
+
   resolveStartDate()
     .then((start) => {
       lastDate = start;
     })
     .finally(() => {
       void run();
+      void scheduleNext();
     });
-  setInterval(run, intervalMs);
 }

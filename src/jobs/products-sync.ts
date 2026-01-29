@@ -55,7 +55,7 @@ export function startProductsSyncPoller() {
   }
 
   const batchSize = Math.max(1, Math.min(Number(process.env.PRODUCTS_SYNC_BATCH_SIZE || 5), 20));
-  const batchLimit = Math.max(10, Math.min(Number(process.env.PRODUCTS_SYNC_BATCH_LIMIT || 50), 200));
+  const batchLimit = Math.max(10, Math.min(Number(process.env.PRODUCTS_SYNC_BATCH_LIMIT || 30), 30));
   const lookbackMinutes = Math.max(10, Number(process.env.PRODUCTS_SYNC_LOOKBACK_MINUTES || 180));
 
   let running = false;

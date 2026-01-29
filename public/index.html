@@ -277,6 +277,57 @@
           </div>
         </section>
 
+        <section class="section" id="profile">
+          <div class="panel" id="profile-panel">
+            <div class="panel-header">
+              <h3>Perfil</h3>
+              <span class="panel-tag">Usuario</span>
+            </div>
+            <div class="settings-grid">
+              <div class="field">
+                <label>Nombre</label>
+                <input type="text" id="profile-name" placeholder="Nombre completo" />
+              </div>
+              <div class="field">
+                <label>Email</label>
+                <input type="email" id="profile-email" placeholder="correo@empresa.com" />
+              </div>
+              <div class="field">
+                <label>Telefono</label>
+                <input type="tel" id="profile-phone" placeholder="+57..." />
+              </div>
+              <div class="field">
+                <label>Foto de perfil</label>
+                <input type="file" id="profile-photo" accept="image/*" />
+              </div>
+              <div class="field field-actions">
+                <label>&nbsp;</label>
+                <button class="primary" id="profile-save" type="button">Guardar perfil</button>
+              </div>
+              <div class="field">
+                <label>Contrasena actual</label>
+                <input type="password" id="password-current" autocomplete="current-password" />
+              </div>
+              <div class="field">
+                <label>Nueva contrasena</label>
+                <input type="password" id="password-new" autocomplete="new-password" />
+              </div>
+              <div class="field">
+                <label>Confirmar contrasena</label>
+                <input type="password" id="password-confirm" autocomplete="new-password" />
+              </div>
+              <div class="field field-actions">
+                <label>&nbsp;</label>
+                <button class="primary" id="password-save" type="button">Cambiar contrasena</button>
+              </div>
+              <div class="field field-span">
+                <p class="field-hint" id="password-message"></p>
+              </div>
+            </div>
+            <p class="field-hint" id="profile-message"></p>
+          </div>
+        </section>
+
         <section class="section" id="operations">
           <div class="panel">
             <div class="panel-header">
@@ -561,55 +612,6 @@
                 <button class="primary" id="ai-save" type="button">Guardar token</button>
               </div>
             </div>
-          </div>
-
-          <div class="panel" id="profile-panel">
-            <div class="panel-header">
-              <h3>Perfil</h3>
-              <span class="panel-tag">Usuario</span>
-            </div>
-            <div class="settings-grid">
-              <div class="field">
-                <label>Nombre</label>
-                <input type="text" id="profile-name" placeholder="Nombre completo" />
-              </div>
-              <div class="field">
-                <label>Email</label>
-                <input type="email" id="profile-email" placeholder="correo@empresa.com" />
-              </div>
-              <div class="field">
-                <label>Telefono</label>
-                <input type="tel" id="profile-phone" placeholder="+57..." />
-              </div>
-              <div class="field">
-                <label>Foto de perfil</label>
-                <input type="file" id="profile-photo" accept="image/*" />
-              </div>
-              <div class="field field-actions">
-                <label>&nbsp;</label>
-                <button class="primary" id="profile-save" type="button">Guardar perfil</button>
-              </div>
-              <div class="field">
-                <label>Contrasena actual</label>
-                <input type="password" id="password-current" autocomplete="current-password" />
-              </div>
-              <div class="field">
-                <label>Nueva contrasena</label>
-                <input type="password" id="password-new" autocomplete="new-password" />
-              </div>
-              <div class="field">
-                <label>Confirmar contrasena</label>
-                <input type="password" id="password-confirm" autocomplete="new-password" />
-              </div>
-              <div class="field field-actions">
-                <label>&nbsp;</label>
-                <button class="primary" id="password-save" type="button">Cambiar contrasena</button>
-              </div>
-              <div class="field field-span">
-                <p class="field-hint" id="password-message"></p>
-              </div>
-            </div>
-            <p class="field-hint" id="profile-message"></p>
           </div>
 
           <div class="panel admin-only" id="company-panel">

@@ -3,6 +3,8 @@ const emailInput = document.getElementById("login-email");
 const passwordInput = document.getElementById("login-password");
 const rememberInput = document.getElementById("login-remember");
 const errorBox = document.getElementById("login-error");
+const loginLogo = document.getElementById("login-logo");
+const loginTitle = document.getElementById("login-title");
 
 try {
   const savedEmail = localStorage.getItem("os_login_email");
@@ -13,6 +15,19 @@ try {
 } catch {
   // ignore storage errors
 }
+
+fetch("/api/company/public")
+  .then((response) => (response.ok ? response.json() : null))
+  .then((data) => {
+    if (!data) return;
+    if (loginLogo && data.logoBase64) {
+      loginLogo.src = data.logoBase64;
+    }
+    if (loginTitle && data.name) {
+      loginTitle.textContent = `Acceso ${data.name}`;
+    }
+  })
+  .catch(() => null);
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
