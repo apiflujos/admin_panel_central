@@ -616,7 +616,7 @@ async function inferIntent(cleaned: string, normalized: string, introPrefix: str
 async function handleAssistantWithAi(
   message: string,
   withIntro: (text: string) => string,
-  role: "admin" | "agent"
+  role: "admin" | "agent" = "admin"
 ): Promise<AssistantQueryResult | null> {
   let aiKey: string;
   try {

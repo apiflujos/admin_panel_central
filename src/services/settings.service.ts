@@ -553,7 +553,7 @@ async function readRules(pool: ReturnType<typeof getPool>, orgId: number) {
 
 export async function getInventoryAdjustmentsSettings() {
   const pool = getPool();
-  const orgId = await getOrgId(pool);
+  const orgId = getOrgId();
   const rules = await readRules(pool, orgId);
   return {
     enabled: rules.inventoryAdjustmentsEnabled !== false,
