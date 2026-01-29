@@ -3,7 +3,7 @@ import {
   syncAlegraItemPayloadToShopify,
   type AlegraItem,
 } from "./alegra-to-shopify.service";
-import { upsertAlegraItemCache } from "./alegra-items-cache.service";
+import { upsertAlegraItemCacheIfTracked } from "./alegra-items-cache.service";
 import {
   syncShopifyOrderToAlegra,
   createInventoryAdjustmentFromRefund,
@@ -133,7 +133,7 @@ async function handleAlegraItem(payload: unknown) {
   if (!item || !alegraItemId) {
     return { handled: false, reason: "missing_item_id" };
   }
-  await upsertAlegraItemCache(item);
+  await upsertAlegraItemCacheIfTracked(item);
   const result = await syncAlegraItemPayloadToShopify(item);
   let inventoryResult = null;
   if (item.inventory) {
@@ -152,7 +152,7 @@ async function handleAlegraInventory(payload: unknown) {
   if (!item || !alegraItemId) {
     return { handled: false, reason: "missing_item_id" };
   }
-  await upsertAlegraItemCache(item);
+  await upsertAlegraItemCacheIfTracked(item);
   const result = await syncAlegraInventoryPayloadToShopify({
     id: alegraItemId,
     status: typeof item.status === "string" ? item.status : undefined,

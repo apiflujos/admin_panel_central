@@ -221,6 +221,25 @@ export async function upsertAlegraItemsCache(items: CachedAlegraItem[], orgId?: 
   }
 }
 
+export async function isAlegraItemTracked(alegraItemId: string, orgId?: number) {
+  const resolvedOrgId = orgId ?? getOrgId();
+  await ensureAlegraItemsCacheTable();
+  const pool = getPool();
+  const result = await pool.query(
+    "SELECT 1 FROM alegra_items_cache WHERE organization_id = $1 AND alegra_item_id = $2",
+    [resolvedOrgId, alegraItemId]
+  );
+  return result.rowCount > 0;
+}
+
+export async function upsertAlegraItemCacheIfTracked(item: CachedAlegraItem, orgId?: number) {
+  if (!item?.id) return;
+  const itemId = String(item.id);
+  const tracked = await isAlegraItemTracked(itemId, orgId);
+  if (!tracked) return;
+  await upsertAlegraItemCache(item, orgId);
+}
+
 export async function countAlegraItemsCache(orgId?: number) {
   const resolvedOrgId = orgId ?? getOrgId();
   await ensureAlegraItemsCacheTable();

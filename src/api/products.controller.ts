@@ -688,9 +688,6 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         })
       );
     }
-    if (resolvedItems.length) {
-      await upsertAlegraItemsCache(resolvedItems);
-    }
     if (rawQueryValue && looksLikeIdentifier(identifierQuery)) {
       const matched = resolvedItems.filter((item: AlegraItem) =>
         matchesIdentifier(item, identifierQuery)
@@ -1457,6 +1454,9 @@ export async function syncProductsHandler(req: Request, res: Response) {
       });
 
       if (queueItems.length) {
+        const cacheCandidates = queueItems.map((entry) => entry.item);
+        const cacheItems = includeInventory ? await hydrateItems(cacheCandidates) : cacheCandidates;
+        await upsertAlegraItemsCache(cacheItems);
         const batchNumber = Math.floor(start / batchLimit) + 1;
         const totalBatches = total ? Math.ceil(total / batchLimit) : null;
         const rangeStart = start + 1;
