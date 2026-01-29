@@ -358,7 +358,7 @@ const resolveInventoryQuantityForFilter = (
       (acc, warehouse) => {
         if (!warehouseIds.includes(String(warehouse.id))) return acc;
         const qty = parseQuantityValue(warehouse.availableQuantity);
-        if (Number.isFinite(qty)) {
+        if (qty !== null) {
           acc.sum += qty;
           acc.count += 1;
         }

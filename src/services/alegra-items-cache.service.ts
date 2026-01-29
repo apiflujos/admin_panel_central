@@ -45,10 +45,12 @@ const parseQuantity = (value: unknown) => {
 
 const resolveInventoryQuantity = (inventory: CacheInventory | undefined) => {
   if (!inventory) return null;
-  const warehouses = Array.isArray(inventory.warehouses) ? inventory.warehouses : [];
+  const warehouses: CacheInventoryWarehouse[] = Array.isArray(inventory.warehouses)
+    ? inventory.warehouses
+    : [];
   if (warehouses.length) {
     const totals = warehouses.reduce(
-      (acc, warehouse) => {
+      (acc, warehouse: CacheInventoryWarehouse) => {
         const qty = parseQuantity(warehouse?.availableQuantity);
         if (qty !== null) {
           acc.sum += qty;
@@ -87,7 +89,7 @@ const resolveItemQuantity = (item: CachedAlegraItem) => {
 
 const collectWarehouseIds = (item: CachedAlegraItem) => {
   const ids = new Set<string>();
-  const addFrom = (inventory?: AlegraInventory) => {
+  const addFrom = (inventory?: CacheInventory) => {
     const warehouses = Array.isArray(inventory?.warehouses) ? inventory?.warehouses : [];
     warehouses.forEach((warehouse) => {
       const id = warehouse?.id;
