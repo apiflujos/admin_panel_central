@@ -3,7 +3,7 @@ import {
   AUTH_COOKIE_NAME,
   authenticateUser,
   clearSession,
-  isValidSession,
+  getSessionUser,
   updatePassword,
 } from "../services/auth.service";
 
@@ -20,32 +20,57 @@ function getCookie(req: Request, name: string) {
   return null;
 }
 
-export function authMe(_req: Request, res: Response) {
-  res.json({ ok: true });
+export async function authMe(req: Request, res: Response) {
+  const user = await getSessionUser(getCookie(req, AUTH_COOKIE_NAME));
+  if (!user) {
+    res.status(401).json({ error: "unauthorized" });
+    return;
+  }
+  res.json({
+    ok: true,
+    user: {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+      phone: user.phone,
+      photoBase64: user.photo_base64,
+    },
+  });
 }
 
 export async function loginHandler(req: Request, res: Response) {
   const email = String(req.body?.email || "").trim();
   const password = String(req.body?.password || "");
   const remember = Boolean(req.body?.remember);
-  const token = await authenticateUser(email, password);
-  if (!token) {
+  const result = await authenticateUser(email, password, remember);
+  if (!result) {
     res.status(401).json({ error: "Credenciales invalidas" });
     return;
   }
-  res.cookie(AUTH_COOKIE_NAME, token, {
+  res.cookie(AUTH_COOKIE_NAME, result.token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    maxAge: remember ? 1000 * 60 * 60 * 24 * 30 : undefined,
+    maxAge: result.maxAgeMs,
   });
-  res.json({ ok: true });
+  res.json({
+    ok: true,
+    user: {
+      id: result.user.id,
+      email: result.user.email,
+      role: result.user.role,
+      name: result.user.name,
+      phone: result.user.phone,
+      photoBase64: result.user.photo_base64,
+    },
+  });
 }
 
-export function logoutHandler(req: Request, res: Response) {
+export async function logoutHandler(req: Request, res: Response) {
   const token = getCookie(req, AUTH_COOKIE_NAME);
   if (token) {
-    clearSession();
+    await clearSession(token);
   }
   res.clearCookie(AUTH_COOKIE_NAME, { path: "/" });
   res.json({ ok: true });
@@ -58,8 +83,13 @@ export async function changePasswordHandler(req: Request, res: Response) {
     res.status(400).json({ error: "Datos incompletos" });
     return;
   }
+  const sessionUser = await getSessionUser(getCookie(req, AUTH_COOKIE_NAME));
+  if (!sessionUser) {
+    res.status(401).json({ error: "unauthorized" });
+    return;
+  }
   try {
-    const result = await updatePassword(currentPassword, newPassword);
+    const result = await updatePassword(sessionUser.id, currentPassword, newPassword);
     if (!result.ok) {
       res.status(400).json({ error: result.message || "No se pudo actualizar" });
       return;
@@ -72,15 +102,29 @@ export async function changePasswordHandler(req: Request, res: Response) {
 }
 
 export function authMiddleware(req: Request, res: Response, next: () => void) {
-  const token = getCookie(req, AUTH_COOKIE_NAME);
-  if (!isValidSession(token)) {
-    res.status(401).json({ error: "unauthorized" });
+  void (async () => {
+    const token = getCookie(req, AUTH_COOKIE_NAME);
+    const user = await getSessionUser(token);
+    if (!user) {
+      res.status(401).json({ error: "unauthorized" });
+      return;
+    }
+    (req as { user?: typeof user }).user = user;
+    next();
+  })();
+}
+
+export function requireAdmin(req: Request, res: Response, next: () => void) {
+  const user = (req as { user?: { role?: string } }).user;
+  if (!user || user.role !== "admin") {
+    res.status(403).json({ error: "forbidden" });
     return;
   }
   next();
 }
 
-export function isAuthenticatedRequest(req: Request) {
+export async function isAuthenticatedRequest(req: Request) {
   const token = getCookie(req, AUTH_COOKIE_NAME);
-  return isValidSession(token);
+  const user = await getSessionUser(token);
+  return Boolean(user);
 }
