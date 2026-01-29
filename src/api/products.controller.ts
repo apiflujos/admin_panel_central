@@ -529,6 +529,56 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
     let items: AlegraItem[] = [];
     let total: number | null = null;
     const shouldFilter = inStockOnly || warehouseFilterIds.length > 0;
+    const cacheOnly = source === "cache";
+    const preferCache = source !== "alegra";
+
+    if (preferCache) {
+      const cachedTotal = await countAlegraItemsCache();
+      if (cachedTotal > 0 || cacheOnly) {
+        const maxCachePages = 6;
+        let cachedStart = Number(query.get("start") || "0");
+        let cachedPage = 0;
+        let cachedItems: AlegraItem[] = [];
+        let cachedTotalResult = cachedTotal;
+        while (cachedPage === 0 || (cachedItems.length < scanLimit && cachedPage < maxCachePages)) {
+          const cached = await listAlegraItemsCache({
+            query: rawQueryValue,
+            start: cachedStart,
+            limit: scanLimit,
+          });
+          if (cachedPage === 0) {
+            cachedTotalResult = cached.total;
+          }
+          const cachedBatch = cached.items as unknown as AlegraItem[];
+          let filtered = cachedBatch;
+          if (shouldFilter) {
+            filtered = cachedBatch.filter((item) => {
+              const matchesWarehouse =
+                warehouseFilterIds.length === 0 ||
+                matchesItemWarehouses(item, warehouseFilterIds);
+              if (!matchesWarehouse) return false;
+              if (!inStockOnly) return true;
+              const qty = resolveItemQuantityForFilter(item, warehouseFilterIds);
+              return qty === null ? true : qty > 0;
+            });
+          }
+          cachedItems = cachedItems.concat(filtered);
+          if (cachedBatch.length < scanLimit) {
+            break;
+          }
+          if (!shouldFilter) {
+            break;
+          }
+          cachedStart += scanLimit;
+          cachedPage += 1;
+        }
+        res.status(200).json({
+          metadata: { total: cachedTotalResult, filtered: shouldFilter, source: "cache" },
+          data: cachedItems.slice(0, scanLimit),
+        });
+        return;
+      }
+    }
 
     const needsInventoryForFilter = (item: AlegraItem) => {
       if (inStockOnly) return true;
@@ -1788,51 +1838,3 @@ export async function proxyAlegraImageHandler(req: Request, res: Response) {
     res.status(500).json({ error: error instanceof Error ? error.message : "Image proxy error" });
   }
 }
-    const cacheOnly = source === "cache";
-    const preferCache = source !== "alegra";
-    if (preferCache) {
-      const cachedTotal = await countAlegraItemsCache();
-      if (cachedTotal > 0 || cacheOnly) {
-        const maxCachePages = 6;
-        let cachedStart = Number(query.get("start") || "0");
-        let cachedPage = 0;
-        let cachedItems: AlegraItem[] = [];
-        let cachedTotalResult = cachedTotal;
-        while (cachedPage === 0 || (cachedItems.length < scanLimit && cachedPage < maxCachePages)) {
-          const cached = await listAlegraItemsCache({
-            query: rawQueryValue,
-            start: cachedStart,
-            limit: scanLimit,
-          });
-          if (cachedPage === 0) {
-            cachedTotalResult = cached.total;
-          }
-          let filtered = cached.items;
-          if (shouldFilter) {
-            filtered = cached.items.filter((item) => {
-              const matchesWarehouse =
-                warehouseFilterIds.length === 0 ||
-                matchesItemWarehouses(item, warehouseFilterIds);
-              if (!matchesWarehouse) return false;
-              if (!inStockOnly) return true;
-              const qty = resolveItemQuantityForFilter(item, warehouseFilterIds);
-              return qty === null ? true : qty > 0;
-            });
-          }
-          cachedItems = cachedItems.concat(filtered);
-          if (cached.items.length < scanLimit) {
-            break;
-          }
-          if (!shouldFilter) {
-            break;
-          }
-          cachedStart += scanLimit;
-          cachedPage += 1;
-        }
-        res.status(200).json({
-          metadata: { total: cachedTotalResult, filtered: shouldFilter, source: "cache" },
-          data: cachedItems.slice(0, scanLimit),
-        });
-        return;
-      }
-    }

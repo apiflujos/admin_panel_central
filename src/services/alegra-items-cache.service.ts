@@ -1,25 +1,25 @@
 import { getOrgId, getPool } from "../db";
 
-type AlegraInventoryWarehouse = { id?: string | number; availableQuantity?: number | string };
+type CacheInventoryWarehouse = { id?: string | number; availableQuantity?: number | string };
 
-type AlegraInventory = {
+type CacheInventory = {
   quantity?: number | string;
   availableQuantity?: number | string;
-  warehouses?: AlegraInventoryWarehouse[];
+  warehouses?: CacheInventoryWarehouse[];
 };
 
-type AlegraVariant = {
-  inventory?: AlegraInventory;
+type CacheVariant = {
+  inventory?: CacheInventory;
 };
 
-type AlegraItem = {
+export type CachedAlegraItem = Record<string, unknown> & {
   id?: string | number;
   name?: string;
   reference?: string;
   barcode?: string;
   status?: string;
-  inventory?: AlegraInventory;
-  itemVariants?: AlegraVariant[];
+  inventory?: CacheInventory;
+  itemVariants?: CacheVariant[];
 };
 
 type CacheListParams = {
@@ -43,7 +43,7 @@ const parseQuantity = (value: unknown) => {
   return null;
 };
 
-const resolveInventoryQuantity = (inventory: AlegraInventory | undefined) => {
+const resolveInventoryQuantity = (inventory: CacheInventory | undefined) => {
   if (!inventory) return null;
   const warehouses = Array.isArray(inventory.warehouses) ? inventory.warehouses : [];
   if (warehouses.length) {
@@ -65,7 +65,7 @@ const resolveInventoryQuantity = (inventory: AlegraInventory | undefined) => {
   return qty === null ? null : qty;
 };
 
-const resolveItemQuantity = (item: AlegraItem) => {
+const resolveItemQuantity = (item: CachedAlegraItem) => {
   const base = resolveInventoryQuantity(item.inventory);
   const variants = Array.isArray(item.itemVariants) ? item.itemVariants : [];
   if (!variants.length) return base;
@@ -85,7 +85,7 @@ const resolveItemQuantity = (item: AlegraItem) => {
   return totals.sum;
 };
 
-const collectWarehouseIds = (item: AlegraItem) => {
+const collectWarehouseIds = (item: CachedAlegraItem) => {
   const ids = new Set<string>();
   const addFrom = (inventory?: AlegraInventory) => {
     const warehouses = Array.isArray(inventory?.warehouses) ? inventory?.warehouses : [];
@@ -102,7 +102,7 @@ const collectWarehouseIds = (item: AlegraItem) => {
   return Array.from(ids);
 };
 
-const hasInventoryData = (item: AlegraItem) => {
+const hasInventoryData = (item: CachedAlegraItem) => {
   const inv = item.inventory;
   const warehouses = Array.isArray(inv?.warehouses) ? inv?.warehouses : [];
   if (warehouses.length) return true;
@@ -154,7 +154,7 @@ export async function ensureAlegraItemsCacheTable() {
   );
 }
 
-export async function upsertAlegraItemCache(item: AlegraItem, orgId?: number) {
+export async function upsertAlegraItemCache(item: CachedAlegraItem, orgId?: number) {
   if (!item?.id) return;
   const resolvedOrgId = orgId ?? getOrgId();
   await ensureAlegraItemsCacheTable();
@@ -213,7 +213,7 @@ export async function upsertAlegraItemCache(item: AlegraItem, orgId?: number) {
   );
 }
 
-export async function upsertAlegraItemsCache(items: AlegraItem[], orgId?: number) {
+export async function upsertAlegraItemsCache(items: CachedAlegraItem[], orgId?: number) {
   for (const item of items) {
     await upsertAlegraItemCache(item, orgId);
   }
@@ -254,7 +254,7 @@ export async function listAlegraItemsCache(params: CacheListParams) {
   const total = totalResult.rows[0]?.total ?? 0;
   const listValues = values.concat([limit, start]);
   const rows = await pool.query<{
-    item_json: AlegraItem;
+    item_json: CachedAlegraItem;
     warehouse_ids: string[] | null;
     inventory_quantity: number | null;
   }>(
@@ -270,4 +270,3 @@ export async function listAlegraItemsCache(params: CacheListParams) {
   const items = rows.rows.map((row) => row.item_json);
   return { total, items };
 }
-
