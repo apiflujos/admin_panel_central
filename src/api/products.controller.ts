@@ -11,6 +11,11 @@ import type { ShopifyOrder } from "../connectors/shopify";
 import { createSyncLog } from "../services/logs.service";
 import { clearSyncCheckpoint, getSyncCheckpoint, saveSyncCheckpoint } from "../services/sync-checkpoints.service";
 import { ensureInventoryRulesColumns, getOrgId, getPool } from "../db";
+import {
+  countAlegraItemsCache,
+  listAlegraItemsCache,
+  upsertAlegraItemsCache,
+} from "../services/alegra-items-cache.service";
 
 type AlegraPrice = {
   name?: string;
@@ -330,6 +335,18 @@ const resolveInventoryQuantity = (
   );
 };
 
+const parseQuantityValue = (value: unknown) => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const normalized = trimmed.replace(",", ".");
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
 const resolveInventoryQuantityForFilter = (
   inventory: AlegraItem["inventory"] | AlegraVariant["inventory"] | undefined,
   warehouseIds: string[]
@@ -340,7 +357,7 @@ const resolveInventoryQuantityForFilter = (
     const totals = warehouses.reduce(
       (acc, warehouse) => {
         if (!warehouseIds.includes(String(warehouse.id))) return acc;
-        const qty = Number(warehouse.availableQuantity);
+        const qty = parseQuantityValue(warehouse.availableQuantity);
         if (Number.isFinite(qty)) {
           acc.sum += qty;
           acc.count += 1;
@@ -355,8 +372,8 @@ const resolveInventoryQuantityForFilter = (
     inventory && "initialQuantity" in inventory ? (inventory as any).initialQuantity : undefined;
   const raw = inventory.quantity ?? inventory.availableQuantity ?? initialQuantity;
   if (raw === null || raw === undefined || raw === "") return null;
-  const qty = Number(raw);
-  return Number.isFinite(qty) ? qty : null;
+  const qty = parseQuantityValue(raw);
+  return qty;
 };
 
 const resolveItemQuantityForFilter = (item: AlegraItem, warehouseIds: string[]) => {
@@ -487,6 +504,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
       .filter(Boolean);
     const rawQueryValue = typeof req.query.query === "string" ? req.query.query : "";
     const identifierQuery = extractIdentifier(rawQueryValue);
+    const source = String(req.query.source || "cache").toLowerCase();
     const query = new URLSearchParams();
     Object.entries(req.query).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
@@ -619,6 +637,9 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
           return (await detailResponse.json()) as AlegraItem;
         })
       );
+    }
+    if (resolvedItems.length) {
+      await upsertAlegraItemsCache(resolvedItems);
     }
     if (rawQueryValue && looksLikeIdentifier(identifierQuery)) {
       const matched = resolvedItems.filter((item: AlegraItem) =>
@@ -1767,3 +1788,51 @@ export async function proxyAlegraImageHandler(req: Request, res: Response) {
     res.status(500).json({ error: error instanceof Error ? error.message : "Image proxy error" });
   }
 }
+    const cacheOnly = source === "cache";
+    const preferCache = source !== "alegra";
+    if (preferCache) {
+      const cachedTotal = await countAlegraItemsCache();
+      if (cachedTotal > 0 || cacheOnly) {
+        const maxCachePages = 6;
+        let cachedStart = Number(query.get("start") || "0");
+        let cachedPage = 0;
+        let cachedItems: AlegraItem[] = [];
+        let cachedTotalResult = cachedTotal;
+        while (cachedPage === 0 || (cachedItems.length < scanLimit && cachedPage < maxCachePages)) {
+          const cached = await listAlegraItemsCache({
+            query: rawQueryValue,
+            start: cachedStart,
+            limit: scanLimit,
+          });
+          if (cachedPage === 0) {
+            cachedTotalResult = cached.total;
+          }
+          let filtered = cached.items;
+          if (shouldFilter) {
+            filtered = cached.items.filter((item) => {
+              const matchesWarehouse =
+                warehouseFilterIds.length === 0 ||
+                matchesItemWarehouses(item, warehouseFilterIds);
+              if (!matchesWarehouse) return false;
+              if (!inStockOnly) return true;
+              const qty = resolveItemQuantityForFilter(item, warehouseFilterIds);
+              return qty === null ? true : qty > 0;
+            });
+          }
+          cachedItems = cachedItems.concat(filtered);
+          if (cached.items.length < scanLimit) {
+            break;
+          }
+          if (!shouldFilter) {
+            break;
+          }
+          cachedStart += scanLimit;
+          cachedPage += 1;
+        }
+        res.status(200).json({
+          metadata: { total: cachedTotalResult, filtered: shouldFilter, source: "cache" },
+          data: cachedItems.slice(0, scanLimit),
+        });
+        return;
+      }
+    }

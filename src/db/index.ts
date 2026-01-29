@@ -22,6 +22,7 @@ async function performRepair(poolInstance: Pool) {
         "CREATE TABLE IF NOT EXISTS sync_logs (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), entity TEXT NOT NULL, direction TEXT NOT NULL, status TEXT NOT NULL, message TEXT, request_json JSONB, response_json JSONB, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), retry_count INTEGER NOT NULL DEFAULT 0);",
         "CREATE TABLE IF NOT EXISTS retry_queue (id SERIAL PRIMARY KEY, sync_log_id INTEGER NOT NULL REFERENCES sync_logs(id), next_run_at TIMESTAMPTZ NOT NULL, status TEXT NOT NULL DEFAULT 'pending');",
         "CREATE TABLE IF NOT EXISTS sync_checkpoints (id SERIAL PRIMARY KEY);",
+        "CREATE TABLE IF NOT EXISTS alegra_items_cache (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), alegra_item_id TEXT NOT NULL, name TEXT, reference TEXT, barcode TEXT, status TEXT, inventory_quantity NUMERIC, warehouse_ids TEXT[], item_json JSONB NOT NULL DEFAULT '{}', updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (organization_id, alegra_item_id));",
         "CREATE TABLE IF NOT EXISTS payment_mappings (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), method_id TEXT NOT NULL, account_id TEXT NOT NULL, method_label TEXT, account_label TEXT, payment_method TEXT, payment_method_label TEXT);",
         "CREATE TABLE IF NOT EXISTS idempotency_keys (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), key TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'processing', last_error TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (organization_id, key));",
         "CREATE TABLE IF NOT EXISTS order_invoice_overrides (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), order_id TEXT NOT NULL, einvoice_requested BOOLEAN NOT NULL DEFAULT false, id_type TEXT, id_number TEXT, fiscal_name TEXT, email TEXT, phone TEXT, address TEXT, city TEXT, state TEXT, country TEXT, zip TEXT, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (organization_id, order_id));",
@@ -137,6 +138,11 @@ async function performRepair(poolInstance: Pool) {
         "CREATE INDEX IF NOT EXISTS retry_queue_status_next_idx ON retry_queue (status, next_run_at);",
         "CREATE INDEX IF NOT EXISTS sync_logs_order_id_idx ON sync_logs (organization_id, (request_json->>'orderId'), created_at DESC);",
         "CREATE INDEX IF NOT EXISTS sync_logs_entity_dir_idx ON sync_logs (organization_id, entity, direction, created_at DESC);",
+        "CREATE INDEX IF NOT EXISTS alegra_items_cache_org_idx ON alegra_items_cache (organization_id);",
+        "CREATE INDEX IF NOT EXISTS alegra_items_cache_org_updated_idx ON alegra_items_cache (organization_id, updated_at DESC);",
+        "CREATE INDEX IF NOT EXISTS alegra_items_cache_ref_idx ON alegra_items_cache (organization_id, reference);",
+        "CREATE INDEX IF NOT EXISTS alegra_items_cache_name_idx ON alegra_items_cache (organization_id, name);",
+        "CREATE INDEX IF NOT EXISTS alegra_items_cache_warehouse_idx ON alegra_items_cache USING GIN (warehouse_ids);",
       ];
       for (const query of queries) {
         try {

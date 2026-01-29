@@ -1,6 +1,7 @@
 import { AlegraClient } from "../connectors/alegra";
 import { createSyncLog } from "../services/logs.service";
 import { syncAlegraInventoryPayloadToShopify, syncAlegraItemPayloadToShopify, type AlegraInventoryPayload, type AlegraItem } from "../services/alegra-to-shopify.service";
+import { upsertAlegraItemCache } from "../services/alegra-items-cache.service";
 import { getAlegraCredential } from "../services/settings.service";
 import { getSyncCheckpoint, saveSyncCheckpoint } from "../services/sync-checkpoints.service";
 import { getAlegraBaseUrl } from "../utils/alegra-env";
@@ -97,6 +98,7 @@ export function startProductsSyncPoller() {
                 return;
               }
               const resolvedItem = item as AlegraItem;
+              await upsertAlegraItemCache(resolvedItem);
               await syncAlegraItemPayloadToShopify(resolvedItem);
               if (item.inventory) {
                 await syncAlegraInventoryPayloadToShopify({
