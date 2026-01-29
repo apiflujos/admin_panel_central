@@ -132,6 +132,119 @@ export async function listStoreConfigs() {
   });
 }
 
+export async function getStoreConfigForDomain(shopDomain: string) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const settings = await getSettings();
+  const domain = normalizeShopDomain(shopDomain || "");
+  if (!domain) return null;
+
+  const result = await pool.query<{
+    shop_domain: string;
+    transfer_destination_warehouse_id: string | null;
+    transfer_origin_warehouse_ids: string | null;
+    transfer_priority_warehouse_id: string | null;
+    transfer_strategy: string | null;
+    price_list_general_id: string | null;
+    price_list_discount_id: string | null;
+    price_list_wholesale_id: string | null;
+    currency: string | null;
+    config_json: unknown;
+  }>(
+    `
+    SELECT shop_domain,
+           transfer_destination_warehouse_id,
+           transfer_origin_warehouse_ids,
+           transfer_priority_warehouse_id,
+           transfer_strategy,
+           price_list_general_id,
+           price_list_discount_id,
+           price_list_wholesale_id,
+           currency,
+           config_json
+    FROM shopify_store_configs
+    WHERE organization_id = $1 AND shop_domain = $2
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId, domain]
+  );
+  if (!result.rows.length) return null;
+  const row = result.rows[0];
+  const defaults = {
+    rules: settings.rules || {},
+    invoice: settings.invoice || {},
+  };
+  const config = (row.config_json as Record<string, unknown>) || {};
+  const transfers = (config.transfers as Record<string, unknown>) || {};
+  const priceLists = (config.priceLists as Record<string, unknown>) || {};
+  const rules = (config.rules as Record<string, unknown>) || {};
+  const invoice = (config.invoice as Record<string, unknown>) || {};
+  return {
+    shopDomain: row.shop_domain,
+    transfers: {
+      destinationWarehouseId:
+        (transfers.destinationWarehouseId as string | undefined) ||
+        row.transfer_destination_warehouse_id ||
+        defaults.invoice?.warehouseId ||
+        "",
+      originWarehouseIds: Array.isArray(transfers.originWarehouseIds)
+        ? transfers.originWarehouseIds
+        : row.transfer_origin_warehouse_ids
+          ? String(row.transfer_origin_warehouse_ids).split(",").filter(Boolean)
+          : defaults.rules?.warehouseIds || [],
+      priorityWarehouseId:
+        (transfers.priorityWarehouseId as string | undefined) ||
+        row.transfer_priority_warehouse_id ||
+        "",
+      strategy: (transfers.strategy as string | undefined) || row.transfer_strategy || "consolidation",
+    },
+    priceLists: {
+      generalId:
+        (priceLists.generalId as string | undefined) ||
+        row.price_list_general_id ||
+        "",
+      discountId:
+        (priceLists.discountId as string | undefined) ||
+        row.price_list_discount_id ||
+        "",
+      wholesaleId:
+        (priceLists.wholesaleId as string | undefined) ||
+        row.price_list_wholesale_id ||
+        "",
+      currency: (priceLists.currency as string | undefined) || row.currency || "",
+    },
+    rules: {
+      publishOnStock: rules.publishOnStock ?? defaults.rules?.publishOnStock ?? true,
+      autoPublishOnWebhook: rules.autoPublishOnWebhook ?? defaults.rules?.autoPublishOnWebhook ?? false,
+      autoPublishStatus: rules.autoPublishStatus ?? defaults.rules?.autoPublishStatus ?? "draft",
+      inventoryAdjustmentsEnabled:
+        rules.inventoryAdjustmentsEnabled ?? defaults.rules?.inventoryAdjustmentsEnabled ?? true,
+      inventoryAdjustmentsIntervalMinutes:
+        rules.inventoryAdjustmentsIntervalMinutes ??
+        defaults.rules?.inventoryAdjustmentsIntervalMinutes ??
+        5,
+      inventoryAdjustmentsAutoPublish:
+        rules.inventoryAdjustmentsAutoPublish ?? defaults.rules?.inventoryAdjustmentsAutoPublish ?? true,
+      warehouseIds: normalizeIdList(
+        (rules as Record<string, unknown>).warehouseIds || defaults.rules?.warehouseIds || []
+      ),
+    },
+    invoice: {
+      generateInvoice: invoice.generateInvoice ?? defaults.invoice?.generateInvoice ?? false,
+      resolutionId: invoice.resolutionId ?? defaults.invoice?.resolutionId ?? "",
+      costCenterId: invoice.costCenterId ?? defaults.invoice?.costCenterId ?? "",
+      warehouseId: invoice.warehouseId ?? defaults.invoice?.warehouseId ?? "",
+      sellerId: invoice.sellerId ?? defaults.invoice?.sellerId ?? "",
+      paymentMethod: invoice.paymentMethod ?? defaults.invoice?.paymentMethod ?? "",
+      bankAccountId: invoice.bankAccountId ?? defaults.invoice?.bankAccountId ?? "",
+      applyPayment: invoice.applyPayment ?? defaults.invoice?.applyPayment ?? false,
+      observationsTemplate: invoice.observationsTemplate ?? defaults.invoice?.observationsTemplate ?? "",
+      einvoiceEnabled: invoice.einvoiceEnabled ?? defaults.invoice?.einvoiceEnabled ?? false,
+    },
+  };
+}
+
 export async function saveStoreConfig(
   shopDomain: string,
   payload: Record<string, unknown>

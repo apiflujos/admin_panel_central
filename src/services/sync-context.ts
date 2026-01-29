@@ -4,6 +4,7 @@ import { getAlegraBaseUrl } from "../utils/alegra-env";
 import { decryptString } from "../utils/crypto";
 import { ensureInventoryRulesColumns, getOrgId, getPool } from "../db";
 import { resolveStoreConfig } from "./store-config.service";
+import { getStoreConfigForDomain } from "./store-configs.service";
 
 type SyncContext = {
   shopify: ShopifyClient;
@@ -33,9 +34,11 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
 
   const shopifySettings = await loadShopifySettings(pool, orgId, shopDomain);
   const alegraSettings = await loadAlegraSettings(pool, orgId, shopDomain);
-  const rules = await loadInventoryRules(pool, orgId);
+  const storeDomain = shopDomain || shopifySettings?.shopDomain || "";
+  const storeConfig = await resolveStoreConfig(storeDomain || null);
+  const storeConfigFull = storeDomain ? await getStoreConfigForDomain(storeDomain) : null;
+  const rules = storeConfigFull?.rules || (await loadInventoryRules(pool, orgId));
   const warehouseId = await loadWarehouseId(pool, orgId);
-  const storeConfig = await resolveStoreConfig(shopDomain || shopifySettings?.shopDomain || null);
 
   if (!shopifySettings?.shopDomain || !shopifySettings?.accessToken) {
     throw new Error("Missing Shopify credentials in DB");

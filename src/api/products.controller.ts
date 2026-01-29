@@ -17,6 +17,7 @@ import {
   upsertAlegraItemsCache,
 } from "../services/alegra-items-cache.service";
 import { resolveStoreConfig } from "../services/store-config.service";
+import { getStoreConfigForDomain } from "../services/store-configs.service";
 
 type AlegraPrice = {
   name?: string;
@@ -994,7 +995,14 @@ export async function publishShopifyHandler(req: Request, res: Response) {
       res.status(400).json({ error: "alegraId o alegraItem requerido" });
       return;
     }
-    const warehouseIds = await loadWarehouseIdsForSync();
+    const shopifyCredential = await getShopifyCredential();
+    const storeConfigFull = shopifyCredential?.shopDomain
+      ? await getStoreConfigForDomain(shopifyCredential.shopDomain)
+      : null;
+    const warehouseIds =
+      storeConfigFull?.rules?.warehouseIds && storeConfigFull.rules.warehouseIds.length
+        ? storeConfigFull.rules.warehouseIds
+        : await loadWarehouseIdsForSync();
     if (!shouldSyncByWarehouse(item.inventory, warehouseIds)) {
       res.status(400).json({ error: "Producto fuera de las bodegas seleccionadas." });
       return;
@@ -1178,7 +1186,13 @@ export async function syncProductsHandler(req: Request, res: Response) {
     const storeConfig = shopifyCredential?.shopDomain
       ? await resolveStoreConfig(shopifyCredential.shopDomain)
       : await resolveStoreConfig(null);
-    const warehouseIds = await loadWarehouseIdsForSync();
+    const storeConfigFull = shopifyCredential?.shopDomain
+      ? await getStoreConfigForDomain(shopifyCredential.shopDomain)
+      : null;
+    const warehouseIds =
+      storeConfigFull?.rules?.warehouseIds && storeConfigFull.rules.warehouseIds.length
+        ? storeConfigFull.rules.warehouseIds
+        : await loadWarehouseIdsForSync();
     const shopifyClient =
       publishOnSync && shopifyCredential
         ? new ShopifyClient({
