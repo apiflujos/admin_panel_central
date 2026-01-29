@@ -43,6 +43,7 @@ type AlegraItem = {
   barcode?: string;
   reference?: string;
   code?: string | number;
+  status?: string;
   customFields?: Array<{ name?: string; label?: string; value?: string }>;
   price?: AlegraPrice[];
   inventory?: {
