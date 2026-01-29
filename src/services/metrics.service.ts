@@ -3,7 +3,7 @@ import { getOrgId, getPool } from "../db";
 import type { ShopifyOrder } from "../connectors/shopify";
 
 type MetricItem = Record<string, unknown>;
-type MetricsRange = "day" | "week" | "month";
+export type MetricsRange = "day" | "week" | "month";
 
 export async function getMetrics(options: { range?: MetricsRange; days?: number } = {}) {
   try {
@@ -592,12 +592,20 @@ async function buildInventoryAlerts(ctx: Awaited<ReturnType<typeof buildSyncCont
 function resolveItemQuantity(item: MetricItem) {
   if (Array.isArray(item.itemVariants) && item.itemVariants.length) {
     return item.itemVariants.reduce((acc: number, variant: MetricItem) => {
-      const qty = Number(variant?.inventory?.quantity || 0);
+      const qty = Number(resolveInventoryQuantity(variant) || 0);
       return acc + (Number.isFinite(qty) ? qty : 0);
     }, 0);
   }
-  const qty = Number((item.inventory as { quantity?: number })?.quantity || 0);
+  const qty = Number(resolveInventoryQuantity(item) || 0);
   return Number.isFinite(qty) ? qty : 0;
+}
+
+function resolveInventoryQuantity(item: MetricItem) {
+  const inv = (item as { inventory?: unknown }).inventory;
+  if (!inv || typeof inv !== "object") return 0;
+  const quantity = (inv as { quantity?: unknown }).quantity;
+  const value = Number(quantity || 0);
+  return Number.isFinite(value) ? value : 0;
 }
 
 function collectItemIdentifiers(item: MetricItem) {

@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { getMetrics } from "../services/metrics.service";
+import { getMetrics, type MetricsRange } from "../services/metrics.service";
 import { createSyncLog } from "../services/logs.service";
 
 const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
@@ -12,7 +12,8 @@ const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
 
 export async function listMetrics(req: Request, res: Response) {
   try {
-    const range = typeof req.query.range === "string" ? req.query.range : undefined;
+    const raw = typeof req.query.range === "string" ? req.query.range : "";
+    const range = isMetricsRange(raw) ? (raw as MetricsRange) : undefined;
     const result = await getMetrics({ range });
     res.status(200).json(result);
     await safeCreateLog({
@@ -31,4 +32,8 @@ export async function listMetrics(req: Request, res: Response) {
       message,
     });
   }
+}
+
+function isMetricsRange(value: string): value is MetricsRange {
+  return value === "day" || value === "week" || value === "month";
 }
