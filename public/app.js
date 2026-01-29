@@ -179,6 +179,7 @@ const productsSyncLimitInput = document.getElementById("products-sync-limit");
 const productsSyncQuery = document.getElementById("products-sync-query");
 const productsSyncPublish = document.getElementById("products-sync-publish");
 const productsSyncOnlyPublished = document.getElementById("products-sync-only-published");
+const productsSyncIncludeInventory = document.getElementById("products-sync-include-inventory");
 const productsSyncFilteredBtn = document.getElementById("products-sync-filtered");
 const productsSyncStopBtn = document.getElementById("products-sync-stop");
 const ordersDateStart = document.getElementById("orders-date-start");
@@ -202,6 +203,7 @@ const ordersSort = document.getElementById("orders-sort");
 const rulesAutoPublish = document.getElementById("rules-auto-publish");
 const rulesAutoStatus = document.getElementById("rules-auto-status");
 const cfgWarehouseSync = document.getElementById("cfg-warehouse-sync");
+const cfgWarehouseSyncSummary = document.getElementById("cfg-warehouse-sync-summary");
 
 let shopifyAdminBase = "";
 let currentUserRole = "agent";
@@ -223,14 +225,15 @@ const DEFAULT_PRODUCT_SETTINGS = {
     includeImages: true,
     vendor: "",
   },
-  sync: {
-    dateStart: "",
-    dateEnd: "",
-    limit: "",
-    query: "",
-    publishOnSync: true,
-    onlyPublishedInShopify: true,
-  },
+    sync: {
+      dateStart: "",
+      dateEnd: "",
+      limit: "",
+      query: "",
+      publishOnSync: true,
+      onlyPublishedInShopify: true,
+      includeInventory: true,
+    },
   orders: {
     dateStart: "",
     dateEnd: "",
@@ -799,8 +802,8 @@ function loadProductSettings() {
       parsed &&
       parsed.filters &&
       Object.prototype.hasOwnProperty.call(parsed.filters, "listLimit");
-    const nextSync = { ...DEFAULT_PRODUCT_SETTINGS.sync, ...(parsed.sync || {}) };
-    const nextFilters = { ...DEFAULT_PRODUCT_SETTINGS.filters, ...(parsed.filters || {}) };
+  const nextSync = { ...DEFAULT_PRODUCT_SETTINGS.sync, ...(parsed.sync || {}) };
+  const nextFilters = { ...DEFAULT_PRODUCT_SETTINGS.filters, ...(parsed.filters || {}) };
     if (!Array.isArray(nextFilters.warehouseIds)) {
       nextFilters.warehouseIds = [];
     }
@@ -816,6 +819,9 @@ function loadProductSettings() {
     }
     if (!nextFilters.ordersDays) {
       nextFilters.ordersDays = DEFAULT_PRODUCT_SETTINGS.filters.ordersDays;
+    }
+    if (typeof nextSync.includeInventory !== "boolean") {
+      nextSync.includeInventory = true;
     }
     if (typeof parsed?.filters?.ordersDateTouched !== "boolean") {
       if (nextFilters.ordersDate === getTodayISO()) {
@@ -981,6 +987,9 @@ function applyProductSettings() {
   if (productsSyncOnlyPublished) {
     productsSyncOnlyPublished.checked = productSettings.sync.onlyPublishedInShopify !== false;
   }
+  if (productsSyncIncludeInventory) {
+    productsSyncIncludeInventory.checked = productSettings.sync.includeInventory !== false;
+  }
   if (productsLimitInput) productsLimitInput.value = productSettings.filters.listLimit || "30";
   if (productsPublishFilter) productsPublishFilter.value = productSettings.filters.publishStatus || "all";
   if (productsDateFilter) productsDateFilter.value = productSettings.filters.productsDate || "";
@@ -1015,6 +1024,9 @@ function refreshProductSettingsFromInputs() {
       publishOnSync: productsSyncPublish ? productsSyncPublish.checked : true,
       onlyPublishedInShopify: productsSyncOnlyPublished
         ? productsSyncOnlyPublished.checked
+        : true,
+      includeInventory: productsSyncIncludeInventory
+        ? productsSyncIncludeInventory.checked
         : true,
     },
     orders: {
@@ -1514,6 +1526,7 @@ function renderSettingsWarehouseFilters() {
     label.appendChild(text);
     cfgWarehouseSync.appendChild(label);
   });
+  updateSettingsWarehouseSummary();
 }
 
 async function loadSettingsWarehouses() {
@@ -1525,6 +1538,20 @@ async function loadSettingsWarehouses() {
     settingsWarehousesCatalog = [];
   }
   renderSettingsWarehouseFilters();
+}
+
+function updateSettingsWarehouseSummary() {
+  if (!cfgWarehouseSyncSummary) return;
+  if (!settingsWarehousesCatalog.length) {
+    cfgWarehouseSyncSummary.textContent = "Sin bodegas";
+    return;
+  }
+  const selected = getSelectedSettingsWarehouseIds();
+  if (!selected.length) {
+    cfgWarehouseSyncSummary.textContent = "Todas";
+    return;
+  }
+  cfgWarehouseSyncSummary.textContent = `${selected.length} seleccionadas`;
 }
 
 function getSelectedWarehouseIds() {
@@ -1632,11 +1659,11 @@ async function loadShopifyLookup(products) {
 function renderProducts() {
   if (!productsTableBody) return;
   if (productsLoading) {
-    productsTableBody.innerHTML = `<tr><td colspan="8" class="empty">Cargando productos...</td></tr>`;
+    productsTableBody.innerHTML = `<tr><td colspan="9" class="empty">Cargando productos...</td></tr>`;
     return;
   }
   if (!productsRows.length) {
-    productsTableBody.innerHTML = `<tr><td colspan="8" class="empty">Sin productos para mostrar.</td></tr>`;
+    productsTableBody.innerHTML = `<tr><td colspan="9" class="empty">Sin productos para mostrar.</td></tr>`;
     return;
   }
 
@@ -1719,6 +1746,9 @@ function renderProducts() {
       const isPublished = Boolean(resolvedLookup?.published);
       const statusLabel = isPublished ? "Publicado" : product.sku ? "Pendiente" : "Sin SKU";
       const statusClass = isPublished ? "status-chip is-success" : "status-chip is-warning";
+      const alegraStatus = normalizeStatus(product.status) === "inactive" ? "Inactivo" : "Activo";
+      const alegraStatusClass =
+        normalizeStatus(product.status) === "inactive" ? "status-chip is-error" : "status-chip is-success";
       const shopifyUrl = resolvedLookup?.productId && shopifyAdminBase
         ? `${shopifyAdminBase}/products/${resolvedLookup.productId}`
         : "";
@@ -1760,6 +1790,9 @@ function renderProducts() {
           <td>${shopifyId}</td>
           <td>${product.sku || "-"}</td>
           <td>${product.createdAt ? formatDate(product.createdAt) : "-"}</td>
+          <td>
+            <span class="${alegraStatusClass}">${alegraStatus}</span>
+          </td>
           <td>
             <span>${product.inventoryQuantity !== null ? product.inventoryQuantity : "—"}</span>
             <span class="kpi-sub">${product.warehouseBreakdown || "-"}</span>
@@ -1964,6 +1997,7 @@ async function runProductsSync(mode) {
           dateEnd: productSettings.sync.dateEnd || null,
           limit: productSettings.sync.limit ? Number(productSettings.sync.limit) : null,
           query: productSettings.sync.query || null,
+          includeInventory: productSettings.sync.includeInventory !== false,
         },
         settings: {
           status: productSettings.publish.status,
@@ -3299,6 +3333,7 @@ if (inventoryCronIntervalSelect) {
 }
 if (cfgWarehouseSync) {
   cfgWarehouseSync.addEventListener("change", async () => {
+    updateSettingsWarehouseSummary();
     try {
       await saveSettings();
     } catch {
@@ -3675,6 +3710,7 @@ if (productsClearBtn) {
       if (productsSyncQuery) productsSyncQuery.value = "";
       if (productsSyncPublish) productsSyncPublish.checked = true;
       if (productsSyncOnlyPublished) productsSyncOnlyPublished.checked = true;
+      if (productsSyncIncludeInventory) productsSyncIncludeInventory.checked = true;
       refreshProductSettingsFromInputs();
     });
   }
@@ -3688,6 +3724,7 @@ const productSettingInputs = [
   productsSyncQuery,
   productsSyncPublish,
   productsSyncOnlyPublished,
+  productsSyncIncludeInventory,
   productsPublishFilter,
   productsDateFilter,
   productsSort,

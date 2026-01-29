@@ -452,6 +452,7 @@
                       <th>ID Shopify</th>
                       <th>Referencia/SKU</th>
                       <th>Fecha</th>
+                      <th>Estado Alegra</th>
                       <th>Stock total</th>
                       <th>Estado Shopify</th>
                       <th>Acciones</th>
@@ -459,7 +460,7 @@
                   </thead>
                   <tbody>
                     <tr>
-                      <td colspan="8" class="empty">Sin productos para mostrar.</td>
+                      <td colspan="9" class="empty">Sin productos para mostrar.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -750,7 +751,13 @@
               </div>
               <div class="field span-2">
                 <label>Bodegas a sincronizar</label>
-                <div class="checkbox-grid" id="cfg-warehouse-sync"></div>
+                <details class="multi-select">
+                  <summary>
+                    <span>Seleccionar bodegas</span>
+                    <em id="cfg-warehouse-sync-summary">Todas</em>
+                  </summary>
+                  <div class="checkbox-grid" id="cfg-warehouse-sync"></div>
+                </details>
               </div>
             </div>
           </div>
@@ -772,6 +779,10 @@
               <div class="field">
                 <label>Limite de sincronizacion</label>
                 <input type="number" id="products-sync-limit" min="1" placeholder="Sin limite" />
+              </div>
+              <div class="field">
+                <label>Incluir existencias</label>
+                <input type="checkbox" id="products-sync-include-inventory" checked />
               </div>
               <div class="field">
                 <label>Referencia o nombre</label>

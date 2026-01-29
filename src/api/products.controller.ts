@@ -342,7 +342,8 @@ const shouldSyncByWarehouse = (
 const buildShopifyPayload = (
   alegraItem: AlegraItem,
   settings: { status?: string; includeImages?: boolean; vendor?: string },
-  warehouseIds: string[]
+  warehouseIds: string[],
+  includeInventory: boolean
 ) => {
   const images = normalizeImageUrls(alegraItem.images || []);
   const itemVariants = Array.isArray(alegraItem.itemVariants) ? alegraItem.itemVariants : [];
@@ -362,7 +363,9 @@ const buildShopifyPayload = (
     price: pickPrice(alegraItem.price)?.toString() ?? "0",
     inventory_policy: "deny",
     inventory_management: "shopify",
-    inventory_quantity: resolveInventoryQuantity(alegraItem.inventory, warehouseIds),
+    inventory_quantity: includeInventory
+      ? resolveInventoryQuantity(alegraItem.inventory, warehouseIds)
+      : 0,
   };
 
   const variants =
@@ -378,7 +381,9 @@ const buildShopifyPayload = (
           price: pickPrice(variant.price)?.toString() ?? "0",
           inventory_policy: "deny",
           inventory_management: "shopify",
-          inventory_quantity: resolveInventoryQuantity(variant.inventory, warehouseIds),
+          inventory_quantity: includeInventory
+            ? resolveInventoryQuantity(variant.inventory, warehouseIds)
+            : 0,
           barcode: variant.id ? `ALT-${variant.id}` : undefined,
           ...mapVariantOptions(variant.variantAttributes || [], optionLabels),
         }))
@@ -432,8 +437,43 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
       : Array.isArray(payload?.data)
         ? (payload.data as AlegraItem[])
         : [];
+    const needsInventoryHydration = items.some((item) => {
+      const inv = item?.inventory;
+      if (!inv) return true;
+      const hasWarehouses = Array.isArray(inv.warehouses) && inv.warehouses.length > 0;
+      const hasQty =
+        typeof inv.availableQuantity === "number" ||
+        typeof inv.quantity === "number";
+      return !hasWarehouses && !hasQty;
+    });
+    let resolvedItems = items;
+    if (needsInventoryHydration && items.length) {
+      const detailQuery = new URLSearchParams();
+      detailQuery.set(
+        "fields",
+        "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code,created_at,createdAt"
+      );
+      detailQuery.set("mode", "advanced");
+      resolvedItems = await Promise.all(
+        items.map(async (item) => {
+          if (!item?.id) return item;
+          const inv = item.inventory;
+          const hasWarehouses =
+            Array.isArray(inv?.warehouses) && inv?.warehouses.length > 0;
+          const hasQty =
+            typeof inv?.availableQuantity === "number" ||
+            typeof inv?.quantity === "number";
+          if (hasWarehouses || hasQty) return item;
+          const detailResponse = await fetchAlegraWithRetry(`/items/${item.id}`, detailQuery);
+          if (!detailResponse.ok) return item;
+          return (await detailResponse.json()) as AlegraItem;
+        })
+      );
+    }
     if (rawQueryValue && looksLikeIdentifier(identifierQuery)) {
-      const matched = items.filter((item: AlegraItem) => matchesIdentifier(item, identifierQuery));
+      const matched = resolvedItems.filter((item: AlegraItem) =>
+        matchesIdentifier(item, identifierQuery)
+      );
       if (items.length === 0 || matched.length === 0) {
         const scanItems = await scanAlegraItemsByIdentifier(identifierQuery);
         const detailQuery = new URLSearchParams();
@@ -458,6 +498,11 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         res.json({ metadata: { total }, data: sliced });
         return;
       }
+    }
+    if (Array.isArray(payload?.items)) {
+      payload.items = resolvedItems;
+    } else if (Array.isArray(payload?.data)) {
+      payload.data = resolvedItems;
     }
     res.status(response.status).json(payload);
   } catch (error) {
@@ -645,7 +690,7 @@ export async function publishShopifyHandler(req: Request, res: Response) {
       res.status(400).json({ error: "Producto fuera de las bodegas seleccionadas." });
       return;
     }
-    const payload = buildShopifyPayload(item, settings, warehouseIds);
+    const payload = buildShopifyPayload(item, settings, warehouseIds, true);
     const published = await fetchShopify("/products.json", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -737,7 +782,8 @@ export async function lookupShopifyHandler(req: Request, res: Response) {
 
 export async function syncProductsHandler(req: Request, res: Response) {
   const { mode = "full", batchSize = 5, filters = {}, settings = {} } = req.body || {};
-  const maxItems = Number.isFinite(Number(filters.limit)) ? Number(filters.limit) : null;
+    const maxItems = Number.isFinite(Number(filters.limit)) ? Number(filters.limit) : null;
+    const includeInventory = filters.includeInventory !== false;
   const safeBatchSize = Math.max(1, Math.min(Number(batchSize) || 5, 10));
   const hasDateFilter = Boolean(filters.dateStart || filters.dateEnd);
   const rawQuery = filters.query ? extractIdentifier(String(filters.query)) : "";
@@ -924,7 +970,8 @@ export async function syncProductsHandler(req: Request, res: Response) {
                 includeImages: settings.includeImages ?? true,
                 vendor: settings.vendor || "",
               },
-              warehouseIds
+              warehouseIds,
+              includeInventory
             );
             await fetchShopify(
               "/products.json",
