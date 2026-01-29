@@ -3375,11 +3375,15 @@ if (cfgWarehouseSync) {
   cfgWarehouseSync.addEventListener("change", async (event) => {
     const selectAllInput = cfgWarehouseSync.querySelector("input[data-select-all]");
     if (selectAllInput && event?.target === selectAllInput) {
+      const nextChecked = selectAllInput.checked;
       cfgWarehouseSync.querySelectorAll("input[data-warehouse-id]").forEach((input) => {
-        input.checked = false;
+        input.checked = nextChecked;
       });
     } else if (selectAllInput) {
-      selectAllInput.checked = false;
+      const anySelected = Array.from(
+        cfgWarehouseSync.querySelectorAll("input[data-warehouse-id]")
+      ).some((input) => input.checked);
+      selectAllInput.checked = !anySelected;
     }
     updateSettingsWarehouseSummary();
     try {
@@ -3516,11 +3520,15 @@ if (productsWarehouseFilter) {
   productsWarehouseFilter.addEventListener("change", (event) => {
     const selectAllInput = productsWarehouseFilter.querySelector("input[data-select-all]");
     if (selectAllInput && event?.target === selectAllInput) {
+      const nextChecked = selectAllInput.checked;
       productsWarehouseFilter.querySelectorAll("input[data-warehouse-id]").forEach((input) => {
-        input.checked = false;
+        input.checked = nextChecked;
       });
     } else if (selectAllInput) {
-      selectAllInput.checked = false;
+      const anySelected = Array.from(
+        productsWarehouseFilter.querySelectorAll("input[data-warehouse-id]")
+      ).some((input) => input.checked);
+      selectAllInput.checked = !anySelected;
     }
     updateProductsWarehouseSummary();
     productsStart = 0;
