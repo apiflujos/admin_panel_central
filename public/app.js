@@ -84,6 +84,7 @@ const assistantClose = document.getElementById("assistant-close");
 const metricsRange = document.getElementById("metrics-range");
 const metricsShopifyStatus = document.getElementById("metrics-shopify-status");
 const metricsAlegraStatus = document.getElementById("metrics-alegra-status");
+const weeklyGrowthLabel = document.getElementById("chart-weekly-label");
 const assistantMessages = document.getElementById("assistant-messages");
 const assistantInput = document.getElementById("assistant-input");
 const assistantSend = document.getElementById("assistant-send");
@@ -2071,8 +2072,23 @@ function ensureProductsLoaded() {
 async function loadMetrics() {
   try {
     const range = metricsRange ? String(metricsRange.value || "month") : "month";
-    const query = range ? `?range=${encodeURIComponent(range)}` : "";
+    const params = new URLSearchParams();
+    if (range) params.set("range", range);
+    params.set("t", String(Date.now()));
+    const query = params.toString() ? `?${params.toString()}` : "";
     const data = await fetchJson(`/api/metrics${query}`);
+    if (metricsRange && data.range) {
+      metricsRange.value = data.range;
+    }
+    const growthLabel =
+      data.range === "day"
+        ? "Evolución del día"
+        : data.range === "week"
+        ? "Crecimiento semanal"
+        : "Crecimiento mensual";
+    if (weeklyGrowthLabel) {
+      weeklyGrowthLabel.textContent = growthLabel;
+    }
     if (kpiSalesToday) {
       const rangeLabel = data.rangeLabel || "Mes";
       const salesRange = data.salesRange || data.salesToday || "0";

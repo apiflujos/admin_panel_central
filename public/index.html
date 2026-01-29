@@ -143,7 +143,7 @@
                   <span class="kpi-sub" id="kpi-effectiveness-sub">Pedidos ok</span>
                 </div>
                 <div class="kpi-card kpi-chart">
-                  <p>Crecimiento Semanal</p>
+                  <p id="chart-weekly-label">Crecimiento Semanal</p>
                   <div class="chart-placeholder chart-compact" id="chart-weekly"></div>
                 </div>
               </div>
@@ -519,22 +519,28 @@
                 </div>
               </div>
               <div class="status-card cron-card">
-                <div class="cron-row">
-                  <span class="status-led" id="inventory-cron-led"></span>
-                  <div>
-                    <p>Cron inventario</p>
-                    <span id="inventory-cron-status">Sin datos</span>
+                <div class="cron-summary">
+                  <div class="cron-item">
+                    <span class="status-led" id="inventory-cron-led"></span>
+                    <div>
+                      <p>Cron inventario</p>
+                      <span id="inventory-cron-status">Sin datos</span>
+                    </div>
                   </div>
-                  <div>
-                    <p>Ultimo checkpoint</p>
-                    <span id="inventory-cron-checkpoint">-</span>
+                  <div class="cron-item">
+                    <div>
+                      <p>Ultimo checkpoint</p>
+                      <span id="inventory-cron-checkpoint">-</span>
+                    </div>
                   </div>
-                  <div>
-                    <p>Intervalo</p>
-                    <span id="inventory-cron-interval">-</span>
+                  <div class="cron-item">
+                    <div>
+                      <p>Intervalo</p>
+                      <span id="inventory-cron-interval">-</span>
+                    </div>
                   </div>
                 </div>
-                <div class="cron-row">
+                <div class="cron-controls">
                   <label>
                     <input type="checkbox" id="inventory-cron-enabled" />
                     <span>Cron inventario activo</span>
@@ -640,6 +646,13 @@
               </div>
               <div class="table-card">
                 <table id="users-table">
+                  <colgroup>
+                    <col style="width: 24%" />
+                    <col style="width: 28%" />
+                    <col style="width: 12%" />
+                    <col style="width: 18%" />
+                    <col style="width: 18%" />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th>Nombre</th>

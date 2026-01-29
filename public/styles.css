@@ -1428,26 +1428,60 @@ textarea {
 }
 
 .cron-card {
-  grid-template-columns: 1fr;
-}
-
-.cron-row {
   display: grid;
-  grid-template-columns: auto 1fr 1fr 1fr;
-  gap: 10px;
-  align-items: center;
+  gap: 12px;
 }
 
-.cron-row label {
+.cron-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cron-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.03);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.cron-item p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.cron-item span {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cron-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.cron-controls .field {
+  margin: 0;
+}
+
+.cron-controls label {
   display: flex;
   align-items: center;
   gap: 8px;
   margin: 0;
+  font-size: 12px;
 }
 
 .users-layout {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr);
+  grid-template-columns: minmax(320px, 1fr) minmax(0, 1.6fr);
   gap: 16px;
   align-items: start;
 }
@@ -1464,44 +1498,23 @@ textarea {
   overflow-x: auto;
   width: 100%;
 }
-.cron-card {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
+
+.users-layout table {
+  table-layout: fixed;
+  width: 100%;
 }
 
-.cron-card .status-row {
-  margin: 0;
+.users-layout th,
+.users-layout td {
+  padding: 6px 8px;
+  font-size: 11px;
+  word-break: break-word;
+  vertical-align: top;
 }
 
-.cron-card .status-row.span-2 {
-  grid-column: span 2;
-}
-
-.cron-card .status-row label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.cron-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.users-layout {
-  display: grid;
-  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.users-layout .settings-grid {
-  grid-template-columns: 1fr;
-}
-
-.users-layout .table-card {
-  overflow-x: auto;
+.users-layout td:last-child,
+.users-layout th:last-child {
+  white-space: nowrap;
 }
 
 .status-row {
@@ -1659,7 +1672,8 @@ textarea {
     grid-template-columns: 1fr;
   }
 
-  .cron-row {
+  .cron-summary,
+  .cron-controls {
     grid-template-columns: 1fr;
   }
 
