@@ -9,7 +9,7 @@ const normalizeShopDomain = (value: string) =>
     .replace(/\/.*$/, "")
     .toLowerCase();
 
-const normalizeIdList = (value?: string[] | null) =>
+const normalizeIdList = (value?: unknown) =>
   Array.isArray(value) ? value.map((id) => String(id)).filter(Boolean) : [];
 
 export async function listStoreConfigs() {
@@ -112,7 +112,9 @@ export async function listStoreConfigs() {
           5,
         inventoryAdjustmentsAutoPublish:
           rules.inventoryAdjustmentsAutoPublish ?? defaults.rules?.inventoryAdjustmentsAutoPublish ?? true,
-        warehouseIds: normalizeIdList(rules.warehouseIds || defaults.rules?.warehouseIds || []),
+        warehouseIds: normalizeIdList(
+          (rules as Record<string, unknown>).warehouseIds || defaults.rules?.warehouseIds || []
+        ),
       },
       invoice: {
         generateInvoice: invoice.generateInvoice ?? defaults.invoice?.generateInvoice ?? false,
