@@ -430,7 +430,12 @@
                     <span>Seleccionar bodegas</span>
                     <em id="products-warehouse-summary">Todas</em>
                   </summary>
-                  <div class="checkbox-grid" id="products-warehouse-filter"></div>
+                  <div class="checkbox-grid single" id="products-warehouse-filter">
+                    <label class="select-all">
+                      <input type="checkbox" id="products-warehouse-select-all" />
+                      <span>Seleccionar todas</span>
+                    </label>
+                  </div>
                 </details>
               </div>
               <label class="filter-inline">
@@ -762,7 +767,12 @@
                     <span>Seleccionar bodegas</span>
                     <em id="cfg-warehouse-sync-summary">Todas</em>
                   </summary>
-                  <div class="checkbox-grid" id="cfg-warehouse-sync"></div>
+                  <div class="checkbox-grid single" id="cfg-warehouse-sync">
+                    <label class="select-all">
+                      <input type="checkbox" id="cfg-warehouse-select-all" />
+                      <span>Seleccionar todas</span>
+                    </label>
+                  </div>
                 </details>
               </div>
             </div>
@@ -1026,6 +1036,6 @@
       </div>
     </div>
 
-    <script src="app.js" type="module"></script>
+    <script src="app.js?v=20260129a" type="module"></script>
   </body>
 </html>

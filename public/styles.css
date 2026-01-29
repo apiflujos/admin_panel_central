@@ -1331,6 +1331,14 @@ button {
   overflow: auto;
 }
 
+.checkbox-grid.single {
+  grid-template-columns: 1fr;
+}
+
+.select-all {
+  font-weight: 600;
+}
+
 .multi-select {
   border: 1px solid var(--stroke);
   border-radius: 10px;

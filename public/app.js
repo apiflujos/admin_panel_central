@@ -162,6 +162,7 @@ const productsLimitInput = document.getElementById("products-limit");
 const productsPublishFilter = document.getElementById("products-publish-filter");
 const productsWarehouseFilter = document.getElementById("products-warehouse-filter");
 const productsWarehouseSummary = document.getElementById("products-warehouse-summary");
+const productsWarehouseSelectAll = document.getElementById("products-warehouse-select-all");
 const productsInStockOnly = document.getElementById("products-instock-only");
 const productsStatusFilter = document.getElementById("products-status-filter");
 const productsTableBody = document.querySelector("#products-table tbody");
@@ -205,6 +206,7 @@ const rulesAutoPublish = document.getElementById("rules-auto-publish");
 const rulesAutoStatus = document.getElementById("rules-auto-status");
 const cfgWarehouseSync = document.getElementById("cfg-warehouse-sync");
 const cfgWarehouseSyncSummary = document.getElementById("cfg-warehouse-sync-summary");
+const cfgWarehouseSelectAll = document.getElementById("cfg-warehouse-select-all");
 
 let shopifyAdminBase = "";
 let currentUserRole = "agent";
@@ -1507,6 +1509,17 @@ function renderSettingsWarehouseFilters() {
   if (!cfgWarehouseSync) return;
   const selected = new Set(inventoryRules.warehouseIds || []);
   cfgWarehouseSync.innerHTML = "";
+  const selectAllLabel = document.createElement("label");
+  selectAllLabel.className = "select-all";
+  const selectAllInput = document.createElement("input");
+  selectAllInput.type = "checkbox";
+  selectAllInput.dataset.selectAll = "settings";
+  selectAllInput.checked = selected.size === 0;
+  const selectAllText = document.createElement("span");
+  selectAllText.textContent = "Seleccionar todas";
+  selectAllLabel.appendChild(selectAllInput);
+  selectAllLabel.appendChild(selectAllText);
+  cfgWarehouseSync.appendChild(selectAllLabel);
   if (!settingsWarehousesCatalog.length) {
     const empty = document.createElement("span");
     empty.className = "empty";
@@ -1568,6 +1581,17 @@ function renderWarehouseFilters() {
   if (!productsWarehouseFilter) return;
   const selected = new Set(productSettings.filters?.warehouseIds || []);
   productsWarehouseFilter.innerHTML = "";
+  const selectAllLabel = document.createElement("label");
+  selectAllLabel.className = "select-all";
+  const selectAllInput = document.createElement("input");
+  selectAllInput.type = "checkbox";
+  selectAllInput.dataset.selectAll = "products";
+  selectAllInput.checked = selected.size === 0;
+  const selectAllText = document.createElement("span");
+  selectAllText.textContent = "Seleccionar todas";
+  selectAllLabel.appendChild(selectAllInput);
+  selectAllLabel.appendChild(selectAllText);
+  productsWarehouseFilter.appendChild(selectAllLabel);
   if (!warehousesCatalog.length) {
     const empty = document.createElement("span");
     empty.className = "empty";
@@ -3348,7 +3372,15 @@ if (inventoryCronIntervalSelect) {
   });
 }
 if (cfgWarehouseSync) {
-  cfgWarehouseSync.addEventListener("change", async () => {
+  cfgWarehouseSync.addEventListener("change", async (event) => {
+    const selectAllInput = cfgWarehouseSync.querySelector("input[data-select-all]");
+    if (selectAllInput && event?.target === selectAllInput) {
+      cfgWarehouseSync.querySelectorAll("input[data-warehouse-id]").forEach((input) => {
+        input.checked = false;
+      });
+    } else if (selectAllInput) {
+      selectAllInput.checked = false;
+    }
     updateSettingsWarehouseSummary();
     try {
       await saveSettings();
@@ -3481,7 +3513,15 @@ if (productsRefreshBtn) {
 }
 
 if (productsWarehouseFilter) {
-  productsWarehouseFilter.addEventListener("change", () => {
+  productsWarehouseFilter.addEventListener("change", (event) => {
+    const selectAllInput = productsWarehouseFilter.querySelector("input[data-select-all]");
+    if (selectAllInput && event?.target === selectAllInput) {
+      productsWarehouseFilter.querySelectorAll("input[data-warehouse-id]").forEach((input) => {
+        input.checked = false;
+      });
+    } else if (selectAllInput) {
+      selectAllInput.checked = false;
+    }
     updateProductsWarehouseSummary();
     productsStart = 0;
     refreshProductSettingsFromInputs();
