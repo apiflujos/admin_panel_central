@@ -425,7 +425,13 @@
             <div class="toolbar products-filters">
               <div class="filter-group">
                 <label class="filter-label">Bodegas</label>
-                <div class="checkbox-grid" id="products-warehouse-filter"></div>
+                <details class="multi-select">
+                  <summary>
+                    <span>Seleccionar bodegas</span>
+                    <em id="products-warehouse-summary">Todas</em>
+                  </summary>
+                  <div class="checkbox-grid" id="products-warehouse-filter"></div>
+                </details>
               </div>
               <label class="filter-inline">
                 <input type="checkbox" id="products-instock-only" />

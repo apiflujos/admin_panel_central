@@ -161,6 +161,7 @@ const productsSort = document.getElementById("products-sort");
 const productsLimitInput = document.getElementById("products-limit");
 const productsPublishFilter = document.getElementById("products-publish-filter");
 const productsWarehouseFilter = document.getElementById("products-warehouse-filter");
+const productsWarehouseSummary = document.getElementById("products-warehouse-summary");
 const productsInStockOnly = document.getElementById("products-instock-only");
 const productsStatusFilter = document.getElementById("products-status-filter");
 const productsTableBody = document.querySelector("#products-table tbody");
@@ -1587,6 +1588,7 @@ function renderWarehouseFilters() {
     label.appendChild(text);
     productsWarehouseFilter.appendChild(label);
   });
+  updateProductsWarehouseSummary();
 }
 
 async function loadWarehouseFilters() {
@@ -1598,6 +1600,20 @@ async function loadWarehouseFilters() {
     warehousesCatalog = [];
   }
   renderWarehouseFilters();
+}
+
+function updateProductsWarehouseSummary() {
+  if (!productsWarehouseSummary) return;
+  if (!warehousesCatalog.length) {
+    productsWarehouseSummary.textContent = "Sin bodegas";
+    return;
+  }
+  const selected = getSelectedWarehouseIds();
+  if (!selected.length) {
+    productsWarehouseSummary.textContent = "Todas";
+    return;
+  }
+  productsWarehouseSummary.textContent = `${selected.length} seleccionadas`;
 }
 
 function normalizeStatus(status) {
@@ -3466,6 +3482,7 @@ if (productsRefreshBtn) {
 
 if (productsWarehouseFilter) {
   productsWarehouseFilter.addEventListener("change", () => {
+    updateProductsWarehouseSummary();
     productsStart = 0;
     refreshProductSettingsFromInputs();
     renderProducts();

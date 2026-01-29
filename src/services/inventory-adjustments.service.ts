@@ -52,6 +52,9 @@ export async function syncInventoryAdjustments(
   options?: { autoPublish?: boolean }
 ) {
   if (!query.has("metadata")) query.set("metadata", "true");
+  if (!query.has("date")) {
+    query.set("date", new Date().toISOString().slice(0, 10));
+  }
   const rawLimit = Number(query.get("limit"));
   const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 30) : 30;
   const adjustments: Array<{
