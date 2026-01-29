@@ -2073,13 +2073,27 @@ async function loadMetrics() {
     const range = metricsRange ? String(metricsRange.value || "month") : "month";
     const query = range ? `?range=${encodeURIComponent(range)}` : "";
     const data = await fetchJson(`/api/metrics${query}`);
-    if (kpiSalesToday) kpiSalesToday.textContent = data.salesToday || "0";
+    if (kpiSalesToday) {
+      const rangeLabel = data.rangeLabel || "Mes";
+      const salesRange = data.salesRange || data.salesToday || "0";
+      kpiSalesToday.textContent = salesRange;
+      const labelEl = kpiSalesToday.previousElementSibling;
+      if (labelEl) {
+        labelEl.textContent = `Ventas Totales · ${rangeLabel}`;
+      }
+    }
     if (kpiSalesTodaySub) {
-      const pct = typeof data.salesTodayPct === "number" ? `${Math.abs(data.salesTodayPct)}%` : "--";
-      const sign = data.salesTodayTrend === "down" ? "-" : "+";
+      const prevLabel =
+        data.range === "day"
+          ? "ayer"
+          : data.range === "week"
+          ? "semana pasada"
+          : "mes pasado";
+      const pct = typeof data.salesRangePct === "number" ? `${Math.abs(data.salesRangePct)}%` : "--";
+      const sign = data.salesRangeTrend === "down" ? "-" : "+";
       const delta =
-        typeof data.salesTodayDelta === "string" ? `${sign}${data.salesTodayDelta}` : "--";
-      kpiSalesTodaySub.textContent = `Vs ayer ${delta} (${pct})`;
+        typeof data.salesRangeDelta === "string" ? `${sign}${data.salesRangeDelta}` : "--";
+      kpiSalesTodaySub.textContent = `Vs ${prevLabel} ${delta} (${pct})`;
     }
     if (kpiEffectiveness) {
       kpiEffectiveness.textContent =
@@ -2111,7 +2125,7 @@ async function loadMetrics() {
     updatePanelVisibility(data);
   } catch {
     if (kpiSalesToday) kpiSalesToday.textContent = "0";
-    if (kpiSalesTodaySub) kpiSalesTodaySub.textContent = "Vs ayer --";
+    if (kpiSalesTodaySub) kpiSalesTodaySub.textContent = "Vs periodo anterior --";
     if (kpiEffectiveness) kpiEffectiveness.textContent = "0%";
     if (kpiEffectivenessSub) kpiEffectivenessSub.textContent = "0 pedidos";
     renderWeeklyChart([]);
@@ -2279,24 +2293,33 @@ function renderWeeklyChart(items) {
   const sliceItems = chartWeekly.classList.contains("chart-compact")
     ? items.slice(-7)
     : items;
-  const maxValue = Math.max(...sliceItems.map((item) => Number(item.amount || 0)), 1);
+  const values = sliceItems.map((item) => Number(item.amount || 0));
+  const maxValue = Math.max(...values, 1);
+  const minValue = Math.min(...values, 0);
+  const width = 100;
+  const height = 40;
+  const padX = 4;
+  const padY = 6;
+  const step = sliceItems.length > 1 ? (width - padX * 2) / (sliceItems.length - 1) : 0;
+  const scale = (value) => {
+    if (maxValue === minValue) return height / 2;
+    const ratio = (value - minValue) / (maxValue - minValue);
+    return height - padY - ratio * (height - padY * 2);
+  };
+  const points = sliceItems
+    .map((item, index) => `${padX + index * step},${scale(Number(item.amount || 0))}`)
+    .join(" ");
+  const lastValue = sliceItems[sliceItems.length - 1]?.amount || 0;
+  const lastLabel = String(sliceItems[sliceItems.length - 1]?.date || "").slice(5);
   chartWeekly.innerHTML = `
-    <div class="chart-bars">
-      ${sliceItems
-        .map((item) => {
-          const amount = Number(item.amount || 0);
-          const width = Math.round((amount / maxValue) * 100);
-          return `
-            <div class="bar-row">
-              <span class="bar-label">${String(item.date || "-").slice(5)}</span>
-              <div class="bar-track">
-                <div class="bar-fill" style="width: ${width}%"></div>
-              </div>
-              <span class="bar-value">${formatCurrencyValue(amount)}</span>
-            </div>
-          `;
-        })
-        .join("")}
+    <div class="line-chart">
+      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+        <polyline points="${points}" fill="none" stroke="var(--primary)" stroke-width="2" />
+      </svg>
+      <div class="line-chart-meta">
+        <span>${lastLabel}</span>
+        <strong>${formatCurrencyValue(Number(lastValue || 0))}</strong>
+      </div>
     </div>
   `;
 }

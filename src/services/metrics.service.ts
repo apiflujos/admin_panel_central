@@ -54,6 +54,12 @@ export async function getMetrics(options: { range?: MetricsRange; days?: number 
     const salesTodayPct = salesYesterday ? (salesTodayDelta / salesYesterday) * 100 : null;
 
     const paymentsByMethod = groupPaymentsByMethod(paymentsInRange);
+    const salesRangeValue = sumByRange(paymentsInRange, current.from, current.to);
+    const paymentsPrev = filterByRange(payments, previous.from, previous.to);
+    const salesRangePrevValue = sumByRange(paymentsPrev, previous.from, previous.to);
+    const salesRangeDeltaValue = salesRangeValue - salesRangePrevValue;
+    const salesRangePct =
+      salesRangePrevValue > 0 ? Math.round((salesRangeDeltaValue / salesRangePrevValue) * 100) : null;
     const weeklyRevenue = buildDailySeriesRange(paymentsInRange, current.from, current.to);
     const invoiceSeries = buildDailyCountSeriesRange(invoicesInRange, current.from, current.to);
     const orderSeries = await buildOrderSeriesRange(current.from, current.to);
@@ -80,7 +86,11 @@ export async function getMetrics(options: { range?: MetricsRange; days?: number 
       orders30d: countByDateRange(invoices, 30),
       customers7d: countByDateRange(contacts, 7),
       customers30d: countByDateRange(contacts, 30),
-      salesRange: formatCurrency(sumByRange(paymentsInRange, current.from, current.to)),
+      salesRange: formatCurrency(salesRangeValue),
+      salesRangePrev: formatCurrency(salesRangePrevValue),
+      salesRangeDelta: formatCurrency(Math.abs(salesRangeDeltaValue)),
+      salesRangeTrend: salesRangeDeltaValue >= 0 ? "up" : "down",
+      salesRangePct,
       ordersRange: countByRange(invoicesInRange, current.from, current.to),
       customersRange: countByRange(contactsInRange, current.from, current.to),
       ordersToday: countByDate(invoices, today),

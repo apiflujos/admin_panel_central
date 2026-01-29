@@ -500,8 +500,8 @@
                 <label>API Key</label>
                 <input type="password" id="alegra-key" placeholder="********" autocomplete="new-password" />
               </div>
-              <div class="status-card status-compact">
-                <div class="status-row">
+              <div class="status-grid">
+                <div class="status-tile">
                   <span class="status-led" id="status-led-shopify"></span>
                   <div>
                     <p>Shopify</p>
@@ -509,7 +509,7 @@
                   </div>
                   <button class="ghost" id="test-shopify">Probar</button>
                 </div>
-                <div class="status-row">
+                <div class="status-tile">
                   <span class="status-led" id="status-led-alegra"></span>
                   <div>
                     <p>Alegra</p>
@@ -519,36 +519,12 @@
                 </div>
               </div>
               <div class="status-card cron-card">
-                <div class="status-row span-2">
+                <div class="cron-row">
                   <span class="status-led" id="inventory-cron-led"></span>
                   <div>
                     <p>Cron inventario</p>
                     <span id="inventory-cron-status">Sin datos</span>
                   </div>
-                </div>
-                <div class="status-row">
-                  <label>
-                    <input type="checkbox" id="inventory-cron-enabled" />
-                    <span>Cron inventario activo</span>
-                  </label>
-                </div>
-                <div class="status-row">
-                  <div class="field">
-                    <label>Intervalo del cron</label>
-                    <select id="inventory-cron-interval-select">
-                      <option value="5">Cada 5 minutos</option>
-                      <option value="10">Cada 10 minutos</option>
-                      <option value="15">Cada 15 minutos</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="status-row">
-                  <label>
-                    <input type="checkbox" id="inventory-cron-autopublish" />
-                    <span>Publicar ajustes en Shopify automaticamente</span>
-                  </label>
-                </div>
-                <div class="status-row span-2 cron-stats">
                   <div>
                     <p>Ultimo checkpoint</p>
                     <span id="inventory-cron-checkpoint">-</span>
@@ -557,6 +533,24 @@
                     <p>Intervalo</p>
                     <span id="inventory-cron-interval">-</span>
                   </div>
+                </div>
+                <div class="cron-row">
+                  <label>
+                    <input type="checkbox" id="inventory-cron-enabled" />
+                    <span>Cron inventario activo</span>
+                  </label>
+                  <div class="field">
+                    <label>Intervalo del cron</label>
+                    <select id="inventory-cron-interval-select">
+                      <option value="5">Cada 5 minutos</option>
+                      <option value="10">Cada 10 minutos</option>
+                      <option value="15">Cada 15 minutos</option>
+                    </select>
+                  </div>
+                  <label>
+                    <input type="checkbox" id="inventory-cron-autopublish" />
+                    <span>Publicar ajustes en Shopify automaticamente</span>
+                  </label>
                 </div>
               </div>
             </div>
@@ -615,7 +609,7 @@
               <span class="panel-tag">Admin</span>
             </div>
             <div class="users-layout">
-              <div class="settings-grid">
+              <div class="settings-grid users-form">
                 <div class="field">
                   <label>Nombre</label>
                   <input type="text" id="user-create-name" placeholder="Nombre completo" />
