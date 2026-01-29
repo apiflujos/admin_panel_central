@@ -513,6 +513,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
     const shouldFilter = inStockOnly || warehouseFilterIds.length > 0;
 
     const needsInventoryForFilter = (item: AlegraItem) => {
+      if (inStockOnly) return true;
       const inv = item?.inventory;
       if (!inv) return true;
       const hasWarehouses = Array.isArray(inv.warehouses) && inv.warehouses.length > 0;
