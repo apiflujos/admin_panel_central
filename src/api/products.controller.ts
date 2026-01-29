@@ -783,6 +783,7 @@ export async function lookupShopifyHandler(req: Request, res: Response) {
 export async function syncProductsHandler(req: Request, res: Response) {
   const { mode = "full", batchSize = 5, filters = {}, settings = {} } = req.body || {};
     const maxItems = Number.isFinite(Number(filters.limit)) ? Number(filters.limit) : null;
+    const onlyActive = filters.onlyActive !== false;
     const includeInventory = filters.includeInventory !== false;
   const safeBatchSize = Math.max(1, Math.min(Number(batchSize) || 5, 10));
   const hasDateFilter = Boolean(filters.dateStart || filters.dateEnd);
@@ -1155,6 +1156,9 @@ export async function syncProductsHandler(req: Request, res: Response) {
       }
       const payload = (await response.json()) as { items?: AlegraItem[]; data?: AlegraItem[]; metadata?: { total?: number; totalItems?: number } };
       let items = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload?.data) ? payload.data : [];
+      if (onlyActive) {
+        items = items.filter((item) => String(item?.status || "active").toLowerCase() !== "inactive");
+      }
       total = payload?.metadata?.total ?? payload?.metadata?.totalItems ?? total;
 
       if (hasDateFilter) {

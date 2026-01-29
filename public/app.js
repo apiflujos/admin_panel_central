@@ -179,6 +179,7 @@ const productsDateStart = document.getElementById("products-date-start");
 const productsDateEnd = document.getElementById("products-date-end");
 const productsSyncLimitInput = document.getElementById("products-sync-limit");
 const productsSyncQuery = document.getElementById("products-sync-query");
+const productsSyncOnlyActive = document.getElementById("products-sync-only-active");
 const productsSyncPublish = document.getElementById("products-sync-publish");
 const productsSyncOnlyPublished = document.getElementById("products-sync-only-published");
 const productsSyncIncludeInventory = document.getElementById("products-sync-include-inventory");
@@ -236,6 +237,7 @@ const DEFAULT_PRODUCT_SETTINGS = {
       publishOnSync: true,
       onlyPublishedInShopify: true,
       includeInventory: true,
+      onlyActive: true,
     },
   orders: {
     dateStart: "",
@@ -826,6 +828,9 @@ function loadProductSettings() {
     if (typeof nextSync.includeInventory !== "boolean") {
       nextSync.includeInventory = true;
     }
+    if (typeof nextSync.onlyActive !== "boolean") {
+      nextSync.onlyActive = true;
+    }
     if (typeof parsed?.filters?.ordersDateTouched !== "boolean") {
       if (nextFilters.ordersDate === getTodayISO()) {
         nextFilters.ordersDate = "";
@@ -986,6 +991,9 @@ function applyProductSettings() {
   if (productsDateEnd) productsDateEnd.value = productSettings.sync.dateEnd;
   if (productsSyncLimitInput) productsSyncLimitInput.value = productSettings.sync.limit || "";
   if (productsSyncQuery) productsSyncQuery.value = productSettings.sync.query || "";
+  if (productsSyncOnlyActive) {
+    productsSyncOnlyActive.checked = productSettings.sync.onlyActive !== false;
+  }
   if (productsSyncPublish) productsSyncPublish.checked = productSettings.sync.publishOnSync !== false;
   if (productsSyncOnlyPublished) {
     productsSyncOnlyPublished.checked = productSettings.sync.onlyPublishedInShopify !== false;
@@ -1024,6 +1032,7 @@ function refreshProductSettingsFromInputs() {
       dateEnd: productsDateEnd ? productsDateEnd.value : "",
       limit: productsSyncLimitInput ? productsSyncLimitInput.value : "",
       query: productsSyncQuery ? productsSyncQuery.value.trim() : "",
+      onlyActive: productsSyncOnlyActive ? productsSyncOnlyActive.checked : true,
       publishOnSync: productsSyncPublish ? productsSyncPublish.checked : true,
       onlyPublishedInShopify: productsSyncOnlyPublished
         ? productsSyncOnlyPublished.checked
@@ -2038,6 +2047,7 @@ async function runProductsSync(mode) {
           limit: productSettings.sync.limit ? Number(productSettings.sync.limit) : null,
           query: productSettings.sync.query || null,
           includeInventory: productSettings.sync.includeInventory !== false,
+          onlyActive: productSettings.sync.onlyActive !== false,
         },
         settings: {
           status: productSettings.publish.status,
@@ -3773,6 +3783,7 @@ if (productsClearBtn) {
       if (productsDateEnd) productsDateEnd.value = "";
       if (productsSyncLimitInput) productsSyncLimitInput.value = "";
       if (productsSyncQuery) productsSyncQuery.value = "";
+      if (productsSyncOnlyActive) productsSyncOnlyActive.checked = true;
       if (productsSyncPublish) productsSyncPublish.checked = true;
       if (productsSyncOnlyPublished) productsSyncOnlyPublished.checked = true;
       if (productsSyncIncludeInventory) productsSyncIncludeInventory.checked = true;
@@ -3787,6 +3798,7 @@ const productSettingInputs = [
   productsDateEnd,
   productsSyncLimitInput,
   productsSyncQuery,
+  productsSyncOnlyActive,
   productsSyncPublish,
   productsSyncOnlyPublished,
   productsSyncIncludeInventory,

@@ -760,21 +760,6 @@
                   <option value="active">Active</option>
                 </select>
               </div>
-              <div class="field span-2">
-                <label>Bodegas a sincronizar</label>
-                <details class="multi-select">
-                  <summary>
-                    <span>Seleccionar bodegas</span>
-                    <em id="cfg-warehouse-sync-summary">Todas</em>
-                  </summary>
-                  <div class="checkbox-grid single" id="cfg-warehouse-sync">
-                    <label class="select-all">
-                      <input type="checkbox" id="cfg-warehouse-select-all" />
-                      <span>Seleccionar todas</span>
-                    </label>
-                  </div>
-                </details>
-              </div>
             </div>
           </div>
 
@@ -805,12 +790,31 @@
                 <input type="text" id="products-sync-query" placeholder="Ej: SADBS0276" />
               </div>
               <div class="field">
+                <label>Solo productos activos (Alegra)</label>
+                <input type="checkbox" id="products-sync-only-active" checked />
+              </div>
+              <div class="field">
                 <label>Publicar en Shopify</label>
                 <input type="checkbox" id="products-sync-publish" checked />
               </div>
               <div class="field">
                 <label>Solo publicados en Shopify</label>
                 <input type="checkbox" id="products-sync-only-published" checked />
+              </div>
+              <div class="field span-2">
+                <label>Bodegas Alegra a sincronizar</label>
+                <details class="multi-select">
+                  <summary>
+                    <span>Seleccionar bodegas</span>
+                    <em id="cfg-warehouse-sync-summary">Todas</em>
+                  </summary>
+                  <div class="checkbox-grid single" id="cfg-warehouse-sync">
+                    <label class="select-all">
+                      <input type="checkbox" id="cfg-warehouse-select-all" />
+                      <span>Seleccionar todas</span>
+                    </label>
+                  </div>
+                </details>
               </div>
             </div>
             <div class="toolbar">
