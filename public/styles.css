@@ -303,10 +303,11 @@ body {
   display: flex;
   gap: 10px;
   align-items: center;
+  justify-content: flex-end;
 }
 
 .topbar-brand img {
-  width: 120px;
+  width: 140px;
   height: auto;
   object-fit: contain;
 }

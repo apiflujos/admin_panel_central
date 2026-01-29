@@ -3010,9 +3010,43 @@ if (profileSave) {
     saveProfile();
   });
 }
+if (profilePhoto) {
+  profilePhoto.addEventListener("change", async () => {
+    try {
+      const file = profilePhoto.files && profilePhoto.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        throw new Error("La foto supera 2MB.");
+      }
+      const preview = await readFileAsDataUrl(file);
+      if (userAvatar) userAvatar.src = preview;
+    } catch (error) {
+      if (profileMessage) {
+        profileMessage.textContent = error?.message || "No se pudo cargar la foto.";
+      }
+    }
+  });
+}
 if (companySave) {
   companySave.addEventListener("click", () => {
     saveCompany();
+  });
+}
+if (companyLogoInput) {
+  companyLogoInput.addEventListener("change", async () => {
+    try {
+      const file = companyLogoInput.files && companyLogoInput.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        throw new Error("El logo supera 2MB.");
+      }
+      const preview = await readFileAsDataUrl(file);
+      if (companyLogo) companyLogo.src = preview;
+    } catch (error) {
+      if (companyMessage) {
+        companyMessage.textContent = error?.message || "No se pudo cargar el logo.";
+      }
+    }
   });
 }
 if (userCreate) {
