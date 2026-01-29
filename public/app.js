@@ -1537,7 +1537,10 @@ function renderSettingsWarehouseFilters() {
     cfgWarehouseSync.appendChild(empty);
     return;
   }
-  settingsWarehousesCatalog.forEach((warehouse) => {
+  const sortedWarehouses = [...settingsWarehousesCatalog].sort((a, b) =>
+    String(a?.name || "").localeCompare(String(b?.name || ""), "es")
+  );
+  sortedWarehouses.forEach((warehouse) => {
     const id = String(warehouse.id || warehouse._id || "");
     const label = document.createElement("label");
     const input = document.createElement("input");
@@ -1613,7 +1616,10 @@ function renderWarehouseFilters() {
     productsWarehouseFilter.appendChild(empty);
     return;
   }
-  warehousesCatalog.forEach((warehouse) => {
+  const sortedWarehouses = [...warehousesCatalog].sort((a, b) =>
+    String(a?.name || "").localeCompare(String(b?.name || ""), "es")
+  );
+  sortedWarehouses.forEach((warehouse) => {
     const id = String(warehouse.id || warehouse._id || "");
     const label = document.createElement("label");
     const input = document.createElement("input");
