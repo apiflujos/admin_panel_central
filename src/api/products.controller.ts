@@ -16,11 +16,15 @@ import {
   listAlegraItemsCache,
   upsertAlegraItemsCache,
 } from "../services/alegra-items-cache.service";
+import { resolveStoreConfig } from "../services/store-config.service";
 
 type AlegraPrice = {
   name?: string;
   type?: string;
   price?: number | string;
+  id?: string | number;
+  priceListId?: string | number;
+  priceList?: { id?: string | number };
 };
 
 type AlegraVariantAttribute = {
@@ -254,6 +258,79 @@ async function fetchShopify(path: string, options: RequestInit = {}, configOverr
   return response.json();
 }
 
+type PriceListConfig = {
+  generalId?: string;
+  discountId?: string;
+  wholesaleId?: string;
+  currency?: string;
+};
+
+const normalizePriceId = (value?: string | number) => {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+};
+
+const resolvePriceListId = (price?: AlegraPrice) => {
+  if (!price) return "";
+  return (
+    normalizePriceId(price.priceListId) ||
+    normalizePriceId(price.priceList?.id) ||
+    normalizePriceId(price.id)
+  );
+};
+
+const parsePriceValue = (value?: string | number) => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const parsed = Number(trimmed.replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const findPriceById = (prices: AlegraPrice[], listId?: string) => {
+  if (!listId) return null;
+  const normalized = normalizePriceId(listId);
+  return prices.find((price) => resolvePriceListId(price) === normalized) || null;
+};
+
+const findPriceByName = (prices: AlegraPrice[], keywords: string[]) => {
+  const match = prices.find((price) => {
+    const name = String(price?.name || "").toLowerCase();
+    const type = String(price?.type || "").toLowerCase();
+    return keywords.some((keyword) => name.includes(keyword) || type.includes(keyword));
+  });
+  return match || null;
+};
+
+const pickPriceForStore = (prices: AlegraPrice[] = [], config?: PriceListConfig) => {
+  if (!Array.isArray(prices) || prices.length === 0) return null;
+  if (config?.discountId) {
+    const byId = findPriceById(prices, config.discountId);
+    const byName = byId || findPriceByName(prices, ["descuento", "discount", "promo"]);
+    const value = parsePriceValue(byName?.price);
+    if (value !== null) return value;
+  }
+  if (config?.wholesaleId) {
+    const byId = findPriceById(prices, config.wholesaleId);
+    const byName = byId || findPriceByName(prices, ["wholesale", "mayorista"]);
+    const value = parsePriceValue(byName?.price);
+    if (value !== null) return value;
+  }
+  if (config?.generalId) {
+    const byId = findPriceById(prices, config.generalId);
+    const byName = byId || findPriceByName(prices, ["general", "base"]);
+    const value = parsePriceValue(byName?.price);
+    if (value !== null) return value;
+  }
+  const fallback = prices.find((price) =>
+    String(price?.name || "").toLowerCase().includes("general")
+  ) || prices[0];
+  return parsePriceValue(fallback?.price);
+};
+
 const pickPrice = (prices: AlegraPrice[] = []) => {
   if (!Array.isArray(prices) || prices.length === 0) return null;
   const general =
@@ -261,8 +338,8 @@ const pickPrice = (prices: AlegraPrice[] = []) => {
     prices.find((price) => price?.type?.toLowerCase?.().includes("general")) ||
     prices[0];
   if (!general) return null;
-  const parsed = typeof general.price === "string" ? Number(general.price) : general.price;
-  return Number.isFinite(parsed) ? Number(parsed) : null;
+  const parsed = parsePriceValue(general.price);
+  return parsed;
 };
 
 const normalizeImageUrls = (images: Array<{ url?: string } | string> = []) =>
@@ -424,7 +501,8 @@ const buildShopifyPayload = (
   alegraItem: AlegraItem,
   settings: { status?: string; includeImages?: boolean; vendor?: string },
   warehouseIds: string[],
-  includeInventory: boolean
+  includeInventory: boolean,
+  priceConfig?: PriceListConfig
 ) => {
   const images = normalizeImageUrls(alegraItem.images || []);
   const itemVariants = Array.isArray(alegraItem.itemVariants) ? alegraItem.itemVariants : [];
@@ -441,7 +519,7 @@ const buildShopifyPayload = (
       alegraItem.barcode ||
       extractCustomFieldValue(alegraItem, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"]) ||
       "",
-    price: pickPrice(alegraItem.price)?.toString() ?? "0",
+    price: pickPriceForStore(alegraItem.price, priceConfig)?.toString() ?? "0",
     inventory_policy: "deny",
     inventory_management: "shopify",
     inventory_quantity: includeInventory
@@ -459,7 +537,7 @@ const buildShopifyPayload = (
             alegraItem.barcode ||
             extractCustomFieldValue(alegraItem, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"]) ||
             "",
-          price: pickPrice(variant.price)?.toString() ?? "0",
+          price: pickPriceForStore(variant.price, priceConfig)?.toString() ?? "0",
           inventory_policy: "deny",
           inventory_management: "shopify",
           inventory_quantity: includeInventory
@@ -897,6 +975,10 @@ export async function publishShopifyHandler(req: Request, res: Response) {
   const { alegraId, settings = {}, alegraItem } = req.body || {};
   try {
     const shopifyConfig = await getShopifyConfig();
+    const shopifyCredential = await getShopifyCredential();
+    const storeConfig = shopifyCredential?.shopDomain
+      ? await resolveStoreConfig(shopifyCredential.shopDomain)
+      : await resolveStoreConfig(null);
     let item: AlegraItem | undefined = alegraItem;
     if (!item && alegraId) {
       const query = new URLSearchParams();
@@ -917,7 +999,12 @@ export async function publishShopifyHandler(req: Request, res: Response) {
       res.status(400).json({ error: "Producto fuera de las bodegas seleccionadas." });
       return;
     }
-    const payload = buildShopifyPayload(item, settings, warehouseIds, true);
+    const payload = buildShopifyPayload(item, settings, warehouseIds, true, {
+      generalId: storeConfig?.priceListGeneralId,
+      discountId: storeConfig?.priceListDiscountId,
+      wholesaleId: storeConfig?.priceListWholesaleId,
+      currency: storeConfig?.currency,
+    });
     const published = await fetchShopify("/products.json", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1088,6 +1175,9 @@ export async function syncProductsHandler(req: Request, res: Response) {
     }
     const shopifyCredential = publishOnSync ? await getShopifyCredential() : null;
     const shopifyConfig = publishOnSync ? await getShopifyConfig() : null;
+    const storeConfig = shopifyCredential?.shopDomain
+      ? await resolveStoreConfig(shopifyCredential.shopDomain)
+      : await resolveStoreConfig(null);
     const warehouseIds = await loadWarehouseIdsForSync();
     const shopifyClient =
       publishOnSync && shopifyCredential
@@ -1199,7 +1289,13 @@ export async function syncProductsHandler(req: Request, res: Response) {
                 vendor: settings.vendor || "",
               },
               warehouseIds,
-              includeInventory
+              includeInventory,
+              {
+                generalId: storeConfig?.priceListGeneralId,
+                discountId: storeConfig?.priceListDiscountId,
+                wholesaleId: storeConfig?.priceListWholesaleId,
+                currency: storeConfig?.currency,
+              }
             );
             await fetchShopify(
               "/products.json",

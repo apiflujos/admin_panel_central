@@ -3,6 +3,7 @@ import { ShopifyClient } from "../connectors/shopify";
 import { getAlegraBaseUrl } from "../utils/alegra-env";
 import { decryptString } from "../utils/crypto";
 import { ensureInventoryRulesColumns, getOrgId, getPool } from "../db";
+import { resolveStoreConfig } from "./store-config.service";
 
 type SyncContext = {
   shopify: ShopifyClient;
@@ -13,6 +14,10 @@ type SyncContext = {
   autoPublishStatus: "draft" | "active";
   alegraWarehouseId?: string;
   alegraWarehouseIds?: string[];
+  priceListGeneralId?: string;
+  priceListDiscountId?: string;
+  priceListWholesaleId?: string;
+  priceListCurrency?: string;
 };
 
 type InventoryRules = {
@@ -30,6 +35,7 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
   const alegraSettings = await loadAlegraSettings(pool, orgId, shopDomain);
   const rules = await loadInventoryRules(pool, orgId);
   const warehouseId = await loadWarehouseId(pool, orgId);
+  const storeConfig = await resolveStoreConfig(shopDomain || shopifySettings?.shopDomain || null);
 
   if (!shopifySettings?.shopDomain || !shopifySettings?.accessToken) {
     throw new Error("Missing Shopify credentials in DB");
@@ -60,6 +66,10 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
     autoPublishStatus: rules.autoPublishStatus,
     alegraWarehouseId: warehouseId,
     alegraWarehouseIds: rules.warehouseIds,
+    priceListGeneralId: storeConfig.priceListGeneralId,
+    priceListDiscountId: storeConfig.priceListDiscountId,
+    priceListWholesaleId: storeConfig.priceListWholesaleId,
+    priceListCurrency: storeConfig.currency,
   };
 }
 

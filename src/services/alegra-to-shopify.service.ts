@@ -55,7 +55,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem) {
     !statusInactive && (ctx.publishOnStock ? effectiveQuantity > 0 : true);
   const desiredPublish =
     ctx.autoPublishStatus === "active" ? publishEligible : false;
-  const itemPrice = resolvePrice(item.price);
+  const itemPrice = resolvePrice(item.price, ctx);
 
   if (!mapped) {
     const matched = await resolveVariantByIdentifiers(ctx, identifiers);
@@ -254,16 +254,28 @@ async function resolveVariantByIdentifiers(
 }
 
 function resolvePrice(
-  price: AlegraItem["price"]
+  price: AlegraItem["price"],
+  ctx: Awaited<ReturnType<typeof buildSyncContext>>
 ): number | null {
   if (typeof price === "number") {
     return price;
   }
   if (Array.isArray(price) && price.length > 0) {
+    const matchByList = (listId?: string) => {
+      if (!listId) return null;
+      const normalized = String(listId);
+      return (
+        price.find((entry) => String(entry?.idPriceList || "") === normalized) || null
+      );
+    };
+    const discount = matchByList(ctx.priceListDiscountId);
+    if (discount && typeof discount.price === "number") return discount.price;
+    const wholesale = matchByList(ctx.priceListWholesaleId);
+    if (wholesale && typeof wholesale.price === "number") return wholesale.price;
+    const general = matchByList(ctx.priceListGeneralId);
+    if (general && typeof general.price === "number") return general.price;
     const first = price[0];
-    if (typeof first?.price === "number") {
-      return first.price;
-    }
+    if (typeof first?.price === "number") return first.price;
   }
   return null;
 }
