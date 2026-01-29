@@ -1518,12 +1518,13 @@ function renderSettingsWarehouseFilters() {
   if (!cfgWarehouseSync) return;
   const selected = new Set(inventoryRules.warehouseIds || []);
   cfgWarehouseSync.innerHTML = "";
+  const totalCount = settingsWarehousesCatalog.length;
   const selectAllLabel = document.createElement("label");
   selectAllLabel.className = "select-all";
   const selectAllInput = document.createElement("input");
   selectAllInput.type = "checkbox";
   selectAllInput.dataset.selectAll = "settings";
-  selectAllInput.checked = selected.size === 0;
+  selectAllInput.checked = selected.size === 0 || selected.size === totalCount;
   const selectAllText = document.createElement("span");
   selectAllText.textContent = "Seleccionar todas";
   selectAllLabel.appendChild(selectAllInput);
@@ -1557,6 +1558,9 @@ async function loadSettingsWarehouses() {
   try {
     const data = await fetchJson("/api/alegra/warehouses");
     settingsWarehousesCatalog = Array.isArray(data.items) ? data.items : [];
+    settingsWarehousesCatalog.sort((a, b) =>
+      String(a?.name || "").localeCompare(String(b?.name || ""), "es")
+    );
   } catch {
     settingsWarehousesCatalog = [];
   }
@@ -1570,7 +1574,7 @@ function updateSettingsWarehouseSummary() {
     return;
   }
   const selected = getSelectedSettingsWarehouseIds();
-  if (!selected.length) {
+  if (!selected.length || selected.length === settingsWarehousesCatalog.length) {
     cfgWarehouseSyncSummary.textContent = "Todas";
     return;
   }
@@ -1590,12 +1594,13 @@ function renderWarehouseFilters() {
   if (!productsWarehouseFilter) return;
   const selected = new Set(productSettings.filters?.warehouseIds || []);
   productsWarehouseFilter.innerHTML = "";
+  const totalCount = warehousesCatalog.length;
   const selectAllLabel = document.createElement("label");
   selectAllLabel.className = "select-all";
   const selectAllInput = document.createElement("input");
   selectAllInput.type = "checkbox";
   selectAllInput.dataset.selectAll = "products";
-  selectAllInput.checked = selected.size === 0;
+  selectAllInput.checked = selected.size === 0 || selected.size === totalCount;
   const selectAllText = document.createElement("span");
   selectAllText.textContent = "Seleccionar todas";
   selectAllLabel.appendChild(selectAllInput);
@@ -1629,6 +1634,9 @@ async function loadWarehouseFilters() {
   try {
     const data = await fetchJson("/api/alegra/warehouses");
     warehousesCatalog = Array.isArray(data.items) ? data.items : [];
+    warehousesCatalog.sort((a, b) =>
+      String(a?.name || "").localeCompare(String(b?.name || ""), "es")
+    );
   } catch {
     warehousesCatalog = [];
   }
@@ -1642,7 +1650,7 @@ function updateProductsWarehouseSummary() {
     return;
   }
   const selected = getSelectedWarehouseIds();
-  if (!selected.length) {
+  if (!selected.length || selected.length === warehousesCatalog.length) {
     productsWarehouseSummary.textContent = "Todas";
     return;
   }
@@ -3390,10 +3398,11 @@ if (cfgWarehouseSync) {
         input.checked = nextChecked;
       });
     } else if (selectAllInput) {
-      const anySelected = Array.from(
+      const total = cfgWarehouseSync.querySelectorAll("input[data-warehouse-id]").length;
+      const selected = Array.from(
         cfgWarehouseSync.querySelectorAll("input[data-warehouse-id]")
-      ).some((input) => input.checked);
-      selectAllInput.checked = !anySelected;
+      ).filter((input) => input.checked).length;
+      selectAllInput.checked = selected === 0 || selected === total;
     }
     updateSettingsWarehouseSummary();
     try {
@@ -3535,10 +3544,11 @@ if (productsWarehouseFilter) {
         input.checked = nextChecked;
       });
     } else if (selectAllInput) {
-      const anySelected = Array.from(
+      const total = productsWarehouseFilter.querySelectorAll("input[data-warehouse-id]").length;
+      const selected = Array.from(
         productsWarehouseFilter.querySelectorAll("input[data-warehouse-id]")
-      ).some((input) => input.checked);
-      selectAllInput.checked = !anySelected;
+      ).filter((input) => input.checked).length;
+      selectAllInput.checked = selected === 0 || selected === total;
     }
     updateProductsWarehouseSummary();
     productsStart = 0;
