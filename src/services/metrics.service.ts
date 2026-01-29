@@ -68,7 +68,17 @@ export async function getMetrics(options: { range?: MetricsRange; days?: number 
     const billingRangePct =
       billingRangePrevValue > 0 ? Math.round((billingRangeDeltaValue / billingRangePrevValue) * 100) : null;
     const weeklyRevenue = buildDailyShopifySeriesRange(shopifyOrders, current.from, current.to);
+    const weeklyRevenuePrev = buildDailyShopifySeriesRange(
+      shopifyOrdersPrev,
+      previous.from,
+      previous.to
+    );
     const billingSeries = buildDailyInvoiceSeriesRange(invoicesInRange, current.from, current.to);
+    const billingSeriesPrev = buildDailyInvoiceSeriesRange(
+      invoicesPrev,
+      previous.from,
+      previous.to
+    );
     const invoiceSeries = buildDailyCountSeriesRange(invoicesInRange, current.from, current.to);
     const orderSeries = await buildOrderSeriesRange(current.from, current.to);
     const ordersVsInvoices = buildOrdersVsInvoices(
@@ -121,7 +131,9 @@ export async function getMetrics(options: { range?: MetricsRange; days?: number 
       lastWebhookAt,
       paymentsByMethod,
       weeklyRevenue,
+      weeklyRevenuePrev,
       billingSeries,
+      billingSeriesPrev,
       ordersVsInvoices,
       topProductsUnits: aggregations.topProductsUnits,
       topProductsRevenue: aggregations.topProductsRevenue,

@@ -2144,8 +2144,8 @@ async function loadMetrics() {
         typeof data.billingRangeDelta === "string" ? `${sign}${data.billingRangeDelta}` : "--";
       kpiBillingAlegraSub.textContent = `Vs ${prevLabel} ${delta} (${pct})`;
     }
-    renderLineChart(chartWeekly, data.weeklyRevenue || []);
-    renderLineChart(chartAlegra, data.billingSeries || []);
+    renderLineChart(chartWeekly, data.weeklyRevenue || [], data.weeklyRevenuePrev || []);
+    renderLineChart(chartAlegra, data.billingSeries || [], data.billingSeriesPrev || []);
     renderBarChart(winsTopProducts, data.topProductsUnits || [], {
       labelKey: "name",
       valueKey: "units",
@@ -2327,7 +2327,7 @@ function formatCurrencyValue(value) {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(value);
 }
 
-function renderLineChart(container, items) {
+function renderLineChart(container, items, prevItems = []) {
   if (!container) return;
   if (!Array.isArray(items) || !items.length) {
     container.innerHTML = "";
@@ -2336,29 +2336,59 @@ function renderLineChart(container, items) {
   const sliceItems = container.classList.contains("chart-compact")
     ? items.slice(-7)
     : items;
+  const prevSlice = container.classList.contains("chart-compact")
+    ? prevItems.slice(-sliceItems.length)
+    : prevItems;
   const values = sliceItems.map((item) => Number(item.amount || 0));
+  const prevValues = prevSlice.map((item) => Number(item.amount || 0));
   const maxValue = Math.max(...values, 1);
   const minValue = Math.min(...values, 0);
+  const prevMax = prevValues.length ? Math.max(...prevValues, 1) : 0;
+  const prevMin = prevValues.length ? Math.min(...prevValues, 0) : 0;
+  const maxAll = Math.max(maxValue, prevMax, 1);
+  const minAll = Math.min(minValue, prevMin, 0);
   const width = 100;
   const height = 40;
   const padX = 4;
   const padY = 6;
   const step = sliceItems.length > 1 ? (width - padX * 2) / (sliceItems.length - 1) : 0;
   const scale = (value) => {
-    if (maxValue === minValue) return height / 2;
-    const ratio = (value - minValue) / (maxValue - minValue);
+    if (maxAll === minAll) return height / 2;
+    const ratio = (value - minAll) / (maxAll - minAll);
     return height - padY - ratio * (height - padY * 2);
   };
   const points = sliceItems
     .map((item, index) => `${padX + index * step},${scale(Number(item.amount || 0))}`)
     .join(" ");
+  const prevPoints = prevSlice
+    .map((item, index) => `${padX + index * step},${scale(Number(item.amount || 0))}`)
+    .join(" ");
   const lastValue = sliceItems[sliceItems.length - 1]?.amount || 0;
   const lastLabel = String(sliceItems[sliceItems.length - 1]?.date || "").slice(5);
+  const prevTotal = prevValues.reduce((acc, value) => acc + value, 0);
+  const currentTotal = values.reduce((acc, value) => acc + value, 0);
+  const maxLabel = formatCurrencyValue(maxAll);
+  const midLabel = formatCurrencyValue((maxAll + minAll) / 2);
+  const minLabel = formatCurrencyValue(minAll);
   container.innerHTML = `
     <div class="line-chart">
-      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
-        <polyline points="${points}" fill="none" stroke="var(--primary)" stroke-width="2" />
-      </svg>
+      <div class="line-chart-plot">
+        <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+          ${prevPoints ? `<polyline points="${prevPoints}" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="3 3" />` : ""}
+          <polyline points="${points}" fill="none" stroke="var(--primary)" stroke-width="2" />
+        </svg>
+        <div class="line-chart-scale">
+          <span>${maxLabel}</span>
+          <span>${midLabel}</span>
+          <span>${minLabel}</span>
+        </div>
+      </div>
+      ${prevPoints ? `
+        <div class="line-chart-legend">
+          <span><i></i>Actual: ${formatCurrencyValue(currentTotal)}</span>
+          <span><i class="is-prev"></i>Anterior: ${formatCurrencyValue(prevTotal)}</span>
+        </div>
+      ` : ""}
       <div class="line-chart-meta">
         <span>${lastLabel}</span>
         <strong>${formatCurrencyValue(Number(lastValue || 0))}</strong>
