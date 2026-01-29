@@ -17,8 +17,9 @@ const normalizeBoolean = (value: unknown, fallback: boolean) => {
   return fallback;
 };
 
-const normalizeAutoStatus = (value: unknown, fallback: "draft" | "active") => {
-  return value === "active" ? "active" : value === "draft" ? "draft" : fallback;
+const normalizeAutoStatus = (value: unknown, fallback: unknown) => {
+  const resolvedFallback = fallback === "active" ? "active" : "draft";
+  return value === "active" ? "active" : value === "draft" ? "draft" : resolvedFallback;
 };
 
 export async function listStoreConfigs() {
