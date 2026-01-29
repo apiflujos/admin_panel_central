@@ -111,7 +111,6 @@ const passwordSave = document.getElementById("password-save");
 const passwordMessage = document.getElementById("password-message");
 const testShopifyButton = document.getElementById("test-shopify");
 const testAlegraButton = document.getElementById("test-alegra");
-const envButtons = document.querySelectorAll(".toggle-btn");
 const profileName = document.getElementById("profile-name");
 const profileEmail = document.getElementById("profile-email");
 const profilePhone = document.getElementById("profile-phone");
@@ -144,11 +143,6 @@ const cfgObservations = document.getElementById("cfg-observations");
 const cfgGenerateInvoice = document.getElementById("cfg-generate-invoice");
 const cfgEinvoiceEnabled = document.getElementById("cfg-einvoice-enabled");
 
-const mapSourceMethod = document.getElementById("map-source-method");
-const mapPaymentMethod = document.getElementById("map-payment-method");
-const mapBankAccount = document.getElementById("map-bank-account");
-const mapAdd = document.getElementById("map-add");
-const mapTableBody = document.querySelector("#map-table tbody");
 const opsTableBody = document.querySelector("#ops-table tbody");
 const opsSearch = document.getElementById("ops-search");
 const opsSearchBtn = document.getElementById("ops-search-btn");
@@ -172,7 +166,6 @@ const productsCountLabel = document.getElementById("products-count");
 const productsStatus = document.getElementById("products-status");
 const productsPublishStatus = document.getElementById("products-publish-status");
 const productsIncludeImages = document.getElementById("products-include-images");
-const productsVendor = document.getElementById("products-vendor");
 const productsDateStart = document.getElementById("products-date-start");
 const productsDateEnd = document.getElementById("products-date-end");
 const productsSyncLimitInput = document.getElementById("products-sync-limit");
@@ -202,8 +195,6 @@ const ordersSort = document.getElementById("orders-sort");
 const rulesAutoPublish = document.getElementById("rules-auto-publish");
 const rulesAutoStatus = document.getElementById("rules-auto-status");
 
-let paymentMappings = [];
-let alegraEnvironment = "prod";
 let shopifyAdminBase = "";
 let currentUserRole = "agent";
 let currentUserId = null;
@@ -272,12 +263,6 @@ let assistantHasSpoken = false;
 let assistantFiles = [];
 let activeEinvoiceOrderId = "";
 
-function setAlegraEnvironment(value) {
-  alegraEnvironment = value === "sandbox" ? "sandbox" : "prod";
-  envButtons.forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.env === alegraEnvironment);
-  });
-}
 
 function showSection(target) {
   sections.forEach((section) => {
@@ -336,11 +321,6 @@ if (sidebarToggle) {
   });
 }
 
-envButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    setAlegraEnvironment(button.dataset.env || "prod");
-  });
-});
 
 function openModal(payload) {
   modalBody.textContent = payload || "Sin datos";
@@ -353,12 +333,16 @@ function closeModal() {
   modal.setAttribute("aria-hidden", "true");
 }
 
-modalClose.addEventListener("click", closeModal);
-modal.addEventListener("click", (event) => {
-  if (event.target === modal) {
-    closeModal();
-  }
-});
+if (modalClose) {
+  modalClose.addEventListener("click", closeModal);
+}
+if (modal) {
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) {
+      closeModal();
+    }
+  });
+}
 
 async function fetchJson(url, options) {
   const response = await fetch(url, options);
@@ -966,7 +950,6 @@ function saveProductSettings(next) {
 function applyProductSettings() {
   if (productsPublishStatus) productsPublishStatus.value = productSettings.publish.status;
   if (productsIncludeImages) productsIncludeImages.checked = productSettings.publish.includeImages;
-  if (productsVendor) productsVendor.value = productSettings.publish.vendor || "";
   if (productsDateStart) productsDateStart.value = productSettings.sync.dateStart;
   if (productsDateEnd) productsDateEnd.value = productSettings.sync.dateEnd;
   if (productsSyncLimitInput) productsSyncLimitInput.value = productSettings.sync.limit || "";
@@ -994,7 +977,6 @@ function refreshProductSettingsFromInputs() {
     publish: {
       status: productsPublishStatus ? productsPublishStatus.value : "draft",
       includeImages: productsIncludeImages ? productsIncludeImages.checked : true,
-      vendor: productsVendor ? productsVendor.value.trim() : "",
     },
     sync: {
       dateStart: productsDateStart ? productsDateStart.value : "",
@@ -1029,7 +1011,7 @@ function refreshProductSettingsFromInputs() {
 
 async function loadSettings() {
   const data = await fetchJson("/api/settings");
-  setAlegraEnvironment(data.alegra?.environment || "prod");
+  // ambiente fijo en produccion
   if (data.shopify) {
     shopifyDomain.value = data.shopify.shopDomain || "";
     shopifyToken.placeholder = data.shopify.hasAccessToken ? "Guardado" : "shpat_********";
@@ -1090,16 +1072,6 @@ async function loadSettings() {
   }
   if (inventoryCronAutoPublish) {
     inventoryCronAutoPublish.checked = inventoryRules.inventoryAdjustmentsAutoPublish !== false;
-  }
-  if (Array.isArray(data.paymentMappings)) {
-    paymentMappings = data.paymentMappings.map((item) => ({
-      sourceMethod: item.sourceMethod || item.methodId || "",
-      paymentMethod: item.paymentMethod || "",
-      accountId: item.accountId,
-      sourceLabel: item.sourceLabel || item.methodLabel || "",
-      paymentMethodLabel: item.paymentMethodLabel || "",
-      accountLabel: item.accountLabel,
-    }));
   }
   setMetricsStatusPills(data.shopify?.hasAccessToken, data.alegra?.hasApiKey);
   renderConnections(data);
@@ -2751,53 +2723,6 @@ async function loadResolutions() {
   }
 }
 
-function renderMappings() {
-  if (!paymentMappings.length) {
-    mapTableBody.innerHTML = `<tr><td colspan="4" class="empty">Sin mapeos.</td></tr>`;
-    return;
-  }
-  mapTableBody.innerHTML = paymentMappings
-    .map(
-      (item, index) => `
-      <tr>
-        <td>${item.sourceLabel || item.sourceMethod || "-"}</td>
-        <td>${item.paymentMethodLabel || item.paymentMethod || "-"}</td>
-        <td>${item.accountLabel}</td>
-        <td><button class="ghost" data-index="${index}">Quitar</button></td>
-      </tr>
-    `
-    )
-    .join("");
-
-  mapTableBody.querySelectorAll("button[data-index]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const index = Number(button.dataset.index);
-      paymentMappings = paymentMappings.filter((_, i) => i !== index);
-      renderMappings();
-    });
-  });
-}
-
-mapAdd.addEventListener("click", () => {
-  const sourceValue = mapSourceMethod ? mapSourceMethod.value.trim() : "";
-  const methodLabel = mapPaymentMethod.options[mapPaymentMethod.selectedIndex]?.textContent;
-  const accountLabel = mapBankAccount.options[mapBankAccount.selectedIndex]?.textContent;
-  if (!sourceValue || !mapPaymentMethod.value || !mapBankAccount.value) {
-    return;
-  }
-  paymentMappings.push({
-    sourceMethod: sourceValue,
-    paymentMethod: mapPaymentMethod.value,
-    accountId: mapBankAccount.value,
-    sourceLabel: sourceValue,
-    paymentMethodLabel: methodLabel,
-    accountLabel,
-  });
-  if (mapSourceMethod) {
-    mapSourceMethod.value = "";
-  }
-  renderMappings();
-});
 
 if (aiSave) {
   aiSave.addEventListener("click", async () => {
@@ -2853,7 +2778,7 @@ async function saveSettings() {
     alegra: {
       email: alegraEmail.value,
       apiKey: alegraKey.value,
-      environment: alegraEnvironment,
+      environment: "prod",
     },
     ai: {
       apiKey: aiKey ? aiKey.value : "",
@@ -2882,7 +2807,6 @@ async function saveSettings() {
         ? inventoryCronAutoPublish.checked
         : true,
     },
-    paymentMappings,
   };
   await fetchJson("/api/settings", {
     method: "PUT",
@@ -2900,10 +2824,7 @@ async function saveSettings() {
     loadCatalog(cfgSeller, "sellers"),
     loadCatalog(cfgPaymentMethod, "payment-methods"),
     loadCatalog(cfgBankAccount, "bank-accounts"),
-    loadCatalog(mapPaymentMethod, "payment-methods"),
-    loadCatalog(mapBankAccount, "bank-accounts"),
   ]);
-  renderMappings();
 }
 
 async function testConnections() {
@@ -2920,7 +2841,7 @@ async function testConnections() {
       alegra: {
         email: alegraEmail.value,
         apiKey: alegraKey.value,
-        environment: alegraEnvironment,
+        environment: "prod",
       },
     };
     const result = await fetchJson("/api/settings/test", {
@@ -2985,7 +2906,7 @@ async function testAlegraConnection() {
       alegra: {
         email: alegraEmail.value,
         apiKey: alegraKey.value,
-        environment: alegraEnvironment,
+        environment: "prod",
       },
     };
     const result = await fetchJson("/api/settings/test", {
@@ -3067,10 +2988,18 @@ if (assistantAttach && assistantFileInput) {
     renderAssistantAttachments();
   });
 }
-logFilter.addEventListener("click", loadLogs);
-logRetry.addEventListener("click", retryFailed);
-testShopifyButton.addEventListener("click", testShopifyConnection);
-testAlegraButton.addEventListener("click", testAlegraConnection);
+if (logFilter) {
+  logFilter.addEventListener("click", loadLogs);
+}
+if (logRetry) {
+  logRetry.addEventListener("click", retryFailed);
+}
+if (testShopifyButton) {
+  testShopifyButton.addEventListener("click", testShopifyConnection);
+}
+if (testAlegraButton) {
+  testAlegraButton.addEventListener("click", testAlegraConnection);
+}
 if (inventoryCronEnabled) {
   inventoryCronEnabled.addEventListener("change", async () => {
     try {
@@ -3190,10 +3119,12 @@ document.addEventListener("click", (event) => {
   }
   toggleUserMenu(false);
 });
-opsSearchBtn.addEventListener("click", () => {
-  ordersStart = 0;
-  loadOperations();
-});
+if (opsSearchBtn) {
+  opsSearchBtn.addEventListener("click", () => {
+    ordersStart = 0;
+    loadOperations();
+  });
+}
 
 if (productsSearchBtn) {
   productsSearchBtn.addEventListener("click", () => {
@@ -3442,7 +3373,6 @@ if (productsClearBtn) {
 const productSettingInputs = [
   productsPublishStatus,
   productsIncludeImages,
-  productsVendor,
   productsDateStart,
   productsDateEnd,
   productsSyncLimitInput,
@@ -3504,13 +3434,9 @@ async function init() {
       ? safeLoad(loadCatalog(cfgBankAccount, "bank-accounts"))
       : Promise.resolve(null),
     currentUserRole === "admin"
-      ? safeLoad(loadCatalog(mapPaymentMethod, "payment-methods"))
-      : Promise.resolve(null),
-    currentUserRole === "admin"
-      ? safeLoad(loadCatalog(mapBankAccount, "bank-accounts"))
+      ? safeLoad(loadCatalog(cfgBankAccount, "bank-accounts"))
       : Promise.resolve(null),
   ]);
-  renderMappings();
 }
 
 init();
