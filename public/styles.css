@@ -1354,6 +1354,7 @@ button {
   border-radius: 12px;
   background: #fff;
   padding: 4px 0;
+  position: relative;
 }
 
 .multi-select summary {
@@ -1384,6 +1385,14 @@ button {
 
 .multi-select[open] .checkbox-grid {
   margin-top: 6px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  z-index: 10;
 }
 
 .multi-select summary::after {
@@ -1405,6 +1414,12 @@ button {
   color: var(--text);
   padding: 4px 2px;
   border-radius: 6px;
+}
+
+.checkbox-grid input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
 }
 
 .checkbox-grid label:hover {
