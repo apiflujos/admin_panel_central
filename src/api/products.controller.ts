@@ -351,7 +351,9 @@ const resolveInventoryQuantityForFilter = (
     );
     return totals.count ? totals.sum : null;
   }
-  const raw = inventory.quantity ?? inventory.availableQuantity ?? inventory.initialQuantity;
+  const initialQuantity =
+    inventory && "initialQuantity" in inventory ? (inventory as any).initialQuantity : undefined;
+  const raw = inventory.quantity ?? inventory.availableQuantity ?? initialQuantity;
   if (raw === null || raw === undefined || raw === "") return null;
   const qty = Number(raw);
   return Number.isFinite(qty) ? qty : null;
