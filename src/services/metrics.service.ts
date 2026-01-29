@@ -61,7 +61,14 @@ export async function getMetrics(options: { range?: MetricsRange; days?: number 
     const salesRangeDeltaValue = salesRangeValue - salesRangePrevValue;
     const salesRangePct =
       salesRangePrevValue > 0 ? Math.round((salesRangeDeltaValue / salesRangePrevValue) * 100) : null;
+    const billingRangeValue = sumInvoices(invoicesInRange);
+    const invoicesPrev = filterByRange(invoices, previous.from, previous.to);
+    const billingRangePrevValue = sumInvoices(invoicesPrev);
+    const billingRangeDeltaValue = billingRangeValue - billingRangePrevValue;
+    const billingRangePct =
+      billingRangePrevValue > 0 ? Math.round((billingRangeDeltaValue / billingRangePrevValue) * 100) : null;
     const weeklyRevenue = buildDailyShopifySeriesRange(shopifyOrders, current.from, current.to);
+    const billingSeries = buildDailyInvoiceSeriesRange(invoicesInRange, current.from, current.to);
     const invoiceSeries = buildDailyCountSeriesRange(invoicesInRange, current.from, current.to);
     const orderSeries = await buildOrderSeriesRange(current.from, current.to);
     const ordersVsInvoices = buildOrdersVsInvoices(
@@ -94,6 +101,11 @@ export async function getMetrics(options: { range?: MetricsRange; days?: number 
       salesRangeDelta: formatCurrency(Math.abs(salesRangeDeltaValue)),
       salesRangeTrend: salesRangeDeltaValue >= 0 ? "up" : "down",
       salesRangePct,
+      billingRange: formatCurrency(billingRangeValue),
+      billingRangePrev: formatCurrency(billingRangePrevValue),
+      billingRangeDelta: formatCurrency(Math.abs(billingRangeDeltaValue)),
+      billingRangeTrend: billingRangeDeltaValue >= 0 ? "up" : "down",
+      billingRangePct,
       ordersRange: countByRange(invoicesInRange, current.from, current.to),
       customersRange: countByRange(contactsInRange, current.from, current.to),
       ordersToday: countByDate(invoices, today),
@@ -109,6 +121,7 @@ export async function getMetrics(options: { range?: MetricsRange; days?: number 
       lastWebhookAt,
       paymentsByMethod,
       weeklyRevenue,
+      billingSeries,
       ordersVsInvoices,
       topProductsUnits: aggregations.topProductsUnits,
       topProductsRevenue: aggregations.topProductsRevenue,
@@ -378,6 +391,10 @@ function sumShopifyOrders(orders: ShopifyOrder[]) {
   );
 }
 
+function sumInvoices(invoices: Array<MetricItem>) {
+  return invoices.reduce((acc, item) => acc + extractInvoiceTotal(item), 0);
+}
+
 function buildDailyShopifySeriesRange(orders: ShopifyOrder[], from: Date, to: Date) {
   const series = [];
   const dates = buildDateListRange(from, to);
@@ -386,6 +403,21 @@ function buildDailyShopifySeriesRange(orders: ShopifyOrder[], from: Date, to: Da
     const date = extractShopifyDate(order);
     if (!date) continue;
     totals.set(date, (totals.get(date) || 0) + Number(order.totalPriceSet?.shopMoney.amount || 0));
+  }
+  for (const date of dates) {
+    series.push({ date, amount: totals.get(date) || 0 });
+  }
+  return series;
+}
+
+function buildDailyInvoiceSeriesRange(items: Array<MetricItem>, from: Date, to: Date) {
+  const series = [];
+  const dates = buildDateListRange(from, to);
+  const totals = new Map<string, number>();
+  for (const item of items) {
+    const date = extractDate(item);
+    if (!date) continue;
+    totals.set(date, (totals.get(date) || 0) + extractInvoiceTotal(item));
   }
   for (const date of dates) {
     series.push({ date, amount: totals.get(date) || 0 });
@@ -452,6 +484,18 @@ function buildDateSet(days: number) {
 
 function extractDate(item: MetricItem) {
   return String(item.date || item.createdAt || item.datetime || "").slice(0, 10);
+}
+
+function extractInvoiceTotal(item: MetricItem) {
+  const value =
+    item.total ??
+    item.totalAmount ??
+    item.total_amount ??
+    item.totalValue ??
+    item.total_value ??
+    item.amount ??
+    0;
+  return Number(value || 0);
 }
 
 function extractShopifyDate(order: ShopifyOrder) {

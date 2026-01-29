@@ -495,6 +495,16 @@ button {
   color: var(--muted);
 }
 
+.kpi-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1169,6 +1179,47 @@ button {
   overflow: hidden;
 }
 
+.connections-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.connection-card {
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--panel);
+  display: grid;
+  gap: 6px;
+  min-height: 70px;
+}
+
+.connection-card p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  word-break: break-word;
+}
+
+.connection-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.connection-head h4 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.connection-card.empty {
+  color: var(--muted);
+  text-align: center;
+}
+
 .products-grid {
   display: grid;
   grid-template-columns: 320px 1fr;
@@ -1711,6 +1762,10 @@ textarea {
   }
 
   .products-settings {
+    grid-template-columns: 1fr;
+  }
+
+  .connections-grid {
     grid-template-columns: 1fr;
   }
 

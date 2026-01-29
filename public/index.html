@@ -133,18 +133,26 @@
               <div class="section-title">Panel de Victorias</div>
               <div class="kpi-grid metrics-kpi-grid victories-kpis">
                 <div class="kpi-card">
-                  <p>Ventas Totales Hoy</p>
+                  <p id="kpi-shopify-label">Pedidos Shopify</p>
+                  <span class="kpi-source">Fuente: Shopify</span>
                   <h2 id="kpi-sales-today">--</h2>
                   <span class="kpi-sub" id="kpi-sales-today-sub">Vs ayer</span>
                 </div>
                 <div class="kpi-card">
-                  <p>Tasa de Efectividad</p>
-                  <h2 id="kpi-effectiveness">--</h2>
-                  <span class="kpi-sub" id="kpi-effectiveness-sub">Pedidos ok</span>
+                  <p id="kpi-alegra-label">Facturacion Alegra</p>
+                  <span class="kpi-source">Fuente: Alegra</span>
+                  <h2 id="kpi-billing-alegra">--</h2>
+                  <span class="kpi-sub" id="kpi-billing-alegra-sub">Vs mes pasado</span>
                 </div>
                 <div class="kpi-card kpi-chart">
-                  <p id="chart-weekly-label">Crecimiento Semanal</p>
+                  <p id="chart-weekly-label">Crecimiento pedidos</p>
+                  <span class="kpi-source">Fuente: Shopify</span>
                   <div class="chart-placeholder chart-compact" id="chart-weekly"></div>
+                </div>
+                <div class="kpi-card kpi-chart" id="chart-alegra-card">
+                  <p id="chart-alegra-label">Crecimiento facturacion</p>
+                  <span class="kpi-source">Fuente: Alegra</span>
+                  <div class="chart-placeholder chart-compact" id="chart-alegra"></div>
                 </div>
               </div>
 
@@ -553,10 +561,6 @@
                       <option value="15">Cada 15 minutos</option>
                     </select>
                   </div>
-                  <label>
-                    <input type="checkbox" id="inventory-cron-autopublish" />
-                    <span>Publicar ajustes en Shopify automaticamente</span>
-                  </label>
                 </div>
               </div>
             </div>
@@ -678,21 +682,8 @@
               <h3>Conexiones guardadas</h3>
               <span class="panel-tag">Resumen</span>
             </div>
-            <div class="table-card">
-              <table id="connections-table">
-                <thead>
-                  <tr>
-                    <th>Servicio</th>
-                    <th>Cuenta</th>
-                    <th>Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td colspan="3" class="empty">Sin conexiones.</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="connections-grid" id="connections-grid">
+              <div class="connection-card empty">Sin conexiones.</div>
             </div>
           </div>
 

@@ -13,7 +13,6 @@ const inventoryCronCheckpoint = document.getElementById("inventory-cron-checkpoi
 const inventoryCronInterval = document.getElementById("inventory-cron-interval");
 const inventoryCronEnabled = document.getElementById("inventory-cron-enabled");
 const inventoryCronIntervalSelect = document.getElementById("inventory-cron-interval-select");
-const inventoryCronAutoPublish = document.getElementById("inventory-cron-autopublish");
 const queueStatus = document.getElementById("queue-status");
 const syncProgress = document.getElementById("sync-progress");
 const syncProgressBar = document.getElementById("sync-progress-bar");
@@ -56,12 +55,14 @@ const logStatus = document.getElementById("log-status");
 const logOrderId = document.getElementById("log-order-id");
 const logFilter = document.getElementById("log-filter");
 const logRetry = document.getElementById("log-retry");
-const connectionsTableBody = document.querySelector("#connections-table tbody");
+const connectionsGrid = document.getElementById("connections-grid");
 
 const kpiSalesToday = document.getElementById("kpi-sales-today");
 const kpiSalesTodaySub = document.getElementById("kpi-sales-today-sub");
-const kpiEffectiveness = document.getElementById("kpi-effectiveness");
-const kpiEffectivenessSub = document.getElementById("kpi-effectiveness-sub");
+const kpiBillingAlegra = document.getElementById("kpi-billing-alegra");
+const kpiBillingAlegraSub = document.getElementById("kpi-billing-alegra-sub");
+const kpiShopifyLabel = document.getElementById("kpi-shopify-label");
+const kpiAlegraLabel = document.getElementById("kpi-alegra-label");
 const chartWeekly = document.getElementById("chart-weekly");
 const winsTopProducts = document.getElementById("wins-top-products");
 const winsTopCities = document.getElementById("wins-top-cities");
@@ -85,6 +86,8 @@ const metricsRange = document.getElementById("metrics-range");
 const metricsShopifyStatus = document.getElementById("metrics-shopify-status");
 const metricsAlegraStatus = document.getElementById("metrics-alegra-status");
 const weeklyGrowthLabel = document.getElementById("chart-weekly-label");
+const chartAlegra = document.getElementById("chart-alegra");
+const alegraGrowthLabel = document.getElementById("chart-alegra-label");
 const assistantMessages = document.getElementById("assistant-messages");
 const assistantInput = document.getElementById("assistant-input");
 const assistantSend = document.getElementById("assistant-send");
@@ -1071,16 +1074,14 @@ async function loadSettings() {
       inventoryRules.inventoryAdjustmentsIntervalMinutes || 5
     );
   }
-  if (inventoryCronAutoPublish) {
-    inventoryCronAutoPublish.checked = inventoryRules.inventoryAdjustmentsAutoPublish !== false;
-  }
   setMetricsStatusPills(data.shopify?.hasAccessToken, data.alegra?.hasApiKey);
   renderConnections(data);
   loadInventoryCheckpoint().catch(() => null);
 }
 
 function renderConnections(settings) {
-  connectionsTableBody.innerHTML = "";
+  if (!connectionsGrid) return;
+  connectionsGrid.innerHTML = "";
   const rows = [];
   if (settings.shopify) {
     rows.push({
@@ -1105,19 +1106,22 @@ function renderConnections(settings) {
     });
   }
   if (!rows.length) {
-    connectionsTableBody.innerHTML = `<tr><td colspan="3" class="empty">Sin conexiones.</td></tr>`;
+    connectionsGrid.innerHTML = `<div class="connection-card empty">Sin conexiones.</div>`;
     return;
   }
-  connectionsTableBody.innerHTML = rows
-    .map(
-      (row) => `
-      <tr>
-        <td>${row.service}</td>
-        <td>${row.account}</td>
-        <td>${row.status}</td>
-      </tr>
-    `
-    )
+  connectionsGrid.innerHTML = rows
+    .map((row) => {
+      const statusClass = row.status === "Conectado" || row.status === "Token activo" ? "is-ok" : "is-off";
+      return `
+        <div class="connection-card">
+          <div class="connection-head">
+            <h4>${row.service}</h4>
+            <span class="status-pill ${statusClass}">${row.status}</span>
+          </div>
+          <p>${row.account}</p>
+        </div>
+      `;
+    })
     .join("");
 }
 
@@ -2082,20 +2086,28 @@ async function loadMetrics() {
     }
     const growthLabel =
       data.range === "day"
-        ? "Evolución del día"
+        ? "Pedidos del día"
         : data.range === "week"
-        ? "Crecimiento semanal"
-        : "Crecimiento mensual";
+        ? "Pedidos semanales"
+        : "Pedidos mensuales";
+    const billingLabel =
+      data.range === "day"
+        ? "Facturacion del día"
+        : data.range === "week"
+        ? "Facturacion semanal"
+        : "Facturacion mensual";
     if (weeklyGrowthLabel) {
       weeklyGrowthLabel.textContent = growthLabel;
+    }
+    if (alegraGrowthLabel) {
+      alegraGrowthLabel.textContent = billingLabel;
     }
     if (kpiSalesToday) {
       const rangeLabel = data.rangeLabel || "Mes";
       const salesRange = data.salesRange || data.salesToday || "0";
       kpiSalesToday.textContent = salesRange;
-      const labelEl = kpiSalesToday.previousElementSibling;
-      if (labelEl) {
-        labelEl.textContent = `Ventas Totales · ${rangeLabel}`;
+      if (kpiShopifyLabel) {
+        kpiShopifyLabel.textContent = `Pedidos · ${rangeLabel}`;
       }
     }
     if (kpiSalesTodaySub) {
@@ -2111,15 +2123,29 @@ async function loadMetrics() {
         typeof data.salesRangeDelta === "string" ? `${sign}${data.salesRangeDelta}` : "--";
       kpiSalesTodaySub.textContent = `Vs ${prevLabel} ${delta} (${pct})`;
     }
-    if (kpiEffectiveness) {
-      kpiEffectiveness.textContent =
-        typeof data.effectivenessRate === "number" ? `${data.effectivenessRate}%` : "--";
+    if (kpiBillingAlegra) {
+      const billingRange = data.billingRange || "0";
+      kpiBillingAlegra.textContent = billingRange;
+      if (kpiAlegraLabel) {
+        const rangeLabel = data.rangeLabel || "Mes";
+        kpiAlegraLabel.textContent = `Facturacion · ${rangeLabel}`;
+      }
     }
-    if (kpiEffectivenessSub) {
-      const total = Number(data.effectivenessTotal || 0);
-      kpiEffectivenessSub.textContent = total ? `${total} pedidos` : "0 pedidos";
+    if (kpiBillingAlegraSub) {
+      const prevLabel =
+        data.range === "day"
+          ? "ayer"
+          : data.range === "week"
+          ? "semana pasada"
+          : "mes pasado";
+      const pct = typeof data.billingRangePct === "number" ? `${Math.abs(data.billingRangePct)}%` : "--";
+      const sign = data.billingRangeTrend === "down" ? "-" : "+";
+      const delta =
+        typeof data.billingRangeDelta === "string" ? `${sign}${data.billingRangeDelta}` : "--";
+      kpiBillingAlegraSub.textContent = `Vs ${prevLabel} ${delta} (${pct})`;
     }
-    renderWeeklyChart(data.weeklyRevenue || []);
+    renderLineChart(chartWeekly, data.weeklyRevenue || []);
+    renderLineChart(chartAlegra, data.billingSeries || []);
     renderBarChart(winsTopProducts, data.topProductsUnits || [], {
       labelKey: "name",
       valueKey: "units",
@@ -2142,9 +2168,10 @@ async function loadMetrics() {
   } catch {
     if (kpiSalesToday) kpiSalesToday.textContent = "0";
     if (kpiSalesTodaySub) kpiSalesTodaySub.textContent = "Vs periodo anterior --";
-    if (kpiEffectiveness) kpiEffectiveness.textContent = "0%";
-    if (kpiEffectivenessSub) kpiEffectivenessSub.textContent = "0 pedidos";
-    renderWeeklyChart([]);
+    if (kpiBillingAlegra) kpiBillingAlegra.textContent = "0";
+    if (kpiBillingAlegraSub) kpiBillingAlegraSub.textContent = "Vs periodo anterior --";
+    renderLineChart(chartWeekly, []);
+    renderLineChart(chartAlegra, []);
     renderBarChart(winsTopProducts, []);
     renderBarChart(winsTopCities, []);
     renderBarChart(winsPaymentMethods, []);
@@ -2300,13 +2327,13 @@ function formatCurrencyValue(value) {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(value);
 }
 
-function renderWeeklyChart(items) {
-  if (!chartWeekly) return;
+function renderLineChart(container, items) {
+  if (!container) return;
   if (!Array.isArray(items) || !items.length) {
-    chartWeekly.innerHTML = "";
+    container.innerHTML = "";
     return;
   }
-  const sliceItems = chartWeekly.classList.contains("chart-compact")
+  const sliceItems = container.classList.contains("chart-compact")
     ? items.slice(-7)
     : items;
   const values = sliceItems.map((item) => Number(item.amount || 0));
@@ -2327,7 +2354,7 @@ function renderWeeklyChart(items) {
     .join(" ");
   const lastValue = sliceItems[sliceItems.length - 1]?.amount || 0;
   const lastLabel = String(sliceItems[sliceItems.length - 1]?.date || "").slice(5);
-  chartWeekly.innerHTML = `
+  container.innerHTML = `
     <div class="line-chart">
       <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
         <polyline points="${points}" fill="none" stroke="var(--primary)" stroke-width="2" />
@@ -2468,6 +2495,7 @@ function updatePanelVisibility(data) {
   const hasLowStock = Array.isArray(data.lowStock) && data.lowStock.length > 0;
   const hasInactive = Array.isArray(data.inactiveProducts) && data.inactiveProducts.length > 0;
   const hasWeekly = Array.isArray(data.weeklyRevenue) && data.weeklyRevenue.length > 0;
+  const hasBillingSeries = Array.isArray(data.billingSeries) && data.billingSeries.length > 0;
 
   setVisible(panelTopProducts, hasTopProducts);
   setVisible(panelTopRevenue, hasTopRevenue);
@@ -2481,7 +2509,9 @@ function updatePanelVisibility(data) {
   setVisible(cardInactiveProducts, hasInactive);
 
   const weeklyCard = chartWeekly ? chartWeekly.closest(".kpi-card") : null;
+  const billingCard = chartAlegra ? chartAlegra.closest(".kpi-card") : null;
   setVisible(weeklyCard, hasWeekly);
+  setVisible(billingCard, hasBillingSeries);
 }
 
 function buildAssistantMessage(role, content, options = {}) {
@@ -2842,9 +2872,7 @@ async function saveSettings() {
       inventoryAdjustmentsIntervalMinutes: inventoryCronIntervalSelect
         ? Number(inventoryCronIntervalSelect.value || 5)
         : 5,
-      inventoryAdjustmentsAutoPublish: inventoryCronAutoPublish
-        ? inventoryCronAutoPublish.checked
-        : true,
+      inventoryAdjustmentsAutoPublish: inventoryRules.inventoryAdjustmentsAutoPublish !== false,
     },
   };
   await fetchJson("/api/settings", {
@@ -3051,16 +3079,6 @@ if (inventoryCronEnabled) {
 }
 if (inventoryCronIntervalSelect) {
   inventoryCronIntervalSelect.addEventListener("change", async () => {
-    try {
-      await saveSettings();
-      await loadInventoryCheckpoint();
-    } catch {
-      // ignore save errors here
-    }
-  });
-}
-if (inventoryCronAutoPublish) {
-  inventoryCronAutoPublish.addEventListener("change", async () => {
     try {
       await saveSettings();
       await loadInventoryCheckpoint();
