@@ -5,15 +5,21 @@ import { enqueueWebhookEvent } from "../services/sync.service";
 export async function handleShopifyWebhook(req: Request, res: Response) {
   const signature = req.header("X-Shopify-Hmac-Sha256");
   const topic = req.header("X-Shopify-Topic") || "unknown";
+  const shopDomain = req.header("X-Shopify-Shop-Domain") || "";
 
   if (!verifyShopifyHmac(req.rawBody as Buffer, signature || "")) {
     return res.status(401).json({ error: "invalid_signature" });
   }
 
+  const payload =
+    req.body && typeof req.body === "object"
+      ? { ...(req.body as Record<string, unknown>), __shopDomain: shopDomain }
+      : req.body;
+
   await enqueueWebhookEvent({
     source: "shopify",
     eventType: topic,
-    payload: req.body,
+    payload,
   });
 
   return res.status(200).json({ status: "accepted" });

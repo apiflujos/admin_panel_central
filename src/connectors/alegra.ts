@@ -42,6 +42,10 @@ export class AlegraClient {
     return this.request(`/inventory-adjustments`, { method: "POST", body: payload });
   }
 
+  async createInventoryTransfer(payload: Record<string, unknown>) {
+    return this.request(`/inventory-transfers`, { method: "POST", body: payload });
+  }
+
   async listInvoiceResolutions() {
     return this.request(`/invoices/resolutions`);
   }

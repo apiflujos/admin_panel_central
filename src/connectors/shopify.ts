@@ -129,6 +129,13 @@ export class ShopifyClient {
     );
   }
 
+  async addOrderTag(orderId: string, tag: string) {
+    return this.request<{ tagsAdd: ShopifyMutationResult }>(<GraphQlRequest>{
+      query: TAGS_ADD_MUTATION,
+      variables: { id: orderId, tags: [tag] },
+    });
+  }
+
   async createProductFromItem(input: {
     title: string;
     sku?: string;
@@ -491,6 +498,14 @@ const PRODUCTS_UPDATED_SINCE_QUERY = `
 const VARIANT_PRICE_MUTATION = `
   mutation UpdateVariantPrice($input: ProductVariantInput!) {
     productVariantUpdate(input: $input) {
+      userErrors { field message }
+    }
+  }
+`;
+
+const TAGS_ADD_MUTATION = `
+  mutation tagsAdd($id: ID!, $tags: [String!]!) {
+    tagsAdd(id: $id, tags: $tags) {
       userErrors { field message }
     }
   }

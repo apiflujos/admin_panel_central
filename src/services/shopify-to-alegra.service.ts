@@ -3,6 +3,7 @@ import { getMappingByShopifyId, saveMapping, updateMappingMetadata } from "./map
 import { createSyncLog } from "./logs.service";
 import { acquireIdempotencyKey, markIdempotencyKey } from "./idempotency.service";
 import { getOrderInvoiceOverride, validateEinvoiceData } from "./order-invoice-overrides.service";
+import { resolveStoreConfig } from "./store-config.service";
 import type { Pool } from "pg";
 
 type ShopifyOrderPayload = {
@@ -11,6 +12,7 @@ type ShopifyOrderPayload = {
   email?: string;
   total_price?: string;
   currency?: string;
+  __shopDomain?: string;
   payment_gateway_names?: string[];
   gateway?: string;
   customer?: {
@@ -43,11 +45,33 @@ export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload) {
   const pool = getPool();
   const orgId = getOrgId();
   const orderId = extractOrderId(payload);
+  const shopDomain = payload.__shopDomain || "";
 
   const customerEmail = payload.customer?.email || payload.email;
 
   const orderGid = orderId ? toOrderGid(orderId) : undefined;
   const invoiceSettings = await loadInvoiceSettings(pool, orgId);
+  const storeConfig = await resolveStoreConfig(shopDomain);
+  const transferResult = await createInventoryTransferFromOrder(
+    payload,
+    storeConfig,
+    ctx,
+    pool,
+    orgId,
+    orderId,
+    shopDomain
+  );
+  if (transferResult && transferResult.blocked) {
+    const orderTagId = orderId ? toOrderGid(String(orderId)) : undefined;
+    if (orderTagId) {
+      try {
+        await ctx.shopify.addOrderTag(orderTagId, "Sync_Error_Inventario");
+      } catch {
+        // ignore tag failures
+      }
+    }
+    return { handled: false, reason: transferResult.reason, transfer: transferResult };
+  }
   const override = orderId ? await getOrderInvoiceOverride(orderId) : null;
   const einvoiceActive = Boolean(invoiceSettings.einvoiceEnabled && override?.einvoiceRequested);
   const missingEinvoice = einvoiceActive ? validateEinvoiceData(override) : [];
@@ -328,6 +352,14 @@ type InvoiceSettings = {
   applyPayment: boolean;
   observationsTemplate: string;
   einvoiceEnabled: boolean;
+};
+
+type TransferDecision = {
+  blocked: boolean;
+  reason: string;
+  chosenWarehouseId?: string;
+  rule?: string;
+  details?: Record<string, unknown>;
 };
 
 async function loadInvoiceSettings(pool: Pool, orgId: number): Promise<InvoiceSettings> {
@@ -629,4 +661,218 @@ export async function createInventoryAdjustmentFromRefund(
   };
 
   return ctx.alegra.createInventoryAdjustment(adjustmentPayload);
+}
+
+async function createInventoryTransferFromOrder(
+  payload: ShopifyOrderPayload,
+  storeConfig: Awaited<ReturnType<typeof resolveStoreConfig>>,
+  ctx: Awaited<ReturnType<typeof buildSyncContext>>,
+  pool: Pool,
+  orgId: number,
+  orderId?: string,
+  shopDomain?: string
+): Promise<TransferDecision | null> {
+  const destinationId = storeConfig.transferDestinationWarehouseId;
+  const originIds = storeConfig.transferOriginWarehouseIds || [];
+  if (!destinationId || !originIds.length) {
+    const decision = {
+      blocked: true,
+      reason: "missing_transfer_config",
+      details: { destinationId, originIds },
+    };
+    await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
+    return decision;
+  }
+
+  const items: Array<{ alegraId: string; quantity: number; sku?: string }> = [];
+  const missing: string[] = [];
+  for (const item of payload.line_items || []) {
+    const variantId = item.variant_id ? String(item.variant_id) : "";
+    if (!variantId) continue;
+    const mapping = await getMappingByShopifyId("item", variantId);
+    if (!mapping?.alegraId) {
+      missing.push(variantId);
+      continue;
+    }
+    items.push({
+      alegraId: String(mapping.alegraId),
+      quantity: item.quantity || 1,
+      sku: item.sku || undefined,
+    });
+  }
+
+  if (missing.length || !items.length) {
+    const decision = {
+      blocked: true,
+      reason: "missing_item_mapping",
+      details: { missing, items: items.length },
+    };
+    await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
+    return decision;
+  }
+
+  const inventoryByItem = await Promise.all(
+    items.map(async (item) => {
+      const detail = (await ctx.alegra.getItem(item.alegraId)) as {
+        inventory?: { warehouses?: Array<{ id?: string | number; availableQuantity?: number }> };
+      };
+      return {
+        ...item,
+        warehouses: Array.isArray(detail?.inventory?.warehouses)
+          ? detail.inventory.warehouses
+          : [],
+      };
+    })
+  );
+
+  const warehouseStats = originIds.map((warehouseId) => {
+    let itemsWithStock = 0;
+    let totalAvailable = 0;
+    const missingItems: Array<{ alegraId: string; needed: number; available: number }> = [];
+    inventoryByItem.forEach((item) => {
+      const warehouse = item.warehouses.find(
+        (entry) => String(entry?.id) === String(warehouseId)
+      );
+      const available = Number(warehouse?.availableQuantity || 0);
+      totalAvailable += available;
+      if (available >= item.quantity) {
+        itemsWithStock += 1;
+      } else {
+        missingItems.push({
+          alegraId: item.alegraId,
+          needed: item.quantity,
+          available,
+        });
+      }
+    });
+    return {
+      warehouseId,
+      itemsWithStock,
+      totalAvailable,
+      canFulfillAll: itemsWithStock === items.length,
+      missingItems,
+    };
+  });
+
+  const eligible = warehouseStats.filter((stat) => stat.canFulfillAll);
+  if (!eligible.length) {
+    const decision = {
+      blocked: true,
+      reason: "insufficient_stock",
+      details: { items: inventoryByItem, warehouses: warehouseStats },
+    };
+    await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
+    return decision;
+  }
+
+  let chosen = eligible[0];
+  const maxItems = Math.max(...eligible.map((stat) => stat.itemsWithStock));
+  const topByItems = eligible.filter((stat) => stat.itemsWithStock === maxItems);
+  chosen = topByItems[0];
+
+  const priorityId = await resolvePriorityWarehouseId(ctx, storeConfig);
+  if (priorityId) {
+    const priority = topByItems.find(
+      (stat) => String(stat.warehouseId) === String(priorityId)
+    );
+    if (priority) {
+      chosen = priority;
+      await recordTransferDecision(pool, orgId, shopDomain, orderId, {
+        blocked: false,
+        reason: "priority_granada",
+        chosenWarehouseId: chosen.warehouseId,
+        rule: "priority_granada",
+        details: { priorityId, warehouses: warehouseStats },
+      });
+    }
+  }
+
+  if (!priorityId || String(chosen.warehouseId) !== String(priorityId)) {
+    const best = topByItems.sort((a, b) => b.totalAvailable - a.totalAvailable)[0];
+    if (best) {
+      chosen = best;
+    }
+    await recordTransferDecision(pool, orgId, shopDomain, orderId, {
+      blocked: false,
+      reason: "max_stock",
+      chosenWarehouseId: chosen.warehouseId,
+      rule: "max_stock",
+      details: { warehouses: warehouseStats },
+    });
+  }
+
+  const transferPayload = {
+    date: new Date().toISOString().slice(0, 10),
+    observations: payload.name ? `Traslado Shopify ${payload.name}` : "Traslado Shopify",
+    warehouseFrom: { id: Number(chosen.warehouseId) },
+    warehouseTo: { id: Number(destinationId) },
+    items: items.map((item) => ({
+      id: Number(item.alegraId),
+      quantity: item.quantity,
+    })),
+  };
+
+  try {
+    await ctx.alegra.createInventoryTransfer(transferPayload);
+    return {
+      blocked: false,
+      reason: "transfer_ok",
+      chosenWarehouseId: chosen.warehouseId,
+      rule: "transfer_ok",
+    };
+  } catch (error) {
+    const decision = {
+      blocked: true,
+      reason: "transfer_failed",
+      details: { message: (error as { message?: string })?.message || "transfer_failed" },
+    };
+    await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
+    return decision;
+  }
+}
+
+async function resolvePriorityWarehouseId(
+  ctx: Awaited<ReturnType<typeof buildSyncContext>>,
+  storeConfig: Awaited<ReturnType<typeof resolveStoreConfig>>
+) {
+  if (storeConfig.transferPriorityWarehouseId) {
+    return storeConfig.transferPriorityWarehouseId;
+  }
+  try {
+    const warehouses = (await ctx.alegra.listWarehouses()) as Array<{ id?: string | number; name?: string }>;
+    const match = warehouses.find((warehouse) =>
+      String(warehouse?.name || "").toLowerCase().includes("granada")
+    );
+    return match?.id ? String(match.id) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function recordTransferDecision(
+  pool: Pool,
+  orgId: number,
+  shopDomain: string | undefined,
+  orderId: string | undefined,
+  decision: TransferDecision
+) {
+  try {
+    await pool.query(
+      `
+      INSERT INTO inventory_transfer_decisions
+        (organization_id, shop_domain, order_id, chosen_warehouse_id, rule, details_json)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      `,
+      [
+        orgId,
+        shopDomain || null,
+        orderId || null,
+        decision.chosenWarehouseId || null,
+        decision.rule || decision.reason || null,
+        decision.details || {},
+      ]
+    );
+  } catch {
+    // ignore decision log failures
+  }
 }
