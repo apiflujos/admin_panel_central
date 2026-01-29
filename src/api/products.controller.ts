@@ -995,7 +995,6 @@ export async function publishShopifyHandler(req: Request, res: Response) {
       res.status(400).json({ error: "alegraId o alegraItem requerido" });
       return;
     }
-    const shopifyCredential = await getShopifyCredential();
     const storeConfigFull = shopifyCredential?.shopDomain
       ? await getStoreConfigForDomain(shopifyCredential.shopDomain)
       : null;

@@ -12,6 +12,15 @@ const normalizeShopDomain = (value: string) =>
 const normalizeIdList = (value?: unknown) =>
   Array.isArray(value) ? value.map((id) => String(id)).filter(Boolean) : [];
 
+const normalizeBoolean = (value: unknown, fallback: boolean) => {
+  if (typeof value === "boolean") return value;
+  return fallback;
+};
+
+const normalizeAutoStatus = (value: unknown, fallback: "draft" | "active") => {
+  return value === "active" ? "active" : value === "draft" ? "draft" : fallback;
+};
+
 export async function listStoreConfigs() {
   const pool = getPool();
   const orgId = getOrgId();
@@ -101,17 +110,32 @@ export async function listStoreConfigs() {
         currency: (priceLists.currency as string | undefined) || row.currency || "",
       },
       rules: {
-        publishOnStock: rules.publishOnStock ?? defaults.rules?.publishOnStock ?? true,
-        autoPublishOnWebhook: rules.autoPublishOnWebhook ?? defaults.rules?.autoPublishOnWebhook ?? false,
-        autoPublishStatus: rules.autoPublishStatus ?? defaults.rules?.autoPublishStatus ?? "draft",
-        inventoryAdjustmentsEnabled:
-          rules.inventoryAdjustmentsEnabled ?? defaults.rules?.inventoryAdjustmentsEnabled ?? true,
+        publishOnStock: normalizeBoolean(
+          rules.publishOnStock,
+          defaults.rules?.publishOnStock ?? true
+        ),
+        autoPublishOnWebhook: normalizeBoolean(
+          rules.autoPublishOnWebhook,
+          defaults.rules?.autoPublishOnWebhook ?? false
+        ),
+        autoPublishStatus: normalizeAutoStatus(
+          rules.autoPublishStatus,
+          defaults.rules?.autoPublishStatus ?? "draft"
+        ),
+        inventoryAdjustmentsEnabled: normalizeBoolean(
+          rules.inventoryAdjustmentsEnabled,
+          defaults.rules?.inventoryAdjustmentsEnabled ?? true
+        ),
         inventoryAdjustmentsIntervalMinutes:
-          rules.inventoryAdjustmentsIntervalMinutes ??
-          defaults.rules?.inventoryAdjustmentsIntervalMinutes ??
-          5,
-        inventoryAdjustmentsAutoPublish:
-          rules.inventoryAdjustmentsAutoPublish ?? defaults.rules?.inventoryAdjustmentsAutoPublish ?? true,
+          typeof rules.inventoryAdjustmentsIntervalMinutes === "number"
+            ? rules.inventoryAdjustmentsIntervalMinutes
+            : typeof defaults.rules?.inventoryAdjustmentsIntervalMinutes === "number"
+              ? defaults.rules?.inventoryAdjustmentsIntervalMinutes
+              : 5,
+        inventoryAdjustmentsAutoPublish: normalizeBoolean(
+          rules.inventoryAdjustmentsAutoPublish,
+          defaults.rules?.inventoryAdjustmentsAutoPublish ?? true
+        ),
         warehouseIds: normalizeIdList(
           (rules as Record<string, unknown>).warehouseIds || defaults.rules?.warehouseIds || []
         ),
@@ -215,17 +239,32 @@ export async function getStoreConfigForDomain(shopDomain: string) {
       currency: (priceLists.currency as string | undefined) || row.currency || "",
     },
     rules: {
-      publishOnStock: rules.publishOnStock ?? defaults.rules?.publishOnStock ?? true,
-      autoPublishOnWebhook: rules.autoPublishOnWebhook ?? defaults.rules?.autoPublishOnWebhook ?? false,
-      autoPublishStatus: rules.autoPublishStatus ?? defaults.rules?.autoPublishStatus ?? "draft",
-      inventoryAdjustmentsEnabled:
-        rules.inventoryAdjustmentsEnabled ?? defaults.rules?.inventoryAdjustmentsEnabled ?? true,
+      publishOnStock: normalizeBoolean(
+        rules.publishOnStock,
+        defaults.rules?.publishOnStock ?? true
+      ),
+      autoPublishOnWebhook: normalizeBoolean(
+        rules.autoPublishOnWebhook,
+        defaults.rules?.autoPublishOnWebhook ?? false
+      ),
+      autoPublishStatus: normalizeAutoStatus(
+        rules.autoPublishStatus,
+        defaults.rules?.autoPublishStatus ?? "draft"
+      ),
+      inventoryAdjustmentsEnabled: normalizeBoolean(
+        rules.inventoryAdjustmentsEnabled,
+        defaults.rules?.inventoryAdjustmentsEnabled ?? true
+      ),
       inventoryAdjustmentsIntervalMinutes:
-        rules.inventoryAdjustmentsIntervalMinutes ??
-        defaults.rules?.inventoryAdjustmentsIntervalMinutes ??
-        5,
-      inventoryAdjustmentsAutoPublish:
-        rules.inventoryAdjustmentsAutoPublish ?? defaults.rules?.inventoryAdjustmentsAutoPublish ?? true,
+        typeof rules.inventoryAdjustmentsIntervalMinutes === "number"
+          ? rules.inventoryAdjustmentsIntervalMinutes
+          : typeof defaults.rules?.inventoryAdjustmentsIntervalMinutes === "number"
+            ? defaults.rules?.inventoryAdjustmentsIntervalMinutes
+            : 5,
+      inventoryAdjustmentsAutoPublish: normalizeBoolean(
+        rules.inventoryAdjustmentsAutoPublish,
+        defaults.rules?.inventoryAdjustmentsAutoPublish ?? true
+      ),
       warehouseIds: normalizeIdList(
         (rules as Record<string, unknown>).warehouseIds || defaults.rules?.warehouseIds || []
       ),
