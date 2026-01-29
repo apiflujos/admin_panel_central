@@ -510,9 +510,40 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
     let payload: Record<string, unknown> | null = null;
     let items: AlegraItem[] = [];
     let total: number | null = null;
+    const shouldFilter = inStockOnly || warehouseFilterIds.length > 0;
+
+    const needsInventoryForFilter = (item: AlegraItem) => {
+      const inv = item?.inventory;
+      if (!inv) return true;
+      const hasWarehouses = Array.isArray(inv.warehouses) && inv.warehouses.length > 0;
+      if (hasWarehouses) return false;
+      const qty = typeof inv.quantity === "number" ? inv.quantity : null;
+      const available = typeof inv.availableQuantity === "number" ? inv.availableQuantity : null;
+      if (qty === null && available === null) return true;
+      return qty === 0 && available === 0;
+    };
+
+    const hydrateItemsForFilter = async (input: AlegraItem[]) => {
+      if (!shouldFilter || input.length === 0) return input;
+      const detailQuery = new URLSearchParams();
+      detailQuery.set(
+        "fields",
+        "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code,created_at,createdAt"
+      );
+      detailQuery.set("mode", "advanced");
+      return Promise.all(
+        input.map(async (item) => {
+          if (!item?.id) return item;
+          if (!needsInventoryForFilter(item)) return item;
+          const detailResponse = await fetchAlegraWithRetry(`/items/${item.id}`, detailQuery);
+          if (!detailResponse.ok) return item;
+          return (await detailResponse.json()) as AlegraItem;
+        })
+      );
+    };
 
     const filterItems = (input: AlegraItem[]) => {
-      if (!inStockOnly && warehouseFilterIds.length === 0) return input;
+      if (!shouldFilter) return input;
       return input.filter((item) => {
         const matchesWarehouse =
           warehouseFilterIds.length === 0 || matchesItemWarehouses(item, warehouseFilterIds);
@@ -528,11 +559,12 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
       query.set("limit", String(scanLimit));
       const response = await fetchAlegra("/items", query);
       payload = (await response.json()) as Record<string, unknown>;
-      const batch: AlegraItem[] = Array.isArray((payload as any)?.items)
+      const rawBatch: AlegraItem[] = Array.isArray((payload as any)?.items)
         ? ((payload as any).items as AlegraItem[])
         : Array.isArray((payload as any)?.data)
           ? ((payload as any).data as AlegraItem[])
           : [];
+      const batch = await hydrateItemsForFilter(rawBatch);
       const filtered = filterItems(batch);
       items = items.concat(filtered);
       if (total === null) {
@@ -543,7 +575,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
       if (batch.length < scanLimit) {
         break;
       }
-      if (!inStockOnly && warehouseFilterIds.length === 0) {
+      if (!shouldFilter) {
         break;
       }
       scanStart += scanLimit;
