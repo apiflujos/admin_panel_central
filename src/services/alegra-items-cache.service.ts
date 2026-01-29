@@ -229,7 +229,7 @@ export async function isAlegraItemTracked(alegraItemId: string, orgId?: number) 
     "SELECT 1 FROM alegra_items_cache WHERE organization_id = $1 AND alegra_item_id = $2",
     [resolvedOrgId, alegraItemId]
   );
-  return result.rowCount > 0;
+  return result.rows.length > 0;
 }
 
 export async function upsertAlegraItemCacheIfTracked(item: CachedAlegraItem, orgId?: number) {
