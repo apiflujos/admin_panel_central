@@ -22,12 +22,12 @@ type InventoryRules = {
   warehouseIds: string[];
 };
 
-export async function buildSyncContext(): Promise<SyncContext> {
+export async function buildSyncContext(shopDomain?: string): Promise<SyncContext> {
   const pool = getPool();
   const orgId = getOrgId();
 
-  const shopifySettings = await loadCredential(pool, orgId, "shopify");
-  const alegraSettings = await loadCredential(pool, orgId, "alegra");
+  const shopifySettings = await loadShopifySettings(pool, orgId, shopDomain);
+  const alegraSettings = await loadAlegraSettings(pool, orgId, shopDomain);
   const rules = await loadInventoryRules(pool, orgId);
   const warehouseId = await loadWarehouseId(pool, orgId);
 
@@ -38,14 +38,14 @@ export async function buildSyncContext(): Promise<SyncContext> {
     throw new Error("Missing Alegra credentials in DB");
   }
 
-  const shopDomain = String(shopifySettings.shopDomain)
+  const resolvedDomain = String(shopifySettings.shopDomain)
     .trim()
     .replace(/^https?:\/\//, "")
     .replace(/\/.*$/, "");
 
   return {
     shopify: new ShopifyClient({
-      shopDomain,
+      shopDomain: resolvedDomain,
       accessToken: shopifySettings.accessToken,
       apiVersion: shopifySettings.apiVersion,
     }),
@@ -86,6 +86,83 @@ async function loadCredential(
   const decrypted = decryptString(result.rows[0].data_encrypted);
   return JSON.parse(decrypted) as ProviderSettings;
 }
+
+async function loadShopifySettings(
+  pool: ReturnType<typeof getPool>,
+  orgId: number,
+  shopDomain?: string
+) {
+  if (shopDomain) {
+    const domain = normalizeShopDomain(shopDomain);
+    const store = await pool.query<{
+      shop_domain: string;
+      access_token_encrypted: string;
+    }>(
+      `
+      SELECT shop_domain, access_token_encrypted
+      FROM shopify_stores
+      WHERE organization_id = $1 AND shop_domain = $2
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+      [orgId, domain]
+    );
+    if (store.rows.length) {
+      const decrypted = JSON.parse(decryptString(store.rows[0].access_token_encrypted));
+      return {
+        shopDomain: store.rows[0].shop_domain,
+        accessToken: decrypted.accessToken,
+      } as ProviderSettings;
+    }
+  }
+  return loadCredential(pool, orgId, "shopify");
+}
+
+async function loadAlegraSettings(
+  pool: ReturnType<typeof getPool>,
+  orgId: number,
+  shopDomain?: string
+) {
+  if (shopDomain) {
+    const domain = normalizeShopDomain(shopDomain);
+    const result = await pool.query<{
+      alegra_account_id: number | null;
+      user_email: string | null;
+      api_key_encrypted: string | null;
+      environment: string | null;
+    }>(
+      `
+      SELECT c.alegra_account_id,
+             a.user_email,
+             a.api_key_encrypted,
+             a.environment
+      FROM shopify_store_configs c
+      LEFT JOIN alegra_accounts a
+        ON a.id = c.alegra_account_id
+      WHERE c.organization_id = $1 AND c.shop_domain = $2
+      ORDER BY c.created_at DESC
+      LIMIT 1
+      `,
+      [orgId, domain]
+    );
+    if (result.rows.length && result.rows[0].user_email && result.rows[0].api_key_encrypted) {
+      const decrypted = JSON.parse(decryptString(result.rows[0].api_key_encrypted));
+      return {
+        email: result.rows[0].user_email,
+        apiKey: decrypted.apiKey,
+        environment: result.rows[0].environment || "prod",
+      } as ProviderSettings;
+    }
+  }
+  return loadCredential(pool, orgId, "alegra");
+}
+
+const normalizeShopDomain = (value: string) =>
+  value
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+    .toLowerCase();
 
 async function loadInventoryRules(
   pool: ReturnType<typeof getPool>,

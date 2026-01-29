@@ -187,9 +187,9 @@ export async function getInventoryAdjustmentsEnabled() {
   return rules.inventoryAdjustmentsEnabled !== false;
 }
 
-export async function listInvoiceResolutions() {
+export async function listInvoiceResolutions(accountId?: number) {
   try {
-    const alegra = await getAlegraClient();
+    const alegra = await getAlegraClient(accountId);
     const resolutions = await alegra.listInvoiceResolutions();
     return { items: resolutions || [] };
   } catch (error) {
@@ -198,9 +198,9 @@ export async function listInvoiceResolutions() {
   }
 }
 
-export async function listAlegraCatalogItems(catalog: string) {
+export async function listAlegraCatalogItems(catalog: string, accountId?: number) {
   try {
-    const alegra = await getAlegraClient();
+    const alegra = await getAlegraClient(accountId);
     switch (catalog) {
       case "warehouses":
         return { items: await alegra.listWarehouses() };
@@ -212,6 +212,8 @@ export async function listAlegraCatalogItems(catalog: string) {
         return { items: await alegra.listPaymentMethods() };
       case "bank-accounts":
         return { items: await alegra.listBankAccounts() };
+      case "price-lists":
+        return { items: await alegra.listPriceLists() };
       default:
         return { items: [], error: "Catálogo no soportado" };
     }
@@ -267,9 +269,28 @@ export async function getAiCredential() {
   return ai as { apiKey: string };
 }
 
-async function getAlegraClient() {
+async function getAlegraClient(accountId?: number) {
   const pool = getPool();
   const orgId = getOrgId();
+  if (accountId) {
+    const account = await pool.query<{ user_email: string; api_key_encrypted: string; environment: string | null }>(
+      `
+      SELECT user_email, api_key_encrypted, environment
+      FROM alegra_accounts
+      WHERE organization_id = $1 AND id = $2
+      LIMIT 1
+      `,
+      [orgId, accountId]
+    );
+    if (account.rows.length) {
+      const decrypted = JSON.parse(decryptString(account.rows[0].api_key_encrypted));
+      return new AlegraClient({
+        email: account.rows[0].user_email,
+        apiKey: decrypted.apiKey,
+        baseUrl: getAlegraBaseUrl(account.rows[0].environment || "prod"),
+      });
+    }
+  }
   const alegra = await readCredential(pool, orgId, "alegra");
   if (!alegra?.email || !alegra?.apiKey) {
     throw new Error("Missing Alegra credentials in DB");

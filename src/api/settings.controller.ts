@@ -102,9 +102,12 @@ export async function getSettings(_req: Request, res: Response) {
   }
 }
 
-export async function listResolutions(_req: Request, res: Response) {
+export async function listResolutions(req: Request, res: Response) {
   try {
-    const result = await listInvoiceResolutions();
+    const accountId = req.query.accountId ? Number(req.query.accountId) : undefined;
+    const result = await listInvoiceResolutions(
+      Number.isFinite(accountId as number) ? (accountId as number) : undefined
+    );
     res.status(200).json(result);
     await safeCreateLog({
       entity: "resolutions_list",
@@ -128,7 +131,11 @@ export async function listResolutions(_req: Request, res: Response) {
 export async function listAlegraCatalog(req: Request, res: Response) {
   try {
     const catalog = req.params.catalog;
-    const result = await listAlegraCatalogItems(catalog);
+    const accountId = req.query.accountId ? Number(req.query.accountId) : undefined;
+    const result = await listAlegraCatalogItems(
+      catalog,
+      Number.isFinite(accountId as number) ? (accountId as number) : undefined
+    );
     res.status(200).json(result);
     await safeCreateLog({
       entity: "alegra_catalog",

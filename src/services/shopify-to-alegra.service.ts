@@ -40,7 +40,7 @@ type ShopifyOrderPayload = {
 };
 
 export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload) {
-  const ctx = await buildSyncContext();
+  const ctx = await buildSyncContext(payload.__shopDomain);
   const { getOrgId, getPool } = await import("../db");
   const pool = getPool();
   const orgId = getOrgId();

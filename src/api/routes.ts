@@ -6,6 +6,8 @@ import { listLogs, retryFailed } from "./logs.controller";
 import { listAlegraCatalog, getSettings, listResolutions, testConnections, updateSettings } from "./settings.controller";
 import { listMetrics } from "./metrics.controller";
 import { getInventoryAdjustmentsCheckpoint } from "./checkpoints.controller";
+import { createConnection, listConnections, removeConnection } from "./connections.controller";
+import { listStoreConfigsHandler, saveStoreConfigHandler } from "./store-configs.controller";
 import {
   createUserHandler,
   deleteUserHandler,
@@ -66,6 +68,11 @@ router.get("/alegra/items", listAlegraItemsHandler);
 router.get("/alegra/items/:itemId/warehouses", listItemWarehouseSummaryHandler);
 router.get("/alegra/inventory-adjustments", listInventoryAdjustmentsHandler);
 router.get("/alegra/image", proxyAlegraImageHandler);
+router.get("/connections", requireAdmin, listConnections);
+router.post("/connections", requireAdmin, createConnection);
+router.delete("/connections/:id", requireAdmin, removeConnection);
+router.get("/store-configs", requireAdmin, listStoreConfigsHandler);
+router.put("/store-configs/:shopDomain", requireAdmin, saveStoreConfigHandler);
 router.post("/settings/test", requireAdmin, testConnections);
 router.put("/settings", requireAdmin, updateSettings);
 router.get("/settings", requireAdmin, getSettings);

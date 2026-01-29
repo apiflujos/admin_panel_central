@@ -56,6 +56,7 @@ const logOrderId = document.getElementById("log-order-id");
 const logFilter = document.getElementById("log-filter");
 const logRetry = document.getElementById("log-retry");
 const connectionsGrid = document.getElementById("connections-grid");
+const storeConfigsContainer = document.getElementById("store-configs");
 
 const kpiSalesToday = document.getElementById("kpi-sales-today");
 const kpiSalesTodaySub = document.getElementById("kpi-sales-today-sub");
@@ -104,8 +105,12 @@ const companyLogo = document.getElementById("company-logo");
 const shopifyDomain = document.getElementById("shopify-domain");
 const shopifyToken = document.getElementById("shopify-token");
 
+const alegraAccountSelect = document.getElementById("alegra-account-select");
+const alegraEnvSelect = document.getElementById("alegra-env-select");
+const alegraEnvField = document.getElementById("alegra-env-field");
 const alegraEmail = document.getElementById("alegra-email");
 const alegraKey = document.getElementById("alegra-key");
+const connectionAdd = document.getElementById("connection-add");
 const aiKey = document.getElementById("ai-key");
 const aiSave = document.getElementById("ai-save");
 const passwordCurrent = document.getElementById("password-current");
@@ -276,6 +281,8 @@ let productsRows = [];
 let shopifyLookup = {};
 let warehousesCatalog = [];
 let settingsWarehousesCatalog = [];
+const storeConfigState = new Map();
+const storeCatalogCache = new Map();
 const expandedParents = new Set();
 let operationsList = [];
 let ordersStart = 0;
@@ -1128,55 +1135,526 @@ async function loadSettings() {
     );
   }
   setMetricsStatusPills(data.shopify?.hasAccessToken, data.alegra?.hasApiKey);
-  renderConnections(data);
+  await loadConnections();
   loadSettingsWarehouses().catch(() => null);
   loadInventoryCheckpoint().catch(() => null);
+}
+
+async function loadConnections() {
+  try {
+    const data = await fetchJson("/api/connections");
+    renderConnections(data);
+    renderAlegraAccountOptions(data.alegraAccounts || []);
+    await loadStoreConfigs();
+  } catch {
+    renderConnections({ stores: [] });
+    renderAlegraAccountOptions([]);
+    renderStoreConfigs([]);
+  }
+}
+
+function renderAlegraAccountOptions(accounts) {
+  if (!alegraAccountSelect) return;
+  const current = alegraAccountSelect.value || "new";
+  const options = [
+    `<option value="new">Nueva cuenta Alegra</option>`,
+    ...accounts.map(
+      (account) =>
+        `<option value="${account.id}">${account.email} (${account.environment || "prod"})</option>`
+    ),
+  ];
+  alegraAccountSelect.innerHTML = options.join("");
+  alegraAccountSelect.value = accounts.some((a) => String(a.id) === current) ? current : "new";
+  toggleAlegraAccountFields();
+}
+
+function toggleAlegraAccountFields() {
+  if (!alegraAccountSelect) return;
+  const isNew = alegraAccountSelect.value === "new";
+  if (alegraEmail) alegraEmail.closest(".field").style.display = isNew ? "" : "none";
+  if (alegraKey) alegraKey.closest(".field").style.display = isNew ? "" : "none";
+  if (alegraEnvField) alegraEnvField.style.display = isNew ? "" : "none";
 }
 
 function renderConnections(settings) {
   if (!connectionsGrid) return;
   connectionsGrid.innerHTML = "";
-  const rows = [];
-  if (settings.shopify) {
-    rows.push({
-      service: "Shopify",
-      account: settings.shopify.shopDomain || "-",
-      status: settings.shopify.hasAccessToken ? "Conectado" : "Sin token",
-    });
-  }
-  if (settings.alegra) {
-    const env = settings.alegra.environment || "prod";
-    rows.push({
-      service: "Alegra",
-      account: settings.alegra.email ? `${settings.alegra.email} (${env})` : `(${env})`,
-      status: settings.alegra.hasApiKey ? "Conectado" : "Sin token",
-    });
-  }
-  if (settings.ai) {
-    rows.push({
-      service: "IA",
-      account: "Olivia Shoes",
-      status: settings.ai.hasApiKey ? "Token activo" : "Sin token",
-    });
-  }
-  if (!rows.length) {
+  const stores = Array.isArray(settings.stores) ? settings.stores : [];
+  if (!stores.length) {
     connectionsGrid.innerHTML = `<div class="connection-card empty">Sin conexiones.</div>`;
     return;
   }
-  connectionsGrid.innerHTML = rows
-    .map((row) => {
-      const statusClass = row.status === "Conectado" || row.status === "Token activo" ? "is-ok" : "is-off";
+  connectionsGrid.innerHTML = stores
+    .map((store) => {
+      const statusClass = store.status === "Conectado" ? "is-ok" : "is-off";
+      const alegraLabel = store.alegraEmail
+        ? `${store.alegraEmail} (${store.alegraEnvironment || "prod"})`
+        : "Sin Alegra asignado";
       return `
         <div class="connection-card">
           <div class="connection-head">
-            <h4>${row.service}</h4>
-            <span class="status-pill ${statusClass}">${row.status}</span>
+            <h4>${store.shopDomain}</h4>
+            <span class="status-pill ${statusClass}">${store.status}</span>
           </div>
-          <p>${row.account}</p>
+          <p>Shopify</p>
+          <p class="muted">Alegra: ${alegraLabel}</p>
+          <button class="ghost danger" data-connection-remove="${store.id}">Eliminar</button>
         </div>
       `;
     })
     .join("");
+}
+
+async function loadStoreConfigs() {
+  if (!storeConfigsContainer) return;
+  try {
+    const data = await fetchJson("/api/store-configs");
+    renderStoreConfigs(Array.isArray(data.items) ? data.items : []);
+  } catch {
+    renderStoreConfigs([]);
+  }
+}
+
+function renderStoreConfigs(items) {
+  if (!storeConfigsContainer) return;
+  if (!items.length) {
+    storeConfigsContainer.innerHTML = `<div class="connection-card empty">Sin tiendas conectadas.</div>`;
+    storeConfigState.clear();
+    return;
+  }
+  storeConfigState.clear();
+  items.forEach((store) => {
+    storeConfigState.set(store.shopDomain, store);
+  });
+  storeConfigsContainer.innerHTML = items
+    .map((store) => buildStoreConfigCard(store))
+    .join("");
+}
+
+function buildStoreConfigCard(store) {
+  const key = String(store.shopDomain || "store").replace(/[^a-z0-9]/gi, "_");
+  const alegraLabel = store.alegraAccountId ? `Alegra #${store.alegraAccountId}` : "Alegra sin asignar";
+  return `
+    <details class="store-config" data-store="${store.shopDomain}">
+      <summary>
+        <span>${store.shopDomain}<span class="tag">${alegraLabel}</span></span>
+        <span class="muted">Configurar</span>
+      </summary>
+      <div class="store-config-body">
+        <div class="store-config-section">
+          <h4>Traslados de inventario</h4>
+          <div class="store-config-grid">
+            <div class="field">
+              <label>Destino (bodega virtual)</label>
+              <select id="store-${key}-transfer-dest"></select>
+            </div>
+            <div class="field">
+              <label>Prioridad (Granada)</label>
+              <select id="store-${key}-transfer-priority"></select>
+            </div>
+            <div class="field">
+              <label>Estrategia</label>
+              <select id="store-${key}-transfer-strategy">
+                <option value="consolidation">Consolidacion</option>
+              </select>
+            </div>
+            <div class="field span-2">
+              <label>Bodegas origen</label>
+              <details class="multi-select">
+                <summary>
+                  <span>Seleccionar bodegas</span>
+                  <em id="store-${key}-transfer-origin-summary">Todas</em>
+                </summary>
+                <div class="checkbox-grid single" id="store-${key}-transfer-origin"></div>
+              </details>
+            </div>
+          </div>
+        </div>
+
+        <div class="store-config-section">
+          <h4>Listas de precios</h4>
+          <div class="store-config-grid">
+            <div class="field">
+              <label>Lista general</label>
+              <select id="store-${key}-price-general"></select>
+            </div>
+            <div class="field">
+              <label>Lista descuento</label>
+              <select id="store-${key}-price-discount"></select>
+            </div>
+            <div class="field">
+              <label>Lista wholesale</label>
+              <select id="store-${key}-price-wholesale"></select>
+            </div>
+            <div class="field">
+              <label>Moneda</label>
+              <select id="store-${key}-price-currency">
+                <option value="">Auto</option>
+                <option value="COP">COP</option>
+                <option value="USD">USD</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="store-config-section">
+          <h4>Facturacion Alegra</h4>
+          <div class="store-config-grid">
+            <div class="field">
+              <label>Generar factura</label>
+              <input type="checkbox" id="store-${key}-invoice-generate" />
+            </div>
+            <div class="field">
+              <label>Resolucion</label>
+              <select id="store-${key}-invoice-resolution"></select>
+            </div>
+            <div class="field">
+              <label>Centro de costo</label>
+              <select id="store-${key}-invoice-cost-center"></select>
+            </div>
+            <div class="field">
+              <label>Bodega factura</label>
+              <select id="store-${key}-invoice-warehouse"></select>
+            </div>
+            <div class="field">
+              <label>Vendedor</label>
+              <select id="store-${key}-invoice-seller"></select>
+            </div>
+            <div class="field">
+              <label>Metodo de pago</label>
+              <select id="store-${key}-invoice-payment-method"></select>
+            </div>
+            <div class="field">
+              <label>Cuenta bancaria</label>
+              <select id="store-${key}-invoice-bank-account"></select>
+            </div>
+            <div class="field">
+              <label>Aplicar pago</label>
+              <input type="checkbox" id="store-${key}-invoice-apply-payment" />
+            </div>
+            <div class="field">
+              <label>Factura electronica</label>
+              <input type="checkbox" id="store-${key}-invoice-einvoice" />
+            </div>
+            <div class="field span-2">
+              <label>Observaciones</label>
+              <input type="text" id="store-${key}-invoice-observations" />
+            </div>
+          </div>
+        </div>
+
+        <div class="store-config-section">
+          <h4>Reglas de inventario</h4>
+          <div class="store-config-grid">
+            <div class="field">
+              <label>Publicar con stock</label>
+              <input type="checkbox" id="store-${key}-rules-publish-stock" />
+            </div>
+            <div class="field">
+              <label>Auto publicar webhooks</label>
+              <input type="checkbox" id="store-${key}-rules-auto-publish" />
+            </div>
+            <div class="field">
+              <label>Estado auto</label>
+              <select id="store-${key}-rules-auto-status">
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Inventario habilitado</label>
+              <input type="checkbox" id="store-${key}-rules-inv-enabled" />
+            </div>
+            <div class="field">
+              <label>Intervalo cron</label>
+              <select id="store-${key}-rules-inv-interval">
+                <option value="5">Cada 5 minutos</option>
+                <option value="10">Cada 10 minutos</option>
+                <option value="15">Cada 15 minutos</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Auto publicar ajustes</label>
+              <input type="checkbox" id="store-${key}-rules-inv-publish" />
+            </div>
+            <div class="field span-2">
+              <label>Bodegas Alegra (filtro)</label>
+              <details class="multi-select">
+                <summary>
+                  <span>Seleccionar bodegas</span>
+                  <em id="store-${key}-rules-warehouse-summary">Todas</em>
+                </summary>
+                <div class="checkbox-grid single" id="store-${key}-rules-warehouses"></div>
+              </details>
+            </div>
+          </div>
+        </div>
+
+        <div class="store-config-actions">
+          <span class="kpi-sub" id="store-${key}-save-status">Listo</span>
+          <button class="primary" data-store-save="${store.shopDomain}">Guardar</button>
+        </div>
+      </div>
+    </details>
+  `;
+}
+
+async function hydrateStoreConfig(store) {
+  const key = String(store.shopDomain || "store").replace(/[^a-z0-9]/gi, "_");
+  storeConfigState.set(store.shopDomain, store);
+
+  const accountId = store.alegraAccountId || "";
+  const catalogs = await loadStoreCatalogs(accountId);
+
+  setSelectOptions(`store-${key}-transfer-dest`, catalogs.warehouses, store.transfers?.destinationWarehouseId);
+  setSelectOptions(`store-${key}-transfer-priority`, catalogs.warehouses, store.transfers?.priorityWarehouseId);
+  renderStoreWarehouseMultiSelect(
+    `store-${key}-transfer-origin`,
+    `store-${key}-transfer-origin-summary`,
+    catalogs.warehouses,
+    store.transfers?.originWarehouseIds || []
+  );
+  const strategy = document.getElementById(`store-${key}-transfer-strategy`);
+  if (strategy) strategy.value = store.transfers?.strategy || "consolidation";
+
+  setSelectOptions(`store-${key}-price-general`, catalogs.priceLists, store.priceLists?.generalId);
+  setSelectOptions(`store-${key}-price-discount`, catalogs.priceLists, store.priceLists?.discountId);
+  setSelectOptions(`store-${key}-price-wholesale`, catalogs.priceLists, store.priceLists?.wholesaleId);
+  const currency = document.getElementById(`store-${key}-price-currency`);
+  if (currency) currency.value = store.priceLists?.currency || "";
+
+  const invoiceGenerate = document.getElementById(`store-${key}-invoice-generate`);
+  if (invoiceGenerate) invoiceGenerate.checked = Boolean(store.invoice?.generateInvoice);
+  setSelectOptions(`store-${key}-invoice-resolution`, catalogs.resolutions, store.invoice?.resolutionId);
+  setSelectOptions(`store-${key}-invoice-cost-center`, catalogs.costCenters, store.invoice?.costCenterId);
+  setSelectOptions(`store-${key}-invoice-warehouse`, catalogs.warehouses, store.invoice?.warehouseId);
+  setSelectOptions(`store-${key}-invoice-seller`, catalogs.sellers, store.invoice?.sellerId);
+  setSelectOptions(`store-${key}-invoice-payment-method`, catalogs.paymentMethods, store.invoice?.paymentMethod);
+  setSelectOptions(`store-${key}-invoice-bank-account`, catalogs.bankAccounts, store.invoice?.bankAccountId);
+  const invoiceApply = document.getElementById(`store-${key}-invoice-apply-payment`);
+  if (invoiceApply) invoiceApply.checked = Boolean(store.invoice?.applyPayment);
+  const einvoice = document.getElementById(`store-${key}-invoice-einvoice`);
+  if (einvoice) einvoice.checked = Boolean(store.invoice?.einvoiceEnabled);
+  const observations = document.getElementById(`store-${key}-invoice-observations`);
+  if (observations) observations.value = store.invoice?.observationsTemplate || "";
+
+  const publishStock = document.getElementById(`store-${key}-rules-publish-stock`);
+  if (publishStock) publishStock.checked = store.rules?.publishOnStock !== false;
+  const autoPublish = document.getElementById(`store-${key}-rules-auto-publish`);
+  if (autoPublish) autoPublish.checked = Boolean(store.rules?.autoPublishOnWebhook);
+  const autoStatus = document.getElementById(`store-${key}-rules-auto-status`);
+  if (autoStatus) autoStatus.value = store.rules?.autoPublishStatus || "draft";
+  const invEnabled = document.getElementById(`store-${key}-rules-inv-enabled`);
+  if (invEnabled) invEnabled.checked = store.rules?.inventoryAdjustmentsEnabled !== false;
+  const invInterval = document.getElementById(`store-${key}-rules-inv-interval`);
+  if (invInterval) invInterval.value = String(store.rules?.inventoryAdjustmentsIntervalMinutes || 5);
+  const invPublish = document.getElementById(`store-${key}-rules-inv-publish`);
+  if (invPublish) invPublish.checked = store.rules?.inventoryAdjustmentsAutoPublish !== false;
+  renderStoreWarehouseMultiSelect(
+    `store-${key}-rules-warehouses`,
+    `store-${key}-rules-warehouse-summary`,
+    catalogs.warehouses,
+    store.rules?.warehouseIds || []
+  );
+}
+
+function setSelectOptions(elementId, items, selected) {
+  const select = document.getElementById(elementId);
+  if (!select) return;
+  const opts = Array.isArray(items) ? items : [];
+  const options = [`<option value="">Sin asignar</option>`].concat(
+    opts.map((item) => {
+      const id = String(item.id || item._id || "");
+      const name = item.name || item.label || item.text || id;
+      return `<option value="${id}">${name}</option>`;
+    })
+  );
+  select.innerHTML = options.join("");
+  select.value = selected ? String(selected) : "";
+}
+
+async function loadStoreCatalogs(accountId) {
+  const key = accountId ? String(accountId) : "default";
+  if (storeCatalogCache.has(key)) {
+    return storeCatalogCache.get(key);
+  }
+  const query = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
+  const [warehouses, costCenters, sellers, paymentMethods, bankAccounts, resolutions, priceLists] =
+    await Promise.all([
+      fetchJson(`/api/alegra/warehouses${query}`),
+      fetchJson(`/api/alegra/cost-centers${query}`),
+      fetchJson(`/api/alegra/sellers${query}`),
+      fetchJson(`/api/alegra/payment-methods${query}`),
+      fetchJson(`/api/alegra/bank-accounts${query}`),
+      fetchJson(`/api/settings/resolutions${query}`),
+      fetchJson(`/api/alegra/price-lists${query}`),
+    ]);
+  const payload = {
+    warehouses: Array.isArray(warehouses.items) ? warehouses.items : [],
+    costCenters: Array.isArray(costCenters.items) ? costCenters.items : [],
+    sellers: Array.isArray(sellers.items) ? sellers.items : [],
+    paymentMethods: Array.isArray(paymentMethods.items) ? paymentMethods.items : [],
+    bankAccounts: Array.isArray(bankAccounts.items) ? bankAccounts.items : [],
+    resolutions: Array.isArray(resolutions.items) ? resolutions.items : [],
+    priceLists: Array.isArray(priceLists.items) ? priceLists.items : [],
+  };
+  storeCatalogCache.set(key, payload);
+  return payload;
+}
+
+function renderStoreWarehouseMultiSelect(containerId, summaryId, warehouses, selectedIds) {
+  const container = document.getElementById(containerId);
+  const summary = document.getElementById(summaryId);
+  if (!container) return;
+  const selected = new Set((selectedIds || []).map(String));
+  container.innerHTML = "";
+  const totalCount = Array.isArray(warehouses) ? warehouses.length : 0;
+  const selectAllLabel = document.createElement("label");
+  selectAllLabel.className = "select-all";
+  const selectAllInput = document.createElement("input");
+  selectAllInput.type = "checkbox";
+  selectAllInput.checked = selected.size === 0 || selected.size === totalCount;
+  const selectAllText = document.createElement("span");
+  selectAllText.textContent = "Seleccionar todas";
+  selectAllLabel.appendChild(selectAllInput);
+  selectAllLabel.appendChild(selectAllText);
+  container.appendChild(selectAllLabel);
+  if (!totalCount) {
+    const empty = document.createElement("span");
+    empty.className = "empty";
+    empty.textContent = "Sin bodegas";
+    container.appendChild(empty);
+    if (summary) summary.textContent = "Sin bodegas";
+    return;
+  }
+  const sorted = [...warehouses].sort((a, b) =>
+    String(a?.name || "").localeCompare(String(b?.name || ""), "es")
+  );
+  sorted.forEach((warehouse) => {
+    const id = String(warehouse.id || warehouse._id || "");
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.dataset.warehouseId = id;
+    input.checked = selected.has(id);
+    const text = document.createElement("span");
+    text.textContent = warehouse.name || `Bodega ${id}`;
+    label.appendChild(input);
+    label.appendChild(text);
+    container.appendChild(label);
+  });
+  updateStoreWarehouseSummary(container, summary);
+
+  selectAllInput.addEventListener("change", () => {
+    const checked = selectAllInput.checked;
+    container.querySelectorAll("input[data-warehouse-id]").forEach((input) => {
+      input.checked = checked;
+    });
+    updateStoreWarehouseSummary(container, summary);
+  });
+
+  container.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) return;
+    if (!target.dataset.warehouseId) return;
+    updateStoreWarehouseSummary(container, summary);
+    const inputs = container.querySelectorAll("input[data-warehouse-id]");
+    const total = inputs.length;
+    const checked = Array.from(inputs).filter((input) => input.checked).length;
+    selectAllInput.checked = checked === 0 || checked === total;
+  });
+}
+
+function updateStoreWarehouseSummary(container, summary) {
+  if (!summary) return;
+  const inputs = container.querySelectorAll("input[data-warehouse-id]");
+  if (!inputs.length) {
+    summary.textContent = "Sin bodegas";
+    return;
+  }
+  const checked = Array.from(inputs).filter((input) => input.checked).length;
+  if (checked === 0 || checked === inputs.length) {
+    summary.textContent = "Todas";
+    return;
+  }
+  summary.textContent = `${checked} seleccionadas`;
+}
+
+function getWarehouseSelection(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return [];
+  return Array.from(container.querySelectorAll("input[data-warehouse-id]"))
+    .filter((input) => input.checked)
+    .map((input) => String(input.dataset.warehouseId || ""));
+}
+
+async function saveStoreConfigForm(shopDomain) {
+  const store = storeConfigState.get(shopDomain);
+  if (!store) return;
+  const key = String(shopDomain || "store").replace(/[^a-z0-9]/gi, "_");
+  const status = document.getElementById(`store-${key}-save-status`);
+  if (status) status.textContent = "Guardando...";
+
+  const payload = {
+    transfers: {
+      destinationWarehouseId: getSelectValue(`store-${key}-transfer-dest`),
+      priorityWarehouseId: getSelectValue(`store-${key}-transfer-priority`),
+      strategy: getSelectValue(`store-${key}-transfer-strategy`) || "consolidation",
+      originWarehouseIds: getWarehouseSelection(`store-${key}-transfer-origin`),
+    },
+    priceLists: {
+      generalId: getSelectValue(`store-${key}-price-general`),
+      discountId: getSelectValue(`store-${key}-price-discount`),
+      wholesaleId: getSelectValue(`store-${key}-price-wholesale`),
+      currency: getSelectValue(`store-${key}-price-currency`),
+    },
+    invoice: {
+      generateInvoice: getCheckboxValue(`store-${key}-invoice-generate`),
+      resolutionId: getSelectValue(`store-${key}-invoice-resolution`),
+      costCenterId: getSelectValue(`store-${key}-invoice-cost-center`),
+      warehouseId: getSelectValue(`store-${key}-invoice-warehouse`),
+      sellerId: getSelectValue(`store-${key}-invoice-seller`),
+      paymentMethod: getSelectValue(`store-${key}-invoice-payment-method`),
+      bankAccountId: getSelectValue(`store-${key}-invoice-bank-account`),
+      applyPayment: getCheckboxValue(`store-${key}-invoice-apply-payment`),
+      observationsTemplate: getInputValue(`store-${key}-invoice-observations`),
+      einvoiceEnabled: getCheckboxValue(`store-${key}-invoice-einvoice`),
+    },
+    rules: {
+      publishOnStock: getCheckboxValue(`store-${key}-rules-publish-stock`),
+      autoPublishOnWebhook: getCheckboxValue(`store-${key}-rules-auto-publish`),
+      autoPublishStatus: getSelectValue(`store-${key}-rules-auto-status`) || "draft",
+      inventoryAdjustmentsEnabled: getCheckboxValue(`store-${key}-rules-inv-enabled`),
+      inventoryAdjustmentsIntervalMinutes: Number(
+        getSelectValue(`store-${key}-rules-inv-interval`) || 5
+      ),
+      inventoryAdjustmentsAutoPublish: getCheckboxValue(`store-${key}-rules-inv-publish`),
+      warehouseIds: getWarehouseSelection(`store-${key}-rules-warehouses`),
+    },
+  };
+
+  await fetchJson(`/api/store-configs/${encodeURIComponent(shopDomain)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (status) status.textContent = "Guardado";
+}
+
+function getSelectValue(id) {
+  const el = document.getElementById(id);
+  return el ? el.value : "";
+}
+
+function getInputValue(id) {
+  const el = document.getElementById(id);
+  return el ? el.value : "";
+}
+
+function getCheckboxValue(id) {
+  const el = document.getElementById(id);
+  return el ? Boolean(el.checked) : false;
 }
 
 async function loadInventoryCheckpoint() {
@@ -3216,7 +3694,7 @@ async function testConnections() {
       alegra: {
         email: alegraEmail.value,
         apiKey: alegraKey.value,
-        environment: "prod",
+        environment: alegraEnvSelect ? alegraEnvSelect.value : "prod",
       },
     };
     const result = await fetchJson("/api/settings/test", {
@@ -3281,7 +3759,7 @@ async function testAlegraConnection() {
       alegra: {
         email: alegraEmail.value,
         apiKey: alegraKey.value,
-        environment: "prod",
+        environment: alegraEnvSelect ? alegraEnvSelect.value : "prod",
       },
     };
     const result = await fetchJson("/api/settings/test", {
@@ -3301,6 +3779,32 @@ async function testAlegraConnection() {
     statusTextAlegra.textContent = "Error de red";
     setMetricsStatusPills(Boolean(statusLedShopify.classList.contains("is-ok")), false);
   }
+}
+
+async function addConnection() {
+  if (!shopifyDomain || !shopifyToken) return;
+  const payload = {
+    shopify: {
+      shopDomain: shopifyDomain.value || "",
+      accessToken: shopifyToken.value || "",
+    },
+    alegra: {},
+  };
+  if (alegraAccountSelect && alegraAccountSelect.value !== "new") {
+    payload.alegra.accountId = Number(alegraAccountSelect.value);
+  } else {
+    payload.alegra.email = alegraEmail ? alegraEmail.value : "";
+    payload.alegra.apiKey = alegraKey ? alegraKey.value : "";
+    payload.alegra.environment = alegraEnvSelect ? alegraEnvSelect.value : "prod";
+  }
+  await fetchJson("/api/connections", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (shopifyToken) shopifyToken.value = "";
+  if (alegraKey) alegraKey.value = "";
+  await loadConnections();
 }
 
 if (refreshButton) {
@@ -3374,6 +3878,51 @@ if (testShopifyButton) {
 }
 if (testAlegraButton) {
   testAlegraButton.addEventListener("click", testAlegraConnection);
+}
+if (alegraAccountSelect) {
+  alegraAccountSelect.addEventListener("change", toggleAlegraAccountFields);
+}
+if (connectionAdd) {
+  connectionAdd.addEventListener("click", () => {
+    addConnection().catch(() => null);
+  });
+}
+if (connectionsGrid) {
+  connectionsGrid.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const id = target.dataset.connectionRemove;
+    if (!id) return;
+    if (!confirm("Eliminar esta conexion?")) return;
+    fetchJson(`/api/connections/${id}`, { method: "DELETE" })
+      .then(() => loadConnections())
+      .catch(() => null);
+  });
+}
+if (storeConfigsContainer) {
+  storeConfigsContainer.addEventListener("toggle", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (!target.classList.contains("store-config")) return;
+    if (!target.open) return;
+    if (target.dataset.hydrated === "true") return;
+    const shopDomain = target.dataset.store;
+    if (!shopDomain) return;
+    const store = storeConfigState.get(shopDomain);
+    if (!store) return;
+    hydrateStoreConfig(store)
+      .then(() => {
+        target.dataset.hydrated = "true";
+      })
+      .catch(() => null);
+  });
+  storeConfigsContainer.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const shopDomain = target.dataset.storeSave;
+    if (!shopDomain) return;
+    saveStoreConfigForm(shopDomain).catch(() => null);
+  });
 }
 if (inventoryCronEnabled) {
   inventoryCronEnabled.addEventListener("change", async () => {

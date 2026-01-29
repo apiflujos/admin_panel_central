@@ -70,6 +70,10 @@ export class AlegraClient {
     return this.request(`/bank-accounts`);
   }
 
+  async listPriceLists() {
+    return this.request(`/price-lists`);
+  }
+
   async createPayment(payload: Record<string, unknown>) {
     return this.request(`/payments`, { method: "POST", body: payload });
   }
