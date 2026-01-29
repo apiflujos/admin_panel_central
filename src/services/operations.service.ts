@@ -17,6 +17,19 @@ export async function listOperations(days = 7) {
   const ctx = await buildSyncContext();
   const updatedAtMin = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
   const query = `status:any updated_at:>='${updatedAtMin}'`;
+  return listOperationsByQuery(query);
+}
+
+export async function listOperationsRange(from: Date, to: Date) {
+  const ctx = await buildSyncContext();
+  const updatedAtMin = from.toISOString();
+  const updatedAtMax = to.toISOString();
+  const query = `status:any updated_at:>='${updatedAtMin}' updated_at:<='${updatedAtMax}'`;
+  return listOperationsByQuery(query);
+}
+
+async function listOperationsByQuery(query: string) {
+  const ctx = await buildSyncContext();
   const orders = await ctx.shopify.listAllOrdersByQuery(query);
   const orderIds = orders.map((order) => order.id);
   const latestLogs = await listLatestOrderLogs(orderIds);

@@ -6,7 +6,7 @@ import { getMappingByAlegraId } from "./mapping.service";
 import { syncAlegraItemToShopify } from "./alegra-to-shopify.service";
 import { getOrgId, getPool } from "../db";
 import { ASSISTANT_MASTER_PROMPT } from "./assistant-prompt";
-import { listOperations } from "./operations.service";
+import { listOperations, listOperationsRange } from "./operations.service";
 
 type AssistantAction = {
   type:
@@ -20,6 +20,11 @@ type AssistantAction = {
     | "get_orders_list"
     | "get_products_search"
     | "get_logs"
+    | "get_overview"
+    | "get_orders_report"
+    | "get_products_report"
+    | "get_inventory_report"
+    | "get_operations_report"
     | "get_settings"
     | "update_invoice_settings"
     | "update_rules";
@@ -72,6 +77,11 @@ const ACTION_TYPES = new Set<AssistantAction["type"]>([
   "get_orders_list",
   "get_products_search",
   "get_logs",
+  "get_overview",
+  "get_orders_report",
+  "get_products_report",
+  "get_inventory_report",
+  "get_operations_report",
   "get_settings",
   "update_invoice_settings",
   "update_rules",
@@ -186,6 +196,42 @@ export async function executeAssistantAction(action: AssistantAction) {
       ]),
     };
   }
+  if (action.type === "get_overview") {
+    const range = normalizeRange(action.payload?.range);
+    const offset = normalizeOffset(action.payload?.offset);
+    const report = await buildOverviewReport(range, offset);
+    return { reply: formatOverviewReport(report) };
+  }
+  if (action.type === "get_orders_report") {
+    const range = normalizeRange(action.payload?.range);
+    const offset = normalizeOffset(action.payload?.offset);
+    const report = await buildEntityReport(["order"], "Pedidos", range, offset);
+    return { reply: report };
+  }
+  if (action.type === "get_products_report") {
+    const range = normalizeRange(action.payload?.range);
+    const offset = normalizeOffset(action.payload?.offset);
+    const report = await buildEntityReport(["product", "item"], "Productos", range, offset);
+    return { reply: report };
+  }
+  if (action.type === "get_inventory_report") {
+    const range = normalizeRange(action.payload?.range);
+    const offset = normalizeOffset(action.payload?.offset);
+    const report = await buildEntityReport(["inventory"], "Inventario", range, offset);
+    return { reply: report };
+  }
+  if (action.type === "get_operations_report") {
+    const limit = Number(action.payload?.limit || 12);
+    const range = normalizeRange(action.payload?.range);
+    const offset = normalizeOffset(action.payload?.offset);
+    const data = await buildOperationsReport(limit, range, offset);
+    return {
+      reply: data.reply,
+      items: data.items,
+      itemsHeaders: data.itemsHeaders,
+      itemsRows: data.itemsRows,
+    };
+  }
   if (action.type === "get_products_search") {
     const query = String(action.payload?.query || "").trim();
     if (!query) {
@@ -231,7 +277,7 @@ export async function executeAssistantAction(action: AssistantAction) {
   if (action.type === "get_settings") {
     const settings = await getSettings();
     return {
-      reply: "Estos son los ajustes actuales.",
+      reply: formatSettingsSummary(settings),
       report: settings as Record<string, unknown>,
     };
   }
@@ -244,6 +290,358 @@ export async function executeAssistantAction(action: AssistantAction) {
     return { reply: "Reglas actualizadas." };
   }
   return { reply: "Esta accion debe ejecutarse desde el cliente." };
+}
+
+type EntitySummary = {
+  total: number;
+  success: number;
+  fail: number;
+  retrying: number;
+  lastAt: string | null;
+  topFailures: Array<{ message: string; total: number }>;
+  mappingCount: number;
+};
+
+type MonthRange = { from: Date; to: Date; label: string };
+type RangeKind = "day" | "week" | "month";
+type RangePair = { current: MonthRange; previous: MonthRange };
+
+async function buildOverviewReport(range: RangeKind = "month", offset = 0) {
+  const { current, previous } = resolveCalendarRanges(range, offset);
+  const [orders, products, inventory] = await Promise.all([
+    buildEntitySummaryRange(["order"], current.from, current.to),
+    buildEntitySummaryRange(["product", "item"], current.from, current.to),
+    buildEntitySummaryRange(["inventory"], current.from, current.to),
+  ]);
+  const [ordersPrev, productsPrev, inventoryPrev] = await Promise.all([
+    buildEntitySummaryRange(["order"], previous.from, previous.to),
+    buildEntitySummaryRange(["product", "item"], previous.from, previous.to),
+    buildEntitySummaryRange(["inventory"], previous.from, previous.to),
+  ]);
+  return {
+    current,
+    previous,
+    orders,
+    products,
+    inventory,
+    ordersPrev,
+    productsPrev,
+    inventoryPrev,
+  };
+}
+
+function formatOverviewReport(report: {
+  current: MonthRange;
+  previous: MonthRange;
+  orders: EntitySummary;
+  products: EntitySummary;
+  inventory: EntitySummary;
+  ordersPrev: EntitySummary;
+  productsPrev: EntitySummary;
+  inventoryPrev: EntitySummary;
+}) {
+  const parts = [
+    `Resumen general (${report.current.label}).`,
+    `Pedidos: ${report.orders.total} eventos · ok ${report.orders.success} · fallos ${report.orders.fail}. ${formatMonthComparison(
+      report.orders,
+      report.ordersPrev,
+      report.previous.label
+    )}`,
+    `Productos: ${report.products.total} eventos · ok ${report.products.success} · fallos ${report.products.fail}. ${formatMonthComparison(
+      report.products,
+      report.productsPrev,
+      report.previous.label
+    )}`,
+    `Inventario: ${report.inventory.total} eventos · ok ${report.inventory.success} · fallos ${report.inventory.fail}. ${formatMonthComparison(
+      report.inventory,
+      report.inventoryPrev,
+      report.previous.label
+    )}`,
+  ];
+  return parts.join(" ");
+}
+
+async function buildEntityReport(
+  entities: string[],
+  label: string,
+  range: RangeKind = "month",
+  offset = 0
+) {
+  const { current, previous } = resolveCalendarRanges(range, offset);
+  const summary = await buildEntitySummaryRange(entities, current.from, current.to);
+  const prev = await buildEntitySummaryRange(entities, previous.from, previous.to);
+  return formatEntitySummary(label, summary, current, previous, prev);
+}
+
+async function buildEntitySummaryRange(
+  entities: string[],
+  from: Date,
+  to: Date
+): Promise<EntitySummary> {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const since = from.toISOString();
+  const until = to.toISOString();
+  const totals = await pool.query<{
+    total: string;
+    last_at: string | null;
+  }>(
+    `
+    SELECT COUNT(*) AS total, MAX(created_at) AS last_at
+    FROM sync_logs
+    WHERE organization_id = $1
+      AND entity = ANY($2::text[])
+      AND created_at >= $3
+      AND created_at <= $4
+    `,
+    [orgId, entities, since, until]
+  );
+  const statusCounts = await pool.query<{ status: string; total: string }>(
+    `
+    SELECT status, COUNT(*) AS total
+    FROM sync_logs
+    WHERE organization_id = $1
+      AND entity = ANY($2::text[])
+      AND created_at >= $3
+      AND created_at <= $4
+    GROUP BY status
+    `,
+    [orgId, entities, since, until]
+  );
+  const failures = await pool.query<{ message: string | null; total: string }>(
+    `
+    SELECT message, COUNT(*) AS total
+    FROM sync_logs
+    WHERE organization_id = $1
+      AND entity = ANY($2::text[])
+      AND created_at >= $3
+      AND created_at <= $4
+      AND status = 'fail'
+      AND message IS NOT NULL
+    GROUP BY message
+    ORDER BY total DESC
+    LIMIT 3
+    `,
+    [orgId, entities, since, until]
+  );
+  const mappings = await pool.query<{ total: string }>(
+    `
+    SELECT COUNT(*) AS total
+    FROM sync_mappings
+    WHERE organization_id = $1
+      AND entity = ANY($2::text[])
+    `,
+    [orgId, entities]
+  );
+  const totalsRow = totals.rows[0] || { total: "0", last_at: null };
+  const statusMap = new Map(statusCounts.rows.map((row) => [row.status, Number(row.total || 0)]));
+  return {
+    total: Number(totalsRow.total || 0),
+    success: statusMap.get("success") || 0,
+    fail: statusMap.get("fail") || 0,
+    retrying: statusMap.get("retrying") || 0,
+    lastAt: totalsRow.last_at || null,
+    topFailures: failures.rows.map((row) => ({
+      message: String(row.message || ""),
+      total: Number(row.total || 0),
+    })),
+    mappingCount: Number(mappings.rows[0]?.total || 0),
+  };
+}
+
+function formatEntitySummary(
+  label: string,
+  summary: EntitySummary,
+  current: MonthRange,
+  previous: MonthRange,
+  previousSummary?: EntitySummary
+) {
+  const last = summary.lastAt ? new Date(summary.lastAt).toLocaleString("es-CO") : "sin datos";
+  const parts = [
+    `${label} (${current.label}): ${summary.total} eventos · ok ${summary.success} · fallos ${summary.fail}` +
+      (summary.retrying ? ` · reintentos ${summary.retrying}` : ""),
+    `Ultimo registro: ${last}`,
+  ];
+  if (previousSummary) {
+    parts.push(formatMonthComparison(summary, previousSummary, previous.label));
+  }
+  if (summary.mappingCount) {
+    parts.push(`Registros mapeados: ${summary.mappingCount}`);
+  }
+  if (summary.topFailures.length) {
+    const failures = summary.topFailures
+      .map((item) => `${item.message} (${item.total})`)
+      .join("; ");
+    parts.push(`Errores frecuentes: ${failures}`);
+  }
+  return parts.join(". ");
+}
+
+async function buildOperationsReport(limit: number, range: RangeKind = "month", offset = 0) {
+  const { current, previous } = resolveCalendarRanges(range, offset);
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(limit, 50) : 12;
+  const operations = await listOperationsRange(current.from, current.to);
+  const operationsPrev = await listOperationsRange(previous.from, previous.to);
+  const items = operations.items.slice(0, safeLimit);
+  const total = operations.items.length;
+  const counts = operations.items.reduce(
+    (acc, item) => {
+      const status = String(item.alegraStatus || "pendiente");
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+  const parts = [
+    `Operaciones (${current.label}): ${total} pedidos`,
+    `Facturados ${counts.facturado || 0} · pendientes ${counts.pendiente || 0} · fallos ${counts.fallo || 0}`,
+    formatSimpleComparison(total, operationsPrev.items.length, previous.label),
+  ];
+  return {
+    reply: parts.join(". "),
+    items,
+    itemsHeaders: ["Pedido", "Cliente", "Estado"],
+    itemsRows: items.map((order) => [
+      String(order.orderNumber || order.id || "-"),
+      String(order.customer || "-"),
+      String(order.alegraStatus || "-"),
+    ]),
+  };
+}
+
+function resolveCalendarRanges(range: RangeKind, offset = 0): RangePair {
+  if (range === "day") {
+    return resolveCalendarDayRanges(offset);
+  }
+  if (range === "week") {
+    return resolveCalendarWeekRanges(offset);
+  }
+  return resolveCalendarMonthRanges(offset);
+}
+
+function resolveCalendarMonthRanges(offset = 0): RangePair {
+  const now = new Date();
+  const base = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+  const currentFrom = new Date(base.getFullYear(), base.getMonth(), 1);
+  const currentTo = new Date(base.getFullYear(), base.getMonth() + 1, 0, 23, 59, 59, 999);
+  const previousFrom = new Date(base.getFullYear(), base.getMonth() - 1, 1);
+  const previousTo = new Date(base.getFullYear(), base.getMonth(), 0, 23, 59, 59, 999);
+  return {
+    current: {
+      from: currentFrom,
+      to: currentTo,
+      label: formatMonthLabel(currentFrom),
+    },
+    previous: {
+      from: previousFrom,
+      to: previousTo,
+      label: formatMonthLabel(previousFrom),
+    },
+  };
+}
+
+function resolveCalendarWeekRanges(offset = 0): RangePair {
+  const now = new Date();
+  const base = new Date(now);
+  base.setDate(base.getDate() - offset * 7);
+  const currentFrom = startOfWeek(base);
+  const currentTo = endOfWeek(base);
+  const previousFrom = new Date(currentFrom);
+  previousFrom.setDate(previousFrom.getDate() - 7);
+  const previousTo = new Date(currentTo);
+  previousTo.setDate(previousTo.getDate() - 7);
+  return {
+    current: {
+      from: currentFrom,
+      to: currentTo,
+      label: formatWeekLabel(currentFrom),
+    },
+    previous: {
+      from: previousFrom,
+      to: previousTo,
+      label: formatWeekLabel(previousFrom),
+    },
+  };
+}
+
+function resolveCalendarDayRanges(offset = 0): RangePair {
+  const now = new Date();
+  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset);
+  const currentFrom = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+  const currentTo = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 23, 59, 59, 999);
+  const previousFrom = new Date(currentFrom);
+  previousFrom.setDate(previousFrom.getDate() - 1);
+  const previousTo = new Date(currentTo);
+  previousTo.setDate(previousTo.getDate() - 1);
+  return {
+    current: {
+      from: currentFrom,
+      to: currentTo,
+      label: formatDayLabel(currentFrom),
+    },
+    previous: {
+      from: previousFrom,
+      to: previousTo,
+      label: formatDayLabel(previousFrom),
+    },
+  };
+}
+
+function formatMonthLabel(date: Date) {
+  const month = date.toLocaleString("es-CO", { month: "long" });
+  return `${month} ${date.getFullYear()}`;
+}
+
+function formatWeekLabel(date: Date) {
+  const start = startOfWeek(date);
+  const end = endOfWeek(date);
+  const startLabel = `${start.getDate()} ${start.toLocaleString("es-CO", { month: "short" })}`;
+  const endLabel = `${end.getDate()} ${end.toLocaleString("es-CO", { month: "short" })}`;
+  return `semana ${startLabel} - ${endLabel}`;
+}
+
+function formatDayLabel(date: Date) {
+  const day = date.getDate();
+  const month = date.toLocaleString("es-CO", { month: "long" });
+  return `${day} ${month} ${date.getFullYear()}`;
+}
+
+function startOfWeek(date: Date) {
+  const day = date.getDay();
+  const diff = (day + 6) % 7;
+  const start = new Date(date);
+  start.setDate(date.getDate() - diff);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+function endOfWeek(date: Date) {
+  const start = startOfWeek(date);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return end;
+}
+
+function formatMonthComparison(current: EntitySummary, previous: EntitySummary, previousLabel: string) {
+  const totalDelta = formatDelta(current.total, previous.total);
+  const failDelta = formatDelta(current.fail, previous.fail);
+  const successDelta = formatDelta(current.success, previous.success);
+  return `Vs ${previousLabel}: total ${totalDelta} · ok ${successDelta} · fallos ${failDelta}`;
+}
+
+function formatSimpleComparison(current: number, previous: number, previousLabel: string) {
+  return `Vs ${previousLabel}: ${formatDelta(current, previous)}`;
+}
+
+function formatDelta(current: number, previous: number) {
+  const diff = current - previous;
+  const sign = diff > 0 ? "+" : diff < 0 ? "-" : "";
+  if (previous === 0) {
+    return `${sign}${Math.abs(diff)} (${previous === 0 && current > 0 ? "nuevo" : "sin cambio"})`;
+  }
+  const pct = Math.round((Math.abs(diff) / previous) * 100);
+  return `${sign}${Math.abs(diff)} (${sign || ""}${pct}%)`;
 }
 
 async function publishOrHideItem(alegraId: string, publish: boolean) {
@@ -653,12 +1051,21 @@ async function handleAssistantWithAi(
     choices?: Array<{ message?: { content?: string } }>;
   };
   const content = data.choices?.[0]?.message?.content || "";
-  const parsed = parseAiJson(content);
-  if (!parsed) {
-    return { reply: withIntro(content || "No pude responder en este momento.") };
+  const extracted = extractActionTag(content);
+  let replyText = extracted.text || "";
+  let action = extracted.action as AssistantAction | undefined;
+  let parsed: Record<string, unknown> | null = null;
+  if (!action) {
+    parsed = parseAiJson(content);
+    if (parsed) {
+      replyText = typeof parsed.reply === "string" ? parsed.reply : replyText;
+      action = parsed.action as AssistantAction | undefined;
+    }
   }
-  const reply = typeof parsed.reply === "string" ? parsed.reply : "Listo.";
-  const action = parsed.action as AssistantAction | undefined;
+  if (!parsed && !action && looksLikeRawJson(content)) {
+    return { reply: withIntro("No pude interpretar la respuesta. Intenta de nuevo.") };
+  }
+  const reply = replyText || "Listo.";
   if (action && ACTION_TYPES.has(action.type)) {
     if (role !== "admin" && (action.type === "get_settings" || action.type === "update_invoice_settings" || action.type === "update_rules")) {
       return { reply: withIntro("No tienes permisos para acceder a configuraciones.") };
@@ -677,7 +1084,16 @@ async function handleAssistantWithAi(
     const result = await executeAssistantAction(action);
     return {
       reply: withIntro(result.reply || reply),
-      report: result.report,
+      items: result.items,
+      itemsHeaders: result.itemsHeaders,
+      itemsRows: result.itemsRows,
+    };
+  }
+  const inferred = inferReportAction(message);
+  if (inferred) {
+    const result = await executeAssistantAction(inferred);
+    return {
+      reply: withIntro(result.reply || reply),
       items: result.items,
       itemsHeaders: result.itemsHeaders,
       itemsRows: result.itemsRows,
@@ -685,13 +1101,61 @@ async function handleAssistantWithAi(
   }
   if (looksLikeSalesQuestion(message)) {
     const result = await executeAssistantAction({ type: "get_sales_summary", payload: {} });
-    return { reply: withIntro(result.reply), report: result.report };
+    return { reply: withIntro(result.reply) };
   }
   if (looksLikeOrdersQuestion(message)) {
     const result = await executeAssistantAction({ type: "get_orders_summary", payload: {} });
-    return { reply: withIntro(result.reply), report: result.report };
+    return { reply: withIntro(result.reply) };
   }
   return { reply: withIntro(reply) };
+}
+
+function extractActionTag(content: string) {
+  const text = content || "";
+  const match = text.match(/\[\[action\s+([^\]]+)\]\]/i);
+  if (!match) {
+    return { text: text.trim(), action: null };
+  }
+  const tagBody = match[1] || "";
+  const cleaned = text.replace(match[0], "").trim();
+  const parts = tagBody.split(/\s+/).filter(Boolean);
+  let type = "";
+  const payload: Record<string, unknown> = {};
+  for (const part of parts) {
+    const [rawKey, rawValue] = part.split("=");
+    if (!rawKey || typeof rawValue === "undefined") {
+      continue;
+    }
+    const key = rawKey.trim();
+    const value = parseActionValue(rawValue.trim());
+    if (key === "type" && typeof value === "string") {
+      type = value;
+      continue;
+    }
+    payload[key] = value;
+  }
+  if (!type) {
+    return { text: cleaned, action: null };
+  }
+  return {
+    text: cleaned,
+    action: {
+      type: type as AssistantAction["type"],
+      payload: Object.keys(payload).length ? payload : undefined,
+    },
+  };
+}
+
+function parseActionValue(raw: string) {
+  const stripped = raw.replace(/^["']|["']$/g, "");
+  if (stripped === "true") return true;
+  if (stripped === "false") return false;
+  if (stripped === "null") return null;
+  const num = Number(stripped);
+  if (!Number.isNaN(num) && stripped !== "") {
+    return num;
+  }
+  return stripped;
 }
 
 function parseAiJson(content: string) {
@@ -719,6 +1183,12 @@ function tryParseJson(text: string) {
   }
 }
 
+function looksLikeRawJson(content: string) {
+  const trimmed = String(content || "").trim();
+  if (!trimmed) return false;
+  return trimmed.startsWith("{") || trimmed.startsWith("[");
+}
+
 function looksLikeSalesQuestion(message: string) {
   const normalized = message.toLowerCase();
   return normalized.includes("venta") || normalized.includes("factur");
@@ -727,6 +1197,82 @@ function looksLikeSalesQuestion(message: string) {
 function looksLikeOrdersQuestion(message: string) {
   const normalized = message.toLowerCase();
   return normalized.includes("pedido") || normalized.includes("orden");
+}
+
+function normalizeRange(raw: unknown): RangeKind {
+  if (raw === "day" || raw === "week" || raw === "month") return raw;
+  return "month";
+}
+
+function normalizeOffset(raw: unknown) {
+  const value = Number(raw || 0);
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.min(Math.floor(value), 12);
+}
+
+function inferReportAction(message: string): AssistantAction | null {
+  const normalized = message.toLowerCase();
+  const wantsReport =
+    normalized.includes("resumen") ||
+    normalized.includes("reporte") ||
+    normalized.includes("reportes") ||
+    normalized.includes("informe") ||
+    normalized.includes("analisis") ||
+    normalized.includes("análisis") ||
+    normalized.includes("estado general") ||
+    normalized.includes("dashboard");
+  if (!wantsReport && !looksLikeOrdersQuestion(message) && !normalized.includes("producto") && !normalized.includes("inventario") && !normalized.includes("operacion")) {
+    return null;
+  }
+  const inferred = inferRangeFromMessage(normalized);
+  const range = inferred?.range || null;
+  const offset = inferred?.offset;
+  if (normalized.includes("operacion") || normalized.includes("operaciones")) {
+    return { type: "get_operations_report", payload: buildRangePayload(range, offset) };
+  }
+  if (normalized.includes("inventario") || normalized.includes("stock")) {
+    return { type: "get_inventory_report", payload: buildRangePayload(range, offset) };
+  }
+  if (normalized.includes("producto") || normalized.includes("productos") || normalized.includes("item")) {
+    return { type: "get_products_report", payload: buildRangePayload(range, offset) };
+  }
+  if (normalized.includes("pedido") || normalized.includes("pedidos") || normalized.includes("orden") || normalized.includes("ordenes") || normalized.includes("órdenes")) {
+    return { type: "get_orders_report", payload: buildRangePayload(range, offset) };
+  }
+  return { type: "get_overview", payload: buildRangePayload(range, offset) };
+}
+
+function inferRangeFromMessage(normalized: string): { range: RangeKind; offset: number } | null {
+  if (normalized.includes("anteayer")) {
+    return { range: "day", offset: 2 };
+  }
+  if (normalized.includes("ayer")) {
+    return { range: "day", offset: 1 };
+  }
+  if (normalized.includes("hoy") || normalized.includes("día") || normalized.includes("dia")) {
+    return { range: "day", offset: 0 };
+  }
+  if (normalized.includes("semana pasada") || normalized.includes("semana anterior")) {
+    return { range: "week", offset: 1 };
+  }
+  if (normalized.includes("semana") || normalized.includes("semanal")) {
+    return { range: "week", offset: 0 };
+  }
+  if (normalized.includes("mes pasado") || normalized.includes("mes anterior")) {
+    return { range: "month", offset: 1 };
+  }
+  if (normalized.includes("mes") || normalized.includes("mensual")) {
+    return { range: "month", offset: 0 };
+  }
+  return null;
+}
+
+function buildRangePayload(range: RangeKind | null, offset?: number) {
+  if (!range && !offset) return undefined;
+  const payload: Record<string, unknown> = {};
+  if (range) payload.range = range;
+  if (offset) payload.offset = offset;
+  return payload;
 }
 
 function resolveDateRange(payload: Record<string, unknown>) {
@@ -793,6 +1339,48 @@ async function getSalesSummary(
       currency: "COP",
     }).format(total),
   };
+}
+
+function formatSettingsSummary(settings: Awaited<ReturnType<typeof getSettings>>) {
+  const parts: string[] = [];
+  if (settings.shopify) {
+    const token = settings.shopify.hasAccessToken ? "token activo" : "sin token";
+    parts.push(
+      `Shopify: ${settings.shopify.shopDomain || "-"} · ${token} · api ${settings.shopify.apiVersion || "-"}`
+    );
+  } else {
+    parts.push("Shopify: no configurado.");
+  }
+  if (settings.alegra) {
+    const token = settings.alegra.hasApiKey ? "token activo" : "sin token";
+    parts.push(
+      `Alegra: ${settings.alegra.email || "-"} · ${token} · entorno ${settings.alegra.environment || "prod"}`
+    );
+  } else {
+    parts.push("Alegra: no configurado.");
+  }
+  if (settings.ai) {
+    parts.push(`IA: ${settings.ai.hasApiKey ? "token activo" : "sin token"}.`);
+  } else {
+    parts.push("IA: no configurado.");
+  }
+  if (settings.rules) {
+    const rules = settings.rules;
+    const autoStatus = rules.autoPublishStatus || "draft";
+    parts.push(
+      `Reglas: publicar por stock ${rules.publishOnStock ? "si" : "no"} · webhook auto ${rules.autoPublishOnWebhook ? "si" : "no"} · estado auto ${autoStatus}`
+    );
+    parts.push(
+      `Inventario: ajustes ${rules.inventoryAdjustmentsEnabled ? "si" : "no"} · intervalo ${rules.inventoryAdjustmentsIntervalMinutes || 0} min · auto publicar ${rules.inventoryAdjustmentsAutoPublish ? "si" : "no"}`
+    );
+  }
+  if (settings.invoice) {
+    const invoice = settings.invoice;
+    parts.push(
+      `Facturacion: generar ${invoice.generateInvoice ? "si" : "no"} · e-invoice ${invoice.einvoiceEnabled ? "si" : "no"} · metodo ${invoice.paymentMethod || "-"}`
+    );
+  }
+  return parts.join(". ");
 }
 
 async function getOrdersSummary(range: { from: Date; to: Date; label: string }) {

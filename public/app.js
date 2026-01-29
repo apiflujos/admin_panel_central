@@ -2602,11 +2602,6 @@ async function sendAssistantMessage() {
           ]);
       appendAssistantTable(container, headers, rows);
     }
-    if (result.report) {
-      const report = document.createElement("pre");
-      report.textContent = JSON.stringify(result.report, null, 2);
-      container.appendChild(report);
-    }
     if (result.clientAction) {
       handleAssistantAction(result.clientAction).catch(() => null);
     }
