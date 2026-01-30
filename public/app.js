@@ -57,6 +57,10 @@ const logFilter = document.getElementById("log-filter");
 const logRetry = document.getElementById("log-retry");
 const connectionsGrid = document.getElementById("connections-grid");
 const storeConfigsContainer = document.getElementById("store-configs-single");
+const legacyPublishPanel = document.getElementById("legacy-publish-panel");
+const legacyProductsSyncPanel = document.getElementById("legacy-products-sync-panel");
+const legacyOrdersSyncPanel = document.getElementById("legacy-orders-sync-panel");
+const legacyInvoicePanel = document.getElementById("legacy-invoice-panel");
 
 const kpiSalesToday = document.getElementById("kpi-sales-today");
 const kpiSalesTodaySub = document.getElementById("kpi-sales-today-sub");
@@ -1217,6 +1221,11 @@ async function loadStoreConfigs() {
 
 function renderStoreConfigs(items) {
   if (!storeConfigsContainer) return;
+  const hasStores = Array.isArray(items) && items.length > 0;
+  if (legacyPublishPanel) legacyPublishPanel.style.display = hasStores ? "none" : "";
+  if (legacyProductsSyncPanel) legacyProductsSyncPanel.style.display = hasStores ? "none" : "";
+  if (legacyOrdersSyncPanel) legacyOrdersSyncPanel.style.display = hasStores ? "none" : "";
+  if (legacyInvoicePanel) legacyInvoicePanel.style.display = hasStores ? "none" : "";
   if (!items.length) {
     storeConfigsContainer.innerHTML = `<div class="connection-card empty">Sin tiendas conectadas.</div>`;
     storeConfigState.clear();
