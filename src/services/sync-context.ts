@@ -28,6 +28,9 @@ type InventoryRules = {
   warehouseIds: string[];
 };
 
+const normalizeAutoStatus = (value: unknown): "draft" | "active" =>
+  value === "active" ? "active" : "draft";
+
 export async function buildSyncContext(shopDomain?: string): Promise<SyncContext> {
   const pool = getPool();
   const orgId = getOrgId();
@@ -66,7 +69,7 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
     shopifyLocationId: shopifySettings.locationId,
     publishOnStock: rules.publishOnStock,
     autoPublishOnWebhook: rules.autoPublishOnWebhook,
-    autoPublishStatus: rules.autoPublishStatus,
+    autoPublishStatus: normalizeAutoStatus(rules.autoPublishStatus),
     alegraWarehouseId: warehouseId,
     alegraWarehouseIds: rules.warehouseIds,
     priceListGeneralId: storeConfig.priceListGeneralId,
