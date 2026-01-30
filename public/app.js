@@ -102,6 +102,8 @@ const userMenuToggle = document.getElementById("topbar-user-toggle");
 const companyLogo = document.getElementById("company-logo");
 
 const storeNameInput = document.getElementById("store-name");
+const storeActiveField = document.getElementById("store-active-field");
+const storeActiveSelect = document.getElementById("store-active-select");
 const shopifyDomain = document.getElementById("shopify-domain");
 const shopifyToken = document.getElementById("shopify-token");
 
@@ -233,6 +235,7 @@ let currentUserRole = "agent";
 let currentUserId = null;
 let activeStoreDomain = "";
 let activeStoreName = "";
+let storesCache = [];
 let transferOriginIds = [];
 
 function getTransferOriginDetails() {
@@ -247,8 +250,19 @@ let inventoryRules = {
   inventoryAdjustmentsAutoPublish: true,
   warehouseIds: [],
 };
+let globalInvoiceSettings = null;
+let storeRuleOverrides = null;
+let storeInvoiceOverrides = null;
 
 const PRODUCT_SETTINGS_KEY = "apiflujos-products-settings";
+const STORE_WIZARD_KEY = "apiflujos-store-wizard";
+const WIZARD_MODULE_ORDER = [
+  "shopify-mass",
+  "shopify-orders",
+  "shopify-rules",
+  "alegra-inventory",
+  "alegra-invoice",
+];
 const DEFAULT_PRODUCT_SETTINGS = {
   publish: {
     status: "draft",
@@ -1041,6 +1055,50 @@ function setModuleCollapsed(panel, collapsed) {
   panel.classList.toggle("is-collapsed", Boolean(collapsed));
 }
 
+function getWizardState() {
+  try {
+    const raw = localStorage.getItem(STORE_WIZARD_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setWizardState(state) {
+  try {
+    localStorage.setItem(STORE_WIZARD_KEY, JSON.stringify(state));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function clearWizardState() {
+  try {
+    localStorage.removeItem(STORE_WIZARD_KEY);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function openWizardStep() {
+  const state = getWizardState();
+  if (!state || state.shopDomain !== activeStoreDomain) return;
+  const key = WIZARD_MODULE_ORDER[state.step];
+  if (!key) {
+    clearWizardState();
+    return;
+  }
+  WIZARD_MODULE_ORDER.forEach((moduleKey) => {
+    const panel = getModulePanel(moduleKey);
+    if (panel) setModuleCollapsed(panel, true);
+  });
+  const panel = getModulePanel(key);
+  if (!panel) return;
+  setModuleCollapsed(panel, false);
+  setModuleReadonly(panel, false);
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 async function handleModuleSave(moduleKey) {
   if (!moduleKey) return;
   const panel = getModulePanel(moduleKey);
@@ -1053,13 +1111,13 @@ async function handleModuleSave(moduleKey) {
       await saveSettings();
     },
     "alegra-invoice": async () => {
-      await saveSettings();
+      await saveStoreConfigFromSettings();
     },
     "alegra-inventory": async () => {
-      await saveSettings();
+      await saveStoreConfigFromSettings();
     },
     "shopify-rules": async () => {
-      await saveSettings();
+      await saveStoreConfigFromSettings();
     },
     "shopify-mass": async () => {
       refreshProductSettingsFromInputs();
@@ -1077,6 +1135,15 @@ async function handleModuleSave(moduleKey) {
       setStoreConfigStatus("Configuracion guardada.", "is-ok");
     }
     setModuleReadonly(panel, true);
+    const wizard = getWizardState();
+    if (wizard && wizard.shopDomain === activeStoreDomain) {
+      const expected = WIZARD_MODULE_ORDER[wizard.step];
+      if (expected === moduleKey) {
+        wizard.step += 1;
+        setWizardState(wizard);
+        openWizardStep();
+      }
+    }
   } catch (error) {
     if (moduleKey === "alegra-invoice" || moduleKey === "shopify-orders") {
       setStoreConfigStatus(error?.message || "No se pudo guardar.", "is-error");
@@ -1200,6 +1267,8 @@ function refreshProductSettingsFromInputs() {
 }
 
 async function loadSettings() {
+  storeRuleOverrides = null;
+  storeInvoiceOverrides = null;
   const data = await fetchJson("/api/settings");
   // ambiente fijo en produccion
   if (data.shopify) {
@@ -1233,6 +1302,18 @@ async function loadSettings() {
     }
   }
   if (data.invoice) {
+    globalInvoiceSettings = {
+      generateInvoice: Boolean(data.invoice.generateInvoice),
+      einvoiceEnabled: Boolean(data.invoice.einvoiceEnabled),
+      resolutionId: data.invoice.resolutionId || "",
+      costCenterId: data.invoice.costCenterId || "",
+      warehouseId: data.invoice.warehouseId || "",
+      sellerId: data.invoice.sellerId || "",
+      paymentMethod: data.invoice.paymentMethod || "",
+      bankAccountId: data.invoice.bankAccountId || "",
+      applyPayment: Boolean(data.invoice.applyPayment),
+      observationsTemplate: data.invoice.observationsTemplate || "",
+    };
     if (cfgGenerateInvoice) {
       cfgGenerateInvoice.checked = Boolean(data.invoice.generateInvoice);
     }
@@ -1288,18 +1369,20 @@ async function loadConnections() {
     renderConnections(data);
     renderAlegraAccountOptions(data.alegraAccounts || []);
     const stores = Array.isArray(data.stores) ? data.stores : [];
+    storesCache = stores;
     activeStoreDomain = stores[0]?.shopDomain || "";
     activeStoreName = stores[0]?.storeName || "";
     if (storeNameInput) {
       storeNameInput.placeholder = activeStoreName || "Olivia Shoes Colombia";
     }
-    updateStoreModuleTitles();
+    renderStoreActiveSelect(stores);
   } catch {
     renderConnections({ stores: [] });
     renderAlegraAccountOptions([]);
     activeStoreDomain = "";
     activeStoreName = "";
-    updateStoreModuleTitles();
+    storesCache = [];
+    renderStoreActiveSelect([]);
   }
 }
 
@@ -1309,6 +1392,39 @@ function updateStoreModuleTitles() {
     const base = node.getAttribute("data-title-base") || node.textContent || "";
     node.textContent = `${base}${suffix}`;
   });
+}
+
+function renderStoreActiveSelect(stores) {
+  if (!storeActiveSelect || !storeActiveField) return;
+  if (!stores.length) {
+    storeActiveField.style.display = "none";
+    storeActiveSelect.innerHTML = "";
+    return;
+  }
+  storeActiveField.style.display = stores.length > 1 ? "" : "none";
+  storeActiveSelect.innerHTML = stores
+    .map(
+      (store) =>
+        `<option value="${store.shopDomain}">${store.storeName || store.shopDomain}</option>`
+    )
+    .join("");
+  const stored = (() => {
+    try {
+      return localStorage.getItem("apiflujos-active-store") || "";
+    } catch {
+      return "";
+    }
+  })();
+  const nextDomain =
+    stores.find((store) => store.shopDomain === stored)?.shopDomain ||
+    stores[0]?.shopDomain ||
+    "";
+  activeStoreDomain = nextDomain;
+  activeStoreName = stores.find((store) => store.shopDomain === nextDomain)?.storeName || "";
+  storeActiveSelect.value = nextDomain;
+  updateStoreModuleTitles();
+  loadLegacyStoreConfig().catch(() => null);
+  openWizardStep();
 }
 
 function renderAlegraAccountOptions(accounts) {
@@ -1343,9 +1459,47 @@ function normalizeShopDomain(value) {
     .toLowerCase();
 }
 
+function applyInvoiceSettings(settings) {
+  if (!settings) return;
+  if (cfgGenerateInvoice) cfgGenerateInvoice.checked = Boolean(settings.generateInvoice);
+  if (cfgEinvoiceEnabled) cfgEinvoiceEnabled.checked = Boolean(settings.einvoiceEnabled);
+  if (cfgApplyPayment) cfgApplyPayment.checked = Boolean(settings.applyPayment);
+  if (cfgObservations) cfgObservations.value = settings.observationsTemplate || "";
+  if (cfgResolution) cfgResolution.dataset.selected = settings.resolutionId || "";
+  if (cfgCostCenter) cfgCostCenter.dataset.selected = settings.costCenterId || "";
+  if (cfgWarehouse) cfgWarehouse.dataset.selected = settings.warehouseId || "";
+  if (cfgSeller) cfgSeller.dataset.selected = settings.sellerId || "";
+  if (cfgPaymentMethod) cfgPaymentMethod.dataset.selected = settings.paymentMethod || "";
+  if (cfgBankAccount) cfgBankAccount.dataset.selected = settings.bankAccountId || "";
+}
+
+function applyRuleSettings(settings) {
+  if (!settings) return;
+  if (rulesAutoPublish) rulesAutoPublish.checked = Boolean(settings.autoPublishOnWebhook);
+  if (rulesAutoStatus) {
+    rulesAutoStatus.value = settings.autoPublishStatus === "active" ? "active" : "draft";
+  }
+  if (cfgInventoryPublishStock) {
+    cfgInventoryPublishStock.checked = settings.publishOnStock !== false;
+  }
+  if (cfgInventoryAutoPublish) {
+    cfgInventoryAutoPublish.checked = settings.inventoryAdjustmentsAutoPublish !== false;
+  }
+  storeRuleOverrides = {
+    publishOnStock: settings.publishOnStock !== false,
+    autoPublishOnWebhook: Boolean(settings.autoPublishOnWebhook),
+    autoPublishStatus: settings.autoPublishStatus === "active" ? "active" : "draft",
+    inventoryAdjustmentsAutoPublish: settings.inventoryAdjustmentsAutoPublish !== false,
+    warehouseIds: Array.isArray(settings.warehouseIds) ? settings.warehouseIds : [],
+  };
+  renderInventoryWarehouseFilters();
+}
+
 function applyLegacyStoreConfig(config) {
   const transfers = config?.transfers || {};
   const priceLists = config?.priceLists || {};
+  const rules = config?.rules || null;
+  const invoice = config?.invoice || null;
   transferOriginIds = Array.isArray(transfers.originWarehouseIds)
     ? transfers.originWarehouseIds.map((id) => String(id))
     : [];
@@ -1383,6 +1537,15 @@ function applyLegacyStoreConfig(config) {
   if (cfgPriceCurrency) {
     cfgPriceCurrency.value = String(priceLists.currency || "");
   }
+  storeRuleOverrides = null;
+  storeInvoiceOverrides = null;
+  if (rules && typeof rules === "object") {
+    applyRuleSettings(rules);
+  }
+  if (invoice && typeof invoice === "object") {
+    applyInvoiceSettings(invoice);
+    storeInvoiceOverrides = invoice;
+  }
   renderTransferOriginFilters();
   updateTransferOriginState();
 }
@@ -1397,6 +1560,10 @@ function clearLegacyStoreConfig() {
   if (cfgPriceDiscount) cfgPriceDiscount.dataset.selected = "";
   if (cfgPriceWholesale) cfgPriceWholesale.dataset.selected = "";
   if (cfgPriceCurrency) cfgPriceCurrency.value = "";
+  storeRuleOverrides = null;
+  storeInvoiceOverrides = null;
+  applyRuleSettings(inventoryRules);
+  applyInvoiceSettings(globalInvoiceSettings);
   renderTransferOriginFilters();
   updateTransferOriginState();
 }
@@ -1821,7 +1988,8 @@ function getSelectedSyncWarehouseIds() {
 function getSelectedInventoryWarehouseIds() {
   if (!cfgInventoryWarehouses) return inventoryRules.warehouseIds || [];
   const inputs = Array.from(cfgInventoryWarehouses.querySelectorAll("input[data-warehouse-id]"));
-  if (!inputs.length) return inventoryRules.warehouseIds || [];
+  const fallback = storeRuleOverrides?.warehouseIds || inventoryRules.warehouseIds || [];
+  if (!inputs.length) return fallback;
   return inputs
     .filter((input) => input.checked)
     .map((input) => String(input.dataset.warehouseId || ""));
@@ -1871,7 +2039,7 @@ function renderSyncWarehouseFilters() {
 
 function renderInventoryWarehouseFilters() {
   if (!cfgInventoryWarehouses) return;
-  const selected = new Set(inventoryRules.warehouseIds || []);
+  const selected = new Set(storeRuleOverrides?.warehouseIds || inventoryRules.warehouseIds || []);
   cfgInventoryWarehouses.innerHTML = "";
   const totalCount = settingsWarehousesCatalog.length;
   const selectAllLabel = document.createElement("label");
@@ -3649,6 +3817,28 @@ async function saveStoreConfigFromSettings() {
       wholesaleId: cfgPriceWholesale ? cfgPriceWholesale.value : "",
       currency: cfgPriceCurrency ? cfgPriceCurrency.value : "",
     },
+    invoice: {
+      generateInvoice: cfgGenerateInvoice ? cfgGenerateInvoice.checked : false,
+      resolutionId: cfgResolution ? cfgResolution.value : "",
+      costCenterId: cfgCostCenter ? cfgCostCenter.value : "",
+      warehouseId: cfgWarehouse ? cfgWarehouse.value : "",
+      sellerId: cfgSeller ? cfgSeller.value : "",
+      paymentMethod: cfgPaymentMethod ? cfgPaymentMethod.value : "",
+      bankAccountId: cfgBankAccount ? cfgBankAccount.value : "",
+      applyPayment: cfgApplyPayment ? cfgApplyPayment.checked : false,
+      observationsTemplate: cfgObservations ? cfgObservations.value : "",
+      einvoiceEnabled: cfgEinvoiceEnabled ? cfgEinvoiceEnabled.checked : false,
+    },
+    rules: {
+      publishOnStock: cfgInventoryPublishStock ? cfgInventoryPublishStock.checked : true,
+      autoPublishOnWebhook: rulesAutoPublish ? rulesAutoPublish.checked : false,
+      autoPublishStatus:
+        rulesAutoStatus && rulesAutoStatus.value === "active" ? "active" : "draft",
+      inventoryAdjustmentsAutoPublish: cfgInventoryAutoPublish
+        ? cfgInventoryAutoPublish.checked
+        : true,
+      warehouseIds: getSelectedInventoryWarehouseIds(),
+    },
   };
   await fetchJson(`/api/store-configs/${encodeURIComponent(domain)}`, {
     method: "PUT",
@@ -3719,11 +3909,6 @@ async function saveSettings() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  try {
-    await saveStoreConfigFromSettings();
-  } catch (error) {
-    setStoreConfigStatus(error?.message || "No se pudo guardar traslados/listas.", "is-error");
-  }
   if (aiKey) {
     aiKey.value = "";
   }
@@ -3903,7 +4088,11 @@ function clearConnectionForm() {
 
 async function connectStore(kind) {
   const storeName = storeNameInput ? storeNameInput.value.trim() : "";
-  const shopDomainValue = shopifyDomain ? shopifyDomain.value.trim() : "";
+  const normalizedActive = normalizeShopDomain(activeStoreDomain || "");
+  const normalizedInput = normalizeShopDomain(shopDomainValue || "");
+  const sameStore = normalizedActive && normalizedActive === normalizedInput;
+  const resolvedStoreName = storeName || (sameStore ? activeStoreName : "") || "";
+  const shopDomainValue = shopifyDomain?.value.trim() || activeStoreDomain || "";
   const accessTokenValue = shopifyToken ? shopifyToken.value.trim() : "";
   if (!shopDomainValue) {
     throw new Error("Dominio Shopify requerido");
@@ -3912,7 +4101,7 @@ async function connectStore(kind) {
     throw new Error("Access token Shopify requerido");
   }
   const payload = {
-    storeName,
+    storeName: resolvedStoreName,
     shopify: {
       shopDomain: shopDomainValue,
     },
@@ -3935,11 +4124,23 @@ async function connectStore(kind) {
       payload.alegra.environment = alegraEnvSelect ? alegraEnvSelect.value : "prod";
     }
   }
-  await fetchJson("/api/connections", {
+  const response = await fetchJson("/api/connections", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+  if (response?.created?.isNew) {
+    setWizardState({
+      shopDomain: response.created.shopDomain,
+      step: 0,
+      startedAt: Date.now(),
+    });
+    try {
+      localStorage.setItem("apiflujos-active-store", response.created.shopDomain);
+    } catch {
+      // ignore storage errors
+    }
+  }
   await saveCredentials(kind);
   clearConnectionForm();
   await loadConnections();
@@ -4014,6 +4215,25 @@ if (logRetry) {
 }
 if (alegraAccountSelect) {
   alegraAccountSelect.addEventListener("change", toggleAlegraAccountFields);
+}
+if (storeActiveSelect) {
+  storeActiveSelect.addEventListener("change", () => {
+    const nextDomain = storeActiveSelect.value || "";
+    activeStoreDomain = nextDomain;
+    activeStoreName =
+      storesCache.find((store) => store.shopDomain === nextDomain)?.storeName || "";
+    if (storeNameInput) {
+      storeNameInput.placeholder = activeStoreName || "Olivia Shoes Colombia";
+    }
+    try {
+      localStorage.setItem("apiflujos-active-store", nextDomain);
+    } catch {
+      // ignore storage errors
+    }
+    updateStoreModuleTitles();
+    loadLegacyStoreConfig().catch(() => null);
+    openWizardStep();
+  });
 }
 if (connectShopify) {
   connectShopify.addEventListener("click", () => {
@@ -4588,6 +4808,7 @@ async function init() {
       : Promise.resolve(null),
   ]);
   initModuleControls();
+  openWizardStep();
 }
 
 init();

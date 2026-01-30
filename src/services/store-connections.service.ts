@@ -151,6 +151,7 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
   );
 
   let storeId = existingStore.rows[0]?.id;
+  let isNew = false;
   if (storeId) {
     await pool.query(
       `
@@ -174,6 +175,7 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
       [orgId, shopDomain, storeName, accessTokenEncrypted, ""]
     );
     storeId = created.rows[0]?.id;
+    isNew = true;
   }
 
   const alegraAccountId = await resolveAlegraAccountId(pool, orgId, input.alegra);
@@ -182,7 +184,7 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
     await upsertStoreConfig(pool, orgId, shopDomain, alegraAccountId);
   }
 
-  return { storeId, shopDomain, alegraAccountId };
+  return { storeId, shopDomain, alegraAccountId, isNew };
 }
 
 export async function deleteStoreConnection(storeId: number) {
