@@ -443,11 +443,16 @@ button {
 
 .primary,
 .ghost {
-  padding: 6px 10px;
+  min-height: 34px;
+  padding: 0 14px;
   border-radius: 8px;
   border: 1px solid transparent;
   cursor: pointer;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .primary {
@@ -1036,6 +1041,110 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.panel.module .panel-header {
+  justify-content: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.panel-actions {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.module-body {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-group-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.settings-divider {
+  border-top: 1px dashed var(--stroke);
+  padding-top: 10px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.module.is-collapsed .module-body {
+  display: none;
+}
+
+.module.is-readonly input,
+.module.is-readonly select,
+.module.is-readonly textarea {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text);
+}
+
+.module.is-readonly input:disabled,
+.module.is-readonly select:disabled,
+.module.is-readonly textarea:disabled {
+  opacity: 0.75;
+}
+
+.module.is-readonly details,
+.module.is-readonly .multi-select {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.toggle {
+  appearance: none;
+  width: 38px;
+  height: 20px;
+  background: rgba(15, 23, 42, 0.12);
+  border-radius: 999px;
+  position: relative;
+  transition: background 160ms ease;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 160ms ease;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+}
+
+.toggle:checked {
+  background: var(--primary);
+}
+
+.toggle:checked::after {
+  transform: translateX(18px);
+}
+
+.toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.toggle-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .panel-meta {
@@ -1716,7 +1825,7 @@ textarea {
 }
 
 .status-tile button {
-  padding: 4px 8px;
+  padding: 0 14px;
 }
 
 .cron-card {

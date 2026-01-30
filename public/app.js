@@ -160,8 +160,11 @@ const cfgPriceGeneral = document.getElementById("cfg-price-general");
 const cfgPriceDiscount = document.getElementById("cfg-price-discount");
 const cfgPriceWholesale = document.getElementById("cfg-price-wholesale");
 const cfgPriceCurrency = document.getElementById("cfg-price-currency");
-const cfgStoreSave = document.getElementById("cfg-store-save");
 const cfgStoreMessage = document.getElementById("cfg-store-message");
+const cfgInventoryPublishStock = document.getElementById("cfg-inventory-publish-stock");
+const cfgInventoryAutoPublish = document.getElementById("cfg-inventory-auto-publish");
+const cfgInventoryWarehouses = document.getElementById("cfg-inventory-warehouses");
+const cfgInventoryWarehousesSummary = document.getElementById("cfg-inventory-warehouses-summary");
 
 const opsTableBody = document.querySelector("#ops-table tbody");
 const opsSearch = document.getElementById("ops-search");
@@ -255,6 +258,7 @@ const DEFAULT_PRODUCT_SETTINGS = {
       dateEnd: "",
       limit: "",
       query: "",
+      warehouseIds: [],
       publishOnSync: true,
       onlyPublishedInShopify: true,
       includeInventory: true,
@@ -828,8 +832,8 @@ function loadProductSettings() {
       parsed &&
       parsed.filters &&
       Object.prototype.hasOwnProperty.call(parsed.filters, "listLimit");
-  const nextSync = { ...DEFAULT_PRODUCT_SETTINGS.sync, ...(parsed.sync || {}) };
-  const nextFilters = { ...DEFAULT_PRODUCT_SETTINGS.filters, ...(parsed.filters || {}) };
+    const nextSync = { ...DEFAULT_PRODUCT_SETTINGS.sync, ...(parsed.sync || {}) };
+    const nextFilters = { ...DEFAULT_PRODUCT_SETTINGS.filters, ...(parsed.filters || {}) };
     if (!Array.isArray(nextFilters.warehouseIds)) {
       nextFilters.warehouseIds = [];
     }
@@ -851,6 +855,9 @@ function loadProductSettings() {
     }
     if (typeof nextSync.onlyActive !== "boolean") {
       nextSync.onlyActive = true;
+    }
+    if (!Array.isArray(nextSync.warehouseIds)) {
+      nextSync.warehouseIds = [];
     }
     if (typeof parsed?.filters?.ordersDateTouched !== "boolean") {
       if (nextFilters.ordersDate === getTodayISO()) {
@@ -1005,6 +1012,102 @@ function saveProductSettings(next) {
   }
 }
 
+function getModulePanel(name) {
+  return document.querySelector(`.module[data-module="${name}"]`);
+}
+
+function setModuleReadonly(panel, readonly) {
+  if (!panel) return;
+  panel.classList.toggle("is-readonly", Boolean(readonly));
+  const controls = panel.querySelectorAll("input, select, textarea");
+  controls.forEach((control) => {
+    if (control.closest(".panel-actions")) return;
+    if (readonly) {
+      control.disabled = true;
+    } else {
+      control.disabled = false;
+    }
+  });
+  panel.querySelectorAll("details").forEach((details) => {
+    if (!readonly) return;
+    details.open = false;
+  });
+}
+
+function setModuleCollapsed(panel, collapsed) {
+  if (!panel) return;
+  panel.classList.toggle("is-collapsed", Boolean(collapsed));
+  const toggle = panel.querySelector("[data-module-toggle]");
+  if (toggle) {
+    toggle.textContent = collapsed ? "Desplegar" : "Plegar";
+  }
+}
+
+async function handleModuleSave(moduleKey) {
+  if (!moduleKey) return;
+  const panel = getModulePanel(moduleKey);
+  const saveActions = {
+    connections: async () => {
+      await saveSettings();
+      await loadInventoryCheckpoint();
+    },
+    ai: async () => {
+      await saveSettings();
+    },
+    "alegra-invoice": async () => {
+      await saveSettings();
+    },
+    "alegra-inventory": async () => {
+      await saveSettings();
+    },
+    "shopify-rules": async () => {
+      await saveSettings();
+    },
+    "shopify-mass": async () => {
+      refreshProductSettingsFromInputs();
+    },
+    "shopify-orders": async () => {
+      refreshProductSettingsFromInputs();
+      await saveStoreConfigFromSettings();
+    },
+  };
+  const action = saveActions[moduleKey];
+  if (!action) return;
+  await action();
+  setModuleReadonly(panel, true);
+}
+
+function initModuleControls() {
+  document.querySelectorAll(".module[data-module]").forEach((panel) => {
+    setModuleReadonly(panel, true);
+    setModuleCollapsed(panel, false);
+  });
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) return;
+    const toggle = target.closest("[data-module-toggle]");
+    if (toggle) {
+      const key = toggle.getAttribute("data-module-toggle");
+      const panel = getModulePanel(key);
+      if (!panel) return;
+      setModuleCollapsed(panel, !panel.classList.contains("is-collapsed"));
+      return;
+    }
+    const edit = target.closest("[data-module-edit]");
+    if (edit) {
+      const key = edit.getAttribute("data-module-edit");
+      const panel = getModulePanel(key);
+      setModuleReadonly(panel, false);
+      return;
+    }
+    const save = target.closest("[data-module-save]");
+    if (save) {
+      const key = save.getAttribute("data-module-save");
+      handleModuleSave(key).catch(() => null);
+    }
+  });
+}
+
 function applyProductSettings() {
   if (productsPublishStatus) productsPublishStatus.value = productSettings.publish.status;
   if (productsIncludeImages) productsIncludeImages.checked = productSettings.publish.includeImages;
@@ -1053,6 +1156,7 @@ function refreshProductSettingsFromInputs() {
       dateEnd: productsDateEnd ? productsDateEnd.value : "",
       limit: productsSyncLimitInput ? productsSyncLimitInput.value : "",
       query: productsSyncQuery ? productsSyncQuery.value.trim() : "",
+      warehouseIds: getSelectedSyncWarehouseIds(),
       onlyActive: productsSyncOnlyActive ? productsSyncOnlyActive.checked : true,
       publishOnSync: productsSyncPublish ? productsSyncPublish.checked : true,
       onlyPublishedInShopify: productsSyncOnlyPublished
@@ -1140,6 +1244,12 @@ async function loadSettings() {
   }
   if (rulesAutoPublish) rulesAutoPublish.checked = inventoryRules.autoPublishOnWebhook;
   if (rulesAutoStatus) rulesAutoStatus.value = inventoryRules.autoPublishStatus;
+  if (cfgInventoryPublishStock) {
+    cfgInventoryPublishStock.checked = inventoryRules.publishOnStock !== false;
+  }
+  if (cfgInventoryAutoPublish) {
+    cfgInventoryAutoPublish.checked = inventoryRules.inventoryAdjustmentsAutoPublish !== false;
+  }
   if (inventoryCronEnabled) {
     inventoryCronEnabled.checked = inventoryRules.inventoryAdjustmentsEnabled !== false;
   }
@@ -1644,25 +1754,34 @@ function setProductsStatus(message) {
   }
 }
 
-function getSelectedSettingsWarehouseIds() {
-  if (!cfgWarehouseSync) return inventoryRules.warehouseIds || [];
+function getSelectedSyncWarehouseIds() {
+  if (!cfgWarehouseSync) return productSettings.sync?.warehouseIds || [];
   const inputs = Array.from(cfgWarehouseSync.querySelectorAll("input[data-warehouse-id]"));
+  if (!inputs.length) return productSettings.sync?.warehouseIds || [];
+  return inputs
+    .filter((input) => input.checked)
+    .map((input) => String(input.dataset.warehouseId || ""));
+}
+
+function getSelectedInventoryWarehouseIds() {
+  if (!cfgInventoryWarehouses) return inventoryRules.warehouseIds || [];
+  const inputs = Array.from(cfgInventoryWarehouses.querySelectorAll("input[data-warehouse-id]"));
   if (!inputs.length) return inventoryRules.warehouseIds || [];
   return inputs
     .filter((input) => input.checked)
     .map((input) => String(input.dataset.warehouseId || ""));
 }
 
-function renderSettingsWarehouseFilters() {
+function renderSyncWarehouseFilters() {
   if (!cfgWarehouseSync) return;
-  const selected = new Set(inventoryRules.warehouseIds || []);
+  const selected = new Set(productSettings.sync?.warehouseIds || []);
   cfgWarehouseSync.innerHTML = "";
   const totalCount = settingsWarehousesCatalog.length;
   const selectAllLabel = document.createElement("label");
   selectAllLabel.className = "select-all";
   const selectAllInput = document.createElement("input");
   selectAllInput.type = "checkbox";
-  selectAllInput.dataset.selectAll = "settings";
+  selectAllInput.dataset.selectAll = "sync";
   selectAllInput.checked = selected.size === 0 || selected.size === totalCount;
   const selectAllText = document.createElement("span");
   selectAllText.textContent = "Seleccionar todas";
@@ -1692,11 +1811,53 @@ function renderSettingsWarehouseFilters() {
     label.appendChild(text);
     cfgWarehouseSync.appendChild(label);
   });
-  updateSettingsWarehouseSummary();
+  updateSyncWarehouseSummary();
+}
+
+function renderInventoryWarehouseFilters() {
+  if (!cfgInventoryWarehouses) return;
+  const selected = new Set(inventoryRules.warehouseIds || []);
+  cfgInventoryWarehouses.innerHTML = "";
+  const totalCount = settingsWarehousesCatalog.length;
+  const selectAllLabel = document.createElement("label");
+  selectAllLabel.className = "select-all";
+  const selectAllInput = document.createElement("input");
+  selectAllInput.type = "checkbox";
+  selectAllInput.dataset.selectAll = "inventory";
+  selectAllInput.checked = selected.size === 0 || selected.size === totalCount;
+  const selectAllText = document.createElement("span");
+  selectAllText.textContent = "Seleccionar todas";
+  selectAllLabel.appendChild(selectAllInput);
+  selectAllLabel.appendChild(selectAllText);
+  cfgInventoryWarehouses.appendChild(selectAllLabel);
+  if (!settingsWarehousesCatalog.length) {
+    const empty = document.createElement("span");
+    empty.className = "empty";
+    empty.textContent = "Sin bodegas";
+    cfgInventoryWarehouses.appendChild(empty);
+    return;
+  }
+  const sortedWarehouses = [...settingsWarehousesCatalog].sort((a, b) =>
+    String(a?.name || "").localeCompare(String(b?.name || ""), "es")
+  );
+  sortedWarehouses.forEach((warehouse) => {
+    const id = String(warehouse.id || warehouse._id || "");
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.dataset.warehouseId = id;
+    input.checked = selected.has(id);
+    const text = document.createElement("span");
+    text.textContent = warehouse.name || `Bodega ${id}`;
+    label.appendChild(input);
+    label.appendChild(text);
+    cfgInventoryWarehouses.appendChild(label);
+  });
+  updateInventoryWarehouseSummary();
 }
 
 async function loadSettingsWarehouses() {
-  if (!cfgWarehouseSync) return;
+  if (!cfgWarehouseSync && !cfgInventoryWarehouses) return;
   try {
     const data = await fetchJson("/api/alegra/warehouses");
     settingsWarehousesCatalog = Array.isArray(data.items) ? data.items : [];
@@ -1706,22 +1867,37 @@ async function loadSettingsWarehouses() {
   } catch {
     settingsWarehousesCatalog = [];
   }
-  renderSettingsWarehouseFilters();
+  renderSyncWarehouseFilters();
+  renderInventoryWarehouseFilters();
   renderTransferOriginFilters();
 }
 
-function updateSettingsWarehouseSummary() {
+function updateSyncWarehouseSummary() {
   if (!cfgWarehouseSyncSummary) return;
   if (!settingsWarehousesCatalog.length) {
     cfgWarehouseSyncSummary.textContent = "Sin bodegas";
     return;
   }
-  const selected = getSelectedSettingsWarehouseIds();
+  const selected = getSelectedSyncWarehouseIds();
   if (!selected.length || selected.length === settingsWarehousesCatalog.length) {
     cfgWarehouseSyncSummary.textContent = "Todas";
     return;
   }
   cfgWarehouseSyncSummary.textContent = `${selected.length} seleccionadas`;
+}
+
+function updateInventoryWarehouseSummary() {
+  if (!cfgInventoryWarehousesSummary) return;
+  if (!settingsWarehousesCatalog.length) {
+    cfgInventoryWarehousesSummary.textContent = "Sin bodegas";
+    return;
+  }
+  const selected = getSelectedInventoryWarehouseIds();
+  if (!selected.length || selected.length === settingsWarehousesCatalog.length) {
+    cfgInventoryWarehousesSummary.textContent = "Todas";
+    return;
+  }
+  cfgInventoryWarehousesSummary.textContent = `${selected.length} seleccionadas`;
 }
 
 function getSelectedTransferOriginIds() {
@@ -1793,7 +1969,8 @@ function updateTransferOriginSummary() {
 function updateTransferOriginState() {
   if (!cfgTransferStrategy) return;
   const strategy = cfgTransferStrategy.value || "manual";
-  const enableOrigins = strategy === "manual";
+  const transferEnabled = cfgTransferEnabled ? cfgTransferEnabled.checked !== false : true;
+  const enableOrigins = transferEnabled && strategy === "manual";
   const details = getTransferOriginDetails();
   if (details) {
     details.classList.toggle("is-disabled", !enableOrigins);
@@ -1806,7 +1983,7 @@ function updateTransferOriginState() {
       });
   }
   if (!enableOrigins && cfgTransferOriginSummary) {
-    cfgTransferOriginSummary.textContent = "Automatico";
+    cfgTransferOriginSummary.textContent = transferEnabled ? "Automatico" : "Desactivado";
   } else {
     updateTransferOriginSummary();
   }
@@ -3350,18 +3527,6 @@ if (aiSave) {
   });
 }
 
-if (cfgStoreSave) {
-  cfgStoreSave.addEventListener("click", async () => {
-    try {
-      setStoreConfigStatus("Guardando...");
-      await saveStoreConfigFromSettings();
-      setStoreConfigStatus("Configuracion guardada.", "is-ok");
-    } catch (error) {
-      setStoreConfigStatus(error?.message || "No se pudo guardar.", "is-error");
-    }
-  });
-}
-
 function setPasswordStatus(text, state) {
   if (!passwordMessage) return;
   passwordMessage.textContent = text || "";
@@ -3464,15 +3629,19 @@ async function saveSettings() {
       observationsTemplate: cfgObservations.value || "",
     },
     rules: {
-      publishOnStock: inventoryRules.publishOnStock,
+      publishOnStock: cfgInventoryPublishStock
+        ? cfgInventoryPublishStock.checked
+        : inventoryRules.publishOnStock,
       autoPublishOnWebhook: rulesAutoPublish ? rulesAutoPublish.checked : false,
       autoPublishStatus: rulesAutoStatus && rulesAutoStatus.value === "active" ? "active" : "draft",
       inventoryAdjustmentsEnabled: inventoryCronEnabled ? inventoryCronEnabled.checked : true,
       inventoryAdjustmentsIntervalMinutes: inventoryCronIntervalSelect
         ? Number(inventoryCronIntervalSelect.value || 5)
         : 5,
-      inventoryAdjustmentsAutoPublish: inventoryRules.inventoryAdjustmentsAutoPublish !== false,
-      warehouseIds: getSelectedSettingsWarehouseIds(),
+      inventoryAdjustmentsAutoPublish: cfgInventoryAutoPublish
+        ? cfgInventoryAutoPublish.checked
+        : inventoryRules.inventoryAdjustmentsAutoPublish !== false,
+      warehouseIds: getSelectedInventoryWarehouseIds(),
     },
   };
   await fetchJson("/api/settings", {
@@ -3723,28 +3892,8 @@ if (connectionsGrid) {
       .catch(() => null);
   });
 }
-if (inventoryCronEnabled) {
-  inventoryCronEnabled.addEventListener("change", async () => {
-    try {
-      await saveSettings();
-      await loadInventoryCheckpoint();
-    } catch {
-      // ignore save errors here
-    }
-  });
-}
-if (inventoryCronIntervalSelect) {
-  inventoryCronIntervalSelect.addEventListener("change", async () => {
-    try {
-      await saveSettings();
-      await loadInventoryCheckpoint();
-    } catch {
-      // ignore save errors here
-    }
-  });
-}
 if (cfgWarehouseSync) {
-  cfgWarehouseSync.addEventListener("change", async (event) => {
+  cfgWarehouseSync.addEventListener("change", (event) => {
     const selectAllInput = cfgWarehouseSync.querySelector("input[data-select-all]");
     if (selectAllInput && event?.target === selectAllInput) {
       const nextChecked = selectAllInput.checked;
@@ -3758,12 +3907,28 @@ if (cfgWarehouseSync) {
       ).filter((input) => input.checked).length;
       selectAllInput.checked = selected === 0 || selected === total;
     }
-    updateSettingsWarehouseSummary();
-    try {
-      await saveSettings();
-    } catch {
-      // ignore save errors here
+    updateSyncWarehouseSummary();
+    refreshProductSettingsFromInputs();
+  });
+}
+if (cfgInventoryWarehouses) {
+  cfgInventoryWarehouses.addEventListener("change", (event) => {
+    const selectAllInput = cfgInventoryWarehouses.querySelector("input[data-select-all]");
+    if (selectAllInput && event?.target === selectAllInput) {
+      const nextChecked = selectAllInput.checked;
+      cfgInventoryWarehouses
+        .querySelectorAll("input[data-warehouse-id]")
+        .forEach((input) => {
+          input.checked = nextChecked;
+        });
+    } else if (selectAllInput) {
+      const total = cfgInventoryWarehouses.querySelectorAll("input[data-warehouse-id]").length;
+      const selected = Array.from(
+        cfgInventoryWarehouses.querySelectorAll("input[data-warehouse-id]")
+      ).filter((input) => input.checked).length;
+      selectAllInput.checked = selected === 0 || selected === total;
     }
+    updateInventoryWarehouseSummary();
   });
 }
 if (cfgTransferOrigin) {
@@ -3787,6 +3952,11 @@ if (cfgTransferOrigin) {
 }
 if (cfgTransferStrategy) {
   cfgTransferStrategy.addEventListener("change", () => {
+    updateTransferOriginState();
+  });
+}
+if (cfgTransferEnabled) {
+  cfgTransferEnabled.addEventListener("change", () => {
     updateTransferOriginState();
   });
 }
@@ -3856,11 +4026,11 @@ if (userMenuToggle) {
       return;
     }
     if (action === "company") {
-      openPanelInSection("settings", "company-panel");
+      window.location.href = "/company.html";
       return;
     }
     if (action === "users") {
-      openPanelInSection("settings", "users-panel");
+      window.location.href = "/users.html";
       return;
     }
       if (action === "logout") {
@@ -4175,6 +4345,12 @@ if (productsClearBtn) {
       if (productsSyncPublish) productsSyncPublish.checked = true;
       if (productsSyncOnlyPublished) productsSyncOnlyPublished.checked = true;
       if (productsSyncIncludeInventory) productsSyncIncludeInventory.checked = true;
+      if (cfgWarehouseSync) {
+        cfgWarehouseSync.querySelectorAll("input[data-warehouse-id]").forEach((input) => {
+          input.checked = false;
+        });
+        updateSyncWarehouseSummary();
+      }
       refreshProductSettingsFromInputs();
     });
   }
@@ -4262,6 +4438,7 @@ async function init() {
       ? safeLoad(loadCatalog(cfgPriceWholesale, "price-lists"))
       : Promise.resolve(null),
   ]);
+  initModuleControls();
 }
 
 init();

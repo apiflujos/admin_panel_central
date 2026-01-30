@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ApiFlujos - Usuarios</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="stylesheet" href="styles.css?v=20260130a" />
+  </head>
+  <body>
+    <div class="content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1>Usuarios</h1>
+          <p class="subtitle">Gestion de usuarios y roles.</p>
+        </div>
+        <div class="topbar-center">
+          <div class="topbar-brand apiflujos-brand">
+            <img id="company-logo" src="/assets/logo.png" alt="ApiFlujos" />
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost" id="back-home" type="button">Volver</button>
+          <div class="topbar-user" id="topbar-user">
+            <button class="ghost topbar-user-trigger" id="topbar-user-toggle" type="button">
+              <img id="user-avatar" src="/assets/avatar.png" alt="Usuario" />
+              <div class="topbar-user-meta">
+                <span id="user-name">Usuario</span>
+                <span id="user-role">Agente</span>
+              </div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+            <div class="topbar-user-menu" id="topbar-user-menu">
+              <button class="ghost" data-user-action="dashboard">Dashboard</button>
+              <button class="ghost admin-only" data-user-action="company">Empresa</button>
+              <button class="ghost" data-user-action="logout">Cerrar sesion</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="panel" id="users-panel">
+        <div class="panel-header">
+          <h3>Usuarios</h3>
+          <span class="panel-tag">Admin</span>
+        </div>
+        <div class="users-layout">
+          <div class="settings-grid users-form">
+            <div class="field">
+              <label>Nombre</label>
+              <input type="text" id="user-create-name" placeholder="Nombre completo" />
+            </div>
+            <div class="field">
+              <label>Email</label>
+              <input type="email" id="user-create-email" placeholder="correo@empresa.com" />
+            </div>
+            <div class="field">
+              <label>Telefono</label>
+              <input type="tel" id="user-create-phone" placeholder="+57..." />
+            </div>
+            <div class="field">
+              <label>Rol</label>
+              <select id="user-create-role">
+                <option value="agent">Agente</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Contrasena</label>
+              <input type="password" id="user-create-password" placeholder="********" />
+            </div>
+            <div class="field field-actions">
+              <label>&nbsp;</label>
+              <button class="primary" id="user-create" type="button">Crear usuario</button>
+            </div>
+          </div>
+          <div class="table-card">
+            <table id="users-table">
+              <colgroup>
+                <col style="width: 24%" />
+                <col style="width: 28%" />
+                <col style="width: 12%" />
+                <col style="width: 18%" />
+                <col style="width: 18%" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Rol</th>
+                  <th>Telefono</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="5" class="empty">Sin usuarios.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p class="field-hint" id="users-message"></p>
+      </section>
+    </div>
+
+    <script src="users.js?v=20260130a" type="module"></script>
+  </body>
+</html>

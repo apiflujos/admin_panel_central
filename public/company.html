@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ApiFlujos - Empresa</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="stylesheet" href="styles.css?v=20260130a" />
+  </head>
+  <body>
+    <div class="content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1>Empresa</h1>
+          <p class="subtitle">Perfil y branding de la empresa.</p>
+        </div>
+        <div class="topbar-center">
+          <div class="topbar-brand apiflujos-brand">
+            <img id="company-logo" src="/assets/logo.png" alt="ApiFlujos" />
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost" id="back-home" type="button">Volver</button>
+          <div class="topbar-user" id="topbar-user">
+            <button class="ghost topbar-user-trigger" id="topbar-user-toggle" type="button">
+              <img id="user-avatar" src="/assets/avatar.png" alt="Usuario" />
+              <div class="topbar-user-meta">
+                <span id="user-name">Usuario</span>
+                <span id="user-role">Agente</span>
+              </div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+            <div class="topbar-user-menu" id="topbar-user-menu">
+              <button class="ghost" data-user-action="dashboard">Dashboard</button>
+              <button class="ghost admin-only" data-user-action="users">Usuarios</button>
+              <button class="ghost" data-user-action="logout">Cerrar sesion</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="panel" id="company-panel">
+        <div class="panel-header">
+          <h3>Empresa</h3>
+          <span class="panel-tag">Personalizacion</span>
+        </div>
+        <div class="settings-grid">
+          <div class="field">
+            <label>Nombre</label>
+            <input type="text" id="company-name" placeholder="Nombre de la empresa" />
+          </div>
+          <div class="field">
+            <label>Telefono</label>
+            <input type="tel" id="company-phone" placeholder="+57..." />
+          </div>
+          <div class="field">
+            <label>Direccion</label>
+            <input type="text" id="company-address" placeholder="Direccion (opcional)" />
+          </div>
+          <div class="field">
+            <label>Logo</label>
+            <input type="file" id="company-logo-input" accept="image/*" />
+          </div>
+          <div class="field field-actions">
+            <label>&nbsp;</label>
+            <button class="primary" id="company-save" type="button">Guardar empresa</button>
+          </div>
+        </div>
+        <p class="field-hint" id="company-message"></p>
+      </section>
+    </div>
+
+    <script src="company.js?v=20260130a" type="module"></script>
+  </body>
+</html>
