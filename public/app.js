@@ -151,7 +151,6 @@ const cfgObservations = document.getElementById("cfg-observations");
 const cfgGenerateInvoice = document.getElementById("cfg-generate-invoice");
 const cfgEinvoiceEnabled = document.getElementById("cfg-einvoice-enabled");
 const cfgTransferDest = document.getElementById("cfg-transfer-dest");
-const cfgTransferPriority = document.getElementById("cfg-transfer-priority");
 const cfgTransferStrategy = document.getElementById("cfg-transfer-strategy");
 const cfgTransferOrigin = document.getElementById("cfg-transfer-origin");
 const cfgTransferOriginSummary = document.getElementById("cfg-transfer-origin-summary");
@@ -1204,11 +1203,6 @@ function applyLegacyStoreConfig(config) {
     cfgTransferDest.dataset.selected = value;
     if (cfgTransferDest.options.length) cfgTransferDest.value = value;
   }
-  if (cfgTransferPriority) {
-    const value = String(transfers.priorityWarehouseId || "");
-    cfgTransferPriority.dataset.selected = value;
-    if (cfgTransferPriority.options.length) cfgTransferPriority.value = value;
-  }
   if (cfgTransferStrategy) {
     cfgTransferStrategy.value = String(transfers.strategy || "consolidation");
   }
@@ -1236,7 +1230,6 @@ function applyLegacyStoreConfig(config) {
 function clearLegacyStoreConfig() {
   transferOriginIds = [];
   if (cfgTransferDest) cfgTransferDest.dataset.selected = "";
-  if (cfgTransferPriority) cfgTransferPriority.dataset.selected = "";
   if (cfgTransferStrategy) cfgTransferStrategy.value = "consolidation";
   if (cfgPriceGeneral) cfgPriceGeneral.dataset.selected = "";
   if (cfgPriceDiscount) cfgPriceDiscount.dataset.selected = "";
@@ -3385,7 +3378,6 @@ async function saveStoreConfigFromSettings() {
   const payload = {
     transfers: {
       destinationWarehouseId: cfgTransferDest ? cfgTransferDest.value : "",
-      priorityWarehouseId: cfgTransferPriority ? cfgTransferPriority.value : "",
       strategy: cfgTransferStrategy ? cfgTransferStrategy.value : "consolidation",
       originWarehouseIds: getSelectedTransferOriginIds(),
     },
@@ -3463,7 +3455,6 @@ async function saveSettings() {
     loadCatalog(cfgPaymentMethod, "payment-methods"),
     loadCatalog(cfgBankAccount, "bank-accounts"),
     loadCatalog(cfgTransferDest, "warehouses"),
-    loadCatalog(cfgTransferPriority, "warehouses"),
     loadCatalog(cfgPriceGeneral, "price-lists"),
     loadCatalog(cfgPriceDiscount, "price-lists"),
     loadCatalog(cfgPriceWholesale, "price-lists"),
@@ -4200,9 +4191,6 @@ async function init() {
       : Promise.resolve(null),
     currentUserRole === "admin"
       ? safeLoad(loadCatalog(cfgTransferDest, "warehouses"))
-      : Promise.resolve(null),
-    currentUserRole === "admin"
-      ? safeLoad(loadCatalog(cfgTransferPriority, "warehouses"))
       : Promise.resolve(null),
     currentUserRole === "admin"
       ? safeLoad(loadCatalog(cfgSeller, "sellers"))

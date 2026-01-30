@@ -758,10 +758,6 @@
                 <select id="cfg-transfer-dest"></select>
               </div>
               <div class="field">
-                <label>Prioridad (Granada)</label>
-                <select id="cfg-transfer-priority"></select>
-              </div>
-              <div class="field">
                 <label>Estrategia</label>
                 <select id="cfg-transfer-strategy">
                   <option value="consolidation">Consolidacion</option>
@@ -776,37 +772,6 @@
                   </summary>
                   <div class="checkbox-grid single" id="cfg-transfer-origin"></div>
                 </details>
-              </div>
-
-              <div class="field field-span">
-                <span class="kpi-sub">Listas de precios</span>
-              </div>
-              <div class="field">
-                <label>Lista general</label>
-                <select id="cfg-price-general"></select>
-              </div>
-              <div class="field">
-                <label>Lista descuento</label>
-                <select id="cfg-price-discount"></select>
-              </div>
-              <div class="field">
-                <label>Lista wholesale</label>
-                <select id="cfg-price-wholesale"></select>
-              </div>
-              <div class="field">
-                <label>Moneda</label>
-                <select id="cfg-price-currency">
-                  <option value="">Auto</option>
-                  <option value="COP">COP</option>
-                  <option value="USD">USD</option>
-                </select>
-              </div>
-              <div class="field field-actions">
-                <label>&nbsp;</label>
-                <button class="primary" id="cfg-store-save" type="button">Guardar configuracion</button>
-              </div>
-              <div class="field field-span">
-                <p class="field-hint" id="cfg-store-message"></p>
               </div>
             </div>
           </div>
@@ -943,6 +908,29 @@
               <span class="panel-tag">Configuracion</span>
             </div>
             <div class="settings-grid">
+              <div class="field field-span">
+                <span class="kpi-sub">Listas de precios</span>
+              </div>
+              <div class="field">
+                <label>Lista general</label>
+                <select id="cfg-price-general"></select>
+              </div>
+              <div class="field">
+                <label>Lista descuento</label>
+                <select id="cfg-price-discount"></select>
+              </div>
+              <div class="field">
+                <label>Lista wholesale</label>
+                <select id="cfg-price-wholesale"></select>
+              </div>
+              <div class="field">
+                <label>Moneda</label>
+                <select id="cfg-price-currency">
+                  <option value="">Auto</option>
+                  <option value="COP">COP</option>
+                  <option value="USD">USD</option>
+                </select>
+              </div>
               <div class="field">
                 <label>Facturar automaticamente</label>
                 <input type="checkbox" id="cfg-generate-invoice" />
@@ -982,6 +970,13 @@
               <div class="field">
                 <label>Observaciones</label>
                 <input type="text" id="cfg-observations" placeholder="Pedido {{order.name}}" />
+              </div>
+              <div class="field field-actions">
+                <label>&nbsp;</label>
+                <button class="primary" id="cfg-store-save" type="button">Guardar configuracion</button>
+              </div>
+              <div class="field field-span">
+                <p class="field-hint" id="cfg-store-message"></p>
               </div>
             </div>
           </div>
