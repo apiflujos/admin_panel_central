@@ -150,6 +150,17 @@ const cfgApplyPayment = document.getElementById("cfg-apply-payment");
 const cfgObservations = document.getElementById("cfg-observations");
 const cfgGenerateInvoice = document.getElementById("cfg-generate-invoice");
 const cfgEinvoiceEnabled = document.getElementById("cfg-einvoice-enabled");
+const cfgTransferDest = document.getElementById("cfg-transfer-dest");
+const cfgTransferPriority = document.getElementById("cfg-transfer-priority");
+const cfgTransferStrategy = document.getElementById("cfg-transfer-strategy");
+const cfgTransferOrigin = document.getElementById("cfg-transfer-origin");
+const cfgTransferOriginSummary = document.getElementById("cfg-transfer-origin-summary");
+const cfgPriceGeneral = document.getElementById("cfg-price-general");
+const cfgPriceDiscount = document.getElementById("cfg-price-discount");
+const cfgPriceWholesale = document.getElementById("cfg-price-wholesale");
+const cfgPriceCurrency = document.getElementById("cfg-price-currency");
+const cfgStoreSave = document.getElementById("cfg-store-save");
+const cfgStoreMessage = document.getElementById("cfg-store-message");
 
 const opsTableBody = document.querySelector("#ops-table tbody");
 const opsSearch = document.getElementById("ops-search");
@@ -216,6 +227,7 @@ const cfgWarehouseSelectAll = document.getElementById("cfg-warehouse-select-all"
 let shopifyAdminBase = "";
 let currentUserRole = "agent";
 let currentUserId = null;
+let transferOriginIds = [];
 let inventoryRules = {
   publishOnStock: true,
   autoPublishOnWebhook: true,
@@ -1133,6 +1145,7 @@ async function loadSettings() {
   }
   setMetricsStatusPills(data.shopify?.hasAccessToken, data.alegra?.hasApiKey);
   await loadConnections();
+  await loadLegacyStoreConfig();
   loadSettingsWarehouses().catch(() => null);
   loadInventoryCheckpoint().catch(() => null);
 }
@@ -1169,6 +1182,89 @@ function toggleAlegraAccountFields() {
   if (alegraEmail) alegraEmail.closest(".field").style.display = isNew ? "" : "none";
   if (alegraKey) alegraKey.closest(".field").style.display = isNew ? "" : "none";
   if (alegraEnvField) alegraEnvField.style.display = isNew ? "" : "none";
+}
+
+function normalizeShopDomain(value) {
+  if (!value) return "";
+  return String(value)
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+    .toLowerCase();
+}
+
+function applyLegacyStoreConfig(config) {
+  const transfers = config?.transfers || {};
+  const priceLists = config?.priceLists || {};
+  transferOriginIds = Array.isArray(transfers.originWarehouseIds)
+    ? transfers.originWarehouseIds.map((id) => String(id))
+    : [];
+  if (cfgTransferDest) {
+    const value = String(transfers.destinationWarehouseId || "");
+    cfgTransferDest.dataset.selected = value;
+    if (cfgTransferDest.options.length) cfgTransferDest.value = value;
+  }
+  if (cfgTransferPriority) {
+    const value = String(transfers.priorityWarehouseId || "");
+    cfgTransferPriority.dataset.selected = value;
+    if (cfgTransferPriority.options.length) cfgTransferPriority.value = value;
+  }
+  if (cfgTransferStrategy) {
+    cfgTransferStrategy.value = String(transfers.strategy || "consolidation");
+  }
+  if (cfgPriceGeneral) {
+    const value = String(priceLists.generalId || "");
+    cfgPriceGeneral.dataset.selected = value;
+    if (cfgPriceGeneral.options.length) cfgPriceGeneral.value = value;
+  }
+  if (cfgPriceDiscount) {
+    const value = String(priceLists.discountId || "");
+    cfgPriceDiscount.dataset.selected = value;
+    if (cfgPriceDiscount.options.length) cfgPriceDiscount.value = value;
+  }
+  if (cfgPriceWholesale) {
+    const value = String(priceLists.wholesaleId || "");
+    cfgPriceWholesale.dataset.selected = value;
+    if (cfgPriceWholesale.options.length) cfgPriceWholesale.value = value;
+  }
+  if (cfgPriceCurrency) {
+    cfgPriceCurrency.value = String(priceLists.currency || "");
+  }
+  renderTransferOriginFilters();
+}
+
+function clearLegacyStoreConfig() {
+  transferOriginIds = [];
+  if (cfgTransferDest) cfgTransferDest.dataset.selected = "";
+  if (cfgTransferPriority) cfgTransferPriority.dataset.selected = "";
+  if (cfgTransferStrategy) cfgTransferStrategy.value = "consolidation";
+  if (cfgPriceGeneral) cfgPriceGeneral.dataset.selected = "";
+  if (cfgPriceDiscount) cfgPriceDiscount.dataset.selected = "";
+  if (cfgPriceWholesale) cfgPriceWholesale.dataset.selected = "";
+  if (cfgPriceCurrency) cfgPriceCurrency.value = "";
+  renderTransferOriginFilters();
+}
+
+async function loadLegacyStoreConfig() {
+  const domain = normalizeShopDomain(shopifyDomain?.value || "");
+  if (!domain) {
+    clearLegacyStoreConfig();
+    return;
+  }
+  try {
+    const data = await fetchJson("/api/store-configs");
+    const items = Array.isArray(data.items) ? data.items : [];
+    const match =
+      items.find((item) => normalizeShopDomain(item.shopDomain || "") === domain) ||
+      (items.length === 1 ? items[0] : null);
+    if (match) {
+      applyLegacyStoreConfig(match);
+    } else {
+      clearLegacyStoreConfig();
+    }
+  } catch {
+    clearLegacyStoreConfig();
+  }
 }
 
 function renderConnections(settings) {
@@ -1600,6 +1696,7 @@ async function loadSettingsWarehouses() {
     settingsWarehousesCatalog = [];
   }
   renderSettingsWarehouseFilters();
+  renderTransferOriginFilters();
 }
 
 function updateSettingsWarehouseSummary() {
@@ -1614,6 +1711,72 @@ function updateSettingsWarehouseSummary() {
     return;
   }
   cfgWarehouseSyncSummary.textContent = `${selected.length} seleccionadas`;
+}
+
+function getSelectedTransferOriginIds() {
+  if (!cfgTransferOrigin) return transferOriginIds || [];
+  const inputs = Array.from(cfgTransferOrigin.querySelectorAll("input[data-warehouse-id]"));
+  if (!inputs.length) return transferOriginIds || [];
+  return inputs
+    .filter((input) => input.checked)
+    .map((input) => String(input.dataset.warehouseId || ""));
+}
+
+function renderTransferOriginFilters() {
+  if (!cfgTransferOrigin) return;
+  const selected = new Set(transferOriginIds || []);
+  cfgTransferOrigin.innerHTML = "";
+  const totalCount = settingsWarehousesCatalog.length;
+  const selectAllLabel = document.createElement("label");
+  selectAllLabel.className = "select-all";
+  const selectAllInput = document.createElement("input");
+  selectAllInput.type = "checkbox";
+  selectAllInput.dataset.selectAll = "transfer-origin";
+  selectAllInput.checked = selected.size === 0 || selected.size === totalCount;
+  const selectAllText = document.createElement("span");
+  selectAllText.textContent = "Seleccionar todas";
+  selectAllLabel.appendChild(selectAllInput);
+  selectAllLabel.appendChild(selectAllText);
+  cfgTransferOrigin.appendChild(selectAllLabel);
+  if (!settingsWarehousesCatalog.length) {
+    const empty = document.createElement("span");
+    empty.className = "empty";
+    empty.textContent = "Sin bodegas";
+    cfgTransferOrigin.appendChild(empty);
+    if (cfgTransferOriginSummary) cfgTransferOriginSummary.textContent = "Sin bodegas";
+    return;
+  }
+  const sortedWarehouses = [...settingsWarehousesCatalog].sort((a, b) =>
+    String(a?.name || "").localeCompare(String(b?.name || ""), "es")
+  );
+  sortedWarehouses.forEach((warehouse) => {
+    const id = String(warehouse.id || warehouse._id || "");
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.dataset.warehouseId = id;
+    input.checked = selected.has(id);
+    const text = document.createElement("span");
+    text.textContent = warehouse.name || `Bodega ${id}`;
+    label.appendChild(input);
+    label.appendChild(text);
+    cfgTransferOrigin.appendChild(label);
+  });
+  updateTransferOriginSummary();
+}
+
+function updateTransferOriginSummary() {
+  if (!cfgTransferOriginSummary) return;
+  if (!settingsWarehousesCatalog.length) {
+    cfgTransferOriginSummary.textContent = "Sin bodegas";
+    return;
+  }
+  const selected = getSelectedTransferOriginIds();
+  if (!selected.length || selected.length === settingsWarehousesCatalog.length) {
+    cfgTransferOriginSummary.textContent = "Todas";
+    return;
+  }
+  cfgTransferOriginSummary.textContent = `${selected.length} seleccionadas`;
 }
 
 function getSelectedWarehouseIds() {
@@ -3154,6 +3317,18 @@ if (aiSave) {
   });
 }
 
+if (cfgStoreSave) {
+  cfgStoreSave.addEventListener("click", async () => {
+    try {
+      setStoreConfigStatus("Guardando...");
+      await saveStoreConfigFromSettings();
+      setStoreConfigStatus("Configuracion guardada.", "is-ok");
+    } catch (error) {
+      setStoreConfigStatus(error?.message || "No se pudo guardar.", "is-error");
+    }
+  });
+}
+
 function setPasswordStatus(text, state) {
   if (!passwordMessage) return;
   passwordMessage.textContent = text || "";
@@ -3190,6 +3365,41 @@ if (passwordSave) {
       const message = error?.message || "No se pudo actualizar.";
       setPasswordStatus(message, "is-error");
     }
+  });
+}
+
+function setStoreConfigStatus(text, state) {
+  if (!cfgStoreMessage) return;
+  cfgStoreMessage.textContent = text || "";
+  cfgStoreMessage.classList.remove("is-error", "is-ok");
+  if (state) {
+    cfgStoreMessage.classList.add(state);
+  }
+}
+
+async function saveStoreConfigFromSettings() {
+  const domain = normalizeShopDomain(shopifyDomain?.value || "");
+  if (!domain) {
+    throw new Error("Dominio Shopify requerido.");
+  }
+  const payload = {
+    transfers: {
+      destinationWarehouseId: cfgTransferDest ? cfgTransferDest.value : "",
+      priorityWarehouseId: cfgTransferPriority ? cfgTransferPriority.value : "",
+      strategy: cfgTransferStrategy ? cfgTransferStrategy.value : "consolidation",
+      originWarehouseIds: getSelectedTransferOriginIds(),
+    },
+    priceLists: {
+      generalId: cfgPriceGeneral ? cfgPriceGeneral.value : "",
+      discountId: cfgPriceDiscount ? cfgPriceDiscount.value : "",
+      wholesaleId: cfgPriceWholesale ? cfgPriceWholesale.value : "",
+      currency: cfgPriceCurrency ? cfgPriceCurrency.value : "",
+    },
+  };
+  await fetchJson(`/api/store-configs/${encodeURIComponent(domain)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
 }
 
@@ -3236,6 +3446,11 @@ async function saveSettings() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+  try {
+    await saveStoreConfigFromSettings();
+  } catch (error) {
+    setStoreConfigStatus(error?.message || "No se pudo guardar traslados/listas.", "is-error");
+  }
   if (aiKey) {
     aiKey.value = "";
   }
@@ -3247,6 +3462,11 @@ async function saveSettings() {
     loadCatalog(cfgSeller, "sellers"),
     loadCatalog(cfgPaymentMethod, "payment-methods"),
     loadCatalog(cfgBankAccount, "bank-accounts"),
+    loadCatalog(cfgTransferDest, "warehouses"),
+    loadCatalog(cfgTransferPriority, "warehouses"),
+    loadCatalog(cfgPriceGeneral, "price-lists"),
+    loadCatalog(cfgPriceDiscount, "price-lists"),
+    loadCatalog(cfgPriceWholesale, "price-lists"),
   ]);
 }
 
@@ -3510,6 +3730,25 @@ if (cfgWarehouseSync) {
     } catch {
       // ignore save errors here
     }
+  });
+}
+if (cfgTransferOrigin) {
+  cfgTransferOrigin.addEventListener("change", (event) => {
+    const selectAllInput = cfgTransferOrigin.querySelector("input[data-select-all]");
+    if (selectAllInput && event?.target === selectAllInput) {
+      const nextChecked = selectAllInput.checked;
+      cfgTransferOrigin.querySelectorAll("input[data-warehouse-id]").forEach((input) => {
+        input.checked = nextChecked;
+      });
+    } else if (selectAllInput) {
+      const total = cfgTransferOrigin.querySelectorAll("input[data-warehouse-id]").length;
+      const selected = Array.from(
+        cfgTransferOrigin.querySelectorAll("input[data-warehouse-id]")
+      ).filter((input) => input.checked).length;
+      selectAllInput.checked = selected === 0 || selected === total;
+    }
+    transferOriginIds = getSelectedTransferOriginIds();
+    updateTransferOriginSummary();
   });
 }
 if (profileSave) {
@@ -3960,6 +4199,12 @@ async function init() {
       ? safeLoad(loadCatalog(cfgWarehouse, "warehouses"))
       : Promise.resolve(null),
     currentUserRole === "admin"
+      ? safeLoad(loadCatalog(cfgTransferDest, "warehouses"))
+      : Promise.resolve(null),
+    currentUserRole === "admin"
+      ? safeLoad(loadCatalog(cfgTransferPriority, "warehouses"))
+      : Promise.resolve(null),
+    currentUserRole === "admin"
       ? safeLoad(loadCatalog(cfgSeller, "sellers"))
       : Promise.resolve(null),
     currentUserRole === "admin"
@@ -3969,7 +4214,13 @@ async function init() {
       ? safeLoad(loadCatalog(cfgBankAccount, "bank-accounts"))
       : Promise.resolve(null),
     currentUserRole === "admin"
-      ? safeLoad(loadCatalog(cfgBankAccount, "bank-accounts"))
+      ? safeLoad(loadCatalog(cfgPriceGeneral, "price-lists"))
+      : Promise.resolve(null),
+    currentUserRole === "admin"
+      ? safeLoad(loadCatalog(cfgPriceDiscount, "price-lists"))
+      : Promise.resolve(null),
+    currentUserRole === "admin"
+      ? safeLoad(loadCatalog(cfgPriceWholesale, "price-lists"))
       : Promise.resolve(null),
   ]);
 }
