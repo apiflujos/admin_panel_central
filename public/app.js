@@ -56,7 +56,7 @@ const logOrderId = document.getElementById("log-order-id");
 const logFilter = document.getElementById("log-filter");
 const logRetry = document.getElementById("log-retry");
 const connectionsGrid = document.getElementById("connections-grid");
-const storeConfigsContainer = document.getElementById("store-configs");
+const storeConfigsContainer = document.getElementById("store-configs-single");
 
 const kpiSalesToday = document.getElementById("kpi-sales-today");
 const kpiSalesTodaySub = document.getElementById("kpi-sales-today-sub");
@@ -1226,29 +1226,23 @@ function renderStoreConfigs(items) {
   items.forEach((store) => {
     storeConfigState.set(store.shopDomain, store);
   });
-  storeConfigsContainer.innerHTML = items.map((store) => buildStoreConfigCard(store)).join("");
-  if (items.length === 1) {
-    const onlyCard = storeConfigsContainer.querySelector(".store-config");
-    if (onlyCard) {
-      onlyCard.classList.add("is-single");
-      onlyCard.setAttribute("open", "true");
-      onlyCard.dataset.hydrated = "true";
-      hydrateStoreConfig(items[0]).catch(() => null);
-    }
-  }
+  storeConfigsContainer.innerHTML = items.map((store) => buildStoreConfigPanel(store)).join("");
+  items.forEach((store) => {
+    hydrateStoreConfig(store).catch(() => null);
+  });
 }
 
-function buildStoreConfigCard(store) {
+function buildStoreConfigPanel(store) {
   const key = String(store.shopDomain || "store").replace(/[^a-z0-9]/gi, "_");
   const alegraLabel = store.alegraAccountId ? `Alegra #${store.alegraAccountId}` : "Alegra sin asignar";
   return `
-    <details class="store-config" data-store="${store.shopDomain}">
-      <summary>
-        <span>${store.shopDomain}<span class="tag">${alegraLabel}</span></span>
-        <span class="muted">Configurar</span>
-      </summary>
+    <div class="store-config-panel" data-store="${store.shopDomain}">
+      <div class="store-config-header">
+        <h4>${store.shopDomain} <span class="tag">${alegraLabel}</span></h4>
+        <span class="muted">Configuracion</span>
+      </div>
       ${buildStoreConfigBody(store, key)}
-    </details>
+    </div>
   `;
 }
 
@@ -3940,22 +3934,6 @@ if (connectionsGrid) {
   });
 }
 if (storeConfigsContainer) {
-  storeConfigsContainer.addEventListener("toggle", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-    if (!target.classList.contains("store-config")) return;
-    if (!target.open) return;
-    if (target.dataset.hydrated === "true") return;
-    const shopDomain = target.dataset.store;
-    if (!shopDomain) return;
-    const store = storeConfigState.get(shopDomain);
-    if (!store) return;
-    hydrateStoreConfig(store)
-      .then(() => {
-        target.dataset.hydrated = "true";
-      })
-      .catch(() => null);
-  });
   storeConfigsContainer.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
