@@ -175,6 +175,21 @@ export class ShopifyClient {
     );
   }
 
+  async createWebhookSubscription(topic: string, callbackUrl: string) {
+    return this.request<{ webhookSubscriptionCreate: WebhookSubscriptionCreateResult }>(
+      <GraphQlRequest>{
+        query: WEBHOOK_SUBSCRIPTION_CREATE_MUTATION,
+        variables: {
+          topic,
+          webhookSubscription: {
+            callbackUrl,
+            format: "JSON",
+          },
+        },
+      }
+    );
+  }
+
   async findVariantByIdentifier(identifier: string) {
     const escaped = identifier.replace(/"/g, '\\"');
     const query = `sku:\"${escaped}\" OR barcode:\"${escaped}\"`;
@@ -332,6 +347,11 @@ type ShopifyProductCreateResult = {
       }>;
     };
   };
+  userErrors: Array<{ field?: string[]; message: string }>;
+};
+
+type WebhookSubscriptionCreateResult = {
+  webhookSubscription?: { id: string } | null;
   userErrors: Array<{ field?: string[]; message: string }>;
 };
 
@@ -507,6 +527,15 @@ const TAGS_ADD_MUTATION = `
   mutation tagsAdd($id: ID!, $tags: [String!]!) {
     tagsAdd(id: $id, tags: $tags) {
       userErrors { field message }
+    }
+  }
+`;
+
+const WEBHOOK_SUBSCRIPTION_CREATE_MUTATION = `
+  mutation WebhookSubscriptionCreate($topic: WebhookSubscriptionTopic!, $webhookSubscription: WebhookSubscriptionInput!) {
+    webhookSubscriptionCreate(topic: $topic, webhookSubscription: $webhookSubscription) {
+      userErrors { field message }
+      webhookSubscription { id }
     }
   }
 `;

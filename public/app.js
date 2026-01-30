@@ -229,6 +229,8 @@ const rulesAutoStatus = document.getElementById("rules-auto-status");
 const cfgWarehouseSync = document.getElementById("cfg-warehouse-sync");
 const cfgWarehouseSyncSummary = document.getElementById("cfg-warehouse-sync-summary");
 const cfgWarehouseSelectAll = document.getElementById("cfg-warehouse-select-all");
+const shopifyWebhooksCreate = document.getElementById("shopify-webhooks-create");
+const shopifyWebhooksStatus = document.getElementById("shopify-webhooks-status");
 
 let shopifyAdminBase = "";
 let currentUserRole = "agent";
@@ -257,6 +259,7 @@ let storeInvoiceOverrides = null;
 const PRODUCT_SETTINGS_KEY = "apiflujos-products-settings";
 const STORE_WIZARD_KEY = "apiflujos-store-wizard";
 const WIZARD_MODULE_ORDER = [
+  "store-tech",
   "shopify-orders",
   "shopify-mass",
   "shopify-rules",
@@ -1032,6 +1035,10 @@ function getModulePanel(name) {
   return document.querySelector(`.module[data-module="${name}"]`);
 }
 
+function getGroupPanel(name) {
+  return document.querySelector(`[data-group="${name}"]`);
+}
+
 function setModuleReadonly(panel, readonly) {
   if (!panel) return;
   panel.classList.toggle("is-readonly", Boolean(readonly));
@@ -1053,6 +1060,25 @@ function setModuleReadonly(panel, readonly) {
 function setModuleCollapsed(panel, collapsed) {
   if (!panel) return;
   panel.classList.toggle("is-collapsed", Boolean(collapsed));
+}
+
+function setGroupCollapsed(panel, collapsed) {
+  if (!panel) return;
+  panel.classList.toggle("is-collapsed", Boolean(collapsed));
+}
+
+function openWizardGroups(moduleKey) {
+  const storeGroup = getGroupPanel("store");
+  if (storeGroup) setGroupCollapsed(storeGroup, false);
+  if (!moduleKey) return;
+  if (moduleKey.startsWith("shopify-")) {
+    const shopifyGroup = getGroupPanel("shopify");
+    if (shopifyGroup) setGroupCollapsed(shopifyGroup, false);
+  }
+  if (moduleKey.startsWith("alegra-")) {
+    const alegraGroup = getGroupPanel("alegra");
+    if (alegraGroup) setGroupCollapsed(alegraGroup, false);
+  }
 }
 
 function getWizardState() {
@@ -1088,6 +1114,7 @@ function openWizardStep() {
     clearWizardState();
     return;
   }
+  openWizardGroups(key);
   WIZARD_MODULE_ORDER.forEach((moduleKey) => {
     const panel = getModulePanel(moduleKey);
     if (panel) setModuleCollapsed(panel, true);
@@ -1109,6 +1136,10 @@ async function handleModuleSave(moduleKey) {
     },
     ai: async () => {
       await saveSettings();
+    },
+    "store-tech": async () => {
+      await saveSettings();
+      await loadInventoryCheckpoint();
     },
     "alegra-invoice": async () => {
       await saveStoreConfigFromSettings();
@@ -1156,7 +1187,7 @@ function initModuleControls() {
   document.querySelectorAll(".module[data-module]").forEach((panel) => {
     const readonly = panel.getAttribute("data-module-readonly") !== "false";
     setModuleReadonly(panel, readonly);
-    setModuleCollapsed(panel, false);
+    setModuleCollapsed(panel, true);
   });
   document.addEventListener("click", (event) => {
     const target = event.target instanceof HTMLElement ? event.target : null;
@@ -1181,6 +1212,22 @@ function initModuleControls() {
       const key = save.getAttribute("data-module-save");
       handleModuleSave(key).catch(() => null);
     }
+  });
+}
+
+function initGroupControls() {
+  document.querySelectorAll("[data-group]").forEach((panel) => {
+    setGroupCollapsed(panel, true);
+  });
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) return;
+    const toggle = target.closest("[data-group-toggle]");
+    if (!toggle) return;
+    const key = toggle.getAttribute("data-group-toggle");
+    const panel = key ? getGroupPanel(key) : null;
+    if (!panel) return;
+    setGroupCollapsed(panel, !panel.classList.contains("is-collapsed"));
   });
 }
 
@@ -1274,9 +1321,9 @@ async function loadSettings() {
   if (data.shopify) {
     if (shopifyDomain) {
       shopifyDomain.value = "";
-      shopifyDomain.placeholder = data.shopify.shopDomain || "tu-tienda.myshopify.com";
+      shopifyDomain.placeholder = "tu-tienda.myshopify.com";
     }
-    shopifyToken.placeholder = data.shopify.hasAccessToken ? "Guardado" : "shpat_********";
+    shopifyToken.placeholder = "shpat_********";
     statusTextShopify.textContent = data.shopify.hasAccessToken ? "Conectado" : "Sin token";
     statusLedShopify.classList.toggle("is-ok", Boolean(data.shopify.hasAccessToken));
     statusLedShopify.classList.toggle("is-off", !data.shopify.hasAccessToken);
@@ -1289,16 +1336,16 @@ async function loadSettings() {
   if (data.alegra) {
     if (alegraEmail) {
       alegraEmail.value = "";
-      alegraEmail.placeholder = data.alegra.email || "correo@empresa.com";
+      alegraEmail.placeholder = "correo@empresa.com";
     }
-    alegraKey.placeholder = data.alegra.hasApiKey ? "Guardado" : "";
+    alegraKey.placeholder = "********";
     statusTextAlegra.textContent = data.alegra.hasApiKey ? "Conectado" : "Sin token";
     statusLedAlegra.classList.toggle("is-ok", Boolean(data.alegra.hasApiKey));
     statusLedAlegra.classList.toggle("is-off", !data.alegra.hasApiKey);
   }
   if (data.ai) {
     if (aiKey) {
-      aiKey.placeholder = data.ai.hasApiKey ? "Guardado" : "";
+      aiKey.placeholder = "sk-********";
     }
   }
   if (data.invoice) {
@@ -3798,6 +3845,41 @@ function setStoreConfigStatus(text, state) {
   }
 }
 
+function setShopifyWebhooksStatus(text, state) {
+  if (!shopifyWebhooksStatus) return;
+  shopifyWebhooksStatus.textContent = text || "";
+  shopifyWebhooksStatus.classList.remove("is-error", "is-ok");
+  if (state) {
+    shopifyWebhooksStatus.classList.add(state);
+  }
+}
+
+async function createShopifyWebhooks() {
+  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+  if (!shopDomain) {
+    setShopifyWebhooksStatus("Dominio Shopify requerido.", "is-error");
+    return;
+  }
+  setShopifyWebhooksStatus("Creando webhooks...");
+  try {
+    const result = await fetchJson("/api/shopify/webhooks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shopDomain }),
+    });
+    const items = Array.isArray(result?.items) ? result.items : [];
+    const okCount = items.filter((item) => item.ok).length;
+    const total = items.length || 0;
+    const statusText =
+      total > 0
+        ? `Creados ${okCount}/${total}`
+        : result?.message || "Webhooks creados.";
+    setShopifyWebhooksStatus(statusText, okCount === total ? "is-ok" : "is-error");
+  } catch (error) {
+    setShopifyWebhooksStatus(error?.message || "No se pudieron crear.", "is-error");
+  }
+}
+
 async function saveStoreConfigFromSettings() {
   const domain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   if (!domain) {
@@ -4566,6 +4648,12 @@ if (productsSyncStopBtn) {
   });
 }
 
+if (shopifyWebhooksCreate) {
+  shopifyWebhooksCreate.addEventListener("click", () => {
+    createShopifyWebhooks();
+  });
+}
+
 if (ordersSyncBtn) {
   ordersSyncBtn.addEventListener("click", runOrdersSync);
 }
@@ -4764,6 +4852,7 @@ async function init() {
     }
   };
   loadSidebarState();
+  initGroupControls();
   applyProductSettings();
   await safeLoad(loadCurrentUser());
   await safeLoad(loadCompanyProfile());

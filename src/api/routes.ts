@@ -38,6 +38,7 @@ import {
   syncOrdersHandler,
   syncProductsHandler,
 } from "./products.controller";
+import { createShopifyWebhooksHandler } from "./shopify-webhooks.controller";
 
 export const router = Router();
 
@@ -84,6 +85,7 @@ router.post("/assistant/query", assistantQueryHandler);
 router.post("/assistant/execute", assistantExecuteHandler);
 router.post("/shopify/publish", publishShopifyHandler);
 router.post("/shopify/lookup-batch", lookupShopifyHandler);
+router.post("/shopify/webhooks", requireAdmin, createShopifyWebhooksHandler);
 router.post("/sync/products", syncProductsHandler);
 router.post("/sync/products/stop", stopProductsSyncHandler);
 router.post("/sync/orders", syncOrdersHandler);

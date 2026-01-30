@@ -72,8 +72,12 @@ export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload) {
     }
     return { handled: false, reason: transferResult.reason, transfer: transferResult };
   }
+  const resolvedWarehouseId = resolveInvoiceWarehouseId(storeConfig, transferResult, invoiceSettings);
+  const effectiveInvoiceSettings = resolvedWarehouseId
+    ? { ...invoiceSettings, warehouseId: resolvedWarehouseId }
+    : invoiceSettings;
   const override = orderId ? await getOrderInvoiceOverride(orderId) : null;
-  const einvoiceActive = Boolean(invoiceSettings.einvoiceEnabled && override?.einvoiceRequested);
+  const einvoiceActive = Boolean(effectiveInvoiceSettings.einvoiceEnabled && override?.einvoiceRequested);
   const missingEinvoice = einvoiceActive ? validateEinvoiceData(override) : [];
   if (missingEinvoice.length) {
     await createSyncLog({
@@ -172,7 +176,7 @@ export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload) {
   const sourceMapping = await resolvePaymentMappingBySource(pool, orgId, paymentGateways);
   const paymentMethod = sourceMapping?.paymentMethod || invoiceSettings.paymentMethod;
   const bankAccountId = sourceMapping?.accountId || defaultBankAccountId;
-  const invoicePayload = buildInvoicePayload(payload, contactId, invoiceSettings, paymentMethod);
+  const invoicePayload = buildInvoicePayload(payload, contactId, effectiveInvoiceSettings, paymentMethod);
   if (!invoiceSettings.generateInvoice) {
     return { handled: true, contactId, invoice: null, payment: null, adjustment: null };
   }
@@ -339,6 +343,21 @@ function buildInvoicePayload(
       quantity: item.quantity || 1,
     })),
   };
+}
+
+function resolveInvoiceWarehouseId(
+  storeConfig: Awaited<ReturnType<typeof resolveStoreConfig>>,
+  transferResult: TransferDecision | null,
+  invoiceSettings: InvoiceSettings
+) {
+  const destinationId = storeConfig.transferDestinationWarehouseId;
+  if (storeConfig.transferEnabled !== false && destinationId) {
+    return destinationId;
+  }
+  if (transferResult?.chosenWarehouseId) {
+    return transferResult.chosenWarehouseId;
+  }
+  return invoiceSettings.warehouseId || "";
 }
 
 type InvoiceSettings = {
@@ -672,15 +691,7 @@ async function createInventoryTransferFromOrder(
   orderId?: string,
   shopDomain?: string
 ): Promise<TransferDecision | null> {
-  if (storeConfig.transferEnabled === false) {
-    const decision = {
-      blocked: false,
-      reason: "transfer_disabled",
-      rule: "transfer_disabled",
-    };
-    await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
-    return decision;
-  }
+  const transferEnabled = storeConfig.transferEnabled !== false;
   const destinationId = storeConfig.transferDestinationWarehouseId;
   const strategy = storeConfig.transferStrategy || "manual";
   let originIds = storeConfig.transferOriginWarehouseIds || [];
@@ -694,11 +705,20 @@ async function createInventoryTransferFromOrder(
       originIds = [];
     }
   }
-  if (!destinationId || !originIds.length) {
+  const shouldBlock = (reason: string, details?: Record<string, unknown>) => {
+    const decision = transferEnabled
+      ? { blocked: true, reason, details }
+      : {
+          blocked: false,
+          reason: "transfer_disabled",
+          details: { ...details, originalReason: reason },
+        };
+    return decision;
+  };
+
+  if ((!destinationId && transferEnabled) || !originIds.length) {
     const decision = {
-      blocked: true,
-      reason: "missing_transfer_config",
-      details: { destinationId, originIds, strategy },
+      ...shouldBlock("missing_transfer_config", { destinationId, originIds, strategy }),
     };
     await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
     return decision;
@@ -723,9 +743,7 @@ async function createInventoryTransferFromOrder(
 
   if (missing.length || !items.length) {
     const decision = {
-      blocked: true,
-      reason: "missing_item_mapping",
-      details: { missing, items: items.length },
+      ...shouldBlock("missing_item_mapping", { missing, items: items.length }),
     };
     await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
     return decision;
@@ -777,9 +795,11 @@ async function createInventoryTransferFromOrder(
   const eligible = warehouseStats.filter((stat) => stat.canFulfillAll);
   if (!eligible.length) {
     const decision = {
-      blocked: true,
-      reason: "insufficient_stock",
-      details: { items: inventoryByItem, warehouses: warehouseStats, strategy },
+      ...shouldBlock("insufficient_stock", {
+        items: inventoryByItem,
+        warehouses: warehouseStats,
+        strategy,
+      }),
     };
     await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
     return decision;
@@ -826,6 +846,15 @@ async function createInventoryTransferFromOrder(
     rule,
     details: { priorityId, warehouses: warehouseStats, strategy },
   });
+
+  if (!transferEnabled) {
+    return {
+      blocked: false,
+      reason: "transfer_disabled",
+      chosenWarehouseId: chosen.warehouseId,
+      rule: "transfer_disabled",
+    };
+  }
 
   const transferPayload = {
     date: new Date().toISOString().slice(0, 10),

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260130c" />
+    <link rel="stylesheet" href="styles.css?v=20260130d" />
   </head>
   <body>
     <div class="app-shell">
@@ -526,122 +526,7 @@
         </section>
 
         <section class="section" id="settings">
-          <div class="settings-group-title">Conexiones y Cron</div>
-
-          <div class="panel admin-only module" data-module="connections" data-module-readonly="false">
-            <div class="panel-header">
-              <h3 data-module-toggle="connections">Conexiones y Tokens</h3>
-              <span class="panel-tag">Seguridad</span>
-            </div>
-            <div class="module-body">
-              <div class="settings-grid">
-                <div class="field span-2">
-                  <label>Nombre de la tienda</label>
-                  <input type="text" id="store-name" placeholder="Olivia Shoes Colombia" />
-                </div>
-                <div class="field span-2" id="store-active-field">
-                  <label>Tienda activa</label>
-                  <select id="store-active-select"></select>
-                </div>
-                <div class="field field-span">
-                  <span class="kpi-sub">Shopify</span>
-                </div>
-                <div class="field">
-                  <label>Shopify dominio</label>
-                  <input type="text" id="shopify-domain" placeholder="tu-tienda.myshopify.com" />
-                </div>
-                <div class="field">
-                  <label>Shopify access token</label>
-                  <input type="password" id="shopify-token" placeholder="shpat_********" autocomplete="new-password" />
-                </div>
-                <div class="field field-actions">
-                  <label>&nbsp;</label>
-                  <button class="primary" id="connect-shopify" type="button">Conectar Shopify</button>
-                </div>
-                <div class="field field-span">
-                  <span class="kpi-sub">Alegra</span>
-                </div>
-                <div class="field">
-                  <label>Cuenta Alegra</label>
-                  <select id="alegra-account-select">
-                    <option value="new">Nueva cuenta Alegra</option>
-                  </select>
-                </div>
-                <div class="field" id="alegra-env-field">
-                  <label>Entorno Alegra</label>
-                  <select id="alegra-env-select">
-                    <option value="prod">Produccion</option>
-                    <option value="sandbox">Sandbox</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label>Email usuario</label>
-                  <input type="email" id="alegra-email" placeholder="correo@empresa.com" />
-                </div>
-                <div class="field">
-                  <label>API Key</label>
-                  <input type="password" id="alegra-key" placeholder="********" autocomplete="new-password" />
-                </div>
-                <div class="field field-actions">
-                  <label>&nbsp;</label>
-                  <button class="primary" id="connect-alegra" type="button">Conectar Alegra</button>
-                </div>
-                <div class="status-grid">
-                  <div class="status-tile">
-                    <span class="status-led" id="status-led-shopify"></span>
-                    <div>
-                      <p>Shopify</p>
-                      <span id="status-shopify">Sin validar</span>
-                    </div>
-                  </div>
-                  <div class="status-tile">
-                    <span class="status-led" id="status-led-alegra"></span>
-                    <div>
-                      <p>Alegra</p>
-                      <span id="status-alegra">Sin validar</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="status-card cron-card">
-                  <div class="cron-summary">
-                    <div class="cron-item">
-                      <span class="status-led" id="inventory-cron-led"></span>
-                      <div>
-                        <p>Cron inventario</p>
-                        <span id="inventory-cron-status">Sin datos</span>
-                      </div>
-                    </div>
-                    <div class="cron-item">
-                      <div>
-                        <p>Ultimo checkpoint</p>
-                        <span id="inventory-cron-checkpoint">-</span>
-                      </div>
-                    </div>
-                    <div class="cron-item">
-                      <div>
-                        <p>Intervalo</p>
-                        <span id="inventory-cron-interval">-</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="cron-controls">
-                    <label class="toggle-field">
-                      <input type="checkbox" id="inventory-cron-enabled" class="toggle" />
-                      <span>Cron inventario activo</span>
-                    </label>
-                    <div class="field">
-                      <label>Intervalo del cron</label>
-                      <select id="inventory-cron-interval-select">
-                        <option value="5">Cada 5 minutos</option>
-                        <option value="10">Cada 10 minutos</option>
-                        <option value="15">Cada 15 minutos</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <div class="settings-group-title">Conexiones</div>
 
           <div class="panel admin-only module" data-module="ai">
             <div class="panel-header">
@@ -674,7 +559,173 @@
             </div>
           </div>
 
-          <div class="settings-group-title">Sincronizaciones</div>
+          <div class="settings-group store-group" data-group="store">
+            <div class="settings-group-header" data-group-toggle="store">
+              <h3 data-title-base="Configuracion tienda">Configuracion tienda</h3>
+              <span class="panel-tag">Multi tienda</span>
+            </div>
+            <div class="settings-group-body">
+              <div class="settings-group provider-group" data-group="store-connections">
+                <div class="settings-group-header" data-group-toggle="store-connections">
+                  <h4>Conexiones de tienda</h4>
+                </div>
+                <div class="settings-group-body">
+                  <div class="panel admin-only module" data-module="connections" data-module-readonly="false">
+                    <div class="panel-header">
+                      <h3 data-module-toggle="connections">Conexiones y Tokens</h3>
+                      <span class="panel-tag">Shopify + Alegra</span>
+                    </div>
+                    <div class="module-body">
+                      <div class="settings-grid">
+                        <div class="field span-2">
+                          <label>Nombre de la tienda</label>
+                          <input type="text" id="store-name" placeholder="Olivia Shoes Colombia" />
+                        </div>
+                        <div class="field span-2" id="store-active-field">
+                          <label>Tienda activa</label>
+                          <select id="store-active-select"></select>
+                        </div>
+                        <div class="field field-span">
+                          <span class="kpi-sub">Shopify</span>
+                        </div>
+                        <div class="field">
+                          <label>Shopify dominio</label>
+                          <input type="text" id="shopify-domain" placeholder="tu-tienda.myshopify.com" />
+                        </div>
+                        <div class="field">
+                          <label>Shopify access token</label>
+                          <input type="password" id="shopify-token" placeholder="shpat_********" autocomplete="new-password" />
+                        </div>
+                        <div class="field field-actions">
+                          <label>&nbsp;</label>
+                          <button class="primary" id="connect-shopify" type="button">Conectar Shopify</button>
+                        </div>
+                        <div class="field field-span">
+                          <span class="kpi-sub">Alegra</span>
+                        </div>
+                        <div class="field">
+                          <label>Cuenta Alegra</label>
+                          <select id="alegra-account-select">
+                            <option value="new">Nueva cuenta Alegra</option>
+                          </select>
+                        </div>
+                        <div class="field" id="alegra-env-field">
+                          <label>Entorno Alegra</label>
+                          <select id="alegra-env-select">
+                            <option value="prod">Produccion</option>
+                            <option value="sandbox">Sandbox</option>
+                          </select>
+                        </div>
+                        <div class="field">
+                          <label>Email usuario</label>
+                          <input type="email" id="alegra-email" placeholder="correo@empresa.com" />
+                        </div>
+                        <div class="field">
+                          <label>API Key</label>
+                          <input type="password" id="alegra-key" placeholder="********" autocomplete="new-password" />
+                        </div>
+                        <div class="field field-actions">
+                          <label>&nbsp;</label>
+                          <button class="primary" id="connect-alegra" type="button">Conectar Alegra</button>
+                        </div>
+                        <div class="status-grid">
+                          <div class="status-tile">
+                            <span class="status-led" id="status-led-shopify"></span>
+                            <div>
+                              <p>Shopify</p>
+                              <span id="status-shopify">Sin validar</span>
+                            </div>
+                          </div>
+                          <div class="status-tile">
+                            <span class="status-led" id="status-led-alegra"></span>
+                            <div>
+                              <p>Alegra</p>
+                              <span id="status-alegra">Sin validar</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="panel admin-only module" data-module="store-tech">
+                <div class="panel-header">
+                  <h3 data-module-toggle="store-tech" data-title-base="Ajustes tecnicos">Ajustes tecnicos</h3>
+                  <span class="panel-tag">Automatizaciones</span>
+                </div>
+                <div class="module-body">
+                  <div class="settings-grid">
+                    <div class="field field-span">
+                      <span class="kpi-sub">Cron de inventario</span>
+                    </div>
+                    <div class="field span-2">
+                      <div class="status-card cron-card">
+                        <div class="cron-summary">
+                          <div class="cron-item">
+                            <span class="status-led" id="inventory-cron-led"></span>
+                            <div>
+                              <p>Cron inventario</p>
+                              <span id="inventory-cron-status">Sin datos</span>
+                            </div>
+                          </div>
+                          <div class="cron-item">
+                            <div>
+                              <p>Ultimo checkpoint</p>
+                              <span id="inventory-cron-checkpoint">-</span>
+                            </div>
+                          </div>
+                          <div class="cron-item">
+                            <div>
+                              <p>Intervalo</p>
+                              <span id="inventory-cron-interval">-</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="cron-controls">
+                          <label class="toggle-field">
+                            <input type="checkbox" id="inventory-cron-enabled" class="toggle" />
+                            <span>Cron inventario activo</span>
+                          </label>
+                          <div class="field">
+                            <label>Intervalo del cron</label>
+                            <select id="inventory-cron-interval-select">
+                              <option value="5">Cada 5 minutos</option>
+                              <option value="10">Cada 10 minutos</option>
+                              <option value="15">Cada 15 minutos</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="field field-span">
+                      <span class="kpi-sub">Webhooks Shopify</span>
+                    </div>
+                    <div class="field span-2">
+                      <p class="field-hint">Crea los webhooks automaticos para pedidos, inventario y productos.</p>
+                    </div>
+                    <div class="field field-actions">
+                      <label>&nbsp;</label>
+                      <button class="primary" id="shopify-webhooks-create" type="button">Crear webhooks</button>
+                    </div>
+                    <div class="field">
+                      <label>Estado</label>
+                      <span class="field-hint" id="shopify-webhooks-status">Sin configurar</span>
+                    </div>
+                  </div>
+                  <div class="module-footer">
+                    <button class="ghost module-action" data-module-edit="store-tech" type="button">Editar</button>
+                    <button class="primary module-action" data-module-save="store-tech" type="button">Guardar</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-group provider-group" data-group="shopify">
+                <div class="settings-group-header" data-group-toggle="shopify">
+                  <h4>Shopify</h4>
+                </div>
+                <div class="settings-group-body">
+                  <div class="settings-group-title">Sincronizaciones</div>
 
           <div class="panel module" data-module="shopify-orders" id="legacy-orders-sync-panel">
             <div class="panel-header">
@@ -756,7 +807,7 @@
             </div>
           </div>
 
-          <div class="panel admin-only module" data-module="shopify-mass" id="legacy-products-sync-panel">
+                  <div class="panel admin-only module" data-module="shopify-mass" id="legacy-products-sync-panel">
             <div class="panel-header">
               <h3 data-module-toggle="shopify-mass" data-title-base="Sincronizacion de productos masiva">Sincronizacion de productos masiva</h3>
               <span class="panel-tag">Shopify</span>
@@ -825,9 +876,9 @@
             </div>
           </div>
 
-          <div class="settings-group-title">Reglas</div>
+                  <div class="settings-group-title">Reglas</div>
 
-          <div class="panel admin-only module" data-module="shopify-rules" id="legacy-publish-panel">
+                  <div class="panel admin-only module" data-module="shopify-rules" id="legacy-publish-panel">
             <div class="panel-header">
               <h3 data-module-toggle="shopify-rules" data-title-base="Reglas de sincronizacion automatica">Reglas de sincronizacion automatica</h3>
               <span class="panel-tag">Shopify</span>
@@ -864,7 +915,17 @@
             </div>
           </div>
 
-          <div class="panel admin-only module" data-module="alegra-inventory" id="inventory-rules-panel">
+                </div>
+              </div>
+
+              <div class="settings-group provider-group" data-group="alegra">
+                <div class="settings-group-header" data-group-toggle="alegra">
+                  <h4>Alegra</h4>
+                </div>
+                <div class="settings-group-body">
+                  <div class="settings-group-title">Reglas</div>
+
+                  <div class="panel admin-only module" data-module="alegra-inventory" id="inventory-rules-panel">
             <div class="panel-header">
               <h3 data-module-toggle="alegra-inventory" data-title-base="Reglas de inventario">Reglas de inventario</h3>
               <span class="panel-tag">Alegra</span>
@@ -897,9 +958,9 @@
             </div>
           </div>
 
-          <div class="settings-group-title">Facturacion</div>
+                  <div class="settings-group-title">Facturacion</div>
 
-          <div class="panel admin-only module" data-module="alegra-invoice" id="legacy-invoice-panel">
+                  <div class="panel admin-only module" data-module="alegra-invoice" id="legacy-invoice-panel">
             <div class="panel-header">
               <h3 data-module-toggle="alegra-invoice" data-title-base="Facturacion">Facturacion</h3>
               <span class="panel-tag">Alegra</span>
@@ -976,6 +1037,10 @@
               <div class="module-footer">
                 <button class="ghost module-action" data-module-edit="alegra-invoice" type="button">Editar</button>
                 <button class="primary module-action" data-module-save="alegra-invoice" type="button">Guardar</button>
+              </div>
+            </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1106,6 +1171,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260130d" type="module"></script>
+    <script src="app.js?v=20260130f" type="module"></script>
   </body>
 </html>

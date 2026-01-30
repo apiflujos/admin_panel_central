@@ -1081,6 +1081,52 @@ button {
   margin-top: 8px;
 }
 
+.settings-group {
+  border: 1px solid var(--stroke);
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+  margin-top: 12px;
+}
+
+.settings-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-group-header h3,
+.settings-group-header h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.settings-group-body {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.settings-group.is-collapsed .settings-group-body {
+  display: none;
+}
+
+.settings-group.is-collapsed .settings-group-header::after,
+.settings-group-header::after {
+  content: "▾";
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: auto;
+  transition: transform 160ms ease;
+}
+
+.settings-group.is-collapsed .settings-group-header::after {
+  transform: rotate(-90deg);
+}
+
 .settings-divider {
   border-top: 1px dashed var(--stroke);
   padding-top: 10px;
@@ -1758,6 +1804,7 @@ textarea {
 
 .field-actions {
   align-content: end;
+  justify-self: end;
 }
 
 .field-span {
