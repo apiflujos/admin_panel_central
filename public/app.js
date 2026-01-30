@@ -1434,10 +1434,15 @@ async function loadConnections() {
 }
 
 function updateStoreModuleTitles() {
-  const suffix = activeStoreName ? ` · ${activeStoreName}` : "";
+  const storeTitle = document.querySelector("[data-store-title]");
+  if (storeTitle) {
+    const base = storeTitle.getAttribute("data-title-base") || storeTitle.textContent || "Tienda";
+    storeTitle.textContent = activeStoreName ? `${base} · ${activeStoreName}` : base;
+  }
   document.querySelectorAll("[data-title-base]").forEach((node) => {
+    if (node.hasAttribute("data-store-title")) return;
     const base = node.getAttribute("data-title-base") || node.textContent || "";
-    node.textContent = `${base}${suffix}`;
+    node.textContent = base;
   });
 }
 

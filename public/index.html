@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260130d" />
+    <link rel="stylesheet" href="styles.css?v=20260130e" />
   </head>
   <body>
     <div class="app-shell">
@@ -561,13 +561,12 @@
 
           <div class="settings-group store-group" data-group="store">
             <div class="settings-group-header" data-group-toggle="store">
-              <h3 data-title-base="Configuracion tienda">Configuracion tienda</h3>
-              <span class="panel-tag">Multi tienda</span>
+              <h3 data-store-title data-title-base="Tienda">Tienda</h3>
             </div>
             <div class="settings-group-body">
               <div class="settings-group provider-group" data-group="store-connections">
                 <div class="settings-group-header" data-group-toggle="store-connections">
-                  <h4>Conexiones de tienda</h4>
+                  <h4>Conexiones</h4>
                 </div>
                 <div class="settings-group-body">
                   <div class="panel admin-only module" data-module="connections" data-module-readonly="false">
@@ -588,10 +587,10 @@
                         <div class="field field-span">
                           <span class="kpi-sub">Shopify</span>
                         </div>
-                        <div class="field">
-                          <label>Shopify dominio</label>
-                          <input type="text" id="shopify-domain" placeholder="tu-tienda.myshopify.com" />
-                        </div>
+                <div class="field">
+                  <label>Shopify dominio</label>
+                  <input type="text" id="shopify-domain" placeholder="olivashoes.myshopify.com" />
+                </div>
                         <div class="field">
                           <label>Shopify access token</label>
                           <input type="password" id="shopify-token" placeholder="shpat_********" autocomplete="new-password" />
@@ -616,10 +615,10 @@
                             <option value="sandbox">Sandbox</option>
                           </select>
                         </div>
-                        <div class="field">
-                          <label>Email usuario</label>
-                          <input type="email" id="alegra-email" placeholder="correo@empresa.com" />
-                        </div>
+                <div class="field">
+                  <label>Email usuario</label>
+                  <input type="email" id="alegra-email" placeholder="admin@empresa.com" />
+                </div>
                         <div class="field">
                           <label>API Key</label>
                           <input type="password" id="alegra-key" placeholder="********" autocomplete="new-password" />
@@ -722,7 +721,7 @@
 
               <div class="settings-group provider-group" data-group="shopify">
                 <div class="settings-group-header" data-group-toggle="shopify">
-                  <h4>Shopify</h4>
+                  <h4>Configuraciones Shopify</h4>
                 </div>
                 <div class="settings-group-body">
                   <div class="settings-group-title">Sincronizaciones</div>
@@ -920,7 +919,7 @@
 
               <div class="settings-group provider-group" data-group="alegra">
                 <div class="settings-group-header" data-group-toggle="alegra">
-                  <h4>Alegra</h4>
+                  <h4>Configuraciones Alegra</h4>
                 </div>
                 <div class="settings-group-body">
                   <div class="settings-group-title">Reglas</div>
@@ -1171,6 +1170,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260130f" type="module"></script>
+    <script src="app.js?v=20260130g" type="module"></script>
   </body>
 </html>
