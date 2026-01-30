@@ -79,6 +79,7 @@ export async function listStoreConfigs() {
       shopDomain: row.shop_domain,
       alegraAccountId: row.alegra_account_id || undefined,
       transfers: {
+        enabled: normalizeBoolean(transfers.enabled, true),
         destinationWarehouseId:
           (transfers.destinationWarehouseId as string | undefined) ||
           row.transfer_destination_warehouse_id ||
@@ -208,6 +209,7 @@ export async function getStoreConfigForDomain(shopDomain: string) {
   return {
     shopDomain: row.shop_domain,
     transfers: {
+      enabled: normalizeBoolean(transfers.enabled, true),
       destinationWarehouseId:
         (transfers.destinationWarehouseId as string | undefined) ||
         row.transfer_destination_warehouse_id ||

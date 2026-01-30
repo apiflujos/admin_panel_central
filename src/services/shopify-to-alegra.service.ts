@@ -672,6 +672,15 @@ async function createInventoryTransferFromOrder(
   orderId?: string,
   shopDomain?: string
 ): Promise<TransferDecision | null> {
+  if (storeConfig.transferEnabled === false) {
+    const decision = {
+      blocked: false,
+      reason: "transfer_disabled",
+      rule: "transfer_disabled",
+    };
+    await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
+    return decision;
+  }
   const destinationId = storeConfig.transferDestinationWarehouseId;
   const originIds = storeConfig.transferOriginWarehouseIds || [];
   if (!destinationId || !originIds.length) {
@@ -838,15 +847,7 @@ async function resolvePriorityWarehouseId(
   if (storeConfig.transferPriorityWarehouseId) {
     return storeConfig.transferPriorityWarehouseId;
   }
-  try {
-    const warehouses = (await ctx.alegra.listWarehouses()) as Array<{ id?: string | number; name?: string }>;
-    const match = warehouses.find((warehouse) =>
-      String(warehouse?.name || "").toLowerCase().includes("granada")
-    );
-    return match?.id ? String(match.id) : undefined;
-  } catch {
-    return undefined;
-  }
+  return undefined;
 }
 
 async function recordTransferDecision(

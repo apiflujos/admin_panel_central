@@ -2,6 +2,7 @@ import { ensureInventoryRulesColumns, ensureInvoiceSettingsColumns, getOrgId, ge
 
 export type StoreConfig = {
   shopDomain: string;
+  transferEnabled: boolean;
   transferDestinationWarehouseId?: string;
   transferOriginWarehouseIds: string[];
   transferPriorityWarehouseId?: string;
@@ -69,6 +70,7 @@ export async function getStoreConfigByDomain(shopDomain: string): Promise<StoreC
   const priceLists = (config.priceLists as Record<string, unknown>) || {};
   return {
     shopDomain: row.shop_domain,
+    transferEnabled: transfers.enabled !== false,
     transferDestinationWarehouseId:
       (transfers.destinationWarehouseId as string | undefined) ||
       row.transfer_destination_warehouse_id ||
@@ -128,6 +130,7 @@ export async function getDefaultStoreConfig(): Promise<StoreConfig> {
   );
   return {
     shopDomain: "default",
+    transferEnabled: true,
     transferDestinationWarehouseId: invoice.rows[0]?.warehouse_id || undefined,
     transferOriginWarehouseIds: parseIdList(rules.rows[0]?.warehouse_ids || null),
     transferStrategy: "consolidation",

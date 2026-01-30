@@ -151,7 +151,9 @@ const cfgObservations = document.getElementById("cfg-observations");
 const cfgGenerateInvoice = document.getElementById("cfg-generate-invoice");
 const cfgEinvoiceEnabled = document.getElementById("cfg-einvoice-enabled");
 const cfgTransferDest = document.getElementById("cfg-transfer-dest");
+const cfgTransferEnabled = document.getElementById("cfg-transfer-enabled");
 const cfgTransferStrategy = document.getElementById("cfg-transfer-strategy");
+const cfgTransferPriority = document.getElementById("cfg-transfer-priority");
 const cfgTransferOrigin = document.getElementById("cfg-transfer-origin");
 const cfgTransferOriginSummary = document.getElementById("cfg-transfer-origin-summary");
 const cfgPriceGeneral = document.getElementById("cfg-price-general");
@@ -1198,10 +1200,18 @@ function applyLegacyStoreConfig(config) {
   transferOriginIds = Array.isArray(transfers.originWarehouseIds)
     ? transfers.originWarehouseIds.map((id) => String(id))
     : [];
+  if (cfgTransferEnabled) {
+    cfgTransferEnabled.checked = transfers.enabled !== false;
+  }
   if (cfgTransferDest) {
     const value = String(transfers.destinationWarehouseId || "");
     cfgTransferDest.dataset.selected = value;
     if (cfgTransferDest.options.length) cfgTransferDest.value = value;
+  }
+  if (cfgTransferPriority) {
+    const value = String(transfers.priorityWarehouseId || "");
+    cfgTransferPriority.dataset.selected = value;
+    if (cfgTransferPriority.options.length) cfgTransferPriority.value = value;
   }
   if (cfgTransferStrategy) {
     cfgTransferStrategy.value = String(transfers.strategy || "consolidation");
@@ -1229,8 +1239,10 @@ function applyLegacyStoreConfig(config) {
 
 function clearLegacyStoreConfig() {
   transferOriginIds = [];
+  if (cfgTransferEnabled) cfgTransferEnabled.checked = true;
   if (cfgTransferDest) cfgTransferDest.dataset.selected = "";
   if (cfgTransferStrategy) cfgTransferStrategy.value = "consolidation";
+  if (cfgTransferPriority) cfgTransferPriority.dataset.selected = "";
   if (cfgPriceGeneral) cfgPriceGeneral.dataset.selected = "";
   if (cfgPriceDiscount) cfgPriceDiscount.dataset.selected = "";
   if (cfgPriceWholesale) cfgPriceWholesale.dataset.selected = "";
@@ -3377,7 +3389,9 @@ async function saveStoreConfigFromSettings() {
   }
   const payload = {
     transfers: {
+      enabled: cfgTransferEnabled ? cfgTransferEnabled.checked : true,
       destinationWarehouseId: cfgTransferDest ? cfgTransferDest.value : "",
+      priorityWarehouseId: cfgTransferPriority ? cfgTransferPriority.value : "",
       strategy: cfgTransferStrategy ? cfgTransferStrategy.value : "consolidation",
       originWarehouseIds: getSelectedTransferOriginIds(),
     },
@@ -3455,6 +3469,7 @@ async function saveSettings() {
     loadCatalog(cfgPaymentMethod, "payment-methods"),
     loadCatalog(cfgBankAccount, "bank-accounts"),
     loadCatalog(cfgTransferDest, "warehouses"),
+    loadCatalog(cfgTransferPriority, "warehouses"),
     loadCatalog(cfgPriceGeneral, "price-lists"),
     loadCatalog(cfgPriceDiscount, "price-lists"),
     loadCatalog(cfgPriceWholesale, "price-lists"),
@@ -4191,6 +4206,9 @@ async function init() {
       : Promise.resolve(null),
     currentUserRole === "admin"
       ? safeLoad(loadCatalog(cfgTransferDest, "warehouses"))
+      : Promise.resolve(null),
+    currentUserRole === "admin"
+      ? safeLoad(loadCatalog(cfgTransferPriority, "warehouses"))
       : Promise.resolve(null),
     currentUserRole === "admin"
       ? safeLoad(loadCatalog(cfgSeller, "sellers"))
