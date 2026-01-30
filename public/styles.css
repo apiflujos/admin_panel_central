@@ -1043,6 +1043,11 @@ button {
   align-items: center;
 }
 
+.panel-header h3[data-module-toggle] {
+  cursor: pointer;
+  user-select: none;
+}
+
 .panel.module .panel-header {
   justify-content: flex-start;
   gap: 10px;
@@ -1058,6 +1063,13 @@ button {
 .module-body {
   display: grid;
   gap: 12px;
+}
+
+.module-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
 }
 
 .settings-group-title {
@@ -1955,26 +1967,8 @@ textarea {
   background: var(--accent);
 }
 
-.toggle {
-  display: flex;
-  border: 1px solid var(--stroke);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.toggle-btn {
-  flex: 1;
-  padding: 6px 8px;
-  background: #fff;
-  border: none;
-  cursor: pointer;
-  font: inherit;
-  color: var(--muted);
-}
-
-.toggle-btn.is-active {
-  background: var(--primary);
-  color: #fff;
+.status-led.is-off {
+  background: #fca5a5;
 }
 
 .mapping-grid {

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260130a" />
+    <link rel="stylesheet" href="styles.css?v=20260130b" />
   </head>
   <body>
     <div class="app-shell">
@@ -528,18 +528,20 @@
         <section class="section" id="settings">
           <div class="settings-group-title">Conexiones y Cron</div>
 
-          <div class="panel admin-only module" data-module="connections">
+          <div class="panel admin-only module" data-module="connections" data-module-readonly="false">
             <div class="panel-header">
-              <h3>Conexiones y Tokens</h3>
+              <h3 data-module-toggle="connections">Conexiones y Tokens</h3>
               <span class="panel-tag">Seguridad</span>
-              <div class="panel-actions">
-                <button class="ghost module-action" data-module-toggle="connections" type="button">Plegar</button>
-                <button class="ghost module-action" data-module-edit="connections" type="button">Editar</button>
-                <button class="primary module-action" data-module-save="connections" type="button">Guardar</button>
-              </div>
             </div>
             <div class="module-body">
               <div class="settings-grid">
+                <div class="field span-2">
+                  <label>Nombre de la tienda</label>
+                  <input type="text" id="store-name" placeholder="Olivia Shoes Colombia" />
+                </div>
+                <div class="field field-span">
+                  <span class="kpi-sub">Shopify</span>
+                </div>
                 <div class="field">
                   <label>Shopify dominio</label>
                   <input type="text" id="shopify-domain" placeholder="tu-tienda.myshopify.com" />
@@ -547,6 +549,13 @@
                 <div class="field">
                   <label>Shopify access token</label>
                   <input type="password" id="shopify-token" placeholder="shpat_********" autocomplete="new-password" />
+                </div>
+                <div class="field field-actions">
+                  <label>&nbsp;</label>
+                  <button class="primary" id="connect-shopify" type="button">Conectar Shopify</button>
+                </div>
+                <div class="field field-span">
+                  <span class="kpi-sub">Alegra</span>
                 </div>
                 <div class="field">
                   <label>Cuenta Alegra</label>
@@ -571,7 +580,7 @@
                 </div>
                 <div class="field field-actions">
                   <label>&nbsp;</label>
-                  <button class="primary" id="connection-add" type="button">Agregar conexion</button>
+                  <button class="primary" id="connect-alegra" type="button">Conectar Alegra</button>
                 </div>
                 <div class="status-grid">
                   <div class="status-tile">
@@ -580,7 +589,6 @@
                       <p>Shopify</p>
                       <span id="status-shopify">Sin validar</span>
                     </div>
-                    <button class="ghost" id="test-shopify" type="button">Probar</button>
                   </div>
                   <div class="status-tile">
                     <span class="status-led" id="status-led-alegra"></span>
@@ -588,7 +596,6 @@
                       <p>Alegra</p>
                       <span id="status-alegra">Sin validar</span>
                     </div>
-                    <button class="ghost" id="test-alegra" type="button">Probar</button>
                   </div>
                 </div>
                 <div class="status-card cron-card">
@@ -634,13 +641,8 @@
 
           <div class="panel admin-only module" data-module="ai">
             <div class="panel-header">
-              <h3>IA</h3>
+              <h3 data-module-toggle="ai">IA</h3>
               <span class="panel-tag">Asistente</span>
-              <div class="panel-actions">
-                <button class="ghost module-action" data-module-toggle="ai" type="button">Plegar</button>
-                <button class="ghost module-action" data-module-edit="ai" type="button">Editar</button>
-                <button class="primary module-action" data-module-save="ai" type="button">Guardar</button>
-              </div>
             </div>
             <div class="module-body">
               <div class="settings-grid">
@@ -649,16 +651,17 @@
                   <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
                 </div>
               </div>
+              <div class="module-footer">
+                <button class="ghost module-action" data-module-edit="ai" type="button">Editar</button>
+                <button class="primary module-action" data-module-save="ai" type="button">Guardar</button>
+              </div>
             </div>
           </div>
 
           <div class="panel admin-only module" data-module="connections-summary">
             <div class="panel-header">
-              <h3>Conexiones guardadas</h3>
+              <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
               <span class="panel-tag">Resumen</span>
-              <div class="panel-actions">
-                <button class="ghost module-action" data-module-toggle="connections-summary" type="button">Plegar</button>
-              </div>
             </div>
             <div class="module-body">
               <div class="connections-grid" id="connections-grid">
@@ -671,13 +674,8 @@
 
           <div class="panel admin-only module" data-module="alegra-invoice" id="legacy-invoice-panel">
             <div class="panel-header">
-              <h3>Factura de venta</h3>
+              <h3 data-module-toggle="alegra-invoice" data-title-base="Factura de venta">Factura de venta</h3>
               <span class="panel-tag">Configuracion</span>
-              <div class="panel-actions">
-                <button class="ghost module-action" data-module-toggle="alegra-invoice" type="button">Plegar</button>
-                <button class="ghost module-action" data-module-edit="alegra-invoice" type="button">Editar</button>
-                <button class="primary module-action" data-module-save="alegra-invoice" type="button">Guardar</button>
-              </div>
             </div>
             <div class="module-body">
               <div class="settings-grid">
@@ -748,18 +746,17 @@
                   <p class="field-hint" id="cfg-store-message"></p>
                 </div>
               </div>
+              <div class="module-footer">
+                <button class="ghost module-action" data-module-edit="alegra-invoice" type="button">Editar</button>
+                <button class="primary module-action" data-module-save="alegra-invoice" type="button">Guardar</button>
+              </div>
             </div>
           </div>
 
           <div class="panel admin-only module" data-module="alegra-inventory" id="inventory-rules-panel">
             <div class="panel-header">
-              <h3>Reglas de inventario</h3>
+              <h3 data-module-toggle="alegra-inventory" data-title-base="Reglas de inventario">Reglas de inventario</h3>
               <span class="panel-tag">Alegra</span>
-              <div class="panel-actions">
-                <button class="ghost module-action" data-module-toggle="alegra-inventory" type="button">Plegar</button>
-                <button class="ghost module-action" data-module-edit="alegra-inventory" type="button">Editar</button>
-                <button class="primary module-action" data-module-save="alegra-inventory" type="button">Guardar</button>
-              </div>
             </div>
             <div class="module-body">
               <div class="settings-grid">
@@ -782,6 +779,10 @@
                   </details>
                 </div>
               </div>
+              <div class="module-footer">
+                <button class="ghost module-action" data-module-edit="alegra-inventory" type="button">Editar</button>
+                <button class="primary module-action" data-module-save="alegra-inventory" type="button">Guardar</button>
+              </div>
             </div>
           </div>
 
@@ -789,13 +790,8 @@
 
           <div class="panel admin-only module" data-module="shopify-rules" id="legacy-publish-panel">
             <div class="panel-header">
-              <h3>Reglas de sincronizacion automatica</h3>
+              <h3 data-module-toggle="shopify-rules" data-title-base="Reglas de sincronizacion automatica">Reglas de sincronizacion automatica</h3>
               <span class="panel-tag">Shopify</span>
-              <div class="panel-actions">
-                <button class="ghost module-action" data-module-toggle="shopify-rules" type="button">Plegar</button>
-                <button class="ghost module-action" data-module-edit="shopify-rules" type="button">Editar</button>
-                <button class="primary module-action" data-module-save="shopify-rules" type="button">Guardar</button>
-              </div>
             </div>
             <div class="module-body">
               <div class="settings-grid products-settings">
@@ -822,18 +818,17 @@
                   </select>
                 </div>
               </div>
+              <div class="module-footer">
+                <button class="ghost module-action" data-module-edit="shopify-rules" type="button">Editar</button>
+                <button class="primary module-action" data-module-save="shopify-rules" type="button">Guardar</button>
+              </div>
             </div>
           </div>
 
           <div class="panel admin-only module" data-module="shopify-mass" id="legacy-products-sync-panel">
             <div class="panel-header">
-              <h3>Reglas de automatizacion masiva</h3>
+              <h3 data-module-toggle="shopify-mass" data-title-base="Reglas de automatizacion masiva">Reglas de automatizacion masiva</h3>
               <span class="panel-tag">Shopify</span>
-              <div class="panel-actions">
-                <button class="ghost module-action" data-module-toggle="shopify-mass" type="button">Plegar</button>
-                <button class="ghost module-action" data-module-edit="shopify-mass" type="button">Editar</button>
-                <button class="primary module-action" data-module-save="shopify-mass" type="button">Guardar</button>
-              </div>
             </div>
             <div class="module-body">
               <div class="settings-grid products-settings">
@@ -892,18 +887,17 @@
                 </div>
                 <span class="sync-progress-label" id="products-sync-progress-label">Sincronizando 0%</span>
               </div>
+              <div class="module-footer">
+                <button class="ghost module-action" data-module-edit="shopify-mass" type="button">Editar</button>
+                <button class="primary module-action" data-module-save="shopify-mass" type="button">Guardar</button>
+              </div>
             </div>
           </div>
 
           <div class="panel module" data-module="shopify-orders" id="legacy-orders-sync-panel">
             <div class="panel-header">
-              <h3>Sincronizacion de pedidos automatico</h3>
+              <h3 data-module-toggle="shopify-orders" data-title-base="Sincronizacion de pedidos automatico">Sincronizacion de pedidos automatico</h3>
               <span class="panel-tag">Shopify</span>
-              <div class="panel-actions">
-                <button class="ghost module-action" data-module-toggle="shopify-orders" type="button">Plegar</button>
-                <button class="ghost module-action" data-module-edit="shopify-orders" type="button">Editar</button>
-                <button class="primary module-action" data-module-save="shopify-orders" type="button">Guardar</button>
-              </div>
             </div>
             <div class="module-body">
               <div class="settings-grid products-settings">
@@ -935,13 +929,22 @@
                 <span>Logistica e inventario · Operativo</span>
               </div>
               <div class="settings-grid products-settings">
+                <div class="field field-span">
+                  <span class="kpi-sub">Reglas de bodega</span>
+                </div>
+                <div class="field span-2">
+                  <label>Bodegas origen</label>
+                  <details class="multi-select">
+                    <summary>
+                      <span>Seleccionar bodegas</span>
+                      <em id="cfg-transfer-origin-summary">Todas</em>
+                    </summary>
+                    <div class="checkbox-grid single" id="cfg-transfer-origin"></div>
+                  </details>
+                </div>
                 <div class="field">
                   <label>Destino</label>
                   <select id="cfg-transfer-dest"></select>
-                </div>
-                <div class="field">
-                  <label>Traslado automatico</label>
-                  <input type="checkbox" id="cfg-transfer-enabled" class="toggle" />
                 </div>
                 <div class="field">
                   <label>Estrategia</label>
@@ -956,16 +959,14 @@
                   <label>Bodega prioritaria</label>
                   <select id="cfg-transfer-priority"></select>
                 </div>
-                <div class="field span-2">
-                  <label>Bodegas origen</label>
-                  <details class="multi-select">
-                    <summary>
-                      <span>Seleccionar bodegas</span>
-                      <em id="cfg-transfer-origin-summary">Todas</em>
-                    </summary>
-                    <div class="checkbox-grid single" id="cfg-transfer-origin"></div>
-                  </details>
+                <div class="field">
+                  <label>Traslado automatico</label>
+                  <input type="checkbox" id="cfg-transfer-enabled" class="toggle" />
                 </div>
+              </div>
+              <div class="module-footer">
+                <button class="ghost module-action" data-module-edit="shopify-orders" type="button">Editar</button>
+                <button class="primary module-action" data-module-save="shopify-orders" type="button">Guardar</button>
               </div>
             </div>
           </div>
@@ -1096,6 +1097,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260130a" type="module"></script>
+    <script src="app.js?v=20260130b" type="module"></script>
   </body>
 </html>

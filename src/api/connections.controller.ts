@@ -36,6 +36,7 @@ export async function createConnection(req: Request, res: Response) {
   try {
     const payload = req.body || {};
     const result = await upsertStoreConnection({
+      storeName: payload?.storeName || "",
       shopDomain: payload?.shopify?.shopDomain || "",
       accessToken: payload?.shopify?.accessToken || "",
       alegra: payload?.alegra || undefined,

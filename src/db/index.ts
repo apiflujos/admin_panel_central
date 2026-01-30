@@ -12,7 +12,7 @@ async function performRepair(poolInstance: Pool) {
       const queries = [
         "CREATE TABLE IF NOT EXISTS organizations (id SERIAL PRIMARY KEY, name TEXT NOT NULL, timezone TEXT NOT NULL DEFAULT 'UTC', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE TABLE IF NOT EXISTS credentials (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), provider TEXT NOT NULL, data_encrypted TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
-        "CREATE TABLE IF NOT EXISTS shopify_stores (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), shop_domain TEXT NOT NULL, access_token_encrypted TEXT NOT NULL, scopes TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
+        "CREATE TABLE IF NOT EXISTS shopify_stores (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), shop_domain TEXT NOT NULL, store_name TEXT, access_token_encrypted TEXT NOT NULL, scopes TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE TABLE IF NOT EXISTS alegra_accounts (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), user_email TEXT NOT NULL, api_key_encrypted TEXT NOT NULL, environment TEXT DEFAULT 'prod', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE TABLE IF NOT EXISTS sync_mappings (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), entity TEXT NOT NULL, shopify_id TEXT, alegra_id TEXT, parent_id TEXT, metadata_json JSONB NOT NULL DEFAULT '{}');",
         "CREATE TABLE IF NOT EXISTS inventory_rules (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), publish_on_stock BOOLEAN NOT NULL DEFAULT TRUE, min_stock INTEGER NOT NULL DEFAULT 0, warehouse_id TEXT, warehouse_ids TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
@@ -60,6 +60,7 @@ async function performRepair(poolInstance: Pool) {
         "ALTER TABLE credentials ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();",
         "ALTER TABLE shopify_stores ADD COLUMN IF NOT EXISTS organization_id INTEGER;",
         "ALTER TABLE shopify_stores ADD COLUMN IF NOT EXISTS shop_domain TEXT;",
+        "ALTER TABLE shopify_stores ADD COLUMN IF NOT EXISTS store_name TEXT;",
         "ALTER TABLE shopify_stores ADD COLUMN IF NOT EXISTS access_token_encrypted TEXT;",
         "ALTER TABLE shopify_stores ADD COLUMN IF NOT EXISTS scopes TEXT;",
         "ALTER TABLE shopify_stores ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();",

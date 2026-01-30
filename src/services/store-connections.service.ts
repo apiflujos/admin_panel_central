@@ -11,6 +11,7 @@ type AlegraAccountInput = {
 type ShopifyStoreInput = {
   shopDomain: string;
   accessToken: string;
+  storeName?: string;
   alegra?: AlegraAccountInput;
 };
 
@@ -27,6 +28,7 @@ export async function listStoreConnections() {
   let stores = await pool.query<{
     id: number;
     shop_domain: string;
+    store_name: string | null;
     access_token_encrypted: string;
     created_at: string;
     alegra_account_id: number | null;
@@ -36,6 +38,7 @@ export async function listStoreConnections() {
     `
     SELECT s.id,
            s.shop_domain,
+           s.store_name,
            s.access_token_encrypted,
            s.created_at,
            c.alegra_account_id,
@@ -67,6 +70,7 @@ export async function listStoreConnections() {
       `
       SELECT s.id,
              s.shop_domain,
+             s.store_name,
              s.access_token_encrypted,
              s.created_at,
              c.alegra_account_id,
@@ -104,7 +108,10 @@ export async function listStoreConnections() {
     stores: stores.rows.map((row) => ({
       id: row.id,
       shopDomain: row.shop_domain,
+      storeName: row.store_name || "",
       status: row.access_token_encrypted ? "Conectado" : "Sin token",
+      shopifyConnected: Boolean(row.access_token_encrypted),
+      alegraConnected: Boolean(row.alegra_account_id),
       alegraAccountId: row.alegra_account_id || undefined,
       alegraEmail: row.user_email || "",
       alegraEnvironment: row.environment || "prod",
@@ -123,16 +130,14 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
   await ensureOrganization(pool, orgId);
 
   const shopDomain = normalizeShopDomain(input.shopDomain || "");
+  const storeName = input.storeName?.trim() || null;
   if (!shopDomain) {
     throw new Error("Dominio Shopify requerido");
   }
-  if (!input.accessToken?.trim()) {
-    throw new Error("Access token Shopify requerido");
-  }
-
-  const accessTokenEncrypted = encryptString(
-    JSON.stringify({ accessToken: input.accessToken.trim() })
-  );
+  const trimmedToken = input.accessToken?.trim() || "";
+  const accessTokenEncrypted = trimmedToken
+    ? encryptString(JSON.stringify({ accessToken: trimmedToken }))
+    : null;
 
   const existingStore = await pool.query<{ id: number }>(
     `
@@ -150,19 +155,23 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
     await pool.query(
       `
       UPDATE shopify_stores
-      SET access_token_encrypted = $1
-      WHERE id = $2
+      SET access_token_encrypted = COALESCE($1, access_token_encrypted),
+          store_name = COALESCE($2, store_name)
+      WHERE id = $3
       `,
-      [accessTokenEncrypted, storeId]
+      [accessTokenEncrypted, storeName, storeId]
     );
   } else {
+    if (!accessTokenEncrypted) {
+      throw new Error("Access token Shopify requerido");
+    }
     const created = await pool.query<{ id: number }>(
       `
-      INSERT INTO shopify_stores (organization_id, shop_domain, access_token_encrypted, scopes)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO shopify_stores (organization_id, shop_domain, store_name, access_token_encrypted, scopes)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING id
       `,
-      [orgId, shopDomain, accessTokenEncrypted, ""]
+      [orgId, shopDomain, storeName, accessTokenEncrypted, ""]
     );
     storeId = created.rows[0]?.id;
   }
@@ -320,11 +329,11 @@ async function seedFromLegacyCredentials(pool: ReturnType<typeof getPool>, orgId
   const accessTokenEncrypted = encryptString(JSON.stringify({ accessToken: shopify.accessToken }));
   await pool.query(
     `
-    INSERT INTO shopify_stores (organization_id, shop_domain, access_token_encrypted, scopes)
-    VALUES ($1, $2, $3, $4)
+    INSERT INTO shopify_stores (organization_id, shop_domain, store_name, access_token_encrypted, scopes)
+    VALUES ($1, $2, $3, $4, $5)
     ON CONFLICT DO NOTHING
     `,
-    [orgId, shopDomain, accessTokenEncrypted, ""]
+    [orgId, shopDomain, null, accessTokenEncrypted, ""]
   );
 
   const env = alegra.environment === "sandbox" ? "sandbox" : "prod";
