@@ -1226,30 +1226,16 @@ function renderStoreConfigs(items) {
   items.forEach((store) => {
     storeConfigState.set(store.shopDomain, store);
   });
+  storeConfigsContainer.innerHTML = items.map((store) => buildStoreConfigCard(store)).join("");
   if (items.length === 1) {
-    storeConfigsContainer.innerHTML = buildStoreConfigSingle(items[0]);
-    const configCard = storeConfigsContainer.querySelector(".store-config-single");
-    if (configCard) {
-      configCard.dataset.hydrated = "true";
+    const onlyCard = storeConfigsContainer.querySelector(".store-config");
+    if (onlyCard) {
+      onlyCard.classList.add("is-single");
+      onlyCard.setAttribute("open", "true");
+      onlyCard.dataset.hydrated = "true";
       hydrateStoreConfig(items[0]).catch(() => null);
     }
-    return;
   }
-  storeConfigsContainer.innerHTML = items.map((store) => buildStoreConfigCard(store)).join("");
-}
-
-function buildStoreConfigSingle(store) {
-  const key = String(store.shopDomain || "store").replace(/[^a-z0-9]/gi, "_");
-  const alegraLabel = store.alegraAccountId ? `Alegra #${store.alegraAccountId}` : "Alegra sin asignar";
-  return `
-    <div class="store-config-single" data-store="${store.shopDomain}">
-      <div class="store-config-header">
-        <h4>${store.shopDomain} <span class="tag">${alegraLabel}</span></h4>
-        <span class="muted">Configuracion principal</span>
-      </div>
-      ${buildStoreConfigBody(store, key)}
-    </div>
-  `;
 }
 
 function buildStoreConfigCard(store) {

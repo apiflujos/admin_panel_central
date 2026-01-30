@@ -491,20 +491,12 @@ button {
   gap: 12px;
 }
 
-.store-config-single {
-  border: 1px solid var(--stroke);
-  border-radius: 14px;
-  background: #fff;
-  padding: 12px 14px;
+.store-config.is-single > summary {
+  display: none;
 }
 
-.store-config-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-  font-weight: 600;
+.store-config.is-single {
+  border-radius: 14px;
 }
 
 .store-config {
