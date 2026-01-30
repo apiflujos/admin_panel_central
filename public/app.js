@@ -257,8 +257,8 @@ let storeInvoiceOverrides = null;
 const PRODUCT_SETTINGS_KEY = "apiflujos-products-settings";
 const STORE_WIZARD_KEY = "apiflujos-store-wizard";
 const WIZARD_MODULE_ORDER = [
-  "shopify-mass",
   "shopify-orders",
+  "shopify-mass",
   "shopify-rules",
   "alegra-inventory",
   "alegra-invoice",

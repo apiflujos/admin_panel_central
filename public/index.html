@@ -674,12 +674,235 @@
             </div>
           </div>
 
-          <div class="settings-group-title">Alegra</div>
+          <div class="settings-group-title">Sincronizaciones</div>
+
+          <div class="panel module" data-module="shopify-orders" id="legacy-orders-sync-panel">
+            <div class="panel-header">
+              <h3 data-module-toggle="shopify-orders" data-title-base="Sincronizacion de pedidos automatica">Sincronizacion de pedidos automatica</h3>
+              <span class="panel-tag">Shopify</span>
+            </div>
+            <div class="module-body">
+              <div class="settings-grid products-settings">
+                <div class="field">
+                  <label>Pedidos desde</label>
+                  <input type="date" id="orders-date-start" />
+                </div>
+                <div class="field">
+                  <label>Pedidos hasta</label>
+                  <input type="date" id="orders-date-end" />
+                </div>
+                <div class="field">
+                  <label>Numero de pedido</label>
+                  <input type="text" id="orders-sync-number" placeholder="Ej: 1054" />
+                </div>
+              </div>
+              <div class="toolbar">
+                <button class="primary" id="orders-sync" type="button">Sincronizar pedidos</button>
+                <button class="ghost" id="orders-sync-clear" type="button">Borrar filtros</button>
+                <span class="kpi-sub" id="orders-sync-status">Listo</span>
+              </div>
+              <div class="sync-progress" id="orders-sync-progress" aria-hidden="true">
+                <div class="sync-progress-track">
+                  <div class="sync-progress-bar" id="orders-sync-progress-bar"></div>
+                </div>
+                <span class="sync-progress-label" id="orders-sync-progress-label">Sincronizando 0%</span>
+              </div>
+              <div class="settings-divider">
+                <span>Logistica e inventario · Operativo</span>
+              </div>
+              <div class="settings-grid products-settings">
+                <div class="field field-span">
+                  <span class="kpi-sub">Traslados de inventario</span>
+                </div>
+                <div class="field field-span">
+                  <span class="kpi-sub">Reglas de bodega</span>
+                </div>
+                <div class="field">
+                  <label>Destino</label>
+                  <select id="cfg-transfer-dest"></select>
+                </div>
+                <div class="field">
+                  <label>Estrategia</label>
+                  <select id="cfg-transfer-strategy">
+                    <option value="manual">Manual (sin estrategia)</option>
+                    <option value="consolidation">Consolidacion</option>
+                    <option value="priority">Prioridad</option>
+                    <option value="max_stock">Mayor existencia</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Bodega prioritaria</label>
+                  <select id="cfg-transfer-priority"></select>
+                </div>
+                <div class="field span-2">
+                  <label>Bodegas origen</label>
+                  <details class="multi-select">
+                    <summary>
+                      <span>Seleccionar bodegas</span>
+                      <em id="cfg-transfer-origin-summary">Todas</em>
+                    </summary>
+                    <div class="checkbox-grid single" id="cfg-transfer-origin"></div>
+                  </details>
+                </div>
+                <div class="field">
+                  <label>Traslado automatico</label>
+                  <input type="checkbox" id="cfg-transfer-enabled" class="toggle" />
+                </div>
+              </div>
+              <div class="module-footer">
+                <button class="ghost module-action" data-module-edit="shopify-orders" type="button">Editar</button>
+                <button class="primary module-action" data-module-save="shopify-orders" type="button">Guardar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel admin-only module" data-module="shopify-mass" id="legacy-products-sync-panel">
+            <div class="panel-header">
+              <h3 data-module-toggle="shopify-mass" data-title-base="Sincronizacion de productos masiva">Sincronizacion de productos masiva</h3>
+              <span class="panel-tag">Shopify</span>
+            </div>
+            <div class="module-body">
+              <div class="settings-grid products-settings">
+                <div class="field">
+                  <label>Productos desde</label>
+                  <input type="date" id="products-date-start" />
+                </div>
+                <div class="field">
+                  <label>Productos hasta</label>
+                  <input type="date" id="products-date-end" />
+                </div>
+                <div class="field">
+                  <label>Limite de sincronizacion</label>
+                  <input type="number" id="products-sync-limit" min="1" placeholder="Sin limite" />
+                </div>
+                <div class="field">
+                  <label>Incluir existencias</label>
+                  <input type="checkbox" id="products-sync-include-inventory" class="toggle" checked />
+                </div>
+                <div class="field span-2">
+                  <label>Bodegas Alegra a sincronizar</label>
+                  <details class="multi-select">
+                    <summary>
+                      <span>Seleccionar bodegas</span>
+                      <em id="cfg-warehouse-sync-summary">Todas</em>
+                    </summary>
+                    <div class="checkbox-grid single" id="cfg-warehouse-sync"></div>
+                  </details>
+                </div>
+                <div class="field">
+                  <label>Referencia o nombre</label>
+                  <input type="text" id="products-sync-query" placeholder="Ej: SADBS0276" />
+                </div>
+                <div class="field">
+                  <label>Solo productos activos (Alegra)</label>
+                  <input type="checkbox" id="products-sync-only-active" class="toggle" checked />
+                </div>
+                <div class="field">
+                  <label>Publicar en Shopify</label>
+                  <input type="checkbox" id="products-sync-publish" class="toggle" checked />
+                </div>
+                <div class="field">
+                  <label>Solo publicados en Shopify</label>
+                  <input type="checkbox" id="products-sync-only-published" class="toggle" checked />
+                </div>
+              </div>
+              <div class="toolbar">
+                <button class="primary" id="products-sync-filtered" type="button">Sincronizar productos</button>
+                <button class="ghost" id="products-sync-stop" type="button">Parar sincronizacion</button>
+                <button class="ghost" id="products-sync-clear" type="button">Borrar filtros</button>
+                <span class="kpi-sub" id="products-sync-status">Listo</span>
+              </div>
+              <div class="sync-progress" id="products-sync-progress" aria-hidden="true">
+                <div class="sync-progress-track">
+                  <div class="sync-progress-bar" id="products-sync-progress-bar"></div>
+                </div>
+                <span class="sync-progress-label" id="products-sync-progress-label">Sincronizando 0%</span>
+              </div>
+              <div class="module-footer">
+                <button class="ghost module-action" data-module-edit="shopify-mass" type="button">Editar</button>
+                <button class="primary module-action" data-module-save="shopify-mass" type="button">Guardar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-group-title">Reglas</div>
+
+          <div class="panel admin-only module" data-module="shopify-rules" id="legacy-publish-panel">
+            <div class="panel-header">
+              <h3 data-module-toggle="shopify-rules" data-title-base="Reglas de sincronizacion automatica">Reglas de sincronizacion automatica</h3>
+              <span class="panel-tag">Shopify</span>
+            </div>
+            <div class="module-body">
+              <div class="settings-grid products-settings">
+                <div class="field">
+                  <label>Estado Shopify</label>
+                  <select id="products-publish-status">
+                    <option value="draft">Draft</option>
+                    <option value="active">Active</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Imagenes activas</label>
+                  <input type="checkbox" id="products-include-images" class="toggle" />
+                </div>
+                <div class="field">
+                  <label>Auto publicar en webhooks</label>
+                  <input type="checkbox" id="rules-auto-publish" class="toggle" />
+                </div>
+                <div class="field">
+                  <label>Estado automatico</label>
+                  <select id="rules-auto-status">
+                    <option value="draft">Draft</option>
+                    <option value="active">Active</option>
+                  </select>
+                </div>
+              </div>
+              <div class="module-footer">
+                <button class="ghost module-action" data-module-edit="shopify-rules" type="button">Editar</button>
+                <button class="primary module-action" data-module-save="shopify-rules" type="button">Guardar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel admin-only module" data-module="alegra-inventory" id="inventory-rules-panel">
+            <div class="panel-header">
+              <h3 data-module-toggle="alegra-inventory" data-title-base="Reglas de inventario">Reglas de inventario</h3>
+              <span class="panel-tag">Alegra</span>
+            </div>
+            <div class="module-body">
+              <div class="settings-grid">
+                <div class="field">
+                  <label>Publicar con stock</label>
+                  <input type="checkbox" id="cfg-inventory-publish-stock" class="toggle" />
+                </div>
+                <div class="field">
+                  <label>Auto publicar ajustes</label>
+                  <input type="checkbox" id="cfg-inventory-auto-publish" class="toggle" />
+                </div>
+                <div class="field span-2">
+                  <label>Bodegas Alegra (filtro)</label>
+                  <details class="multi-select">
+                    <summary>
+                      <span>Seleccionar bodegas</span>
+                      <em id="cfg-inventory-warehouses-summary">Todas</em>
+                    </summary>
+                    <div class="checkbox-grid single" id="cfg-inventory-warehouses"></div>
+                  </details>
+                </div>
+              </div>
+              <div class="module-footer">
+                <button class="ghost module-action" data-module-edit="alegra-inventory" type="button">Editar</button>
+                <button class="primary module-action" data-module-save="alegra-inventory" type="button">Guardar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-group-title">Facturacion</div>
 
           <div class="panel admin-only module" data-module="alegra-invoice" id="legacy-invoice-panel">
             <div class="panel-header">
-              <h3 data-module-toggle="alegra-invoice" data-title-base="Factura de venta">Factura de venta</h3>
-              <span class="panel-tag">Configuracion</span>
+              <h3 data-module-toggle="alegra-invoice" data-title-base="Facturacion">Facturacion</h3>
+              <span class="panel-tag">Alegra</span>
             </div>
             <div class="module-body">
               <div class="settings-grid">
@@ -753,224 +976,6 @@
               <div class="module-footer">
                 <button class="ghost module-action" data-module-edit="alegra-invoice" type="button">Editar</button>
                 <button class="primary module-action" data-module-save="alegra-invoice" type="button">Guardar</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="panel admin-only module" data-module="alegra-inventory" id="inventory-rules-panel">
-            <div class="panel-header">
-              <h3 data-module-toggle="alegra-inventory" data-title-base="Reglas de inventario">Reglas de inventario</h3>
-              <span class="panel-tag">Alegra</span>
-            </div>
-            <div class="module-body">
-              <div class="settings-grid">
-                <div class="field">
-                  <label>Publicar con stock</label>
-                  <input type="checkbox" id="cfg-inventory-publish-stock" class="toggle" />
-                </div>
-                <div class="field">
-                  <label>Auto publicar ajustes</label>
-                  <input type="checkbox" id="cfg-inventory-auto-publish" class="toggle" />
-                </div>
-                <div class="field span-2">
-                  <label>Bodegas Alegra (filtro)</label>
-                  <details class="multi-select">
-                    <summary>
-                      <span>Seleccionar bodegas</span>
-                      <em id="cfg-inventory-warehouses-summary">Todas</em>
-                    </summary>
-                    <div class="checkbox-grid single" id="cfg-inventory-warehouses"></div>
-                  </details>
-                </div>
-              </div>
-              <div class="module-footer">
-                <button class="ghost module-action" data-module-edit="alegra-inventory" type="button">Editar</button>
-                <button class="primary module-action" data-module-save="alegra-inventory" type="button">Guardar</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="settings-group-title">Shopify</div>
-
-          <div class="panel admin-only module" data-module="shopify-rules" id="legacy-publish-panel">
-            <div class="panel-header">
-              <h3 data-module-toggle="shopify-rules" data-title-base="Reglas de sincronizacion automatica">Reglas de sincronizacion automatica</h3>
-              <span class="panel-tag">Shopify</span>
-            </div>
-            <div class="module-body">
-              <div class="settings-grid products-settings">
-                <div class="field">
-                  <label>Estado Shopify</label>
-                  <select id="products-publish-status">
-                    <option value="draft">Draft</option>
-                    <option value="active">Active</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label>Imagenes activas</label>
-                  <input type="checkbox" id="products-include-images" class="toggle" />
-                </div>
-                <div class="field">
-                  <label>Auto publicar en webhooks</label>
-                  <input type="checkbox" id="rules-auto-publish" class="toggle" />
-                </div>
-                <div class="field">
-                  <label>Estado automatico</label>
-                  <select id="rules-auto-status">
-                    <option value="draft">Draft</option>
-                    <option value="active">Active</option>
-                  </select>
-                </div>
-              </div>
-              <div class="module-footer">
-                <button class="ghost module-action" data-module-edit="shopify-rules" type="button">Editar</button>
-                <button class="primary module-action" data-module-save="shopify-rules" type="button">Guardar</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="panel admin-only module" data-module="shopify-mass" id="legacy-products-sync-panel">
-            <div class="panel-header">
-              <h3 data-module-toggle="shopify-mass" data-title-base="Reglas de automatizacion masiva">Reglas de automatizacion masiva</h3>
-              <span class="panel-tag">Shopify</span>
-            </div>
-            <div class="module-body">
-              <div class="settings-grid products-settings">
-                <div class="field">
-                  <label>Productos desde</label>
-                  <input type="date" id="products-date-start" />
-                </div>
-                <div class="field">
-                  <label>Productos hasta</label>
-                  <input type="date" id="products-date-end" />
-                </div>
-                <div class="field">
-                  <label>Limite de sincronizacion</label>
-                  <input type="number" id="products-sync-limit" min="1" placeholder="Sin limite" />
-                </div>
-                <div class="field">
-                  <label>Incluir existencias</label>
-                  <input type="checkbox" id="products-sync-include-inventory" class="toggle" checked />
-                </div>
-                <div class="field span-2">
-                  <label>Bodegas Alegra a sincronizar</label>
-                  <details class="multi-select">
-                    <summary>
-                      <span>Seleccionar bodegas</span>
-                      <em id="cfg-warehouse-sync-summary">Todas</em>
-                    </summary>
-                    <div class="checkbox-grid single" id="cfg-warehouse-sync"></div>
-                  </details>
-                </div>
-                <div class="field">
-                  <label>Referencia o nombre</label>
-                  <input type="text" id="products-sync-query" placeholder="Ej: SADBS0276" />
-                </div>
-                <div class="field">
-                  <label>Solo productos activos (Alegra)</label>
-                  <input type="checkbox" id="products-sync-only-active" class="toggle" checked />
-                </div>
-                <div class="field">
-                  <label>Publicar en Shopify</label>
-                  <input type="checkbox" id="products-sync-publish" class="toggle" checked />
-                </div>
-                <div class="field">
-                  <label>Solo publicados en Shopify</label>
-                  <input type="checkbox" id="products-sync-only-published" class="toggle" checked />
-                </div>
-              </div>
-              <div class="toolbar">
-                <button class="primary" id="products-sync-filtered" type="button">Sincronizar productos</button>
-                <button class="ghost" id="products-sync-stop" type="button">Parar sincronizacion</button>
-                <button class="ghost" id="products-sync-clear" type="button">Borrar filtros</button>
-                <span class="kpi-sub" id="products-sync-status">Listo</span>
-              </div>
-              <div class="sync-progress" id="products-sync-progress" aria-hidden="true">
-                <div class="sync-progress-track">
-                  <div class="sync-progress-bar" id="products-sync-progress-bar"></div>
-                </div>
-                <span class="sync-progress-label" id="products-sync-progress-label">Sincronizando 0%</span>
-              </div>
-              <div class="module-footer">
-                <button class="ghost module-action" data-module-edit="shopify-mass" type="button">Editar</button>
-                <button class="primary module-action" data-module-save="shopify-mass" type="button">Guardar</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="panel module" data-module="shopify-orders" id="legacy-orders-sync-panel">
-            <div class="panel-header">
-              <h3 data-module-toggle="shopify-orders" data-title-base="Sincronizacion de pedidos automatico">Sincronizacion de pedidos automatico</h3>
-              <span class="panel-tag">Shopify</span>
-            </div>
-            <div class="module-body">
-              <div class="settings-grid products-settings">
-                <div class="field">
-                  <label>Pedidos desde</label>
-                  <input type="date" id="orders-date-start" />
-                </div>
-                <div class="field">
-                  <label>Pedidos hasta</label>
-                  <input type="date" id="orders-date-end" />
-                </div>
-                <div class="field">
-                  <label>Numero de pedido</label>
-                  <input type="text" id="orders-sync-number" placeholder="Ej: 1054" />
-                </div>
-              </div>
-              <div class="toolbar">
-                <button class="primary" id="orders-sync" type="button">Sincronizar pedidos</button>
-                <button class="ghost" id="orders-sync-clear" type="button">Borrar filtros</button>
-                <span class="kpi-sub" id="orders-sync-status">Listo</span>
-              </div>
-              <div class="sync-progress" id="orders-sync-progress" aria-hidden="true">
-                <div class="sync-progress-track">
-                  <div class="sync-progress-bar" id="orders-sync-progress-bar"></div>
-                </div>
-                <span class="sync-progress-label" id="orders-sync-progress-label">Sincronizando 0%</span>
-              </div>
-              <div class="settings-divider">
-                <span>Logistica e inventario · Operativo</span>
-              </div>
-              <div class="settings-grid products-settings">
-                <div class="field field-span">
-                  <span class="kpi-sub">Reglas de bodega</span>
-                </div>
-                <div class="field span-2">
-                  <label>Bodegas origen</label>
-                  <details class="multi-select">
-                    <summary>
-                      <span>Seleccionar bodegas</span>
-                      <em id="cfg-transfer-origin-summary">Todas</em>
-                    </summary>
-                    <div class="checkbox-grid single" id="cfg-transfer-origin"></div>
-                  </details>
-                </div>
-                <div class="field">
-                  <label>Destino</label>
-                  <select id="cfg-transfer-dest"></select>
-                </div>
-                <div class="field">
-                  <label>Estrategia</label>
-                  <select id="cfg-transfer-strategy">
-                    <option value="manual">Manual (sin estrategia)</option>
-                    <option value="consolidation">Consolidacion</option>
-                    <option value="priority">Prioridad</option>
-                    <option value="max_stock">Mayor existencia</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label>Bodega prioritaria</label>
-                  <select id="cfg-transfer-priority"></select>
-                </div>
-                <div class="field">
-                  <label>Traslado automatico</label>
-                  <input type="checkbox" id="cfg-transfer-enabled" class="toggle" />
-                </div>
-              </div>
-              <div class="module-footer">
-                <button class="ghost module-action" data-module-edit="shopify-orders" type="button">Editar</button>
-                <button class="primary module-action" data-module-save="shopify-orders" type="button">Guardar</button>
               </div>
             </div>
           </div>
@@ -1101,6 +1106,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260130c" type="module"></script>
+    <script src="app.js?v=20260130d" type="module"></script>
   </body>
 </html>
