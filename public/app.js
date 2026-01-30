@@ -229,6 +229,8 @@ const rulesAutoStatus = document.getElementById("rules-auto-status");
 const cfgWarehouseSync = document.getElementById("cfg-warehouse-sync");
 const cfgWarehouseSyncSummary = document.getElementById("cfg-warehouse-sync-summary");
 const cfgWarehouseSelectAll = document.getElementById("cfg-warehouse-select-all");
+const cfgTransferOriginField = document.getElementById("cfg-transfer-origin-field");
+const cfgWarehouseSyncField = document.getElementById("cfg-warehouse-sync-field");
 const shopifyWebhooksCreate = document.getElementById("shopify-webhooks-create");
 const shopifyWebhooksStatus = document.getElementById("shopify-webhooks-status");
 
@@ -1248,6 +1250,7 @@ function applyProductSettings() {
   if (productsSyncIncludeInventory) {
     productsSyncIncludeInventory.checked = productSettings.sync.includeInventory !== false;
   }
+  updateSyncWarehouseState();
   if (productsLimitInput) productsLimitInput.value = productSettings.filters.listLimit || "30";
   if (productsPublishFilter) productsPublishFilter.value = productSettings.filters.publishStatus || "all";
   if (productsDateFilter) productsDateFilter.value = productSettings.filters.productsDate || "";
@@ -1324,9 +1327,13 @@ async function loadSettings() {
       shopifyDomain.placeholder = "tu-tienda.myshopify.com";
     }
     shopifyToken.placeholder = "shpat_********";
-    statusTextShopify.textContent = data.shopify.hasAccessToken ? "Conectado" : "Sin token";
-    statusLedShopify.classList.toggle("is-ok", Boolean(data.shopify.hasAccessToken));
-    statusLedShopify.classList.toggle("is-off", !data.shopify.hasAccessToken);
+    if (statusTextShopify) {
+      statusTextShopify.textContent = data.shopify.hasAccessToken ? "Conectado" : "Sin token";
+    }
+    if (statusLedShopify) {
+      statusLedShopify.classList.toggle("is-ok", Boolean(data.shopify.hasAccessToken));
+      statusLedShopify.classList.toggle("is-off", !data.shopify.hasAccessToken);
+    }
     if (data.shopify.shopDomain) {
       shopifyAdminBase = `https://${data.shopify.shopDomain.replace(/^https?:\/\//, "").replace(/\/$/, "")}/admin`;
     } else {
@@ -1339,9 +1346,13 @@ async function loadSettings() {
       alegraEmail.placeholder = "correo@empresa.com";
     }
     alegraKey.placeholder = "********";
-    statusTextAlegra.textContent = data.alegra.hasApiKey ? "Conectado" : "Sin token";
-    statusLedAlegra.classList.toggle("is-ok", Boolean(data.alegra.hasApiKey));
-    statusLedAlegra.classList.toggle("is-off", !data.alegra.hasApiKey);
+    if (statusTextAlegra) {
+      statusTextAlegra.textContent = data.alegra.hasApiKey ? "Conectado" : "Sin token";
+    }
+    if (statusLedAlegra) {
+      statusLedAlegra.classList.toggle("is-ok", Boolean(data.alegra.hasApiKey));
+      statusLedAlegra.classList.toggle("is-off", !data.alegra.hasApiKey);
+    }
   }
   if (data.ai) {
     if (aiKey) {
@@ -2227,6 +2238,14 @@ function renderTransferOriginFilters() {
   updateTransferOriginSummary();
 }
 
+function updateSyncWarehouseState() {
+  if (!cfgWarehouseSyncField) return;
+  const includeInventory = productsSyncIncludeInventory
+    ? productsSyncIncludeInventory.checked !== false
+    : true;
+  cfgWarehouseSyncField.style.display = includeInventory ? "" : "none";
+}
+
 function updateTransferOriginSummary() {
   if (!cfgTransferOriginSummary) return;
   if (!settingsWarehousesCatalog.length) {
@@ -2249,6 +2268,9 @@ function updateTransferOriginState() {
   const details = getTransferOriginDetails();
   if (details) {
     details.classList.toggle("is-disabled", !enableOrigins);
+  }
+  if (cfgTransferOriginField) {
+    cfgTransferOriginField.style.display = enableOrigins ? "" : "none";
   }
   if (cfgTransferOrigin) {
     cfgTransferOrigin
@@ -4016,12 +4038,20 @@ async function saveSettings() {
 }
 
 async function testConnections() {
-  statusLedShopify.classList.remove("is-ok");
-  statusLedShopify.classList.remove("is-off");
-  statusLedAlegra.classList.remove("is-ok");
-  statusLedAlegra.classList.remove("is-off");
-  statusTextShopify.textContent = "Verificando...";
-  statusTextAlegra.textContent = "Verificando...";
+  if (statusLedShopify) {
+    statusLedShopify.classList.remove("is-ok");
+    statusLedShopify.classList.remove("is-off");
+  }
+  if (statusLedAlegra) {
+    statusLedAlegra.classList.remove("is-ok");
+    statusLedAlegra.classList.remove("is-off");
+  }
+  if (statusTextShopify) {
+    statusTextShopify.textContent = "Verificando...";
+  }
+  if (statusTextAlegra) {
+    statusTextAlegra.textContent = "Verificando...";
+  }
   try {
     const payload = {
       shopify: {
@@ -4040,33 +4070,41 @@ async function testConnections() {
       body: JSON.stringify(payload),
     });
     if (String(result.shopify || "").startsWith("ok")) {
-      statusLedShopify.classList.add("is-ok");
-      statusLedShopify.classList.remove("is-off");
-      statusTextShopify.textContent = "Activo";
+      if (statusLedShopify) {
+        statusLedShopify.classList.add("is-ok");
+        statusLedShopify.classList.remove("is-off");
+      }
+      if (statusTextShopify) statusTextShopify.textContent = "Activo";
     } else {
-      statusLedShopify.classList.add("is-off");
-      statusTextShopify.textContent = String(result.shopify || "Error");
+      if (statusLedShopify) statusLedShopify.classList.add("is-off");
+      if (statusTextShopify) statusTextShopify.textContent = String(result.shopify || "Error");
     }
     if (String(result.alegra || "").startsWith("ok")) {
-      statusLedAlegra.classList.add("is-ok");
-      statusLedAlegra.classList.remove("is-off");
-      statusTextAlegra.textContent = "Activo";
+      if (statusLedAlegra) {
+        statusLedAlegra.classList.add("is-ok");
+        statusLedAlegra.classList.remove("is-off");
+      }
+      if (statusTextAlegra) statusTextAlegra.textContent = "Activo";
     } else {
-      statusLedAlegra.classList.add("is-off");
-      statusTextAlegra.textContent = String(result.alegra || "Error");
+      if (statusLedAlegra) statusLedAlegra.classList.add("is-off");
+      if (statusTextAlegra) statusTextAlegra.textContent = String(result.alegra || "Error");
     }
     setMetricsStatusPills(String(result.shopify || "").startsWith("ok"), String(result.alegra || "").startsWith("ok"));
   } catch {
-    statusTextShopify.textContent = "Error de red";
-    statusTextAlegra.textContent = "Error de red";
+    if (statusTextShopify) statusTextShopify.textContent = "Error de red";
+    if (statusTextAlegra) statusTextAlegra.textContent = "Error de red";
     setMetricsStatusPills(false, false);
   }
 }
 
 async function testShopifyConnection() {
-  statusLedShopify.classList.remove("is-ok");
-  statusLedShopify.classList.remove("is-off");
-  statusTextShopify.textContent = "Verificando...";
+  if (statusLedShopify) {
+    statusLedShopify.classList.remove("is-ok");
+    statusLedShopify.classList.remove("is-off");
+  }
+  if (statusTextShopify) {
+    statusTextShopify.textContent = "Verificando...";
+  }
   try {
     const payload = {
       shopify: {
@@ -4080,25 +4118,31 @@ async function testShopifyConnection() {
       body: JSON.stringify(payload),
     });
     if (String(result.shopify || "").startsWith("ok")) {
-      statusLedShopify.classList.add("is-ok");
-      statusLedShopify.classList.remove("is-off");
-      statusTextShopify.textContent = "Activo";
-      setMetricsStatusPills(true, Boolean(statusLedAlegra.classList.contains("is-ok")));
+      if (statusLedShopify) {
+        statusLedShopify.classList.add("is-ok");
+        statusLedShopify.classList.remove("is-off");
+      }
+      if (statusTextShopify) statusTextShopify.textContent = "Activo";
+      setMetricsStatusPills(true, Boolean(statusLedAlegra?.classList.contains("is-ok")));
     } else {
-      statusLedShopify.classList.add("is-off");
-      statusTextShopify.textContent = String(result.shopify || "Error");
-      setMetricsStatusPills(false, Boolean(statusLedAlegra.classList.contains("is-ok")));
+      if (statusLedShopify) statusLedShopify.classList.add("is-off");
+      if (statusTextShopify) statusTextShopify.textContent = String(result.shopify || "Error");
+      setMetricsStatusPills(false, Boolean(statusLedAlegra?.classList.contains("is-ok")));
     }
   } catch {
-    statusTextShopify.textContent = "Error de red";
-    setMetricsStatusPills(false, Boolean(statusLedAlegra.classList.contains("is-ok")));
+    if (statusTextShopify) statusTextShopify.textContent = "Error de red";
+    setMetricsStatusPills(false, Boolean(statusLedAlegra?.classList.contains("is-ok")));
   }
 }
 
 async function testAlegraConnection() {
-  statusLedAlegra.classList.remove("is-ok");
-  statusLedAlegra.classList.remove("is-off");
-  statusTextAlegra.textContent = "Verificando...";
+  if (statusLedAlegra) {
+    statusLedAlegra.classList.remove("is-ok");
+    statusLedAlegra.classList.remove("is-off");
+  }
+  if (statusTextAlegra) {
+    statusTextAlegra.textContent = "Verificando...";
+  }
   try {
     const payload = {
       alegra: {
@@ -4113,18 +4157,20 @@ async function testAlegraConnection() {
       body: JSON.stringify(payload),
     });
     if (String(result.alegra || "").startsWith("ok")) {
-      statusLedAlegra.classList.add("is-ok");
-      statusLedAlegra.classList.remove("is-off");
-      statusTextAlegra.textContent = "Activo";
-      setMetricsStatusPills(Boolean(statusLedShopify.classList.contains("is-ok")), true);
+      if (statusLedAlegra) {
+        statusLedAlegra.classList.add("is-ok");
+        statusLedAlegra.classList.remove("is-off");
+      }
+      if (statusTextAlegra) statusTextAlegra.textContent = "Activo";
+      setMetricsStatusPills(Boolean(statusLedShopify?.classList.contains("is-ok")), true);
     } else {
-      statusLedAlegra.classList.add("is-off");
-      statusTextAlegra.textContent = String(result.alegra || "Error");
-      setMetricsStatusPills(Boolean(statusLedShopify.classList.contains("is-ok")), false);
+      if (statusLedAlegra) statusLedAlegra.classList.add("is-off");
+      if (statusTextAlegra) statusTextAlegra.textContent = String(result.alegra || "Error");
+      setMetricsStatusPills(Boolean(statusLedShopify?.classList.contains("is-ok")), false);
     }
   } catch {
-    statusTextAlegra.textContent = "Error de red";
-    setMetricsStatusPills(Boolean(statusLedShopify.classList.contains("is-ok")), false);
+    if (statusTextAlegra) statusTextAlegra.textContent = "Error de red";
+    setMetricsStatusPills(Boolean(statusLedShopify?.classList.contains("is-ok")), false);
   }
 }
 
@@ -4628,6 +4674,12 @@ if (productsSyncFilteredBtn) {
   productsSyncFilteredBtn.addEventListener("click", () => runProductsSync("filtered"));
 }
 
+if (productsSyncIncludeInventory) {
+  productsSyncIncludeInventory.addEventListener("change", () => {
+    updateSyncWarehouseState();
+  });
+}
+
 if (productsSyncStopBtn) {
   productsSyncStopBtn.disabled = true;
   productsSyncStopBtn.addEventListener("click", async () => {
@@ -4807,6 +4859,7 @@ if (productsClearBtn) {
       if (productsSyncPublish) productsSyncPublish.checked = true;
       if (productsSyncOnlyPublished) productsSyncOnlyPublished.checked = true;
       if (productsSyncIncludeInventory) productsSyncIncludeInventory.checked = true;
+      updateSyncWarehouseState();
       if (cfgWarehouseSync) {
         cfgWarehouseSync.querySelectorAll("input[data-warehouse-id]").forEach((input) => {
           input.checked = false;
