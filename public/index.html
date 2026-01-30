@@ -746,7 +746,7 @@
 
           <div class="panel admin-only" id="legacy-publish-panel">
             <div class="panel-header">
-              <h3>Publicacion Shopify</h3>
+              <h3>Reglas de publicacion Shopify</h3>
               <span class="panel-tag">Productos</span>
             </div>
             <div class="settings-grid products-settings">
@@ -777,7 +777,7 @@
 
           <div class="panel admin-only" id="legacy-products-sync-panel">
             <div class="panel-header">
-              <h3>Sincronizacion productos</h3>
+              <h3>Sincronizacion de productos masivos</h3>
               <span class="panel-tag">Alegra</span>
             </div>
             <div class="settings-grid products-settings">
@@ -840,7 +840,7 @@
 
           <div class="panel" id="legacy-orders-sync-panel">
             <div class="panel-header">
-              <h3>Sincronizacion pedidos</h3>
+              <h3>Sincronizacion de pedidos automatico</h3>
               <span class="panel-tag">Shopify</span>
             </div>
             <div class="settings-grid products-settings">
@@ -855,6 +855,40 @@
               <div class="field">
                 <label>Numero de pedido</label>
                 <input type="text" id="orders-sync-number" placeholder="Ej: 1054" />
+              </div>
+              <div class="field field-span">
+                <span class="kpi-sub">Logistica e inventario</span>
+              </div>
+              <div class="field">
+                <label>Destino (bodega virtual)</label>
+                <select id="cfg-transfer-dest"></select>
+              </div>
+              <div class="field">
+                <label>Traslado automatico</label>
+                <input type="checkbox" id="cfg-transfer-enabled" />
+              </div>
+              <div class="field">
+                <label>Estrategia</label>
+                <select id="cfg-transfer-strategy">
+                  <option value="manual">Manual (sin estrategia)</option>
+                  <option value="consolidation">Consolidacion</option>
+                  <option value="priority">Prioridad</option>
+                  <option value="max_stock">Mayor existencia</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Bodega prioritaria</label>
+                <select id="cfg-transfer-priority"></select>
+              </div>
+              <div class="field span-2">
+                <label>Bodegas origen</label>
+                <details class="multi-select">
+                  <summary>
+                    <span>Seleccionar bodegas</span>
+                    <em id="cfg-transfer-origin-summary">Todas</em>
+                  </summary>
+                  <div class="checkbox-grid single" id="cfg-transfer-origin"></div>
+                </details>
               </div>
             </div>
             <div class="toolbar">
@@ -945,49 +979,6 @@
               </div>
               <div class="field field-span">
                 <p class="field-hint" id="cfg-store-message"></p>
-              </div>
-            </div>
-          </div>
-
-          <div class="panel admin-only">
-            <div class="panel-header">
-              <h3>Logistica e Inventario</h3>
-              <span class="panel-tag">Operativo</span>
-            </div>
-            <div class="settings-grid">
-              <div class="field field-span">
-                <span class="kpi-sub">Traslados de inventario</span>
-              </div>
-              <div class="field">
-                <label>Destino (bodega virtual)</label>
-                <select id="cfg-transfer-dest"></select>
-              </div>
-              <div class="field">
-                <label>Traslado automatico</label>
-                <input type="checkbox" id="cfg-transfer-enabled" />
-              </div>
-              <div class="field">
-                <label>Estrategia</label>
-                <select id="cfg-transfer-strategy">
-                  <option value="manual">Manual (sin estrategia)</option>
-                  <option value="consolidation">Consolidacion</option>
-                  <option value="priority">Prioridad</option>
-                  <option value="max_stock">Mayor existencia</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Bodega prioritaria</label>
-                <select id="cfg-transfer-priority"></select>
-              </div>
-              <div class="field span-2">
-                <label>Bodegas origen</label>
-                <details class="multi-select">
-                  <summary>
-                    <span>Seleccionar bodegas</span>
-                    <em id="cfg-transfer-origin-summary">Todas</em>
-                  </summary>
-                  <div class="checkbox-grid single" id="cfg-transfer-origin"></div>
-                </details>
               </div>
             </div>
           </div>
