@@ -1386,6 +1386,15 @@ button {
   font-weight: 600;
 }
 
+.multi-select.is-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.multi-select.is-disabled summary {
+  cursor: not-allowed;
+}
+
 .multi-select summary::-webkit-details-marker {
   display: none;
 }

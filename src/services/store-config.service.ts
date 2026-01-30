@@ -1,16 +1,25 @@
 import { ensureInventoryRulesColumns, ensureInvoiceSettingsColumns, getOrgId, getPool } from "../db";
 
+export type TransferStrategy = "manual" | "consolidation" | "priority" | "max_stock";
+
 export type StoreConfig = {
   shopDomain: string;
   transferEnabled: boolean;
   transferDestinationWarehouseId?: string;
   transferOriginWarehouseIds: string[];
   transferPriorityWarehouseId?: string;
-  transferStrategy: "consolidation";
+  transferStrategy: TransferStrategy;
   priceListGeneralId?: string;
   priceListDiscountId?: string;
   priceListWholesaleId?: string;
   currency?: string;
+};
+
+const normalizeTransferStrategy = (value: unknown): TransferStrategy => {
+  if (value === "consolidation" || value === "priority" || value === "max_stock") {
+    return value;
+  }
+  return "manual";
 };
 
 const normalizeShopDomain = (value: string) =>
@@ -83,9 +92,9 @@ export async function getStoreConfigByDomain(shopDomain: string): Promise<StoreC
       (transfers.priorityWarehouseId as string | undefined) ||
       row.transfer_priority_warehouse_id ||
       undefined,
-    transferStrategy:
-      (transfers.strategy as "consolidation" | undefined) ||
-      (row.transfer_strategy === "consolidation" ? "consolidation" : "consolidation"),
+    transferStrategy: normalizeTransferStrategy(
+      (transfers.strategy as string | undefined) || row.transfer_strategy
+    ),
     priceListGeneralId:
       (priceLists.generalId as string | undefined) ||
       row.price_list_general_id ||
@@ -133,7 +142,7 @@ export async function getDefaultStoreConfig(): Promise<StoreConfig> {
     transferEnabled: true,
     transferDestinationWarehouseId: invoice.rows[0]?.warehouse_id || undefined,
     transferOriginWarehouseIds: parseIdList(rules.rows[0]?.warehouse_ids || null),
-    transferStrategy: "consolidation",
+    transferStrategy: "manual",
   };
 }
 

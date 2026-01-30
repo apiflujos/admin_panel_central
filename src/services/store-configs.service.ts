@@ -22,6 +22,13 @@ const normalizeAutoStatus = (value: unknown, fallback: unknown) => {
   return value === "active" ? "active" : value === "draft" ? "draft" : resolvedFallback;
 };
 
+const normalizeTransferStrategy = (value: unknown) => {
+  if (value === "consolidation" || value === "priority" || value === "max_stock") {
+    return value;
+  }
+  return "manual";
+};
+
 export async function listStoreConfigs() {
   const pool = getPool();
   const orgId = getOrgId();
@@ -94,7 +101,9 @@ export async function listStoreConfigs() {
           (transfers.priorityWarehouseId as string | undefined) ||
           row.transfer_priority_warehouse_id ||
           "",
-        strategy: (transfers.strategy as string | undefined) || row.transfer_strategy || "consolidation",
+        strategy: normalizeTransferStrategy(
+          (transfers.strategy as string | undefined) || row.transfer_strategy
+        ),
       },
       priceLists: {
         generalId:
@@ -224,7 +233,9 @@ export async function getStoreConfigForDomain(shopDomain: string) {
         (transfers.priorityWarehouseId as string | undefined) ||
         row.transfer_priority_warehouse_id ||
         "",
-      strategy: (transfers.strategy as string | undefined) || row.transfer_strategy || "consolidation",
+      strategy: normalizeTransferStrategy(
+        (transfers.strategy as string | undefined) || row.transfer_strategy
+      ),
     },
     priceLists: {
       generalId:

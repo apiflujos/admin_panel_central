@@ -682,12 +682,23 @@ async function createInventoryTransferFromOrder(
     return decision;
   }
   const destinationId = storeConfig.transferDestinationWarehouseId;
-  const originIds = storeConfig.transferOriginWarehouseIds || [];
+  const strategy = storeConfig.transferStrategy || "manual";
+  let originIds = storeConfig.transferOriginWarehouseIds || [];
+  if (strategy !== "manual") {
+    try {
+      const warehouses = (await ctx.alegra.listWarehouses()) as Array<{ id?: string | number }>;
+      originIds = warehouses
+        .map((warehouse) => String(warehouse?.id || ""))
+        .filter(Boolean);
+    } catch {
+      originIds = [];
+    }
+  }
   if (!destinationId || !originIds.length) {
     const decision = {
       blocked: true,
       reason: "missing_transfer_config",
-      details: { destinationId, originIds },
+      details: { destinationId, originIds, strategy },
     };
     await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
     return decision;
@@ -768,47 +779,53 @@ async function createInventoryTransferFromOrder(
     const decision = {
       blocked: true,
       reason: "insufficient_stock",
-      details: { items: inventoryByItem, warehouses: warehouseStats },
+      details: { items: inventoryByItem, warehouses: warehouseStats, strategy },
     };
     await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
     return decision;
   }
 
-  let chosen = eligible[0];
-  const maxItems = Math.max(...eligible.map((stat) => stat.itemsWithStock));
-  const topByItems = eligible.filter((stat) => stat.itemsWithStock === maxItems);
-  chosen = topByItems[0];
-
+  const pickByItems = (list: typeof eligible) =>
+    list.sort((a, b) => b.itemsWithStock - a.itemsWithStock || b.totalAvailable - a.totalAvailable)[0];
+  const pickByMax = (list: typeof eligible) =>
+    list.sort((a, b) => b.totalAvailable - a.totalAvailable)[0];
   const priorityId = await resolvePriorityWarehouseId(ctx, storeConfig);
-  if (priorityId) {
-    const priority = topByItems.find(
-      (stat) => String(stat.warehouseId) === String(priorityId)
-    );
+  let chosen = eligible[0];
+  let rule = "consolidation";
+
+  if (strategy === "priority") {
+    const priority = priorityId
+      ? eligible.find((stat) => String(stat.warehouseId) === String(priorityId))
+      : null;
     if (priority) {
       chosen = priority;
-      await recordTransferDecision(pool, orgId, shopDomain, orderId, {
-        blocked: false,
-        reason: "priority_granada",
-        chosenWarehouseId: chosen.warehouseId,
-        rule: "priority_granada",
-        details: { priorityId, warehouses: warehouseStats },
-      });
+      rule = "priority";
+    } else {
+      const best = pickByMax(eligible);
+      if (best) chosen = best;
+      rule = "max_stock";
     }
+  } else if (strategy === "max_stock") {
+    const best = pickByMax(eligible);
+    if (best) chosen = best;
+    rule = "max_stock";
+  } else if (strategy === "manual") {
+    const best = pickByItems(eligible);
+    if (best) chosen = best;
+    rule = "manual";
+  } else {
+    const best = pickByItems(eligible);
+    if (best) chosen = best;
+    rule = "consolidation";
   }
 
-  if (!priorityId || String(chosen.warehouseId) !== String(priorityId)) {
-    const best = topByItems.sort((a, b) => b.totalAvailable - a.totalAvailable)[0];
-    if (best) {
-      chosen = best;
-    }
-    await recordTransferDecision(pool, orgId, shopDomain, orderId, {
-      blocked: false,
-      reason: "max_stock",
-      chosenWarehouseId: chosen.warehouseId,
-      rule: "max_stock",
-      details: { warehouses: warehouseStats },
-    });
-  }
+  await recordTransferDecision(pool, orgId, shopDomain, orderId, {
+    blocked: false,
+    reason: rule,
+    chosenWarehouseId: chosen.warehouseId,
+    rule,
+    details: { priorityId, warehouses: warehouseStats, strategy },
+  });
 
   const transferPayload = {
     date: new Date().toISOString().slice(0, 10),

@@ -229,6 +229,10 @@ let shopifyAdminBase = "";
 let currentUserRole = "agent";
 let currentUserId = null;
 let transferOriginIds = [];
+
+function getTransferOriginDetails() {
+  return cfgTransferOrigin ? cfgTransferOrigin.closest("details") : null;
+}
 let inventoryRules = {
   publishOnStock: true,
   autoPublishOnWebhook: true,
@@ -1214,7 +1218,7 @@ function applyLegacyStoreConfig(config) {
     if (cfgTransferPriority.options.length) cfgTransferPriority.value = value;
   }
   if (cfgTransferStrategy) {
-    cfgTransferStrategy.value = String(transfers.strategy || "consolidation");
+    cfgTransferStrategy.value = String(transfers.strategy || "manual");
   }
   if (cfgPriceGeneral) {
     const value = String(priceLists.generalId || "");
@@ -1235,19 +1239,21 @@ function applyLegacyStoreConfig(config) {
     cfgPriceCurrency.value = String(priceLists.currency || "");
   }
   renderTransferOriginFilters();
+  updateTransferOriginState();
 }
 
 function clearLegacyStoreConfig() {
   transferOriginIds = [];
   if (cfgTransferEnabled) cfgTransferEnabled.checked = true;
   if (cfgTransferDest) cfgTransferDest.dataset.selected = "";
-  if (cfgTransferStrategy) cfgTransferStrategy.value = "consolidation";
+  if (cfgTransferStrategy) cfgTransferStrategy.value = "manual";
   if (cfgTransferPriority) cfgTransferPriority.dataset.selected = "";
   if (cfgPriceGeneral) cfgPriceGeneral.dataset.selected = "";
   if (cfgPriceDiscount) cfgPriceDiscount.dataset.selected = "";
   if (cfgPriceWholesale) cfgPriceWholesale.dataset.selected = "";
   if (cfgPriceCurrency) cfgPriceCurrency.value = "";
   renderTransferOriginFilters();
+  updateTransferOriginState();
 }
 
 async function loadLegacyStoreConfig() {
@@ -1782,6 +1788,28 @@ function updateTransferOriginSummary() {
     return;
   }
   cfgTransferOriginSummary.textContent = `${selected.length} seleccionadas`;
+}
+
+function updateTransferOriginState() {
+  if (!cfgTransferStrategy) return;
+  const strategy = cfgTransferStrategy.value || "manual";
+  const enableOrigins = strategy === "manual";
+  const details = getTransferOriginDetails();
+  if (details) {
+    details.classList.toggle("is-disabled", !enableOrigins);
+  }
+  if (cfgTransferOrigin) {
+    cfgTransferOrigin
+      .querySelectorAll("input[data-warehouse-id], input[data-select-all]")
+      .forEach((input) => {
+        input.disabled = !enableOrigins;
+      });
+  }
+  if (!enableOrigins && cfgTransferOriginSummary) {
+    cfgTransferOriginSummary.textContent = "Automatico";
+  } else {
+    updateTransferOriginSummary();
+  }
 }
 
 function getSelectedWarehouseIds() {
@@ -3755,6 +3783,11 @@ if (cfgTransferOrigin) {
     }
     transferOriginIds = getSelectedTransferOriginIds();
     updateTransferOriginSummary();
+  });
+}
+if (cfgTransferStrategy) {
+  cfgTransferStrategy.addEventListener("change", () => {
+    updateTransferOriginState();
   });
 }
 if (profileSave) {
