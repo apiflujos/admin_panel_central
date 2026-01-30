@@ -21,6 +21,38 @@ const normalizeShopDomain = (value: string) =>
     .replace(/^https?:\/\//, "")
     .replace(/\/.*$/, "");
 
+export async function getShopifyConnectionByDomain(shopDomain: string) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const normalized = normalizeShopDomain(shopDomain || "");
+  if (!normalized) {
+    throw new Error("Dominio Shopify requerido");
+  }
+  const result = await pool.query<{
+    shop_domain: string;
+    access_token_encrypted: string | null;
+  }>(
+    `
+    SELECT shop_domain, access_token_encrypted
+    FROM shopify_stores
+    WHERE organization_id = $1 AND shop_domain = $2
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId, normalized]
+  );
+  const row = result.rows[0];
+  if (!row?.access_token_encrypted) {
+    throw new Error("Conexion Shopify no encontrada");
+  }
+  const decrypted = JSON.parse(decryptString(row.access_token_encrypted));
+  const token = String(decrypted?.accessToken || "").trim();
+  if (!token) {
+    throw new Error("Access token Shopify requerido");
+  }
+  return { shopDomain: row.shop_domain, accessToken: token };
+}
+
 export async function listStoreConnections() {
   const pool = getPool();
   const orgId = getOrgId();
@@ -61,6 +93,7 @@ export async function listStoreConnections() {
     stores = await pool.query<{
       id: number;
       shop_domain: string;
+      store_name: string | null;
       access_token_encrypted: string;
       created_at: string;
       alegra_account_id: number | null;
