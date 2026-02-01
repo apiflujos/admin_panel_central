@@ -1879,6 +1879,10 @@ textarea {
   gap: 10px;
 }
 
+.settings-grid.two-cols {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .settings-grid.align-bottom {
   align-items: end;
 }
@@ -1886,6 +1890,12 @@ textarea {
 .settings-grid.align-bottom .field-actions {
   grid-column: -2 / -1;
   align-self: end;
+}
+
+.settings-grid.two-cols .field-actions {
+  grid-column: 1 / -1;
+  justify-self: end;
+  width: auto;
 }
 
 .field {
