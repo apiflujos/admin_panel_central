@@ -263,7 +263,7 @@ let storeInvoiceOverrides = null;
 const PRODUCT_SETTINGS_KEY = "apiflujos-products-settings";
 const STORE_WIZARD_KEY = "apiflujos-store-wizard";
 const WIZARD_MODULE_ORDER = [
-  "store-tech",
+  "shopify-tech",
   "shopify-rules",
   "alegra-logistics",
   "alegra-inventory",
@@ -1201,7 +1201,7 @@ function initModuleControls() {
       if (!panel) return;
       const nextCollapsed = !panel.classList.contains("is-collapsed");
       setModuleCollapsed(panel, nextCollapsed);
-      if (key === "store-tech" && !nextCollapsed) {
+      if (key === "shopify-tech" && !nextCollapsed) {
         loadShopifyWebhooksStatus().catch(() => null);
       }
       return;
@@ -3974,7 +3974,7 @@ async function createShopifyWebhooks() {
         : result?.message || "Webhooks creados.";
     setShopifyWebhooksStatus(statusText, okCount === total ? "is-ok" : "is-error");
     await loadShopifyWebhooksStatus();
-    advanceWizardStep("store-tech");
+    advanceWizardStep("shopify-tech");
   } catch (error) {
     setShopifyWebhooksStatus(error?.message || "No se pudieron crear.", "is-error");
   }

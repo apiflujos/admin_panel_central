@@ -528,6 +528,75 @@
         <section class="section" id="settings">
           <div class="settings-group-title">Conexiones</div>
 
+          <div class="panel admin-only module" data-module="connections" data-module-readonly="false">
+            <div class="panel-header">
+              <h3 data-module-toggle="connections" data-title-base="Conexiones">Conexiones</h3>
+              <span class="panel-tag">Acceso</span>
+            </div>
+            <div class="module-body">
+              <div class="settings-grid store-meta">
+                <div class="field span-2">
+                  <label>Nombre de la tienda</label>
+                  <input type="text" id="store-name" placeholder="Olivia Shoes Colombia" />
+                  <span class="field-hint">Este nombre identifica el set de configuraciones.</span>
+                </div>
+              </div>
+              <div class="settings-group-title">Shopify</div>
+              <div class="settings-grid">
+                <div class="field">
+                  <label>Shopify dominio</label>
+                  <input type="text" id="shopify-domain" placeholder="olivashoes.myshopify.com" />
+                  <span class="field-hint">Te redirigiremos a Shopify para autorizar la app.</span>
+                </div>
+                <div class="field field-actions">
+                  <label>&nbsp;</label>
+                  <button class="primary" id="connect-shopify" type="button">Conectar Shopify</button>
+                </div>
+              </div>
+              <div class="settings-divider"></div>
+              <div class="settings-group-title">Alegra</div>
+              <div class="settings-grid">
+                <div class="field">
+                  <label>Cuenta Alegra</label>
+                  <select id="alegra-account-select">
+                    <option value="new">Nueva cuenta Alegra</option>
+                  </select>
+                </div>
+                <div class="field" id="alegra-env-field">
+                  <label>Entorno Alegra</label>
+                  <select id="alegra-env-select">
+                    <option value="prod">Produccion</option>
+                    <option value="sandbox">Sandbox</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Email usuario</label>
+                  <input type="email" id="alegra-email" placeholder="admin@empresa.com" />
+                </div>
+                <div class="field">
+                  <label>API Key</label>
+                  <input type="password" id="alegra-key" placeholder="api_********" autocomplete="new-password" />
+                </div>
+                <div class="field field-actions">
+                  <label>&nbsp;</label>
+                  <button class="primary" id="connect-alegra" type="button">Conectar Alegra</button>
+                </div>
+              </div>
+              <div class="settings-divider"></div>
+              <div class="settings-group-title">IA</div>
+              <div class="settings-grid">
+                <div class="field">
+                  <label>IA API Key</label>
+                  <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
+                </div>
+                <div class="field field-actions">
+                  <label>&nbsp;</label>
+                  <button class="primary" id="ai-save" type="button">Guardar token</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="panel admin-only module" data-module="connections-summary">
             <div class="panel-header">
               <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
@@ -547,79 +616,9 @@
             </div>
             <div class="settings-group-body">
               <div class="settings-grid store-meta">
-                <div class="field span-2">
-                  <label>Nombre de la tienda</label>
-                  <input type="text" id="store-name" placeholder="Olivia Shoes Colombia" />
-                  <span class="field-hint">Este nombre identifica el set de configuraciones.</span>
-                </div>
                 <div class="field span-2" id="store-active-field">
                   <label>Tienda activa</label>
                   <select id="store-active-select"></select>
-                </div>
-              </div>
-              <div class="panel admin-only module" data-module="store-tech" data-module-readonly="false">
-                <div class="panel-header">
-                  <h3 data-module-toggle="store-tech" data-title-base="Ajustes tecnicos">Ajustes tecnicos</h3>
-                  <span class="panel-tag">Tienda</span>
-                </div>
-                <div class="module-body">
-                  <div class="settings-group-title">Shopify</div>
-                  <div class="settings-grid">
-                    <div class="field span-2">
-                      <p class="field-hint">
-                        Crea los webhooks y activa la sincronizacion automatica de pedidos, inventario y productos.
-                      </p>
-                    </div>
-                  </div>
-                  <div class="toolbar is-actions">
-                    <button class="primary" id="shopify-webhooks-create" type="button">Crear webhooks</button>
-                    <button class="ghost" id="shopify-webhooks-delete" type="button">Eliminar webhooks</button>
-                    <button class="ghost" id="shopify-webhooks-status-btn" type="button">Ver estado</button>
-                    <span class="kpi-sub" id="shopify-webhooks-status">Sin configurar</span>
-                  </div>
-                  <div class="settings-divider"></div>
-                  <div class="settings-group-title">Alegra</div>
-                  <div class="settings-grid">
-                    <div class="field span-2">
-                      <div class="status-card cron-card">
-                        <div class="cron-summary">
-                          <div class="cron-item">
-                            <span class="status-led" id="inventory-cron-led"></span>
-                            <div>
-                              <p>Cron inventario</p>
-                              <span id="inventory-cron-status">Sin datos</span>
-                            </div>
-                          </div>
-                          <div class="cron-item">
-                            <div>
-                              <p>Ultimo checkpoint</p>
-                              <span id="inventory-cron-checkpoint">-</span>
-                            </div>
-                          </div>
-                          <div class="cron-item">
-                            <div>
-                              <p>Intervalo</p>
-                              <span id="inventory-cron-interval">-</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="cron-controls">
-                          <label class="toggle-field">
-                            <input type="checkbox" id="inventory-cron-enabled" class="toggle" />
-                            <span>Cron inventario activo</span>
-                          </label>
-                          <div class="field">
-                            <label>Intervalo del cron</label>
-                            <select id="inventory-cron-interval-select">
-                              <option value="5">Cada 5 minutos</option>
-                              <option value="10">Cada 10 minutos</option>
-                              <option value="15">Cada 15 minutos</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
               <div class="settings-group provider-group" data-group="shopify">
@@ -627,22 +626,26 @@
                   <h4>Configuraciones Shopify</h4>
                 </div>
                 <div class="settings-group-body">
-                  <div class="panel admin-only module" data-module="shopify-connection" data-module-readonly="false">
+                  <div class="settings-group-title">Ajustes tecnicos</div>
+
+                  <div class="panel admin-only module" data-module="shopify-tech" data-module-readonly="false">
                     <div class="panel-header">
-                      <h3 data-module-toggle="shopify-connection" data-title-base="Conexion Shopify">Conexion Shopify</h3>
+                      <h3 data-module-toggle="shopify-tech" data-title-base="Ajustes tecnicos">Ajustes tecnicos</h3>
                       <span class="panel-tag">Shopify</span>
                     </div>
                     <div class="module-body">
                       <div class="settings-grid">
-                        <div class="field">
-                          <label>Shopify dominio</label>
-                          <input type="text" id="shopify-domain" placeholder="olivashoes.myshopify.com" />
-                          <span class="field-hint">Te redirigiremos a Shopify para autorizar la app.</span>
+                        <div class="field span-2">
+                          <p class="field-hint">
+                            Crea los webhooks y activa la sincronizacion automatica de pedidos, inventario y productos.
+                          </p>
                         </div>
-                        <div class="field field-actions">
-                          <label>&nbsp;</label>
-                          <button class="primary" id="connect-shopify" type="button">Conectar Shopify</button>
-                        </div>
+                      </div>
+                      <div class="toolbar is-actions">
+                        <button class="primary" id="shopify-webhooks-create" type="button">Crear webhooks</button>
+                        <button class="ghost" id="shopify-webhooks-delete" type="button">Eliminar webhooks</button>
+                        <button class="ghost" id="shopify-webhooks-status-btn" type="button">Ver estado</button>
+                        <span class="kpi-sub" id="shopify-webhooks-status">Sin configurar</span>
                       </div>
                     </div>
                   </div>
@@ -794,37 +797,53 @@
                   <h4>Configuraciones Alegra</h4>
                 </div>
                 <div class="settings-group-body">
-                  <div class="panel admin-only module" data-module="alegra-connection" data-module-readonly="false">
+                  <div class="settings-group-title">Ajustes tecnicos</div>
+
+                  <div class="panel admin-only module" data-module="alegra-tech" data-module-readonly="false">
                     <div class="panel-header">
-                      <h3 data-module-toggle="alegra-connection" data-title-base="Conexion Alegra">Conexion Alegra</h3>
+                      <h3 data-module-toggle="alegra-tech" data-title-base="Ajustes tecnicos">Ajustes tecnicos</h3>
                       <span class="panel-tag">Alegra</span>
                     </div>
                     <div class="module-body">
                       <div class="settings-grid">
-                        <div class="field">
-                          <label>Cuenta Alegra</label>
-                          <select id="alegra-account-select">
-                            <option value="new">Nueva cuenta Alegra</option>
-                          </select>
-                        </div>
-                        <div class="field" id="alegra-env-field">
-                          <label>Entorno Alegra</label>
-                          <select id="alegra-env-select">
-                            <option value="prod">Produccion</option>
-                            <option value="sandbox">Sandbox</option>
-                          </select>
-                        </div>
-                        <div class="field">
-                          <label>Email usuario</label>
-                          <input type="email" id="alegra-email" placeholder="admin@empresa.com" />
-                        </div>
-                        <div class="field">
-                          <label>API Key</label>
-                          <input type="password" id="alegra-key" placeholder="api_********" autocomplete="new-password" />
-                        </div>
-                        <div class="field field-actions">
-                          <label>&nbsp;</label>
-                          <button class="primary" id="connect-alegra" type="button">Conectar Alegra</button>
+                        <div class="field span-2">
+                          <div class="status-card cron-card">
+                            <div class="cron-summary">
+                              <div class="cron-item">
+                                <span class="status-led" id="inventory-cron-led"></span>
+                                <div>
+                                  <p>Cron inventario</p>
+                                  <span id="inventory-cron-status">Sin datos</span>
+                                </div>
+                              </div>
+                              <div class="cron-item">
+                                <div>
+                                  <p>Ultimo checkpoint</p>
+                                  <span id="inventory-cron-checkpoint">-</span>
+                                </div>
+                              </div>
+                              <div class="cron-item">
+                                <div>
+                                  <p>Intervalo</p>
+                                  <span id="inventory-cron-interval">-</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="cron-controls">
+                              <label class="toggle-field">
+                                <input type="checkbox" id="inventory-cron-enabled" class="toggle" />
+                                <span>Cron inventario activo</span>
+                              </label>
+                              <div class="field">
+                                <label>Intervalo del cron</label>
+                                <select id="inventory-cron-interval-select">
+                                  <option value="5">Cada 5 minutos</option>
+                                  <option value="10">Cada 10 minutos</option>
+                                  <option value="15">Cada 15 minutos</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1009,26 +1028,6 @@
             </div>
           </div>
 
-          <div class="settings-group-title">Administracion</div>
-
-          <div class="panel admin-only module" data-module="ai">
-            <div class="panel-header">
-              <h3 data-module-toggle="ai">IA</h3>
-              <span class="panel-tag">Asistente</span>
-            </div>
-            <div class="module-body">
-              <div class="settings-grid">
-                <div class="field">
-                  <label>IA API Key</label>
-                  <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
-                </div>
-              </div>
-              <div class="module-footer">
-                <button class="ghost module-action" data-module-edit="ai" type="button">Editar</button>
-                <button class="primary module-action" data-module-save="ai" type="button">Guardar</button>
-              </div>
-            </div>
-          </div>
         </section>
       </main>
     </div>
