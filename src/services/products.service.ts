@@ -1,0 +1,232 @@
+import { getOrgId, getPool } from "../db";
+
+type ProductInput = {
+  alegraId?: string | number | null;
+  shopifyId?: string | number | null;
+  name?: string | null;
+  reference?: string | null;
+  sku?: string | null;
+  statusAlegra?: string | null;
+  statusShopify?: string | null;
+  inventoryQuantity?: number | null;
+  warehouseIds?: string[] | null;
+  source?: string | null;
+  sourceUpdatedAt?: string | number | Date | null;
+};
+
+const parseTimestamp = (value: ProductInput["sourceUpdatedAt"]) => {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  const parsed = Date.parse(String(value));
+  if (Number.isNaN(parsed)) return null;
+  return new Date(parsed);
+};
+
+export async function upsertProduct(input: ProductInput) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const alegraId = input.alegraId ? String(input.alegraId) : null;
+  const shopifyId = input.shopifyId ? String(input.shopifyId) : null;
+  const name = input.name ? String(input.name) : null;
+  const reference = input.reference ? String(input.reference) : null;
+  const sku = input.sku ? String(input.sku) : null;
+  const statusAlegra = input.statusAlegra ? String(input.statusAlegra) : null;
+  const statusShopify = input.statusShopify ? String(input.statusShopify) : null;
+  const inventoryQuantity =
+    typeof input.inventoryQuantity === "number" && Number.isFinite(input.inventoryQuantity)
+      ? input.inventoryQuantity
+      : null;
+  const warehouseIds = Array.isArray(input.warehouseIds)
+    ? input.warehouseIds.map((id) => String(id)).filter(Boolean)
+    : null;
+  const source = input.source ? String(input.source) : null;
+  const sourceUpdatedAt = parseTimestamp(input.sourceUpdatedAt);
+
+  if (!alegraId && !shopifyId && !reference && !sku) {
+    return { skipped: true, reason: "missing_identifiers" };
+  }
+
+  const existing = await pool.query<{ id: number }>(
+    `
+    SELECT id
+    FROM products
+    WHERE organization_id = $1
+      AND (
+        (alegra_item_id = $2 AND $2 IS NOT NULL)
+        OR (shopify_product_id = $3 AND $3 IS NOT NULL)
+        OR (reference = $4 AND $4 IS NOT NULL AND $4 <> '')
+        OR (sku = $5 AND $5 IS NOT NULL AND $5 <> '')
+      )
+    LIMIT 1
+    `,
+    [orgId, alegraId, shopifyId, reference, sku]
+  );
+
+  if (existing.rows.length) {
+    await pool.query(
+      `
+      UPDATE products
+      SET alegra_item_id = COALESCE($2, alegra_item_id),
+          shopify_product_id = COALESCE($3, shopify_product_id),
+          name = COALESCE($4, name),
+          reference = COALESCE($5, reference),
+          sku = COALESCE($6, sku),
+          status_alegra = COALESCE($7, status_alegra),
+          status_shopify = COALESCE($8, status_shopify),
+          inventory_quantity = CASE
+            WHEN $9 IS NOT NULL THEN $9
+            ELSE inventory_quantity
+          END,
+          warehouse_ids = CASE
+            WHEN $10 IS NOT NULL THEN $10
+            ELSE warehouse_ids
+          END,
+          source_updated_at = COALESCE($11, source_updated_at),
+          source = COALESCE($12, source),
+          sync_status = CASE
+            WHEN COALESCE($2, alegra_item_id) IS NOT NULL
+             AND COALESCE($3, shopify_product_id) IS NOT NULL
+            THEN 'synced'
+            ELSE 'pending'
+          END,
+          last_sync_at = NOW(),
+          updated_at = NOW()
+      WHERE id = $1
+      `,
+      [
+        existing.rows[0].id,
+        alegraId,
+        shopifyId,
+        name,
+        reference,
+        sku,
+        statusAlegra,
+        statusShopify,
+        inventoryQuantity,
+        warehouseIds,
+        sourceUpdatedAt,
+        source,
+      ]
+    );
+    return { updated: true };
+  }
+
+  const syncStatus = alegraId && shopifyId ? "synced" : "pending";
+  await pool.query(
+    `
+    INSERT INTO products
+      (organization_id, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, last_sync_at)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,NOW())
+    `,
+    [
+      orgId,
+      source || "alegra",
+      alegraId,
+      shopifyId,
+      name,
+      reference,
+      sku,
+      statusAlegra,
+      statusShopify,
+      inventoryQuantity,
+      warehouseIds,
+      sourceUpdatedAt,
+      syncStatus,
+    ]
+  );
+  return { created: true };
+}
+
+export async function listProducts(options: {
+  query?: string;
+  status?: string;
+  source?: string;
+  inStockOnly?: boolean;
+  warehouseIds?: string[];
+  from?: string;
+  to?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const where: string[] = ["organization_id = $1"];
+  const params: Array<string | number | null | string[]> = [orgId];
+  let idx = 2;
+
+  const add = (clause: string, value: string | number | null | string[]) => {
+    where.push(clause.replace("$idx", `$${idx}`));
+    params.push(value);
+    idx += 1;
+  };
+
+  if (options.query) {
+    const q = `%${options.query}%`;
+    where.push(
+      `(name ILIKE $${idx} OR reference ILIKE $${idx} OR sku ILIKE $${idx})`
+    );
+    params.push(q);
+    idx += 1;
+  }
+  if (options.status) {
+    add("status_alegra = $idx", options.status);
+  }
+  if (options.source) {
+    add("source = $idx", options.source);
+  }
+  if (options.inStockOnly) {
+    where.push("(inventory_quantity IS NULL OR inventory_quantity > 0)");
+  }
+  if (options.warehouseIds && options.warehouseIds.length) {
+    add("warehouse_ids && $idx::text[]", options.warehouseIds.map((id) => String(id)));
+  }
+  if (options.from) {
+    add("COALESCE(source_updated_at, updated_at) >= $idx", options.from);
+  }
+  if (options.to) {
+    add("COALESCE(source_updated_at, updated_at) <= $idx", options.to);
+  }
+
+  const limit = Number.isFinite(options.limit) && Number(options.limit) > 0 ? Number(options.limit) : 30;
+  const offset = Number.isFinite(options.offset) && Number(options.offset) >= 0 ? Number(options.offset) : 0;
+
+  const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const countResult = await pool.query<{ total: string }>(
+    `
+    SELECT COUNT(*)::text AS total
+    FROM products
+    ${whereClause}
+    `,
+    params
+  );
+
+  const items = await pool.query(
+    `
+    SELECT id,
+           alegra_item_id,
+           shopify_product_id,
+           name,
+           reference,
+           sku,
+           status_alegra,
+           status_shopify,
+           inventory_quantity,
+           warehouse_ids,
+           source,
+           source_updated_at,
+           updated_at
+    FROM products
+    ${whereClause}
+    ORDER BY COALESCE(source_updated_at, updated_at) DESC NULLS LAST
+    LIMIT $${idx} OFFSET $${idx + 1}
+    `,
+    [...params, limit, offset]
+  );
+
+  return {
+    items: items.rows,
+    total: Number(countResult.rows[0]?.total || 0),
+    limit,
+    offset,
+  };
+}

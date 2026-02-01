@@ -21,6 +21,7 @@ type SettingsPayload = {
   };
   rules?: {
     publishOnStock?: boolean;
+    onlyActiveItems?: boolean;
     autoPublishOnWebhook?: boolean;
     autoPublishStatus?: "draft" | "active";
     inventoryAdjustmentsEnabled?: boolean;
@@ -370,6 +371,7 @@ async function upsertRules(
   orgId: number,
   rules: {
     publishOnStock?: boolean;
+    onlyActiveItems?: boolean;
     autoPublishOnWebhook?: boolean;
     autoPublishStatus?: "draft" | "active";
     inventoryAdjustmentsEnabled?: boolean;
@@ -395,16 +397,18 @@ async function upsertRules(
       `
       UPDATE inventory_rules
       SET publish_on_stock = $1,
-          auto_publish_on_webhook = $2,
-          auto_publish_status = $3,
-          inventory_adjustments_enabled = $4,
-          inventory_adjustments_interval_minutes = $5,
-          inventory_adjustments_autopublish = $6,
-          warehouse_ids = $7
-      WHERE id = $8
+          only_active_items = $2,
+          auto_publish_on_webhook = $3,
+          auto_publish_status = $4,
+          inventory_adjustments_enabled = $5,
+          inventory_adjustments_interval_minutes = $6,
+          inventory_adjustments_autopublish = $7,
+          warehouse_ids = $8
+      WHERE id = $9
       `,
       [
         rules.publishOnStock ?? true,
+        rules.onlyActiveItems ?? false,
         rules.autoPublishOnWebhook ?? false,
         rules.autoPublishStatus === "active" ? "active" : "draft",
         rules.inventoryAdjustmentsEnabled ?? true,
@@ -418,12 +422,13 @@ async function upsertRules(
     await pool.query(
       `
       INSERT INTO inventory_rules
-        (organization_id, publish_on_stock, auto_publish_on_webhook, auto_publish_status, inventory_adjustments_enabled, inventory_adjustments_interval_minutes, inventory_adjustments_autopublish, warehouse_ids)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        (organization_id, publish_on_stock, only_active_items, auto_publish_on_webhook, auto_publish_status, inventory_adjustments_enabled, inventory_adjustments_interval_minutes, inventory_adjustments_autopublish, warehouse_ids)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       `,
       [
         orgId,
         rules.publishOnStock ?? true,
+        rules.onlyActiveItems ?? false,
         rules.autoPublishOnWebhook ?? false,
         rules.autoPublishStatus === "active" ? "active" : "draft",
         rules.inventoryAdjustmentsEnabled ?? true,
@@ -568,6 +573,7 @@ async function readRules(pool: ReturnType<typeof getPool>, orgId: number) {
   await ensureInventoryRulesColumns(pool);
   const inventory = await pool.query<{
     publish_on_stock: boolean;
+    only_active_items: boolean | null;
     auto_publish_on_webhook: boolean;
     auto_publish_status: string | null;
     inventory_adjustments_enabled: boolean | null;
@@ -577,6 +583,7 @@ async function readRules(pool: ReturnType<typeof getPool>, orgId: number) {
   }>(
     `
     SELECT publish_on_stock,
+           only_active_items,
            auto_publish_on_webhook,
            auto_publish_status,
            inventory_adjustments_enabled,
@@ -592,6 +599,7 @@ async function readRules(pool: ReturnType<typeof getPool>, orgId: number) {
   );
   return {
     publishOnStock: inventory.rows.length ? inventory.rows[0].publish_on_stock : true,
+    onlyActiveItems: inventory.rows.length ? Boolean(inventory.rows[0].only_active_items) : false,
     autoPublishOnWebhook: inventory.rows.length ? inventory.rows[0].auto_publish_on_webhook : true,
     autoPublishStatus: inventory.rows.length
       ? inventory.rows[0].auto_publish_status === "active"

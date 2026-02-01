@@ -14,6 +14,10 @@ type ShopifyOrderPayload = {
   email?: string;
   total_price?: string;
   currency?: string;
+  processed_at?: string;
+  processedAt?: string;
+  created_at?: string;
+  createdAt?: string;
   __shopDomain?: string;
   payment_gateway_names?: string[];
   gateway?: string;
@@ -213,11 +217,19 @@ export async function syncShopifyOrderToAlegra(
   const invoicePayload = buildInvoicePayload(payload, contactId, effectiveInvoiceSettings, paymentMethod);
   if (!invoiceSettings.generateInvoice) {
     if (orderId) {
+      const orderMeta = buildOrderMetaFromPayload(payload);
       await upsertOrder({
         shopifyId: orderId,
+        orderNumber: orderMeta.orderNumber,
+        customerName: orderMeta.customerName,
+        customerEmail: orderMeta.customerEmail,
+        productsSummary: orderMeta.productsSummary,
+        processedAt: orderMeta.processedAt,
         status: payload.financial_status || undefined,
         total: payload.total_price ? Number(payload.total_price) : null,
         currency: payload.currency || undefined,
+        alegraStatus: "pendiente",
+        sourceUpdatedAt: orderMeta.processedAt,
         source: "shopify",
       });
     }
@@ -278,12 +290,21 @@ export async function syncShopifyOrderToAlegra(
       if (invoiceNumber) {
         await updateMappingMetadata("order", invoiceId, { invoiceNumber });
       }
+      const orderMeta = buildOrderMetaFromPayload(payload);
       await upsertOrder({
         shopifyId: orderId,
         alegraId: invoiceId,
+        orderNumber: orderMeta.orderNumber,
+        customerName: orderMeta.customerName,
+        customerEmail: orderMeta.customerEmail,
+        productsSummary: orderMeta.productsSummary,
+        processedAt: orderMeta.processedAt,
         status: payload.financial_status || undefined,
         total: payload.total_price ? Number(payload.total_price) : null,
         currency: payload.currency || undefined,
+        alegraStatus: "facturado",
+        invoiceNumber,
+        sourceUpdatedAt: orderMeta.processedAt,
         source: "shopify",
       });
     }
@@ -364,6 +385,48 @@ function buildContactName(payload: ShopifyOrderPayload) {
   const last = payload.customer?.last_name || "";
   const name = `${first} ${last}`.trim();
   return name || payload.email || "Cliente Shopify";
+}
+
+function buildProductsSummaryFromPayload(payload: ShopifyOrderPayload) {
+  const items = Array.isArray(payload.line_items) ? payload.line_items : [];
+  if (!items.length) return "-";
+  return items
+    .map((item) => {
+      const qty = item.quantity || 0;
+      const title = item.title || "Item";
+      return `${qty}x ${title}`;
+    })
+    .join(", ");
+}
+
+function resolvePayloadTimestamp(payload: ShopifyOrderPayload) {
+  const raw =
+    payload.processed_at ||
+    payload.processedAt ||
+    payload.created_at ||
+    payload.createdAt ||
+    "";
+  if (!raw) return null;
+  const parsed = Date.parse(String(raw));
+  if (Number.isNaN(parsed)) return null;
+  return new Date(parsed);
+}
+
+function buildOrderMetaFromPayload(payload: ShopifyOrderPayload) {
+  const customerName = buildContactName(payload);
+  const customerEmail = payload.customer?.email || payload.email || null;
+  const orderNumber = payload.name
+    ? String(payload.name)
+    : payload.id
+      ? String(payload.id)
+      : null;
+  return {
+    orderNumber,
+    customerName,
+    customerEmail,
+    productsSummary: buildProductsSummaryFromPayload(payload),
+    processedAt: resolvePayloadTimestamp(payload),
+  };
 }
 
 function buildInvoicePayload(
