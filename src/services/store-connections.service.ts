@@ -54,43 +54,6 @@ export async function getShopifyConnectionByDomain(shopDomain: string) {
   return { shopDomain: row.shop_domain, accessToken: token };
 }
 
-export async function getShopifyConnectionDetails(shopDomain: string) {
-  const pool = getPool();
-  const orgId = getOrgId();
-  const normalized = normalizeShopDomain(shopDomain || "");
-  if (!normalized) {
-    throw new Error("Dominio Shopify requerido");
-  }
-  const result = await pool.query<{
-    shop_domain: string;
-    access_token_encrypted: string | null;
-    scopes: string | null;
-  }>(
-    `
-    SELECT shop_domain, access_token_encrypted, scopes
-    FROM shopify_stores
-    WHERE organization_id = $1 AND shop_domain = $2
-    ORDER BY created_at DESC
-    LIMIT 1
-    `,
-    [orgId, normalized]
-  );
-  const row = result.rows[0];
-  if (!row?.access_token_encrypted) {
-    throw new Error("Conexion Shopify no encontrada");
-  }
-  const decrypted = JSON.parse(decryptString(row.access_token_encrypted));
-  const token = String(decrypted?.accessToken || "").trim();
-  if (!token) {
-    throw new Error("Access token Shopify requerido");
-  }
-  return {
-    shopDomain: row.shop_domain,
-    accessToken: token,
-    scopes: String(row.scopes || ""),
-  };
-}
-
 export async function listStoreConnections() {
   const pool = getPool();
   const orgId = getOrgId();

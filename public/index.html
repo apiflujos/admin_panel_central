@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260201b" />
+    <link rel="stylesheet" href="styles.css?v=20260201c" />
   </head>
   <body>
     <div class="app-shell">
@@ -528,7 +528,7 @@
         <section class="section" id="settings">
           <div class="settings-group-title">Conexiones</div>
 
-          <div class="panel admin-only module" data-module="connections" data-module-readonly="false">
+          <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-help="Completa el nombre de la tienda y conecta Shopify, Alegra e IA. Este paso crea la configuracion base.">
             <div class="panel-header">
               <h3 data-module-toggle="connections" data-title-base="Nueva conexion">Nueva conexion</h3>
               <span class="panel-tag">Acceso</span>
@@ -555,7 +555,7 @@
               </div>
               <div class="settings-divider"></div>
               <div class="settings-group-title">Alegra</div>
-              <div class="settings-grid align-bottom">
+              <div class="settings-grid align-bottom two-cols">
                 <div class="field">
                   <label>Cuenta Alegra</label>
                   <select id="alegra-account-select">
@@ -584,8 +584,8 @@
               </div>
               <div class="settings-divider"></div>
               <div class="settings-group-title">IA</div>
-              <div class="settings-grid align-bottom">
-                <div class="field">
+              <div class="settings-grid align-bottom two-cols">
+                <div class="field span-2">
                   <label>IA API Key</label>
                   <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
                 </div>
@@ -616,7 +616,7 @@
                 <div class="settings-group-body">
                   <div class="settings-group-title">Webhooks</div>
 
-                  <div class="panel admin-only module" data-module="shopify-tech" data-module-readonly="false">
+                  <div class="panel admin-only module" data-module="shopify-tech" data-module-readonly="false" data-help="Crea y valida webhooks para sincronizar pedidos, productos e inventario. Reinstala si cambias el dominio.">
                     <div class="panel-header">
                       <h3 data-module-toggle="shopify-tech" data-title-base="Webhooks">Webhooks</h3>
                       <span class="panel-tag">Shopify</span>
@@ -640,13 +640,16 @@
 
                   <div class="settings-group-title">Sincronizaciones</div>
 
-          <div class="panel module" data-module="shopify-orders" data-module-readonly="false" id="legacy-orders-sync-panel">
+          <div class="panel module" data-module="shopify-orders" data-module-readonly="false" id="legacy-orders-sync-panel" data-help="Los pedidos viajan de Shopify hacia Alegra. Sincroniza por rango de fechas o numero para corregir pedidos puntuales.">
             <div class="panel-header">
               <h3 data-module-toggle="shopify-orders" data-title-base="Sincronizacion de pedidos automatica">Sincronizacion de pedidos automatica</h3>
-              <span class="panel-tag">Shopify</span>
+              <span class="panel-tag">Shopify → Alegra</span>
             </div>
             <div class="module-body">
               <div class="settings-grid products-settings single-column">
+                <div class="field field-span">
+                  <p class="field-hint">Los pedidos se crean en Shopify y se envian a Alegra.</p>
+                </div>
                 <div class="field">
                   <label>Pedidos desde</label>
                   <input type="date" id="orders-date-start" />
@@ -674,7 +677,7 @@
             </div>
           </div>
 
-                  <div class="panel admin-only module" data-module="shopify-mass" data-module-readonly="false" id="legacy-products-sync-panel">
+                  <div class="panel admin-only module" data-module="shopify-mass" data-module-readonly="false" id="legacy-products-sync-panel" data-help="Los productos viajan de Alegra hacia Shopify. Sincroniza con filtros y opciones de inventario.">
             <div class="panel-header">
               <h3 data-module-toggle="shopify-mass" data-title-base="Sincronizacion de productos masiva">Sincronizacion de productos masiva</h3>
               <span class="panel-tag">Shopify</span>
@@ -739,15 +742,18 @@
             </div>
           </div>
 
-                  <div class="settings-group-title">Autopublicacion</div>
+                  <div class="settings-group-title">Alegra → Shopify</div>
 
-                  <div class="panel admin-only module" data-module="shopify-rules" id="legacy-publish-panel">
+                  <div class="panel admin-only module" data-module="shopify-rules" id="legacy-publish-panel" data-help="Los productos salen de Alegra y se publican en Shopify. Define reglas y ajustes automaticos.">
             <div class="panel-header">
               <h3 data-module-toggle="shopify-rules" data-title-base="Reglas de autopublicacion automatica de productos">Reglas de autopublicacion automatica de productos</h3>
-              <span class="panel-tag">Shopify</span>
+              <span class="panel-tag">Alegra → Shopify</span>
             </div>
             <div class="module-body">
               <div class="settings-grid products-settings">
+                <div class="field field-span">
+                  <p class="field-hint">Los productos se originan en Alegra y se publican en Shopify.</p>
+                </div>
                 <div class="field">
                   <label>Estado al publicar manualmente</label>
                   <select id="products-publish-status">
@@ -787,7 +793,7 @@
                 <div class="settings-group-body">
                   <div class="settings-group-title">Cron Alegra</div>
 
-                  <div class="panel admin-only module" data-module="alegra-tech" data-module-readonly="false">
+                  <div class="panel admin-only module" data-module="alegra-tech" data-module-readonly="false" data-help="Controla el cron de inventario y su intervalo de ejecucion.">
                     <div class="panel-header">
                       <h3 data-module-toggle="alegra-tech" data-title-base="Cron Alegra">Cron Alegra</h3>
                       <span class="panel-tag">Alegra</span>
@@ -839,7 +845,7 @@
 
                   <div class="settings-group-title">Operativo</div>
 
-                  <div class="panel admin-only module" data-module="alegra-logistics" id="inventory-transfer-panel">
+                  <div class="panel admin-only module" data-module="alegra-logistics" id="inventory-transfer-panel" data-help="Configura la estrategia de bodegas y los traslados de inventario.">
             <div class="panel-header">
               <h3 data-module-toggle="alegra-logistics" data-title-base="Logistica e inventario">Logistica e inventario</h3>
               <span class="panel-tag">Alegra</span>
@@ -929,15 +935,15 @@
 
                   <div class="settings-group-title">Alegra → Shopify</div>
 
-                  <div class="panel admin-only module" data-module="alegra-inventory" id="inventory-rules-panel">
+                  <div class="panel admin-only module" data-module="alegra-inventory" id="inventory-rules-panel" data-help="Los productos y stock salen de Alegra y se publican en Shopify. Selecciona las bodegas fuente.">
             <div class="panel-header">
               <h3 data-module-toggle="alegra-inventory" data-title-base="Alegra → Shopify">Alegra → Shopify</h3>
-              <span class="panel-tag">Autopublicacion</span>
+              <span class="panel-tag">Alegra → Shopify</span>
             </div>
             <div class="module-body">
               <div class="settings-grid">
                 <div class="field field-span">
-                  <p class="field-hint">Los datos vienen de Alegra y se publican en Shopify.</p>
+                  <p class="field-hint">Los productos y el stock vienen de Alegra y se publican en Shopify.</p>
                 </div>
                 <div class="field">
                   <label>Publicar en Shopify solo con stock</label>
@@ -967,7 +973,7 @@
 
                   <div class="settings-group-title">Facturacion</div>
 
-                  <div class="panel admin-only module" data-module="alegra-invoice" id="legacy-invoice-panel">
+                  <div class="panel admin-only module" data-module="alegra-invoice" id="legacy-invoice-panel" data-help="Define listas de precios y parametros de facturacion en Alegra.">
             <div class="panel-header">
               <h3 data-module-toggle="alegra-invoice" data-title-base="Facturacion">Facturacion</h3>
               <span class="panel-tag">Alegra</span>
@@ -1059,7 +1065,7 @@
                   </div>
                 </div>
               </div>
-              <div class="panel admin-only module" data-module="connections-summary">
+              <div class="panel admin-only module" data-module="connections-summary" data-help="Resumen de conexiones guardadas para esta organizacion.">
                 <div class="panel-header">
                   <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
                   <span class="panel-tag">Resumen</span>
@@ -1200,172 +1206,6 @@
       </div>
     </div>
 
-    <div class="modal" id="toolkit-modal" aria-hidden="true">
-      <div class="modal-content toolkit-content">
-        <div class="modal-header">
-          <div class="toolkit-title">
-            <h4>Tool Kit</h4>
-            <p class="kpi-sub" id="toolkit-context">Configuracion</p>
-          </div>
-          <button class="ghost" id="toolkit-close" type="button">Cerrar</button>
-        </div>
-        <div class="toolkit-tabs" role="tablist">
-          <button class="toolkit-tab is-active" data-toolkit-tab="diagnostics" type="button">Diagnostico</button>
-          <button class="toolkit-tab" data-toolkit-tab="force-sync" type="button">Forzar sincronizacion</button>
-          <button class="toolkit-tab" data-toolkit-tab="logs" type="button">Logs</button>
-          <button class="toolkit-tab" data-toolkit-tab="config" type="button">Configuracion</button>
-        </div>
-        <div class="toolkit-pane is-active" data-toolkit-pane="diagnostics">
-          <div class="settings-grid toolkit-grid">
-            <div class="field span-2">
-              <label>Dominio Shopify</label>
-              <input type="text" id="toolkit-domain" placeholder="tu-tienda.myshopify.com" />
-              <span class="field-hint">Si no usas el dominio activo, escribe el dominio exacto.</span>
-            </div>
-            <div class="field field-actions inline">
-              <label>&nbsp;</label>
-              <button class="primary" id="toolkit-check" type="button">Ejecutar diagnostico</button>
-              <button class="ghost" id="toolkit-webhooks-reinstall" type="button">Reinstalar webhooks</button>
-            </div>
-            <div class="field field-span">
-              <div class="toolkit-result" id="toolkit-health-output">Sin diagnostico.</div>
-            </div>
-          </div>
-        </div>
-        <div class="toolkit-pane" data-toolkit-pane="force-sync">
-          <div class="settings-grid toolkit-grid">
-            <div class="field span-2">
-              <label>Dominio Shopify</label>
-              <input type="text" id="toolkit-force-domain" placeholder="tu-tienda.myshopify.com" />
-            </div>
-            <div class="field">
-              <label>ID de pedido Shopify</label>
-              <input type="text" id="toolkit-order-id" placeholder="gid://shopify/Order/123" />
-            </div>
-            <div class="field">
-              <label>Numero de pedido</label>
-              <input type="text" id="toolkit-order-number" placeholder="#1001" />
-            </div>
-            <div class="field field-span">
-              <span class="kpi-sub">Acciones</span>
-            </div>
-            <div class="field field-span">
-              <p class="field-hint">Selecciona solo las acciones que quieres forzar en Alegra.</p>
-            </div>
-            <div class="field">
-              <label class="toggle-field">
-                <input type="checkbox" id="toolkit-force-create-order" class="toggle" />
-                <span>Crear pedido en Alegra</span>
-              </label>
-            </div>
-            <div class="field">
-              <label class="toggle-field">
-                <input type="checkbox" id="toolkit-force-create-invoice" class="toggle" />
-                <span>Generar factura</span>
-              </label>
-            </div>
-            <div class="field">
-              <label class="toggle-field">
-                <input type="checkbox" id="toolkit-force-skip-rules" class="toggle" />
-                <span>Saltar reglas de stock/bodegas</span>
-              </label>
-            </div>
-            <div class="field field-actions">
-              <label>&nbsp;</label>
-              <button class="primary" id="toolkit-force-run" type="button">Forzar sincronizacion</button>
-            </div>
-            <div class="field field-span">
-              <div class="toolkit-result" id="toolkit-force-output">Sin ejecucion.</div>
-            </div>
-          </div>
-        </div>
-        <div class="toolkit-pane" data-toolkit-pane="logs">
-          <div class="toolbar is-actions">
-            <button class="ghost" id="toolkit-logs-refresh" type="button">Actualizar</button>
-          </div>
-          <div class="toolkit-logs" id="toolkit-logs-list">Sin datos.</div>
-        </div>
-        <div class="toolkit-pane" data-toolkit-pane="config">
-          <div class="settings-grid toolkit-grid">
-            <div class="field span-2">
-              <label>Alcance de configuracion</label>
-              <select id="toolkit-config-scope">
-                <option value="store">Tienda actual</option>
-                <option value="global">Global (organizacion)</option>
-              </select>
-              <span class="field-hint">Global aplica a todas las tiendas. Tienda actual sobrescribe solo esa conexion.</span>
-            </div>
-            <div class="field field-span">
-              <span class="kpi-sub">Diagnostico</span>
-            </div>
-            <div class="field">
-              <label class="toggle-field">
-                <input type="checkbox" id="toolkit-cfg-check-shopify" class="toggle" />
-                <span>Validar token Shopify</span>
-              </label>
-            </div>
-            <div class="field">
-              <label class="toggle-field">
-                <input type="checkbox" id="toolkit-cfg-check-scopes" class="toggle" />
-                <span>Auditar scopes</span>
-              </label>
-            </div>
-            <div class="field">
-              <label class="toggle-field">
-                <input type="checkbox" id="toolkit-cfg-check-webhooks" class="toggle" />
-                <span>Revisar webhooks</span>
-              </label>
-            </div>
-            <div class="field">
-              <label class="toggle-field">
-                <input type="checkbox" id="toolkit-cfg-check-alegra" class="toggle" />
-                <span>Probar Alegra</span>
-              </label>
-            </div>
-            <div class="field span-2">
-              <label>Scopes requeridos (separados por coma)</label>
-              <input type="text" id="toolkit-cfg-scopes" placeholder="read_orders, write_products" />
-            </div>
-            <div class="field field-span">
-              <span class="kpi-sub">Forzar sincronizacion</span>
-            </div>
-            <div class="field">
-              <label class="toggle-field">
-                <input type="checkbox" id="toolkit-cfg-force-order" class="toggle" />
-                <span>Permitir crear pedido</span>
-              </label>
-            </div>
-            <div class="field">
-              <label class="toggle-field">
-                <input type="checkbox" id="toolkit-cfg-force-invoice" class="toggle" />
-                <span>Permitir generar factura</span>
-              </label>
-            </div>
-            <div class="field">
-              <label class="toggle-field">
-                <input type="checkbox" id="toolkit-cfg-force-skip" class="toggle" />
-                <span>Permitir saltar reglas</span>
-              </label>
-            </div>
-            <div class="field field-span">
-              <span class="kpi-sub">Logs</span>
-            </div>
-            <div class="field">
-              <label>Maximo de errores</label>
-              <input type="number" id="toolkit-cfg-logs-limit" min="1" step="1" />
-            </div>
-            <div class="field field-actions">
-              <label>&nbsp;</label>
-              <button class="primary" id="toolkit-config-save" type="button">Guardar configuracion</button>
-            </div>
-            <div class="field field-span">
-              <div class="toolkit-result" id="toolkit-config-output">Sin cambios.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <script src="app.js?v=20260201b" type="module"></script>
+    <script src="app.js?v=20260201c" type="module"></script>
   </body>
 </html>

@@ -1894,10 +1894,6 @@ textarea {
   gap: 10px;
 }
 
-.settings-grid.toolkit-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 .settings-grid.single-column {
   grid-template-columns: 1fr;
 }
@@ -2254,146 +2250,49 @@ textarea {
   margin-bottom: 12px;
 }
 
-.toolkit-content {
-  max-width: 920px;
+.module .panel-header {
+  position: relative;
 }
 
-.toolkit-title h4 {
-  margin: 0;
-}
-
-.toolkit-tabs {
-  display: flex;
-  gap: 8px;
-  border-bottom: 1px solid var(--stroke);
-  padding-bottom: 10px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.toolkit-tab {
-  border: 1px solid var(--stroke);
-  background: #f8fafc;
-  color: var(--text);
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.toolkit-tab.is-active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
-}
-
-.toolkit-pane {
-  display: none;
-}
-
-.toolkit-pane.is-active {
-  display: block;
-}
-
-.toolkit-result {
-  border: 1px solid var(--stroke);
-  border-radius: 10px;
-  padding: 12px;
-  background: #f8fafc;
-  font-size: 12px;
-  display: grid;
-  gap: 6px;
-}
-
-.toolkit-result.is-ok {
-  border-color: #bbf7d0;
-  background: #f0fdf4;
-}
-
-.toolkit-result.is-error {
-  border-color: #fecaca;
-  background: #fff1f1;
-}
-
-.toolkit-summary {
-  font-weight: 700;
-  color: #0f766e;
-}
-
-.toolkit-result.is-error .toolkit-summary {
-  color: #b42318;
-}
-
-.toolkit-status-line {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  color: var(--text);
-}
-
-.toolkit-note {
-  color: var(--muted);
-  font-size: 11px;
-  display: block;
-}
-
-.toolkit-logs {
-  display: grid;
-  gap: 8px;
-}
-
-.toolkit-log {
-  border: 1px solid var(--stroke);
-  border-radius: 10px;
-  padding: 10px;
-  background: #fff;
-  display: grid;
-  gap: 6px;
-  font-size: 12px;
-}
-
-.toolkit-log-head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.toolkit-badge {
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  background: #fee2e2;
-  color: #b42318;
-}
-
-.toolkit-launch {
+.help-launch {
   margin-left: auto;
-  padding: 0 8px;
+  padding: 0 6px;
   min-height: 30px;
   border-radius: 999px;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
-.toolkit-launch .toolkit-icon {
-  width: 22px;
-  height: 22px;
+.help-icon {
+  width: 20px;
+  height: 20px;
   border-radius: 999px;
   background: #0f172a;
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
+}
+
+.help-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: min(320px, 85vw);
+  background: #fff;
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.4;
+  z-index: 30;
+  display: none;
+}
+
+.help-panel.is-open {
+  display: block;
 }
 
 @media (max-width: 1100px) {
@@ -2476,6 +2375,7 @@ textarea {
   .settings-grid {
     grid-template-columns: 1fr;
   }
+
 
   .toolbar {
     flex-direction: column;
