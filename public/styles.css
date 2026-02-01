@@ -10,6 +10,12 @@
   --accent: #24a148;
   --stroke: rgba(15, 23, 42, 0.08);
   --shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  --shopify-green: #95bf47;
+  --shopify-green-dark: #5e8e3e;
+  --shopify-ink: #212b36;
+  --alegra-green: #00ffa2;
+  --alegra-blue: #000e2b;
+  --alegra-surface: #f4f7f9;
 }
 
 * {
@@ -1047,6 +1053,33 @@ button {
   gap: 10px;
 }
 
+.panel[data-provider] {
+  position: relative;
+  overflow: hidden;
+}
+
+.panel[data-provider]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--provider-accent, var(--stroke));
+}
+
+.panel[data-provider="shopify"] {
+  --provider-accent: var(--shopify-green);
+}
+
+.panel[data-provider="alegra"] {
+  --provider-accent: var(--alegra-green);
+}
+
+.panel[data-provider="bridge"]::before {
+  background: linear-gradient(90deg, var(--alegra-green), var(--shopify-green));
+}
+
 .panel-header {
   display: flex;
   justify-content: space-between;
@@ -1168,6 +1201,32 @@ button {
   color: var(--muted);
 }
 
+.group-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-arrow {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.settings-group.provider-group[data-group="shopify"] .settings-group-header {
+  border-left: 3px solid var(--shopify-green);
+  padding-left: 10px;
+}
+
+.settings-group.provider-group[data-group="alegra"] .settings-group-header {
+  border-left: 3px solid var(--alegra-green);
+  padding-left: 10px;
+}
+
+.settings-group.provider-group[data-group="alegra-shopify"] .settings-group-header {
+  border-left: 3px solid var(--alegra-green);
+  padding-left: 10px;
+}
+
 .settings-group-subtitle {
   font-size: 11px;
   color: var(--muted);
@@ -1230,6 +1289,28 @@ button {
 .connection-block-header h4 {
   margin: 0;
   font-size: 14px;
+}
+
+.provider-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.provider-logo {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--stroke);
+  background: #fff;
+  padding: 2px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.connection-block .provider-logo {
+  width: 20px;
+  height: 20px;
 }
 
 .connection-block-header .kpi-sub {
@@ -1348,6 +1429,21 @@ button {
   background: var(--primary-soft);
   padding: 3px 6px;
   border-radius: 999px;
+}
+
+.panel-tag.tag-shopify {
+  color: var(--shopify-ink);
+  background: rgba(149, 191, 71, 0.2);
+}
+
+.panel-tag.tag-alegra {
+  color: var(--alegra-blue);
+  background: rgba(0, 255, 162, 0.2);
+}
+
+.panel-tag.tag-bridge {
+  color: var(--alegra-blue);
+  background: linear-gradient(90deg, rgba(0, 255, 162, 0.22), rgba(149, 191, 71, 0.22));
 }
 
 .chart-placeholder {
@@ -1547,7 +1643,7 @@ button {
 
 .connections-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
 }
 
@@ -1569,9 +1665,9 @@ button {
 
 .connection-card {
   border: 1px solid var(--stroke);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 12px;
-  background: #fff;
+  background: var(--panel);
   box-shadow: var(--shadow);
   display: grid;
   gap: 6px;
