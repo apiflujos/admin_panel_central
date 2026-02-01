@@ -29,6 +29,22 @@ const ordersProgressLabel = document.getElementById("orders-progress-label");
 const ordersSyncProgress = document.getElementById("orders-sync-progress");
 const ordersSyncProgressBar = document.getElementById("orders-sync-progress-bar");
 const ordersSyncProgressLabel = document.getElementById("orders-sync-progress-label");
+const contactsSearch = document.getElementById("contacts-search");
+const contactsDateStart = document.getElementById("contacts-date-start");
+const contactsDateEnd = document.getElementById("contacts-date-end");
+const contactsStatusFilter = document.getElementById("contacts-status");
+const contactsSourceFilter = document.getElementById("contacts-source");
+const contactsLimitInput = document.getElementById("contacts-limit");
+const contactsSearchBtn = document.getElementById("contacts-search-btn");
+const contactsRefreshBtn = document.getElementById("contacts-refresh");
+const contactsClearBtn = document.getElementById("contacts-clear");
+const contactsTableBody = document.querySelector("#contacts-table tbody");
+const contactsPageLabel = document.getElementById("contacts-page");
+const contactsPrevBtn = document.getElementById("contacts-prev");
+const contactsNextBtn = document.getElementById("contacts-next");
+const contactsPageInput = document.getElementById("contacts-page-input");
+const contactsPageGo = document.getElementById("contacts-page-go");
+const contactsCountLabel = document.getElementById("contacts-count");
 
 const modal = document.getElementById("payload-modal");
 const modalBody = document.getElementById("modal-body");
@@ -346,6 +362,9 @@ const expandedParents = new Set();
 let operationsList = [];
 let ordersStart = 0;
 let ordersTotal = null;
+let contactsStart = 0;
+let contactsTotal = null;
+let contactsList = [];
 let activeProductsSyncId = "";
 let assistantHasSpoken = false;
 let assistantFiles = [];
@@ -361,6 +380,9 @@ function showSection(target) {
   }
   if (target === "logs") {
     loadLogs().catch(() => null);
+  }
+  if (target === "contacts") {
+    loadContacts().catch(() => null);
   }
 }
 
@@ -2096,6 +2118,37 @@ function pickAlegraPrice(prices) {
 }
 
 function normalizeProduct(item) {
+  const isDbRow =
+    item &&
+    (Object.prototype.hasOwnProperty.call(item, "alegra_item_id") ||
+      Object.prototype.hasOwnProperty.call(item, "shopify_product_id") ||
+      Object.prototype.hasOwnProperty.call(item, "inventory_quantity"));
+  if (isDbRow) {
+    const warehouseIds = Array.isArray(item.warehouse_ids) ? item.warehouse_ids : [];
+    const createdAt = item.source_updated_at || item.updated_at || "";
+    const skuValue = item.sku || item.reference || "Sin referencia";
+    const inventoryRaw = item.inventory_quantity;
+    let inventoryQuantity = null;
+    if (typeof inventoryRaw === "number") {
+      inventoryQuantity = Number.isFinite(inventoryRaw) ? inventoryRaw : null;
+    } else if (typeof inventoryRaw === "string" && inventoryRaw.trim() !== "") {
+      const parsed = Number(inventoryRaw);
+      inventoryQuantity = Number.isFinite(parsed) ? parsed : null;
+    }
+    return {
+      id: item.alegra_item_id || item.shopify_product_id || item.id,
+      name: item.name || "Producto",
+      reference: item.reference || "",
+      sku: skuValue,
+      status: item.status_alegra || item.status || "",
+      inventoryQuantity,
+      warehouseIds,
+      createdAt,
+      images: [],
+      variants: [],
+      variantBarcodes: skuValue && skuValue !== "Sin referencia" ? [skuValue] : [],
+    };
+  }
   const createdAt = item.createdAt || item.created_at || item.created_at_date || item.created || "";
   const customSku = (() => {
     if (!Array.isArray(item.customFields)) return "";
@@ -2901,7 +2954,7 @@ async function loadProducts() {
       ? productSettings.filters.warehouseIds
       : [];
     if (warehouseIds.length) params.set("warehouseIds", warehouseIds.join(","));
-    const payload = await fetchJson(`/api/alegra/items?${params.toString()}`);
+    const payload = await fetchJson(`/api/products?${params.toString()}`);
     const { items, total } = extractAlegraItems(payload);
     productsList = items.map(normalizeProduct);
     productsRows = buildProductRows(productsList);
@@ -3419,13 +3472,28 @@ async function loadMetrics() {
 async function loadOperations() {
   try {
     const days = ordersDaysSelect ? Number(ordersDaysSelect.value) : 30;
-    const query = Number.isFinite(days) && days > 0 ? `?days=${days}` : "";
-    const data = await fetchJson(`/api/operations${query}`);
+    const params = new URLSearchParams();
+    if (Number.isFinite(days) && days > 0) params.set("days", String(days));
+    if (opsSearch && opsSearch.value.trim()) {
+      params.set("query", opsSearch.value.trim());
+    }
+    if (ordersDateFilter && ordersDateFilter.value) {
+      params.set("date", ordersDateFilter.value);
+    }
+    if (ordersSort && ordersSort.value) {
+      params.set("sort", ordersSort.value);
+    }
+    const pageSize = ordersLimit && Number(ordersLimit.value) > 0 ? Number(ordersLimit.value) : 10;
+    params.set("limit", String(pageSize));
+    params.set("offset", String(ordersStart));
+    const data = await fetchJson(`/api/orders?${params.toString()}`);
     const items = data.items || [];
     operationsList = items;
+    ordersTotal = Number.isFinite(data.total) ? Number(data.total) : items.length;
     renderOperations(operationsList);
   } catch {
     operationsList = [];
+    ordersTotal = 0;
     renderOperations([]);
   }
 }
@@ -3445,66 +3513,25 @@ function renderOperations(items) {
     if (ordersNextBtn) ordersNextBtn.disabled = true;
     return;
   }
-  const query = (opsSearch.value || "").toLowerCase();
-  const dateFilter = productSettings.filters?.ordersDateTouched
-    ? productSettings.filters?.ordersDate || ""
-    : "";
-  const sortMode = productSettings.filters?.ordersSort || "date_desc";
   const pageSize = ordersLimit && Number(ordersLimit.value) > 0 ? Number(ordersLimit.value) : 10;
-
-  let filtered = query
-    ? items.filter((item) =>
-        (item.orderNumber || "").toLowerCase().includes(query) ||
-        (item.customer || "").toLowerCase().includes(query) ||
-        (item.products || "").toLowerCase().includes(query)
-      )
-    : items;
-
-  if (dateFilter) {
-    filtered = filtered.filter((item) => {
-      const created = item.processedAt || item.createdAt || "";
-      if (!created) return true;
-      return String(created).slice(0, 10) === dateFilter;
-    });
-  }
-
-  filtered = [...filtered].sort((a, b) => {
-    if (sortMode === "order_asc") {
-      return String(a.orderNumber || "").localeCompare(String(b.orderNumber || ""));
-    }
-    if (sortMode === "order_desc") {
-      return String(b.orderNumber || "").localeCompare(String(a.orderNumber || ""));
-    }
-    const left = String(a.processedAt || a.createdAt || "");
-    const right = String(b.processedAt || b.createdAt || "");
-    if (sortMode === "date_asc") {
-      return left.localeCompare(right);
-    }
-    return right.localeCompare(left);
-  });
-
-  ordersTotal = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(ordersTotal / pageSize));
+  const totalPages = Math.max(1, Math.ceil((ordersTotal || 0) / pageSize));
   const currentPage = Math.min(totalPages, Math.floor(ordersStart / pageSize) + 1);
-  const start = Math.min(Math.max(0, ordersStart), Math.max(0, (totalPages - 1) * pageSize));
-  ordersStart = start;
   if (ordersPageLabel) {
-    ordersPageLabel.textContent = `Pagina ${currentPage} de ${totalPages} (${ordersTotal} pedidos)`;
+    ordersPageLabel.textContent = `Pagina ${currentPage} de ${totalPages} (${ordersTotal || 0} pedidos)`;
   }
   if (ordersPageInput) {
     ordersPageInput.max = String(totalPages);
     ordersPageInput.value = String(currentPage);
   }
   if (ordersCountLabel) {
-    const startLabel = ordersTotal === 0 ? 0 : start + 1;
-    const endLabel = Math.min(start + pageSize, ordersTotal);
-    ordersCountLabel.textContent = `Mostrando ${startLabel}-${endLabel} de ${ordersTotal}`;
+    const startLabel = ordersTotal === 0 ? 0 : ordersStart + 1;
+    const endLabel = Math.min(ordersStart + pageSize, ordersTotal || 0);
+    ordersCountLabel.textContent = `Mostrando ${startLabel}-${endLabel} de ${ordersTotal || 0}`;
   }
-  if (ordersPrevBtn) ordersPrevBtn.disabled = start <= 0;
-  if (ordersNextBtn) ordersNextBtn.disabled = start + pageSize >= ordersTotal;
-  filtered = filtered.slice(start, start + pageSize);
+  if (ordersPrevBtn) ordersPrevBtn.disabled = ordersStart <= 0;
+  if (ordersNextBtn) ordersNextBtn.disabled = ordersStart + pageSize >= (ordersTotal || 0);
 
-  opsTableBody.innerHTML = filtered
+  opsTableBody.innerHTML = items
     .map((item) => {
       const statusLabel =
         item.alegraStatus === "facturado" ? "Facturado" : "Pendiente/Fallo";
@@ -3516,10 +3543,12 @@ function renderOperations(items) {
           : `<span class="status-chip is-success">E-Factura</span>`
         : "";
       const actions = [];
-      if (item.alegraStatus !== "facturado") {
-        actions.push(`<button class="ghost" data-invoice="${item.id}">Facturar manualmente</button>`);
+      if (item.shopifyId) {
+        if (item.alegraStatus !== "facturado") {
+          actions.push(`<button class="ghost" data-invoice="${item.shopifyId}">Facturar manualmente</button>`);
+        }
+        actions.push(`<button class="ghost" data-einvoice="${item.shopifyId}">Editar e-Factura</button>`);
       }
-      actions.push(`<button class="ghost" data-einvoice="${item.id}">Editar e-Factura</button>`);
       return `
         <tr>
           <td>${item.processedAt ? formatDate(item.processedAt) : "-"}</td>
@@ -3554,6 +3583,93 @@ function renderOperations(items) {
       openEinvoiceModal(orderId);
     });
   });
+}
+
+function normalizeContactsLimit() {
+  const value = contactsLimitInput ? Number(contactsLimitInput.value) : 0;
+  return Number.isFinite(value) && value > 0 ? value : 20;
+}
+
+function renderContacts(items) {
+  if (!contactsTableBody) return;
+  const total = Number(contactsTotal || 0);
+  const limit = normalizeContactsLimit();
+  if (!items.length) {
+    contactsTableBody.innerHTML = `<tr><td colspan="9" class="empty">Sin contactos para mostrar.</td></tr>`;
+    if (contactsPageLabel) contactsPageLabel.textContent = "Pagina 1 de 1";
+    if (contactsCountLabel) contactsCountLabel.textContent = "Mostrando 0 de 0";
+    if (contactsPrevBtn) contactsPrevBtn.disabled = true;
+    if (contactsNextBtn) contactsNextBtn.disabled = true;
+    return;
+  }
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const currentPage = Math.min(totalPages, Math.floor(contactsStart / limit) + 1);
+  if (contactsPageLabel) {
+    contactsPageLabel.textContent = `Pagina ${currentPage} de ${totalPages} (${total} contactos)`;
+  }
+  if (contactsPageInput) {
+    contactsPageInput.max = String(totalPages);
+    contactsPageInput.value = String(currentPage);
+  }
+  if (contactsCountLabel) {
+    const startLabel = total === 0 ? 0 : contactsStart + 1;
+    const endLabel = Math.min(contactsStart + limit, total);
+    contactsCountLabel.textContent = `Mostrando ${startLabel}-${endLabel} de ${total}`;
+  }
+  if (contactsPrevBtn) contactsPrevBtn.disabled = contactsStart <= 0;
+  if (contactsNextBtn) contactsNextBtn.disabled = contactsStart + limit >= total;
+
+  contactsTableBody.innerHTML = items
+    .map((item) => {
+      const source =
+        item.source === "shopify"
+          ? "Shopify"
+          : item.source === "alegra"
+            ? "Alegra"
+            : "-";
+      const status = item.sync_status === "synced" ? "Sincronizado" : "Pendiente";
+      return `
+        <tr>
+          <td>${item.name || "-"}</td>
+          <td>${item.email || "-"}</td>
+          <td>${item.phone || "-"}</td>
+          <td>${item.doc || "-"}</td>
+          <td>${source}</td>
+          <td>${status}</td>
+          <td>${item.shopify_id || "-"}</td>
+          <td>${item.alegra_id || "-"}</td>
+          <td>${item.updated_at ? formatDate(item.updated_at) : "-"}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+async function loadContacts() {
+  const params = new URLSearchParams();
+  const query = contactsSearch ? contactsSearch.value.trim() : "";
+  const status = contactsStatusFilter ? contactsStatusFilter.value : "";
+  const source = contactsSourceFilter ? contactsSourceFilter.value : "";
+  const from = contactsDateStart ? contactsDateStart.value : "";
+  const to = contactsDateEnd ? contactsDateEnd.value : "";
+  const limit = normalizeContactsLimit();
+  params.set("limit", String(limit));
+  params.set("offset", String(contactsStart));
+  if (query) params.set("query", query);
+  if (status) params.set("status", status);
+  if (source) params.set("source", source);
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  try {
+    const result = await fetchJson(`/api/contacts?${params.toString()}`);
+    contactsList = Array.isArray(result.items) ? result.items : [];
+    contactsTotal = Number(result.total || 0);
+    renderContacts(contactsList);
+  } catch {
+    contactsList = [];
+    contactsTotal = 0;
+    renderContacts([]);
+  }
 }
 
 function formatCurrencyValue(value) {
@@ -5202,7 +5318,7 @@ if (ordersLimit) {
   ordersLimit.addEventListener("change", () => {
     ordersStart = 0;
     refreshProductSettingsFromInputs();
-    renderOperations(operationsList);
+    loadOperations();
   });
 }
 
@@ -5210,7 +5326,7 @@ if (ordersDateFilter) {
   ordersDateFilter.addEventListener("change", () => {
     ordersStart = 0;
     refreshProductSettingsFromInputs();
-    renderOperations(operationsList);
+    loadOperations();
   });
 }
 
@@ -5226,15 +5342,19 @@ if (ordersSort) {
   ordersSort.addEventListener("change", () => {
     ordersStart = 0;
     refreshProductSettingsFromInputs();
-    renderOperations(operationsList);
+    loadOperations();
   });
 }
 
 if (opsSearch) {
+  let opsSearchTimer;
   opsSearch.addEventListener("input", () => {
-    ordersStart = 0;
-    refreshProductSettingsFromInputs();
-    renderOperations(operationsList);
+    if (opsSearchTimer) clearTimeout(opsSearchTimer);
+    opsSearchTimer = setTimeout(() => {
+      ordersStart = 0;
+      refreshProductSettingsFromInputs();
+      loadOperations();
+    }, 400);
   });
 }
 
@@ -5242,7 +5362,7 @@ if (ordersPrevBtn) {
   ordersPrevBtn.addEventListener("click", () => {
     const pageSize = ordersLimit && Number(ordersLimit.value) > 0 ? Number(ordersLimit.value) : 10;
     ordersStart = Math.max(0, ordersStart - pageSize);
-    renderOperations(operationsList);
+    loadOperations();
   });
 }
 
@@ -5251,7 +5371,7 @@ if (ordersNextBtn) {
     const pageSize = ordersLimit && Number(ordersLimit.value) > 0 ? Number(ordersLimit.value) : 10;
     const maxStart = ordersTotal ? Math.max(0, (Math.ceil(ordersTotal / pageSize) - 1) * pageSize) : ordersStart + pageSize;
     ordersStart = Math.min(ordersStart + pageSize, maxStart);
-    renderOperations(operationsList);
+    loadOperations();
   });
 }
 
@@ -5262,7 +5382,7 @@ if (ordersPageGo) {
     const target = ordersPageInput ? Number(ordersPageInput.value) : 1;
     const page = Math.min(Math.max(1, target || 1), totalPages);
     ordersStart = (page - 1) * pageSize;
-    renderOperations(operationsList);
+    loadOperations();
   });
 }
 
@@ -5272,6 +5392,64 @@ if (ordersPageInput) {
       event.preventDefault();
       ordersPageGo.click();
     }
+  });
+}
+
+if (contactsSearchBtn) {
+  contactsSearchBtn.addEventListener("click", () => {
+    contactsStart = 0;
+    loadContacts();
+  });
+}
+
+if (contactsRefreshBtn) {
+  contactsRefreshBtn.addEventListener("click", () => {
+    loadContacts();
+  });
+}
+
+if (contactsClearBtn) {
+  contactsClearBtn.addEventListener("click", () => {
+    if (contactsSearch) contactsSearch.value = "";
+    if (contactsDateStart) contactsDateStart.value = "";
+    if (contactsDateEnd) contactsDateEnd.value = "";
+    if (contactsStatusFilter) contactsStatusFilter.value = "";
+    if (contactsSourceFilter) contactsSourceFilter.value = "";
+    contactsStart = 0;
+    loadContacts();
+  });
+}
+
+if (contactsLimitInput) {
+  contactsLimitInput.addEventListener("change", () => {
+    contactsStart = 0;
+    loadContacts();
+  });
+}
+
+if (contactsPrevBtn) {
+  contactsPrevBtn.addEventListener("click", () => {
+    const limit = normalizeContactsLimit();
+    contactsStart = Math.max(0, contactsStart - limit);
+    loadContacts();
+  });
+}
+
+if (contactsNextBtn) {
+  contactsNextBtn.addEventListener("click", () => {
+    const limit = normalizeContactsLimit();
+    contactsStart = contactsStart + limit;
+    loadContacts();
+  });
+}
+
+if (contactsPageGo) {
+  contactsPageGo.addEventListener("click", () => {
+    const limit = normalizeContactsLimit();
+    const page = contactsPageInput ? Number(contactsPageInput.value) : 1;
+    const target = Number.isFinite(page) && page > 0 ? page : 1;
+    contactsStart = (target - 1) * limit;
+    loadContacts();
   });
 }
 

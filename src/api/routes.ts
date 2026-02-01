@@ -28,6 +28,7 @@ import {
 import { emitPaymentHandler, voidInvoiceHandler } from "./operations-actions.controller";
 import {
   listAlegraItemsHandler,
+  listProductsHandler,
   listInventoryAdjustmentsHandler,
   listItemWarehouseSummaryHandler,
   proxyAlegraImageHandler,
@@ -37,6 +38,7 @@ import {
   stopProductsSyncHandler,
   syncOrdersHandler,
   syncProductsHandler,
+  backfillProductsHandler,
 } from "./products.controller";
 import {
   createShopifyWebhooksHandler,
@@ -44,7 +46,8 @@ import {
   getShopifyWebhooksStatusHandler,
 } from "./shopify-webhooks.controller";
 import { shopifyOAuthCallback, startShopifyOAuth } from "./shopify-oauth.controller";
-import { syncContactHandler, syncContactsBulkHandler } from "./contacts.controller";
+import { listContactsHandler, syncContactHandler, syncContactsBulkHandler } from "./contacts.controller";
+import { listOrdersHandler, backfillOrdersHandler } from "./orders.controller";
 
 export const router = Router();
 
@@ -74,6 +77,7 @@ router.get("/logs", listLogs);
 router.post("/logs/retry", retryFailed);
 
 router.get("/alegra/items", listAlegraItemsHandler);
+router.get("/products", listProductsHandler);
 router.get("/alegra/items/:itemId/warehouses", listItemWarehouseSummaryHandler);
 router.get("/alegra/inventory-adjustments", listInventoryAdjustmentsHandler);
 router.get("/alegra/image", proxyAlegraImageHandler);
@@ -99,9 +103,13 @@ router.get("/shopify/webhooks/status", requireAdmin, getShopifyWebhooksStatusHan
 router.post("/sync/products", syncProductsHandler);
 router.post("/sync/products/stop", stopProductsSyncHandler);
 router.post("/sync/orders", syncOrdersHandler);
+router.post("/backfill/products", backfillProductsHandler);
+router.post("/backfill/orders", backfillOrdersHandler);
 router.post("/sync/inventory-adjustments", syncInventoryAdjustmentsHandler);
 router.post("/sync/contacts", syncContactHandler);
 router.post("/sync/contacts/bulk", syncContactsBulkHandler);
+router.get("/contacts", listContactsHandler);
+router.get("/orders", listOrdersHandler);
 router.get("/operations", listOperationsHandler);
 router.post("/operations/seed", seedOperationsHandler);
 router.post("/operations/:orderId/sync", syncOperationHandler);

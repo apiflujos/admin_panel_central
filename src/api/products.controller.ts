@@ -18,6 +18,8 @@ import {
 } from "../services/alegra-items-cache.service";
 import { resolveStoreConfig } from "../services/store-config.service";
 import { getStoreConfigForDomain } from "../services/store-configs.service";
+import { upsertProduct, listProducts } from "../services/products.service";
+import { upsertOrder } from "../services/orders.service";
 
 type AlegraPrice = {
   name?: string;
@@ -196,6 +198,48 @@ const resolveItemDate = (item: AlegraItem) => {
   return Number.isNaN(parsed) ? null : parsed;
 };
 
+const resolveItemSku = (item: AlegraItem) => {
+  const fromItem =
+    item.reference ||
+    item.code ||
+    item.barcode ||
+    extractCustomFieldValue(item, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"]);
+  if (fromItem) return fromItem;
+  const variants = Array.isArray(item.itemVariants) ? item.itemVariants : [];
+  const firstVariant = variants[0];
+  return (
+    firstVariant?.reference ||
+    firstVariant?.barcode ||
+    extractCustomFieldValue(item, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"])
+  );
+};
+
+const persistProductsFromAlegra = async (items: AlegraItem[]) => {
+  if (!Array.isArray(items) || items.length === 0) return;
+  await Promise.all(
+    items.map(async (item) => {
+      const sourceUpdatedAt = resolveItemDate(item);
+      const inventoryQuantity = resolveItemQuantityForFilter(item, []);
+      const warehouseIds = Array.isArray(item.inventory?.warehouses)
+        ? item.inventory?.warehouses
+            .map((warehouse) => String(warehouse?.id || ""))
+            .filter(Boolean)
+        : [];
+      await upsertProduct({
+        alegraId: item.id,
+        name: item.name || null,
+        reference: item.reference || item.code || item.barcode || null,
+        sku: resolveItemSku(item) || null,
+        statusAlegra: item.status || null,
+        inventoryQuantity: typeof inventoryQuantity === "number" ? inventoryQuantity : null,
+        warehouseIds: warehouseIds.length ? warehouseIds : null,
+        sourceUpdatedAt: sourceUpdatedAt ? new Date(sourceUpdatedAt) : null,
+        source: "alegra",
+      });
+    })
+  );
+};
+
 const mergeItemVariants = (parent: AlegraItem, incoming: AlegraVariant[]) => {
   const base = Array.isArray(parent.itemVariants) ? parent.itemVariants : [];
   const merged = dedupeVariants([...base, ...incoming]);
@@ -219,6 +263,34 @@ const collectItemIdentifiers = (item: AlegraItem) => {
   });
   return Array.from(new Set(identifiers));
 };
+
+const buildOrderCustomerName = (order: ShopifyOrder) => {
+  const first = order.customer?.firstName || "";
+  const last = order.customer?.lastName || "";
+  const name = `${first} ${last}`.trim();
+  return name || order.email || "Cliente";
+};
+
+const buildOrderProductsSummary = (order: ShopifyOrder) => {
+  const items = order.lineItems?.edges || [];
+  if (!items.length) return "-";
+  return items
+    .map((edge) => {
+      const qty = edge.node.quantity || 0;
+      const title = edge.node.title || "Item";
+      return `${qty}x ${title}`;
+    })
+    .join(", ");
+};
+
+const resolveOrderTotal = (order: ShopifyOrder) => {
+  const raw = order.totalPriceSet?.shopMoney?.amount;
+  const parsed = typeof raw === "string" ? Number(raw) : raw;
+  return Number.isFinite(parsed as number) ? Number(parsed) : null;
+};
+
+const resolveOrderCurrency = (order: ShopifyOrder) =>
+  order.totalPriceSet?.shopMoney?.currencyCode || null;
 
 const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
   try {
@@ -655,6 +727,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
           metadata: { total: cachedTotalResult, filtered: shouldFilter, source: "cache" },
           data: cachedItems.slice(0, scanLimit),
         });
+        void persistProductsFromAlegra(cachedItems).catch(() => null);
         return;
       }
     }
@@ -792,6 +865,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         const start = Number(query.get("start") || "0");
         const limit = Number(query.get("limit") || total);
         const sliced = fullItems.slice(start, start + limit);
+        void persistProductsFromAlegra(sliced).catch(() => null);
         res.json({ metadata: { total }, data: sliced });
         return;
       }
@@ -810,6 +884,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
       (payload as any).metadata.total = total;
     }
     (payload as any).metadata.filtered = inStockOnly || warehouseFilterIds.length > 0;
+    void persistProductsFromAlegra(resolvedItems).catch(() => null);
     res.status(200).json(payload);
   } catch (error) {
     res.status(502).json({ error: error instanceof Error ? error.message : "Alegra proxy error" });
@@ -822,6 +897,32 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         query: req.query,
       },
     });
+  }
+}
+
+export async function listProductsHandler(req: Request, res: Response) {
+  try {
+    const start = Number(req.query.start || 0);
+    const limit = Number(req.query.limit || 30);
+    const query = typeof req.query.query === "string" ? req.query.query.trim() : "";
+    const inStockOnly =
+      String(req.query.inStockOnly || "").toLowerCase() === "1" ||
+      String(req.query.inStockOnly || "").toLowerCase() === "true";
+    const warehouseIds = String(req.query.warehouseIds || "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+
+    const result = await listProducts({
+      query: query || undefined,
+      inStockOnly,
+      warehouseIds: warehouseIds.length ? warehouseIds : undefined,
+      limit: Number.isFinite(limit) && limit > 0 ? limit : 30,
+      offset: Number.isFinite(start) && start > 0 ? start : 0,
+    });
+    res.status(200).json({ items: result.items, total: result.total });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Products list error" });
   }
 }
 
@@ -1017,6 +1118,20 @@ export async function publishShopifyHandler(req: Request, res: Response) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }, shopifyConfig);
+    const shopifyProductId = (published as any)?.product?.id;
+    const sourceUpdatedAt = resolveItemDate(item);
+    await upsertProduct({
+      alegraId: item.id,
+      shopifyId: shopifyProductId,
+      name: item.name || null,
+      reference: item.reference || item.code || item.barcode || null,
+      sku: resolveItemSku(item) || null,
+      statusAlegra: item.status || null,
+      statusShopify: settings.status || "draft",
+      inventoryQuantity: resolveItemQuantityForFilter(item, []),
+      sourceUpdatedAt: sourceUpdatedAt !== null ? new Date(sourceUpdatedAt) : null,
+      source: "alegra",
+    });
     res.json({ ok: true, shopify: published });
     await safeCreateLog({
       entity: "shopify_publish",
@@ -1310,7 +1425,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
                 currency: storeConfig?.currency,
               }
             );
-            await fetchShopify(
+            const publishedResult = await fetchShopify(
               "/products.json",
               {
                 method: "POST",
@@ -1319,6 +1434,20 @@ export async function syncProductsHandler(req: Request, res: Response) {
               },
               shopifyConfig || undefined
             );
+            const shopifyProductId = (publishedResult as any)?.product?.id;
+            const sourceUpdatedAt = resolveItemDate(current.item);
+            await upsertProduct({
+              alegraId: current.item.id,
+              shopifyId: shopifyProductId,
+              name: current.item.name || null,
+              reference: current.item.reference || current.item.code || current.item.barcode || null,
+              sku: resolveItemSku(current.item) || null,
+              statusAlegra: current.item.status || null,
+              statusShopify: settings.status || "draft",
+              inventoryQuantity: resolveItemQuantityForFilter(current.item, []),
+              sourceUpdatedAt: sourceUpdatedAt !== null ? new Date(sourceUpdatedAt) : null,
+              source: "alegra",
+            });
             published += 1;
             if (parentId) processedParents.add(parentId);
           } catch {
@@ -1566,6 +1695,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
         const cacheCandidates = queueItems.map((entry) => entry.item);
         const cacheItems = includeInventory ? await hydrateItems(cacheCandidates) : cacheCandidates;
         await upsertAlegraItemsCache(cacheItems);
+        await persistProductsFromAlegra(cacheItems);
         const batchNumber = Math.floor(start / batchLimit) + 1;
         const totalBatches = total ? Math.ceil(total / batchLimit) : null;
         const rangeStart = start + 1;
@@ -1802,6 +1932,26 @@ export async function syncOrdersHandler(req: Request, res: Response) {
       processed += 1;
       try {
         const mapping = await getMappingByShopifyId("order", String(_order.id));
+        const invoiceNumber =
+          mapping?.metadata && typeof mapping.metadata === "object"
+            ? (mapping.metadata as { invoiceNumber?: string }).invoiceNumber
+            : undefined;
+        await upsertOrder({
+          shopifyId: _order.id,
+          alegraId: mapping?.alegraId || undefined,
+          orderNumber: _order.name,
+          customerName: buildOrderCustomerName(_order),
+          customerEmail: _order.email || _order.customer?.email || undefined,
+          productsSummary: buildOrderProductsSummary(_order),
+          processedAt: _order.processedAt || _order.updatedAt || undefined,
+          status: _order.displayFinancialStatus || undefined,
+          total: resolveOrderTotal(_order),
+          currency: resolveOrderCurrency(_order) || undefined,
+          alegraStatus: mapping?.alegraId ? "facturado" : "pendiente",
+          invoiceNumber: invoiceNumber || undefined,
+          source: "shopify",
+          sourceUpdatedAt: _order.updatedAt || _order.processedAt || undefined,
+        });
         if (mapping?.alegraId) {
           skipped += 1;
         } else {
@@ -1869,6 +2019,95 @@ export async function syncOrdersHandler(req: Request, res: Response) {
       message,
       request: { filters },
     });
+  }
+}
+
+export async function backfillProductsHandler(req: Request, res: Response) {
+  try {
+    const body = (req.body || {}) as {
+      source?: string;
+      limit?: number;
+      dateStart?: string;
+      dateEnd?: string;
+    };
+    const source = String(body.source || "both").toLowerCase();
+    const limit = Number.isFinite(body.limit) && Number(body.limit) > 0 ? Number(body.limit) : null;
+    const dateStart = body.dateStart ? String(body.dateStart) : "";
+    const dateEnd = body.dateEnd ? String(body.dateEnd) : "";
+    const results: Record<string, unknown> = {};
+
+    if (source === "alegra" || source === "both") {
+      let start = 0;
+      const pageSize = 30;
+      let processed = 0;
+      let pages = 0;
+      while (true) {
+        if (limit !== null && processed >= limit) break;
+        const batchLimit =
+          limit !== null ? Math.min(pageSize, Math.max(0, limit - processed)) : pageSize;
+        if (batchLimit <= 0) break;
+        const query = new URLSearchParams();
+        query.set("start", String(start));
+        query.set("limit", String(batchLimit));
+        query.set("mode", "advanced");
+        query.set(
+          "fields",
+          "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code,created_at,createdAt,updated_at,updatedAt"
+        );
+        if (dateStart) {
+          query.set("updated_at_start", dateStart);
+        }
+        const response = await fetchAlegraWithRetry("/items", query);
+        if (!response.ok) break;
+        const payload = (await response.json()) as { items?: AlegraItem[]; data?: AlegraItem[] };
+        const batch = Array.isArray(payload.items)
+          ? payload.items
+          : Array.isArray(payload.data)
+            ? payload.data
+            : [];
+        if (!batch.length) break;
+        await persistProductsFromAlegra(batch);
+        processed += batch.length;
+        start += batch.length;
+        pages += 1;
+        if (batch.length < batchLimit) break;
+      }
+      results.alegra = { processed, pages };
+    }
+
+    if (source === "shopify" || source === "both") {
+      const shopifyCredential = await getShopifyCredential();
+      const client = new ShopifyClient({
+        shopDomain: shopifyCredential.shopDomain,
+        accessToken: shopifyCredential.accessToken,
+        apiVersion: shopifyCredential.apiVersion || DEFAULT_SHOPIFY_VERSION,
+      });
+      const parts = ["status:any"];
+      if (dateStart) parts.push(`updated_at:>='${dateStart}'`);
+      if (dateEnd) parts.push(`updated_at:<='${dateEnd}'`);
+      const query = parts.join(" ");
+      const products = await client.listAllProductsByQuery(query, limit || undefined);
+      let processed = 0;
+      for (const product of products) {
+        const variants = product.variants?.edges || [];
+        const sku = variants[0]?.node?.sku || null;
+        await upsertProduct({
+          shopifyId: product.id,
+          name: product.title || null,
+          sku,
+          reference: sku || null,
+          statusShopify: product.status || null,
+          sourceUpdatedAt: (product as { updatedAt?: string }).updatedAt || null,
+          source: "shopify",
+        });
+        processed += 1;
+      }
+      results.shopify = { processed };
+    }
+
+    res.json({ ok: true, ...results });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Backfill error" });
   }
 }
 

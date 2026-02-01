@@ -108,6 +108,33 @@ export class ShopifyClient {
     return orders;
   }
 
+  async listAllProductsByQuery(query: string, limit?: number) {
+    let cursor: string | null = null;
+    let hasNextPage = true;
+    const products: ShopifyProduct[] = [];
+    while (hasNextPage) {
+      const data: { products: ShopifyProductConnection } =
+        await this.request<{ products: ShopifyProductConnection }>(
+        <GraphQlRequest>{
+          query: PRODUCTS_PAGED_QUERY,
+          variables: { query, cursor },
+        }
+      );
+      const page =
+        data.products?.edges?.map((edge: { node: ShopifyProduct }) => edge.node) || [];
+      products.push(...page);
+      if (limit && products.length >= limit) {
+        return products.slice(0, limit);
+      }
+      hasNextPage = Boolean(data.products?.pageInfo?.hasNextPage);
+      cursor = data.products?.pageInfo?.endCursor || null;
+      if (!cursor) {
+        hasNextPage = false;
+      }
+    }
+    return products;
+  }
+
   async listAllCustomers(limit?: number) {
     let cursor: string | null = null;
     let hasNextPage = true;
@@ -412,6 +439,7 @@ export type ShopifyProduct = {
   id: string;
   title: string;
   status: string;
+  updatedAt?: string | null;
   variants: {
     edges: Array<{
       node: {
@@ -612,6 +640,7 @@ const ORDERS_PAGED_QUERY = `
           email
           displayFinancialStatus
           paymentGatewayNames
+          updatedAt
           processedAt
           shippingAddress { address1 city province zip countryCodeV2 }
           totalPriceSet {
@@ -664,6 +693,28 @@ const PRODUCTS_UPDATED_SINCE_QUERY = `
           id
           title
           status
+          updatedAt
+          variants(first: 100) {
+            edges {
+              node { id title sku price inventoryItem { id } }
+            }
+          }
+        }
+      }
+      pageInfo { hasNextPage endCursor }
+    }
+  }
+`;
+
+const PRODUCTS_PAGED_QUERY = `
+  query ProductsPaged($query: String!, $cursor: String) {
+    products(first: 50, after: $cursor, query: $query) {
+      edges {
+        node {
+          id
+          title
+          status
+          updatedAt
           variants(first: 100) {
             edges {
               node { id title sku price inventoryItem { id } }
