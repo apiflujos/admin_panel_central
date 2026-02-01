@@ -1202,6 +1202,48 @@ button {
   margin-bottom: 6px;
 }
 
+.connections-compact {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.connection-block {
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.connection-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.connection-block-header h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.connection-block-header .kpi-sub {
+  margin: 2px 0 0;
+}
+
+.settings-grid.connection-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.connections-compact .connection-block:last-child {
+  grid-column: 1 / -1;
+}
+
 .settings-divider {
   border-top: 1px dashed var(--stroke);
   padding-top: 10px;
@@ -2319,9 +2361,13 @@ textarea {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .settings-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-grid.connection-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 
   .products-grid {
     grid-template-columns: 1fr;
@@ -2372,15 +2418,27 @@ textarea {
     grid-template-columns: 1fr;
   }
 
-  .settings-grid {
-    grid-template-columns: 1fr;
-  }
+.settings-grid {
+  grid-template-columns: 1fr;
+}
+
+.connections-compact {
+  grid-template-columns: 1fr;
+}
+
+.connections-compact .connection-block:last-child {
+  grid-column: auto;
+}
+
+.settings-grid.connection-fields {
+  grid-template-columns: 1fr;
+}
 
 
-  .toolbar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+.toolbar {
+  flex-direction: column;
+  align-items: flex-start;
+}
 
   .mapping-grid {
     grid-template-columns: 1fr;

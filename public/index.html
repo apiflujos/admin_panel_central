@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260201d" />
+    <link rel="stylesheet" href="styles.css?v=20260201e" />
   </head>
   <body>
     <div class="app-shell">
@@ -541,57 +541,71 @@
                   <span class="field-hint">Este nombre identifica el set de configuraciones.</span>
                 </div>
               </div>
-              <div class="settings-group-title">Shopify</div>
-              <div class="settings-grid align-bottom two-cols">
-                <div class="field">
-                  <label>Shopify dominio</label>
-                  <input type="text" id="shopify-domain" placeholder="tu-tienda.myshopify.com" />
-                  <span class="field-hint">Te redirigiremos a Shopify para autorizar la app.</span>
+              <div class="connections-compact">
+                <div class="connection-block">
+                  <div class="connection-block-header">
+                    <div>
+                      <h4>Shopify</h4>
+                      <p class="kpi-sub">Conexion OAuth para esta tienda</p>
+                    </div>
+                    <button class="primary" id="connect-shopify" type="button">Conectar Shopify</button>
+                  </div>
+                  <div class="settings-grid connection-fields">
+                    <div class="field span-2">
+                      <label>Shopify dominio</label>
+                      <input type="text" id="shopify-domain" placeholder="tu-tienda.myshopify.com" />
+                      <span class="field-hint">Se usa para iniciar la autorizacion OAuth.</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="field field-actions">
-                  <label>&nbsp;</label>
-                  <button class="primary" id="connect-shopify" type="button">Conectar Shopify</button>
+
+                <div class="connection-block">
+                  <div class="connection-block-header">
+                    <div>
+                      <h4>Alegra</h4>
+                      <p class="kpi-sub">Cuenta y credenciales</p>
+                    </div>
+                    <button class="primary" id="connect-alegra" type="button">Conectar Alegra</button>
+                  </div>
+                  <div class="settings-grid connection-fields">
+                    <div class="field">
+                      <label>Cuenta Alegra</label>
+                      <select id="alegra-account-select">
+                        <option value="new">Nueva cuenta Alegra</option>
+                      </select>
+                    </div>
+                    <div class="field" id="alegra-env-field">
+                      <label>Entorno Alegra</label>
+                      <select id="alegra-env-select">
+                        <option value="prod">Produccion</option>
+                        <option value="sandbox">Sandbox</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label>Email usuario</label>
+                      <input type="email" id="alegra-email" placeholder="admin@empresa.com" />
+                    </div>
+                    <div class="field">
+                      <label>API Key</label>
+                      <input type="password" id="alegra-key" placeholder="api_********" autocomplete="new-password" />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div class="settings-divider"></div>
-              <div class="settings-group-title">Alegra</div>
-              <div class="settings-grid align-bottom two-cols">
-                <div class="field">
-                  <label>Cuenta Alegra</label>
-                  <select id="alegra-account-select">
-                    <option value="new">Nueva cuenta Alegra</option>
-                  </select>
-                </div>
-                <div class="field" id="alegra-env-field">
-                  <label>Entorno Alegra</label>
-                  <select id="alegra-env-select">
-                    <option value="prod">Produccion</option>
-                    <option value="sandbox">Sandbox</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label>Email usuario</label>
-                  <input type="email" id="alegra-email" placeholder="admin@empresa.com" />
-                </div>
-                <div class="field">
-                  <label>API Key</label>
-                  <input type="password" id="alegra-key" placeholder="api_********" autocomplete="new-password" />
-                </div>
-                <div class="field field-actions span-2">
-                  <label>&nbsp;</label>
-                  <button class="primary" id="connect-alegra" type="button">Conectar Alegra</button>
-                </div>
-              </div>
-              <div class="settings-divider"></div>
-              <div class="settings-group-title">IA</div>
-              <div class="settings-grid align-bottom two-cols">
-                <div class="field span-2">
-                  <label>IA API Key</label>
-                  <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
-                </div>
-                <div class="field field-actions">
-                  <label>&nbsp;</label>
-                  <button class="primary" id="ai-save" type="button">Guardar token</button>
+
+                <div class="connection-block">
+                  <div class="connection-block-header">
+                    <div>
+                      <h4>IA</h4>
+                      <p class="kpi-sub">Token del proveedor IA</p>
+                    </div>
+                    <button class="primary" id="ai-save" type="button">Guardar token</button>
+                  </div>
+                  <div class="settings-grid connection-fields">
+                    <div class="field span-2">
+                      <label>IA API Key</label>
+                      <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1134,6 +1148,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260201d" type="module"></script>
+    <script src="app.js?v=20260201e" type="module"></script>
   </body>
 </html>
