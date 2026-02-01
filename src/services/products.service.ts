@@ -73,16 +73,10 @@ export async function upsertProduct(input: ProductInput) {
           sku = COALESCE($6, sku),
           status_alegra = COALESCE($7, status_alegra),
           status_shopify = COALESCE($8, status_shopify),
-          inventory_quantity = CASE
-            WHEN $9 IS NOT NULL THEN $9
-            ELSE inventory_quantity
-          END,
-          warehouse_ids = CASE
-            WHEN $10 IS NOT NULL THEN $10
-            ELSE warehouse_ids
-          END,
-          source_updated_at = COALESCE($11, source_updated_at),
-          source = COALESCE($12, source),
+          inventory_quantity = COALESCE($9::numeric, inventory_quantity),
+          warehouse_ids = COALESCE($10::text[], warehouse_ids),
+          source_updated_at = COALESCE($11::timestamptz, source_updated_at),
+          source = COALESCE($12::text, source),
           sync_status = CASE
             WHEN COALESCE($2, alegra_item_id) IS NOT NULL
              AND COALESCE($3, shopify_product_id) IS NOT NULL
@@ -116,7 +110,7 @@ export async function upsertProduct(input: ProductInput) {
     `
     INSERT INTO products
       (organization_id, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, last_sync_at)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,NOW())
+    VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::numeric,$11::text[],$12::timestamptz,$13::text,NOW())
     `,
     [
       orgId,
