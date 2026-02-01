@@ -399,6 +399,24 @@ function loadSidebarState() {
 navItems.forEach((item) => {
   item.addEventListener("click", () => {
     activateNav(item.getAttribute("data-target"));
+    const moduleKey = item.getAttribute("data-module");
+    const groups = (item.getAttribute("data-groups") || "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    if (moduleKey && item.getAttribute("data-target") === "settings") {
+      setTimeout(() => {
+        groups.forEach((groupKey) => {
+          const panel = getGroupPanel(groupKey);
+          if (panel) setGroupCollapsed(panel, false);
+        });
+        const panel = getModulePanel(moduleKey);
+        if (panel) {
+          setModuleCollapsed(panel, false);
+          panel.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 0);
+    }
   });
 });
 

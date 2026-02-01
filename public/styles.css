@@ -1080,6 +1080,10 @@ button {
   background: linear-gradient(90deg, var(--alegra-green), var(--shopify-green));
 }
 
+.settings-group.provider-group[data-group="alegra-shopify"] .panel[data-provider="bridge"]::before {
+  background: var(--shopify-green);
+}
+
 .panel-header {
   display: flex;
   justify-content: space-between;
@@ -1228,7 +1232,7 @@ button {
 }
 
 .settings-group.provider-group[data-group="alegra-shopify"] .settings-group-header {
-  border-left: 3px solid var(--alegra-green);
+  border-left: 3px solid var(--shopify-green);
   padding-left: 10px;
 }
 
@@ -1462,6 +1466,11 @@ button {
 .panel-tag.tag-bridge {
   color: var(--alegra-blue);
   background: linear-gradient(90deg, rgba(0, 255, 162, 0.22), rgba(149, 191, 71, 0.22));
+}
+
+.settings-group.provider-group[data-group="alegra-shopify"] .panel-tag.tag-bridge {
+  color: var(--shopify-ink);
+  background: rgba(149, 191, 71, 0.22);
 }
 
 .chart-placeholder {
