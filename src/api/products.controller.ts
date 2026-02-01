@@ -204,14 +204,20 @@ const resolveItemSku = (item: AlegraItem) => {
     item.code ||
     item.barcode ||
     extractCustomFieldValue(item, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"]);
-  if (fromItem) return fromItem;
+  if (fromItem) return normalizeText(fromItem);
   const variants = Array.isArray(item.itemVariants) ? item.itemVariants : [];
   const firstVariant = variants[0];
-  return (
+  return normalizeText(
     firstVariant?.reference ||
-    firstVariant?.barcode ||
-    extractCustomFieldValue(item, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"])
+      firstVariant?.barcode ||
+      extractCustomFieldValue(item, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"])
   );
+};
+
+const normalizeText = (value: unknown) => {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim();
+  return text ? text : null;
 };
 
 const persistProductsFromAlegra = async (items: AlegraItem[]) => {
@@ -228,8 +234,8 @@ const persistProductsFromAlegra = async (items: AlegraItem[]) => {
       await upsertProduct({
         alegraId: item.id,
         name: item.name || null,
-        reference: item.reference || item.code || item.barcode || null,
-        sku: resolveItemSku(item) || null,
+        reference: normalizeText(item.reference || item.code || item.barcode),
+        sku: resolveItemSku(item),
         statusAlegra: item.status || null,
         inventoryQuantity: typeof inventoryQuantity === "number" ? inventoryQuantity : null,
         warehouseIds: warehouseIds.length ? warehouseIds : null,
@@ -1124,8 +1130,8 @@ export async function publishShopifyHandler(req: Request, res: Response) {
       alegraId: item.id,
       shopifyId: shopifyProductId,
       name: item.name || null,
-      reference: item.reference || item.code || item.barcode || null,
-      sku: resolveItemSku(item) || null,
+      reference: normalizeText(item.reference || item.code || item.barcode),
+      sku: resolveItemSku(item),
       statusAlegra: item.status || null,
       statusShopify: settings.status || "draft",
       inventoryQuantity: resolveItemQuantityForFilter(item, []),
@@ -1440,8 +1446,8 @@ export async function syncProductsHandler(req: Request, res: Response) {
               alegraId: current.item.id,
               shopifyId: shopifyProductId,
               name: current.item.name || null,
-              reference: current.item.reference || current.item.code || current.item.barcode || null,
-              sku: resolveItemSku(current.item) || null,
+              reference: normalizeText(current.item.reference || current.item.code || current.item.barcode),
+              sku: resolveItemSku(current.item),
               statusAlegra: current.item.status || null,
               statusShopify: settings.status || "draft",
               inventoryQuantity: resolveItemQuantityForFilter(current.item, []),
