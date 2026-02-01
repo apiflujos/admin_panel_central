@@ -1768,9 +1768,14 @@ function applyLegacyStoreConfig(config) {
     applyInvoiceSettings(invoice);
     storeInvoiceOverrides = invoice;
   }
-  const sync = (config?.sync as Record<string, unknown>) || {};
-  const contactSync = (sync.contacts as Record<string, unknown>) || {};
-  const orderSync = (sync.orders as Record<string, unknown>) || {};
+  const sync =
+    config && typeof config === "object" && config.sync && typeof config.sync === "object"
+      ? config.sync
+      : {};
+  const contactSync =
+    sync.contacts && typeof sync.contacts === "object" ? sync.contacts : {};
+  const orderSync =
+    sync.orders && typeof sync.orders === "object" ? sync.orders : {};
   const matchPriority = Array.isArray(contactSync.matchPriority)
     ? contactSync.matchPriority.map((item) => String(item).toLowerCase())
     : typeof contactSync.matchPriority === "string"
