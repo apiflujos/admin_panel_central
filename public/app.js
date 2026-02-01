@@ -1708,19 +1708,23 @@ function renderConnections(settings) {
       const alegraConnected = Boolean(store.alegraConnected ?? store.alegraAccountId);
       const shopifyLabel = store.shopDomain || "Shopify sin dominio";
       const storeLabel = store.storeName || store.shopDomain || "Tienda";
-      const storeTitle = storeLabel ? `Conexion tienda ${storeLabel}` : "Conexion";
       const alegraLabel = store.alegraEmail
         ? `${store.alegraEmail} (${store.alegraEnvironment || "prod"})`
         : "Sin Alegra asignado";
+      const overallConnected = shopifyConnected && alegraConnected;
+      const overallLabel = overallConnected ? "Conectado" : "Pendiente";
+      const storeLed = storeLabel ? "is-ok" : "is-off";
       const shopifyLed = shopifyConnected ? "is-ok" : "is-off";
       const alegraLed = alegraConnected ? "is-ok" : "is-off";
       return `
         <div class="connection-card">
-          <div class="connection-head">
-            <h4>${storeTitle}</h4>
-            <span class="status-pill ${shopifyConnected && alegraConnected ? "is-ok" : "is-off"}">
-              ${shopifyConnected && alegraConnected ? "Conectado" : "Pendiente"}
-            </span>
+          <div class="status-row connection-title">
+            <span class="status-led ${storeLed}"></span>
+            <div>
+              <p>Conexion tienda</p>
+              <span class="muted">${storeLabel}</span>
+            </div>
+            <span class="status-pill ${overallConnected ? "is-ok" : "is-off"}">${overallLabel}</span>
           </div>
           <div class="status-row">
             <span class="status-led ${shopifyLed}"></span>

@@ -1490,7 +1490,7 @@ button {
 
 .connections-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
@@ -2115,6 +2115,14 @@ textarea {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.status-row.connection-title {
+  justify-content: space-between;
+}
+
+.status-row.connection-title > div {
+  flex: 1;
 }
 
 .status-compact {
