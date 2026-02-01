@@ -17,8 +17,18 @@ CREATE TABLE shopify_stores (
   id SERIAL PRIMARY KEY,
   organization_id INTEGER NOT NULL REFERENCES organizations(id),
   shop_domain TEXT NOT NULL,
+  store_name TEXT,
   access_token_encrypted TEXT NOT NULL,
   scopes TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE shopify_oauth_states (
+  id SERIAL PRIMARY KEY,
+  organization_id INTEGER NOT NULL REFERENCES organizations(id),
+  shop_domain TEXT NOT NULL,
+  nonce TEXT NOT NULL,
+  store_name TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

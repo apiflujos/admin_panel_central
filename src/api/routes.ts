@@ -38,7 +38,12 @@ import {
   syncOrdersHandler,
   syncProductsHandler,
 } from "./products.controller";
-import { createShopifyWebhooksHandler } from "./shopify-webhooks.controller";
+import {
+  createShopifyWebhooksHandler,
+  deleteShopifyWebhooksHandler,
+  getShopifyWebhooksStatusHandler,
+} from "./shopify-webhooks.controller";
+import { shopifyOAuthCallback, startShopifyOAuth } from "./shopify-oauth.controller";
 
 export const router = Router();
 
@@ -46,6 +51,8 @@ router.post("/webhooks/shopify", handleShopifyWebhook);
 router.post("/webhooks/alegra", handleAlegraWebhook);
 
 router.post("/auth/login", loginHandler);
+router.get("/auth/shopify", startShopifyOAuth);
+router.get("/auth/shopify/callback", shopifyOAuthCallback);
 router.get("/company/public", getCompanyPublicHandler);
 
 router.use(authMiddleware);
@@ -86,6 +93,8 @@ router.post("/assistant/execute", assistantExecuteHandler);
 router.post("/shopify/publish", publishShopifyHandler);
 router.post("/shopify/lookup-batch", lookupShopifyHandler);
 router.post("/shopify/webhooks", requireAdmin, createShopifyWebhooksHandler);
+router.post("/shopify/webhooks/delete", requireAdmin, deleteShopifyWebhooksHandler);
+router.get("/shopify/webhooks/status", requireAdmin, getShopifyWebhooksStatusHandler);
 router.post("/sync/products", syncProductsHandler);
 router.post("/sync/products/stop", stopProductsSyncHandler);
 router.post("/sync/orders", syncOrdersHandler);

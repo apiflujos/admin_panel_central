@@ -12,6 +12,7 @@ type ShopifyStoreInput = {
   shopDomain: string;
   accessToken: string;
   storeName?: string;
+  scopes?: string;
   alegra?: AlegraAccountInput;
 };
 
@@ -164,6 +165,7 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
 
   const shopDomain = normalizeShopDomain(input.shopDomain || "");
   const storeName = input.storeName?.trim() || null;
+  const scopes = input.scopes?.trim() || null;
   if (!shopDomain) {
     throw new Error("Dominio Shopify requerido");
   }
@@ -190,10 +192,11 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
       `
       UPDATE shopify_stores
       SET access_token_encrypted = COALESCE($1, access_token_encrypted),
-          store_name = COALESCE($2, store_name)
-      WHERE id = $3
+          store_name = COALESCE($2, store_name),
+          scopes = COALESCE($3, scopes)
+      WHERE id = $4
       `,
-      [accessTokenEncrypted, storeName, storeId]
+      [accessTokenEncrypted, storeName, scopes, storeId]
     );
   } else {
     if (!accessTokenEncrypted) {
@@ -205,7 +208,7 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
       VALUES ($1, $2, $3, $4, $5)
       RETURNING id
       `,
-      [orgId, shopDomain, storeName, accessTokenEncrypted, ""]
+      [orgId, shopDomain, storeName, accessTokenEncrypted, scopes || ""]
     );
     storeId = created.rows[0]?.id;
     isNew = true;

@@ -4,6 +4,7 @@ import path from "path";
 import helmet from "helmet";
 import morgan from "morgan";
 import { router } from "./api/routes";
+import { shopifyOAuthCallback, startShopifyOAuth } from "./api/shopify-oauth.controller";
 import { startInventoryAdjustmentsPoller } from "./jobs/inventory-adjustments";
 import { startOrdersSyncPoller } from "./jobs/orders-sync";
 import { startProductsSyncPoller } from "./jobs/products-sync";
@@ -36,6 +37,12 @@ app.use(
 // Endpoint de salud para Render
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
+});
+
+app.get("/auth", startShopifyOAuth);
+app.get("/auth/callback", shopifyOAuthCallback);
+app.get("/dashboard", (_req, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
 });
 
 app.use("/api", router);

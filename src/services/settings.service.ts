@@ -227,16 +227,42 @@ export async function getShopifyCredential() {
   const pool = getPool();
   const orgId = getOrgId();
   const shopify = await readCredential(pool, orgId, "shopify");
-  if (!shopify?.shopDomain || !shopify?.accessToken) {
+  if (shopify?.shopDomain && shopify?.accessToken) {
+    const cleanedDomain = String(shopify.shopDomain)
+      .trim()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/.*$/, "");
+    return {
+      ...shopify,
+      shopDomain: cleanedDomain,
+    } as {
+      shopDomain: string;
+      accessToken: string;
+      apiVersion?: string;
+      locationId?: string;
+    };
+  }
+  const store = await pool.query<{ shop_domain: string; access_token_encrypted: string }>(
+    `
+    SELECT shop_domain, access_token_encrypted
+    FROM shopify_stores
+    WHERE organization_id = $1
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId]
+  );
+  if (!store.rows.length) {
     throw new Error("Missing Shopify credentials in DB");
   }
-  const cleanedDomain = String(shopify.shopDomain)
+  const decrypted = JSON.parse(decryptString(store.rows[0].access_token_encrypted));
+  const cleanedDomain = String(store.rows[0].shop_domain)
     .trim()
     .replace(/^https?:\/\//, "")
     .replace(/\/.*$/, "");
   return {
-    ...shopify,
     shopDomain: cleanedDomain,
+    accessToken: String(decrypted?.accessToken || ""),
   } as {
     shopDomain: string;
     accessToken: string;

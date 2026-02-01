@@ -190,6 +190,24 @@ export class ShopifyClient {
     );
   }
 
+  async listWebhookSubscriptions(first = 50) {
+    return this.request<{
+      webhookSubscriptions: { edges: Array<{ node: WebhookSubscriptionNode }> };
+    }>(<GraphQlRequest>{
+      query: WEBHOOK_SUBSCRIPTION_LIST_QUERY,
+      variables: { first },
+    });
+  }
+
+  async deleteWebhookSubscription(id: string) {
+    return this.request<{ webhookSubscriptionDelete: WebhookSubscriptionDeleteResult }>(
+      <GraphQlRequest>{
+        query: WEBHOOK_SUBSCRIPTION_DELETE_MUTATION,
+        variables: { id },
+      }
+    );
+  }
+
   async findVariantByIdentifier(identifier: string) {
     const escaped = identifier.replace(/"/g, '\\"');
     const query = `sku:\"${escaped}\" OR barcode:\"${escaped}\"`;
@@ -351,8 +369,23 @@ type ShopifyProductCreateResult = {
 };
 
 type WebhookSubscriptionCreateResult = {
-  webhookSubscription?: { id: string } | null;
+  webhookSubscription?: {
+    id: string;
+    topic?: string | null;
+    endpoint?: { callbackUrl?: string | null } | null;
+  } | null;
   userErrors: Array<{ field?: string[]; message: string }>;
+};
+
+type WebhookSubscriptionDeleteResult = {
+  deletedWebhookSubscriptionId?: string | null;
+  userErrors: Array<{ field?: string[]; message: string }>;
+};
+
+type WebhookSubscriptionNode = {
+  id: string;
+  topic: string;
+  endpoint?: { __typename?: string; callbackUrl?: string | null } | null;
 };
 
 
@@ -535,7 +568,44 @@ const WEBHOOK_SUBSCRIPTION_CREATE_MUTATION = `
   mutation WebhookSubscriptionCreate($topic: WebhookSubscriptionTopic!, $webhookSubscription: WebhookSubscriptionInput!) {
     webhookSubscriptionCreate(topic: $topic, webhookSubscription: $webhookSubscription) {
       userErrors { field message }
-      webhookSubscription { id }
+      webhookSubscription {
+        id
+        topic
+        endpoint {
+          __typename
+          ... on WebhookHttpEndpoint {
+            callbackUrl
+          }
+        }
+      }
+    }
+  }
+`;
+
+const WEBHOOK_SUBSCRIPTION_LIST_QUERY = `
+  query WebhookSubscriptions($first: Int!) {
+    webhookSubscriptions(first: $first) {
+      edges {
+        node {
+          id
+          topic
+          endpoint {
+            __typename
+            ... on WebhookHttpEndpoint {
+              callbackUrl
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+const WEBHOOK_SUBSCRIPTION_DELETE_MUTATION = `
+  mutation WebhookSubscriptionDelete($id: ID!) {
+    webhookSubscriptionDelete(id: $id) {
+      deletedWebhookSubscriptionId
+      userErrors { field message }
     }
   }
 `;

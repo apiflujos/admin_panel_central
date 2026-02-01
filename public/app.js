@@ -4324,7 +4324,7 @@ function startShopifyOAuthFlow() {
   if (resolvedStoreName) {
     params.set("storeName", resolvedStoreName);
   }
-  window.location.href = `/auth?${params.toString()}`;
+  window.location.href = `/api/auth/shopify?${params.toString()}`;
 }
 
 async function connectStore(kind) {
