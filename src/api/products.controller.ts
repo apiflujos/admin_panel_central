@@ -2047,38 +2047,65 @@ export async function backfillProductsHandler(req: Request, res: Response) {
       const pageSize = 30;
       let processed = 0;
       let pages = 0;
-      while (true) {
-        if (limit !== null && processed >= limit) break;
-        const batchLimit =
-          limit !== null ? Math.min(pageSize, Math.max(0, limit - processed)) : pageSize;
-        if (batchLimit <= 0) break;
-        const query = new URLSearchParams();
-        query.set("start", String(start));
-        query.set("limit", String(batchLimit));
-        query.set("mode", "advanced");
-        query.set(
-          "fields",
-          "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code,created_at,createdAt,updated_at,updatedAt"
-        );
-        if (dateStart) {
-          query.set("updated_at_start", dateStart);
+      let usedCache = false;
+
+      const cachedTotal = await countAlegraItemsCache();
+      if (cachedTotal > 0) {
+        usedCache = true;
+        while (true) {
+          if (limit !== null && processed >= limit) break;
+          const batchLimit =
+            limit !== null ? Math.min(pageSize, Math.max(0, limit - processed)) : pageSize;
+          if (batchLimit <= 0) break;
+          const cached = await listAlegraItemsCache({ start, limit: batchLimit });
+          const batch = (cached.items as unknown as AlegraItem[]) || [];
+          if (!batch.length) break;
+          await persistProductsFromAlegra(batch);
+          processed += batch.length;
+          start += batch.length;
+          pages += 1;
+          if (batch.length < batchLimit) break;
         }
-        const response = await fetchAlegraWithRetry("/items", query);
-        if (!response.ok) break;
-        const payload = (await response.json()) as { items?: AlegraItem[]; data?: AlegraItem[] };
-        const batch = Array.isArray(payload.items)
-          ? payload.items
-          : Array.isArray(payload.data)
-            ? payload.data
-            : [];
-        if (!batch.length) break;
-        await persistProductsFromAlegra(batch);
-        processed += batch.length;
-        start += batch.length;
-        pages += 1;
-        if (batch.length < batchLimit) break;
+        results.alegra = { processed, pages, source: "cache", total: cachedTotal };
       }
-      results.alegra = { processed, pages };
+
+      if (!usedCache) {
+        start = 0;
+        processed = 0;
+        pages = 0;
+        while (true) {
+          if (limit !== null && processed >= limit) break;
+          const batchLimit =
+            limit !== null ? Math.min(pageSize, Math.max(0, limit - processed)) : pageSize;
+          if (batchLimit <= 0) break;
+          const query = new URLSearchParams();
+          query.set("start", String(start));
+          query.set("limit", String(batchLimit));
+          query.set("mode", "advanced");
+          query.set(
+            "fields",
+            "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code,created_at,createdAt,updated_at,updatedAt"
+          );
+          if (dateStart) {
+            query.set("updated_at_start", dateStart);
+          }
+          const response = await fetchAlegraWithRetry("/items", query);
+          if (!response.ok) break;
+          const payload = (await response.json()) as { items?: AlegraItem[]; data?: AlegraItem[] };
+          const batch = Array.isArray(payload.items)
+            ? payload.items
+            : Array.isArray(payload.data)
+              ? payload.data
+              : [];
+          if (!batch.length) break;
+          await persistProductsFromAlegra(batch);
+          processed += batch.length;
+          start += batch.length;
+          pages += 1;
+          if (batch.length < batchLimit) break;
+        }
+        results.alegra = { processed, pages, source: "api" };
+      }
     }
 
     if (source === "shopify" || source === "both") {
