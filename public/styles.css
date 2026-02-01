@@ -1879,6 +1879,15 @@ textarea {
   gap: 10px;
 }
 
+.settings-grid.align-bottom {
+  align-items: end;
+}
+
+.settings-grid.align-bottom .field-actions {
+  grid-column: -2 / -1;
+  align-self: end;
+}
+
 .field {
   display: grid;
   gap: 6px;

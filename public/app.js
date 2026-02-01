@@ -1440,7 +1440,7 @@ async function loadConnections() {
     activeStoreName = stores[0]?.storeName || "";
     if (storeNameInput) {
       storeNameInput.placeholder =
-        getActiveStoreLabel() || "Olivia Shoes Colombia";
+        getActiveStoreLabel() || "Tienda de ejemplo";
     }
     renderStoreActiveSelect(stores);
   } catch {
@@ -1502,7 +1502,7 @@ function renderStoreActiveSelect(stores) {
   storeActiveSelect.value = nextDomain;
   shopifyAdminBase = nextDomain ? `https://${nextDomain}/admin` : "";
   if (storeNameInput) {
-    storeNameInput.placeholder = getActiveStoreLabel() || "Olivia Shoes Colombia";
+    storeNameInput.placeholder = getActiveStoreLabel() || "Tienda de ejemplo";
   }
   updateStoreModuleTitles();
   setShopifyWebhooksStatus("Sin configurar");
@@ -4459,7 +4459,7 @@ if (storeActiveSelect) {
     activeStoreName =
       storesCache.find((store) => store.shopDomain === nextDomain)?.storeName || "";
     if (storeNameInput) {
-      storeNameInput.placeholder = getActiveStoreLabel() || "Olivia Shoes Colombia";
+      storeNameInput.placeholder = getActiveStoreLabel() || "Tienda de ejemplo";
     }
     shopifyAdminBase = nextDomain ? `https://${nextDomain}/admin` : "";
     try {
