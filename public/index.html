@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260201e" />
+    <link rel="stylesheet" href="styles.css?v=20260201f" />
   </head>
   <body>
     <div class="app-shell">
@@ -611,6 +611,18 @@
             </div>
           </div>
 
+          <div class="panel admin-only module" data-module="connections-summary" data-help="Resumen de conexiones guardadas para esta organizacion.">
+            <div class="panel-header">
+              <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
+              <span class="panel-tag">Resumen</span>
+            </div>
+            <div class="module-body">
+              <div class="connections-grid" id="connections-grid">
+                <div class="connection-card empty">Sin conexiones.</div>
+              </div>
+            </div>
+          </div>
+
           <div class="settings-group store-group" data-group="store">
             <div class="settings-group-header" data-group-toggle="store">
               <h3 data-store-title data-title-base="Tienda">Tienda</h3>
@@ -684,7 +696,14 @@
             </div>
           </div>
 
-                  <div class="settings-group-title">Alegra → Shopify</div>
+                </div>
+              </div>
+              <div class="settings-group provider-group" data-group="alegra-shopify">
+                <div class="settings-group-header" data-group-toggle="alegra-shopify">
+                  <h4>Alegra → Shopify</h4>
+                </div>
+                <div class="settings-group-body">
+                  <div class="settings-group-title">Autopublicacion</div>
 
                   <div class="panel admin-only module" data-module="shopify-rules" id="legacy-publish-panel" data-help="Los productos salen de Alegra y se publican en Shopify. Define reglas y ajustes automaticos.">
             <div class="panel-header">
@@ -722,6 +741,44 @@
               <div class="module-footer">
                 <button class="ghost module-action" data-module-edit="shopify-rules" type="button">Editar</button>
                 <button class="primary module-action" data-module-save="shopify-rules" type="button">Guardar</button>
+              </div>
+            </div>
+          </div>
+
+                  <div class="settings-group-title">Inventario</div>
+
+                  <div class="panel admin-only module" data-module="alegra-inventory" id="inventory-rules-panel" data-help="Los productos y stock salen de Alegra y se publican en Shopify. Selecciona las bodegas fuente.">
+            <div class="panel-header">
+              <h3 data-module-toggle="alegra-inventory" data-title-base="Alegra → Shopify">Alegra → Shopify</h3>
+              <span class="panel-tag">Alegra → Shopify</span>
+            </div>
+            <div class="module-body">
+              <div class="settings-grid">
+                <div class="field field-span">
+                  <p class="field-hint">Los productos y el stock vienen de Alegra y se publican en Shopify.</p>
+                </div>
+                <div class="field">
+                  <label>Publicar en Shopify solo con stock</label>
+                  <input type="checkbox" id="cfg-inventory-publish-stock" class="toggle" />
+                </div>
+                <div class="field">
+                  <label>Auto-publicar ajustes en Shopify</label>
+                  <input type="checkbox" id="cfg-inventory-auto-publish" class="toggle" />
+                </div>
+                <div class="field span-2">
+                  <label>Bodegas de Alegra para sincronizacion</label>
+                  <details class="multi-select">
+                    <summary>
+                      <span>Seleccionar bodegas</span>
+                      <em id="cfg-inventory-warehouses-summary">Todas</em>
+                    </summary>
+                    <div class="checkbox-grid single" id="cfg-inventory-warehouses"></div>
+                  </details>
+                </div>
+              </div>
+              <div class="module-footer">
+                <button class="ghost module-action" data-module-edit="alegra-inventory" type="button">Editar</button>
+                <button class="primary module-action" data-module-save="alegra-inventory" type="button">Guardar</button>
               </div>
             </div>
           </div>
@@ -875,44 +932,6 @@
             </div>
           </div>
 
-                  <div class="settings-group-title">Alegra → Shopify</div>
-
-                  <div class="panel admin-only module" data-module="alegra-inventory" id="inventory-rules-panel" data-help="Los productos y stock salen de Alegra y se publican en Shopify. Selecciona las bodegas fuente.">
-            <div class="panel-header">
-              <h3 data-module-toggle="alegra-inventory" data-title-base="Alegra → Shopify">Alegra → Shopify</h3>
-              <span class="panel-tag">Alegra → Shopify</span>
-            </div>
-            <div class="module-body">
-              <div class="settings-grid">
-                <div class="field field-span">
-                  <p class="field-hint">Los productos y el stock vienen de Alegra y se publican en Shopify.</p>
-                </div>
-                <div class="field">
-                  <label>Publicar en Shopify solo con stock</label>
-                  <input type="checkbox" id="cfg-inventory-publish-stock" class="toggle" />
-                </div>
-                <div class="field">
-                  <label>Auto-publicar ajustes en Shopify</label>
-                  <input type="checkbox" id="cfg-inventory-auto-publish" class="toggle" />
-                </div>
-                <div class="field span-2">
-                  <label>Bodegas de Alegra para sincronizacion</label>
-                  <details class="multi-select">
-                    <summary>
-                      <span>Seleccionar bodegas</span>
-                      <em id="cfg-inventory-warehouses-summary">Todas</em>
-                    </summary>
-                    <div class="checkbox-grid single" id="cfg-inventory-warehouses"></div>
-                  </details>
-                </div>
-              </div>
-              <div class="module-footer">
-                <button class="ghost module-action" data-module-edit="alegra-inventory" type="button">Editar</button>
-                <button class="primary module-action" data-module-save="alegra-inventory" type="button">Guardar</button>
-              </div>
-            </div>
-          </div>
-
                   <div class="settings-group-title">Facturacion</div>
 
                   <div class="panel admin-only module" data-module="alegra-invoice" id="legacy-invoice-panel" data-help="Define listas de precios y parametros de facturacion en Alegra.">
@@ -1004,17 +1023,6 @@
                 <button class="primary module-action" data-module-save="alegra-invoice" type="button">Guardar</button>
               </div>
             </div>
-                  </div>
-                </div>
-              </div>
-              <div class="panel admin-only module" data-module="connections-summary" data-help="Resumen de conexiones guardadas para esta organizacion.">
-                <div class="panel-header">
-                  <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
-                  <span class="panel-tag">Resumen</span>
-                </div>
-                <div class="module-body">
-                  <div class="connections-grid" id="connections-grid">
-                    <div class="connection-card empty">Sin conexiones.</div>
                   </div>
                 </div>
               </div>
@@ -1148,6 +1156,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260201e" type="module"></script>
+    <script src="app.js?v=20260201f" type="module"></script>
   </body>
 </html>
