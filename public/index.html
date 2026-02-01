@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260201f" />
+    <link rel="stylesheet" href="styles.css?v=20260201i" />
   </head>
   <body>
     <div class="app-shell">
@@ -526,8 +526,6 @@
         </section>
 
         <section class="section" id="settings">
-          <div class="settings-group-title">Conexiones</div>
-
           <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-help="Completa el nombre de la tienda y conecta Shopify, Alegra e IA. Este paso crea la configuracion base.">
             <div class="panel-header">
               <h3 data-module-toggle="connections" data-title-base="Nueva conexion">Nueva conexion</h3>
@@ -545,7 +543,10 @@
                 <div class="connection-block">
                   <div class="connection-block-header">
                     <div>
-                      <h4>Shopify</h4>
+                      <div class="provider-title">
+                        <img class="provider-logo" src="/brands/shopify.png" alt="Shopify" />
+                        <h4>Shopify</h4>
+                      </div>
                       <p class="kpi-sub">Conexion OAuth para esta tienda</p>
                     </div>
                     <button class="primary" id="connect-shopify" type="button">Conectar Shopify</button>
@@ -562,7 +563,10 @@
                 <div class="connection-block">
                   <div class="connection-block-header">
                     <div>
-                      <h4>Alegra</h4>
+                      <div class="provider-title">
+                        <img class="provider-logo" src="/brands/alegra.png" alt="Alegra" />
+                        <h4>Alegra</h4>
+                      </div>
                       <p class="kpi-sub">Cuenta y credenciales</p>
                     </div>
                     <button class="primary" id="connect-alegra" type="button">Conectar Alegra</button>
@@ -611,18 +615,6 @@
             </div>
           </div>
 
-          <div class="panel admin-only module" data-module="connections-summary" data-help="Resumen de conexiones guardadas para esta organizacion.">
-            <div class="panel-header">
-              <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
-              <span class="panel-tag">Resumen</span>
-            </div>
-            <div class="module-body">
-              <div class="connections-grid" id="connections-grid">
-                <div class="connection-card empty">Sin conexiones.</div>
-              </div>
-            </div>
-          </div>
-
           <div class="settings-group store-group" data-group="store">
             <div class="settings-group-header" data-group-toggle="store">
               <h3 data-store-title data-title-base="Tienda">Tienda</h3>
@@ -635,17 +627,32 @@
                   <select id="store-active-select"></select>
                 </div>
               </div>
+
+              <div class="panel admin-only module" data-module="connections-summary" data-help="Resumen de conexiones guardadas para esta organizacion.">
+                <div class="panel-header">
+                  <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
+                  <span class="panel-tag">Resumen</span>
+                </div>
+                <div class="module-body">
+                  <div class="connections-grid" id="connections-grid">
+                    <div class="connection-card empty">Sin conexiones.</div>
+                  </div>
+                </div>
+              </div>
               <div class="settings-group provider-group" data-group="shopify">
                 <div class="settings-group-header" data-group-toggle="shopify">
-                  <h4>Configuraciones Shopify</h4>
+                  <h4 class="group-title">
+                    <img class="provider-logo" src="/brands/shopify.png" alt="Shopify" />
+                    Configuraciones Shopify
+                  </h4>
                 </div>
                 <div class="settings-group-body">
                   <div class="settings-group-title">Webhooks</div>
 
-                  <div class="panel admin-only module" data-module="shopify-tech" data-module-readonly="false" data-help="Crea y valida webhooks para sincronizar pedidos, productos e inventario. Reinstala si cambias el dominio.">
+                  <div class="panel admin-only module" data-provider="shopify" data-module="shopify-tech" data-module-readonly="false" data-help="Crea y valida webhooks para sincronizar pedidos, productos e inventario. Reinstala si cambias el dominio.">
                     <div class="panel-header">
                       <h3 data-module-toggle="shopify-tech" data-title-base="Webhooks">Webhooks</h3>
-                      <span class="panel-tag">Shopify</span>
+                      <span class="panel-tag tag-shopify">Shopify</span>
                     </div>
                     <div class="module-body">
                       <div class="settings-grid">
@@ -664,56 +671,32 @@
                     </div>
                   </div>
 
-                  <div class="settings-group-title">Sincronizaciones</div>
-
-          <div class="panel module" data-module="shopify-orders" data-module-readonly="false" id="legacy-orders-sync-panel" data-help="Los pedidos viajan de Shopify hacia Alegra. Sincroniza un pedido puntual usando su numero.">
-            <div class="panel-header">
-              <h3 data-module-toggle="shopify-orders" data-title-base="Sincronizacion de pedido puntual">Sincronizacion de pedido puntual</h3>
-              <span class="panel-tag">Shopify → Alegra</span>
-            </div>
-            <div class="module-body">
-              <div class="settings-grid products-settings single-column">
-                <div class="field field-span">
-                  <p class="field-hint">Los pedidos se crean en Shopify y se envian a Alegra.</p>
-                </div>
-                <div class="field">
-                  <label>Numero de pedido</label>
-                  <input type="text" id="orders-sync-number" placeholder="Ej: 1054" />
-                  <span class="field-hint">Ejecuta un pedido puntual si necesita correccion.</span>
-                </div>
-              </div>
-              <div class="toolbar is-actions">
-                <button class="primary" id="orders-sync" type="button">Sincronizar pedido</button>
-                <button class="ghost" id="orders-sync-clear" type="button">Borrar filtros</button>
-                <span class="kpi-sub" id="orders-sync-status">Listo</span>
-              </div>
-              <div class="sync-progress" id="orders-sync-progress" aria-hidden="true">
-                <div class="sync-progress-track">
-                  <div class="sync-progress-bar" id="orders-sync-progress-bar"></div>
-                </div>
-                <span class="sync-progress-label" id="orders-sync-progress-label">Sincronizando 0%</span>
-              </div>
-            </div>
-          </div>
-
                 </div>
               </div>
               <div class="settings-group provider-group" data-group="alegra-shopify">
                 <div class="settings-group-header" data-group-toggle="alegra-shopify">
-                  <h4>Alegra → Shopify</h4>
+                  <h4 class="group-title">
+                    <img class="provider-logo" src="/brands/alegra.png" alt="Alegra" />
+                    <span class="group-arrow">→</span>
+                    <img class="provider-logo" src="/brands/shopify.png" alt="Shopify" />
+                    Alegra → Shopify
+                  </h4>
                 </div>
                 <div class="settings-group-body">
-                  <div class="settings-group-title">Autopublicacion</div>
+                  <div class="settings-group-title">Productos</div>
 
-                  <div class="panel admin-only module" data-module="shopify-rules" id="legacy-publish-panel" data-help="Los productos salen de Alegra y se publican en Shopify. Define reglas y ajustes automaticos.">
+                  <div class="panel admin-only module" data-provider="bridge" data-module="shopify-rules" id="legacy-publish-panel" data-help="Cuando se crea o actualiza un producto en Alegra, se publica en Shopify. Define borrador/activo e imagenes.">
             <div class="panel-header">
-              <h3 data-module-toggle="shopify-rules" data-title-base="Reglas de autopublicacion automatica de productos">Reglas de autopublicacion automatica de productos</h3>
-              <span class="panel-tag">Alegra → Shopify</span>
+              <h3 data-module-toggle="shopify-rules" data-title-base="Autopublicacion de productos">Autopublicacion de productos</h3>
+              <span class="panel-tag tag-bridge">Alegra → Shopify</span>
             </div>
             <div class="module-body">
               <div class="settings-grid products-settings">
                 <div class="field field-span">
-                  <p class="field-hint">Los productos se originan en Alegra y se publican en Shopify.</p>
+                  <p class="field-hint">Se ejecuta automaticamente cuando un producto cambia en Alegra.</p>
+                </div>
+                <div class="field field-span">
+                  <p class="field-hint">Usa el modulo Inventario para stock minimo y bodegas.</p>
                 </div>
                 <div class="field">
                   <label>Estado al publicar manualmente</label>
@@ -725,6 +708,10 @@
                 <div class="field">
                   <label>Incluir imagenes</label>
                   <input type="checkbox" id="products-include-images" class="toggle" />
+                </div>
+                <div class="field">
+                  <label>Solo productos activos en Alegra</label>
+                  <input type="checkbox" id="rules-only-active" class="toggle" />
                 </div>
                 <div class="field">
                   <label>Auto-publicar en webhooks</label>
@@ -747,10 +734,10 @@
 
                   <div class="settings-group-title">Inventario</div>
 
-                  <div class="panel admin-only module" data-module="alegra-inventory" id="inventory-rules-panel" data-help="Los productos y stock salen de Alegra y se publican en Shopify. Selecciona las bodegas fuente.">
+                  <div class="panel admin-only module" data-provider="bridge" data-module="alegra-inventory" id="inventory-rules-panel" data-help="Los productos y stock salen de Alegra y se publican en Shopify. Selecciona las bodegas fuente.">
             <div class="panel-header">
               <h3 data-module-toggle="alegra-inventory" data-title-base="Alegra → Shopify">Alegra → Shopify</h3>
-              <span class="panel-tag">Alegra → Shopify</span>
+              <span class="panel-tag tag-bridge">Alegra → Shopify</span>
             </div>
             <div class="module-body">
               <div class="settings-grid">
@@ -787,15 +774,18 @@
               </div>
               <div class="settings-group provider-group" data-group="alegra">
                 <div class="settings-group-header" data-group-toggle="alegra">
-                  <h4>Configuraciones Alegra</h4>
+                  <h4 class="group-title">
+                    <img class="provider-logo" src="/brands/alegra.png" alt="Alegra" />
+                    Configuraciones Alegra
+                  </h4>
                 </div>
                 <div class="settings-group-body">
                   <div class="settings-group-title">Cron Alegra</div>
 
-                  <div class="panel admin-only module" data-module="alegra-tech" data-module-readonly="false" data-help="Controla el cron de inventario y su intervalo de ejecucion.">
+                  <div class="panel admin-only module" data-provider="alegra" data-module="alegra-tech" data-module-readonly="false" data-help="Controla el cron de inventario y su intervalo de ejecucion.">
                     <div class="panel-header">
                       <h3 data-module-toggle="alegra-tech" data-title-base="Cron Alegra">Cron Alegra</h3>
-                      <span class="panel-tag">Alegra</span>
+                      <span class="panel-tag tag-alegra">Alegra</span>
                     </div>
                     <div class="module-body">
                       <div class="settings-grid">
@@ -844,10 +834,10 @@
 
                   <div class="settings-group-title">Operativo</div>
 
-                  <div class="panel admin-only module" data-module="alegra-logistics" id="inventory-transfer-panel" data-help="Configura la estrategia de bodegas y los traslados de inventario.">
+                  <div class="panel admin-only module" data-provider="alegra" data-module="alegra-logistics" id="inventory-transfer-panel" data-help="Configura la estrategia de bodegas y los traslados de inventario.">
             <div class="panel-header">
               <h3 data-module-toggle="alegra-logistics" data-title-base="Logistica e inventario">Logistica e inventario</h3>
-              <span class="panel-tag">Alegra</span>
+              <span class="panel-tag tag-alegra">Alegra</span>
             </div>
             <div class="module-body">
               <div class="settings-grid products-settings">
@@ -934,10 +924,10 @@
 
                   <div class="settings-group-title">Facturacion</div>
 
-                  <div class="panel admin-only module" data-module="alegra-invoice" id="legacy-invoice-panel" data-help="Define listas de precios y parametros de facturacion en Alegra.">
+                  <div class="panel admin-only module" data-provider="alegra" data-module="alegra-invoice" id="legacy-invoice-panel" data-help="Define listas de precios y parametros de facturacion en Alegra.">
             <div class="panel-header">
               <h3 data-module-toggle="alegra-invoice" data-title-base="Facturacion">Facturacion</h3>
-              <span class="panel-tag">Alegra</span>
+              <span class="panel-tag tag-alegra">Alegra</span>
             </div>
             <div class="module-body">
               <div class="settings-grid">
@@ -1156,6 +1146,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260201f" type="module"></script>
+    <script src="app.js?v=20260201i" type="module"></script>
   </body>
 </html>
