@@ -85,9 +85,9 @@ const normalizeLimit = (value: unknown, fallback: number) => {
 
 const sanitizeToolkitConfig = (input: ToolkitConfigUpdate | null | undefined): ToolkitConfigUpdate => {
   if (!input || typeof input !== "object") return {};
-  const diagnostics = input.diagnostics || {};
-  const forceSync = input.forceSync || {};
-  const logs = input.logs || {};
+  const diagnostics = (input.diagnostics || {}) as ToolkitConfig["diagnostics"];
+  const forceSync = (input.forceSync || {}) as ToolkitConfig["forceSync"];
+  const logs = (input.logs || {}) as ToolkitConfig["logs"];
   return {
     diagnostics: {
       checkShopifyToken: normalizeBoolean(
