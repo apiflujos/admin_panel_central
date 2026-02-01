@@ -175,7 +175,7 @@ export async function listStoreConfigs() {
         ),
         onlyActiveItems: normalizeBoolean(
           (rules as Record<string, unknown>).onlyActiveItems,
-          (defaults.rules as Record<string, unknown>)?.onlyActiveItems ?? false
+          Boolean((defaults.rules as Record<string, unknown>)?.onlyActiveItems)
         ),
         autoPublishOnWebhook: normalizeBoolean(
           rules.autoPublishOnWebhook,
@@ -332,7 +332,7 @@ export async function getStoreConfigForDomain(shopDomain: string) {
       ),
       onlyActiveItems: normalizeBoolean(
         (rules as Record<string, unknown>).onlyActiveItems,
-        (defaults.rules as Record<string, unknown>)?.onlyActiveItems ?? false
+        Boolean((defaults.rules as Record<string, unknown>)?.onlyActiveItems)
       ),
       autoPublishOnWebhook: normalizeBoolean(
         rules.autoPublishOnWebhook,
