@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260201j" />
+    <link rel="stylesheet" href="styles.css?v=20260201l" />
   </head>
   <body>
     <div class="app-shell">
@@ -616,7 +616,7 @@
           </div>
 
           <div class="settings-group store-group" data-group="store">
-            <div class="settings-group-header" data-group-toggle="store">
+            <div class="settings-group-header" data-group-toggle="store" data-help="Selecciona la tienda activa y gestiona conexiones y configuraciones de esa tienda.">
               <h3 data-store-title data-title-base="Tienda">Tienda</h3>
               <span class="settings-group-subtitle">Configuraciones por tienda</span>
             </div>
@@ -701,8 +701,8 @@
                 <div class="field">
                   <label>Estado al publicar manualmente</label>
                   <select id="products-publish-status">
-                    <option value="draft">Draft</option>
-                    <option value="active">Active</option>
+                    <option value="draft">Borrador</option>
+                    <option value="active">Activo</option>
                   </select>
                 </div>
                 <div class="field">
@@ -714,14 +714,14 @@
                   <input type="checkbox" id="rules-only-active" class="toggle" />
                 </div>
                 <div class="field">
-                  <label>Auto-publicar en webhooks</label>
+                  <label>Auto-publicar al sincronizar</label>
                   <input type="checkbox" id="rules-auto-publish" class="toggle" />
                 </div>
                 <div class="field">
                   <label>Estado al auto-publicar</label>
                   <select id="rules-auto-status">
-                    <option value="draft">Draft</option>
-                    <option value="active">Active</option>
+                    <option value="draft">Borrador</option>
+                    <option value="active">Activo</option>
                   </select>
                 </div>
               </div>
@@ -1146,6 +1146,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260201j" type="module"></script>
+    <script src="app.js?v=20260201l" type="module"></script>
   </body>
 </html>
