@@ -2035,11 +2035,21 @@ export async function backfillProductsHandler(req: Request, res: Response) {
       limit?: number;
       dateStart?: string;
       dateEnd?: string;
+      useCache?: boolean;
+      alegraStatus?: string;
+      alegraActiveOnly?: boolean;
+      shopifyPublishedOnly?: boolean;
     };
     const source = String(body.source || "both").toLowerCase();
     const limit = Number.isFinite(body.limit) && Number(body.limit) > 0 ? Number(body.limit) : null;
     const dateStart = body.dateStart ? String(body.dateStart) : "";
     const dateEnd = body.dateEnd ? String(body.dateEnd) : "";
+    const useCache = body.useCache !== false;
+    const alegraStatusInput = body.alegraStatus ? String(body.alegraStatus).trim() : "";
+    const alegraStatusFilter = (
+      alegraStatusInput || (body.alegraActiveOnly ? "active" : "")
+    ).toLowerCase();
+    const shopifyPublishedOnly = Boolean(body.shopifyPublishedOnly);
     const results: Record<string, unknown> = {};
 
     if (source === "alegra" || source === "both") {
@@ -2050,7 +2060,7 @@ export async function backfillProductsHandler(req: Request, res: Response) {
       let usedCache = false;
 
       const cachedTotal = await countAlegraItemsCache();
-      if (cachedTotal > 0) {
+      if (useCache && cachedTotal > 0) {
         usedCache = true;
         while (true) {
           if (limit !== null && processed >= limit) break;
@@ -2060,13 +2070,20 @@ export async function backfillProductsHandler(req: Request, res: Response) {
           const cached = await listAlegraItemsCache({ start, limit: batchLimit });
           const batch = (cached.items as unknown as AlegraItem[]) || [];
           if (!batch.length) break;
-          await persistProductsFromAlegra(batch);
-          processed += batch.length;
+          const filteredBatch = alegraStatusFilter
+            ? batch.filter(
+                (item) => String(item?.status || "").toLowerCase() === alegraStatusFilter
+              )
+            : batch;
+          if (filteredBatch.length) {
+            await persistProductsFromAlegra(filteredBatch);
+            processed += filteredBatch.length;
+          }
           start += batch.length;
           pages += 1;
           if (batch.length < batchLimit) break;
         }
-        results.alegra = { processed, pages, source: "cache", total: cachedTotal };
+        results.alegra = { processed, pages, source: "cache", total: cachedTotal, status: alegraStatusFilter || null };
       }
 
       if (!usedCache) {
@@ -2098,13 +2115,20 @@ export async function backfillProductsHandler(req: Request, res: Response) {
               ? payload.data
               : [];
           if (!batch.length) break;
-          await persistProductsFromAlegra(batch);
-          processed += batch.length;
+          const filteredBatch = alegraStatusFilter
+            ? batch.filter(
+                (item) => String(item?.status || "").toLowerCase() === alegraStatusFilter
+              )
+            : batch;
+          if (filteredBatch.length) {
+            await persistProductsFromAlegra(filteredBatch);
+            processed += filteredBatch.length;
+          }
           start += batch.length;
           pages += 1;
           if (batch.length < batchLimit) break;
         }
-        results.alegra = { processed, pages, source: "api" };
+        results.alegra = { processed, pages, source: "api", status: alegraStatusFilter || null };
       }
     }
 
@@ -2115,7 +2139,9 @@ export async function backfillProductsHandler(req: Request, res: Response) {
         accessToken: shopifyCredential.accessToken,
         apiVersion: shopifyCredential.apiVersion || DEFAULT_SHOPIFY_VERSION,
       });
-      const parts = ["status:any"];
+      const parts = shopifyPublishedOnly
+        ? ["status:active", "published_status:published"]
+        : ["status:any"];
       if (dateStart) parts.push(`updated_at:>='${dateStart}'`);
       if (dateEnd) parts.push(`updated_at:<='${dateEnd}'`);
       const query = parts.join(" ");
