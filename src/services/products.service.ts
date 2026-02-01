@@ -57,6 +57,14 @@ export async function upsertProduct(input: ProductInput) {
         OR (reference = $4 AND $4 IS NOT NULL AND $4 <> '')
         OR (sku = $5 AND $5 IS NOT NULL AND $5 <> '')
       )
+    ORDER BY
+      CASE
+        WHEN alegra_item_id = $2 AND $2 IS NOT NULL THEN 1
+        WHEN shopify_product_id = $3 AND $3 IS NOT NULL THEN 2
+        WHEN reference = $4 AND $4 IS NOT NULL AND $4 <> '' THEN 3
+        WHEN sku = $5 AND $5 IS NOT NULL AND $5 <> '' THEN 4
+        ELSE 5
+      END
     LIMIT 1
     `,
     [orgId, alegraId, shopifyId, reference, sku]
