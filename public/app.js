@@ -100,6 +100,37 @@ const userRole = document.getElementById("user-role");
 const userMenu = document.getElementById("topbar-user-menu");
 const userMenuToggle = document.getElementById("topbar-user-toggle");
 const companyLogo = document.getElementById("company-logo");
+const toolkitModal = document.getElementById("toolkit-modal");
+const toolkitClose = document.getElementById("toolkit-close");
+const toolkitContext = document.getElementById("toolkit-context");
+const toolkitTabs = document.querySelectorAll(".toolkit-tab");
+const toolkitPanes = document.querySelectorAll(".toolkit-pane");
+const toolkitDomain = document.getElementById("toolkit-domain");
+const toolkitCheck = document.getElementById("toolkit-check");
+const toolkitWebhooksReinstall = document.getElementById("toolkit-webhooks-reinstall");
+const toolkitHealthOutput = document.getElementById("toolkit-health-output");
+const toolkitForceDomain = document.getElementById("toolkit-force-domain");
+const toolkitOrderId = document.getElementById("toolkit-order-id");
+const toolkitOrderNumber = document.getElementById("toolkit-order-number");
+const toolkitForceCreateOrder = document.getElementById("toolkit-force-create-order");
+const toolkitForceCreateInvoice = document.getElementById("toolkit-force-create-invoice");
+const toolkitForceSkipRules = document.getElementById("toolkit-force-skip-rules");
+const toolkitForceRun = document.getElementById("toolkit-force-run");
+const toolkitForceOutput = document.getElementById("toolkit-force-output");
+const toolkitLogsRefresh = document.getElementById("toolkit-logs-refresh");
+const toolkitLogsList = document.getElementById("toolkit-logs-list");
+const toolkitConfigScope = document.getElementById("toolkit-config-scope");
+const toolkitCfgCheckShopify = document.getElementById("toolkit-cfg-check-shopify");
+const toolkitCfgCheckScopes = document.getElementById("toolkit-cfg-check-scopes");
+const toolkitCfgCheckWebhooks = document.getElementById("toolkit-cfg-check-webhooks");
+const toolkitCfgCheckAlegra = document.getElementById("toolkit-cfg-check-alegra");
+const toolkitCfgScopes = document.getElementById("toolkit-cfg-scopes");
+const toolkitCfgForceOrder = document.getElementById("toolkit-cfg-force-order");
+const toolkitCfgForceInvoice = document.getElementById("toolkit-cfg-force-invoice");
+const toolkitCfgForceSkip = document.getElementById("toolkit-cfg-force-skip");
+const toolkitCfgLogsLimit = document.getElementById("toolkit-cfg-logs-limit");
+const toolkitConfigSave = document.getElementById("toolkit-config-save");
+const toolkitConfigOutput = document.getElementById("toolkit-config-output");
 
 const storeNameInput = document.getElementById("store-name");
 const storeActiveField = document.getElementById("store-active-field");
@@ -155,13 +186,18 @@ const cfgEinvoiceEnabled = document.getElementById("cfg-einvoice-enabled");
 const cfgTransferDest = document.getElementById("cfg-transfer-dest");
 const cfgTransferEnabled = document.getElementById("cfg-transfer-enabled");
 const cfgTransferStrategy = document.getElementById("cfg-transfer-strategy");
+const cfgTransferFallback = document.getElementById("cfg-transfer-fallback");
+const cfgTransferTieBreak = document.getElementById("cfg-transfer-tiebreak");
 const cfgTransferPriority = document.getElementById("cfg-transfer-priority");
 const cfgTransferOrigin = document.getElementById("cfg-transfer-origin");
 const cfgTransferOriginSummary = document.getElementById("cfg-transfer-origin-summary");
+const cfgTransferMinStock = document.getElementById("cfg-transfer-min-stock");
+const cfgTransferSplit = document.getElementById("cfg-transfer-split");
 const cfgPriceGeneral = document.getElementById("cfg-price-general");
 const cfgPriceDiscount = document.getElementById("cfg-price-discount");
 const cfgPriceWholesale = document.getElementById("cfg-price-wholesale");
 const cfgPriceCurrency = document.getElementById("cfg-price-currency");
+const cfgPriceEnabled = document.getElementById("cfg-price-enabled");
 const cfgStoreMessage = document.getElementById("cfg-store-message");
 const cfgInventoryPublishStock = document.getElementById("cfg-inventory-publish-stock");
 const cfgInventoryAutoPublish = document.getElementById("cfg-inventory-auto-publish");
@@ -242,6 +278,8 @@ let currentUserId = null;
 let activeStoreDomain = "";
 let activeStoreName = "";
 let storesCache = [];
+let toolkitRuntimeConfig = null;
+let toolkitActiveTab = "diagnostics";
 let transferOriginIds = [];
 
 function getTransferOriginDetails() {
@@ -424,6 +462,570 @@ async function fetchJson(url, options) {
     throw new Error(text || "Error de red");
   }
   return response.json();
+}
+
+const TOOLKIT_TAB_STORAGE_KEY = "apiflujos-toolkit-tab";
+
+function getToolkitDomainValue() {
+  const inputValue = toolkitDomain?.value || toolkitForceDomain?.value || "";
+  const fallbackValue = shopifyDomain?.value || activeStoreDomain || "";
+  return normalizeShopDomain(inputValue || fallbackValue || "");
+}
+
+function setToolkitDomainInputs(domain) {
+  if (toolkitDomain) toolkitDomain.value = domain || "";
+  if (toolkitForceDomain) toolkitForceDomain.value = domain || "";
+}
+
+function renderToolkitMessage(element, message, status) {
+  if (!element) return;
+  element.classList.remove("is-ok", "is-error");
+  if (status) element.classList.add(status);
+  element.textContent = message;
+}
+
+function appendToolkitLine(container, label, value, note) {
+  if (!container) return;
+  const row = document.createElement("div");
+  row.className = "toolkit-status-line";
+  const labelEl = document.createElement("span");
+  labelEl.textContent = label;
+  const valueEl = document.createElement("strong");
+  valueEl.textContent = value;
+  row.appendChild(labelEl);
+  row.appendChild(valueEl);
+  container.appendChild(row);
+  if (note) {
+    const noteEl = document.createElement("span");
+    noteEl.className = "toolkit-note";
+    noteEl.textContent = note;
+    container.appendChild(noteEl);
+  }
+}
+
+function setToolkitActiveTab(tab) {
+  toolkitActiveTab = tab;
+  toolkitTabs.forEach((node) => {
+    const isActive = node.getAttribute("data-toolkit-tab") === tab;
+    node.classList.toggle("is-active", isActive);
+  });
+  toolkitPanes.forEach((node) => {
+    const isActive = node.getAttribute("data-toolkit-pane") === tab;
+    node.classList.toggle("is-active", isActive);
+  });
+  try {
+    localStorage.setItem(TOOLKIT_TAB_STORAGE_KEY, tab);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function openToolkitModal(context, tab) {
+  if (!toolkitModal) return;
+  const domain = getToolkitDomainValue();
+  if (domain) setToolkitDomainInputs(domain);
+  if (toolkitContext) toolkitContext.textContent = context || "Configuracion";
+  const nextTab = tab || toolkitActiveTab || "diagnostics";
+  setToolkitActiveTab(nextTab);
+  resetToolkitForceOptions();
+  toolkitModal.classList.add("is-open");
+  toolkitModal.setAttribute("aria-hidden", "false");
+  loadToolkitRuntimeConfig().catch(() => null);
+  if (nextTab === "logs") {
+    loadToolkitLogs().catch(() => null);
+  }
+  if (nextTab === "config") {
+    loadToolkitConfigForScope(toolkitConfigScope?.value || "store").catch(() => null);
+  }
+}
+
+function closeToolkitModal() {
+  if (!toolkitModal) return;
+  toolkitModal.classList.remove("is-open");
+  toolkitModal.setAttribute("aria-hidden", "true");
+}
+
+function resetToolkitForceOptions() {
+  if (toolkitForceCreateOrder) toolkitForceCreateOrder.checked = false;
+  if (toolkitForceCreateInvoice) toolkitForceCreateInvoice.checked = false;
+  if (toolkitForceSkipRules) toolkitForceSkipRules.checked = false;
+}
+
+function applyToolkitRuntimeConfig(config) {
+  const allowOrder = config?.forceSync?.allowCreateOrder !== false;
+  const allowInvoice = config?.forceSync?.allowCreateInvoice !== false;
+  const allowSkip = config?.forceSync?.allowSkipRules === true;
+  if (toolkitForceCreateOrder) {
+    toolkitForceCreateOrder.disabled = !allowOrder;
+    if (!allowOrder) toolkitForceCreateOrder.checked = false;
+  }
+  if (toolkitForceCreateInvoice) {
+    toolkitForceCreateInvoice.disabled = !allowInvoice;
+    if (!allowInvoice) toolkitForceCreateInvoice.checked = false;
+  }
+  if (toolkitForceSkipRules) {
+    toolkitForceSkipRules.disabled = !allowSkip;
+    if (!allowSkip) toolkitForceSkipRules.checked = false;
+  }
+}
+
+async function loadToolkitRuntimeConfig() {
+  const domain = getToolkitDomainValue();
+  if (!domain) {
+    toolkitRuntimeConfig = null;
+    applyToolkitRuntimeConfig(null);
+    return null;
+  }
+  try {
+    const data = await fetchJson(`/api/toolkit/config/${encodeURIComponent(domain)}`);
+    toolkitRuntimeConfig = data.config || data;
+    applyToolkitRuntimeConfig(toolkitRuntimeConfig);
+    return toolkitRuntimeConfig;
+  } catch {
+    toolkitRuntimeConfig = null;
+    applyToolkitRuntimeConfig(null);
+    return null;
+  }
+}
+
+function applyToolkitConfigForm(config) {
+  if (!config) return;
+  if (toolkitCfgCheckShopify) {
+    toolkitCfgCheckShopify.checked = config.diagnostics?.checkShopifyToken !== false;
+  }
+  if (toolkitCfgCheckScopes) {
+    toolkitCfgCheckScopes.checked = config.diagnostics?.checkShopifyScopes !== false;
+  }
+  if (toolkitCfgCheckWebhooks) {
+    toolkitCfgCheckWebhooks.checked = config.diagnostics?.checkWebhooks !== false;
+  }
+  if (toolkitCfgCheckAlegra) {
+    toolkitCfgCheckAlegra.checked = config.diagnostics?.checkAlegra !== false;
+  }
+  if (toolkitCfgScopes) {
+    const scopes = Array.isArray(config.diagnostics?.requiredScopes)
+      ? config.diagnostics?.requiredScopes.join(", ")
+      : "";
+    toolkitCfgScopes.value = scopes || "";
+  }
+  if (toolkitCfgForceOrder) {
+    toolkitCfgForceOrder.checked = config.forceSync?.allowCreateOrder !== false;
+  }
+  if (toolkitCfgForceInvoice) {
+    toolkitCfgForceInvoice.checked = config.forceSync?.allowCreateInvoice !== false;
+  }
+  if (toolkitCfgForceSkip) {
+    toolkitCfgForceSkip.checked = config.forceSync?.allowSkipRules === true;
+  }
+  if (toolkitCfgLogsLimit) {
+    toolkitCfgLogsLimit.value = config.logs?.limit ? String(config.logs.limit) : "";
+  }
+}
+
+async function loadToolkitConfigForScope(scope) {
+  const resolvedScope = scope || "store";
+  if (toolkitConfigScope) toolkitConfigScope.value = resolvedScope;
+  try {
+    if (resolvedScope === "global") {
+      const data = await fetchJson("/api/toolkit/config/global");
+      applyToolkitConfigForm(data.config || data);
+    } else {
+      const domain = getToolkitDomainValue();
+      if (!domain) {
+        renderToolkitMessage(
+          toolkitConfigOutput,
+          "Ingresa el dominio Shopify para cargar la configuracion.",
+          "is-error"
+        );
+        return;
+      }
+      const data = await fetchJson(`/api/toolkit/config/${encodeURIComponent(domain)}`);
+      applyToolkitConfigForm(data.config || data);
+    }
+    renderToolkitMessage(toolkitConfigOutput, "Configuracion cargada.", "is-ok");
+  } catch (error) {
+    renderToolkitMessage(
+      toolkitConfigOutput,
+      error?.message || "No se pudo cargar la configuracion.",
+      "is-error"
+    );
+  }
+}
+
+function buildToolkitConfigPayload() {
+  return {
+    diagnostics: {
+      checkShopifyToken: toolkitCfgCheckShopify ? toolkitCfgCheckShopify.checked : true,
+      checkShopifyScopes: toolkitCfgCheckScopes ? toolkitCfgCheckScopes.checked : true,
+      checkWebhooks: toolkitCfgCheckWebhooks ? toolkitCfgCheckWebhooks.checked : true,
+      checkAlegra: toolkitCfgCheckAlegra ? toolkitCfgCheckAlegra.checked : true,
+      requiredScopes: toolkitCfgScopes ? toolkitCfgScopes.value.trim() : "",
+    },
+    forceSync: {
+      allowCreateOrder: toolkitCfgForceOrder ? toolkitCfgForceOrder.checked : true,
+      allowCreateInvoice: toolkitCfgForceInvoice ? toolkitCfgForceInvoice.checked : true,
+      allowSkipRules: toolkitCfgForceSkip ? toolkitCfgForceSkip.checked : false,
+    },
+    logs: {
+      limit: toolkitCfgLogsLimit ? Number(toolkitCfgLogsLimit.value || 0) : 20,
+    },
+  };
+}
+
+async function saveToolkitConfig() {
+  const scope = toolkitConfigScope?.value || "store";
+  const payload = buildToolkitConfigPayload();
+  renderToolkitMessage(toolkitConfigOutput, "Guardando...");
+  try {
+    if (scope === "global") {
+      await fetchJson("/api/toolkit/config/global", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } else {
+      const domain = getToolkitDomainValue();
+      if (!domain) {
+        renderToolkitMessage(toolkitConfigOutput, "Dominio Shopify requerido.", "is-error");
+        return;
+      }
+      await fetchJson(`/api/toolkit/config/${encodeURIComponent(domain)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    }
+    renderToolkitMessage(toolkitConfigOutput, "Configuracion guardada.", "is-ok");
+    await loadToolkitRuntimeConfig();
+  } catch (error) {
+    renderToolkitMessage(
+      toolkitConfigOutput,
+      error?.message || "No se pudo guardar la configuracion.",
+      "is-error"
+    );
+  }
+}
+
+function renderToolkitHealth(report, config) {
+  if (!toolkitHealthOutput) return;
+  const ok = report?.ok !== false;
+  toolkitHealthOutput.classList.remove("is-ok", "is-error");
+  toolkitHealthOutput.classList.add(ok ? "is-ok" : "is-error");
+  toolkitHealthOutput.innerHTML = "";
+  const summary = document.createElement("div");
+  summary.className = "toolkit-summary";
+  summary.textContent = ok ? "Conexion saludable." : "Se encontraron alertas.";
+  toolkitHealthOutput.appendChild(summary);
+
+  const diagnostics = config?.diagnostics || {};
+
+  if (diagnostics.checkShopifyToken !== false) {
+    const tokenOk = report?.shopify?.token !== false;
+    appendToolkitLine(
+      toolkitHealthOutput,
+      "Token Shopify",
+      tokenOk ? "OK" : "Fallo",
+      tokenOk ? "" : "Revisa el token y vuelve a conectar."
+    );
+  } else {
+    appendToolkitLine(toolkitHealthOutput, "Token Shopify", "Omitido");
+  }
+
+  if (diagnostics.checkShopifyScopes !== false) {
+    const scopes = report?.shopify?.scopes || { ok: true, missing: [], granted: [] };
+    const missing = Array.isArray(scopes.missing) ? scopes.missing : [];
+    appendToolkitLine(
+      toolkitHealthOutput,
+      "Scopes",
+      scopes.ok ? "OK" : "Faltan",
+      missing.length ? `Faltantes: ${missing.join(", ")}` : "Todos los scopes requeridos estan ok."
+    );
+  } else {
+    appendToolkitLine(toolkitHealthOutput, "Scopes", "Omitido");
+  }
+
+  if (diagnostics.checkWebhooks !== false) {
+    const webhooks = report?.shopify?.webhooks || { ok: true, missing: [], callbackUrl: "" };
+    const missing = Array.isArray(webhooks.missing) ? webhooks.missing : [];
+    appendToolkitLine(
+      toolkitHealthOutput,
+      "Webhooks",
+      webhooks.ok ? "OK" : "Faltan",
+      missing.length
+        ? `Faltantes: ${missing.join(", ")}`
+        : `Callback: ${webhooks.callbackUrl || "no definido"}`
+    );
+  } else {
+    appendToolkitLine(toolkitHealthOutput, "Webhooks", "Omitido");
+  }
+
+  if (diagnostics.checkAlegra !== false) {
+    const alegra = report?.alegra || { ok: true };
+    appendToolkitLine(
+      toolkitHealthOutput,
+      "Alegra",
+      alegra.ok ? "OK" : "Error",
+      alegra.ok ? "" : alegra.message || "No disponible"
+    );
+  } else {
+    appendToolkitLine(toolkitHealthOutput, "Alegra", "Omitido");
+  }
+}
+
+async function runToolkitDiagnostics() {
+  const domain = getToolkitDomainValue();
+  if (!domain) {
+    renderToolkitMessage(toolkitHealthOutput, "Dominio Shopify requerido.", "is-error");
+    return;
+  }
+  renderToolkitMessage(toolkitHealthOutput, "Ejecutando diagnostico...");
+  try {
+    const report = await fetchJson(`/api/toolkit/health?shopDomain=${encodeURIComponent(domain)}`);
+    renderToolkitHealth(report, toolkitRuntimeConfig);
+  } catch (error) {
+    renderToolkitMessage(
+      toolkitHealthOutput,
+      error?.message || "No se pudo ejecutar el diagnostico.",
+      "is-error"
+    );
+  }
+}
+
+async function reinstallToolkitWebhooks() {
+  const domain = getToolkitDomainValue();
+  if (!domain) {
+    renderToolkitMessage(toolkitHealthOutput, "Dominio Shopify requerido.", "is-error");
+    return;
+  }
+  renderToolkitMessage(toolkitHealthOutput, "Reinstalando webhooks...");
+  try {
+    const result = await fetchJson("/api/toolkit/webhooks/reinstall", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shopDomain: domain }),
+    });
+    toolkitHealthOutput.classList.remove("is-error");
+    toolkitHealthOutput.classList.add("is-ok");
+    toolkitHealthOutput.innerHTML = "";
+    const summary = document.createElement("div");
+    summary.className = "toolkit-summary";
+    summary.textContent = "Webhooks reinstalados.";
+    toolkitHealthOutput.appendChild(summary);
+    appendToolkitLine(
+      toolkitHealthOutput,
+      "Creados",
+      `${result.created || 0} / ${result.total || 0}`,
+      result.callbackUrl ? `Callback: ${result.callbackUrl}` : ""
+    );
+  } catch (error) {
+    renderToolkitMessage(
+      toolkitHealthOutput,
+      error?.message || "No se pudieron reinstalar los webhooks.",
+      "is-error"
+    );
+  }
+}
+
+async function runToolkitForceSync() {
+  const domain = getToolkitDomainValue();
+  if (!domain) {
+    renderToolkitMessage(toolkitForceOutput, "Dominio Shopify requerido.", "is-error");
+    return;
+  }
+  const orderId = toolkitOrderId ? toolkitOrderId.value.trim() : "";
+  const orderNumber = toolkitOrderNumber ? toolkitOrderNumber.value.trim() : "";
+  const createOrder = toolkitForceCreateOrder ? toolkitForceCreateOrder.checked : false;
+  const createInvoice = toolkitForceCreateInvoice ? toolkitForceCreateInvoice.checked : false;
+  const skipRules = toolkitForceSkipRules ? toolkitForceSkipRules.checked : false;
+
+  if (!orderId && !orderNumber) {
+    renderToolkitMessage(toolkitForceOutput, "Debes ingresar un ID o numero de pedido.", "is-error");
+    return;
+  }
+  if (!createOrder && !createInvoice) {
+    renderToolkitMessage(toolkitForceOutput, "Selecciona al menos una accion.", "is-error");
+    return;
+  }
+  renderToolkitMessage(toolkitForceOutput, "Forzando sincronizacion...");
+  try {
+    const payload = {
+      shopDomain: domain,
+      orderId,
+      orderNumber,
+      force: { createOrder, createInvoice, skipRules },
+    };
+    const result = await fetchJson("/api/toolkit/force-sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const handled = result.result?.handled !== false;
+    const reason = result.result?.reason ? ` (${result.result.reason})` : "";
+    renderToolkitMessage(
+      toolkitForceOutput,
+      handled ? `Forzado OK${reason}.` : `No se pudo completar${reason}.`,
+      handled ? "is-ok" : "is-error"
+    );
+  } catch (error) {
+    renderToolkitMessage(
+      toolkitForceOutput,
+      error?.message || "No se pudo forzar la sincronizacion.",
+      "is-error"
+    );
+  }
+}
+
+function renderToolkitLogs(items) {
+  if (!toolkitLogsList) return;
+  toolkitLogsList.innerHTML = "";
+  if (!items || !items.length) {
+    toolkitLogsList.textContent = "Sin errores recientes.";
+    return;
+  }
+  items.forEach((item) => {
+    const card = document.createElement("div");
+    card.className = "toolkit-log";
+    const head = document.createElement("div");
+    head.className = "toolkit-log-head";
+    const badge = document.createElement("span");
+    badge.className = "toolkit-badge";
+    badge.textContent = String(item.status || "error");
+    const meta = document.createElement("span");
+    meta.textContent = `${item.entity || "evento"} · ${item.direction || ""}`.trim();
+    const date = document.createElement("span");
+    date.textContent = item.created_at ? formatDate(item.created_at) : "-";
+    head.appendChild(badge);
+    head.appendChild(meta);
+    head.appendChild(date);
+    const message = document.createElement("div");
+    message.textContent = item.message || "Sin mensaje.";
+    card.appendChild(head);
+    card.appendChild(message);
+    toolkitLogsList.appendChild(card);
+  });
+}
+
+async function loadToolkitLogs() {
+  const domain = getToolkitDomainValue();
+  const params = new URLSearchParams();
+  if (domain) params.set("shopDomain", domain);
+  const limit = toolkitRuntimeConfig?.logs?.limit;
+  if (limit) params.set("limit", String(limit));
+  const query = params.toString();
+  try {
+    const data = await fetchJson(`/api/toolkit/logs${query ? `?${query}` : ""}`);
+    renderToolkitLogs(data.items || []);
+  } catch (error) {
+    if (toolkitLogsList) {
+      toolkitLogsList.textContent = error?.message || "No se pudieron cargar los logs.";
+    }
+  }
+}
+
+function initToolkitLaunchers() {
+  const settingsSection = document.getElementById("settings");
+  if (!settingsSection) return;
+  settingsSection.querySelectorAll(".module[data-module]").forEach((panel) => {
+    const moduleKey = panel.getAttribute("data-module") || "";
+    if (moduleKey === "connections-summary") return;
+    const header = panel.querySelector(".panel-header");
+    if (!header || header.querySelector(".toolkit-launch")) return;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ghost toolkit-launch";
+    button.setAttribute("data-toolkit-open", moduleKey);
+    button.setAttribute("title", "Abrir Tool Kit");
+    button.setAttribute("aria-label", "Abrir Tool Kit");
+    const icon = document.createElement("span");
+    icon.className = "toolkit-icon";
+    icon.textContent = "TK";
+    button.appendChild(icon);
+    header.appendChild(button);
+  });
+}
+
+function initToolkitControls() {
+  try {
+    const storedTab = localStorage.getItem(TOOLKIT_TAB_STORAGE_KEY);
+    if (storedTab) toolkitActiveTab = storedTab;
+  } catch {
+    // ignore storage errors
+  }
+  if (toolkitClose) {
+    toolkitClose.addEventListener("click", closeToolkitModal);
+  }
+  if (toolkitModal) {
+    toolkitModal.addEventListener("click", (event) => {
+      if (event.target === toolkitModal) closeToolkitModal();
+    });
+  }
+  if (toolkitTabs.length) {
+    toolkitTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const key = tab.getAttribute("data-toolkit-tab") || "diagnostics";
+        setToolkitActiveTab(key);
+        if (key === "logs") loadToolkitLogs().catch(() => null);
+        if (key === "config") {
+          loadToolkitConfigForScope(toolkitConfigScope?.value || "store").catch(() => null);
+        }
+      });
+    });
+  }
+  if (toolkitCheck) toolkitCheck.addEventListener("click", runToolkitDiagnostics);
+  if (toolkitWebhooksReinstall) {
+    toolkitWebhooksReinstall.addEventListener("click", reinstallToolkitWebhooks);
+  }
+  if (toolkitForceRun) toolkitForceRun.addEventListener("click", runToolkitForceSync);
+  if (toolkitLogsRefresh) toolkitLogsRefresh.addEventListener("click", loadToolkitLogs);
+  if (toolkitDomain) {
+    toolkitDomain.addEventListener("change", () => {
+      const domain = normalizeShopDomain(toolkitDomain.value || "");
+      setToolkitDomainInputs(domain);
+      loadToolkitRuntimeConfig().catch(() => null);
+      if (toolkitConfigScope?.value === "store") {
+        loadToolkitConfigForScope("store").catch(() => null);
+      }
+    });
+  }
+  if (toolkitForceDomain) {
+    toolkitForceDomain.addEventListener("change", () => {
+      const domain = normalizeShopDomain(toolkitForceDomain.value || "");
+      setToolkitDomainInputs(domain);
+      loadToolkitRuntimeConfig().catch(() => null);
+      if (toolkitConfigScope?.value === "store") {
+        loadToolkitConfigForScope("store").catch(() => null);
+      }
+    });
+  }
+  if (toolkitConfigScope) {
+    toolkitConfigScope.addEventListener("change", () => {
+      loadToolkitConfigForScope(toolkitConfigScope.value).catch(() => null);
+    });
+  }
+  if (toolkitConfigSave) toolkitConfigSave.addEventListener("click", saveToolkitConfig);
+
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) return;
+    const launch = target.closest("[data-toolkit-open]");
+    if (!launch) return;
+    const moduleKey = launch.getAttribute("data-toolkit-open") || "";
+    const panel = launch.closest(".module");
+    const title = panel?.querySelector("h3")?.textContent?.trim() || "Configuracion";
+    const defaultTabs = {
+      connections: "config",
+      "shopify-tech": "diagnostics",
+      "shopify-orders": "force-sync",
+      "shopify-mass": "force-sync",
+      "shopify-rules": "config",
+      "alegra-tech": "diagnostics",
+      "alegra-logistics": "config",
+      "alegra-inventory": "config",
+      "alegra-invoice": "config",
+    };
+    const preferred = defaultTabs[moduleKey] || toolkitActiveTab || "diagnostics";
+    openToolkitModal(title, preferred);
+  });
 }
 
 function applyRoleAccess(role) {
@@ -1438,6 +2040,7 @@ async function loadConnections() {
     storesCache = stores;
     activeStoreDomain = stores[0]?.shopDomain || "";
     activeStoreName = stores[0]?.storeName || "";
+    setToolkitDomainInputs(normalizeShopDomain(activeStoreDomain || ""));
     if (storeNameInput) {
       storeNameInput.placeholder =
         getActiveStoreLabel() || "Tienda de ejemplo";
@@ -1623,6 +2226,19 @@ function applyLegacyStoreConfig(config) {
   if (cfgTransferStrategy) {
     cfgTransferStrategy.value = String(transfers.strategy || "manual");
   }
+  if (cfgTransferFallback) {
+    cfgTransferFallback.value = String(transfers.fallbackStrategy || "");
+  }
+  if (cfgTransferTieBreak) {
+    cfgTransferTieBreak.value = String(transfers.tieBreakRule || "");
+  }
+  if (cfgTransferSplit) {
+    cfgTransferSplit.checked = Boolean(transfers.splitEnabled);
+  }
+  if (cfgTransferMinStock) {
+    const minStock = Number(transfers.minStock);
+    cfgTransferMinStock.value = Number.isFinite(minStock) && minStock > 0 ? String(minStock) : "";
+  }
   if (cfgPriceGeneral) {
     const value = String(priceLists.generalId || "");
     cfgPriceGeneral.dataset.selected = value;
@@ -1641,6 +2257,10 @@ function applyLegacyStoreConfig(config) {
   if (cfgPriceCurrency) {
     cfgPriceCurrency.value = String(priceLists.currency || "");
   }
+  if (cfgPriceEnabled) {
+    cfgPriceEnabled.checked = priceLists.enabled !== false;
+  }
+  updatePriceListState();
   storeRuleOverrides = null;
   storeInvoiceOverrides = null;
   if (rules && typeof rules === "object") {
@@ -1659,11 +2279,17 @@ function clearLegacyStoreConfig() {
   if (cfgTransferEnabled) cfgTransferEnabled.checked = true;
   if (cfgTransferDest) cfgTransferDest.dataset.selected = "";
   if (cfgTransferStrategy) cfgTransferStrategy.value = "manual";
+  if (cfgTransferFallback) cfgTransferFallback.value = "";
+  if (cfgTransferTieBreak) cfgTransferTieBreak.value = "";
   if (cfgTransferPriority) cfgTransferPriority.dataset.selected = "";
+  if (cfgTransferMinStock) cfgTransferMinStock.value = "";
+  if (cfgTransferSplit) cfgTransferSplit.checked = false;
   if (cfgPriceGeneral) cfgPriceGeneral.dataset.selected = "";
   if (cfgPriceDiscount) cfgPriceDiscount.dataset.selected = "";
   if (cfgPriceWholesale) cfgPriceWholesale.dataset.selected = "";
   if (cfgPriceCurrency) cfgPriceCurrency.value = "";
+  if (cfgPriceEnabled) cfgPriceEnabled.checked = true;
+  updatePriceListState();
   storeRuleOverrides = null;
   storeInvoiceOverrides = null;
   applyRuleSettings(inventoryRules);
@@ -2310,8 +2936,9 @@ function updateTransferOriginSummary() {
 function updateTransferOriginState() {
   if (!cfgTransferStrategy) return;
   const strategy = cfgTransferStrategy.value || "manual";
+  const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
   const transferEnabled = cfgTransferEnabled ? cfgTransferEnabled.checked !== false : true;
-  const enableOrigins = transferEnabled && strategy === "manual";
+  const enableOrigins = transferEnabled && (strategy === "manual" || fallback === "manual");
   const details = getTransferOriginDetails();
   if (details) {
     details.classList.toggle("is-disabled", !enableOrigins);
@@ -2331,6 +2958,15 @@ function updateTransferOriginState() {
   } else {
     updateTransferOriginSummary();
   }
+}
+
+function updatePriceListState() {
+  if (!cfgPriceEnabled) return;
+  const enabled = cfgPriceEnabled.checked !== false;
+  [cfgPriceGeneral, cfgPriceDiscount, cfgPriceWholesale, cfgPriceCurrency].forEach((select) => {
+    if (!select) return;
+    select.disabled = !enabled;
+  });
 }
 
 function getSelectedWarehouseIds() {
@@ -3803,12 +4439,22 @@ async function loadCatalog(select, endpoint) {
     const data = await fetchJson(`/api/alegra/${endpoint}`);
     const items = Array.isArray(data.items) ? data.items : [];
     select.innerHTML = "";
+    const allowEmpty = select.dataset.allowEmpty === "true";
+    if (allowEmpty) {
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = select.dataset.emptyLabel || "No usar";
+      select.appendChild(option);
+    }
     if (!items.length) {
       const option = document.createElement("option");
       option.disabled = true;
-      option.selected = true;
+      option.selected = !allowEmpty;
       option.textContent = "Sin datos";
       select.appendChild(option);
+      if (select.dataset.selected) {
+        select.value = select.dataset.selected;
+      }
       return;
     }
     items.forEach((item) => {
@@ -3822,9 +4468,16 @@ async function loadCatalog(select, endpoint) {
     }
   } catch (error) {
     select.innerHTML = "";
+    const allowEmpty = select.dataset.allowEmpty === "true";
+    if (allowEmpty) {
+      const emptyOption = document.createElement("option");
+      emptyOption.value = "";
+      emptyOption.textContent = select.dataset.emptyLabel || "No usar";
+      select.appendChild(emptyOption);
+    }
     const option = document.createElement("option");
     option.disabled = true;
-    option.selected = true;
+    option.selected = !allowEmpty;
     option.textContent = "Error al cargar";
     select.appendChild(option);
     console.error(error);
@@ -4021,13 +4674,40 @@ async function saveStoreConfigFromSettings() {
       destinationWarehouseId: cfgTransferDest ? cfgTransferDest.value : "",
       priorityWarehouseId: cfgTransferPriority ? cfgTransferPriority.value : "",
       strategy: cfgTransferStrategy ? cfgTransferStrategy.value : "manual",
+      fallbackStrategy: cfgTransferFallback ? cfgTransferFallback.value : "",
+      tieBreakRule: cfgTransferTieBreak ? cfgTransferTieBreak.value : "",
+      splitEnabled: cfgTransferSplit ? cfgTransferSplit.checked : false,
+      minStock: cfgTransferMinStock
+        ? Math.max(0, Number(cfgTransferMinStock.value || 0))
+        : 0,
       originWarehouseIds: getSelectedTransferOriginIds(),
     },
     priceLists: {
-      generalId: cfgPriceGeneral ? cfgPriceGeneral.value : "",
-      discountId: cfgPriceDiscount ? cfgPriceDiscount.value : "",
-      wholesaleId: cfgPriceWholesale ? cfgPriceWholesale.value : "",
-      currency: cfgPriceCurrency ? cfgPriceCurrency.value : "",
+      enabled: cfgPriceEnabled ? cfgPriceEnabled.checked !== false : true,
+      generalId:
+        cfgPriceEnabled && cfgPriceEnabled.checked === false
+          ? ""
+          : cfgPriceGeneral
+            ? cfgPriceGeneral.value
+            : "",
+      discountId:
+        cfgPriceEnabled && cfgPriceEnabled.checked === false
+          ? ""
+          : cfgPriceDiscount
+            ? cfgPriceDiscount.value
+            : "",
+      wholesaleId:
+        cfgPriceEnabled && cfgPriceEnabled.checked === false
+          ? ""
+          : cfgPriceWholesale
+            ? cfgPriceWholesale.value
+            : "",
+      currency:
+        cfgPriceEnabled && cfgPriceEnabled.checked === false
+          ? ""
+          : cfgPriceCurrency
+            ? cfgPriceCurrency.value
+            : "",
     },
     invoice: {
       generateInvoice: cfgGenerateInvoice ? cfgGenerateInvoice.checked : false,
@@ -4462,6 +5142,7 @@ if (storeActiveSelect) {
     activeStoreDomain = nextDomain;
     activeStoreName =
       storesCache.find((store) => store.shopDomain === nextDomain)?.storeName || "";
+    setToolkitDomainInputs(normalizeShopDomain(nextDomain || ""));
     if (storeNameInput) {
       storeNameInput.placeholder = getActiveStoreLabel() || "Tienda de ejemplo";
     }
@@ -4569,9 +5250,19 @@ if (cfgTransferStrategy) {
     updateTransferOriginState();
   });
 }
+if (cfgTransferFallback) {
+  cfgTransferFallback.addEventListener("change", () => {
+    updateTransferOriginState();
+  });
+}
 if (cfgTransferEnabled) {
   cfgTransferEnabled.addEventListener("change", () => {
     updateTransferOriginState();
+  });
+}
+if (cfgPriceEnabled) {
+  cfgPriceEnabled.addEventListener("change", () => {
+    updatePriceListState();
   });
 }
 if (profileSave) {
@@ -5078,6 +5769,8 @@ async function init() {
       : Promise.resolve(null),
   ]);
   initModuleControls();
+  initToolkitLaunchers();
+  initToolkitControls();
   openWizardStep();
 }
 

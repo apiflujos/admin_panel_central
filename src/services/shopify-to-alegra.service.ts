@@ -39,7 +39,15 @@ type ShopifyOrderPayload = {
   financial_status?: string;
 };
 
-export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload) {
+type ForceSyncOptions = {
+  generateInvoice?: boolean;
+  skipRules?: boolean;
+};
+
+export async function syncShopifyOrderToAlegra(
+  payload: ShopifyOrderPayload,
+  options?: ForceSyncOptions
+) {
   const ctx = await buildSyncContext(payload.__shopDomain);
   const { getOrgId, getPool } = await import("../db");
   const pool = getPool();
@@ -52,6 +60,12 @@ export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload) {
   const orderGid = orderId ? toOrderGid(orderId) : undefined;
   const invoiceSettings = await loadInvoiceSettings(pool, orgId);
   const storeConfig = await resolveStoreConfig(shopDomain);
+  if (options?.skipRules) {
+    storeConfig.transferEnabled = false;
+  }
+  if (typeof options?.generateInvoice === "boolean") {
+    invoiceSettings.generateInvoice = options.generateInvoice;
+  }
   const transferResult = await createInventoryTransferFromOrder(
     payload,
     storeConfig,

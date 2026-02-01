@@ -43,6 +43,16 @@ import {
   deleteShopifyWebhooksHandler,
   getShopifyWebhooksStatusHandler,
 } from "./shopify-webhooks.controller";
+import {
+  getToolkitGlobalConfigHandler,
+  saveToolkitGlobalConfigHandler,
+  getToolkitStoreConfigHandler,
+  saveToolkitStoreConfigHandler,
+  toolkitForceSyncHandler,
+  toolkitHealthHandler,
+  toolkitLogsHandler,
+  toolkitReinstallWebhooksHandler,
+} from "./toolkit.controller";
 import { shopifyOAuthCallback, startShopifyOAuth } from "./shopify-oauth.controller";
 
 export const router = Router();
@@ -95,6 +105,14 @@ router.post("/shopify/lookup-batch", lookupShopifyHandler);
 router.post("/shopify/webhooks", requireAdmin, createShopifyWebhooksHandler);
 router.post("/shopify/webhooks/delete", requireAdmin, deleteShopifyWebhooksHandler);
 router.get("/shopify/webhooks/status", requireAdmin, getShopifyWebhooksStatusHandler);
+router.get("/toolkit/config/global", requireAdmin, getToolkitGlobalConfigHandler);
+router.put("/toolkit/config/global", requireAdmin, saveToolkitGlobalConfigHandler);
+router.get("/toolkit/config/:shopDomain", requireAdmin, getToolkitStoreConfigHandler);
+router.put("/toolkit/config/:shopDomain", requireAdmin, saveToolkitStoreConfigHandler);
+router.get("/toolkit/health", requireAdmin, toolkitHealthHandler);
+router.get("/toolkit/logs", requireAdmin, toolkitLogsHandler);
+router.post("/toolkit/force-sync", requireAdmin, toolkitForceSyncHandler);
+router.post("/toolkit/webhooks/reinstall", requireAdmin, toolkitReinstallWebhooksHandler);
 router.post("/sync/products", syncProductsHandler);
 router.post("/sync/products/stop", stopProductsSyncHandler);
 router.post("/sync/orders", syncOrdersHandler);

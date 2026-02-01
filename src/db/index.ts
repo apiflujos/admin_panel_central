@@ -32,8 +32,10 @@ async function performRepair(poolInstance: Pool) {
         "CREATE TABLE IF NOT EXISTS user_sessions (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), token TEXT NOT NULL, expires_at TIMESTAMPTZ NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE UNIQUE INDEX IF NOT EXISTS user_sessions_token_idx ON user_sessions (token);",
         "CREATE TABLE IF NOT EXISTS company_profiles (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), name TEXT, phone TEXT, address TEXT, logo_base64 TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
+        "CREATE TABLE IF NOT EXISTS toolkit_settings (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), config_json JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE TABLE IF NOT EXISTS shopify_store_configs (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), shop_domain TEXT NOT NULL, transfer_destination_warehouse_id TEXT, transfer_origin_warehouse_ids TEXT, transfer_priority_warehouse_id TEXT, transfer_strategy TEXT NOT NULL DEFAULT 'consolidation', price_list_general_id TEXT, price_list_discount_id TEXT, price_list_wholesale_id TEXT, currency TEXT, alegra_account_id INTEGER, config_json JSONB, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE UNIQUE INDEX IF NOT EXISTS shopify_store_configs_domain_idx ON shopify_store_configs (organization_id, shop_domain);",
+        "CREATE UNIQUE INDEX IF NOT EXISTS toolkit_settings_org_idx ON toolkit_settings (organization_id);",
         "CREATE TABLE IF NOT EXISTS inventory_transfer_decisions (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), shop_domain TEXT, order_id TEXT, chosen_warehouse_id TEXT, rule TEXT, details_json JSONB NOT NULL DEFAULT '{}', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS organization_id INTEGER;",
         "ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS direction TEXT;",
@@ -242,6 +244,7 @@ export async function ensureInvoiceSettingsColumns(poolInstance: Pool) {
 let ensureInventoryRulesPromise: Promise<void> | null = null;
 let ensureSyncCheckpointPromise: Promise<void> | null = null;
 let ensureUsersPromise: Promise<void> | null = null;
+let ensureToolkitSettingsPromise: Promise<void> | null = null;
 
 export async function ensureInventoryRulesColumns(poolInstance: Pool) {
   if (!dbReady && repairPromise) {
@@ -287,6 +290,39 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
       });
   }
   await ensureInventoryRulesPromise;
+}
+
+export async function ensureToolkitSettingsTable(poolInstance: Pool) {
+  if (!dbReady && repairPromise) {
+    await repairPromise;
+  }
+  if (!ensureToolkitSettingsPromise) {
+    ensureToolkitSettingsPromise = poolInstance
+      .query(
+        `
+        CREATE TABLE IF NOT EXISTS toolkit_settings (
+          id SERIAL PRIMARY KEY,
+          organization_id INTEGER NOT NULL REFERENCES organizations(id),
+          config_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        `
+      )
+      .then(() =>
+        poolInstance.query(
+          `
+          CREATE UNIQUE INDEX IF NOT EXISTS toolkit_settings_org_idx
+          ON toolkit_settings (organization_id)
+          `
+        )
+      )
+      .then(() => undefined)
+      .catch((error: unknown) => {
+        ensureToolkitSettingsPromise = null;
+        throw error;
+      });
+  }
+  await ensureToolkitSettingsPromise;
 }
 
 export async function ensureUsersTables(poolInstance: Pool) {

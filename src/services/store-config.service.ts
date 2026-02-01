@@ -1,6 +1,7 @@
 import { ensureInventoryRulesColumns, ensureInvoiceSettingsColumns, getOrgId, getPool } from "../db";
 
 export type TransferStrategy = "manual" | "consolidation" | "priority" | "max_stock";
+export type TransferTieBreak = "" | "priority" | "max_stock" | "random";
 
 export type StoreConfig = {
   shopDomain: string;
@@ -9,6 +10,10 @@ export type StoreConfig = {
   transferOriginWarehouseIds: string[];
   transferPriorityWarehouseId?: string;
   transferStrategy: TransferStrategy;
+  transferFallbackStrategy?: TransferStrategy | "";
+  transferTieBreakRule?: TransferTieBreak;
+  transferSplitEnabled?: boolean;
+  transferMinStock?: number;
   priceListGeneralId?: string;
   priceListDiscountId?: string;
   priceListWholesaleId?: string;
@@ -20,6 +25,24 @@ const normalizeTransferStrategy = (value: unknown): TransferStrategy => {
     return value;
   }
   return "manual";
+};
+
+const normalizeFallbackStrategy = (value: unknown): TransferStrategy | "" => {
+  if (value === "" || value === null || value === undefined) return "";
+  return normalizeTransferStrategy(value);
+};
+
+const normalizeTieBreakRule = (value: unknown): TransferTieBreak => {
+  if (value === "priority" || value === "max_stock" || value === "random") {
+    return value;
+  }
+  return "";
+};
+
+const normalizeMinStock = (value: unknown): number => {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+  return 0;
 };
 
 const normalizeShopDomain = (value: string) =>
@@ -95,6 +118,10 @@ export async function getStoreConfigByDomain(shopDomain: string): Promise<StoreC
     transferStrategy: normalizeTransferStrategy(
       (transfers.strategy as string | undefined) || row.transfer_strategy
     ),
+    transferFallbackStrategy: normalizeFallbackStrategy(transfers.fallbackStrategy),
+    transferTieBreakRule: normalizeTieBreakRule(transfers.tieBreakRule),
+    transferSplitEnabled: transfers.splitEnabled === true,
+    transferMinStock: normalizeMinStock(transfers.minStock),
     priceListGeneralId:
       (priceLists.generalId as string | undefined) ||
       row.price_list_general_id ||

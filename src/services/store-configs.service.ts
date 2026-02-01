@@ -29,6 +29,24 @@ const normalizeTransferStrategy = (value: unknown) => {
   return "manual";
 };
 
+const normalizeFallbackStrategy = (value: unknown) => {
+  if (value === "" || value === null || value === undefined) return "";
+  return normalizeTransferStrategy(value);
+};
+
+const normalizeTieBreakRule = (value: unknown) => {
+  if (value === "priority" || value === "max_stock" || value === "random") {
+    return value;
+  }
+  return "";
+};
+
+const normalizeMinStock = (value: unknown, fallback: number) => {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+  return fallback;
+};
+
 export async function listStoreConfigs() {
   const pool = getPool();
   const orgId = getOrgId();
@@ -104,6 +122,10 @@ export async function listStoreConfigs() {
         strategy: normalizeTransferStrategy(
           (transfers.strategy as string | undefined) || row.transfer_strategy
         ),
+        fallbackStrategy: normalizeFallbackStrategy(transfers.fallbackStrategy),
+        tieBreakRule: normalizeTieBreakRule(transfers.tieBreakRule),
+        splitEnabled: normalizeBoolean(transfers.splitEnabled, false),
+        minStock: normalizeMinStock(transfers.minStock, 0),
       },
       priceLists: {
         generalId:
@@ -236,6 +258,10 @@ export async function getStoreConfigForDomain(shopDomain: string) {
       strategy: normalizeTransferStrategy(
         (transfers.strategy as string | undefined) || row.transfer_strategy
       ),
+      fallbackStrategy: normalizeFallbackStrategy(transfers.fallbackStrategy),
+      tieBreakRule: normalizeTieBreakRule(transfers.tieBreakRule),
+      splitEnabled: normalizeBoolean(transfers.splitEnabled, false),
+      minStock: normalizeMinStock(transfers.minStock, 0),
     },
     priceLists: {
       generalId:
