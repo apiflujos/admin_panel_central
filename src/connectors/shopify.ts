@@ -60,6 +60,13 @@ export class ShopifyClient {
     });
   }
 
+  async getCustomerById(id: string) {
+    return this.request<{ customer: ShopifyCustomer }>(<GraphQlRequest>{
+      query: CUSTOMER_BY_ID_QUERY,
+      variables: { id },
+    });
+  }
+
   async listOrdersUpdatedSince(updatedAtMin: string) {
     return this.request<{ orders: ShopifyOrderConnection }>(<GraphQlRequest>{
       query: ORDERS_UPDATED_SINCE_QUERY,
@@ -99,6 +106,43 @@ export class ShopifyClient {
       }
     }
     return orders;
+  }
+
+  async listAllCustomers(limit?: number) {
+    let cursor: string | null = null;
+    let hasNextPage = true;
+    const customers: ShopifyCustomer[] = [];
+    while (hasNextPage) {
+      const data: { customers: ShopifyCustomerConnection } =
+        await this.request<{ customers: ShopifyCustomerConnection }>(
+        <GraphQlRequest>{
+          query: CUSTOMERS_PAGED_QUERY,
+          variables: { cursor },
+        }
+      );
+      const page =
+        data.customers?.edges?.map((edge: { node: ShopifyCustomer }) => edge.node) || [];
+      customers.push(...page);
+      if (limit && customers.length >= limit) {
+        return customers.slice(0, limit);
+      }
+      hasNextPage = Boolean(data.customers?.pageInfo?.hasNextPage);
+      cursor = data.customers?.pageInfo?.endCursor || null;
+      if (!cursor) {
+        hasNextPage = false;
+      }
+    }
+    return customers;
+  }
+
+  async searchCustomers(query: string) {
+    const data = await this.request<{ customers: ShopifyCustomerConnection }>(
+      <GraphQlRequest>{
+        query: CUSTOMERS_PAGED_QUERY,
+        variables: { query },
+      }
+    );
+    return data.customers?.edges?.map((edge) => edge.node) || [];
   }
 
   async getProductById(id: string) {
@@ -173,6 +217,34 @@ export class ShopifyClient {
         },
       }
     );
+  }
+
+  async createCustomer(input: Record<string, unknown>) {
+    const data = await this.request<{ customerCreate: ShopifyCustomerMutationResult }>(
+      <GraphQlRequest>{
+        query: CUSTOMER_CREATE_MUTATION,
+        variables: { input },
+      }
+    );
+    const errors = data.customerCreate?.userErrors || [];
+    if (errors.length) {
+      throw new Error(`Shopify customerCreate: ${JSON.stringify(errors)}`);
+    }
+    return data.customerCreate?.customer;
+  }
+
+  async updateCustomer(id: string, input: Record<string, unknown>) {
+    const data = await this.request<{ customerUpdate: ShopifyCustomerMutationResult }>(
+      <GraphQlRequest>{
+        query: CUSTOMER_UPDATE_MUTATION,
+        variables: { input: { id, ...input } },
+      }
+    );
+    const errors = data.customerUpdate?.userErrors || [];
+    if (errors.length) {
+      throw new Error(`Shopify customerUpdate: ${JSON.stringify(errors)}`);
+    }
+    return data.customerUpdate?.customer;
   }
 
   async createWebhookSubscription(topic: string, callbackUrl: string) {
@@ -321,6 +393,21 @@ export type ShopifyOrder = {
   };
 };
 
+export type ShopifyCustomer = {
+  id: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  defaultAddress?: {
+    address1?: string | null;
+    city?: string | null;
+    province?: string | null;
+    zip?: string | null;
+    countryCodeV2?: string | null;
+  } | null;
+};
+
 export type ShopifyProduct = {
   id: string;
   title: string;
@@ -340,6 +427,11 @@ export type ShopifyProduct = {
 
 type ShopifyOrderConnection = {
   edges: Array<{ node: ShopifyOrder }>;
+  pageInfo: { hasNextPage: boolean; endCursor?: string | null };
+};
+
+type ShopifyCustomerConnection = {
+  edges: Array<{ node: ShopifyCustomer }>;
   pageInfo: { hasNextPage: boolean; endCursor?: string | null };
 };
 
@@ -365,6 +457,11 @@ type ShopifyProductCreateResult = {
       }>;
     };
   };
+  userErrors: Array<{ field?: string[]; message: string }>;
+};
+
+type ShopifyCustomerMutationResult = {
+  customer?: ShopifyCustomer | null;
   userErrors: Array<{ field?: string[]; message: string }>;
 };
 
@@ -430,6 +527,37 @@ const ORDER_BY_ID_QUERY = `
           }
         }
       }
+    }
+  }
+`;
+
+const CUSTOMER_BY_ID_QUERY = `
+  query CustomerById($id: ID!) {
+    customer(id: $id) {
+      id
+      email
+      firstName
+      lastName
+      phone
+      defaultAddress { address1 city province zip countryCodeV2 }
+    }
+  }
+`;
+
+const CUSTOMERS_PAGED_QUERY = `
+  query CustomersPaged($query: String, $cursor: String) {
+    customers(first: 50, after: $cursor, query: $query) {
+      edges {
+        node {
+          id
+          email
+          firstName
+          lastName
+          phone
+          defaultAddress { address1 city province zip countryCodeV2 }
+        }
+      }
+      pageInfo { hasNextPage endCursor }
     }
   }
 `;
@@ -544,6 +672,24 @@ const PRODUCTS_UPDATED_SINCE_QUERY = `
         }
       }
       pageInfo { hasNextPage endCursor }
+    }
+  }
+`;
+
+const CUSTOMER_CREATE_MUTATION = `
+  mutation CustomerCreate($input: CustomerInput!) {
+    customerCreate(input: $input) {
+      customer { id email firstName lastName phone }
+      userErrors { field message }
+    }
+  }
+`;
+
+const CUSTOMER_UPDATE_MUTATION = `
+  mutation CustomerUpdate($input: CustomerInput!) {
+    customerUpdate(input: $input) {
+      customer { id email firstName lastName phone }
+      userErrors { field message }
     }
   }
 `;

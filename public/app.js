@@ -172,6 +172,18 @@ const cfgInventoryPublishStock = document.getElementById("cfg-inventory-publish-
 const cfgInventoryAutoPublish = document.getElementById("cfg-inventory-auto-publish");
 const cfgInventoryWarehouses = document.getElementById("cfg-inventory-warehouses");
 const cfgInventoryWarehousesSummary = document.getElementById("cfg-inventory-warehouses-summary");
+const syncContactsShopify = document.getElementById("sync-contacts-shopify");
+const syncContactsAlegra = document.getElementById("sync-contacts-alegra");
+const syncContactsPriority = document.getElementById("sync-contacts-priority");
+const syncContactIdentifier = document.getElementById("sync-contact-identifier");
+const syncContactSource = document.getElementById("sync-contact-source");
+const syncContactRun = document.getElementById("sync-contact-run");
+const syncContactLimit = document.getElementById("sync-contact-limit");
+const syncContactsShopifyRun = document.getElementById("sync-contacts-shopify-run");
+const syncContactsAlegraRun = document.getElementById("sync-contacts-alegra-run");
+const syncContactsStatus = document.getElementById("sync-contacts-status");
+const syncOrdersShopify = document.getElementById("sync-orders-shopify");
+const syncOrdersAlegra = document.getElementById("sync-orders-alegra");
 
 const opsTableBody = document.querySelector("#ops-table tbody");
 const opsSearch = document.getElementById("ops-search");
@@ -201,6 +213,7 @@ const productsCountLabel = document.getElementById("products-count");
 const productsStatus = document.getElementById("products-status");
 const productsPublishStatus = document.getElementById("products-publish-status");
 const productsIncludeImages = document.getElementById("products-include-images");
+const rulesOnlyActive = document.getElementById("rules-only-active");
 const productsDateStart = document.getElementById("products-date-start");
 const productsDateEnd = document.getElementById("products-date-end");
 const productsSyncLimitInput = document.getElementById("products-sync-limit");
@@ -259,6 +272,7 @@ let inventoryRules = {
   inventoryAdjustmentsEnabled: true,
   inventoryAdjustmentsIntervalMinutes: 5,
   inventoryAdjustmentsAutoPublish: true,
+  onlyActiveItems: false,
   warehouseIds: [],
 };
 let globalInvoiceSettings = null;
@@ -445,6 +459,32 @@ function initHelpPanels() {
     if (!helpText) return;
     const header = panel.querySelector(".panel-header");
     if (!header || header.querySelector(".help-launch")) return;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ghost help-launch";
+    button.setAttribute("title", "Ver ayuda");
+    button.setAttribute("aria-label", "Ver ayuda");
+    const icon = document.createElement("span");
+    icon.className = "help-icon";
+    icon.textContent = "?";
+    button.appendChild(icon);
+    const panelEl = document.createElement("div");
+    panelEl.className = "help-panel";
+    panelEl.textContent = helpText;
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const wasOpen = panelEl.classList.contains("is-open");
+      closeHelpPanels();
+      panelEl.classList.toggle("is-open", !wasOpen);
+    });
+    header.appendChild(button);
+    header.appendChild(panelEl);
+  });
+
+  document.querySelectorAll(".settings-group-header[data-help]").forEach((header) => {
+    const helpText = header.getAttribute("data-help") || "";
+    if (!helpText) return;
+    if (header.querySelector(".help-launch")) return;
     const button = document.createElement("button");
     button.type = "button";
     button.className = "ghost help-launch";
@@ -1216,18 +1256,24 @@ async function handleModuleSave(moduleKey) {
     "shopify-rules": async () => {
       await saveStoreConfigFromSettings();
     },
+    "sync-contacts": async () => {
+      await saveStoreConfigFromSettings();
+    },
+    "sync-orders": async () => {
+      await saveStoreConfigFromSettings();
+    },
   };
   const action = saveActions[moduleKey];
   if (!action) return;
   try {
     await action();
-    if (moduleKey === "alegra-invoice" || moduleKey === "alegra-inventory" || moduleKey === "alegra-logistics" || moduleKey === "shopify-rules") {
+    if (moduleKey === "alegra-invoice" || moduleKey === "alegra-inventory" || moduleKey === "alegra-logistics" || moduleKey === "shopify-rules" || moduleKey === "sync-contacts" || moduleKey === "sync-orders") {
       setStoreConfigStatus("Configuracion guardada.", "is-ok");
     }
     setModuleReadonly(panel, true);
     advanceWizardStep(moduleKey);
   } catch (error) {
-    if (moduleKey === "alegra-invoice" || moduleKey === "alegra-inventory" || moduleKey === "alegra-logistics" || moduleKey === "shopify-rules") {
+    if (moduleKey === "alegra-invoice" || moduleKey === "alegra-inventory" || moduleKey === "alegra-logistics" || moduleKey === "shopify-rules" || moduleKey === "sync-contacts" || moduleKey === "sync-orders") {
       setStoreConfigStatus(error?.message || "No se pudo guardar.", "is-error");
     }
     throw error;
@@ -1452,11 +1498,13 @@ async function loadSettings() {
       inventoryAdjustmentsEnabled: data.rules.inventoryAdjustmentsEnabled !== false,
       inventoryAdjustmentsIntervalMinutes: Number(data.rules.inventoryAdjustmentsIntervalMinutes || 5),
       inventoryAdjustmentsAutoPublish: data.rules.inventoryAdjustmentsAutoPublish !== false,
+      onlyActiveItems: Boolean(data.rules.onlyActiveItems),
       warehouseIds: Array.isArray(data.rules.warehouseIds) ? data.rules.warehouseIds : [],
     };
   }
   if (rulesAutoPublish) rulesAutoPublish.checked = inventoryRules.autoPublishOnWebhook;
   if (rulesAutoStatus) rulesAutoStatus.value = inventoryRules.autoPublishStatus;
+  if (rulesOnlyActive) rulesOnlyActive.checked = Boolean(inventoryRules.onlyActiveItems);
   if (cfgInventoryPublishStock) {
     cfgInventoryPublishStock.checked = inventoryRules.publishOnStock !== false;
   }
@@ -1632,6 +1680,9 @@ function applyRuleSettings(settings) {
   if (rulesAutoStatus) {
     rulesAutoStatus.value = settings.autoPublishStatus === "active" ? "active" : "draft";
   }
+  if (rulesOnlyActive) {
+    rulesOnlyActive.checked = Boolean(settings.onlyActiveItems);
+  }
   if (cfgInventoryPublishStock) {
     cfgInventoryPublishStock.checked = settings.publishOnStock !== false;
   }
@@ -1642,6 +1693,7 @@ function applyRuleSettings(settings) {
     publishOnStock: settings.publishOnStock !== false,
     autoPublishOnWebhook: Boolean(settings.autoPublishOnWebhook),
     autoPublishStatus: settings.autoPublishStatus === "active" ? "active" : "draft",
+    onlyActiveItems: Boolean(settings.onlyActiveItems),
     inventoryAdjustmentsAutoPublish: settings.inventoryAdjustmentsAutoPublish !== false,
     warehouseIds: Array.isArray(settings.warehouseIds) ? settings.warehouseIds : [],
   };
@@ -1716,6 +1768,32 @@ function applyLegacyStoreConfig(config) {
     applyInvoiceSettings(invoice);
     storeInvoiceOverrides = invoice;
   }
+  const sync = (config?.sync as Record<string, unknown>) || {};
+  const contactSync = (sync.contacts as Record<string, unknown>) || {};
+  const orderSync = (sync.orders as Record<string, unknown>) || {};
+  const matchPriority = Array.isArray(contactSync.matchPriority)
+    ? contactSync.matchPriority.map((item) => String(item).toLowerCase())
+    : typeof contactSync.matchPriority === "string"
+      ? contactSync.matchPriority.split("_")
+      : ["document", "phone", "email"];
+  const priorityKey = matchPriority.join("_");
+  const defaultShopifyMode =
+    cfgGenerateInvoice && cfgGenerateInvoice.checked ? "invoice" : "contact_only";
+  if (syncContactsShopify) {
+    syncContactsShopify.checked = contactSync.fromShopify !== false;
+  }
+  if (syncContactsAlegra) {
+    syncContactsAlegra.checked = contactSync.fromAlegra !== false;
+  }
+  if (syncContactsPriority) {
+    syncContactsPriority.value = priorityKey;
+  }
+  if (syncOrdersShopify) {
+    syncOrdersShopify.value = String(orderSync.shopifyToAlegra || defaultShopifyMode);
+  }
+  if (syncOrdersAlegra) {
+    syncOrdersAlegra.value = String(orderSync.alegraToShopify || "off");
+  }
   renderTransferOriginFilters();
   updateTransferOriginState();
 }
@@ -1740,6 +1818,15 @@ function clearLegacyStoreConfig() {
   storeInvoiceOverrides = null;
   applyRuleSettings(inventoryRules);
   applyInvoiceSettings(globalInvoiceSettings);
+  if (syncContactsShopify) syncContactsShopify.checked = true;
+  if (syncContactsAlegra) syncContactsAlegra.checked = true;
+  if (syncContactsPriority) syncContactsPriority.value = "document_phone_email";
+  if (syncOrdersShopify) {
+    const defaultMode =
+      cfgGenerateInvoice && cfgGenerateInvoice.checked ? "invoice" : "contact_only";
+    syncOrdersShopify.value = defaultMode;
+  }
+  if (syncOrdersAlegra) syncOrdersAlegra.value = "off";
   renderTransferOriginFilters();
   updateTransferOriginState();
 }
@@ -4027,6 +4114,15 @@ function setShopifyWebhooksStatus(text, state) {
   }
 }
 
+function setContactsSyncStatus(text, state) {
+  if (!syncContactsStatus) return;
+  syncContactsStatus.textContent = text || "";
+  syncContactsStatus.classList.remove("is-error", "is-ok");
+  if (state) {
+    syncContactsStatus.classList.add(state);
+  }
+}
+
 async function loadShopifyWebhooksStatus() {
   const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   if (!shopDomain) {
@@ -4109,11 +4205,77 @@ async function deleteShopifyWebhooks() {
   }
 }
 
+async function runSingleContactSync() {
+  const identifier = syncContactIdentifier ? syncContactIdentifier.value.trim() : "";
+  if (!identifier) {
+    setContactsSyncStatus("Ingresa un email, telefono o documento.", "is-error");
+    return;
+  }
+  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+  if (!shopDomain) {
+    setContactsSyncStatus("Dominio Shopify requerido.", "is-error");
+    return;
+  }
+  const source = syncContactSource ? syncContactSource.value : "shopify";
+  setContactsSyncStatus("Sincronizando...");
+  try {
+    const result = await fetchJson("/api/sync/contacts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source, identifier, shopDomain }),
+    });
+    if (result?.skipped) {
+      setContactsSyncStatus("Sin cambios.", "is-error");
+    } else {
+      setContactsSyncStatus("Contacto sincronizado.", "is-ok");
+    }
+  } catch (error) {
+    setContactsSyncStatus(error?.message || "No se pudo sincronizar.", "is-error");
+  }
+}
+
+async function runBulkContactSync(source) {
+  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+  if (!shopDomain) {
+    setContactsSyncStatus("Dominio Shopify requerido.", "is-error");
+    return;
+  }
+  const limit = syncContactLimit ? Number(syncContactLimit.value || 0) : 0;
+  setContactsSyncStatus("Sincronizando masivo...");
+  try {
+    const result = await fetchJson("/api/sync/contacts/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source, limit: limit || undefined, shopDomain }),
+    });
+    if (result?.skipped) {
+      setContactsSyncStatus("Sin cambios.", "is-error");
+    } else {
+      const total = Number(result?.total || 0);
+      setContactsSyncStatus(`Sincronizados ${total}.`, "is-ok");
+    }
+  } catch (error) {
+    setContactsSyncStatus(error?.message || "No se pudo sincronizar.", "is-error");
+  }
+}
+
 async function saveStoreConfigFromSettings() {
   const domain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   if (!domain) {
     throw new Error("Dominio Shopify requerido.");
   }
+  const shopifyOrderMode = syncOrdersShopify ? syncOrdersShopify.value : "";
+  const alegraOrderMode = syncOrdersAlegra ? syncOrdersAlegra.value : "";
+  const matchPriorityKey = syncContactsPriority ? syncContactsPriority.value : "document_phone_email";
+  const matchPriority = matchPriorityKey.split("_").filter(Boolean);
+  const generateInvoiceValue =
+    shopifyOrderMode === "invoice"
+      ? true
+      : shopifyOrderMode === "contact_only"
+        ? false
+        : cfgGenerateInvoice
+          ? cfgGenerateInvoice.checked
+          : false;
   const payload = {
     transfers: {
       enabled: cfgTransferEnabled ? cfgTransferEnabled.checked : true,
@@ -4156,7 +4318,7 @@ async function saveStoreConfigFromSettings() {
             : "",
     },
     invoice: {
-      generateInvoice: cfgGenerateInvoice ? cfgGenerateInvoice.checked : false,
+      generateInvoice: generateInvoiceValue,
       resolutionId: cfgResolution ? cfgResolution.value : "",
       costCenterId: cfgCostCenter ? cfgCostCenter.value : "",
       warehouseId: cfgWarehouse ? cfgWarehouse.value : "",
@@ -4169,6 +4331,7 @@ async function saveStoreConfigFromSettings() {
     },
     rules: {
       publishOnStock: cfgInventoryPublishStock ? cfgInventoryPublishStock.checked : true,
+      onlyActiveItems: rulesOnlyActive ? rulesOnlyActive.checked : false,
       autoPublishOnWebhook: rulesAutoPublish ? rulesAutoPublish.checked : false,
       autoPublishStatus:
         rulesAutoStatus && rulesAutoStatus.value === "active" ? "active" : "draft",
@@ -4176,6 +4339,17 @@ async function saveStoreConfigFromSettings() {
         ? cfgInventoryAutoPublish.checked
         : true,
       warehouseIds: getSelectedInventoryWarehouseIds(),
+    },
+    sync: {
+      contacts: {
+        fromShopify: syncContactsShopify ? syncContactsShopify.checked : true,
+        fromAlegra: syncContactsAlegra ? syncContactsAlegra.checked : true,
+        matchPriority,
+      },
+      orders: {
+        shopifyToAlegra: shopifyOrderMode || "invoice",
+        alegraToShopify: alegraOrderMode || "off",
+      },
     },
   };
   await fetchJson(`/api/store-configs/${encodeURIComponent(domain)}`, {
@@ -4206,6 +4380,7 @@ async function saveSettings() {
       publishOnStock: cfgInventoryPublishStock
         ? cfgInventoryPublishStock.checked
         : inventoryRules.publishOnStock,
+      onlyActiveItems: rulesOnlyActive ? rulesOnlyActive.checked : inventoryRules.onlyActiveItems,
       autoPublishOnWebhook: rulesAutoPublish ? rulesAutoPublish.checked : false,
       autoPublishStatus: rulesAutoStatus && rulesAutoStatus.value === "active" ? "active" : "draft",
       inventoryAdjustmentsEnabled: inventoryCronEnabled ? inventoryCronEnabled.checked : true,
@@ -4966,6 +5141,24 @@ if (shopifyWebhooksDelete) {
 if (shopifyWebhooksStatusBtn) {
   shopifyWebhooksStatusBtn.addEventListener("click", () => {
     loadShopifyWebhooksStatus();
+  });
+}
+
+if (syncContactRun) {
+  syncContactRun.addEventListener("click", () => {
+    runSingleContactSync();
+  });
+}
+
+if (syncContactsShopifyRun) {
+  syncContactsShopifyRun.addEventListener("click", () => {
+    runBulkContactSync("shopify");
+  });
+}
+
+if (syncContactsAlegraRun) {
+  syncContactsAlegraRun.addEventListener("click", () => {
+    runBulkContactSync("alegra");
   });
 }
 

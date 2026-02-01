@@ -2,6 +2,9 @@ import { ensureInventoryRulesColumns, ensureInvoiceSettingsColumns, getOrgId, ge
 
 export type TransferStrategy = "manual" | "consolidation" | "priority" | "max_stock";
 export type TransferTieBreak = "" | "priority" | "max_stock" | "random";
+export type ContactMatchRule = "document" | "phone" | "email";
+export type ShopifyOrderMode = "invoice" | "contact_only" | "off";
+export type AlegraOrderMode = "draft" | "active" | "off";
 
 export type StoreConfig = {
   shopDomain: string;
@@ -18,6 +21,11 @@ export type StoreConfig = {
   priceListDiscountId?: string;
   priceListWholesaleId?: string;
   currency?: string;
+  syncContactsFromShopify: boolean;
+  syncContactsFromAlegra: boolean;
+  contactMatchPriority: ContactMatchRule[];
+  syncOrdersShopifyToAlegra: ShopifyOrderMode;
+  syncOrdersAlegraToShopify: AlegraOrderMode;
 };
 
 const normalizeTransferStrategy = (value: unknown): TransferStrategy => {
@@ -43,6 +51,30 @@ const normalizeMinStock = (value: unknown): number => {
   const parsed = typeof value === "number" ? value : Number(value);
   if (Number.isFinite(parsed) && parsed >= 0) return parsed;
   return 0;
+};
+
+const normalizeMatchPriority = (value: unknown): ContactMatchRule[] => {
+  const fallback: ContactMatchRule[] = ["document", "phone", "email"];
+  const raw = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split("_")
+      : fallback;
+  const allowed = new Set(["document", "phone", "email"]);
+  const cleaned = raw
+    .map((item) => String(item).toLowerCase())
+    .filter((item) => allowed.has(item)) as ContactMatchRule[];
+  return cleaned.length ? cleaned : fallback;
+};
+
+const normalizeShopifyOrderMode = (value: unknown): ShopifyOrderMode => {
+  if (value === "contact_only" || value === "off" || value === "invoice") return value;
+  return "invoice";
+};
+
+const normalizeAlegraOrderMode = (value: unknown): AlegraOrderMode => {
+  if (value === "draft" || value === "active" || value === "off") return value;
+  return "off";
 };
 
 const normalizeShopDomain = (value: string) =>
@@ -100,6 +132,9 @@ export async function getStoreConfigByDomain(shopDomain: string): Promise<StoreC
   const config = (row.config_json as Record<string, unknown>) || {};
   const transfers = (config.transfers as Record<string, unknown>) || {};
   const priceLists = (config.priceLists as Record<string, unknown>) || {};
+  const sync = (config.sync as Record<string, unknown>) || {};
+  const contactSync = (sync.contacts as Record<string, unknown>) || {};
+  const orderSync = (sync.orders as Record<string, unknown>) || {};
   return {
     shopDomain: row.shop_domain,
     transferEnabled: transfers.enabled !== false,
@@ -135,6 +170,11 @@ export async function getStoreConfigByDomain(shopDomain: string): Promise<StoreC
       row.price_list_wholesale_id ||
       undefined,
     currency: (priceLists.currency as string | undefined) || row.currency || undefined,
+    syncContactsFromShopify: contactSync.fromShopify !== false,
+    syncContactsFromAlegra: contactSync.fromAlegra !== false,
+    contactMatchPriority: normalizeMatchPriority(contactSync.matchPriority),
+    syncOrdersShopifyToAlegra: normalizeShopifyOrderMode(orderSync.shopifyToAlegra),
+    syncOrdersAlegraToShopify: normalizeAlegraOrderMode(orderSync.alegraToShopify),
   };
 }
 
@@ -170,6 +210,11 @@ export async function getDefaultStoreConfig(): Promise<StoreConfig> {
     transferDestinationWarehouseId: invoice.rows[0]?.warehouse_id || undefined,
     transferOriginWarehouseIds: parseIdList(rules.rows[0]?.warehouse_ids || null),
     transferStrategy: "manual",
+    syncContactsFromShopify: true,
+    syncContactsFromAlegra: true,
+    contactMatchPriority: ["document", "phone", "email"],
+    syncOrdersShopifyToAlegra: "invoice",
+    syncOrdersAlegraToShopify: "off",
   };
 }
 

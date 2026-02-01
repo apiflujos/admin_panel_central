@@ -26,6 +26,10 @@ export class AlegraClient {
     return this.request(`/contacts?email=${encodeURIComponent(email)}`);
   }
 
+  async getContact(id: string) {
+    return this.request(`/contacts/${id}`);
+  }
+
   async createContact(payload: Record<string, unknown>) {
     return this.request(`/contacts`, { method: "POST", body: payload });
   }

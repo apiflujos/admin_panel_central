@@ -16,7 +16,9 @@ async function performRepair(poolInstance: Pool) {
         "CREATE TABLE IF NOT EXISTS shopify_oauth_states (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), shop_domain TEXT NOT NULL, nonce TEXT NOT NULL, store_name TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE TABLE IF NOT EXISTS alegra_accounts (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), user_email TEXT NOT NULL, api_key_encrypted TEXT NOT NULL, environment TEXT DEFAULT 'prod', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE TABLE IF NOT EXISTS sync_mappings (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), entity TEXT NOT NULL, shopify_id TEXT, alegra_id TEXT, parent_id TEXT, metadata_json JSONB NOT NULL DEFAULT '{}');",
-        "CREATE TABLE IF NOT EXISTS inventory_rules (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), publish_on_stock BOOLEAN NOT NULL DEFAULT TRUE, min_stock INTEGER NOT NULL DEFAULT 0, warehouse_id TEXT, warehouse_ids TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
+        "CREATE TABLE IF NOT EXISTS contacts (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), source TEXT NOT NULL DEFAULT 'shopify', shopify_id TEXT, alegra_id TEXT, name TEXT, email TEXT, phone TEXT, doc TEXT, address TEXT, sync_status TEXT NOT NULL DEFAULT 'pending', last_sync_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
+        "CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), source TEXT NOT NULL DEFAULT 'shopify', shopify_order_id TEXT, alegra_invoice_id TEXT, status TEXT, total NUMERIC, currency TEXT, sync_status TEXT NOT NULL DEFAULT 'pending', last_sync_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
+        "CREATE TABLE IF NOT EXISTS inventory_rules (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), publish_on_stock BOOLEAN NOT NULL DEFAULT TRUE, min_stock INTEGER NOT NULL DEFAULT 0, warehouse_id TEXT, warehouse_ids TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), only_active_items BOOLEAN NOT NULL DEFAULT false);",
         "CREATE TABLE IF NOT EXISTS tax_rules (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), shopify_tax_id TEXT NOT NULL, alegra_tax_id TEXT NOT NULL, type TEXT NOT NULL);",
         "CREATE TABLE IF NOT EXISTS invoice_settings (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), generate_invoice BOOLEAN NOT NULL DEFAULT FALSE, resolution_id TEXT, cost_center_id TEXT, warehouse_id TEXT, seller_id TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE TABLE IF NOT EXISTS webhook_events (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), source TEXT NOT NULL, event_type TEXT NOT NULL, payload_json JSONB NOT NULL, received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), processed_at TIMESTAMPTZ, status TEXT NOT NULL DEFAULT 'pending');",
@@ -86,6 +88,7 @@ async function performRepair(poolInstance: Pool) {
         "ALTER TABLE inventory_rules ADD COLUMN IF NOT EXISTS min_stock INTEGER NOT NULL DEFAULT 0;",
         "ALTER TABLE inventory_rules ADD COLUMN IF NOT EXISTS warehouse_id TEXT;",
         "ALTER TABLE inventory_rules ADD COLUMN IF NOT EXISTS warehouse_ids TEXT;",
+        "ALTER TABLE inventory_rules ADD COLUMN IF NOT EXISTS only_active_items BOOLEAN NOT NULL DEFAULT false;",
         "ALTER TABLE inventory_rules ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();",
         "ALTER TABLE tax_rules ADD COLUMN IF NOT EXISTS organization_id INTEGER;",
         "ALTER TABLE tax_rules ADD COLUMN IF NOT EXISTS shopify_tax_id TEXT;",
@@ -136,6 +139,10 @@ async function performRepair(poolInstance: Pool) {
         "ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW();",
         "CREATE INDEX IF NOT EXISTS sync_mappings_shopify_idx ON sync_mappings (entity, shopify_id);",
         "CREATE INDEX IF NOT EXISTS sync_mappings_alegra_idx ON sync_mappings (entity, alegra_id);",
+        "CREATE UNIQUE INDEX IF NOT EXISTS contacts_shopify_idx ON contacts (organization_id, shopify_id);",
+        "CREATE UNIQUE INDEX IF NOT EXISTS contacts_alegra_idx ON contacts (organization_id, alegra_id);",
+        "CREATE UNIQUE INDEX IF NOT EXISTS orders_shopify_idx ON orders (organization_id, shopify_order_id);",
+        "CREATE UNIQUE INDEX IF NOT EXISTS orders_alegra_idx ON orders (organization_id, alegra_invoice_id);",
         "CREATE INDEX IF NOT EXISTS sync_logs_org_status_idx ON sync_logs (organization_id, status, created_at);",
         "CREATE INDEX IF NOT EXISTS webhook_events_source_type_idx ON webhook_events (source, event_type, received_at);",
         "CREATE UNIQUE INDEX IF NOT EXISTS retry_queue_sync_log_id_idx ON retry_queue (sync_log_id);",
@@ -263,7 +270,8 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
           auto_publish_status TEXT NOT NULL DEFAULT 'draft',
           inventory_adjustments_enabled BOOLEAN NOT NULL DEFAULT true,
           inventory_adjustments_interval_minutes INTEGER NOT NULL DEFAULT 5,
-          inventory_adjustments_autopublish BOOLEAN NOT NULL DEFAULT true
+          inventory_adjustments_autopublish BOOLEAN NOT NULL DEFAULT true,
+          only_active_items BOOLEAN NOT NULL DEFAULT false
         )
         `
       )
@@ -276,7 +284,8 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
             ADD COLUMN IF NOT EXISTS inventory_adjustments_enabled BOOLEAN NOT NULL DEFAULT true,
             ADD COLUMN IF NOT EXISTS inventory_adjustments_interval_minutes INTEGER NOT NULL DEFAULT 5,
             ADD COLUMN IF NOT EXISTS inventory_adjustments_autopublish BOOLEAN NOT NULL DEFAULT true,
-            ADD COLUMN IF NOT EXISTS warehouse_ids TEXT
+            ADD COLUMN IF NOT EXISTS warehouse_ids TEXT,
+            ADD COLUMN IF NOT EXISTS only_active_items BOOLEAN NOT NULL DEFAULT false
           `
         )
       )

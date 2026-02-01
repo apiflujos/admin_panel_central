@@ -1101,14 +1101,16 @@ button {
 }
 
 .panel-header h3[data-module-toggle]::after {
-  content: "▾";
-  font-size: 12px;
+  content: "Cerrar ▾";
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--muted);
-  transition: transform 160ms ease;
+  margin-left: 6px;
 }
 
 .panel.module.is-collapsed h3[data-module-toggle]::after {
-  transform: rotate(-90deg);
+  content: "Abrir ▾";
 }
 
 .panel-actions {
@@ -1187,6 +1189,9 @@ button {
   gap: 10px;
   cursor: pointer;
   user-select: none;
+  position: relative;
+  padding: 6px 8px;
+  border-radius: 8px;
 }
 
 .settings-group-header h3,
@@ -1227,6 +1232,11 @@ button {
   padding-left: 10px;
 }
 
+.settings-group.provider-group[data-group="alegra-shopify-bidir"] .settings-group-header {
+  border-left: 3px solid var(--alegra-green);
+  padding-left: 10px;
+}
+
 .settings-group-subtitle {
   font-size: 11px;
   color: var(--muted);
@@ -1246,15 +1256,20 @@ button {
 
 .settings-group.is-collapsed .settings-group-header::after,
 .settings-group-header::after {
-  content: "▾";
-  font-size: 12px;
+  content: "Cerrar ▾";
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--muted);
   margin-left: auto;
-  transition: transform 160ms ease;
 }
 
 .settings-group.is-collapsed .settings-group-header::after {
-  transform: rotate(-90deg);
+  content: "Abrir ▾";
+}
+
+.settings-group-header:hover {
+  background: rgba(15, 23, 42, 0.04);
 }
 
 .store-meta {
@@ -1363,11 +1378,12 @@ button {
   appearance: none;
   width: 38px;
   height: 20px;
-  background: #e2e8f0;
+  background: #d6dee8;
   border-radius: 999px;
   position: relative;
   transition: background 160ms ease;
-  border: 1px solid var(--stroke);
+  border: 1px solid #b9c3d1;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
   cursor: pointer;
 }
 
@@ -2432,6 +2448,50 @@ textarea {
 
 .help-panel.is-open {
   display: block;
+}
+
+.tip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 6px;
+  position: relative;
+  cursor: help;
+}
+
+.tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translate(-50%, 4px);
+  width: min(260px, 70vw);
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  padding: 8px 10px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease, transform 120ms ease;
+  z-index: 40;
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+
+.tip:hover::after,
+.tip:focus::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 @media (max-width: 1100px) {

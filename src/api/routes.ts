@@ -44,6 +44,7 @@ import {
   getShopifyWebhooksStatusHandler,
 } from "./shopify-webhooks.controller";
 import { shopifyOAuthCallback, startShopifyOAuth } from "./shopify-oauth.controller";
+import { syncContactHandler, syncContactsBulkHandler } from "./contacts.controller";
 
 export const router = Router();
 
@@ -99,6 +100,8 @@ router.post("/sync/products", syncProductsHandler);
 router.post("/sync/products/stop", stopProductsSyncHandler);
 router.post("/sync/orders", syncOrdersHandler);
 router.post("/sync/inventory-adjustments", syncInventoryAdjustmentsHandler);
+router.post("/sync/contacts", syncContactHandler);
+router.post("/sync/contacts/bulk", syncContactsBulkHandler);
 router.get("/operations", listOperationsHandler);
 router.post("/operations/seed", seedOperationsHandler);
 router.post("/operations/:orderId/sync", syncOperationHandler);

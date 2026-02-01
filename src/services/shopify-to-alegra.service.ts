@@ -1,5 +1,7 @@
 import { buildSyncContext } from "./sync-context";
 import { getMappingByShopifyId, saveMapping, updateMappingMetadata } from "./mapping.service";
+import { upsertContact } from "./contacts.service";
+import { upsertOrder } from "./orders.service";
 import { createSyncLog } from "./logs.service";
 import { acquireIdempotencyKey, markIdempotencyKey } from "./idempotency.service";
 import { getOrderInvoiceOverride, validateEinvoiceData } from "./order-invoice-overrides.service";
@@ -16,6 +18,7 @@ type ShopifyOrderPayload = {
   payment_gateway_names?: string[];
   gateway?: string;
   customer?: {
+    id?: number | string;
     first_name?: string;
     last_name?: string;
     email?: string;
@@ -60,11 +63,17 @@ export async function syncShopifyOrderToAlegra(
   const orderGid = orderId ? toOrderGid(orderId) : undefined;
   const invoiceSettings = await loadInvoiceSettings(pool, orgId);
   const storeConfig = await resolveStoreConfig(shopDomain);
+  const orderMode = storeConfig.syncOrdersShopifyToAlegra || "invoice";
+  if (orderMode === "off") {
+    return { handled: false, reason: "sync_disabled" };
+  }
   if (options?.skipRules) {
     storeConfig.transferEnabled = false;
   }
   if (typeof options?.generateInvoice === "boolean") {
     invoiceSettings.generateInvoice = options.generateInvoice;
+  } else {
+    invoiceSettings.generateInvoice = orderMode === "invoice";
   }
   const transferResult = await createInventoryTransferFromOrder(
     payload,
@@ -180,6 +189,17 @@ export async function syncShopifyOrderToAlegra(
     }
   }
 
+  await upsertContact({
+    shopifyId: payload.customer?.id ? String(payload.customer.id) : undefined,
+    alegraId: contactId,
+    name: contactName,
+    email: effectiveEmail,
+    phone: contactPayload.phonePrimary || undefined,
+    doc: identification,
+    address: contactPayload.address || undefined,
+    source: "shopify",
+  });
+
   const paymentGateways = extractPaymentGateways(payload);
   const defaultBankAccountId = await resolveBankAccountId(
     pool,
@@ -192,6 +212,15 @@ export async function syncShopifyOrderToAlegra(
   const bankAccountId = sourceMapping?.accountId || defaultBankAccountId;
   const invoicePayload = buildInvoicePayload(payload, contactId, effectiveInvoiceSettings, paymentMethod);
   if (!invoiceSettings.generateInvoice) {
+    if (orderId) {
+      await upsertOrder({
+        shopifyId: orderId,
+        status: payload.financial_status || undefined,
+        total: payload.total_price ? Number(payload.total_price) : null,
+        currency: payload.currency || undefined,
+        source: "shopify",
+      });
+    }
     return { handled: true, contactId, invoice: null, payment: null, adjustment: null };
   }
 
@@ -249,6 +278,14 @@ export async function syncShopifyOrderToAlegra(
       if (invoiceNumber) {
         await updateMappingMetadata("order", invoiceId, { invoiceNumber });
       }
+      await upsertOrder({
+        shopifyId: orderId,
+        alegraId: invoiceId,
+        status: payload.financial_status || undefined,
+        total: payload.total_price ? Number(payload.total_price) : null,
+        currency: payload.currency || undefined,
+        source: "shopify",
+      });
     }
     if (idempotencyKey) {
       await markIdempotencyKey(idempotencyKey, "completed");

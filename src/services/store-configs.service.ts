@@ -47,6 +47,29 @@ const normalizeMinStock = (value: unknown, fallback: number) => {
   return fallback;
 };
 
+const normalizeContactPriority = (value: unknown, fallback: string[]) => {
+  const base = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split("_")
+      : fallback;
+  const allowed = new Set(["document", "phone", "email"]);
+  const cleaned = base
+    .map((item) => String(item).toLowerCase())
+    .filter((item) => allowed.has(item));
+  return cleaned.length ? cleaned : fallback;
+};
+
+const normalizeShopifyOrderMode = (value: unknown) => {
+  if (value === "contact_only" || value === "off" || value === "invoice") return value;
+  return "invoice";
+};
+
+const normalizeAlegraOrderMode = (value: unknown) => {
+  if (value === "draft" || value === "active" || value === "off") return value;
+  return "off";
+};
+
 export async function listStoreConfigs() {
   const pool = getPool();
   const orgId = getOrgId();
@@ -100,6 +123,9 @@ export async function listStoreConfigs() {
     const priceLists = (config.priceLists as Record<string, unknown>) || {};
     const rules = (config.rules as Record<string, unknown>) || {};
     const invoice = (config.invoice as Record<string, unknown>) || {};
+    const sync = (config.sync as Record<string, unknown>) || {};
+    const contactSync = (sync.contacts as Record<string, unknown>) || {};
+    const orderSync = (sync.orders as Record<string, unknown>) || {};
     return {
       shopDomain: row.shop_domain,
       alegraAccountId: row.alegra_account_id || undefined,
@@ -147,6 +173,10 @@ export async function listStoreConfigs() {
           rules.publishOnStock,
           defaults.rules?.publishOnStock ?? true
         ),
+        onlyActiveItems: normalizeBoolean(
+          (rules as Record<string, unknown>).onlyActiveItems,
+          (defaults.rules as Record<string, unknown>)?.onlyActiveItems ?? false
+        ),
         autoPublishOnWebhook: normalizeBoolean(
           rules.autoPublishOnWebhook,
           defaults.rules?.autoPublishOnWebhook ?? false
@@ -184,6 +214,20 @@ export async function listStoreConfigs() {
         applyPayment: invoice.applyPayment ?? defaults.invoice?.applyPayment ?? false,
         observationsTemplate: invoice.observationsTemplate ?? defaults.invoice?.observationsTemplate ?? "",
         einvoiceEnabled: invoice.einvoiceEnabled ?? defaults.invoice?.einvoiceEnabled ?? false,
+      },
+      sync: {
+        contacts: {
+          fromShopify: normalizeBoolean(contactSync.fromShopify, true),
+          fromAlegra: normalizeBoolean(contactSync.fromAlegra, true),
+          matchPriority: normalizeContactPriority(
+            contactSync.matchPriority,
+            ["document", "phone", "email"]
+          ),
+        },
+        orders: {
+          shopifyToAlegra: normalizeShopifyOrderMode(orderSync.shopifyToAlegra),
+          alegraToShopify: normalizeAlegraOrderMode(orderSync.alegraToShopify),
+        },
       },
     };
   });
@@ -237,6 +281,9 @@ export async function getStoreConfigForDomain(shopDomain: string) {
   const priceLists = (config.priceLists as Record<string, unknown>) || {};
   const rules = (config.rules as Record<string, unknown>) || {};
   const invoice = (config.invoice as Record<string, unknown>) || {};
+  const sync = (config.sync as Record<string, unknown>) || {};
+  const contactSync = (sync.contacts as Record<string, unknown>) || {};
+  const orderSync = (sync.orders as Record<string, unknown>) || {};
   return {
     shopDomain: row.shop_domain,
     transfers: {
@@ -283,6 +330,10 @@ export async function getStoreConfigForDomain(shopDomain: string) {
         rules.publishOnStock,
         defaults.rules?.publishOnStock ?? true
       ),
+      onlyActiveItems: normalizeBoolean(
+        (rules as Record<string, unknown>).onlyActiveItems,
+        (defaults.rules as Record<string, unknown>)?.onlyActiveItems ?? false
+      ),
       autoPublishOnWebhook: normalizeBoolean(
         rules.autoPublishOnWebhook,
         defaults.rules?.autoPublishOnWebhook ?? false
@@ -321,6 +372,20 @@ export async function getStoreConfigForDomain(shopDomain: string) {
       observationsTemplate: invoice.observationsTemplate ?? defaults.invoice?.observationsTemplate ?? "",
       einvoiceEnabled: invoice.einvoiceEnabled ?? defaults.invoice?.einvoiceEnabled ?? false,
     },
+    sync: {
+      contacts: {
+        fromShopify: normalizeBoolean(contactSync.fromShopify, true),
+        fromAlegra: normalizeBoolean(contactSync.fromAlegra, true),
+        matchPriority: normalizeContactPriority(
+          contactSync.matchPriority,
+          ["document", "phone", "email"]
+        ),
+      },
+      orders: {
+        shopifyToAlegra: normalizeShopifyOrderMode(orderSync.shopifyToAlegra),
+        alegraToShopify: normalizeAlegraOrderMode(orderSync.alegraToShopify),
+      },
+    },
   };
 }
 
@@ -335,11 +400,13 @@ export async function saveStoreConfig(
 
   const transfers = (payload.transfers as Record<string, unknown>) || {};
   const priceLists = (payload.priceLists as Record<string, unknown>) || {};
+  const sync = (payload.sync as Record<string, unknown>) || {};
   const configJson = {
     transfers,
     priceLists,
     rules: payload.rules || {},
     invoice: payload.invoice || {},
+    sync,
   };
 
   const existing = await pool.query<{ id: number }>(
