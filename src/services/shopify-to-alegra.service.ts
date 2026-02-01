@@ -71,6 +71,34 @@ export async function syncShopifyOrderToAlegra(
   if (orderMode === "off") {
     return { handled: false, reason: "sync_disabled" };
   }
+  if (orderMode === "db_only") {
+    const orderMeta = buildOrderMetaFromPayload(payload);
+    await upsertContact({
+      shopifyId: payload.customer?.id ? String(payload.customer.id) : undefined,
+      name: orderMeta.customerName,
+      email: orderMeta.customerEmail || undefined,
+      phone: payload.customer?.phone || undefined,
+      address: payload.customer?.default_address?.address1 || undefined,
+      source: "shopify",
+    });
+    if (orderId) {
+      await upsertOrder({
+        shopifyId: orderId,
+        orderNumber: orderMeta.orderNumber,
+        customerName: orderMeta.customerName,
+        customerEmail: orderMeta.customerEmail,
+        productsSummary: orderMeta.productsSummary,
+        processedAt: orderMeta.processedAt,
+        status: payload.financial_status || undefined,
+        total: payload.total_price ? Number(payload.total_price) : null,
+        currency: payload.currency || undefined,
+        alegraStatus: "pendiente",
+        sourceUpdatedAt: orderMeta.processedAt,
+        source: "shopify",
+      });
+    }
+    return { handled: true, dbOnly: true };
+  }
   if (options?.skipRules) {
     storeConfig.transferEnabled = false;
   }

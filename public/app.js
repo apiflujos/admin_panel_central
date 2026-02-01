@@ -1822,8 +1822,7 @@ function applyLegacyStoreConfig(config) {
       ? contactSync.matchPriority.split("_")
       : ["document", "phone", "email"];
   const priorityKey = matchPriority.join("_");
-  const defaultShopifyMode =
-    cfgGenerateInvoice && cfgGenerateInvoice.checked ? "invoice" : "contact_only";
+  const defaultShopifyMode = "db_only";
   if (syncContactsShopify) {
     syncContactsShopify.checked = contactSync.fromShopify !== false;
   }
@@ -1867,9 +1866,7 @@ function clearLegacyStoreConfig() {
   if (syncContactsAlegra) syncContactsAlegra.checked = true;
   if (syncContactsPriority) syncContactsPriority.value = "document_phone_email";
   if (syncOrdersShopify) {
-    const defaultMode =
-      cfgGenerateInvoice && cfgGenerateInvoice.checked ? "invoice" : "contact_only";
-    syncOrdersShopify.value = defaultMode;
+    syncOrdersShopify.value = "db_only";
   }
   if (syncOrdersAlegra) syncOrdersAlegra.value = "off";
   renderTransferOriginFilters();
@@ -4410,7 +4407,7 @@ async function saveStoreConfigFromSettings() {
   const generateInvoiceValue =
     shopifyOrderMode === "invoice"
       ? true
-      : shopifyOrderMode === "contact_only"
+      : shopifyOrderMode === "contact_only" || shopifyOrderMode === "db_only"
         ? false
         : cfgGenerateInvoice
           ? cfgGenerateInvoice.checked
@@ -4486,7 +4483,7 @@ async function saveStoreConfigFromSettings() {
         matchPriority,
       },
       orders: {
-        shopifyToAlegra: shopifyOrderMode || "invoice",
+        shopifyToAlegra: shopifyOrderMode || "db_only",
         alegraToShopify: alegraOrderMode || "off",
       },
     },

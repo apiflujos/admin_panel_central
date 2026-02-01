@@ -61,8 +61,10 @@ const normalizeContactPriority = (value: unknown, fallback: string[]) => {
 };
 
 const normalizeShopifyOrderMode = (value: unknown) => {
-  if (value === "contact_only" || value === "off" || value === "invoice") return value;
-  return "invoice";
+  if (value === "contact_only" || value === "off" || value === "invoice" || value === "db_only") {
+    return value;
+  }
+  return "db_only";
 };
 
 const normalizeAlegraOrderMode = (value: unknown) => {

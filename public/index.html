@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
-    <link rel="icon" type="image/png" href="/favicon.png?v=20260201p" />
-    <link rel="stylesheet" href="styles.css?v=20260201r" />
+    <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
+    <link rel="stylesheet" href="styles.css?v=20260201s" />
   </head>
   <body>
     <div class="app-shell">
@@ -35,7 +35,7 @@
             </span>
             <span class="nav-label">Pedidos</span>
           </button>
-          <button class="nav-item" data-target="settings" data-module="sync-contacts" data-groups="store,alegra-shopify-bidir" title="Contactos">
+          <button class="nav-item" data-target="contacts" title="Contactos">
             <span class="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
                 <path d="M16 11a4 4 0 1 1-8 0 4 4 0 0 1 8 0z" />
@@ -496,6 +496,68 @@
           </div>
         </section>
 
+        <section class="section" id="contacts">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Gestion de contactos</h3>
+              <span class="panel-tag">Contactos</span>
+            </div>
+            <div class="toolbar products-toolbar">
+              <input type="text" id="contacts-search" placeholder="Buscar por nombre, email o telefono" />
+              <input type="date" id="contacts-date-start" />
+              <input type="date" id="contacts-date-end" />
+              <select id="contacts-status">
+                <option value="">Estado: Todos</option>
+                <option value="synced">Sincronizado</option>
+                <option value="pending">Pendiente</option>
+              </select>
+              <select id="contacts-source">
+                <option value="">Origen: Todos</option>
+                <option value="shopify">Shopify</option>
+                <option value="alegra">Alegra</option>
+              </select>
+              <input type="number" id="contacts-limit" min="1" placeholder="Filas por pagina" />
+              <button class="ghost" id="contacts-search-btn">Buscar</button>
+              <button class="primary" id="contacts-refresh">Refrescar</button>
+              <button class="ghost" id="contacts-clear">Borrar filtros</button>
+            </div>
+            <div class="table-card">
+              <table class="table" id="contacts-table">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Telefono</th>
+                    <th>Documento</th>
+                    <th>Origen</th>
+                    <th>Estado</th>
+                    <th>Shopify</th>
+                    <th>Alegra</th>
+                    <th>Actualizado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="9" class="empty">Sin contactos para mostrar.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="products-footer">
+              <span id="contacts-page">Pagina 1</span>
+              <div class="products-pagination">
+                <button class="ghost" id="contacts-prev">Anterior</button>
+                <button class="ghost" id="contacts-next">Siguiente</button>
+              </div>
+              <div class="products-pagination">
+                <input type="number" id="contacts-page-input" min="1" placeholder="Ir a" />
+                <button class="ghost" id="contacts-page-go">Ir</button>
+              </div>
+              <span id="contacts-count">Mostrando 0 de 0</span>
+            </div>
+          </div>
+        </section>
+
         <section class="section" id="logs">
           <div class="panel">
             <div class="panel-header">
@@ -553,7 +615,7 @@
                   <div class="connection-block-header">
                     <div>
                       <div class="provider-title">
-                        <img class="provider-logo" src="/brands/shopify.png?v=20260201p" alt="Shopify" />
+                        <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
                         <h4>Shopify</h4>
                       </div>
                       <p class="kpi-sub">Conexion OAuth para esta tienda</p>
@@ -573,7 +635,7 @@
                   <div class="connection-block-header">
                     <div>
                       <div class="provider-title">
-                        <img class="provider-logo" src="/brands/alegra.png?v=20260201p" alt="Alegra" />
+                        <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
                         <h4>Alegra</h4>
                       </div>
                       <p class="kpi-sub">Cuenta y credenciales</p>
@@ -608,7 +670,10 @@
                 <div class="connection-block">
                   <div class="connection-block-header">
                     <div>
-                      <h4>IA</h4>
+                      <div class="provider-title">
+                        <img class="provider-logo" src="/brands/openai.png?v=20260201s" alt="OpenAI" />
+                        <h4>IA</h4>
+                      </div>
                       <p class="kpi-sub">Token del proveedor IA</p>
                     </div>
                     <button class="primary" id="ai-save" type="button">Guardar token</button>
@@ -637,10 +702,10 @@
                 </div>
               </div>
 
-              <div class="panel admin-only module" data-module="connections-summary" data-help="Resumen de conexiones guardadas para esta organizacion.">
+              <div class="panel admin-only module" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas para esta organizacion.">
                 <div class="panel-header">
                   <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
-                  <span class="panel-tag">Resumen</span>
+                  <span class="panel-tag tag-bridge">Conexiones</span>
                 </div>
                 <div class="module-body">
                   <div class="connections-grid" id="connections-grid">
@@ -651,7 +716,7 @@
               <div class="settings-group provider-group" data-group="shopify">
                 <div class="settings-group-header" data-group-toggle="shopify">
                   <h4 class="group-title">
-                    <img class="provider-logo" src="/brands/shopify.png?v=20260201p" alt="Shopify" />
+                    <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
                     Configuraciones Shopify
                   </h4>
                 </div>
@@ -685,9 +750,9 @@
               <div class="settings-group provider-group" data-group="alegra-shopify">
                 <div class="settings-group-header" data-group-toggle="alegra-shopify">
                   <h4 class="group-title">
-                    <img class="provider-logo" src="/brands/alegra.png?v=20260201p" alt="Alegra" />
+                    <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
                     <span class="group-arrow">→</span>
-                    <img class="provider-logo" src="/brands/shopify.png?v=20260201p" alt="Shopify" />
+                    <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
                     Alegra → Shopify
                   </h4>
                 </div>
@@ -784,9 +849,9 @@
               <div class="settings-group provider-group" data-group="alegra-shopify-bidir">
                 <div class="settings-group-header" data-group-toggle="alegra-shopify-bidir">
                   <h4 class="group-title">
-                    <img class="provider-logo" src="/brands/shopify.png?v=20260201p" alt="Shopify" />
+                    <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
                     <span class="group-arrow">↔</span>
-                    <img class="provider-logo" src="/brands/alegra.png?v=20260201p" alt="Alegra" />
+                    <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
                     Shopify ↔ Alegra
                   </h4>
                 </div>
@@ -866,10 +931,11 @@
                     <div class="module-body">
                       <div class="settings-grid">
                         <div class="field">
-                          <label>Pedidos Shopify → Alegra <span class="tip" data-tip="Define si los pedidos de Shopify crean factura o solo contacto en Alegra.">?</span></label>
+                          <label>Pedidos Shopify → Alegra <span class="tip" data-tip="Define si solo guardas en base de datos o si creas contactos/facturas en Alegra.">?</span></label>
                           <select id="sync-orders-shopify">
+                            <option value="db_only">Solo base de datos</option>
+                            <option value="contact_only">Crear contacto</option>
                             <option value="invoice">Crear factura</option>
-                            <option value="contact_only">Solo contacto</option>
                             <option value="off">No sincronizar</option>
                           </select>
                         </div>
@@ -893,7 +959,7 @@
               <div class="settings-group provider-group" data-group="alegra">
                 <div class="settings-group-header" data-group-toggle="alegra">
                   <h4 class="group-title">
-                    <img class="provider-logo" src="/brands/alegra.png?v=20260201p" alt="Alegra" />
+                    <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
                     Configuraciones Alegra
                   </h4>
                 </div>
@@ -1264,6 +1330,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260201r" type="module"></script>
+    <script src="app.js?v=20260201s" type="module"></script>
   </body>
 </html>

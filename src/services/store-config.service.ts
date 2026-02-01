@@ -3,7 +3,7 @@ import { ensureInventoryRulesColumns, ensureInvoiceSettingsColumns, getOrgId, ge
 export type TransferStrategy = "manual" | "consolidation" | "priority" | "max_stock";
 export type TransferTieBreak = "" | "priority" | "max_stock" | "random";
 export type ContactMatchRule = "document" | "phone" | "email";
-export type ShopifyOrderMode = "invoice" | "contact_only" | "off";
+export type ShopifyOrderMode = "invoice" | "contact_only" | "db_only" | "off";
 export type AlegraOrderMode = "draft" | "active" | "off";
 
 export type StoreConfig = {
@@ -68,8 +68,10 @@ const normalizeMatchPriority = (value: unknown): ContactMatchRule[] => {
 };
 
 const normalizeShopifyOrderMode = (value: unknown): ShopifyOrderMode => {
-  if (value === "contact_only" || value === "off" || value === "invoice") return value;
-  return "invoice";
+  if (value === "contact_only" || value === "off" || value === "invoice" || value === "db_only") {
+    return value;
+  }
+  return "db_only";
 };
 
 const normalizeAlegraOrderMode = (value: unknown): AlegraOrderMode => {
