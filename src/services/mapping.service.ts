@@ -77,6 +77,29 @@ export async function getMappingByShopifyId(entity: string, shopifyId: string) {
   return mapRow(result.rows[0]);
 }
 
+export async function getMappingByShopifyInventoryItemId(
+  entity: string,
+  inventoryItemId: string
+) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const result = await pool.query<MappingRow>(
+    `
+    SELECT id, entity, alegra_id, shopify_id, parent_id, metadata_json
+    FROM sync_mappings
+    WHERE organization_id = $1
+      AND entity = $2
+      AND metadata_json->>'shopifyInventoryItemId' = $3
+    LIMIT 1
+    `,
+    [orgId, entity, inventoryItemId]
+  );
+  if (!result.rows.length) {
+    return undefined;
+  }
+  return mapRow(result.rows[0]);
+}
+
 export async function saveMapping(record: MappingRecord) {
   const pool = getPool();
   const orgId = getOrgId();

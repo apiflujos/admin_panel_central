@@ -222,7 +222,7 @@ export async function retryFailedLogs() {
 export async function createSyncLog(payload: {
   entity: string;
   direction: string;
-  status: "success" | "fail" | "retrying";
+  status: "success" | "fail" | "retrying" | "warn";
   message?: string;
   request?: Record<string, unknown>;
   response?: Record<string, unknown>;
