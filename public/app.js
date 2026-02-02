@@ -128,6 +128,8 @@ const shopifyDomain = document.getElementById("shopify-domain");
 const shopifyToken = document.getElementById("shopify-token");
 const wizardStart = document.getElementById("wizard-start");
 const wizardStop = document.getElementById("wizard-stop");
+const wizardHint = document.getElementById("wizard-hint");
+const DEFAULT_WIZARD_HINT = wizardHint ? wizardHint.textContent : "";
 
 const alegraAccountSelect = document.getElementById("alegra-account-select");
 const alegraEnvSelect = document.getElementById("alegra-env-select");
@@ -285,6 +287,7 @@ let currentUserId = null;
 let activeStoreDomain = "";
 let activeStoreName = "";
 let storesCache = [];
+let activeStoreConfig = null;
 let shopifyHasToken = false;
 let alegraHasToken = false;
 let transferOriginIds = [];
@@ -485,6 +488,48 @@ if (modal) {
   });
 }
 
+let toastStack = null;
+function ensureToastStack() {
+  if (toastStack) return toastStack;
+  const stack = document.createElement("div");
+  stack.className = "toast-stack";
+  stack.setAttribute("aria-live", "polite");
+  stack.setAttribute("aria-relevant", "additions");
+  document.body.appendChild(stack);
+  toastStack = stack;
+  return stack;
+}
+
+function showToast(message, state, options = {}) {
+  const text = message ? String(message).trim() : "";
+  if (!text) return;
+
+  const stack = ensureToastStack();
+  const toast = document.createElement("div");
+  toast.className = state ? `toast ${state}` : "toast";
+  toast.setAttribute("role", state === "is-error" ? "alert" : "status");
+
+  const content = document.createElement("div");
+  content.className = "toast-message";
+  content.textContent = text;
+  toast.appendChild(content);
+
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "toast-close";
+  close.setAttribute("aria-label", "Cerrar");
+  close.textContent = "×";
+  close.addEventListener("click", () => toast.remove());
+  toast.appendChild(close);
+
+  stack.appendChild(toast);
+
+  const timeoutMs = typeof options.timeoutMs === "number" ? options.timeoutMs : (state === "is-error" ? 6500 : 3500);
+  if (timeoutMs > 0) {
+    window.setTimeout(() => toast.remove(), timeoutMs);
+  }
+}
+
 async function fetchJson(url, options) {
   const response = await fetch(url, options);
   if (response.status === 401) {
@@ -565,6 +610,29 @@ function initHelpPanels() {
     if (!target) return;
     if (target.closest(".help-panel") || target.closest(".help-launch")) return;
     closeHelpPanels();
+  });
+}
+
+function initToggleFields() {
+  document.querySelectorAll(".field").forEach((field) => {
+    const toggle = field.querySelector('input.toggle[type="checkbox"]');
+    if (!toggle) return;
+
+    field.classList.add("is-toggle");
+
+    const label = field.querySelector("label");
+    if (label && !label.htmlFor && toggle.id) {
+      label.htmlFor = toggle.id;
+    }
+
+    if (label) {
+      label.querySelectorAll(".tip").forEach((tip) => {
+        tip.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        });
+      });
+    }
   });
 }
 
@@ -1216,6 +1284,29 @@ function setModuleSaved(panel, saved) {
   panel.classList.toggle("is-saved", Boolean(saved));
 }
 
+function setButtonLoading(button, loading, label = "Guardando...") {
+  if (!(button instanceof HTMLButtonElement)) return;
+  if (loading) {
+    if (button.dataset.loading !== "true") {
+      button.dataset.loading = "true";
+      button.dataset.loadingText = button.textContent || "";
+      button.dataset.loadingDisabled = button.disabled ? "true" : "false";
+    }
+    button.disabled = true;
+    button.classList.add("is-loading");
+    button.textContent = label;
+    return;
+  }
+  if (button.dataset.loading === "true") {
+    button.classList.remove("is-loading");
+    button.textContent = button.dataset.loadingText || button.textContent || "";
+    button.disabled = button.dataset.loadingDisabled === "true";
+    delete button.dataset.loading;
+    delete button.dataset.loadingText;
+    delete button.dataset.loadingDisabled;
+  }
+}
+
 function markFieldError(field, message) {
   if (!field) return;
   const container = field.closest(".field");
@@ -1288,7 +1379,7 @@ function setModuleWarning(moduleKey, message, options = {}) {
   const text = message ? String(message).trim() : "";
   node.textContent = text;
   node.classList.toggle("is-hidden", !text);
-  node.classList.toggle("is-warn", Boolean(text));
+  node.classList.remove("is-warn");
   if (text) {
     node.dataset.warningKind = options.kind || "default";
   } else {
@@ -1595,6 +1686,127 @@ function clearWizardState() {
   }
 }
 
+function isWizardStateActive(state) {
+  if (!state || !state.shopDomain) return false;
+  const current = normalizeShopDomain(activeStoreDomain || shopifyDomain?.value || "");
+  return normalizeShopDomain(state.shopDomain) === current;
+}
+
+function getWizardModuleTitle(moduleKey) {
+  if (!moduleKey) return "";
+  const panel = getModulePanel(moduleKey);
+  const header = panel ? panel.querySelector(`[data-module-toggle="${moduleKey}"]`) : null;
+  const base = header ? header.getAttribute("data-title-base") : "";
+  const raw = base || (header ? header.textContent : "") || moduleKey;
+  return raw.replace(/\s+/g, " ").trim();
+}
+
+function updateWizardUI() {
+  const state = getWizardState();
+  const active = isWizardStateActive(state);
+
+  if (wizardStart) wizardStart.style.display = active ? "none" : "";
+  if (wizardStop) wizardStop.style.display = active ? "" : "none";
+
+  if (!wizardHint) return;
+  if (!active) {
+    wizardHint.textContent = DEFAULT_WIZARD_HINT || "Opcional. Te guia por las configuraciones clave.";
+    return;
+  }
+
+  const moduleKey = state ? WIZARD_MODULE_ORDER[state.step] : "";
+  const visibleSteps = WIZARD_MODULE_ORDER.filter((key) => !shouldSkipWizardStep(key));
+  const visibleIndex = visibleSteps.indexOf(moduleKey);
+  const stepLabel = getWizardModuleTitle(moduleKey) || "Paso";
+  const stepText =
+    visibleIndex >= 0
+      ? `Asistente: Paso ${visibleIndex + 1}/${Math.max(visibleSteps.length, 1)} · ${stepLabel}`
+      : "Asistente activo";
+  wizardHint.textContent = stepText;
+}
+
+function finishWizardFlow(message) {
+  clearWizardState();
+  updateWizardUI();
+  showToast(message || "Asistente completado.", "is-ok");
+}
+
+function stopWizardFlow() {
+  clearWizardState();
+  updateWizardUI();
+  collapseAllGroupsAndModules();
+  openDefaultGroups();
+  showToast("Asistente finalizado.", "is-ok");
+}
+
+function getWizardModuleStatus(moduleKey) {
+  if (!moduleKey) return { complete: true, focusTarget: null };
+  if (!activeStoreConfig) {
+    return { complete: false, focusTarget: null };
+  }
+  const orderMode = syncOrdersShopify ? syncOrdersShopify.value : "db_only";
+  if (moduleKey === "alegra-invoice") {
+    if (orderMode !== "invoice") return { complete: true, focusTarget: null };
+    if (cfgGenerateInvoice && !cfgGenerateInvoice.checked) {
+      return { complete: false, focusTarget: cfgGenerateInvoice };
+    }
+    if (cfgApplyPayment && cfgApplyPayment.checked) {
+      if (!cfgBankAccount || !String(cfgBankAccount.value || "").trim()) {
+        return { complete: false, focusTarget: cfgBankAccount };
+      }
+    }
+    return { complete: true, focusTarget: null };
+  }
+  if (moduleKey === "alegra-logistics") {
+    if (orderMode === "off" || orderMode === "db_only") return { complete: true, focusTarget: null };
+    if (cfgTransferEnabled && !cfgTransferEnabled.checked) {
+      return { complete: true, focusTarget: null };
+    }
+    if (!cfgTransferDest || !String(cfgTransferDest.value || "").trim()) {
+      return { complete: false, focusTarget: cfgTransferDest };
+    }
+    const strategy = cfgTransferStrategy ? cfgTransferStrategy.value || "manual" : "manual";
+    const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
+    const requiresOrigins = strategy === "manual" || fallback === "manual";
+    if (requiresOrigins && !getSelectedTransferOriginIds().length) {
+      const summary = cfgTransferOriginField
+        ? cfgTransferOriginField.querySelector("summary")
+        : null;
+      return { complete: false, focusTarget: summary || cfgTransferOriginField };
+    }
+    return { complete: true, focusTarget: null };
+  }
+  if (moduleKey === "shopify-tech") {
+    const ok = Boolean(shopifyWebhooksStatus?.classList.contains("is-ok"));
+    return { complete: ok, focusTarget: ok ? null : shopifyWebhooksCreate };
+  }
+  return { complete: true, focusTarget: null };
+}
+
+async function findNextWizardStep(fromIndex = 0) {
+  const start = Number.isFinite(fromIndex) ? Math.max(0, fromIndex) : 0;
+  for (let index = start; index < WIZARD_MODULE_ORDER.length; index += 1) {
+    const moduleKey = WIZARD_MODULE_ORDER[index];
+    if (shouldSkipWizardStep(moduleKey)) continue;
+
+    if (!activeStoreConfig) {
+      return { index, moduleKey, focusTarget: null };
+    }
+
+    if (moduleKey === "shopify-tech") {
+      const ok = await loadShopifyWebhooksStatus();
+      if (ok) continue;
+      return { index, moduleKey, focusTarget: shopifyWebhooksCreate };
+    }
+
+    const status = getWizardModuleStatus(moduleKey);
+    if (!status.complete) {
+      return { index, moduleKey, focusTarget: status.focusTarget };
+    }
+  }
+  return null;
+}
+
 function setModuleEnabled(panel, enabled) {
   if (!panel) return;
   panel.classList.toggle("is-disabled", !enabled);
@@ -1722,38 +1934,72 @@ function applyOrderToggle(select, toggle, fallbackValue) {
   }
 }
 
-function openWizardStep() {
+async function openWizardStep() {
   const state = getWizardState();
-  if (!state || state.shopDomain !== activeStoreDomain) return;
-  let key = WIZARD_MODULE_ORDER[state.step];
-  let guard = 0;
-  while (key && shouldSkipWizardStep(key) && guard < WIZARD_MODULE_ORDER.length) {
-    state.step += 1;
-    key = WIZARD_MODULE_ORDER[state.step];
-    guard += 1;
-  }
-  if (!key) {
-    clearWizardState();
+  if (!state || !isWizardStateActive(state)) {
+    updateWizardUI();
     return;
   }
-  if (guard > 0) {
-    setWizardState(state);
+
+  activateNav("settings");
+  await loadLegacyStoreConfig();
+  updatePrerequisites();
+
+  const next = await findNextWizardStep(state.step);
+  if (!next) {
+    finishWizardFlow("Asistente completado. No hay configuraciones pendientes.");
+    return;
   }
-  openWizardGroups(key);
+
+  if (next.index !== state.step) {
+    setWizardState({ ...state, step: next.index });
+    state.step = next.index;
+  }
+
+  openWizardGroups(next.moduleKey);
   WIZARD_MODULE_ORDER.forEach((moduleKey) => {
     const panel = getModulePanel(moduleKey);
     if (panel) setModuleCollapsed(panel, true);
   });
-  const panel = getModulePanel(key);
-  if (!panel) return;
+
+  const panel = getModulePanel(next.moduleKey);
+  if (!panel) {
+    updateWizardUI();
+    return;
+  }
+  if (panel.classList.contains("is-disabled")) {
+    const warning = moduleWarningNodes[next.moduleKey]?.textContent || "Completa los requisitos para continuar.";
+    showToast(warning, "is-warn");
+    const needsShopify = /shopify/i.test(warning);
+    const needsAlegra = /alegra/i.test(warning);
+    const target =
+      (needsShopify && connectShopify) ||
+      (needsAlegra && connectAlegra) ||
+      storeActiveSelect ||
+      shopifyDomain ||
+      storeNameInput;
+    focusFieldWithContext(target);
+    updateWizardUI();
+    return;
+  }
+
   setModuleCollapsed(panel, false);
   setModuleReadonly(panel, false);
   panel.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  const focusTarget =
+    next.focusTarget ||
+    getWizardModuleStatus(next.moduleKey).focusTarget ||
+    panel.querySelector("input:not([type=\"hidden\"]), select, textarea, summary, button");
+  if (focusTarget instanceof HTMLElement) {
+    setTimeout(() => focusTarget.focus(), 250);
+  }
+  updateWizardUI();
 }
 
 function advanceWizardStep(expectedKey) {
   const wizard = getWizardState();
-  if (!wizard || wizard.shopDomain !== activeStoreDomain) return;
+  if (!wizard || !isWizardStateActive(wizard)) return;
   const currentKey = WIZARD_MODULE_ORDER[wizard.step];
   if (currentKey !== expectedKey) return;
   wizard.step += 1;
@@ -1861,7 +2107,16 @@ function initModuleControls() {
     const save = target.closest("[data-module-save]");
     if (save) {
       const key = save.getAttribute("data-module-save");
-      handleModuleSave(key).catch(() => null);
+      if (!key) return;
+      const button = save instanceof HTMLButtonElement ? save : null;
+      if (button) setButtonLoading(button, true);
+      handleModuleSave(key)
+        .catch((error) => {
+          showToast(error?.message || "No se pudo guardar.", "is-error");
+        })
+        .finally(() => {
+          if (button) setButtonLoading(button, false);
+        });
     }
   });
   document.addEventListener("input", (event) => {
@@ -2253,7 +2508,7 @@ function captureOnboardingParam() {
   window.history.replaceState({}, "", nextUrl);
 }
 
-function startWizardFlow() {
+async function startWizardFlow() {
   const domain = normalizeShopDomain(activeStoreDomain || shopifyDomain?.value || "");
   if (!domain) {
     if (!storeNameInput || !storeNameInput.value.trim()) {
@@ -2270,7 +2525,8 @@ function startWizardFlow() {
     step: 0,
     startedAt: Date.now(),
   });
-  openWizardStep();
+  updateWizardUI();
+  await openWizardStep();
 }
 
 function applyInvoiceSettings(settings) {
@@ -2473,6 +2729,7 @@ function clearLegacyStoreConfig() {
 async function loadLegacyStoreConfig() {
   const domain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   if (!domain) {
+    activeStoreConfig = null;
     clearLegacyStoreConfig();
     updatePrerequisites();
     return;
@@ -2484,11 +2741,14 @@ async function loadLegacyStoreConfig() {
       items.find((item) => normalizeShopDomain(item.shopDomain || "") === domain) ||
       (items.length === 1 ? items[0] : null);
     if (match) {
+      activeStoreConfig = match;
       applyLegacyStoreConfig(match);
     } else {
+      activeStoreConfig = null;
       clearLegacyStoreConfig();
     }
   } catch {
+    activeStoreConfig = null;
     clearLegacyStoreConfig();
   } finally {
     updatePrerequisites();
@@ -4169,7 +4429,7 @@ function renderOperations(items) {
         await loadLogs();
         await loadOperations();
       } catch (error) {
-        window.alert(error?.message || "No se pudo facturar.");
+        showToast(error?.message || "No se pudo facturar.", "is-error");
       }
     });
   });
@@ -4790,23 +5050,34 @@ async function loadResolutions() {
 
 if (aiSave) {
   aiSave.addEventListener("click", async () => {
-    await saveSettings();
+    setButtonLoading(aiSave, true, "Guardando...");
+    try {
+      await saveSettings();
+      showToast("Token guardado.", "is-ok");
+    } catch (error) {
+      showToast(error?.message || "No se pudo guardar.", "is-error");
+    } finally {
+      setButtonLoading(aiSave, false);
+    }
   });
 }
 
 if (wizardStart) {
-  wizardStart.addEventListener("click", () => {
+  wizardStart.addEventListener("click", async () => {
+    setButtonLoading(wizardStart, true, "Iniciando...");
     try {
-      startWizardFlow();
+      await startWizardFlow();
     } catch (error) {
-      window.alert(error?.message || "No se pudo iniciar el asistente.");
+      showToast(error?.message || "No se pudo iniciar el asistente.", "is-error");
+    } finally {
+      setButtonLoading(wizardStart, false);
     }
   });
 }
 
 if (wizardStop) {
   wizardStop.addEventListener("click", () => {
-    clearWizardState();
+    stopWizardFlow();
   });
 }
 
@@ -4893,7 +5164,7 @@ function setStoreConfigStatus(text, state) {
 function setShopifyWebhooksStatus(text, state) {
   if (!shopifyWebhooksStatus) return;
   shopifyWebhooksStatus.textContent = text || "";
-  shopifyWebhooksStatus.classList.remove("is-error", "is-ok");
+  shopifyWebhooksStatus.classList.remove("is-error", "is-ok", "is-warn");
   if (state) {
     shopifyWebhooksStatus.classList.add(state);
   }
@@ -4902,7 +5173,7 @@ function setShopifyWebhooksStatus(text, state) {
 function setContactsSyncStatus(text, state) {
   if (!syncContactsStatus) return;
   syncContactsStatus.textContent = text || "";
-  syncContactsStatus.classList.remove("is-error", "is-ok");
+  syncContactsStatus.classList.remove("is-error", "is-ok", "is-warn");
   if (state) {
     syncContactsStatus.classList.add(state);
   }
@@ -4912,7 +5183,7 @@ async function loadShopifyWebhooksStatus() {
   const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   if (!shopDomain) {
     setShopifyWebhooksStatus("Dominio Shopify requerido.", "is-error");
-    return;
+    return false;
   }
   setShopifyWebhooksStatus("Consultando estado...");
   try {
@@ -4924,15 +5195,17 @@ async function loadShopifyWebhooksStatus() {
     const missing = Array.isArray(result?.missing) ? result.missing : [];
     if (!total) {
       setShopifyWebhooksStatus("Sin datos de webhooks.", "is-error");
-      return;
+      return false;
     }
     if (!missing.length) {
       setShopifyWebhooksStatus(`Creado y conectado (${connected}/${total})`, "is-ok");
-      return;
+      return true;
     }
     setShopifyWebhooksStatus(`Faltan ${missing.length} (${connected}/${total})`, "is-error");
+    return false;
   } catch (error) {
     setShopifyWebhooksStatus(error?.message || "No se pudo consultar.", "is-error");
+    return false;
   }
 }
 
@@ -5010,7 +5283,7 @@ async function runSingleContactSync() {
       body: JSON.stringify({ source, identifier, shopDomain }),
     });
     if (result?.skipped) {
-      setContactsSyncStatus("Sin cambios.", "is-error");
+      setContactsSyncStatus("Sin cambios.");
     } else {
       setContactsSyncStatus("Contacto sincronizado.", "is-ok");
     }
@@ -5034,7 +5307,7 @@ async function runBulkContactSync(source) {
       body: JSON.stringify({ source, limit: limit || undefined, shopDomain }),
     });
     if (result?.skipped) {
-      setContactsSyncStatus("Sin cambios.", "is-error");
+      setContactsSyncStatus("Sin cambios.");
     } else {
       const total = Number(result?.total || 0);
       setContactsSyncStatus(`Sincronizados ${total}.`, "is-ok");
@@ -5581,15 +5854,23 @@ if (connectShopify) {
     try {
       startShopifyOAuthFlow();
     } catch (error) {
-      window.alert(error?.message || "No se pudo conectar Shopify.");
+      showToast(error?.message || "No se pudo conectar Shopify.", "is-error");
     }
   });
 }
 if (connectAlegra) {
   connectAlegra.addEventListener("click", () => {
-    connectStore("alegra").catch((error) => {
-      window.alert(error?.message || "No se pudo conectar Alegra.");
-    });
+    setButtonLoading(connectAlegra, true, "Conectando...");
+    connectStore("alegra")
+      .then(() => {
+        showToast("Alegra conectado.", "is-ok");
+      })
+      .catch((error) => {
+        showToast(error?.message || "No se pudo conectar Alegra.", "is-error");
+      })
+      .finally(() => {
+        setButtonLoading(connectAlegra, false);
+      });
   });
 }
 if (connectionsGrid) {
@@ -5989,7 +6270,7 @@ if (qaTokenGenerate) {
         qaTokenHint.textContent =
           (error && error.message) || "No se pudo generar el token.";
       }
-      window.alert(error?.message || "No se pudo generar el token.");
+      showToast(error?.message || "No se pudo generar el token.", "is-error");
     } finally {
       qaTokenGenerate.disabled = false;
     }
@@ -5999,15 +6280,22 @@ if (qaTokenGenerate) {
 if (qaTokenCopy) {
   qaTokenCopy.addEventListener("click", async () => {
     if (!qaTokenValue || !qaTokenValue.value) {
-      window.alert("Primero genera un token.");
+      showToast("Primero genera un token.", "is-warn");
       return;
     }
+    let copied = false;
     try {
       await navigator.clipboard.writeText(qaTokenValue.value);
+      copied = true;
     } catch {
-      qaTokenValue.select();
-      document.execCommand("copy");
+      try {
+        qaTokenValue.select();
+        copied = document.execCommand("copy");
+      } catch {
+        copied = false;
+      }
     }
+    showToast(copied ? "Token copiado." : "No se pudo copiar.", copied ? "is-ok" : "is-error");
   });
 }
 if (shopifyWebhooksDelete) {
@@ -6302,6 +6590,7 @@ async function init() {
   loadSidebarState();
   captureOnboardingParam();
   initGroupControls();
+  initToggleFields();
   applyProductSettings();
   await safeLoad(loadCurrentUser());
   await safeLoad(loadCompanyProfile());

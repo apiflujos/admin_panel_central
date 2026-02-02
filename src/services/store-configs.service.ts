@@ -17,6 +17,12 @@ const normalizeBoolean = (value: unknown, fallback: boolean) => {
   return fallback;
 };
 
+const normalizeText = (value: unknown, fallback: string) => {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return fallback;
+};
+
 const normalizeAutoStatus = (value: unknown, fallback: unknown) => {
   const resolvedFallback = fallback === "active" ? "active" : "draft";
   return value === "active" ? "active" : value === "draft" ? "draft" : resolvedFallback;
@@ -125,6 +131,7 @@ export async function listStoreConfigs() {
     const priceLists = (config.priceLists as Record<string, unknown>) || {};
     const rules = (config.rules as Record<string, unknown>) || {};
     const invoice = (config.invoice as Record<string, unknown>) || {};
+    const invoiceDefaults = (defaults.invoice as Record<string, unknown>) || {};
     const sync = (config.sync as Record<string, unknown>) || {};
     const contactSync = (sync.contacts as Record<string, unknown>) || {};
     const orderSync = (sync.orders as Record<string, unknown>) || {};
@@ -171,6 +178,7 @@ export async function listStoreConfigs() {
         currency: (priceLists.currency as string | undefined) || row.currency || "",
       },
       rules: {
+        syncEnabled: normalizeBoolean((rules as Record<string, unknown>).syncEnabled, true),
         publishOnStock: normalizeBoolean(
           rules.publishOnStock,
           defaults.rules?.publishOnStock ?? true
@@ -206,16 +214,43 @@ export async function listStoreConfigs() {
         ),
       },
       invoice: {
-        generateInvoice: invoice.generateInvoice ?? defaults.invoice?.generateInvoice ?? false,
-        resolutionId: invoice.resolutionId ?? defaults.invoice?.resolutionId ?? "",
-        costCenterId: invoice.costCenterId ?? defaults.invoice?.costCenterId ?? "",
-        warehouseId: invoice.warehouseId ?? defaults.invoice?.warehouseId ?? "",
-        sellerId: invoice.sellerId ?? defaults.invoice?.sellerId ?? "",
-        paymentMethod: invoice.paymentMethod ?? defaults.invoice?.paymentMethod ?? "",
-        bankAccountId: invoice.bankAccountId ?? defaults.invoice?.bankAccountId ?? "",
-        applyPayment: invoice.applyPayment ?? defaults.invoice?.applyPayment ?? false,
-        observationsTemplate: invoice.observationsTemplate ?? defaults.invoice?.observationsTemplate ?? "",
-        einvoiceEnabled: invoice.einvoiceEnabled ?? defaults.invoice?.einvoiceEnabled ?? false,
+        generateInvoice: normalizeBoolean(
+          invoice.generateInvoice,
+          normalizeBoolean(invoiceDefaults.generateInvoice, false)
+        ),
+        resolutionId: normalizeText(
+          invoice.resolutionId,
+          normalizeText(invoiceDefaults.resolutionId, "")
+        ),
+        costCenterId: normalizeText(
+          invoice.costCenterId,
+          normalizeText(invoiceDefaults.costCenterId, "")
+        ),
+        warehouseId: normalizeText(
+          invoice.warehouseId,
+          normalizeText(invoiceDefaults.warehouseId, "")
+        ),
+        sellerId: normalizeText(invoice.sellerId, normalizeText(invoiceDefaults.sellerId, "")),
+        paymentMethod: normalizeText(
+          invoice.paymentMethod,
+          normalizeText(invoiceDefaults.paymentMethod, "")
+        ),
+        bankAccountId: normalizeText(
+          invoice.bankAccountId,
+          normalizeText(invoiceDefaults.bankAccountId, "")
+        ),
+        applyPayment: normalizeBoolean(
+          invoice.applyPayment,
+          normalizeBoolean(invoiceDefaults.applyPayment, false)
+        ),
+        observationsTemplate: normalizeText(
+          invoice.observationsTemplate,
+          normalizeText(invoiceDefaults.observationsTemplate, "")
+        ),
+        einvoiceEnabled: normalizeBoolean(
+          invoice.einvoiceEnabled,
+          normalizeBoolean(invoiceDefaults.einvoiceEnabled, false)
+        ),
       },
       sync: {
         contacts: {
@@ -283,6 +318,7 @@ export async function getStoreConfigForDomain(shopDomain: string) {
   const priceLists = (config.priceLists as Record<string, unknown>) || {};
   const rules = (config.rules as Record<string, unknown>) || {};
   const invoice = (config.invoice as Record<string, unknown>) || {};
+  const invoiceDefaults = (defaults.invoice as Record<string, unknown>) || {};
   const sync = (config.sync as Record<string, unknown>) || {};
   const contactSync = (sync.contacts as Record<string, unknown>) || {};
   const orderSync = (sync.orders as Record<string, unknown>) || {};
@@ -328,6 +364,7 @@ export async function getStoreConfigForDomain(shopDomain: string) {
       currency: (priceLists.currency as string | undefined) || row.currency || "",
     },
     rules: {
+      syncEnabled: normalizeBoolean((rules as Record<string, unknown>).syncEnabled, true),
       publishOnStock: normalizeBoolean(
         rules.publishOnStock,
         defaults.rules?.publishOnStock ?? true
@@ -363,16 +400,43 @@ export async function getStoreConfigForDomain(shopDomain: string) {
       ),
     },
     invoice: {
-      generateInvoice: invoice.generateInvoice ?? defaults.invoice?.generateInvoice ?? false,
-      resolutionId: invoice.resolutionId ?? defaults.invoice?.resolutionId ?? "",
-      costCenterId: invoice.costCenterId ?? defaults.invoice?.costCenterId ?? "",
-      warehouseId: invoice.warehouseId ?? defaults.invoice?.warehouseId ?? "",
-      sellerId: invoice.sellerId ?? defaults.invoice?.sellerId ?? "",
-      paymentMethod: invoice.paymentMethod ?? defaults.invoice?.paymentMethod ?? "",
-      bankAccountId: invoice.bankAccountId ?? defaults.invoice?.bankAccountId ?? "",
-      applyPayment: invoice.applyPayment ?? defaults.invoice?.applyPayment ?? false,
-      observationsTemplate: invoice.observationsTemplate ?? defaults.invoice?.observationsTemplate ?? "",
-      einvoiceEnabled: invoice.einvoiceEnabled ?? defaults.invoice?.einvoiceEnabled ?? false,
+      generateInvoice: normalizeBoolean(
+        invoice.generateInvoice,
+        normalizeBoolean(invoiceDefaults.generateInvoice, false)
+      ),
+      resolutionId: normalizeText(
+        invoice.resolutionId,
+        normalizeText(invoiceDefaults.resolutionId, "")
+      ),
+      costCenterId: normalizeText(
+        invoice.costCenterId,
+        normalizeText(invoiceDefaults.costCenterId, "")
+      ),
+      warehouseId: normalizeText(
+        invoice.warehouseId,
+        normalizeText(invoiceDefaults.warehouseId, "")
+      ),
+      sellerId: normalizeText(invoice.sellerId, normalizeText(invoiceDefaults.sellerId, "")),
+      paymentMethod: normalizeText(
+        invoice.paymentMethod,
+        normalizeText(invoiceDefaults.paymentMethod, "")
+      ),
+      bankAccountId: normalizeText(
+        invoice.bankAccountId,
+        normalizeText(invoiceDefaults.bankAccountId, "")
+      ),
+      applyPayment: normalizeBoolean(
+        invoice.applyPayment,
+        normalizeBoolean(invoiceDefaults.applyPayment, false)
+      ),
+      observationsTemplate: normalizeText(
+        invoice.observationsTemplate,
+        normalizeText(invoiceDefaults.observationsTemplate, "")
+      ),
+      einvoiceEnabled: normalizeBoolean(
+        invoice.einvoiceEnabled,
+        normalizeBoolean(invoiceDefaults.einvoiceEnabled, false)
+      ),
     },
     sync: {
       contacts: {

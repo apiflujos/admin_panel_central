@@ -24,8 +24,19 @@ Fase 2 - COMPLETADA:
   - Operacion (webhooks/cron/salud)
   - Administracion (token QA + conexiones guardadas)
 
-Fase 3 - EN PROGRESO:
+Fase 3 - COMPLETADA:
 - Reordenamiento en UI + ajustes de layout/toggles/compactacion.
+
+Fase 4 - COMPLETADA:
+- Micro-UX (mensajes, warnings, acciones): feedback no invasivo y estados consistentes.
+
+Fase 5 - COMPLETADA:
+- Wizard guiado real: detecta faltantes, salta pasos no aplicables y enfoca el modulo/campo correcto.
+
+Fase 6 - EN PROGRESO:
+- QA final (visual + funcional) + deploy en Render.
+- Checklist: `docs/QA-FINAL.md`
+- Smoke script: `npm run qa:smoke`
 
 ## Fases (plan de accion)
 
@@ -45,7 +56,7 @@ Entregables:
 QA (fase 2):
 - Revisar que el usuario entienda "que hago primero" sin leer mucho texto.
 
-### Fase 3 - Layout + toggles + compactacion (in progress)
+### Fase 3 - Layout + toggles + compactacion (done)
 Objetivos:
 - Reducir altura (menos padding/gaps).
 - Mejorar legibilidad y contraste.
@@ -63,7 +74,7 @@ QA (fase 3):
 - Tablet: 2 columnas donde aplique; sin overflow.
 - Movil: 1 columna; botones a ancho completo; toggles visibles.
 
-### Fase 4 - Micro-UX (mensajes, warnings, acciones)
+### Fase 4 - Micro-UX (mensajes, warnings, acciones) (done)
 Objetivos:
 - Mensajes cortos y accionables.
 - Recomendaciones no invasivas.
@@ -72,7 +83,7 @@ Objetivos:
 QA (fase 4):
 - Cambiar un toggle/campo y confirmar feedback claro (guardado, warning, error).
 
-### Fase 5 - Wizard guiado real
+### Fase 5 - Wizard guiado real (done)
 Objetivos:
 - Detectar faltantes y llevar al paso exacto (scroll/focus).
 - Saltar pasos que no aplican (ej: invoice/logistics segun modo).
@@ -83,7 +94,7 @@ QA (fase 5):
   - tienda nueva: conectar Shopify/Alegra -> products -> orders -> invoice/logistics -> webhooks.
   - tienda existente: identificar pendientes y saltar directo.
 
-### Fase 6 - QA final (visual + funcional)
+### Fase 6 - QA final (visual + funcional) (in progress)
 Objetivos:
 - Smoke test completo de configuraciones en entorno real.
 - Verificacion rapida de pedidos/facturacion (script QA).
@@ -105,4 +116,3 @@ QA (fase 6):
   - `git add docs/PLAN-FRONT.md`
   - `git commit -m "Docs: plan front (configuraciones)"`
   - `git push`
-

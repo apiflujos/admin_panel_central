@@ -101,11 +101,17 @@ export async function saveSettings(payload: SettingsPayload) {
     const apiKey = payload.alegra.apiKey?.trim()
       ? payload.alegra.apiKey
       : existingAlegra?.apiKey;
+    const rawEnv =
+      payload.alegra.environment !== undefined
+        ? payload.alegra.environment
+        : existingAlegra?.environment;
+    const environment = rawEnv === "sandbox" ? "sandbox" : "prod";
     const data = encryptString(
       JSON.stringify({
         ...existingAlegra,
         ...payload.alegra,
         apiKey,
+        environment,
       })
     );
     await upsertCredential(pool, orgId, "alegra", data);

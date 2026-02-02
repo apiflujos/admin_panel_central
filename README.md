@@ -7,6 +7,21 @@ Starter scaffolding for the integration middleware and dashboard API.
 2) Install dependencies: `npm install`
 3) Run dev server: `npm run dev`
 
+## Deploy (Render)
+- Blueprint: `render.yaml` (web + Postgres).
+- Health check: `GET /health`
+- Important env vars to set in Render:
+  - `APP_HOST`: base URL (ej: `https://<tu-servicio>.onrender.com` o tu dominio)
+  - `CRYPTO_KEY_BASE64`: 32 bytes en base64
+  - `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SHOPIFY_SCOPES`
+  - `ADMIN_EMAIL`, `ADMIN_PASSWORD`
+  - `DATABASE_SSL=true` (si usas Postgres de Render)
+
+## QA (smoke)
+- Checklist: `docs/QA-FINAL.md`
+- Script (requiere `QA_TOKEN` o `ADMIN_EMAIL`/`ADMIN_PASSWORD`):
+  - `BASE_URL=https://<tu-servicio>.onrender.com QA_TOKEN=<token> SHOP_DOMAIN=<tu-tienda.myshopify.com> npm run qa:smoke`
+
 ## Notes
 - Webhook endpoint: `POST /api/webhooks/shopify`
 - Webhook endpoint: `POST /api/webhooks/alegra`
@@ -26,3 +41,10 @@ Starter scaffolding for the integration middleware and dashboard API.
 
 ## Current limitations
 - Mapping service uses Postgres (`sync_mappings`); apply migrations before running sync.
+
+## Integration docs
+- `docs/INTEGRACIONES-GAPS.md`
+- `docs/SHOPIFY.md`
+- `docs/ALEGRA.md`
+- `docs/FLOWS.md`
+- `docs/CONFIG.md`

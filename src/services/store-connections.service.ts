@@ -1,4 +1,5 @@
 import { encryptString, decryptString } from "../utils/crypto";
+import { isValidShopDomain } from "./shopify-oauth.service";
 import { ensureOrganization, getOrgId, getPool } from "../db";
 
 type AlegraAccountInput = {
@@ -168,6 +169,9 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
   const scopes = input.scopes?.trim() || null;
   if (!shopDomain) {
     throw new Error("Dominio Shopify requerido");
+  }
+  if (!isValidShopDomain(shopDomain)) {
+    throw new Error("Dominio Shopify invalido");
   }
   const trimmedToken = input.accessToken?.trim() || "";
   const accessTokenEncrypted = trimmedToken

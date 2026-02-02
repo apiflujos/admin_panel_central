@@ -6,6 +6,7 @@ import { createSyncLog } from "./logs.service";
 import { acquireIdempotencyKey, markIdempotencyKey } from "./idempotency.service";
 import { getOrderInvoiceOverride, validateEinvoiceData } from "./order-invoice-overrides.service";
 import { resolveStoreConfig } from "./store-config.service";
+import { getStoreConfigForDomain } from "./store-configs.service";
 import type { Pool } from "pg";
 
 type ShopifyOrderPayload = {
@@ -65,8 +66,12 @@ export async function syncShopifyOrderToAlegra(
   const customerEmail = payload.customer?.email || payload.email;
 
   const orderGid = orderId ? toOrderGid(orderId) : undefined;
-  const invoiceSettings = await loadInvoiceSettings(pool, orgId);
+  let invoiceSettings = await loadInvoiceSettings(pool, orgId);
   const storeConfig = await resolveStoreConfig(shopDomain);
+  const storeConfigFull = shopDomain ? await getStoreConfigForDomain(shopDomain) : null;
+  if (storeConfigFull?.invoice) {
+    invoiceSettings = { ...invoiceSettings, ...storeConfigFull.invoice };
+  }
   const orderMode = storeConfig.syncOrdersShopifyToAlegra || "invoice";
   if (orderMode === "off") {
     return { handled: false, reason: "sync_disabled" };
@@ -105,7 +110,43 @@ export async function syncShopifyOrderToAlegra(
   if (typeof options?.generateInvoice === "boolean") {
     invoiceSettings.generateInvoice = options.generateInvoice;
   } else {
-    invoiceSettings.generateInvoice = orderMode === "invoice";
+    const allowInvoice = invoiceSettings.generateInvoice !== false;
+    invoiceSettings.generateInvoice = orderMode === "invoice" ? allowInvoice : false;
+  }
+
+  const missing = buildOrderChecklist(payload, {
+    requireInvoice: Boolean(invoiceSettings.generateInvoice),
+  });
+  if (missing.length) {
+    await createSyncLog({
+      entity: "order",
+      direction: "shopify->alegra",
+      status: "fail",
+      message: "Missing required order fields",
+      request: { orderId: orderId || null, missing },
+    });
+    return { handled: false, reason: "missing_order_fields", missing };
+  }
+
+  const invoiceChecklist = buildInvoiceSettingsChecklist(invoiceSettings);
+  if (invoiceChecklist.blocking.length) {
+    await createSyncLog({
+      entity: "order",
+      direction: "shopify->alegra",
+      status: "fail",
+      message: "Missing invoice settings",
+      request: { orderId: orderId || null, missing: invoiceChecklist.blocking },
+    });
+    return { handled: false, reason: "missing_invoice_settings", missing: invoiceChecklist.blocking };
+  }
+  if (invoiceChecklist.warnings.length) {
+    await createSyncLog({
+      entity: "order",
+      direction: "shopify->alegra",
+      status: "warn",
+      message: "Invoice settings incomplete",
+      request: { orderId: orderId || null, warnings: invoiceChecklist.warnings },
+    });
   }
   const transferResult = await createInventoryTransferFromOrder(
     payload,
@@ -131,6 +172,16 @@ export async function syncShopifyOrderToAlegra(
   const effectiveInvoiceSettings = resolvedWarehouseId
     ? { ...invoiceSettings, warehouseId: resolvedWarehouseId }
     : invoiceSettings;
+  const invoiceWarnings = buildInvoiceSettingsWarnings(effectiveInvoiceSettings);
+  if (invoiceWarnings.length) {
+    await createSyncLog({
+      entity: "order",
+      direction: "shopify->alegra",
+      status: "warn",
+      message: "Invoice settings missing warehouse",
+      request: { orderId: orderId || null, warnings: invoiceWarnings },
+    });
+  }
   const override = orderId ? await getOrderInvoiceOverride(orderId) : null;
   const einvoiceActive = Boolean(effectiveInvoiceSettings.einvoiceEnabled && override?.einvoiceRequested);
   const missingEinvoice = einvoiceActive ? validateEinvoiceData(override) : [];
@@ -342,28 +393,98 @@ export async function syncShopifyOrderToAlegra(
   }
 
   let payment = null;
-  if (
-    payload.financial_status === "paid" &&
-    invoiceSettings.applyPayment &&
-    bankAccountId &&
-    invoiceId
-  ) {
-    payment = await createPaymentForInvoice({
-      ctx,
-      invoiceId,
-      clientId: contactId,
-      amount: payload.total_price ? Number(payload.total_price) : 0,
-      paymentMethod,
-      bankAccountId,
-      observations: interpolateObservations(invoiceSettings.observationsTemplate, payload),
-    });
+  if (payload.financial_status === "paid" && invoiceSettings.applyPayment && invoiceId) {
+    if (!bankAccountId) {
+      await createSyncLog({
+        entity: "order",
+        direction: "shopify->alegra",
+        status: "warn",
+        message: "Payment skipped: missing bank account",
+        request: { orderId: orderId || null },
+      });
+    } else {
+      const paymentKey = orderId ? `payment:${orderId}` : undefined;
+      if (paymentKey) {
+        const idempotency = await acquireIdempotencyKey(paymentKey);
+        if (!idempotency.acquired) {
+          await createSyncLog({
+            entity: "order",
+            direction: "shopify->alegra",
+            status: "warn",
+            message: "Payment skipped: already processed",
+            request: { orderId: orderId || null },
+          });
+        } else {
+          try {
+            payment = await createPaymentForInvoice({
+              ctx,
+              invoiceId,
+              clientId: contactId,
+              amount: payload.total_price ? Number(payload.total_price) : 0,
+              paymentMethod,
+              bankAccountId,
+              observations: interpolateObservations(invoiceSettings.observationsTemplate, payload),
+            });
+            await markIdempotencyKey(paymentKey, "completed");
+          } catch (error) {
+            await markIdempotencyKey(
+              paymentKey,
+              "failed",
+              (error as { message?: string })?.message || "Payment failed"
+            );
+            throw error;
+          }
+        }
+      } else {
+        payment = await createPaymentForInvoice({
+          ctx,
+          invoiceId,
+          clientId: contactId,
+          amount: payload.total_price ? Number(payload.total_price) : 0,
+          paymentMethod,
+          bankAccountId,
+          observations: interpolateObservations(invoiceSettings.observationsTemplate, payload),
+        });
+      }
+    }
   }
 
-  const adjustment = await createInventoryAdjustmentFromOrder(
-    payload,
-    ctx.alegraWarehouseId,
-    ctx
-  );
+  const adjustmentKey = orderId ? `inventory-adjust:${orderId}` : undefined;
+  let adjustment = null;
+  if (adjustmentKey) {
+    const idempotency = await acquireIdempotencyKey(adjustmentKey);
+    if (!idempotency.acquired) {
+      await createSyncLog({
+        entity: "inventory",
+        direction: "shopify->alegra",
+        status: "warn",
+        message: "Inventory adjustment skipped: already processed",
+        request: { orderId: orderId || null },
+      });
+    } else {
+      try {
+        adjustment = await createInventoryAdjustmentFromOrder(
+          payload,
+          ctx.alegraWarehouseId,
+          ctx
+        );
+        await markIdempotencyKey(adjustmentKey, "completed");
+      } catch (error) {
+        await markIdempotencyKey(
+          adjustmentKey,
+          "failed",
+          (error as { message?: string })?.message || "Inventory adjustment failed"
+        );
+        throw error;
+      }
+    }
+  } else {
+    adjustment = await createInventoryAdjustmentFromOrder(
+      payload,
+      ctx.alegraWarehouseId,
+      ctx
+    );
+  }
 
   return { handled: true, contactId, invoice, payment, adjustment };
 }
@@ -438,6 +559,52 @@ function resolvePayloadTimestamp(payload: ShopifyOrderPayload) {
   const parsed = Date.parse(String(raw));
   if (Number.isNaN(parsed)) return null;
   return new Date(parsed);
+}
+
+function buildOrderChecklist(
+  payload: ShopifyOrderPayload,
+  options: { requireInvoice: boolean }
+) {
+  const missing: string[] = [];
+  if (!payload.id) {
+    missing.push("order_id");
+  }
+  if (options.requireInvoice) {
+    const items = Array.isArray(payload.line_items) ? payload.line_items : [];
+    if (!items.length) {
+      missing.push("line_items");
+    }
+    if (!payload.currency) {
+      missing.push("currency");
+    }
+    if (!payload.total_price) {
+      missing.push("total_price");
+    }
+  }
+  return missing;
+}
+
+function buildInvoiceSettingsChecklist(settings: InvoiceSettings) {
+  const blocking: string[] = [];
+  const warnings: string[] = [];
+  if (settings.generateInvoice && !settings.resolutionId) {
+    warnings.push("resolution_id");
+  }
+  if (settings.generateInvoice && settings.applyPayment && !settings.bankAccountId) {
+    warnings.push("bank_account_id");
+  }
+  if (settings.generateInvoice && settings.applyPayment && !settings.paymentMethod) {
+    warnings.push("payment_method");
+  }
+  return { blocking, warnings };
+}
+
+function buildInvoiceSettingsWarnings(settings: InvoiceSettings) {
+  const warnings: string[] = [];
+  if (settings.generateInvoice && !settings.warehouseId) {
+    warnings.push("warehouse_id");
+  }
+  return warnings;
 }
 
 function buildOrderMetaFromPayload(payload: ShopifyOrderPayload) {
@@ -713,6 +880,13 @@ async function createInventoryAdjustmentFromOrder(
   ctx: Awaited<ReturnType<typeof buildSyncContext>>
 ) {
   if (!warehouseId) {
+    await createSyncLog({
+      entity: "inventory",
+      direction: "shopify->alegra",
+      status: "warn",
+      message: "Missing warehouse for inventory adjustment",
+      request: { orderId: payload.id || null },
+    });
     return { handled: false, reason: "missing_warehouse_id" };
   }
 
@@ -747,6 +921,13 @@ async function createInventoryAdjustmentFromOrder(
   }
 
   if (!items.length) {
+    await createSyncLog({
+      entity: "inventory",
+      direction: "shopify->alegra",
+      status: "warn",
+      message: "No items to adjust",
+      request: { orderId: payload.id || null },
+    });
     return { handled: false, reason: "missing_mapped_items" };
   }
 
@@ -833,6 +1014,20 @@ async function createInventoryTransferFromOrder(
   orderId?: string,
   shopDomain?: string
 ): Promise<TransferDecision | null> {
+  const transferKey = orderId ? `transfer:${orderId}` : undefined;
+  if (transferKey) {
+    const idempotency = await acquireIdempotencyKey(transferKey);
+    if (!idempotency.acquired) {
+      await createSyncLog({
+        entity: "transfer",
+        direction: "shopify->alegra",
+        status: "warn",
+        message: "Transfer skipped: already processed",
+        request: { orderId: orderId || null },
+      });
+      return null;
+    }
+  }
   const transferEnabled = storeConfig.transferEnabled !== false;
   const destinationId = storeConfig.transferDestinationWarehouseId;
   const strategy = storeConfig.transferStrategy || "manual";
@@ -863,6 +1058,9 @@ async function createInventoryTransferFromOrder(
       ...shouldBlock("missing_transfer_config", { destinationId, originIds, strategy }),
     };
     await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
+    if (transferKey) {
+      await markIdempotencyKey(transferKey, "failed", decision.reason);
+    }
     return decision;
   }
 
@@ -888,6 +1086,9 @@ async function createInventoryTransferFromOrder(
       ...shouldBlock("missing_item_mapping", { missing, items: items.length }),
     };
     await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
+    if (transferKey) {
+      await markIdempotencyKey(transferKey, "failed", decision.reason);
+    }
     return decision;
   }
 
@@ -944,6 +1145,9 @@ async function createInventoryTransferFromOrder(
       }),
     };
     await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
+    if (transferKey) {
+      await markIdempotencyKey(transferKey, "failed", decision.reason);
+    }
     return decision;
   }
 
@@ -990,6 +1194,9 @@ async function createInventoryTransferFromOrder(
   });
 
   if (!transferEnabled) {
+    if (transferKey) {
+      await markIdempotencyKey(transferKey, "completed");
+    }
     return {
       blocked: false,
       reason: "transfer_disabled",
@@ -1011,6 +1218,9 @@ async function createInventoryTransferFromOrder(
 
   try {
     await ctx.alegra.createInventoryTransfer(transferPayload);
+    if (transferKey) {
+      await markIdempotencyKey(transferKey, "completed");
+    }
     return {
       blocked: false,
       reason: "transfer_ok",
@@ -1024,6 +1234,13 @@ async function createInventoryTransferFromOrder(
       details: { message: (error as { message?: string })?.message || "transfer_failed" },
     };
     await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
+    if (transferKey) {
+      await markIdempotencyKey(
+        transferKey,
+        "failed",
+        (error as { message?: string })?.message || "transfer_failed"
+      );
+    }
     return decision;
   }
 }

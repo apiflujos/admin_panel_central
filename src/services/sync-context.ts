@@ -10,6 +10,7 @@ type SyncContext = {
   shopify: ShopifyClient;
   alegra: AlegraClient;
   shopifyLocationId?: string;
+  syncEnabled: boolean;
   publishOnStock: boolean;
   onlyActiveItems: boolean;
   autoPublishOnWebhook: boolean;
@@ -23,6 +24,7 @@ type SyncContext = {
 };
 
 type InventoryRules = {
+  syncEnabled?: boolean;
   publishOnStock: boolean;
   onlyActiveItems?: boolean;
   autoPublishOnWebhook: boolean;
@@ -69,6 +71,7 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
       baseUrl: getAlegraBaseUrl(alegraSettings.environment),
     }),
     shopifyLocationId: shopifySettings.locationId,
+    syncEnabled: rules.syncEnabled !== false,
     publishOnStock: rules.publishOnStock,
     onlyActiveItems: Boolean(rules.onlyActiveItems),
     autoPublishOnWebhook: rules.autoPublishOnWebhook,
