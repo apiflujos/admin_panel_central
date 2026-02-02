@@ -1,4 +1,5 @@
 import { getAlegraBaseUrl } from "../utils/alegra-env";
+import { resolveShopifyApiVersion } from "../utils/shopify";
 
 type ConnectionPayload = {
   shopify?: {
@@ -49,7 +50,7 @@ async function testShopify(config: {
   accessToken: string;
   apiVersion?: string;
 }) {
-  const version = config.apiVersion || "2024-04";
+  const version = resolveShopifyApiVersion(config.apiVersion);
   const response = await fetch(
     `https://${config.shopDomain}/admin/api/${version}/graphql.json`,
     {

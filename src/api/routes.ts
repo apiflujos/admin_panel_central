@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { handleAlegraWebhook, handleShopifyWebhook } from "./webhooks.controller";
-import { authMe, authMiddleware, changePasswordHandler, loginHandler, logoutHandler, requireAdmin } from "./auth.controller";
+import { authMe, authMiddleware, changePasswordHandler, createAuthTokenHandler, loginHandler, logoutHandler, requireAdmin } from "./auth.controller";
 import { assistantExecuteHandler, assistantQueryHandler } from "./assistant.controller";
 import { listLogs, retryFailed } from "./logs.controller";
 import { listAlegraCatalog, getSettings, listResolutions, testConnections, updateSettings } from "./settings.controller";
@@ -64,6 +64,7 @@ router.use(authMiddleware);
 router.post("/auth/logout", logoutHandler);
 router.post("/auth/password", changePasswordHandler);
 router.get("/auth/me", authMe);
+router.post("/auth/token", requireAdmin, createAuthTokenHandler);
 router.get("/profile", getProfileHandler);
 router.put("/profile", updateProfileHandler);
 router.get("/company", getCompanyHandler);

@@ -1,3 +1,5 @@
+import { resolveShopifyApiVersion } from "../utils/shopify";
+
 type GraphQlError = {
   message: string;
   path?: string[];
@@ -24,7 +26,7 @@ export class ShopifyClient {
   private endpoint: string;
 
   constructor(private config: ShopifyConfig) {
-    const version = config.apiVersion || "2024-04";
+    const version = resolveShopifyApiVersion(config.apiVersion);
     this.endpoint = `https://${config.shopDomain}/admin/api/${version}/graphql.json`;
   }
 

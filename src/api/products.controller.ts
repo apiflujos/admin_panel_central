@@ -3,6 +3,7 @@ import net from "net";
 import { getAlegraCredential, getShopifyCredential } from "../services/settings.service";
 import { ShopifyClient } from "../connectors/shopify";
 import { getAlegraBaseUrl } from "../utils/alegra-env";
+import { resolveShopifyApiVersion } from "../utils/shopify";
 import { syncInventoryAdjustments } from "../services/inventory-adjustments.service";
 import { mapOrderToPayload } from "../services/operations.service";
 import { getMappingByShopifyId } from "../services/mapping.service";
@@ -80,7 +81,6 @@ type ShopifyConfig = {
   locationId: string;
 };
 
-const DEFAULT_SHOPIFY_VERSION = "2024-01";
 
 async function getAlegraConfig() {
   const alegra = await getAlegraCredential();
@@ -314,7 +314,7 @@ async function getShopifyConfig(): Promise<ShopifyConfig> {
   return {
     baseAdmin,
     accessToken: shopify.accessToken,
-    apiVersion: shopify.apiVersion || DEFAULT_SHOPIFY_VERSION,
+    apiVersion: resolveShopifyApiVersion(shopify.apiVersion),
     vendorDefault: process.env.SHOPIFY_VENDOR || "",
     locationId: shopify.locationId || "",
   };
@@ -1174,7 +1174,7 @@ export async function lookupShopifyHandler(req: Request, res: Response) {
     const client = new ShopifyClient({
       shopDomain: shopifyCredential.shopDomain,
       accessToken: shopifyCredential.accessToken,
-      apiVersion: shopifyCredential.apiVersion || DEFAULT_SHOPIFY_VERSION,
+      apiVersion: resolveShopifyApiVersion(shopifyCredential.apiVersion),
     });
     for (const sku of skus) {
       if (results[sku]) continue;
@@ -1318,7 +1318,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
         ? new ShopifyClient({
             shopDomain: shopifyCredential.shopDomain,
             accessToken: shopifyCredential.accessToken,
-            apiVersion: shopifyCredential.apiVersion || DEFAULT_SHOPIFY_VERSION,
+            apiVersion: resolveShopifyApiVersion(shopifyCredential.apiVersion),
           })
         : null;
     const identifierCache = new Map<
@@ -1907,7 +1907,7 @@ export async function syncOrdersHandler(req: Request, res: Response) {
     const client = new ShopifyClient({
       shopDomain: shopifyCredential.shopDomain,
       accessToken: shopifyCredential.accessToken,
-      apiVersion: shopifyCredential.apiVersion || DEFAULT_SHOPIFY_VERSION,
+      apiVersion: resolveShopifyApiVersion(shopifyCredential.apiVersion),
     });
     let orders: ShopifyOrder[] = [];
     const limit = Number(filters.limit || 0);
@@ -2101,7 +2101,7 @@ export async function backfillProductsHandler(req: Request, res: Response) {
           query.set("mode", "advanced");
           query.set(
             "fields",
-            "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code,created_at,createdAt,updated_at,updatedAt"
+            "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId,idItemParent,customFields,status,barcode,reference,code,created_at,createdAt,updated_at,updatedAt"
           );
           if (dateStart) {
             query.set("updated_at_start", dateStart);
@@ -2137,7 +2137,7 @@ export async function backfillProductsHandler(req: Request, res: Response) {
       const client = new ShopifyClient({
         shopDomain: shopifyCredential.shopDomain,
         accessToken: shopifyCredential.accessToken,
-        apiVersion: shopifyCredential.apiVersion || DEFAULT_SHOPIFY_VERSION,
+        apiVersion: resolveShopifyApiVersion(shopifyCredential.apiVersion),
       });
       const parts = shopifyPublishedOnly
         ? ["status:active", "published_status:published"]

@@ -3,6 +3,7 @@ import {
   AUTH_COOKIE_NAME,
   authenticateUser,
   clearSession,
+  createTempToken,
   getSessionUser,
   updatePassword,
 } from "../services/auth.service";
@@ -20,8 +21,17 @@ function getCookie(req: Request, name: string) {
   return null;
 }
 
+function getAuthToken(req: Request) {
+  const auth = String(req.headers.authorization || "");
+  if (auth.toLowerCase().startsWith("bearer ")) {
+    const token = auth.slice(7).trim();
+    if (token) return token;
+  }
+  return getCookie(req, AUTH_COOKIE_NAME);
+}
+
 export async function authMe(req: Request, res: Response) {
-  const user = await getSessionUser(getCookie(req, AUTH_COOKIE_NAME));
+  const user = await getSessionUser(getAuthToken(req));
   if (!user) {
     res.status(401).json({ error: "unauthorized" });
     return;
@@ -68,7 +78,7 @@ export async function loginHandler(req: Request, res: Response) {
 }
 
 export async function logoutHandler(req: Request, res: Response) {
-  const token = getCookie(req, AUTH_COOKIE_NAME);
+  const token = getAuthToken(req);
   if (token) {
     await clearSession(token);
   }
@@ -83,7 +93,7 @@ export async function changePasswordHandler(req: Request, res: Response) {
     res.status(400).json({ error: "Datos incompletos" });
     return;
   }
-  const sessionUser = await getSessionUser(getCookie(req, AUTH_COOKIE_NAME));
+  const sessionUser = await getSessionUser(getAuthToken(req));
   if (!sessionUser) {
     res.status(401).json({ error: "unauthorized" });
     return;
@@ -103,7 +113,7 @@ export async function changePasswordHandler(req: Request, res: Response) {
 
 export function authMiddleware(req: Request, res: Response, next: () => void) {
   void (async () => {
-    const token = getCookie(req, AUTH_COOKIE_NAME);
+    const token = getAuthToken(req);
     const user = await getSessionUser(token);
     if (!user) {
       res.status(401).json({ error: "unauthorized" });
@@ -124,7 +134,29 @@ export function requireAdmin(req: Request, res: Response, next: () => void) {
 }
 
 export async function isAuthenticatedRequest(req: Request) {
-  const token = getCookie(req, AUTH_COOKIE_NAME);
+  const token = getAuthToken(req);
   const user = await getSessionUser(token);
   return Boolean(user);
+}
+
+export async function createAuthTokenHandler(req: Request, res: Response) {
+  const user = (req as { user?: { id: number; role?: string } }).user;
+  if (!user) {
+    res.status(401).json({ error: "unauthorized" });
+    return;
+  }
+  if (user.role !== "admin") {
+    res.status(403).json({ error: "forbidden" });
+    return;
+  }
+  const rawMinutes = Number(req.body?.ttlMinutes);
+  const ttlMinutes = Number.isFinite(rawMinutes) ? rawMinutes : 30;
+  const clamped = Math.min(120, Math.max(5, Math.round(ttlMinutes)));
+  const result = await createTempToken(user.id, clamped);
+  res.json({
+    ok: true,
+    token: result.token,
+    expiresAt: result.expiresAt,
+    ttlMinutes: clamped,
+  });
 }

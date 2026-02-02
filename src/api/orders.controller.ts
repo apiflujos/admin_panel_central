@@ -7,6 +7,7 @@ import { AlegraClient } from "../connectors/alegra";
 import { ShopifyClient, ShopifyOrder } from "../connectors/shopify";
 import { getAlegraBaseUrl } from "../utils/alegra-env";
 import { getMappingByAlegraId, getMappingByShopifyId } from "../services/mapping.service";
+import { resolveShopifyApiVersion } from "../utils/shopify";
 
 const resolveInvoiceNumber = (invoice: Record<string, unknown> | null) => {
   const template = invoice?.numberTemplate as Record<string, unknown> | undefined;
@@ -143,7 +144,7 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
       const client = new ShopifyClient({
         shopDomain: shopifyCredential.shopDomain,
         accessToken: shopifyCredential.accessToken,
-        apiVersion: shopifyCredential.apiVersion || "2024-01",
+        apiVersion: resolveShopifyApiVersion(shopifyCredential.apiVersion),
       });
       const parts = ["status:any"];
       if (dateStart) parts.push(`updated_at:>='${dateStart}'`);
