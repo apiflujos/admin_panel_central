@@ -1469,29 +1469,14 @@ button {
 
 .toggle {
   appearance: none;
-  width: 46px;
-  height: 24px;
-  background: #d7dee7;
+  width: 44px;
+  height: 22px;
+  background: rgba(15, 23, 42, 0.1);
   border-radius: 999px;
   position: relative;
-  overflow: hidden;
-  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
-  border: 1px solid #64748b;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+  transition: background 160ms ease, border-color 160ms ease;
+  border: 1px solid rgba(15, 23, 42, 0.16);
   cursor: pointer;
-}
-
-.toggle::before {
-  content: "OFF";
-  position: absolute;
-  top: 50%;
-  left: 26px;
-  transform: translateY(-50%);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  color: rgba(15, 23, 42, 0.65);
-  transition: left 160ms ease, color 160ms ease;
 }
 
 .toggle::after {
@@ -1499,28 +1484,21 @@ button {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 20px;
-  height: 20px;
-  background: #0f172a;
+  width: 18px;
+  height: 18px;
+  background: #ffffff;
   border-radius: 50%;
-  transition: transform 160ms ease, background 160ms ease;
-  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.25);
+  transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.26);
 }
 
 .toggle:checked {
   background: var(--primary);
-  border-color: rgba(15, 23, 42, 0.4);
-}
-
-.toggle:checked::before {
-  content: "ON";
-  left: 10px;
-  color: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 43, 91, 0.45);
 }
 
 .toggle:checked::after {
   transform: translateX(22px);
-  background: #fff;
 }
 
 .toggle:focus-visible {
@@ -1533,18 +1511,14 @@ button {
   cursor: not-allowed;
 }
 
-.toggle:disabled::before {
-  color: rgba(71, 85, 105, 0.8);
-}
-
 .toggle:disabled::after {
-  background: #64748b;
+  background: #cbd5e1;
   box-shadow: none;
 }
 
 .toggle:disabled:checked {
-  background: #64748b;
-  border-color: #475569;
+  background: #94a3b8;
+  border-color: rgba(71, 85, 105, 0.6);
 }
 
 .toggle-field {
@@ -1602,6 +1576,41 @@ button {
 .settings-group.provider-group[data-group="products"] .panel-tag.tag-bridge {
   color: var(--shopify-ink);
   background: rgba(149, 191, 71, 0.22);
+}
+
+.panel-tag.tag-core {
+  color: #0b2445;
+  background: rgba(0, 43, 91, 0.12);
+  border: 1px solid rgba(0, 43, 91, 0.18);
+}
+
+.panel.module[data-module-priority="core"] {
+  border-color: rgba(0, 43, 91, 0.22);
+}
+
+.module-note {
+  margin-top: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 43, 91, 0.18);
+  border-left: 3px solid var(--primary);
+  background: rgba(0, 43, 91, 0.06);
+  color: #0f172a;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.module-note p {
+  margin: 0;
+}
+
+.module-note ul {
+  margin: 6px 0 0 18px;
+  padding: 0;
+}
+
+.module-note li {
+  margin: 2px 0;
 }
 
 .chart-placeholder {
@@ -1792,8 +1801,12 @@ button {
   flex-wrap: wrap;
 }
 
-.toolbar.wizard-actions .kpi-sub {
+.toolbar.wizard-actions #wizard-hint {
   margin-left: auto;
+}
+
+.store-scope-hint {
+  min-height: 0;
 }
 
 .toolbar.is-actions {
@@ -1806,7 +1819,7 @@ button {
 }
 
 @media (max-width: 720px) {
-  .toolbar.wizard-actions .kpi-sub {
+  .toolbar.wizard-actions #wizard-hint {
     margin-left: 0;
     width: 100%;
   }

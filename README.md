@@ -12,7 +12,8 @@ Starter scaffolding for the integration middleware and dashboard API.
 - Health check: `GET /health`
 - Important env vars to set in Render:
   - `APP_HOST`: base URL (ej: `https://<tu-servicio>.onrender.com` o tu dominio)
-  - `CRYPTO_KEY_BASE64`: 32 bytes en base64
+  - `CRYPTO_KEY_BASE64`: 32 bytes en base64 (no lo cambies si ya tienes credenciales cifradas en la BD)
+    - Generar (una sola vez): `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
   - `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SHOPIFY_SCOPES`
   - `ADMIN_EMAIL`, `ADMIN_PASSWORD`
   - `DATABASE_SSL=true` (si usas Postgres de Render)
