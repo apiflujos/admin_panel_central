@@ -920,12 +920,29 @@
           </div>
                 </div>
               </div>
-              <details class="advanced-section" id="advanced-settings">
-                <summary>
-                  <span>Configuracion avanzada</span>
-                  <span class="kpi-sub">Webhooks, cron, logistica, facturacion y conexiones guardadas.</span>
-                </summary>
-                <div class="advanced-body">
+              <div class="settings-group-title">Administracion</div>
+
+                  <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera un token temporal para QA y pruebas API sin consola.">
+                    <div class="panel-header">
+                      <h3 data-module-toggle="qa-token">Token temporal QA</h3>
+                      <span class="panel-tag tag-bridge">QA</span>
+                    </div>
+                    <div class="module-body">
+                      <div class="settings-grid">
+                        <div class="field span-2">
+                          <label>Token temporal</label>
+                          <div class="field-actions inline">
+                            <input type="text" id="qa-token-value" readonly placeholder="Genera un token para QA" />
+                            <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
+                          </div>
+                          <p class="field-hint" id="qa-token-hint">Vence en 30 minutos.</p>
+                        </div>
+                      </div>
+                      <div class="toolbar is-actions">
+                        <button class="primary" id="qa-token-generate" type="button">Generar token</button>
+                      </div>
+                    </div>
+                  </div>
                   <div class="panel admin-only module" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas para esta organizacion.">
                     <div class="panel-header">
                       <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
@@ -1227,8 +1244,6 @@
                   </div>
                 </div>
               </div>
-                </div>
-              </details>
             </div>
           </div>
 

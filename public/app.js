@@ -72,6 +72,10 @@ const logOrderId = document.getElementById("log-order-id");
 const logFilter = document.getElementById("log-filter");
 const logRetry = document.getElementById("log-retry");
 const connectionsGrid = document.getElementById("connections-grid");
+const qaTokenGenerate = document.getElementById("qa-token-generate");
+const qaTokenCopy = document.getElementById("qa-token-copy");
+const qaTokenValue = document.getElementById("qa-token-value");
+const qaTokenHint = document.getElementById("qa-token-hint");
 
 const kpiSalesToday = document.getElementById("kpi-sales-today");
 const kpiSalesTodaySub = document.getElementById("kpi-sales-today-sub");
@@ -124,7 +128,6 @@ const shopifyDomain = document.getElementById("shopify-domain");
 const shopifyToken = document.getElementById("shopify-token");
 const wizardStart = document.getElementById("wizard-start");
 const wizardStop = document.getElementById("wizard-stop");
-const advancedSettings = document.getElementById("advanced-settings");
 
 const alegraAccountSelect = document.getElementById("alegra-account-select");
 const alegraEnvSelect = document.getElementById("alegra-env-select");
@@ -314,7 +317,6 @@ const WIZARD_MODULE_ORDER = [
   "alegra-logistics",
   "shopify-tech",
 ];
-const ADVANCED_MODULES = new Set(["shopify-tech", "alegra-logistics", "alegra-invoice", "alegra-tech"]);
 const DEFAULT_PRODUCT_SETTINGS = {
   publish: {
     status: "draft",
@@ -1203,6 +1205,10 @@ function setModuleReadonly(panel, readonly) {
 function setModuleCollapsed(panel, collapsed) {
   if (!panel) return;
   panel.classList.toggle("is-collapsed", Boolean(collapsed));
+  const toggle = panel.querySelector("[data-module-toggle]");
+  if (toggle) {
+    toggle.setAttribute("aria-expanded", String(!collapsed));
+  }
 }
 
 function setModuleSaved(panel, saved) {
@@ -1505,6 +1511,15 @@ function validateOrdersModule() {
 function setGroupCollapsed(panel, collapsed) {
   if (!panel) return;
   panel.classList.toggle("is-collapsed", Boolean(collapsed));
+  const toggle = panel.querySelector("[data-group-toggle]");
+  if (toggle) {
+    toggle.setAttribute("aria-expanded", String(!collapsed));
+  }
+  if (collapsed) {
+    panel.querySelectorAll(".module[data-module]").forEach((module) => {
+      setModuleCollapsed(module, true);
+    });
+  }
 }
 
 function collapseAllGroupsAndModules() {
@@ -1713,9 +1728,6 @@ function openWizardStep() {
   }
   if (guard > 0) {
     setWizardState(state);
-  }
-  if (advancedSettings && ADVANCED_MODULES.has(key)) {
-    advancedSettings.open = true;
   }
   openWizardGroups(key);
   WIZARD_MODULE_ORDER.forEach((moduleKey) => {
@@ -5938,6 +5950,54 @@ if (productsSyncStopBtn) {
 if (shopifyWebhooksCreate) {
   shopifyWebhooksCreate.addEventListener("click", () => {
     createShopifyWebhooks();
+  });
+}
+
+if (qaTokenGenerate) {
+  qaTokenGenerate.addEventListener("click", async () => {
+    qaTokenGenerate.disabled = true;
+    if (qaTokenHint) {
+      qaTokenHint.textContent = "Generando token...";
+    }
+    try {
+      const result = await fetchJson("/api/auth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ttlMinutes: 30 }),
+      });
+      if (qaTokenValue) {
+        qaTokenValue.value = result?.token || "";
+      }
+      if (qaTokenHint) {
+        const expiresAt = result?.expiresAt ? new Date(result.expiresAt) : null;
+        qaTokenHint.textContent = expiresAt
+          ? `Vence: ${expiresAt.toLocaleString()}`
+          : "Token generado.";
+      }
+    } catch (error) {
+      if (qaTokenHint) {
+        qaTokenHint.textContent =
+          (error && error.message) || "No se pudo generar el token.";
+      }
+      window.alert(error?.message || "No se pudo generar el token.");
+    } finally {
+      qaTokenGenerate.disabled = false;
+    }
+  });
+}
+
+if (qaTokenCopy) {
+  qaTokenCopy.addEventListener("click", async () => {
+    if (!qaTokenValue || !qaTokenValue.value) {
+      window.alert("Primero genera un token.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(qaTokenValue.value);
+    } catch {
+      qaTokenValue.select();
+      document.execCommand("copy");
+    }
   });
 }
 if (shopifyWebhooksDelete) {
