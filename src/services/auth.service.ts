@@ -191,3 +191,24 @@ export function verifyPassword(password: string, stored: string) {
     .toString("hex");
   return crypto.timingSafeEqual(Buffer.from(derived), Buffer.from(hash));
 }
+
+export async function createTempToken(userId: number,
+  ttlMinutes = 30) {
+  const pool = getPool();
+  await ensureUsersTables(pool);
+  const token =
+  crypto.randomBytes(24).toString('hex');
+  const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+  await
+  pool.query(
+    
+    INSERT INTO user_sessions (user_id, token, expires_at)
+    VALUES (, , )
+    
+    ,
+
+  [userId, token, expiresAt]
+  );
+  return { token, expiresAt };
+}
+
