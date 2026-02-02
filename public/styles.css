@@ -1119,7 +1119,7 @@ button {
 }
 
 .panel-header h3[data-module-toggle] {
-  cursor: pointer;
+  cursor: default;
   user-select: none;
   display: inline-flex;
   align-items: center;
@@ -1158,12 +1158,8 @@ button {
 }
 
 .panel-header h3[data-module-toggle]::after {
-  content: "▾";
-  font-size: 12px;
-  color: var(--muted);
-  margin-left: 6px;
-  display: inline-block;
-  transition: transform 160ms ease;
+  content: "";
+  margin-left: 0;
 }
 
 .panel.module.is-collapsed:not(.is-saved) h3[data-module-toggle]::after {
@@ -1445,10 +1441,6 @@ button {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.12em;
-}
-
-.module.is-collapsed .module-body {
-  display: none;
 }
 
 .module.is-readonly input,

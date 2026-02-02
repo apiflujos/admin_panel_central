@@ -1272,11 +1272,11 @@ function setModuleReadonly(panel, readonly) {
 
 function setModuleCollapsed(panel, collapsed) {
   if (!panel) return;
-  panel.classList.toggle("is-collapsed", Boolean(collapsed));
+  // UX: los sub-modulos (panels) siempre se muestran; el pliegue/despliegue
+  // ocurre solo a nivel de grupos principales.
+  panel.classList.remove("is-collapsed");
   const toggle = panel.querySelector("[data-module-toggle]");
-  if (toggle) {
-    toggle.setAttribute("aria-expanded", String(!collapsed));
-  }
+  if (toggle) toggle.setAttribute("aria-expanded", "true");
 }
 
 function setModuleSaved(panel, saved) {
@@ -1623,11 +1623,45 @@ function collapseAllGroupsAndModules() {
 }
 
 function openDefaultGroups() {
-  const openKeys = new Set(["store", "products", "orders"]);
+  const openKeys = new Set(["store"]);
   document.querySelectorAll("[data-group]").forEach((panel) => {
     const key = panel.getAttribute("data-group") || "";
     setGroupCollapsed(panel, !openKeys.has(key));
   });
+}
+
+function reorderSettingsPanels(hasStores) {
+  const settingsSection = document.querySelector("#settings");
+  if (!settingsSection) return;
+  const storeGroup = settingsSection.querySelector('[data-group="store"]');
+  const connectionsModule = settingsSection.querySelector('[data-module="connections"]');
+  if (!storeGroup || !connectionsModule) return;
+
+  const storeBeforeConnections = Boolean(
+    storeGroup.compareDocumentPosition(connectionsModule) & Node.DOCUMENT_POSITION_FOLLOWING
+  );
+
+  if (hasStores) {
+    if (!storeBeforeConnections) {
+      settingsSection.insertBefore(storeGroup, connectionsModule);
+    }
+    return;
+  }
+
+  if (storeBeforeConnections) {
+    settingsSection.insertBefore(connectionsModule, storeGroup);
+  }
+}
+
+function ensureWizardToolbarFirst() {
+  const storeGroup = document.querySelector('[data-group="store"]');
+  if (!storeGroup) return;
+  const body = storeGroup.querySelector(".settings-group-body");
+  if (!body) return;
+  const wizardToolbar = body.querySelector(".wizard-actions");
+  const storeMeta = body.querySelector(".settings-grid.store-meta");
+  if (!wizardToolbar || !storeMeta) return;
+  body.insertBefore(wizardToolbar, storeMeta);
 }
 
 function openWizardGroups(moduleKey) {
@@ -2073,27 +2107,13 @@ function initModuleControls() {
     const readonly = panel.getAttribute("data-module-readonly") !== "false";
     setModuleReadonly(panel, readonly);
     setModuleSaved(panel, false);
-    setModuleCollapsed(panel, true);
+    setModuleCollapsed(panel, false);
   });
   document.addEventListener("click", (event) => {
     const target = event.target instanceof HTMLElement ? event.target : null;
     if (!target) return;
     const toggle = target.closest("[data-module-toggle]");
     if (toggle) {
-      const key = toggle.getAttribute("data-module-toggle");
-      const panel = getModulePanel(key);
-      if (!panel) return;
-      const group = panel.closest("[data-group]");
-      if (group) {
-        group.querySelectorAll(".module[data-module]").forEach((module) => {
-          if (module !== panel) setModuleCollapsed(module, true);
-        });
-      }
-      const nextCollapsed = !panel.classList.contains("is-collapsed");
-      setModuleCollapsed(panel, nextCollapsed);
-      if (key === "shopify-tech" && !nextCollapsed) {
-        loadShopifyWebhooksStatus().catch(() => null);
-      }
       return;
     }
     const edit = target.closest("[data-module-edit]");
@@ -2166,7 +2186,11 @@ function initGroupControls() {
     const key = toggle.getAttribute("data-group-toggle");
     const panel = key ? getGroupPanel(key) : null;
     if (!panel) return;
-    setGroupCollapsed(panel, !panel.classList.contains("is-collapsed"));
+    const nextCollapsed = !panel.classList.contains("is-collapsed");
+    setGroupCollapsed(panel, nextCollapsed);
+    if (key === "operations" && !nextCollapsed) {
+      loadShopifyWebhooksStatus().catch(() => null);
+    }
   });
 }
 
@@ -2404,11 +2428,6 @@ function updateStoreModuleTitles() {
     const label = getActiveStoreLabel();
     storeTitle.textContent = label ? `${base} · ${label}` : base;
   }
-  document.querySelectorAll("[data-title-base]").forEach((node) => {
-    if (node.hasAttribute("data-store-title")) return;
-    const base = node.getAttribute("data-title-base") || node.textContent || "";
-    node.textContent = base;
-  });
 }
 
 function getActiveStoreLabel() {
@@ -2421,6 +2440,8 @@ function renderStoreActiveSelect(stores) {
     storeActiveField.style.display = "none";
     storeActiveSelect.innerHTML = "";
     shopifyAdminBase = "";
+    reorderSettingsPanels(false);
+    ensureWizardToolbarFirst();
     return;
   }
   storeActiveField.style.display = stores.length > 1 ? "" : "none";
@@ -2452,6 +2473,8 @@ function renderStoreActiveSelect(stores) {
   setShopifyWebhooksStatus("Sin configurar");
   collapseAllGroupsAndModules();
   openDefaultGroups();
+  reorderSettingsPanels(true);
+  ensureWizardToolbarFirst();
   loadLegacyStoreConfig().catch(() => null);
   openWizardStep();
 }
@@ -6599,6 +6622,7 @@ async function init() {
   await safeLoad(loadMetrics());
   await safeLoad(loadOperations());
   if (currentUserRole === "admin") {
+    await safeLoad(loadConnections());
     await safeLoad(loadSettings());
     await safeLoad(loadResolutions());
   }
