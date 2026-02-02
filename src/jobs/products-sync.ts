@@ -45,6 +45,14 @@ const normalizeItemsResponse = (payload: unknown): AlegraItemRow[] => {
   return [];
 };
 
+const safeCreateSyncLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
+  try {
+    await createSyncLog(payload);
+  } catch (error) {
+    console.error("createSyncLog failed:", payload.entity, payload.direction, error);
+  }
+};
+
 export function startProductsSyncPoller() {
   const intervalSeconds = Number(process.env.PRODUCTS_SYNC_POLL_SECONDS || 900);
   const intervalMs =
@@ -130,7 +138,7 @@ export function startProductsSyncPoller() {
         });
       }
 
-      await createSyncLog({
+      await safeCreateSyncLog({
         entity: "products_sync",
         direction: "alegra->shopify",
         status: "success",
@@ -140,7 +148,7 @@ export function startProductsSyncPoller() {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Products sync poll failed";
-      await createSyncLog({
+      await safeCreateSyncLog({
         entity: "products_sync",
         direction: "alegra->shopify",
         status: "fail",
@@ -152,5 +160,7 @@ export function startProductsSyncPoller() {
   };
 
   void run();
-  setInterval(run, intervalMs);
+  setInterval(() => {
+    void run();
+  }, intervalMs);
 }

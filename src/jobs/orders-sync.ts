@@ -21,6 +21,14 @@ const extractUpdatedAt = (order: { updatedAt?: string | null; processedAt?: stri
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const safeCreateSyncLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
+  try {
+    await createSyncLog(payload);
+  } catch (error) {
+    console.error("createSyncLog failed:", payload.entity, payload.direction, error);
+  }
+};
+
 export function startOrdersSyncPoller() {
   const intervalSeconds = Number(process.env.ORDERS_SYNC_POLL_SECONDS || 300);
   const intervalMs =
@@ -81,7 +89,7 @@ export function startOrdersSyncPoller() {
           })
         );
         if (results.some((result) => result.status === "rejected")) {
-          await createSyncLog({
+          await safeCreateSyncLog({
             entity: "orders_sync",
             direction: "shopify->alegra",
             status: "fail",
@@ -96,7 +104,7 @@ export function startOrdersSyncPoller() {
         lastStart: lastSeen,
         total: orders.length,
       });
-      await createSyncLog({
+      await safeCreateSyncLog({
         entity: "orders_sync",
         direction: "shopify->alegra",
         status: "success",
@@ -106,7 +114,7 @@ export function startOrdersSyncPoller() {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Orders sync poll failed";
-      await createSyncLog({
+      await safeCreateSyncLog({
         entity: "orders_sync",
         direction: "shopify->alegra",
         status: "fail",
@@ -118,5 +126,7 @@ export function startOrdersSyncPoller() {
   };
 
   void run();
-  setInterval(run, intervalMs);
+  setInterval(() => {
+    void run();
+  }, intervalMs);
 }

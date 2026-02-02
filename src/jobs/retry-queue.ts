@@ -12,11 +12,15 @@ export function startRetryQueuePoller() {
     running = true;
     try {
       await processRetryQueue();
+    } catch (error) {
+      console.error("Retry queue poll failed:", error);
     } finally {
       running = false;
     }
   };
 
   void run();
-  setInterval(run, intervalMs);
+  setInterval(() => {
+    void run();
+  }, intervalMs);
 }

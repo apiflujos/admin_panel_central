@@ -7,9 +7,13 @@ const toIsoDate = (value: Date | number) =>
   new Date(value).toISOString().slice(0, 10);
 
 const resolveStartDate = async () => {
-  const checkpoint = await getSyncCheckpoint("inventory_adjustments");
-  if (checkpoint?.lastStart) {
-    return toIsoDate(checkpoint.lastStart);
+  try {
+    const checkpoint = await getSyncCheckpoint("inventory_adjustments");
+    if (checkpoint?.lastStart) {
+      return toIsoDate(checkpoint.lastStart);
+    }
+  } catch (error) {
+    console.error("Inventory adjustments: checkpoint read failed:", error);
   }
   return toIsoDate(Date.now());
 };
@@ -22,7 +26,13 @@ export function startInventoryAdjustmentsPoller() {
   let lastDate = toIsoDate(Date.now());
 
   const run = async () => {
-    const settings = await getInventoryAdjustmentsSettings();
+    let settings: Awaited<ReturnType<typeof getInventoryAdjustmentsSettings>>;
+    try {
+      settings = await getInventoryAdjustmentsSettings();
+    } catch (error) {
+      console.error("Inventory adjustments: settings read failed:", error);
+      return;
+    }
     if (!settings.enabled || settings.intervalMinutes <= 0) {
       return;
     }
@@ -76,23 +86,33 @@ export function startInventoryAdjustmentsPoller() {
   };
 
   const scheduleNext = async () => {
-    const settings = await getInventoryAdjustmentsSettings();
-    const intervalMinutes = settings.enabled ? settings.intervalMinutes : 0;
+    let intervalMinutes = 0;
+    try {
+      const settings = await getInventoryAdjustmentsSettings();
+      intervalMinutes = settings.enabled ? settings.intervalMinutes : 0;
+    } catch (error) {
+      console.error("Inventory adjustments: schedule settings read failed:", error);
+    }
     if (intervalMinutes <= 0) {
       return;
     }
     setTimeout(async () => {
-      await run();
-      await scheduleNext();
+      try {
+        await run();
+      } catch (error) {
+        console.error("Inventory adjustments poll failed:", error);
+      }
+      try {
+        await scheduleNext();
+      } catch (error) {
+        console.error("Inventory adjustments schedule failed:", error);
+      }
     }, intervalMinutes * 60 * 1000);
   };
 
-  resolveStartDate()
-    .then((start) => {
-      lastDate = start;
-    })
-    .finally(() => {
-      void run();
-      void scheduleNext();
-    });
+  void (async () => {
+    lastDate = await resolveStartDate();
+    await run();
+    await scheduleNext();
+  })();
 }
