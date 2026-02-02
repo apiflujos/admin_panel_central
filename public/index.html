@@ -708,18 +708,16 @@
                 <span class="kpi-sub">Opcional. Te guia por las configuraciones clave.</span>
               </div>
 
-              <div class="settings-group provider-group" data-group="alegra-shopify">
-                <div class="settings-group-header" data-group-toggle="alegra-shopify">
+              <div class="settings-group provider-group" data-group="products">
+                <div class="settings-group-header" data-group-toggle="products">
                   <h4 class="group-title">
                     <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
                     <span class="group-arrow">→</span>
                     <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
-                    Alegra → Shopify
+                    Productos e inventario
                   </h4>
                 </div>
                 <div class="settings-group-body">
-                  <div class="settings-group-title">Productos</div>
-
                   <div class="panel admin-only module" data-provider="bridge" data-module="shopify-rules" id="legacy-publish-panel" data-help="Aplica a cambios automaticos desde Alegra y a sincronizaciones masivas de productos. Define borrador/activo e imagenes.">
             <div class="panel-header">
               <h3 data-module-toggle="shopify-rules" data-title-base="Autopublicacion de productos">Autopublicacion de productos <span class="tip" data-tip="Se ejecuta automaticamente cuando un producto cambia en Alegra. Usa Inventario para stock minimo y bodegas.">?</span></h3>
@@ -762,8 +760,6 @@
             </div>
           </div>
 
-                  <div class="settings-group-title">Inventario</div>
-
                   <div class="panel admin-only module" data-provider="bridge" data-module="alegra-inventory" id="inventory-rules-panel" data-help="Aplica a sincronizaciones automaticas y masivas. Los productos y stock salen de Alegra; elige bodegas fuente.">
             <div class="panel-header">
               <h3 data-module-toggle="alegra-inventory" data-title-base="Alegra → Shopify">Alegra → Shopify <span class="tip" data-tip="Los productos y el stock vienen de Alegra y se publican en Shopify.">?</span></h3>
@@ -800,18 +796,16 @@
 
                 </div>
               </div>
-              <div class="settings-group provider-group" data-group="alegra-shopify-bidir">
-                <div class="settings-group-header" data-group-toggle="alegra-shopify-bidir">
+              <div class="settings-group provider-group" data-group="orders">
+                <div class="settings-group-header" data-group-toggle="orders">
                   <h4 class="group-title">
                     <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
                     <span class="group-arrow">↔</span>
                     <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
-                    Shopify ↔ Alegra
+                    Pedidos y facturacion
                   </h4>
                 </div>
                 <div class="settings-group-body">
-                  <div class="settings-group-title">Contactos</div>
-
                   <div class="panel admin-only module" data-provider="bridge" data-module="sync-contacts" data-help="Define como se sincronizan los contactos entre Shopify y Alegra.">
                     <div class="panel-header">
                       <h3 data-module-toggle="sync-contacts" data-title-base="Contactos bidireccionales">Contactos bidireccionales</h3>
@@ -875,9 +869,6 @@
                       <p class="field-hint module-warning is-hidden" data-module-warning="sync-contacts"></p>
                     </div>
                   </div>
-
-                  <div class="settings-group-title">Pedidos y facturas</div>
-
                   <div class="panel admin-only module" data-provider="bridge" data-module="sync-orders" data-help="Define la direccion y el estado de pedidos/facturas para sincronizacion automatica y masiva.">
                     <div class="panel-header">
                       <h3 data-module-toggle="sync-orders" data-title-base="Pedidos y facturas">Pedidos y facturas</h3>
@@ -918,147 +909,6 @@
               <p class="field-hint module-warning is-hidden" data-module-warning="sync-orders"></p>
             </div>
           </div>
-                </div>
-              </div>
-              <div class="settings-group-title">Administracion</div>
-
-                  <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera un token temporal para QA y pruebas API sin consola.">
-                    <div class="panel-header">
-                      <h3 data-module-toggle="qa-token">Token temporal QA</h3>
-                      <span class="panel-tag tag-bridge">QA</span>
-                    </div>
-                    <div class="module-body">
-                      <div class="settings-grid">
-                        <div class="field span-2">
-                          <label>Token temporal</label>
-                          <div class="field-actions inline">
-                            <input type="text" id="qa-token-value" readonly placeholder="Genera un token para QA" />
-                            <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
-                          </div>
-                          <p class="field-hint" id="qa-token-hint">Vence en 30 minutos.</p>
-                        </div>
-                      </div>
-                      <div class="toolbar is-actions">
-                        <button class="primary" id="qa-token-generate" type="button">Generar token</button>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="panel admin-only module" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas para esta organizacion.">
-                    <div class="panel-header">
-                      <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
-                      <span class="panel-tag tag-bridge">Conexiones</span>
-                    </div>
-                    <div class="module-body">
-                      <div class="connections-grid" id="connections-grid">
-                        <div class="connection-card empty">Sin conexiones.</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="settings-group provider-group" data-group="shopify">
-                    <div class="settings-group-header" data-group-toggle="shopify">
-                      <h4 class="group-title">
-                        <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
-                        Configuraciones Shopify
-                      </h4>
-                    </div>
-                    <div class="settings-group-body">
-                      <div class="settings-group-title">Webhooks</div>
-
-                      <div class="panel admin-only module" data-provider="shopify" data-module="shopify-tech" data-help="Crea y valida webhooks para sincronizar pedidos, productos e inventario. Reinstala si cambias el dominio.">
-                        <div class="panel-header">
-                          <h3 data-module-toggle="shopify-tech" data-title-base="Webhooks">Webhooks</h3>
-                          <span class="panel-tag tag-shopify">Shopify</span>
-                        </div>
-                        <div class="module-body">
-                          <div class="settings-grid">
-                            <div class="field span-2">
-                              <p class="field-hint">
-                                Crea los webhooks y activa la sincronizacion automatica de pedidos, inventario y productos.
-                              </p>
-                            </div>
-                          </div>
-                          <div class="toolbar is-actions">
-                            <button class="primary" id="shopify-webhooks-create" type="button">Crear webhooks</button>
-                            <button class="ghost danger" id="shopify-webhooks-delete" type="button">Eliminar webhooks</button>
-                            <button class="ghost info" id="shopify-webhooks-status-btn" type="button">Ver estado</button>
-                            <span class="kpi-sub" id="shopify-webhooks-status">Sin configurar</span>
-                          </div>
-                          <p class="field-hint module-warning is-hidden" data-module-warning="shopify-tech"></p>
-                        </div>
-                      </div>
-
-                    </div>
-                  </div>
-              <div class="settings-group provider-group" data-group="alegra">
-                <div class="settings-group-header" data-group-toggle="alegra">
-                  <h4 class="group-title">
-                    <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
-                    Configuraciones Alegra
-                  </h4>
-                </div>
-                <div class="settings-group-body">
-                  <div class="settings-group-title">Cron global</div>
-
-                  <div class="panel admin-only module" data-provider="alegra" data-module="alegra-tech" data-help="Cron global para inventario y ajustes. Aplica a todas las tiendas.">
-                    <div class="panel-header">
-                      <h3 data-module-toggle="alegra-tech" data-title-base="Cron global">Cron global</h3>
-                      <span class="panel-tag tag-alegra">Alegra</span>
-                    </div>
-                    <div class="module-body">
-                      <div class="settings-grid">
-                        <div class="field span-2">
-                          <div class="status-card cron-card single-column">
-                            <div class="cron-summary">
-                              <div class="cron-item">
-                                <span class="status-led" id="inventory-cron-led"></span>
-                                <div>
-                                  <p>Cron inventario</p>
-                                  <span id="inventory-cron-status">Sin datos</span>
-                                </div>
-                              </div>
-                              <div class="cron-item">
-                                <div>
-                                  <p>Ultimo checkpoint</p>
-                                  <span id="inventory-cron-checkpoint">-</span>
-                                </div>
-                              </div>
-                              <div class="cron-item">
-                                <div>
-                                  <p>Intervalo</p>
-                                  <span id="inventory-cron-interval">-</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div class="cron-controls">
-                              <label class="toggle-field">
-                                <input type="checkbox" id="inventory-cron-enabled" class="toggle" />
-                                <span>Cron inventario activo</span>
-                              </label>
-                              <div class="field">
-                                <label>Intervalo del cron</label>
-                                <select id="inventory-cron-interval-select">
-                                  <option value="5">Cada 5 minutos</option>
-                                  <option value="10">Cada 10 minutos</option>
-                                  <option value="15">Cada 15 minutos</option>
-                                </select>
-                              </div>
-                              <div class="field">
-                                <label>Auto-publicar ajustes en Shopify</label>
-                                <input type="checkbox" id="cfg-inventory-auto-publish" class="toggle" />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="module-footer">
-                        <button class="ghost module-action" data-module-edit="alegra-tech" type="button">Editar</button>
-                        <button class="primary module-action" data-module-save="alegra-tech" type="button">Guardar</button>
-                      </div>
-                      <p class="field-hint module-warning is-hidden" data-module-warning="alegra-tech"></p>
-                    </div>
-                  </div>
-
-                  <div class="settings-group-title">Operativo</div>
 
                   <div class="panel admin-only module" data-provider="alegra" data-module="alegra-logistics" id="inventory-transfer-panel" data-help="Configura bodegas y traslados automaticos (si se requieren) para pedidos Shopify → Alegra.">
             <div class="panel-header">
@@ -1148,8 +998,6 @@
               <p class="field-hint module-warning is-hidden" data-module-warning="alegra-logistics"></p>
             </div>
           </div>
-
-                  <div class="settings-group-title">Facturacion</div>
 
                   <div class="panel admin-only module" data-provider="alegra" data-module="alegra-invoice" id="legacy-invoice-panel" data-help="Se usa cuando Shopify → Alegra = Factura. Define listas de precios y parametros de facturacion.">
             <div class="panel-header">
@@ -1241,6 +1089,135 @@
               </div>
               <p class="field-hint module-warning is-hidden" data-module-warning="alegra-invoice"></p>
             </div>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-group provider-group" data-group="operations">
+                <div class="settings-group-header" data-group-toggle="operations">
+                  <h4 class="group-title">Operacion</h4>
+                </div>
+                <div class="settings-group-body">
+                  <div class="panel admin-only module" data-provider="shopify" data-module="shopify-tech" data-help="Crea y valida webhooks para sincronizar pedidos, productos e inventario. Reinstala si cambias el dominio.">
+                    <div class="panel-header">
+                      <h3 data-module-toggle="shopify-tech" data-title-base="Webhooks">Webhooks</h3>
+                      <span class="panel-tag tag-shopify">Shopify</span>
+                    </div>
+                    <div class="module-body">
+                      <div class="settings-grid">
+                        <div class="field span-2">
+                          <p class="field-hint">
+                            Crea los webhooks y activa la sincronizacion automatica de pedidos, inventario y productos.
+                          </p>
+                        </div>
+                      </div>
+                      <div class="toolbar is-actions">
+                        <button class="primary" id="shopify-webhooks-create" type="button">Crear webhooks</button>
+                        <button class="ghost danger" id="shopify-webhooks-delete" type="button">Eliminar webhooks</button>
+                        <button class="ghost info" id="shopify-webhooks-status-btn" type="button">Ver estado</button>
+                        <span class="kpi-sub" id="shopify-webhooks-status">Sin configurar</span>
+                      </div>
+                      <p class="field-hint module-warning is-hidden" data-module-warning="shopify-tech"></p>
+                    </div>
+                  </div>
+
+                  <div class="panel admin-only module" data-provider="alegra" data-module="alegra-tech" data-help="Cron global para inventario y ajustes. Aplica a todas las tiendas.">
+                    <div class="panel-header">
+                      <h3 data-module-toggle="alegra-tech" data-title-base="Cron global">Cron global</h3>
+                      <span class="panel-tag tag-alegra">Alegra</span>
+                    </div>
+                    <div class="module-body">
+                      <div class="settings-grid">
+                        <div class="field span-2">
+                          <div class="status-card cron-card single-column">
+                            <div class="cron-summary">
+                              <div class="cron-item">
+                                <span class="status-led" id="inventory-cron-led"></span>
+                                <div>
+                                  <p>Cron inventario</p>
+                                  <span id="inventory-cron-status">Sin datos</span>
+                                </div>
+                              </div>
+                              <div class="cron-item">
+                                <div>
+                                  <p>Ultimo checkpoint</p>
+                                  <span id="inventory-cron-checkpoint">-</span>
+                                </div>
+                              </div>
+                              <div class="cron-item">
+                                <div>
+                                  <p>Intervalo</p>
+                                  <span id="inventory-cron-interval">-</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="cron-controls">
+                              <label class="toggle-field">
+                                <input type="checkbox" id="inventory-cron-enabled" class="toggle" />
+                                <span>Cron inventario activo</span>
+                              </label>
+                              <div class="field">
+                                <label>Intervalo del cron</label>
+                                <select id="inventory-cron-interval-select">
+                                  <option value="5">Cada 5 minutos</option>
+                                  <option value="10">Cada 10 minutos</option>
+                                  <option value="15">Cada 15 minutos</option>
+                                </select>
+                              </div>
+                              <div class="field">
+                                <label>Auto-publicar ajustes en Shopify</label>
+                                <input type="checkbox" id="cfg-inventory-auto-publish" class="toggle" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="module-footer">
+                        <button class="ghost module-action" data-module-edit="alegra-tech" type="button">Editar</button>
+                        <button class="primary module-action" data-module-save="alegra-tech" type="button">Guardar</button>
+                      </div>
+                      <p class="field-hint module-warning is-hidden" data-module-warning="alegra-tech"></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-group provider-group" data-group="admin">
+                <div class="settings-group-header" data-group-toggle="admin">
+                  <h4 class="group-title">Administracion</h4>
+                </div>
+                <div class="settings-group-body">
+                  <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera un token temporal para QA y pruebas API sin consola.">
+                    <div class="panel-header">
+                      <h3 data-module-toggle="qa-token">Token temporal QA</h3>
+                      <span class="panel-tag tag-bridge">QA</span>
+                    </div>
+                    <div class="module-body">
+                      <div class="settings-grid">
+                        <div class="field span-2">
+                          <label>Token temporal</label>
+                          <div class="field-actions inline">
+                            <input type="text" id="qa-token-value" readonly placeholder="Genera un token para QA" />
+                            <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
+                          </div>
+                          <p class="field-hint" id="qa-token-hint">Vence en 30 minutos.</p>
+                        </div>
+                      </div>
+                      <div class="toolbar is-actions">
+                        <button class="primary" id="qa-token-generate" type="button">Generar token</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="panel admin-only module" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas para esta organizacion.">
+                    <div class="panel-header">
+                      <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
+                      <span class="panel-tag tag-bridge">Conexiones</span>
+                    </div>
+                    <div class="module-body">
+                      <div class="connections-grid" id="connections-grid">
+                        <div class="connection-card empty">Sin conexiones.</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

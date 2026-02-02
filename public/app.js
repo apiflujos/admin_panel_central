@@ -1531,22 +1531,32 @@ function collapseAllGroupsAndModules() {
   });
 }
 
+function openDefaultGroups() {
+  const openKeys = new Set(["store", "products", "orders"]);
+  document.querySelectorAll("[data-group]").forEach((panel) => {
+    const key = panel.getAttribute("data-group") || "";
+    setGroupCollapsed(panel, !openKeys.has(key));
+  });
+}
+
 function openWizardGroups(moduleKey) {
   const storeGroup = getGroupPanel("store");
   if (storeGroup) setGroupCollapsed(storeGroup, false);
   if (!moduleKey) return;
-  if (moduleKey.startsWith("shopify-")) {
-    const shopifyGroup = getGroupPanel("shopify");
-    if (shopifyGroup) setGroupCollapsed(shopifyGroup, false);
-  }
-  if (moduleKey.startsWith("alegra-")) {
-    const alegraGroup = getGroupPanel("alegra");
-    if (alegraGroup) setGroupCollapsed(alegraGroup, false);
-  }
-  if (moduleKey.startsWith("sync-")) {
-    const bidirGroup = getGroupPanel("alegra-shopify-bidir");
-    if (bidirGroup) setGroupCollapsed(bidirGroup, false);
-  }
+  const map = {
+    "shopify-rules": "products",
+    "alegra-inventory": "products",
+    "sync-contacts": "orders",
+    "sync-orders": "orders",
+    "alegra-logistics": "orders",
+    "alegra-invoice": "orders",
+    "shopify-tech": "operations",
+    "alegra-tech": "operations",
+  };
+  const groupKey = map[moduleKey];
+  if (!groupKey) return;
+  const group = getGroupPanel(groupKey);
+  if (group) setGroupCollapsed(group, false);
 }
 
 function shouldSkipWizardStep(moduleKey) {
@@ -1892,9 +1902,7 @@ function initModuleControls() {
 }
 
 function initGroupControls() {
-  document.querySelectorAll("[data-group]").forEach((panel) => {
-    setGroupCollapsed(panel, true);
-  });
+  openDefaultGroups();
   document.addEventListener("click", (event) => {
     const target = event.target instanceof HTMLElement ? event.target : null;
     if (!target) return;
@@ -2188,6 +2196,7 @@ function renderStoreActiveSelect(stores) {
   updateStoreModuleTitles();
   setShopifyWebhooksStatus("Sin configurar");
   collapseAllGroupsAndModules();
+  openDefaultGroups();
   loadLegacyStoreConfig().catch(() => null);
   openWizardStep();
 }
@@ -5562,6 +5571,7 @@ if (storeActiveSelect) {
     updateStoreModuleTitles();
     setShopifyWebhooksStatus("Sin configurar");
     collapseAllGroupsAndModules();
+    openDefaultGroups();
     loadLegacyStoreConfig().catch(() => null);
     openWizardStep();
   });
