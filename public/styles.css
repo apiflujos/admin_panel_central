@@ -1263,13 +1263,29 @@ button {
   margin-top: 8px;
 }
 
+.setup-panel .module-body {
+  padding: 8px 10px 10px;
+}
+
+.setup-steps {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.setup-steps li {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 .settings-group.store-group {
   border-width: 2px;
 }
 
 .settings-group.provider-group {
   background: #fafafa;
-  margin-left: 6px;
 }
 
 .settings-group-header {

@@ -209,7 +209,9 @@ export function getPool() {
       ssl,
       options: "-c search_path=public",
     });
-    void performRepair(rawPool);
+    void performRepair(rawPool).catch((error: unknown) => {
+      console.error("DB repair failed:", error);
+    });
     const handler: ProxyHandler<Pool> = {
       get(target, prop, receiver) {
         const value = Reflect.get(target, prop, receiver);

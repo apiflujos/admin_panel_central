@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import {
   AUTH_COOKIE_NAME,
   authenticateUser,
@@ -111,20 +111,18 @@ export async function changePasswordHandler(req: Request, res: Response) {
   }
 }
 
-export function authMiddleware(req: Request, res: Response, next: () => void) {
-  void (async () => {
-    const token = getAuthToken(req);
-    const user = await getSessionUser(token);
-    if (!user) {
-      res.status(401).json({ error: "unauthorized" });
-      return;
-    }
-    (req as { user?: typeof user }).user = user;
-    next();
-  })();
+export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  const token = getAuthToken(req);
+  const user = await getSessionUser(token);
+  if (!user) {
+    res.status(401).json({ error: "unauthorized" });
+    return;
+  }
+  (req as { user?: typeof user }).user = user;
+  next();
 }
 
-export function requireAdmin(req: Request, res: Response, next: () => void) {
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const user = (req as { user?: { role?: string } }).user;
   if (!user || user.role !== "admin") {
     res.status(403).json({ error: "forbidden" });

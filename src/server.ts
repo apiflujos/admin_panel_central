@@ -46,6 +46,14 @@ app.get("/dashboard", (_req, res) => {
 });
 
 app.use("/api", router);
+app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error("Unhandled error:", err);
+  if (res.headersSent) {
+    next(err);
+    return;
+  }
+  res.status(500).json({ error: "internal_error" });
+});
 
 // Importante: Usar process.env.PORT y host 0.0.0.0
 const port = Number(process.env.PORT || 10000);

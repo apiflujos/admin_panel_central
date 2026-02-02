@@ -1674,8 +1674,6 @@ function openDefaultGroups() {
 }
 
 function openWizardGroups(moduleKey) {
-  const storeGroup = getGroupPanel("store");
-  if (storeGroup) setGroupCollapsed(storeGroup, false);
   if (!moduleKey) return;
   const map = {
     "shopify-rules": "products",
@@ -2513,7 +2511,8 @@ function renderStoreActiveSelect(stores) {
     shopifyAdminBase = "";
     return;
   }
-  storeActiveField.style.display = stores.length > 1 ? "" : "none";
+  storeActiveField.style.display = "";
+  storeActiveSelect.disabled = stores.length <= 1;
   storeActiveSelect.innerHTML = stores
     .map(
       (store) =>
