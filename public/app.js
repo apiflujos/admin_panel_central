@@ -130,6 +130,7 @@ const shopifyToken = document.getElementById("shopify-token");
 const wizardStart = document.getElementById("wizard-start");
 const wizardStop = document.getElementById("wizard-stop");
 const wizardHint = document.getElementById("wizard-hint");
+const setupModePicker = document.getElementById("setup-mode-picker");
 const DEFAULT_WIZARD_HINT = wizardHint ? wizardHint.textContent : "";
 
 const alegraAccountSelect = document.getElementById("alegra-account-select");
@@ -313,6 +314,7 @@ let storeInvoiceOverrides = null;
 
 const PRODUCT_SETTINGS_KEY = "apiflujos-products-settings";
 const STORE_WIZARD_KEY = "apiflujos-store-wizard";
+const SETUP_MODE_KEY = "apiflujos-setup-mode";
 const WIZARD_MODULE_ORDER = [
   "shopify-rules",
   "alegra-inventory",
@@ -645,6 +647,18 @@ function initToggleFields() {
         });
       });
     }
+  });
+}
+
+function initSetupModeControls() {
+  if (!setupModePicker) return;
+  setupModePicker.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) return;
+    const button = target.closest("[data-setup-mode]");
+    if (!(button instanceof HTMLButtonElement)) return;
+    const mode = button.getAttribute("data-setup-mode") || "manual";
+    setSetupMode(mode, { persist: true, stopWizard: true });
   });
 }
 
@@ -1736,6 +1750,7 @@ function updateWizardUI() {
 
   if (wizardStart) wizardStart.style.display = active ? "none" : "";
   if (wizardStop) wizardStop.style.display = active ? "" : "none";
+  updateWizardStartAvailability();
 
   if (!wizardHint) return;
   if (!active) {
@@ -1963,6 +1978,52 @@ function applyOrderToggle(select, toggle, fallbackValue) {
   }
 }
 
+function applySetupModeUI(mode) {
+  const panel = getModulePanel("connections");
+  if (!panel) return;
+  const value = mode === "manual" ? "manual" : "guided";
+  panel.setAttribute("data-setup-mode", value);
+  if (setupModePicker) {
+    setupModePicker.querySelectorAll("[data-setup-mode]").forEach((button) => {
+      button.classList.toggle("is-active", button.getAttribute("data-setup-mode") === value);
+    });
+  }
+}
+
+function getSavedSetupMode() {
+  try {
+    const stored = localStorage.getItem(SETUP_MODE_KEY) || "";
+    return stored === "manual" || stored === "guided" ? stored : "";
+  } catch {
+    return "";
+  }
+}
+
+function saveSetupMode(mode) {
+  try {
+    localStorage.setItem(SETUP_MODE_KEY, mode);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function setSetupMode(mode, options = {}) {
+  const { persist = true, stopWizard = false } = options || {};
+  const value = mode === "manual" ? "manual" : "guided";
+  applySetupModeUI(value);
+  if (persist) saveSetupMode(value);
+  if (stopWizard && value === "manual") {
+    clearWizardState();
+    updateWizardUI();
+  }
+}
+
+function initSetupMode(storesCount = 0) {
+  const stored = getSavedSetupMode();
+  const defaultMode = storesCount > 0 ? "manual" : "guided";
+  setSetupMode(stored || defaultMode, { persist: false });
+}
+
 async function openWizardStep() {
   const state = getWizardState();
   if (!state || !isWizardStateActive(state)) {
@@ -1970,6 +2031,7 @@ async function openWizardStep() {
     return;
   }
 
+  setSetupMode("guided", { persist: false });
   activateNav("settings");
   await loadLegacyStoreConfig();
   updatePrerequisites();
@@ -2406,6 +2468,8 @@ async function loadConnections() {
     }
     renderStoreActiveSelect(stores);
     updatePrerequisites();
+    initSetupMode(stores.length);
+    updateWizardStartAvailability();
   } catch {
     renderConnections({ stores: [] });
     renderAlegraAccountOptions([]);
@@ -2414,6 +2478,8 @@ async function loadConnections() {
     storesCache = [];
     renderStoreActiveSelect([]);
     updatePrerequisites();
+    initSetupMode(0);
+    updateWizardStartAvailability();
   }
 }
 
@@ -2532,8 +2598,20 @@ function captureOnboardingParam() {
   window.history.replaceState({}, "", nextUrl);
 }
 
+function updateWizardStartAvailability() {
+  if (!wizardStart) return;
+  const hasName = Boolean(storeNameInput && storeNameInput.value.trim());
+  const hasDomain = Boolean(shopifyDomain && normalizeShopDomain(shopifyDomain.value));
+  const enabled = hasName && hasDomain;
+  wizardStart.disabled = !enabled;
+  wizardStart.setAttribute(
+    "title",
+    enabled ? "Iniciar configuracion guiada" : "Completa nombre de tienda y dominio Shopify para iniciar."
+  );
+}
+
 async function startWizardFlow() {
-  const domain = normalizeShopDomain(activeStoreDomain || shopifyDomain?.value || "");
+  const domain = normalizeShopDomain(shopifyDomain?.value || "");
   if (!domain) {
     if (!storeNameInput || !storeNameInput.value.trim()) {
       if (storeNameInput) markFieldError(storeNameInput, "Nombre de tienda requerido.");
@@ -5105,6 +5183,14 @@ if (wizardStop) {
   });
 }
 
+if (storeNameInput) {
+  storeNameInput.addEventListener("input", updateWizardStartAvailability);
+}
+
+if (shopifyDomain) {
+  shopifyDomain.addEventListener("input", updateWizardStartAvailability);
+}
+
 if (syncOrdersShopifyEnabled) {
   syncOrdersShopifyEnabled.addEventListener("change", () => {
     applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, "db_only");
@@ -6615,6 +6701,8 @@ async function init() {
   captureOnboardingParam();
   initGroupControls();
   initToggleFields();
+  initSetupModeControls();
+  updateWizardStartAvailability();
   applyProductSettings();
   await safeLoad(loadCurrentUser());
   await safeLoad(loadCompanyProfile());

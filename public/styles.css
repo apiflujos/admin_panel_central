@@ -1793,6 +1793,47 @@ button {
   align-items: center;
 }
 
+.setup-mode-picker {
+  display: inline-flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+  background: rgba(15, 23, 42, 0.04);
+  width: fit-content;
+  margin-bottom: 8px;
+}
+
+.setup-mode {
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.setup-mode.is-active {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+  color: var(--text);
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.06);
+}
+
+.setup-guided {
+  display: none;
+}
+
+.module[data-module="connections"][data-setup-mode="manual"] .setup-guided {
+  display: none;
+}
+
+.module[data-module="connections"][data-setup-mode="guided"] .setup-guided {
+  display: block;
+}
+
 .toolbar.wizard-actions {
   padding: 10px 12px;
   border: 1px dashed rgba(15, 23, 42, 0.18);
