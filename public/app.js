@@ -7763,6 +7763,29 @@ if (productsPublishStatusMass && productsPublishStatus) {
   });
 }
 
+if (productsSyncPublish && productsPublishStatus) {
+  productsSyncPublish.addEventListener("change", () => {
+    if (!productsSyncPublish.checked) {
+      productsPublishStatus.value = "draft";
+      if (productsPublishStatusMass) {
+        productsPublishStatusMass.value = "draft";
+      }
+      productsPublishStatus.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    applyToggleDependencies();
+  });
+}
+
+if (rulesAutoPublish && rulesAutoStatus) {
+  rulesAutoPublish.addEventListener("change", () => {
+    if (!rulesAutoPublish.checked) {
+      rulesAutoStatus.value = "draft";
+      rulesAutoStatus.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    applyToggleDependencies();
+  });
+}
+
   if (productsSyncClear) {
     productsSyncClear.addEventListener("click", () => {
       if (productsDateStart) productsDateStart.value = "";
