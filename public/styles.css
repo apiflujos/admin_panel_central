@@ -2532,12 +2532,23 @@ textarea::placeholder {
   gap: 8px;
 }
 
+.mode-head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mode-head-action {
+  margin-left: auto;
+}
+
 .mode-head h4 {
   margin: 0;
   font-size: 12px;
   font-weight: 800;
   color: #0f172a;
-}
+} 
 
 .mode-grid {
   margin-top: 8px;

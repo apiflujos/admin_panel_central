@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260203x" />
+    <link rel="stylesheet" href="styles.css?v=20260203y" />
   </head>
   <body>
     <div class="app-shell">
@@ -805,10 +805,6 @@
                               <input type="date" id="products-date-end" />
                             </div>
                             <div class="mode-field">
-                              <label for="products-sync-query">Filtro (opcional)</label>
-                              <input type="text" id="products-sync-query" placeholder="Nombre, referencia o SKU" />
-                            </div>
-                            <div class="mode-field">
                               <label for="products-sync-limit">Limite (opcional)</label>
                               <input type="number" id="products-sync-limit" min="1" placeholder="200" />
                             </div>
@@ -863,8 +859,11 @@
 
                         <div class="mode-section">
                           <div class="mode-head">
-                            <h4>Sincronizacion manual (desde Productos)</h4>
-                            <span class="tip" data-tip="Se ejecuta cuando publicas un producto desde la tabla (acciones por SKU).">?</span>
+                            <div class="mode-head-left">
+                              <h4>Sincronizacion manual (desde Productos)</h4>
+                              <span class="tip" data-tip="Se ejecuta cuando publicas un producto desde la tabla (acciones por SKU).">?</span>
+                            </div>
+                            <button class="ghost mode-head-action" type="button" data-nav-to="products">Ir a Productos</button>
                           </div>
                           <div class="mode-grid">
                             <div class="mode-field">
@@ -878,16 +877,8 @@
                               <label for="products-include-images">Publicar fotos (manual y masivo)</label>
                               <input type="checkbox" id="products-include-images" class="toggle" />
                             </div>
-                            <div class="mode-actions">
-                              <button class="ghost" type="button" data-nav-to="products">Ir a Productos</button>
-                              <span class="kpi-sub">Ahi haces acciones por SKU.</span>
-                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div class="toolbar is-actions">
-                        <button class="ghost" type="button" data-nav-to="products">Ir a Productos</button>
-	                        <span class="kpi-sub">Ahi haces sincronizacion masiva y acciones por SKU.</span>
                       </div>
                       <div class="module-footer">
                         <button class="ghost module-action" data-module-edit="shopify-rules" type="button">Editar</button>
@@ -1110,7 +1101,7 @@
                     </div>
                   </div>
 
-                  <div class="panel admin-only module" data-provider="alegra" data-module="alegra-logistics" id="inventory-transfer-panel" data-help="Configura bodegas y traslados automaticos (si se requieren) para pedidos Shopify → Alegra.">
+                  <div class="panel admin-only module" data-provider="alegra" data-manager="shopify" data-module="alegra-logistics" id="inventory-transfer-panel" data-help="Configura bodegas y traslados automaticos (si se requieren) para pedidos Shopify → Alegra.">
             <div class="panel-header">
               <h3 data-module-toggle="alegra-logistics" data-title-base="Logistica e inventario">Logistica e inventario</h3>
               <span class="panel-tag tag-alegra">Alegra</span>
@@ -1199,7 +1190,7 @@
             </div>
           </div>
 
-                  <div class="panel admin-only module" data-provider="alegra" data-module="alegra-invoice" id="legacy-invoice-panel" data-help="Se usa cuando Shopify → Alegra = Factura. Define listas de precios y parametros de facturacion.">
+                  <div class="panel admin-only module" data-provider="alegra" data-manager="shopify" data-module="alegra-invoice" id="legacy-invoice-panel" data-help="Se usa cuando Shopify → Alegra = Factura. Define listas de precios y parametros de facturacion.">
             <div class="panel-header">
               <h3 data-module-toggle="alegra-invoice" data-title-base="Facturacion">Facturacion</h3>
               <span class="panel-tag tag-alegra">Alegra</span>
@@ -1297,7 +1288,7 @@
                   <h4 class="group-title">Operacion</h4>
                 </div>
                 <div class="settings-group-body">
-	                  <div class="panel admin-only module" data-provider="shopify" data-module="shopify-tech" data-help="Activa y valida la sincronizacion automatica para pedidos, productos e inventario. Si cambias el dominio, vuelve a activarla.">
+	                  <div class="panel admin-only module" data-provider="shopify" data-manager="shopify" data-module="shopify-tech" data-help="Activa y valida la sincronizacion automatica para pedidos, productos e inventario. Si cambias el dominio, vuelve a activarla.">
                     <div class="panel-header">
 	                      <h3 data-module-toggle="shopify-tech" data-title-base="Sincronizacion automatica">Sincronizacion automatica</h3>
                       <span class="panel-tag tag-shopify">Shopify</span>
@@ -1318,7 +1309,7 @@
                     </div>
                   </div>
 
-	                  <div class="panel admin-only module" data-provider="alegra" data-module="alegra-tech" data-help="Actualizacion global para inventario y ajustes. Aplica a todas las tiendas.">
+	                  <div class="panel admin-only module" data-provider="alegra" data-manager="alegra" data-module="alegra-tech" data-help="Actualizacion global para inventario y ajustes. Aplica a todas las tiendas.">
                     <div class="panel-header">
 	                      <h3 data-module-toggle="alegra-tech" data-title-base="Actualizacion global">Actualizacion global</h3>
                       <span class="panel-tag tag-alegra">Alegra</span>
@@ -1510,6 +1501,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260203x" type="module"></script>
+    <script src="app.js?v=20260203y" type="module"></script>
   </body>
 </html>
