@@ -2235,7 +2235,7 @@ function validateInitialConnection(kind) {
   }
   if (kind === "shopify" && getShopifyConnectMethod() === "token") {
     if (!shopifyToken || !shopifyToken.value.trim()) {
-      errors.push({ field: shopifyToken, message: "Token Shopify requerido." });
+      errors.push({ field: shopifyToken, message: "Clave de acceso de Shopify requerida." });
     }
   }
   if (kind === "alegra") {
@@ -3706,8 +3706,8 @@ function applyShopifyConnectMethod(method) {
   }
   if (shopifyConnectHint) {
     shopifyConnectHint.textContent = isToken
-      ? "Pega el token de esta tienda y conecta. (No abre OAuth)"
-      : "OAuth abre la autorizacion de Shopify para esta tienda.";
+      ? "Pega la clave de acceso de esta tienda y conecta."
+      : "Por app (OAuth2) abre la autorizacion de Shopify para esta tienda.";
   }
 }
 
@@ -6982,7 +6982,7 @@ function clearConnectionForm() {
 async function connectShopifyWithToken(params) {
   const tokenValue = shopifyToken ? shopifyToken.value.trim() : "";
   if (!tokenValue) {
-    throw new Error("Token Shopify requerido.");
+    throw new Error("Clave de acceso de Shopify requerida.");
   }
   const response = await fetchJson("/api/connections", {
     method: "POST",

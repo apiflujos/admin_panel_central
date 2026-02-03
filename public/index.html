@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260203ao" />
+    <link rel="stylesheet" href="styles.css?v=20260203ap" />
   </head>
   <body>
     <div class="app-shell">
@@ -649,17 +649,17 @@
 			                      <span class="field-hint">Se usa para iniciar la autorizacion de Shopify.</span>
 		                    </div>
 		                    <div class="field span-2">
-		                      <label>Metodo de conexion <span class="tip" data-tip="OAuth es lo recomendado. Token es para casos donde ya tienes un Admin API token de una custom app.">?</span></label>
+		                      <label>Metodo de conexion <span class="tip" data-tip="Elige como conectar Shopify: por app (OAuth2) o manual (si ya tienes una clave de acceso de Shopify para esta tienda).">?</span></label>
 		                      <div class="setup-mode-picker" id="shopify-connect-picker" aria-label="Metodo de conexion Shopify">
-		                        <button class="setup-mode is-active" type="button" data-shopify-connect="oauth">OAuth (recomendado)</button>
-		                        <button class="setup-mode" type="button" data-shopify-connect="token">Token (custom app)</button>
+		                        <button class="setup-mode is-active" type="button" data-shopify-connect="oauth">Por app (OAuth2)</button>
+		                        <button class="setup-mode" type="button" data-shopify-connect="token">Integracion manual</button>
 		                      </div>
-		                      <span class="field-hint" id="shopify-connect-hint">OAuth abre la autorizacion de Shopify para esta tienda.</span>
+		                      <span class="field-hint" id="shopify-connect-hint">Por app (OAuth2) abre la autorizacion de Shopify para esta tienda.</span>
 		                    </div>
 		                    <div class="field span-2" id="shopify-token-field">
-		                      <label>Token Shopify (opcional) <span class="tip" data-tip="Si ya tienes un Admin API token (custom app) de esta tienda, pegalo aqui y presiona Conectar Shopify. Si lo dejas vacio, se abrira OAuth.">?</span></label>
+		                      <label>Clave de acceso Shopify <span class="tip" data-tip="Pega aqui la clave de acceso (Admin API) de Shopify para esta tienda y presiona Conectar Shopify.">?</span></label>
 		                      <input type="password" id="shopify-token" placeholder="shpat_********" autocomplete="new-password" />
-		                      <span class="field-hint">Recomendado solo si no puedes usar OAuth hoy. Se guarda cifrado.</span>
+		                      <span class="field-hint">Se guarda cifrada. Usala solo si no puedes conectar por app (OAuth2).</span>
 		                    </div>
 		                  </div>
                 </div>
@@ -1526,6 +1526,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260203ao" type="module"></script>
+    <script src="app.js?v=20260203ap" type="module"></script>
   </body>
 </html>
