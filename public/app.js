@@ -131,6 +131,9 @@ const productsStoreSelect = document.getElementById("products-store-select");
 const contactsStoreSelect = document.getElementById("contacts-store-select");
 const shopifyDomain = document.getElementById("shopify-domain");
 const shopifyToken = document.getElementById("shopify-token");
+const shopifyTokenField = document.getElementById("shopify-token-field");
+const shopifyConnectPicker = document.getElementById("shopify-connect-picker");
+const shopifyConnectHint = document.getElementById("shopify-connect-hint");
 const wizardStart = document.getElementById("wizard-start");
 const wizardStop = document.getElementById("wizard-stop");
 const wizardSkip = document.getElementById("wizard-skip");
@@ -329,6 +332,7 @@ const COPY_CONFIG_FROM_KEY = "apiflujos-copy-config-from";
 const COPY_CONFIG_TO_KEY = "apiflujos-copy-config-to";
 const COPY_CONFIG_AT_KEY = "apiflujos-copy-config-at";
 const COACH_DISMISSED_KEY = "apiflujos-wizard-coach-dismissed";
+const SHOPIFY_CONNECT_METHOD_KEY = "apiflujos-shopify-connect-method";
 const WIZARD_MODULE_ORDER = [
   "connect-shopify",
   "connect-alegra",
@@ -1343,6 +1347,25 @@ function initSetupModeControls() {
   });
 }
 
+function initShopifyConnectPicker() {
+  applyShopifyConnectMethod(getShopifyConnectMethod());
+  if (!shopifyConnectPicker) return;
+  shopifyConnectPicker.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) return;
+    const button = target.closest("[data-shopify-connect]");
+    if (!(button instanceof HTMLButtonElement)) return;
+    setShopifyConnectMethod(button.getAttribute("data-shopify-connect") || "oauth");
+  });
+  if (shopifyToken) {
+    shopifyToken.addEventListener("input", () => {
+      if (shopifyToken.value.trim() && getShopifyConnectMethod() !== "token") {
+        setShopifyConnectMethod("token");
+      }
+    });
+  }
+}
+
 function applyRoleAccess(role) {
   currentUserRole = role || "agent";
   const settingsNav = document.querySelector('.nav-item[data-target="settings"]');
@@ -2195,6 +2218,7 @@ function validateInitialConnection(kind) {
   if (shopifyDomain) clearFieldError(shopifyDomain);
   if (alegraEmail) clearFieldError(alegraEmail);
   if (alegraKey) clearFieldError(alegraKey);
+  if (shopifyToken) clearFieldError(shopifyToken);
 
   const domainInput = normalizeShopDomain(shopifyDomain?.value || "");
   const activeDomain = normalizeShopDomain(activeStoreDomain || "");
@@ -2208,6 +2232,11 @@ function validateInitialConnection(kind) {
   }
   if (!resolvedDomain) {
     errors.push({ field: shopifyDomain, message: "Dominio Shopify requerido." });
+  }
+  if (kind === "shopify" && getShopifyConnectMethod() === "token") {
+    if (!shopifyToken || !shopifyToken.value.trim()) {
+      errors.push({ field: shopifyToken, message: "Token Shopify requerido." });
+    }
   }
   if (kind === "alegra") {
     if (alegraAccountSelect && alegraAccountSelect.value !== "new") {
@@ -3636,6 +3665,50 @@ function normalizeShopDomain(value) {
     .replace(/^https?:\/\//, "")
     .replace(/\/.*$/, "")
     .toLowerCase();
+}
+
+function getShopifyConnectMethod() {
+  try {
+    const stored = localStorage.getItem(SHOPIFY_CONNECT_METHOD_KEY) || "";
+    return stored === "token" ? "token" : "oauth";
+  } catch {
+    return "oauth";
+  }
+}
+
+function setShopifyConnectMethod(method) {
+  const next = method === "token" ? "token" : "oauth";
+  try {
+    localStorage.setItem(SHOPIFY_CONNECT_METHOD_KEY, next);
+  } catch {
+    // ignore storage errors
+  }
+  applyShopifyConnectMethod(next);
+}
+
+function applyShopifyConnectMethod(method) {
+  const next = method === "token" ? "token" : "oauth";
+  if (shopifyConnectPicker) {
+    shopifyConnectPicker.querySelectorAll("[data-shopify-connect]").forEach((button) => {
+      if (!(button instanceof HTMLButtonElement)) return;
+      button.classList.toggle("is-active", button.getAttribute("data-shopify-connect") === next);
+    });
+  }
+  const isToken = next === "token";
+  if (shopifyTokenField) {
+    shopifyTokenField.style.display = isToken ? "" : "none";
+  }
+  if (shopifyToken) {
+    shopifyToken.disabled = !isToken;
+    if (!isToken) {
+      shopifyToken.value = "";
+    }
+  }
+  if (shopifyConnectHint) {
+    shopifyConnectHint.textContent = isToken
+      ? "Pega el token de esta tienda y conecta. (No abre OAuth)"
+      : "OAuth abre la autorizacion de Shopify para esta tienda.";
+  }
 }
 
 function captureOnboardingParam() {
@@ -6693,17 +6766,6 @@ async function saveSettings(options = {}) {
     inventoryRules = { ...inventoryRules, ...rulesPayload };
     payload.rules = rulesPayload;
   }
-  const shopDomainValue = shopifyDomain ? shopifyDomain.value.trim() : "";
-  const shopifyTokenValue = shopifyToken ? shopifyToken.value.trim() : "";
-  if (shopifyTokenValue) {
-    if (!shopDomainValue) {
-      throw new Error("Dominio Shopify requerido");
-    }
-    payload.shopify = {
-      shopDomain: shopDomainValue,
-      accessToken: shopifyTokenValue,
-    };
-  }
   const alegraEmailValue = alegraEmail ? alegraEmail.value.trim() : "";
   const alegraKeyValue = alegraKey ? alegraKey.value.trim() : "";
   if (
@@ -6955,13 +7017,16 @@ async function startShopifyOAuthFlow() {
   if (!normalizedInput) {
     throw new Error("Dominio Shopify requerido");
   }
-  const tokenValue = shopifyToken ? shopifyToken.value.trim() : "";
-  if (tokenValue) {
+  const method = getShopifyConnectMethod();
+  if (method === "token") {
     await connectShopifyWithToken({
       shopDomain: normalizedInput,
       storeName: resolvedStoreName,
     });
     return;
+  }
+  if (shopifyToken) {
+    shopifyToken.value = "";
   }
   const params = new URLSearchParams({ shop: normalizedInput });
   if (resolvedStoreName) {
@@ -7971,6 +8036,7 @@ async function init() {
   initToggleDependencies();
   initTips();
   initSetupModeControls();
+  initShopifyConnectPicker();
   updateWizardStartAvailability();
   applyProductSettings();
   await safeLoad(loadCurrentUser());
