@@ -753,15 +753,6 @@ function positionCoach(panel, anchor) {
   panel.style.right = "";
   panel.style.bottom = "";
 
-  const isMobile = window.matchMedia?.("(max-width: 720px)")?.matches ?? false;
-  if (isMobile) {
-    // Bottom sheet on small screens (more stable + avoids covering target).
-    panel.style.left = "12px";
-    panel.style.right = "12px";
-    panel.style.bottom = "12px";
-    panel.style.top = "auto";
-    return;
-  }
   if (!(anchor instanceof HTMLElement)) return;
 
   const anchorRect = anchor.getBoundingClientRect();
@@ -771,20 +762,105 @@ function positionCoach(panel, anchor) {
   const gap = 12;
   const margin = 12;
 
-  let left = anchorRect.right + gap;
-  let top = anchorRect.top;
+  const isNarrow = window.matchMedia?.("(max-width: 720px)")?.matches ?? false;
 
-  // Prefer placing to the right; if it doesn't fit, move to the left.
-  if (left + panelRect.width > viewportW - margin) {
-    left = anchorRect.left - gap - panelRect.width;
+  const expandedAnchor = {
+    left: anchorRect.left - 6,
+    top: anchorRect.top - 6,
+    right: anchorRect.right + 6,
+    bottom: anchorRect.bottom + 6,
+  };
+
+  const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+  const intersects = (a, b) => {
+    return !(
+      b.right <= a.left ||
+      b.left >= a.right ||
+      b.bottom <= a.top ||
+      b.top >= a.bottom
+    );
+  };
+
+  const makeRect = (x, y) => ({
+    left: x,
+    top: y,
+    right: x + panelRect.width,
+    bottom: y + panelRect.height,
+  });
+
+  const withinViewport = (rect) => {
+    return (
+      rect.left >= margin &&
+      rect.top >= margin &&
+      rect.right <= viewportW - margin &&
+      rect.bottom <= viewportH - margin
+    );
+  };
+
+  const candidates = [];
+
+  const pushCandidate = (name, x, y, allowShiftY = true) => {
+    let left = x;
+    let top = y;
+
+    left = clamp(left, margin, Math.max(margin, viewportW - panelRect.width - margin));
+    top = clamp(top, margin, Math.max(margin, viewportH - panelRect.height - margin));
+
+    let rect = makeRect(left, top);
+
+    // If we had to clamp and it now overlaps the anchor, try shifting vertically away from the anchor.
+    if (allowShiftY && intersects(expandedAnchor, rect)) {
+      const belowTop = expandedAnchor.bottom + gap;
+      const aboveTop = expandedAnchor.top - gap - panelRect.height;
+      const tryBelow = makeRect(left, belowTop);
+      const tryAbove = makeRect(left, aboveTop);
+      if (withinViewport(tryBelow) && !intersects(expandedAnchor, tryBelow)) {
+        top = belowTop;
+        rect = tryBelow;
+      } else if (withinViewport(tryAbove) && !intersects(expandedAnchor, tryAbove)) {
+        top = aboveTop;
+        rect = tryAbove;
+      }
+    }
+
+    candidates.push({ name, left, top, rect });
+  };
+
+  // Narrow screens: prefer above/below (never bottom-sheet, to avoid covering the field).
+  if (isNarrow) {
+    pushCandidate("below", anchorRect.left, expandedAnchor.bottom + gap, false);
+    pushCandidate("above", anchorRect.left, expandedAnchor.top - gap - panelRect.height, false);
+  } else {
+    // Prefer right/left; fall back to below/above.
+    pushCandidate("right", expandedAnchor.right + gap, anchorRect.top);
+    pushCandidate("left", expandedAnchor.left - gap - panelRect.width, anchorRect.top);
+    pushCandidate("below", anchorRect.left, expandedAnchor.bottom + gap, false);
+    pushCandidate("above", anchorRect.left, expandedAnchor.top - gap - panelRect.height, false);
   }
 
-  // Clamp inside viewport.
-  left = Math.min(Math.max(left, margin), Math.max(margin, viewportW - panelRect.width - margin));
-  top = Math.min(Math.max(top, margin), Math.max(margin, viewportH - panelRect.height - margin));
+  const fitting = candidates.filter((candidate) => withinViewport(candidate.rect));
+  const nonOverlapping = fitting.filter((candidate) => !intersects(expandedAnchor, candidate.rect));
+  const best = (nonOverlapping[0] || fitting[0] || candidates[0]) || null;
+  if (!best) return;
 
-  panel.style.left = `${Math.round(left)}px`;
-  panel.style.top = `${Math.round(top)}px`;
+  // If nothing fits without overlap, force above/below as last resort (still keep within viewport).
+  let finalLeft = best.left;
+  let finalTop = best.top;
+  if (intersects(expandedAnchor, best.rect)) {
+    const belowTop = clamp(expandedAnchor.bottom + gap, margin, Math.max(margin, viewportH - panelRect.height - margin));
+    const aboveTop = clamp(expandedAnchor.top - gap - panelRect.height, margin, Math.max(margin, viewportH - panelRect.height - margin));
+    const belowRect = makeRect(finalLeft, belowTop);
+    const aboveRect = makeRect(finalLeft, aboveTop);
+    if (withinViewport(belowRect) && !intersects(expandedAnchor, belowRect)) {
+      finalTop = belowTop;
+    } else if (withinViewport(aboveRect) && !intersects(expandedAnchor, aboveRect)) {
+      finalTop = aboveTop;
+    }
+  }
+
+  panel.style.left = `${Math.round(finalLeft)}px`;
+  panel.style.top = `${Math.round(finalTop)}px`;
   panel.style.right = "auto";
   panel.style.bottom = "auto";
 }
