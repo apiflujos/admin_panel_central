@@ -68,6 +68,58 @@ export async function getShopifyConnectionByDomain(shopDomain: string) {
   return { shopDomain: row.shop_domain, accessToken: token };
 }
 
+export async function getAlegraConnectionByDomain(shopDomain: string) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const normalized = normalizeShopDomain(shopDomain || "");
+  if (!normalized) {
+    throw new Error("Dominio Shopify requerido");
+  }
+  const result = await pool.query<{
+    user_email: string | null;
+    api_key_encrypted: string | null;
+    environment: string | null;
+  }>(
+    `
+    SELECT a.user_email,
+           a.api_key_encrypted,
+           a.environment
+    FROM shopify_store_configs c
+    LEFT JOIN alegra_accounts a
+      ON a.id = c.alegra_account_id
+    WHERE c.organization_id = $1 AND c.shop_domain = $2
+    ORDER BY c.created_at DESC
+    LIMIT 1
+    `,
+    [orgId, normalized]
+  );
+  if (!result.rows.length) {
+    throw new Error(`Alegra no conectado para ${normalized}.`);
+  }
+  const row = result.rows[0];
+  if (!row?.user_email || !row?.api_key_encrypted) {
+    throw new Error(`Alegra no conectado para ${normalized}.`);
+  }
+  let decrypted: unknown;
+  try {
+    decrypted = JSON.parse(decryptString(row.api_key_encrypted));
+  } catch (error) {
+    if (isCryptoKeyMisconfigured(error)) {
+      throw new Error("Configuracion de seguridad invalida. Revisa CRYPTO_KEY_BASE64 en el servidor.");
+    }
+    throw new Error(`Reconecta Alegra para ${normalized}. (Clave guardada antigua o invalida)`);
+  }
+  const apiKey = String((decrypted as { apiKey?: string } | null)?.apiKey || "").trim();
+  if (!apiKey) {
+    throw new Error(`Reconecta Alegra para ${normalized}. (Clave vacia)`);
+  }
+  return {
+    email: String(row.user_email).trim(),
+    apiKey,
+    environment: row.environment === "sandbox" ? "sandbox" : "prod",
+  } as { email: string; apiKey: string; environment: "sandbox" | "prod" };
+}
+
 export async function listStoreConnections() {
   const pool = getPool();
   const orgId = getOrgId();

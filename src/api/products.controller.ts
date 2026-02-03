@@ -897,7 +897,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         matchesIdentifier(item, identifierQuery)
       );
       if (items.length === 0 || matched.length === 0) {
-        const scanItems = await scanAlegraItemsByIdentifier(identifierQuery);
+        const scanItems = await scanAlegraItemsByIdentifier(identifierQuery, {}, shopDomain || undefined);
         const detailQuery = new URLSearchParams();
         detailQuery.set(
           "fields",
@@ -986,7 +986,8 @@ export async function listProductsHandler(req: Request, res: Response) {
 
 async function scanAlegraItemsByIdentifier(
   identifier: string,
-  options: { onRateLimit?: (waitMs: number) => void } = {}
+  options: { onRateLimit?: (waitMs: number) => void } = {},
+  shopDomain?: string
 ) {
   const normalized = normalizeIdentifier(identifier);
   if (!normalized) return [];
@@ -1003,7 +1004,7 @@ async function scanAlegraItemsByIdentifier(
     scanQuery.set("metadata", "true");
     scanQuery.set("fields", "id,reference,barcode,code,name,customFields");
     scanQuery.set("mode", "advanced");
-    const response = await fetchAlegraWithRetry("/items", scanQuery, undefined, {
+    const response = await fetchAlegraWithRetry("/items", scanQuery, shopDomain || undefined, {
       onRetry: options.onRateLimit,
     });
     if (!response.ok) break;
@@ -1612,7 +1613,11 @@ export async function syncProductsHandler(req: Request, res: Response) {
     };
 
     const scanItemsByIdentifier = async (identifier: string) => {
-      const matches = await scanAlegraItemsByIdentifier(identifier, { onRateLimit });
+      const matches = await scanAlegraItemsByIdentifier(
+        identifier,
+        { onRateLimit },
+        storeDomain || shopDomainInput || undefined
+      );
       if (matches.length) {
         searchMessage = `Encontrado con busqueda profunda: ${identifier}.`;
       }
