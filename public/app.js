@@ -1070,7 +1070,6 @@ function isToggleOnById(id) {
 
 function setDependentEnabled(element, enabled) {
   const shouldDisable = !enabled;
-  const isReadonlyFree = element instanceof HTMLElement ? Boolean(element.closest("[data-readonly-free=\"1\"]")) : false;
   const nodes = [];
 
   if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement || element instanceof HTMLButtonElement) {
@@ -1084,15 +1083,12 @@ function setDependentEnabled(element, enabled) {
   nodes.forEach((node) => {
     // Don't disable the toggle itself if it happens to be inside the dependent container.
     if (node instanceof HTMLInputElement && node.classList.contains("toggle")) return;
-    if (isReadonlyFree) return;
     node.disabled = shouldDisable;
   });
 
   if (element instanceof HTMLElement) {
-    // En secciones de accion (ej: sincronizacion masiva) no bloqueamos controles; solo aplicamos el estado visual.
-    element.classList.toggle("is-dep-disabled", shouldDisable && !isReadonlyFree);
+    element.classList.toggle("is-dep-disabled", shouldDisable);
     element.querySelectorAll("details").forEach((details) => {
-      if (isReadonlyFree) return;
       if (shouldDisable) details.open = false;
       const summary = details.querySelector("summary");
       if (summary instanceof HTMLElement) {
