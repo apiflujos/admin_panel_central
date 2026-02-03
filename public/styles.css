@@ -1246,6 +1246,52 @@ button {
   }
 }
 
+.settings-subnav {
+  display: inline-flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+  background: #fff;
+  margin: 8px 0 10px;
+}
+
+.settings-tab {
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-tab.is-active {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.12);
+  color: var(--text);
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.06);
+}
+
+.settings-pane {
+  display: none;
+}
+
+.settings-pane.is-active {
+  display: block;
+}
+
+@media (max-width: 720px) {
+  .settings-subnav {
+    width: 100%;
+  }
+  .settings-tab {
+    flex: 1;
+  }
+}
+
 .settings-group-title {
   font-size: 12px;
   font-weight: 700;
@@ -1261,23 +1307,6 @@ button {
   padding: 8px;
   background: #fff;
   margin-top: 8px;
-}
-
-.setup-panel .module-body {
-  padding: 8px 10px 10px;
-}
-
-.setup-steps {
-  margin: 0;
-  padding-left: 18px;
-  display: grid;
-  gap: 6px;
-}
-
-.setup-steps li {
-  color: var(--text);
-  font-size: 13px;
-  line-height: 1.35;
 }
 
 .settings-group.store-group {
@@ -2841,6 +2870,7 @@ textarea::placeholder {
   color: var(--text);
   font-size: 12px;
   line-height: 1.4;
+  white-space: pre-line;
   z-index: 30;
   display: none;
 }
@@ -2863,6 +2893,11 @@ textarea::placeholder {
   margin-left: 6px;
   position: relative;
   cursor: help;
+}
+
+.tip:focus-visible {
+  outline: 2px solid rgba(14, 116, 144, 0.35);
+  outline-offset: 2px;
 }
 
 .tip::after {

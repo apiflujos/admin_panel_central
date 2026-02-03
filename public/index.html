@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260202g" />
+    <link rel="stylesheet" href="styles.css?v=20260202j" />
   </head>
   <body>
     <div class="app-shell">
@@ -597,27 +597,18 @@
 	        </section>
 
 	        <section class="section" id="settings">
-	          <div class="panel setup-panel" id="setup-steps-panel">
-	            <div class="panel-header">
-	              <h3>Configurar tienda (paso a paso)</h3>
-	              <span class="panel-tag">Inicio</span>
-	            </div>
-	            <div class="module-body">
-	              <ol class="setup-steps">
-	                <li><strong>1.</strong> En <strong>Nueva conexion</strong>, elige <strong>configuracion guiada</strong> (recomendado) o <strong>manual</strong>.</li>
-	                <li><strong>2.</strong> Conecta <strong>Shopify</strong> (OAuth) y luego <strong>Alegra</strong> (API Key / cuenta guardada).</li>
-	                <li><strong>3.</strong> En <strong>Tiendas</strong>, confirma la tienda activa (ej: <strong>Oliva Shoes Colombia</strong>).</li>
-	                <li><strong>4.</strong> Ajusta <strong>Productos</strong> (auto-publicacion + inventario/bodegas) y <strong>Pedidos/Contactos</strong> (auto + manual + masivo).</li>
-	                <li><strong>5.</strong> Revisa <strong>Operacion</strong> (webhooks/cron/salud) y prueba primero manual, luego masivo.</li>
-	              </ol>
-	            </div>
+	          <div class="settings-subnav" id="settings-subnav" aria-label="Submenu configuraciones">
+	            <button class="settings-tab is-active" type="button" data-settings-tab="connections">Conexiones</button>
+	            <button class="settings-tab" type="button" data-settings-tab="stores">Tiendas</button>
 	          </div>
-	          <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-help="Completa el nombre de la tienda y conecta Shopify, Alegra e IA. Este paso crea la configuracion base.">
+
+	          <div class="settings-pane is-active" data-settings-pane="connections">
+	            <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (OAuth) y luego Alegra (API Key o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa (ej: Oliva Shoes Colombia).&#10;4) Configura Productos (auto-publicacion + inventario/bodegas) y Pedidos/Contactos (auto + manual + masivo).&#10;5) Operacion: webhooks/cron/salud.&#10;&#10;Tip: la configuracion guiada se usa para tienda nueva; si ya hay tienda activa, usa Manual.">
 	            <div class="panel-header">
 	              <h3 data-module-toggle="connections" data-title-base="Nueva conexion">Nueva conexion</h3>
 	              <span class="panel-tag">Acceso</span>
-            </div>
-            <div class="module-body">
+	            </div>
+	            <div class="module-body">
               <div class="setup-mode-picker" id="setup-mode-picker" aria-label="Modo de configuracion">
                 <button class="setup-mode" type="button" data-setup-mode="guided">Configuracion guiada</button>
                 <button class="setup-mode" type="button" data-setup-mode="manual">Configuracion manual</button>
@@ -629,15 +620,20 @@
                   <span class="kpi-sub" id="wizard-hint">Te guia por lo que falta para dejar la tienda lista.</span>
                   <span class="status-pill is-off" id="wizard-store-pill">Sin tienda activa</span>
                 </div>
-              </div>
-              <div class="settings-grid store-meta">
-                <div class="field span-2">
-                  <label>Nombre de la tienda</label>
-                  <input type="text" id="store-name" placeholder="Tienda de ejemplo" />
-                  <span class="field-hint">Este nombre identifica el set de configuraciones.</span>
-                </div>
-              </div>
-              <div class="connections-compact">
+	              </div>
+	              <div class="settings-grid store-meta">
+	                <div class="field span-2">
+	                  <label>Nombre de la tienda <span class="tip" data-tip="Nombre visible de la tienda. Se usa para identificar esta configuracion y aparece en Tiendas.">?</span></label>
+	                  <input type="text" id="store-name" placeholder="Tienda de ejemplo" />
+	                  <span class="field-hint">Este nombre identifica el set de configuraciones.</span>
+	                </div>
+	                <div class="field span-2" id="copy-config-field">
+	                  <label>Configuracion inicial <span class="tip" data-tip="Opcional. Si ya tienes otra tienda configurada, puedes copiar reglas y sincronizaciones para no empezar desde cero.">?</span></label>
+	                  <select id="copy-config-select"></select>
+	                  <span class="field-hint">Copia configuracion desde otra tienda o inicia en blanco.</span>
+	                </div>
+	              </div>
+	              <div class="connections-compact">
                 <div class="connection-block">
                   <div class="connection-block-header">
                     <div>
@@ -648,14 +644,14 @@
                       <p class="kpi-sub">Conexion OAuth para esta tienda</p>
                     </div>
                     <button class="primary" id="connect-shopify" type="button">Conectar Shopify</button>
-                  </div>
-                  <div class="settings-grid connection-fields">
-                    <div class="field span-2">
-                      <label>Shopify dominio</label>
-                      <input type="text" id="shopify-domain" placeholder="tu-tienda.myshopify.com" />
-                      <span class="field-hint">Se usa para iniciar la autorizacion OAuth.</span>
-                    </div>
-                  </div>
+	                  </div>
+	                  <div class="settings-grid connection-fields">
+	                    <div class="field span-2">
+	                      <label>Shopify dominio <span class="tip" data-tip="Dominio de la tienda (ej: tu-tienda.myshopify.com). Se usa para iniciar OAuth y crear webhooks.">?</span></label>
+	                      <input type="text" id="shopify-domain" placeholder="tu-tienda.myshopify.com" />
+	                      <span class="field-hint">Se usa para iniciar la autorizacion OAuth.</span>
+	                    </div>
+	                  </div>
                 </div>
 
                 <div class="connection-block">
@@ -668,30 +664,30 @@
                       <p class="kpi-sub">Cuenta y credenciales</p>
                     </div>
                     <button class="primary" id="connect-alegra" type="button">Conectar Alegra</button>
-                  </div>
-                  <div class="settings-grid connection-fields">
-                    <div class="field">
-                      <label>Cuenta Alegra</label>
-                      <select id="alegra-account-select">
-                        <option value="new">Nueva cuenta Alegra</option>
-                      </select>
-                    </div>
-                    <div class="field" id="alegra-env-field">
-                      <label>Entorno Alegra</label>
-                      <select id="alegra-env-select">
-                        <option value="prod">Produccion</option>
-                        <option value="sandbox">Sandbox</option>
-                      </select>
-                    </div>
-                    <div class="field">
-                      <label>Email usuario</label>
-                      <input type="email" id="alegra-email" placeholder="admin@empresa.com" />
-                    </div>
-                    <div class="field">
-                      <label>API Key</label>
-                      <input type="password" id="alegra-key" placeholder="api_********" autocomplete="new-password" />
-                    </div>
-                  </div>
+	                  </div>
+	                  <div class="settings-grid connection-fields">
+	                    <div class="field">
+	                      <label>Cuenta Alegra <span class="tip" data-tip="Selecciona una cuenta guardada o crea una nueva con email + API Key.">?</span></label>
+	                      <select id="alegra-account-select">
+	                        <option value="new">Nueva cuenta Alegra</option>
+	                      </select>
+	                    </div>
+	                    <div class="field" id="alegra-env-field">
+	                      <label>Entorno Alegra <span class="tip" data-tip="Prod es el entorno real. Sandbox es para pruebas (si tu cuenta lo soporta).">?</span></label>
+	                      <select id="alegra-env-select">
+	                        <option value="prod">Produccion</option>
+	                        <option value="sandbox">Sandbox</option>
+	                      </select>
+	                    </div>
+	                    <div class="field">
+	                      <label>Email usuario <span class="tip" data-tip="Email del usuario de Alegra con acceso a la cuenta.">?</span></label>
+	                      <input type="email" id="alegra-email" placeholder="admin@empresa.com" />
+	                    </div>
+	                    <div class="field">
+	                      <label>API Key <span class="tip" data-tip="Token/API Key de Alegra (se guarda cifrada).">?</span></label>
+	                      <input type="password" id="alegra-key" placeholder="api_********" autocomplete="new-password" />
+	                    </div>
+	                  </div>
                 </div>
 
                 <div class="connection-block">
@@ -704,18 +700,61 @@
                       <p class="kpi-sub">Token del proveedor IA</p>
                     </div>
                     <button class="primary" id="ai-save" type="button">Guardar token</button>
-                  </div>
-                  <div class="settings-grid connection-fields">
-                    <div class="field span-2">
-                      <label>IA API Key</label>
-                      <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
-                    </div>
-                  </div>
-                </div>
+	                  </div>
+	                  <div class="settings-grid connection-fields">
+	                    <div class="field span-2">
+	                      <label>IA API Key <span class="tip" data-tip="Token del proveedor IA (ej: OpenAI). Se usa para el asistente y QA.">?</span></label>
+	                      <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
+	                    </div>
+	                  </div>
+	                </div>
               </div>
             </div>
           </div>
 
+	          <div class="settings-group provider-group" data-group="admin">
+	            <div class="settings-group-header" data-group-toggle="admin">
+	              <h4 class="group-title">Administracion</h4>
+	            </div>
+	            <div class="settings-group-body">
+	              <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera un token temporal para QA y pruebas API sin consola.">
+	                <div class="panel-header">
+	                  <h3 data-module-toggle="qa-token">Token temporal QA</h3>
+	                  <span class="panel-tag tag-bridge">QA</span>
+	                </div>
+	                <div class="module-body">
+	                  <div class="settings-grid">
+	                    <div class="field span-2">
+	                      <label>Token temporal</label>
+	                      <div class="field-actions inline">
+	                        <input type="text" id="qa-token-value" readonly placeholder="Genera un token para QA" />
+	                        <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
+	                      </div>
+	                      <p class="field-hint" id="qa-token-hint">Vence en 30 minutos.</p>
+	                    </div>
+	                  </div>
+	                  <div class="toolbar is-actions">
+	                    <button class="primary" id="qa-token-generate" type="button">Generar token</button>
+	                  </div>
+	                </div>
+	              </div>
+
+	              <div class="panel admin-only module" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas para esta organizacion.">
+	                <div class="panel-header">
+	                  <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
+	                  <span class="panel-tag tag-bridge">Conexiones</span>
+	                </div>
+	                <div class="module-body">
+	                  <div class="connections-grid" id="connections-grid">
+	                    <div class="connection-card empty">Sin conexiones.</div>
+	                  </div>
+	                </div>
+	              </div>
+	            </div>
+	          </div>
+	        </div>
+
+	        <div class="settings-pane" data-settings-pane="stores">
           <div class="settings-group store-group" data-group="store">
             <div class="settings-group-header" data-group-toggle="store" data-help="Selecciona la tienda activa y gestiona conexiones y configuraciones de esa tienda.">
               <h3 data-store-title data-title-base="Tiendas">Tiendas</h3>
@@ -724,16 +763,13 @@
             <div class="settings-group-body">
               <div class="settings-grid store-meta">
                 <div class="field span-2" id="store-active-field">
-                  <label>Tienda</label>
+                  <label>Tienda <span class="tip" data-tip="Esta tienda define el alcance: todo lo de abajo se guarda por tienda activa.">?</span></label>
                   <select id="store-active-select"></select>
                 </div>
 	                <div class="field span-2">
 	                  <span class="field-hint store-scope-hint">Todo lo de abajo se guarda por tienda. Si cambias de tienda activa, cambian estos ajustes.</span>
 	                </div>
 	              </div>
-
-	            </div>
-	          </div>
 
 	          <div class="settings-group provider-group" data-group="products">
 	                <div class="settings-group-header" data-group-toggle="products">
@@ -1279,46 +1315,9 @@
                 </div>
               </div>
 
-              <div class="settings-group provider-group" data-group="admin">
-                <div class="settings-group-header" data-group-toggle="admin">
-                  <h4 class="group-title">Administracion</h4>
-                </div>
-                <div class="settings-group-body">
-                  <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera un token temporal para QA y pruebas API sin consola.">
-                    <div class="panel-header">
-                      <h3 data-module-toggle="qa-token">Token temporal QA</h3>
-                      <span class="panel-tag tag-bridge">QA</span>
-                    </div>
-                    <div class="module-body">
-                      <div class="settings-grid">
-                        <div class="field span-2">
-                          <label>Token temporal</label>
-                          <div class="field-actions inline">
-                            <input type="text" id="qa-token-value" readonly placeholder="Genera un token para QA" />
-                            <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
-                          </div>
-                          <p class="field-hint" id="qa-token-hint">Vence en 30 minutos.</p>
-                        </div>
-                      </div>
-                      <div class="toolbar is-actions">
-                        <button class="primary" id="qa-token-generate" type="button">Generar token</button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="panel admin-only module" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas para esta organizacion.">
-                    <div class="panel-header">
-                      <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
-                      <span class="panel-tag tag-bridge">Conexiones</span>
-                    </div>
-                    <div class="module-body">
-                      <div class="connections-grid" id="connections-grid">
-                        <div class="connection-card empty">Sin conexiones.</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            </div>
+          </div>
+        </div>
 
         </section>
       </main>
@@ -1447,6 +1446,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260202g" type="module"></script>
+    <script src="app.js?v=20260202j" type="module"></script>
   </body>
 </html>

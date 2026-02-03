@@ -131,6 +131,9 @@ const wizardStart = document.getElementById("wizard-start");
 const wizardStop = document.getElementById("wizard-stop");
 const wizardHint = document.getElementById("wizard-hint");
 const setupModePicker = document.getElementById("setup-mode-picker");
+const settingsSubnav = document.getElementById("settings-subnav");
+const copyConfigField = document.getElementById("copy-config-field");
+const copyConfigSelect = document.getElementById("copy-config-select");
 const DEFAULT_WIZARD_HINT = wizardHint ? wizardHint.textContent : "";
 
 const alegraAccountSelect = document.getElementById("alegra-account-select");
@@ -315,6 +318,10 @@ let storeInvoiceOverrides = null;
 const PRODUCT_SETTINGS_KEY = "apiflujos-products-settings";
 const STORE_WIZARD_KEY = "apiflujos-store-wizard";
 const SETUP_MODE_KEY = "apiflujos-setup-mode";
+const SETTINGS_PANE_KEY = "apiflujos-settings-pane";
+const COPY_CONFIG_FROM_KEY = "apiflujos-copy-config-from";
+const COPY_CONFIG_TO_KEY = "apiflujos-copy-config-to";
+const COPY_CONFIG_AT_KEY = "apiflujos-copy-config-at";
 const WIZARD_MODULE_ORDER = [
   "shopify-rules",
   "alegra-inventory",
@@ -403,6 +410,9 @@ function showSection(target) {
   if (target === "contacts") {
     loadContacts().catch(() => null);
   }
+  if (target === "settings") {
+    syncSettingsPane();
+  }
 }
 
 function activateNav(target) {
@@ -410,6 +420,79 @@ function activateNav(target) {
     button.classList.toggle("is-active", button.getAttribute("data-target") === target);
   });
   showSection(target);
+}
+
+function resolveSettingsPaneKey(value) {
+  const normalized = value === "stores" ? "stores" : "connections";
+  if (normalized === "stores" && (!storesCache || storesCache.length === 0)) {
+    return "connections";
+  }
+  return normalized;
+}
+
+function getStoredSettingsPane() {
+  try {
+    const stored = localStorage.getItem(SETTINGS_PANE_KEY) || "";
+    return stored === "stores" || stored === "connections" ? stored : "";
+  } catch {
+    return "";
+  }
+}
+
+function saveSettingsPane(value) {
+  try {
+    localStorage.setItem(SETTINGS_PANE_KEY, value);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function setSettingsPane(paneKey, options = {}) {
+  const { persist = true } = options || {};
+  const next = resolveSettingsPaneKey(paneKey);
+  document.querySelectorAll("[data-settings-pane]").forEach((pane) => {
+    pane.classList.toggle("is-active", pane.getAttribute("data-settings-pane") === next);
+  });
+  if (settingsSubnav) {
+    settingsSubnav.querySelectorAll("[data-settings-tab]").forEach((button) => {
+      button.classList.toggle("is-active", button.getAttribute("data-settings-tab") === next);
+    });
+  }
+  if (persist) saveSettingsPane(next);
+}
+
+function syncSettingsPane() {
+  const stored = getStoredSettingsPane();
+  setSettingsPane(stored || "connections", { persist: false });
+}
+
+function getSettingsPaneForElement(element) {
+  if (!(element instanceof HTMLElement)) return "";
+  const pane = element.closest("[data-settings-pane]");
+  if (!(pane instanceof HTMLElement)) return "";
+  const key = pane.getAttribute("data-settings-pane") || "";
+  return key === "stores" || key === "connections" ? key : "";
+}
+
+function ensureSettingsPaneForElement(element, options = {}) {
+  const { persist = false } = options || {};
+  const key = getSettingsPaneForElement(element);
+  if (!key) return;
+  setSettingsPane(key, { persist });
+}
+
+function initSettingsTabs() {
+  if (!settingsSubnav) return;
+  settingsSubnav.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) return;
+    const button = target.closest("[data-settings-tab]");
+    if (!(button instanceof HTMLElement)) return;
+    const key = button.getAttribute("data-settings-tab") || "";
+    if (key !== "stores" && key !== "connections") return;
+    setSettingsPane(key);
+  });
+  syncSettingsPane();
 }
 
 function setSidebarCollapsed(collapsed) {
@@ -646,6 +729,41 @@ function initToggleFields() {
           event.stopPropagation();
         });
       });
+    }
+  });
+}
+
+function initTips() {
+  document.querySelectorAll(".tip").forEach((tip) => {
+    if (!(tip instanceof HTMLElement)) return;
+    if (!tip.hasAttribute("tabindex")) {
+      tip.setAttribute("tabindex", "0");
+    }
+    if (!tip.hasAttribute("role")) {
+      tip.setAttribute("role", "button");
+    }
+    if (!tip.hasAttribute("aria-label")) {
+      tip.setAttribute("aria-label", "Ver ayuda");
+    }
+    tip.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      tip.focus();
+    });
+    tip.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        tip.blur();
+      }
+    });
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) return;
+    if (target.closest(".tip")) return;
+    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (active && active.classList.contains("tip")) {
+      active.blur();
     }
   });
 }
@@ -1454,16 +1572,18 @@ function clearTransferErrors() {
 }
 
 function focusFieldWithContext(field) {
-  if (!field) return;
+  if (!(field instanceof HTMLElement)) return;
   activateNav("settings");
+  ensureSettingsPaneForElement(field, { persist: false });
   const panel = field.closest(".module[data-module]");
   if (panel) {
     setModuleCollapsed(panel, false);
     setModuleReadonly(panel, false);
   }
-  const group = field.closest("[data-group]");
-  if (group) {
+  let group = field.closest("[data-group]");
+  while (group) {
     setGroupCollapsed(group, false);
+    group = group.parentElement ? group.parentElement.closest("[data-group]") : null;
   }
   field.scrollIntoView({ behavior: "smooth", block: "center" });
   setTimeout(() => {
@@ -1675,6 +1795,8 @@ function openDefaultGroups() {
 
 function openWizardGroups(moduleKey) {
   if (!moduleKey) return;
+  const storeGroup = getGroupPanel("store");
+  if (storeGroup) setGroupCollapsed(storeGroup, false);
   const map = {
     "shopify-rules": "products",
     "alegra-inventory": "products",
@@ -2056,6 +2178,7 @@ async function openWizardStep() {
     updateWizardUI();
     return;
   }
+  ensureSettingsPaneForElement(panel, { persist: false });
   if (panel.classList.contains("is-disabled")) {
     const warning = moduleWarningNodes[next.moduleKey]?.textContent || "Completa los requisitos para continuar.";
     showToast(warning, "is-warn");
@@ -2451,6 +2574,137 @@ async function loadSettings() {
   loadInventoryCheckpoint().catch(() => null);
 }
 
+function renderCopyConfigOptions(stores) {
+  if (!copyConfigSelect || !copyConfigField) return;
+  const list = Array.isArray(stores) ? stores : [];
+  if (!list.length) {
+    copyConfigField.style.display = "none";
+    copyConfigSelect.innerHTML = "";
+    return;
+  }
+
+  const current = normalizeShopDomain(copyConfigSelect.value || "");
+  copyConfigField.style.display = "";
+  copyConfigSelect.innerHTML = "";
+
+  const emptyOption = document.createElement("option");
+  emptyOption.value = "";
+  emptyOption.textContent = "Iniciar en blanco (sin copiar)";
+  copyConfigSelect.appendChild(emptyOption);
+
+  list.forEach((store) => {
+    const domain = normalizeShopDomain(store?.shopDomain || "");
+    if (!domain) return;
+    const option = document.createElement("option");
+    option.value = domain;
+    option.textContent = store?.storeName || store?.shopDomain || domain;
+    copyConfigSelect.appendChild(option);
+  });
+
+  const exists = list.some(
+    (store) => normalizeShopDomain(store?.shopDomain || "") === current
+  );
+  copyConfigSelect.value = exists ? current : "";
+}
+
+function clearPendingConfigCopy() {
+  try {
+    localStorage.removeItem(COPY_CONFIG_FROM_KEY);
+    localStorage.removeItem(COPY_CONFIG_TO_KEY);
+    localStorage.removeItem(COPY_CONFIG_AT_KEY);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function savePendingConfigCopy(fromDomain, toDomain) {
+  try {
+    localStorage.setItem(COPY_CONFIG_FROM_KEY, fromDomain);
+    localStorage.setItem(COPY_CONFIG_TO_KEY, toDomain);
+    localStorage.setItem(COPY_CONFIG_AT_KEY, String(Date.now()));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function getPendingConfigCopy() {
+  try {
+    const from = normalizeShopDomain(localStorage.getItem(COPY_CONFIG_FROM_KEY) || "");
+    const to = normalizeShopDomain(localStorage.getItem(COPY_CONFIG_TO_KEY) || "");
+    const at = Number(localStorage.getItem(COPY_CONFIG_AT_KEY) || "");
+    if (!from || !to) {
+      clearPendingConfigCopy();
+      return null;
+    }
+    if (Number.isFinite(at) && Date.now() - at > 30 * 60 * 1000) {
+      clearPendingConfigCopy();
+      return null;
+    }
+    return { from, to };
+  } catch {
+    return null;
+  }
+}
+
+function getStoreLabelByDomain(domain) {
+  const normalized = normalizeShopDomain(domain || "");
+  const match = storesCache.find(
+    (store) => normalizeShopDomain(store?.shopDomain || "") === normalized
+  );
+  return match?.storeName || match?.shopDomain || normalized;
+}
+
+let pendingCopyInProgress = false;
+async function maybeApplyPendingStoreConfigCopy() {
+  if (pendingCopyInProgress) return;
+  const pending = getPendingConfigCopy();
+  if (!pending) return;
+  const fromDomain = pending.from;
+  const toDomain = pending.to;
+  if (!fromDomain || !toDomain || fromDomain === toDomain) {
+    clearPendingConfigCopy();
+    return;
+  }
+  const toExists = storesCache.some(
+    (store) => normalizeShopDomain(store?.shopDomain || "") === toDomain
+  );
+  if (!toExists) return;
+
+  pendingCopyInProgress = true;
+  try {
+    const data = await fetchJson("/api/store-configs");
+    const items = Array.isArray(data.items) ? data.items : [];
+    const source =
+      items.find((item) => normalizeShopDomain(item.shopDomain || "") === fromDomain) || null;
+    if (!source) {
+      showToast("No se encontro configuracion para copiar en la tienda origen.", "is-warn");
+      clearPendingConfigCopy();
+      return;
+    }
+    const payload = {
+      transfers: source.transfers || {},
+      priceLists: source.priceLists || {},
+      rules: source.rules || {},
+      invoice: source.invoice || {},
+      sync: source.sync || {},
+    };
+    await fetchJson(`/api/store-configs/${encodeURIComponent(toDomain)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    showToast(
+      `Configuracion copiada: ${getStoreLabelByDomain(fromDomain)} → ${getStoreLabelByDomain(toDomain)}`,
+      "is-ok"
+    );
+    clearPendingConfigCopy();
+  } catch (error) {
+    showToast(error?.message || "No se pudo copiar la configuracion.", "is-error");
+  } finally {
+    pendingCopyInProgress = false;
+  }
+}
+
 async function loadConnections() {
   try {
     const data = await fetchJson("/api/connections");
@@ -2458,6 +2712,7 @@ async function loadConnections() {
     renderAlegraAccountOptions(data.alegraAccounts || []);
     const stores = Array.isArray(data.stores) ? data.stores : [];
     storesCache = stores;
+    renderCopyConfigOptions(stores);
     activeStoreDomain = stores[0]?.shopDomain || "";
     activeStoreName = stores[0]?.storeName || "";
     if (storeNameInput) {
@@ -2468,9 +2723,11 @@ async function loadConnections() {
     updatePrerequisites();
     initSetupMode(stores.length);
     updateWizardStartAvailability();
+    await maybeApplyPendingStoreConfigCopy();
   } catch {
     renderConnections({ stores: [] });
     renderAlegraAccountOptions([]);
+    renderCopyConfigOptions([]);
     activeStoreDomain = "";
     activeStoreName = "";
     storesCache = [];
@@ -5778,6 +6035,7 @@ function clearConnectionForm() {
   if (storeNameInput) storeNameInput.value = "";
   if (shopifyDomain) shopifyDomain.value = "";
   if (shopifyToken) shopifyToken.value = "";
+  if (copyConfigSelect) copyConfigSelect.value = "";
   if (alegraEmail) alegraEmail.value = "";
   if (alegraKey) alegraKey.value = "";
   if (alegraAccountSelect) alegraAccountSelect.value = "new";
@@ -5786,6 +6044,7 @@ function clearConnectionForm() {
 }
 
 function startShopifyOAuthFlow() {
+  clearPendingConfigCopy();
   if (!validateInitialConnection("shopify")) {
     throw new Error("Completa los campos obligatorios.");
   }
@@ -5803,6 +6062,10 @@ function startShopifyOAuthFlow() {
   const params = new URLSearchParams({ shop: normalizedInput });
   if (resolvedStoreName) {
     params.set("storeName", resolvedStoreName);
+  }
+  const copyFrom = normalizeShopDomain(copyConfigSelect?.value || "");
+  if (copyFrom && copyFrom !== normalizedInput) {
+    savePendingConfigCopy(copyFrom, normalizedInput);
   }
   window.location.href = `/api/auth/shopify?${params.toString()}`;
 }
@@ -6698,8 +6961,10 @@ async function init() {
   };
   loadSidebarState();
   captureOnboardingParam();
+  initSettingsTabs();
   initGroupControls();
   initToggleFields();
+  initTips();
   initSetupModeControls();
   updateWizardStartAvailability();
   applyProductSettings();
