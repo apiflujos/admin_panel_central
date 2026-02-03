@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260203w" />
+    <link rel="stylesheet" href="styles.css?v=20260203x" />
   </head>
   <body>
     <div class="app-shell">
@@ -414,57 +414,6 @@
               <h3>Gestion de productos</h3>
               <span class="panel-tag">Alegra → Shopify</span>
             </div>
-            <div class="settings-grid two-cols align-bottom">
-              <div class="field">
-                <label>Fecha inicio (masivo) <span class="tip" data-tip="Masivo (inicio): sincroniza productos dentro de un rango de fechas.">?</span></label>
-                <input type="date" id="products-date-start" />
-                <span class="field-hint">Rango de fechas para iniciar el catalogo.</span>
-              </div>
-              <div class="field">
-                <label>Fecha final (masivo) <span class="tip" data-tip="Opcional. Si la dejas vacia, sincroniza hasta hoy.">?</span></label>
-                <input type="date" id="products-date-end" />
-                <span class="field-hint">Usa inicio + final para acotar el masivo.</span>
-              </div>
-              <div class="field">
-                <label>Filtro (opcional) <span class="tip" data-tip="Opcional: ayuda a acotar el masivo por nombre, referencia o SKU.">?</span></label>
-                <input type="text" id="products-sync-query" placeholder="Nombre, referencia o SKU" />
-                <span class="field-hint">Si lo dejas vacio, toma el rango completo.</span>
-              </div>
-              <div class="field">
-                <label>Limite (opcional) <span class="tip" data-tip="Opcional: maximo de productos a procesar en esta corrida.">?</span></label>
-                <input type="number" id="products-sync-limit" min="1" placeholder="200" />
-                <span class="field-hint">Sirve para pruebas o primeras corridas.</span>
-              </div>
-              <div class="field is-toggle">
-                <label>Solo activos en Alegra <span class="tip" data-tip="Si esta activo, ignora productos inactivos en el masivo.">?</span></label>
-                <input type="checkbox" id="products-sync-only-active" class="toggle" checked />
-                <span class="field-hint">Recomendado para el masivo.</span>
-              </div>
-              <div class="field is-toggle">
-                <label>Publicar en Shopify <span class="tip" data-tip="Si esta activo, el masivo tambien publica. Si esta apagado, solo crea/actualiza en borrador.">?</span></label>
-                <input type="checkbox" id="products-sync-publish" class="toggle" checked />
-                <span class="field-hint">Usalo con cuidado en produccion.</span>
-              </div>
-              <div class="field is-toggle">
-                <label>Incluir inventario <span class="tip" data-tip="Incluye existencias por bodega durante el masivo.">?</span></label>
-                <input type="checkbox" id="products-sync-include-inventory" class="toggle" checked />
-                <span class="field-hint">Acelera o ralentiza segun bodegas.</span>
-              </div>
-              <div class="field is-toggle">
-                <label>Solo si ya existe en Shopify <span class="tip" data-tip="Si esta activo, evita crear productos nuevos en Shopify durante el masivo.">?</span></label>
-                <input type="checkbox" id="products-sync-only-published" class="toggle" checked />
-                <span class="field-hint">Recomendado para una primera prueba.</span>
-              </div>
-              <div class="field field-span">
-                <div class="toolbar is-actions">
-                  <button class="primary" id="products-sync-filtered" type="button">Sincronizar masivo</button>
-                  <button class="ghost danger" id="products-sync-stop" type="button">Detener</button>
-                  <button class="ghost" id="products-sync-clear" type="button">Limpiar</button>
-                  <span class="kpi-sub" id="products-sync-status">Sin datos</span>
-                  <span class="kpi-sub">Manual: usa Acciones por SKU en la tabla.</span>
-                </div>
-              </div>
-            </div>
             <div class="toolbar products-toolbar">
               <input type="text" id="products-search" placeholder="Buscar por nombre o referencia" />
               <input type="date" id="products-date-filter" />
@@ -840,59 +789,102 @@
                       </div>
                     </div>
                     <div class="module-body">
-	                      <div class="submodules">
-                          <div class="submodule-card">
-                            <div class="submodule-head">
-                              <h4>Sincronizacion automatica</h4>
-                              <span class="tip" data-tip="Se ejecuta cuando llega un cambio desde Alegra.">?</span>
-                            </div>
-                            <div class="submodule-body">
-                              <div class="setting-item">
-                                <label class="setting-title" for="rules-only-active">Solo activos en Alegra</label>
-                                <div class="setting-control">
-                                  <input type="checkbox" id="rules-only-active" class="toggle" />
-                                </div>
-                              </div>
-                              <div class="setting-item">
-                                <label class="setting-title" for="products-include-images">Publicar fotos</label>
-                                <div class="setting-control">
-                                  <input type="checkbox" id="products-include-images" class="toggle" />
-                                </div>
-                              </div>
-                              <div class="setting-item">
-                                <label class="setting-title" for="rules-auto-publish">Publicar en Shopify</label>
-                                <div class="setting-control">
-                                  <input type="checkbox" id="rules-auto-publish" class="toggle" />
-                                </div>
-                                <div class="setting-control">
-                                  <label for="rules-auto-status">Estado al auto-publicar <span class="tip" data-tip="Activo publica; Borrador actualiza sin publicar.">?</span></label>
-                                  <select id="rules-auto-status" data-depends-on="rules-auto-publish">
-                                    <option value="draft">Borrador</option>
-                                    <option value="active">Activo</option>
-                                  </select>
-                                </div>
-                              </div>
-                            </div>
+                      <div class="mode-sections">
+                        <div class="mode-section">
+                          <div class="mode-head">
+                            <h4>Sincronizacion masiva (inicio)</h4>
+                            <span class="tip" data-tip="Usala para iniciar el catalogo. Se ejecuta cuando la lanzas manualmente.">?</span>
                           </div>
-
-                          <div class="submodule-card">
-                            <div class="submodule-head">
-                              <h4>Publicacion desde Productos</h4>
-                              <span class="tip" data-tip="Manual (uno a uno) por SKU o masivo por fechas, desde la seccion Productos.">?</span>
+                          <div class="mode-grid">
+                            <div class="mode-field">
+                              <label for="products-date-start">Fecha inicio</label>
+                              <input type="date" id="products-date-start" />
                             </div>
-                            <div class="submodule-body">
-                              <div class="setting-item">
-                                <label class="setting-title" for="products-publish-status">Estado al publicar</label>
-                                <div class="setting-control">
-                                  <select id="products-publish-status">
-                                    <option value="draft">Borrador</option>
-                                    <option value="active">Activo</option>
-                                  </select>
-                                </div>
-                              </div>
+                            <div class="mode-field">
+                              <label for="products-date-end">Fecha fin</label>
+                              <input type="date" id="products-date-end" />
+                            </div>
+                            <div class="mode-field">
+                              <label for="products-sync-query">Filtro (opcional)</label>
+                              <input type="text" id="products-sync-query" placeholder="Nombre, referencia o SKU" />
+                            </div>
+                            <div class="mode-field">
+                              <label for="products-sync-limit">Limite (opcional)</label>
+                              <input type="number" id="products-sync-limit" min="1" placeholder="200" />
+                            </div>
+                            <div class="mode-field">
+                              <label for="products-sync-only-active">Solo activos en Alegra</label>
+                              <input type="checkbox" id="products-sync-only-active" class="toggle" checked />
+                            </div>
+                            <div class="mode-field">
+                              <label for="products-sync-publish">Publicar en Shopify</label>
+                              <input type="checkbox" id="products-sync-publish" class="toggle" checked />
+                            </div>
+                            <div class="mode-field">
+                              <label for="products-sync-only-published">Solo si ya existe en Shopify</label>
+                              <input type="checkbox" id="products-sync-only-published" class="toggle" checked />
+                            </div>
+                            <div class="mode-field">
+                              <label for="products-sync-include-inventory">Incluir inventario</label>
+                              <input type="checkbox" id="products-sync-include-inventory" class="toggle" checked />
+                            </div>
+                            <div class="mode-actions">
+                              <button class="primary" id="products-sync-filtered" type="button">Sincronizar masivo</button>
+                              <button class="ghost danger" id="products-sync-stop" type="button">Detener</button>
+                              <button class="ghost" id="products-sync-clear" type="button">Limpiar</button>
+                              <span class="kpi-sub" id="products-sync-status">Sin datos</span>
                             </div>
                           </div>
                         </div>
+
+                        <div class="mode-section">
+                          <div class="mode-head">
+                            <h4>Sincronizacion automatica</h4>
+                            <span class="tip" data-tip="Se ejecuta cuando llega un cambio desde Alegra.">?</span>
+                          </div>
+                          <div class="mode-grid">
+                            <div class="mode-field">
+                              <label for="rules-only-active">Solo activos en Alegra</label>
+                              <input type="checkbox" id="rules-only-active" class="toggle" />
+                            </div>
+                            <div class="mode-field">
+                              <label for="rules-auto-publish">Publicar en Shopify</label>
+                              <input type="checkbox" id="rules-auto-publish" class="toggle" />
+                            </div>
+                            <div class="mode-field">
+                              <label for="rules-auto-status">Estado al auto-publicar <span class="tip" data-tip="Activo publica; Borrador actualiza sin publicar.">?</span></label>
+                              <select id="rules-auto-status" data-depends-on="rules-auto-publish">
+                                <option value="draft">Borrador</option>
+                                <option value="active">Activo</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="mode-section">
+                          <div class="mode-head">
+                            <h4>Sincronizacion manual (desde Productos)</h4>
+                            <span class="tip" data-tip="Se ejecuta cuando publicas un producto desde la tabla (acciones por SKU).">?</span>
+                          </div>
+                          <div class="mode-grid">
+                            <div class="mode-field">
+                              <label for="products-publish-status">Estado al publicar</label>
+                              <select id="products-publish-status">
+                                <option value="draft">Borrador</option>
+                                <option value="active">Activo</option>
+                              </select>
+                            </div>
+                            <div class="mode-field">
+                              <label for="products-include-images">Publicar fotos (manual y masivo)</label>
+                              <input type="checkbox" id="products-include-images" class="toggle" />
+                            </div>
+                            <div class="mode-actions">
+                              <button class="ghost" type="button" data-nav-to="products">Ir a Productos</button>
+                              <span class="kpi-sub">Ahi haces acciones por SKU.</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                       <div class="toolbar is-actions">
                         <button class="ghost" type="button" data-nav-to="products">Ir a Productos</button>
 	                        <span class="kpi-sub">Ahi haces sincronizacion masiva y acciones por SKU.</span>
@@ -916,30 +908,26 @@
                       </div>
                     </div>
                     <div class="module-body">
-                      <div class="submodules">
-                        <div class="submodule-card">
-                          <div class="submodule-head">
-                            <h4>Sincronizacion automatica</h4>
-                            <span class="tip" data-tip="Mantiene Shopify actualizado con inventario cuando llegan cambios desde Alegra.">?</span>
+                      <div class="mode-sections">
+                        <div class="mode-section">
+                          <div class="mode-head">
+                            <h4>Inventario</h4>
+                            <span class="tip" data-tip="Define bodegas fuente y activa/desactiva la sincronizacion de inventario.">?</span>
                           </div>
-                          <div class="submodule-body">
-                            <div class="setting-item">
-                              <label class="setting-title" for="rules-sync-enabled">Sincronizar inventario</label>
-                              <div class="setting-control">
-                                <input type="checkbox" id="rules-sync-enabled" class="toggle" />
-                              </div>
+                          <div class="mode-grid">
+                            <div class="mode-field">
+                              <label for="rules-sync-enabled">Sincronizar inventario</label>
+                              <input type="checkbox" id="rules-sync-enabled" class="toggle" />
                             </div>
-                            <div class="setting-item">
-                              <label class="setting-title" for="cfg-inventory-warehouses">Bodegas de inventario (Alegra)</label>
-                              <div class="setting-control setting-control-wide">
-                                <details class="multi-select">
-                                  <summary>
-                                    <span>Seleccionar bodegas</span>
-                                    <em id="cfg-inventory-warehouses-summary">Todas</em>
-                                  </summary>
-                                  <div class="checkbox-grid single" id="cfg-inventory-warehouses"></div>
-                                </details>
-                              </div>
+                            <div class="mode-field mode-field-wide">
+                              <label for="cfg-inventory-warehouses">Bodegas de inventario (Alegra)</label>
+                              <details class="multi-select">
+                                <summary>
+                                  <span>Seleccionar bodegas</span>
+                                  <em id="cfg-inventory-warehouses-summary">Todas</em>
+                                </summary>
+                                <div class="checkbox-grid single" id="cfg-inventory-warehouses"></div>
+                              </details>
                             </div>
                           </div>
                         </div>
@@ -964,7 +952,7 @@
                   </h4>
                 </div>
                 <div class="settings-group-body">
-	                  <div class="panel admin-only module" data-provider="bridge" data-module="sync-contacts" data-module-priority="core" data-help="Modulo principal de Contactos: define como se identifican y sincronizan clientes entre Shopify y Alegra. Incluye modos automatico (se sincroniza solo), masivo e individual (manual).">
+	                  <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="sync-contacts" data-module-priority="core" data-help="Modulo principal de Contactos: define como se identifican y sincronizan clientes entre Shopify y Alegra. Incluye modos automatico (se sincroniza solo), masivo e individual (manual).">
                     <div class="panel-header">
                       <h3 data-module-toggle="sync-contacts" data-title-base="Contactos bidireccionales">
                         Contactos bidireccionales
@@ -976,83 +964,69 @@
                       </div>
                     </div>
                     <div class="module-body">
-                      <div class="submodules">
-                        <div class="submodule-card">
-                          <div class="submodule-head">
+                      <div class="mode-sections">
+                        <div class="mode-section">
+                          <div class="mode-head">
                             <h4>Sincronizacion automatica</h4>
-                            <span class="tip" data-tip="Se ejecuta cuando llega un cambio en cualquiera de las dos plataformas.">?</span>
+                            <span class="tip" data-tip="Se ejecuta cuando llega un cambio.">?</span>
                           </div>
-                          <div class="submodule-body">
-                            <div class="setting-item">
-                              <label class="setting-title" for="sync-contacts-shopify">Sincronizar desde Shopify</label>
-                              <div class="setting-control">
-                                <input type="checkbox" id="sync-contacts-shopify" class="toggle" />
-                              </div>
+                          <div class="mode-grid">
+                            <div class="mode-field">
+                              <label for="sync-contacts-shopify">Sincronizar desde Shopify</label>
+                              <input type="checkbox" id="sync-contacts-shopify" class="toggle" />
                             </div>
-                            <div class="setting-item">
-                              <label class="setting-title" for="sync-contacts-alegra">Sincronizar desde Alegra</label>
-                              <div class="setting-control">
-                                <input type="checkbox" id="sync-contacts-alegra" class="toggle" />
-                              </div>
+                            <div class="mode-field">
+                              <label for="sync-contacts-alegra">Sincronizar desde Alegra</label>
+                              <input type="checkbox" id="sync-contacts-alegra" class="toggle" />
                             </div>
-                            <div class="setting-item">
-                              <label class="setting-title" for="sync-contacts-priority">Prioridad de identificacion</label>
-                              <div class="setting-control">
-                                <select id="sync-contacts-priority">
-                                  <option value="document_phone_email">Documento → Teléfono → Email</option>
-                                  <option value="email_document_phone">Email → Documento → Teléfono</option>
-                                  <option value="phone_document_email">Teléfono → Documento → Email</option>
-                                </select>
-                              </div>
+                            <div class="mode-field">
+                              <label for="sync-contacts-priority">Prioridad de identificacion</label>
+                              <select id="sync-contacts-priority">
+                                <option value="document_phone_email">Documento → Teléfono → Email</option>
+                                <option value="email_document_phone">Email → Documento → Teléfono</option>
+                                <option value="phone_document_email">Teléfono → Documento → Email</option>
+                              </select>
                             </div>
                           </div>
                         </div>
 
-                        <div class="submodule-card">
-                          <div class="submodule-head">
+                        <div class="mode-section">
+                          <div class="mode-head">
                             <h4>Sincronizacion manual</h4>
-                            <span class="tip" data-tip="Se ejecuta cuando tu la lanzas desde este modulo.">?</span>
+                            <span class="tip" data-tip="Se ejecuta cuando tu la lanzas.">?</span>
                           </div>
-                          <div class="submodule-body">
-                            <div class="setting-item">
-                              <label class="setting-title" for="sync-contact-identifier">Buscar contacto</label>
-                              <div class="setting-control">
-                                <input type="text" id="sync-contact-identifier" placeholder="email, telefono o documento" />
-                              </div>
+                          <div class="mode-grid">
+                            <div class="mode-field">
+                              <label for="sync-contact-identifier">Buscar contacto</label>
+                              <input type="text" id="sync-contact-identifier" placeholder="email, telefono o documento" />
                             </div>
-                            <div class="setting-item">
-                              <label class="setting-title" for="sync-contact-source">Fuente</label>
-                              <div class="setting-control">
-                                <select id="sync-contact-source">
-                                  <option value="shopify">Shopify → Alegra</option>
-                                  <option value="alegra">Alegra → Shopify</option>
-                                </select>
-                              </div>
-                              <div class="setting-actions">
-                                <button class="primary" id="sync-contact-run" type="button">Sincronizar</button>
-                              </div>
+                            <div class="mode-field">
+                              <label for="sync-contact-source">Fuente</label>
+                              <select id="sync-contact-source">
+                                <option value="shopify">Shopify → Alegra</option>
+                                <option value="alegra">Alegra → Shopify</option>
+                              </select>
+                            </div>
+                            <div class="mode-actions">
+                              <button class="primary" id="sync-contact-run" type="button">Sincronizar</button>
                             </div>
                           </div>
                         </div>
 
-                        <div class="submodule-card">
-                          <div class="submodule-head">
+                        <div class="mode-section">
+                          <div class="mode-head">
                             <h4>Sincronizacion masiva (inicio)</h4>
                             <span class="tip" data-tip="Usala para iniciar o para normalizar datos.">?</span>
                           </div>
-                          <div class="submodule-body">
-                            <div class="setting-item">
-                              <label class="setting-title" for="sync-contact-limit">Limite</label>
-                              <div class="setting-control">
-                                <input type="number" id="sync-contact-limit" min="1" placeholder="200" />
-                              </div>
-                              <div class="setting-actions">
-                                <div class="toolbar is-actions setting-toolbar">
-                                  <button class="ghost" id="sync-contacts-shopify-run" type="button">Desde Shopify</button>
-                                  <button class="ghost" id="sync-contacts-alegra-run" type="button">Desde Alegra</button>
-                                  <span class="kpi-sub" id="sync-contacts-status">Sin datos</span>
-                                </div>
-                              </div>
+                          <div class="mode-grid">
+                            <div class="mode-field">
+                              <label for="sync-contact-limit">Limite</label>
+                              <input type="number" id="sync-contact-limit" min="1" placeholder="200" />
+                            </div>
+                            <div class="mode-actions">
+                              <button class="ghost" id="sync-contacts-shopify-run" type="button">Desde Shopify</button>
+                              <button class="ghost" id="sync-contacts-alegra-run" type="button">Desde Alegra</button>
+                              <span class="kpi-sub" id="sync-contacts-status">Sin datos</span>
                             </div>
                           </div>
                         </div>
@@ -1080,50 +1054,46 @@
                       </div>
                     </div>
                     <div class="module-body">
-                      <div class="submodules">
-                        <div class="submodule-card">
-                          <div class="submodule-head">
+                      <div class="mode-sections">
+                        <div class="mode-section">
+                          <div class="mode-head">
                             <h4>Sincronizacion automatica (pedidos nuevos)</h4>
                             <span class="tip" data-tip="Se ejecuta cuando llega un pedido nuevo desde Shopify.">?</span>
                           </div>
-                          <div class="submodule-body">
-                            <div class="setting-item">
-                              <label class="setting-title" for="sync-orders-shopify-enabled">Procesar pedidos nuevos</label>
-                              <div class="setting-control">
-                                <input type="checkbox" id="sync-orders-shopify-enabled" class="toggle" />
-                              </div>
-                              <div class="setting-control">
-                                <label for="sync-orders-shopify">Que crear en Alegra <span class="tip" data-tip="Elige que se crea cuando se procesa un pedido: registrar, crear contacto o crear factura.">?</span></label>
-                                <select id="sync-orders-shopify" data-depends-on="sync-orders-shopify-enabled">
-                                  <option value="db_only">Solo registrar</option>
-                                  <option value="contact_only">Crear contacto</option>
-                                  <option value="invoice">Crear factura</option>
-                                  <option value="off">No sincronizar</option>
-                                </select>
-                              </div>
+                          <div class="mode-grid">
+                            <div class="mode-field">
+                              <label for="sync-orders-shopify-enabled">Procesar pedidos nuevos</label>
+                              <input type="checkbox" id="sync-orders-shopify-enabled" class="toggle" />
+                            </div>
+                            <div class="mode-field">
+                              <label for="sync-orders-shopify">Que crear en Alegra <span class="tip" data-tip="Registrar, crear contacto o crear factura.">?</span></label>
+                              <select id="sync-orders-shopify" data-depends-on="sync-orders-shopify-enabled">
+                                <option value="db_only">Solo registrar</option>
+                                <option value="contact_only">Crear contacto</option>
+                                <option value="invoice">Crear factura</option>
+                                <option value="off">No sincronizar</option>
+                              </select>
                             </div>
                           </div>
                         </div>
 
-                        <div class="submodule-card">
-                          <div class="submodule-head">
+                        <div class="mode-section">
+                          <div class="mode-head">
                             <h4>Sincronizacion automatica (facturas nuevas)</h4>
                             <span class="tip" data-tip="Se ejecuta cuando llega una factura nueva desde Alegra.">?</span>
                           </div>
-                          <div class="submodule-body">
-                            <div class="setting-item">
-                              <label class="setting-title" for="sync-orders-alegra-enabled">Procesar facturas nuevas</label>
-                              <div class="setting-control">
-                                <input type="checkbox" id="sync-orders-alegra-enabled" class="toggle" />
-                              </div>
-                              <div class="setting-control">
-                                <label for="sync-orders-alegra">Como crear pedido en Shopify <span class="tip" data-tip="Borrador crea el pedido sin publicar; Activo lo crea listo para gestionar.">?</span></label>
-                                <select id="sync-orders-alegra" data-depends-on="sync-orders-alegra-enabled">
-                                  <option value="draft">Crear pedido borrador</option>
-                                  <option value="active">Crear pedido activo</option>
-                                  <option value="off">No sincronizar</option>
-                                </select>
-                              </div>
+                          <div class="mode-grid">
+                            <div class="mode-field">
+                              <label for="sync-orders-alegra-enabled">Procesar facturas nuevas</label>
+                              <input type="checkbox" id="sync-orders-alegra-enabled" class="toggle" />
+                            </div>
+                            <div class="mode-field">
+                              <label for="sync-orders-alegra">Como crear pedido en Shopify <span class="tip" data-tip="Borrador crea el pedido sin publicar; Activo lo crea listo para gestionar.">?</span></label>
+                              <select id="sync-orders-alegra" data-depends-on="sync-orders-alegra-enabled">
+                                <option value="draft">Crear pedido borrador</option>
+                                <option value="active">Crear pedido activo</option>
+                                <option value="off">No sincronizar</option>
+                              </select>
                             </div>
                           </div>
                         </div>
@@ -1540,6 +1510,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260203w" type="module"></script>
+    <script src="app.js?v=20260203x" type="module"></script>
   </body>
 </html>

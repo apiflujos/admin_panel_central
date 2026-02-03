@@ -2514,92 +2514,65 @@ textarea::placeholder {
   width: auto;
 }
 
-.submodules {
+.mode-sections {
   display: grid;
   gap: 10px;
 }
 
-.submodule-card {
+.mode-section {
   border: 1px solid var(--stroke);
   border-radius: 14px;
-  padding: 12px;
-  background: rgba(0, 43, 91, 0.02);
+  padding: 10px;
+  background: rgba(15, 23, 42, 0.015);
 }
 
-.submodule-head {
+.mode-head {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  text-align: center;
 }
 
-.submodule-head h4 {
+.mode-head h4 {
   margin: 0;
   font-size: 12px;
   font-weight: 800;
   color: #0f172a;
 }
 
-.submodule-body {
-  margin-top: 10px;
+.mode-grid {
+  margin-top: 8px;
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 10px;
+  align-items: start;
 }
 
-.setting-item {
-  border: 1px solid var(--stroke);
-  border-radius: 12px;
-  padding: 10px;
-  background: var(--panel);
-  display: grid;
-  gap: 8px;
-  justify-items: center;
-  text-align: center;
-}
-
-.setting-title {
-  font-size: 13px;
-  font-weight: 800;
-  color: #1f2937;
-}
-
-.setting-control {
-  width: min(360px, 100%);
+.mode-field {
   display: grid;
   gap: 6px;
-  justify-items: center;
+  min-width: 0;
 }
 
-.setting-control-wide {
-  width: min(520px, 100%);
-}
-
-.setting-control label {
-  font-size: 11px;
+.mode-field label {
+  color: #1f2937;
+  font-size: 12px;
   font-weight: 800;
-  color: var(--muted);
 }
 
-.setting-control select,
-.setting-control input:not([type="checkbox"]),
-.setting-control textarea {
-  width: 100%;
+.mode-field .toggle {
+  justify-self: start;
 }
 
-.setting-actions {
-  width: min(520px, 100%);
-  display: grid;
-  gap: 8px;
-  justify-items: center;
+.mode-field-wide {
+  grid-column: 1 / -1;
 }
 
-.toolbar.is-actions.setting-toolbar {
-  justify-content: center;
-}
-
-.toolbar.is-actions.setting-toolbar .kpi-sub {
-  margin-left: 0;
+.mode-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .field {

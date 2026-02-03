@@ -2890,7 +2890,7 @@ async function openWizardStep() {
     const stepTitle = getWizardModuleTitle(next.moduleKey);
     const defaultTextMap = {
       "shopify-rules":
-        "Define las reglas del modo automatico (se sincroniza solo) y el estado al publicar.\nLuego guarda para continuar.",
+        "Elige los 3 modos: masivo, automatico y manual.\nLuego guarda para continuar.",
       "alegra-inventory":
         "Configura inventario/bodegas (bodegas fuente y sincronizacion automatica).\nLuego guarda para continuar.",
       "sync-orders":
