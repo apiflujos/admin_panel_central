@@ -1990,6 +1990,7 @@ function setModuleReadonly(panel, readonly) {
   const controls = panel.querySelectorAll("input, select, textarea");
   controls.forEach((control) => {
     if (control.closest(".panel-actions") || control.closest(".module-footer")) return;
+    if (control.closest("[data-readonly-free=\"1\"]")) return;
     if (readonly) {
       control.disabled = true;
     } else {
@@ -1998,6 +1999,7 @@ function setModuleReadonly(panel, readonly) {
   });
   panel.querySelectorAll("details").forEach((details) => {
     if (!readonly) return;
+    if (details.closest("[data-readonly-free=\"1\"]")) return;
     details.open = false;
   });
 }

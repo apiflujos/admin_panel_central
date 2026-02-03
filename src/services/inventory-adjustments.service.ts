@@ -1,9 +1,12 @@
 import { getAlegraCredential } from "./settings.service";
+import { getAlegraConnectionByDomain } from "./store-connections.service";
 import { getAlegraBaseUrl } from "../utils/alegra-env";
 import { syncAlegraInventoryById } from "./alegra-to-shopify.service";
 
-const fetchAlegraAdjustments = async (query: URLSearchParams) => {
-  const alegra = await getAlegraCredential();
+const fetchAlegraAdjustments = async (query: URLSearchParams, shopDomain?: string) => {
+  const alegra = shopDomain
+    ? await getAlegraConnectionByDomain(shopDomain)
+    : await getAlegraCredential();
   const baseUrl = getAlegraBaseUrl(alegra.environment || "prod");
   const auth = Buffer.from(`${alegra.email}:${alegra.apiKey}`).toString("base64");
   const url = `${baseUrl}/inventory-adjustments?${query.toString()}`;
@@ -21,11 +24,11 @@ const fetchAlegraAdjustments = async (query: URLSearchParams) => {
   return response.json() as Promise<unknown>;
 };
 
-const fetchWithRetry = async (query: URLSearchParams, maxRetries = 3) => {
+const fetchWithRetry = async (query: URLSearchParams, shopDomain?: string, maxRetries = 3) => {
   let attempt = 0;
   while (true) {
     try {
-      return await fetchAlegraAdjustments(query);
+      return await fetchAlegraAdjustments(query, shopDomain);
     } catch (error) {
       if (attempt >= maxRetries) {
         throw error;
@@ -49,7 +52,7 @@ const extractAdjustmentItems = (payload: unknown) => {
 
 export async function syncInventoryAdjustments(
   query: URLSearchParams,
-  options?: { autoPublish?: boolean }
+  options?: { autoPublish?: boolean; shopDomain?: string }
 ) {
   if (!query.has("metadata")) query.set("metadata", "true");
   if (!query.has("date")) {
@@ -62,11 +65,12 @@ export async function syncInventoryAdjustments(
     items?: Array<{ id?: string | number }>;
   }> = [];
   let start = Number(query.get("start") || 0);
+  const shopDomain = options?.shopDomain ? String(options.shopDomain).trim() : "";
   while (true) {
     const pageQuery = new URLSearchParams(query.toString());
     pageQuery.set("start", String(start));
     pageQuery.set("limit", String(limit));
-    const payload = await fetchWithRetry(pageQuery);
+    const payload = await fetchWithRetry(pageQuery, shopDomain || undefined);
     const batch = extractAdjustmentItems(payload);
     if (!batch.length) {
       break;

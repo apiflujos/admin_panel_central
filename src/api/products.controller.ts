@@ -19,7 +19,7 @@ import {
 } from "../services/alegra-items-cache.service";
 import { resolveStoreConfig } from "../services/store-config.service";
 import { getStoreConfigForDomain } from "../services/store-configs.service";
-import { getShopifyConnectionByDomain } from "../services/store-connections.service";
+import { getAlegraConnectionByDomain, getShopifyConnectionByDomain } from "../services/store-connections.service";
 import { upsertProduct, listProducts } from "../services/products.service";
 import { upsertOrder } from "../services/orders.service";
 
@@ -91,8 +91,24 @@ async function getAlegraConfig() {
   return { baseUrl, auth };
 }
 
-async function fetchAlegra(path: string, query?: URLSearchParams) {
-  const { baseUrl, auth } = await getAlegraConfig();
+async function getAlegraConfigForStore(shopDomain?: string) {
+  const normalized = shopDomain ? String(shopDomain).trim() : "";
+  if (normalized) {
+    try {
+      const conn = await getAlegraConnectionByDomain(normalized);
+      const baseUrl = getAlegraBaseUrl(conn.environment || "prod");
+      const auth = Buffer.from(`${conn.email}:${conn.apiKey}`).toString("base64");
+      return { baseUrl, auth };
+    } catch (error) {
+      // Si no hay Alegra conectado para esa tienda, queremos que el mensaje sea accionable.
+      throw error;
+    }
+  }
+  return getAlegraConfig();
+}
+
+async function fetchAlegra(path: string, query?: URLSearchParams, shopDomain?: string) {
+  const { baseUrl, auth } = await getAlegraConfigForStore(shopDomain);
   const url = query ? `${baseUrl}${path}?${query.toString()}` : `${baseUrl}${path}`;
   const response = await fetch(url, {
     headers: {
@@ -113,13 +129,14 @@ const isSyncCanceled = (syncId: string) =>
 async function fetchAlegraWithRetry(
   path: string,
   query: URLSearchParams | undefined,
+  shopDomain: string | undefined,
   options: { maxRetries?: number; backoffBaseMs?: number; onRetry?: (waitMs: number) => void } = {}
 ) {
   const maxRetries = options.maxRetries ?? 5;
   const backoffBaseMs = options.backoffBaseMs ?? 2000;
   let attempt = 0;
   while (true) {
-    const response = await fetchAlegra(path, query);
+    const response = await fetchAlegra(path, query, shopDomain);
     if (response.status !== 429) {
       return response;
     }
@@ -222,14 +239,18 @@ const normalizeText = (value: unknown) => {
   return text ? text : null;
 };
 
-const persistProductsFromAlegra = async (items: AlegraItem[]) => {
+const persistProductsFromAlegra = async (items: AlegraItem[], shopDomainInput = "") => {
   if (!Array.isArray(items) || items.length === 0) return;
+  const normalize = (value: string) => value.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
   let shopDomain = "";
-  try {
-    const shopify = await getShopifyCredential();
-    shopDomain = shopify?.shopDomain ? String(shopify.shopDomain) : "";
-  } catch {
-    shopDomain = "";
+  shopDomain = normalize(String(shopDomainInput || ""));
+  if (!shopDomain) {
+    try {
+      const shopify = await getShopifyCredential();
+      shopDomain = shopify?.shopDomain ? normalize(String(shopify.shopDomain)) : "";
+    } catch {
+      shopDomain = "";
+    }
   }
   await Promise.all(
     items.map(async (item) => {
@@ -667,6 +688,7 @@ const buildShopifyPayload = (
 
 export async function listAlegraItemsHandler(req: Request, res: Response) {
   try {
+    const shopDomain = typeof req.query.shopDomain === "string" ? req.query.shopDomain.trim() : "";
     const inStockOnly =
       String(req.query.inStockOnly || "").toLowerCase() === "1" ||
       String(req.query.inStockOnly || "").toLowerCase() === "true";
@@ -683,6 +705,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         query.set(key, String(value));
       }
     });
+    query.delete("shopDomain");
     query.delete("inStockOnly");
     query.delete("warehouseIds");
     if (!query.has("mode")) query.set("mode", "advanced");
@@ -748,7 +771,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
           metadata: { total: cachedTotalResult, filtered: shouldFilter, source: "cache" },
           data: cachedItems.slice(0, scanLimit),
         });
-        void persistProductsFromAlegra(cachedItems).catch(() => null);
+        void persistProductsFromAlegra(cachedItems, shopDomain || "").catch(() => null);
         return;
       }
     }
@@ -777,7 +800,11 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         input.map(async (item) => {
           if (!item?.id) return item;
           if (!needsInventoryForFilter(item)) return item;
-          const detailResponse = await fetchAlegraWithRetry(`/items/${item.id}`, detailQuery);
+          const detailResponse = await fetchAlegraWithRetry(
+            `/items/${item.id}`,
+            detailQuery,
+            shopDomain || undefined
+          );
           if (!detailResponse.ok) return item;
           return (await detailResponse.json()) as AlegraItem;
         })
@@ -799,7 +826,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
     while (page === 0 || (items.length < scanLimit && page < maxPages)) {
       query.set("start", String(scanStart));
       query.set("limit", String(scanLimit));
-      const response = await fetchAlegra("/items", query);
+      const response = await fetchAlegra("/items", query, shopDomain || undefined);
       payload = (await response.json()) as Record<string, unknown>;
       const rawBatch: AlegraItem[] = Array.isArray((payload as any)?.items)
         ? ((payload as any).items as AlegraItem[])
@@ -855,7 +882,11 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
             typeof inv?.availableQuantity === "number" ||
             typeof inv?.quantity === "number";
           if (hasWarehouses || hasQty) return item;
-          const detailResponse = await fetchAlegraWithRetry(`/items/${item.id}`, detailQuery);
+          const detailResponse = await fetchAlegraWithRetry(
+            `/items/${item.id}`,
+            detailQuery,
+            shopDomain || undefined
+          );
           if (!detailResponse.ok) return item;
           return (await detailResponse.json()) as AlegraItem;
         })
@@ -876,7 +907,11 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         const hydrated = await Promise.all(
           scanItems.map(async (item) => {
             if (!item?.id) return null;
-            const detailResponse = await fetchAlegra(`/items/${item.id}`, detailQuery);
+            const detailResponse = await fetchAlegra(
+              `/items/${item.id}`,
+              detailQuery,
+              shopDomain || undefined
+            );
             if (!detailResponse.ok) return null;
             return (await detailResponse.json()) as AlegraItem;
           })
@@ -886,7 +921,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         const start = Number(query.get("start") || "0");
         const limit = Number(query.get("limit") || total);
         const sliced = fullItems.slice(start, start + limit);
-        void persistProductsFromAlegra(sliced).catch(() => null);
+        void persistProductsFromAlegra(sliced, shopDomain || "").catch(() => null);
         res.json({ metadata: { total }, data: sliced });
         return;
       }
@@ -905,7 +940,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
       (payload as any).metadata.total = total;
     }
     (payload as any).metadata.filtered = inStockOnly || warehouseFilterIds.length > 0;
-    void persistProductsFromAlegra(resolvedItems).catch(() => null);
+    void persistProductsFromAlegra(resolvedItems, shopDomain || "").catch(() => null);
     res.status(200).json(payload);
   } catch (error) {
     res.status(502).json({ error: error instanceof Error ? error.message : "Alegra proxy error" });
@@ -968,7 +1003,7 @@ async function scanAlegraItemsByIdentifier(
     scanQuery.set("metadata", "true");
     scanQuery.set("fields", "id,reference,barcode,code,name,customFields");
     scanQuery.set("mode", "advanced");
-    const response = await fetchAlegraWithRetry("/items", scanQuery, {
+    const response = await fetchAlegraWithRetry("/items", scanQuery, undefined, {
       onRetry: options.onRateLimit,
     });
     if (!response.ok) break;
@@ -999,17 +1034,19 @@ async function scanAlegraItemsByIdentifier(
 
 export async function listInventoryAdjustmentsHandler(req: Request, res: Response) {
   try {
+    const shopDomain = typeof req.query.shopDomain === "string" ? req.query.shopDomain.trim() : "";
     const query = new URLSearchParams();
     Object.entries(req.query).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         query.set(key, String(value));
       }
     });
+    query.delete("shopDomain");
     if (!query.has("metadata")) query.set("metadata", "true");
     const rawLimit = Number(query.get("limit"));
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 30) : 30;
     query.set("limit", String(limit));
-    const response = await fetchAlegra("/inventory-adjustments", query);
+    const response = await fetchAlegra("/inventory-adjustments", query, shopDomain || undefined);
     const payload = await response.json();
     res.status(response.status).json(payload);
   } catch (error) {
@@ -1031,10 +1068,11 @@ export async function listItemWarehouseSummaryHandler(req: Request, res: Respons
     return;
   }
   try {
+    const shopDomain = typeof req.query.shopDomain === "string" ? req.query.shopDomain.trim() : "";
     const query = new URLSearchParams();
     query.set("mode", "advanced");
     query.set("fields", "inventory");
-    const response = await fetchAlegra(`/items/${itemId}`, query);
+    const response = await fetchAlegra(`/items/${itemId}`, query, shopDomain || undefined);
     if (!response.ok) {
       const text = await response.text();
       res.status(response.status).json({ error: text || "Alegra item error" });
@@ -1068,13 +1106,15 @@ export async function listItemWarehouseSummaryHandler(req: Request, res: Respons
 
 export async function syncInventoryAdjustmentsHandler(req: Request, res: Response) {
   try {
+    const shopDomain = typeof req.query.shopDomain === "string" ? req.query.shopDomain.trim() : "";
     const query = new URLSearchParams();
     Object.entries(req.query).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         query.set(key, String(value));
       }
     });
-    const result = await syncInventoryAdjustments(query);
+    query.delete("shopDomain");
+    const result = await syncInventoryAdjustments(query, { shopDomain: shopDomain || undefined });
     res.json({ ok: true, ...result });
     await safeCreateLog({
       entity: "inventory_adjustments_sync",
@@ -1107,7 +1147,7 @@ export async function publishShopifyHandler(req: Request, res: Response) {
       const query = new URLSearchParams();
       query.set("mode", "advanced");
       query.set("fields", "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId");
-      const response = await fetchAlegra(`/items/${alegraId}`, query);
+      const response = await fetchAlegra(`/items/${alegraId}`, query, storeDomain || undefined);
       if (!response.ok) {
         throw new Error(`Alegra HTTP ${response.status}`);
       }
@@ -1319,8 +1359,11 @@ export async function syncProductsHandler(req: Request, res: Response) {
         total = checkpoint.total ?? total;
       }
     }
-    const shopifyConfig = publishOnSync ? await getShopifyConfig(shopDomainInput) : null;
-    const storeDomain = shopifyConfig?.shopDomain || "";
+    const normalizeDomain = (value: string) =>
+      value.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    const normalizedShopDomain = shopDomainInput ? normalizeDomain(shopDomainInput) : "";
+    const shopifyConfig = publishOnSync ? await getShopifyConfig(normalizedShopDomain) : null;
+    const storeDomain = normalizedShopDomain || shopifyConfig?.shopDomain || "";
     const storeConfig = storeDomain ? await resolveStoreConfig(storeDomain) : await resolveStoreConfig(null);
     const storeConfigFull = storeDomain ? await getStoreConfigForDomain(storeDomain) : null;
     const warehouseIds =
@@ -1495,9 +1538,14 @@ export async function syncProductsHandler(req: Request, res: Response) {
       detailQuery.set("mode", "advanced");
       const detailResponses = await Promise.all(
         ids.map(async (id) => {
-          const response = await fetchAlegraWithRetry(`/items/${id}`, detailQuery, {
+          const response = await fetchAlegraWithRetry(
+            `/items/${id}`,
+            detailQuery,
+            storeDomain || shopDomainInput || undefined,
+            {
             onRetry: onRateLimit,
-          });
+            }
+          );
           if (!response.ok) return null;
           return (await response.json()) as AlegraItem;
         })
@@ -1520,9 +1568,12 @@ export async function syncProductsHandler(req: Request, res: Response) {
         const attempt = new URLSearchParams(base);
         attempt.set("query", variant);
         searchAttempts.push(`query=${variant}`);
-        const response = await fetchAlegraWithRetry("/items", attempt, {
-          onRetry: onRateLimit,
-        });
+        const response = await fetchAlegraWithRetry(
+          "/items",
+          attempt,
+          storeDomain || shopDomainInput || undefined,
+          { onRetry: onRateLimit }
+        );
         if (!response.ok) continue;
         const payload = (await response.json()) as { items?: AlegraItem[]; data?: AlegraItem[] };
         const items = Array.isArray(payload?.items)
@@ -1542,9 +1593,12 @@ export async function syncProductsHandler(req: Request, res: Response) {
         const attempt = new URLSearchParams(base);
         attempt.set(key, value);
         searchAttempts.push(`${key}=${value}`);
-        const response = await fetchAlegraWithRetry("/items", attempt, {
-          onRetry: onRateLimit,
-        });
+        const response = await fetchAlegraWithRetry(
+          "/items",
+          attempt,
+          storeDomain || shopDomainInput || undefined,
+          { onRetry: onRateLimit }
+        );
         if (!response.ok) continue;
         const payload = (await response.json()) as { items?: AlegraItem[]; data?: AlegraItem[] };
         const items = Array.isArray(payload?.items)
@@ -1621,9 +1675,12 @@ export async function syncProductsHandler(req: Request, res: Response) {
         query.set("query", filters.query);
       }
 
-      const response = await fetchAlegraWithRetry("/items", query, {
-        onRetry: onRateLimit,
-      });
+      const response = await fetchAlegraWithRetry(
+        "/items",
+        query,
+        storeDomain || shopDomainInput || undefined,
+        { onRetry: onRateLimit }
+      );
       if (response.status === 429) {
         logEvent("Límite Alegra persistente, reintentando batch...");
         sendStream({ type: "batch_retry", start });
@@ -1716,7 +1773,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
         const cacheCandidates = queueItems.map((entry) => entry.item);
         const cacheItems = includeInventory ? await hydrateItems(cacheCandidates) : cacheCandidates;
         await upsertAlegraItemsCache(cacheItems);
-        await persistProductsFromAlegra(cacheItems);
+        await persistProductsFromAlegra(cacheItems, storeDomain || shopDomainInput || "");
         const batchNumber = Math.floor(start / batchLimit) + 1;
         const totalBatches = total ? Math.ceil(total / batchLimit) : null;
         const rangeStart = start + 1;
@@ -1784,7 +1841,9 @@ export async function syncProductsHandler(req: Request, res: Response) {
     );
     let inventoryAdjustmentsResult: unknown = null;
     try {
-      inventoryAdjustmentsResult = await syncInventoryAdjustments(new URLSearchParams());
+      inventoryAdjustmentsResult = await syncInventoryAdjustments(new URLSearchParams(), {
+        shopDomain: storeDomain || shopDomainInput || undefined,
+      });
     } catch (error) {
       inventoryAdjustmentsResult = {
         error: error instanceof Error ? error.message : "Inventory adjustments sync failed",
@@ -2134,7 +2193,7 @@ export async function backfillProductsHandler(req: Request, res: Response) {
           if (dateStart) {
             query.set("updated_at_start", dateStart);
           }
-          const response = await fetchAlegraWithRetry("/items", query);
+          const response = await fetchAlegraWithRetry("/items", query, undefined);
           if (!response.ok) break;
           const payload = (await response.json()) as { items?: AlegraItem[]; data?: AlegraItem[] };
           const batch = Array.isArray(payload.items)
