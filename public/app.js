@@ -7145,7 +7145,14 @@ async function connectStore(kind) {
     }
   }
   if (kind === "alegra") {
-    await saveCredentials(kind);
+    try {
+      await saveCredentials(kind);
+    } catch (error) {
+      showToast(
+        error?.message || "Alegra conectado, pero no se pudo guardar credenciales auxiliares.",
+        "is-warn"
+      );
+    }
   }
   clearConnectionForm();
   setConnectionsSetupOpen(true);

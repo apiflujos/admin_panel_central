@@ -2092,6 +2092,8 @@ button {
   display: grid;
   gap: 6px;
   min-height: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .connection-card.is-active {
@@ -2104,6 +2106,7 @@ button {
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
+  min-width: 720px;
 }
 
 .connection-summary-cell {
@@ -2111,6 +2114,10 @@ button {
   gap: 10px;
   align-items: flex-start;
   min-width: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(15, 23, 42, 0.03);
 }
 
 .connection-summary-text {
@@ -2129,12 +2136,7 @@ button {
 
 @media (max-width: 900px) {
   .connection-summary-row {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .connection-summary-meta {
-    justify-content: flex-start;
+    min-width: 680px;
   }
 }
 
