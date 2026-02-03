@@ -896,13 +896,23 @@ function initSetupModeControls() {
     const mode = button.getAttribute("data-setup-mode") || "manual";
     setSetupMode(mode, { persist: true, stopWizard: true });
     const isManual = mode === "manual";
-    setConnectionsSetupOpen(isManual);
+    setConnectionsSetupOpen(true);
+    setSettingsPane("connections", { persist: false });
+    closeCoach({ persistDismiss: false });
     if (isManual) {
-      setSettingsPane("connections", { persist: false });
       const focusTarget =
-        (storeNameInput && !storeNameInput.value.trim() ? storeNameInput : null) || shopifyDomain || storeNameInput;
+        (storeNameInput && !storeNameInput.value.trim() ? storeNameInput : null) ||
+        shopifyDomain ||
+        storeNameInput;
       if (focusTarget) focusFieldWithContext(focusTarget);
+      return;
     }
+    try {
+      localStorage.removeItem(COACH_DISMISSED_KEY);
+    } catch {
+      // ignore storage errors
+    }
+    Promise.resolve(startWizardFlow()).catch(() => null);
   });
 }
 
@@ -3183,12 +3193,56 @@ async function startWizardFlow() {
     if (storeNameInput) markFieldError(storeNameInput, "Nombre de tienda requerido.");
     if (storeNameInput) focusFieldWithContext(storeNameInput);
     showToast("Completa el nombre de la tienda para iniciar.", "is-warn");
+    if (!isCoachDismissed()) {
+      openCoach({
+        title: "Guia · Paso 1",
+        text: "Escribe el nombre visible de la tienda para crear el set de configuraciones.",
+        target: storeNameInput,
+        actions: [
+          {
+            label: "Ir al campo",
+            kind: "primary",
+            onClick: () => {
+              if (storeNameInput) focusFieldWithContext(storeNameInput);
+              closeCoach({ persistDismiss: false });
+            },
+          },
+          {
+            label: "Cerrar",
+            kind: "ghost",
+            onClick: () => closeCoach({ persistDismiss: true }),
+          },
+        ],
+      });
+    }
     return false;
   }
   if (!domain) {
     if (shopifyDomain) markFieldError(shopifyDomain, "Dominio Shopify requerido.");
     if (shopifyDomain) focusFieldWithContext(shopifyDomain);
     showToast("Completa el dominio Shopify para iniciar.", "is-warn");
+    if (!isCoachDismissed()) {
+      openCoach({
+        title: "Guia · Paso 2",
+        text: "Escribe el dominio de Shopify (ej: tu-tienda.myshopify.com). Luego conectamos Shopify y seguimos.",
+        target: shopifyDomain,
+        actions: [
+          {
+            label: "Ir al campo",
+            kind: "primary",
+            onClick: () => {
+              if (shopifyDomain) focusFieldWithContext(shopifyDomain);
+              closeCoach({ persistDismiss: false });
+            },
+          },
+          {
+            label: "Cerrar",
+            kind: "ghost",
+            onClick: () => closeCoach({ persistDismiss: true }),
+          },
+        ],
+      });
+    }
     return false;
   }
   setWizardState({
