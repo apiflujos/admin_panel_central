@@ -781,7 +781,14 @@ function initSetupModeControls() {
     if (!(button instanceof HTMLButtonElement)) return;
     const mode = button.getAttribute("data-setup-mode") || "manual";
     setSetupMode(mode, { persist: true, stopWizard: true });
-    setConnectionsSetupOpen(false);
+    const isManual = mode === "manual";
+    setConnectionsSetupOpen(isManual);
+    if (isManual) {
+      setSettingsPane("connections", { persist: false });
+      const focusTarget =
+        (storeNameInput && !storeNameInput.value.trim() ? storeNameInput : null) || shopifyDomain || storeNameInput;
+      if (focusTarget) focusFieldWithContext(focusTarget);
+    }
   });
 }
 
