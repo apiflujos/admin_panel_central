@@ -970,6 +970,148 @@ function initToggleFields() {
 }
 
 function initTips() {
+  let tipPopoverEl = null;
+  let tipPopoverTextEl = null;
+  let tipPopoverCloseEl = null;
+  let activeTipEl = null;
+  let tipRepositionHandler = null;
+
+  function ensureTipPopover() {
+    if (tipPopoverEl) return tipPopoverEl;
+    const popover = document.createElement("div");
+    popover.className = "tip-popover";
+    popover.setAttribute("role", "dialog");
+    popover.setAttribute("aria-label", "Ayuda");
+
+    const header = document.createElement("div");
+    header.className = "tip-popover-header";
+
+    const title = document.createElement("p");
+    title.className = "tip-popover-title";
+    title.textContent = "Ayuda";
+
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "tip-popover-close";
+    close.setAttribute("aria-label", "Cerrar ayuda");
+    close.textContent = "×";
+
+    header.appendChild(title);
+    header.appendChild(close);
+
+    const text = document.createElement("p");
+    text.className = "tip-popover-text";
+    text.textContent = "";
+
+    popover.appendChild(header);
+    popover.appendChild(text);
+    document.body.appendChild(popover);
+
+    tipPopoverEl = popover;
+    tipPopoverTextEl = text;
+    tipPopoverCloseEl = close;
+
+    close.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeTipPopover();
+    });
+
+    return tipPopoverEl;
+  }
+
+  function positionTipPopover(popover, tip) {
+    if (!(popover instanceof HTMLElement)) return;
+    const isMobile = window.matchMedia?.("(max-width: 720px)")?.matches ?? false;
+    if (isMobile || !(tip instanceof HTMLElement)) return;
+
+    const tipRect = tip.getBoundingClientRect();
+    const popRect = popover.getBoundingClientRect();
+    const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
+    const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+    const gap = 10;
+    const margin = 12;
+
+    let left = tipRect.right + gap;
+    let top = tipRect.top - 6;
+
+    if (left + popRect.width > viewportW - margin) {
+      left = tipRect.left - gap - popRect.width;
+    }
+
+    left = Math.min(Math.max(left, margin), Math.max(margin, viewportW - popRect.width - margin));
+    top = Math.min(Math.max(top, margin), Math.max(margin, viewportH - popRect.height - margin));
+
+    popover.style.left = `${Math.round(left)}px`;
+    popover.style.top = `${Math.round(top)}px`;
+    popover.style.right = "auto";
+    popover.style.bottom = "auto";
+  }
+
+  function bindTipReposition() {
+    if (tipRepositionHandler) return;
+    tipRepositionHandler = () => {
+      if (!tipPopoverEl || !tipPopoverEl.classList.contains("is-open")) return;
+      if (!activeTipEl) return;
+      positionTipPopover(tipPopoverEl, activeTipEl);
+    };
+    window.addEventListener("scroll", tipRepositionHandler, { passive: true });
+    window.addEventListener("resize", tipRepositionHandler);
+  }
+
+  function unbindTipReposition() {
+    if (!tipRepositionHandler) return;
+    window.removeEventListener("scroll", tipRepositionHandler);
+    window.removeEventListener("resize", tipRepositionHandler);
+    tipRepositionHandler = null;
+  }
+
+  function closeTipPopover() {
+    if (!tipPopoverEl) return;
+    tipPopoverEl.classList.remove("is-open");
+    if (activeTipEl) {
+      activeTipEl.setAttribute("aria-expanded", "false");
+    }
+    activeTipEl = null;
+    unbindTipReposition();
+  }
+
+  function openTipPopover(tip) {
+    const popover = ensureTipPopover();
+    if (!tipPopoverTextEl) return;
+
+    const message = tip?.getAttribute?.("data-tip") || "";
+    tipPopoverTextEl.textContent = String(message || "").trim() || "Sin ayuda.";
+
+    popover.classList.add("is-open");
+    popover.style.left = "";
+    popover.style.top = "";
+    popover.style.right = "";
+    popover.style.bottom = "";
+
+    if (activeTipEl && activeTipEl !== tip) {
+      activeTipEl.setAttribute("aria-expanded", "false");
+    }
+    activeTipEl = tip;
+    activeTipEl.setAttribute("aria-expanded", "true");
+    bindTipReposition();
+
+    requestAnimationFrame(() => {
+      positionTipPopover(popover, tip);
+    });
+  }
+
+  function toggleTipPopover(tip) {
+    const popover = ensureTipPopover();
+    if (!popover) return;
+    const isOpen = popover.classList.contains("is-open");
+    if (isOpen && activeTipEl === tip) {
+      closeTipPopover();
+      return;
+    }
+    openTipPopover(tip);
+  }
+
   document.querySelectorAll(".tip").forEach((tip) => {
     if (!(tip instanceof HTMLElement)) return;
     if (!tip.hasAttribute("tabindex")) {
@@ -981,14 +1123,25 @@ function initTips() {
     if (!tip.hasAttribute("aria-label")) {
       tip.setAttribute("aria-label", "Ver ayuda");
     }
+    if (!tip.hasAttribute("aria-expanded")) {
+      tip.setAttribute("aria-expanded", "false");
+    }
     tip.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
       tip.focus();
+      toggleTipPopover(tip);
     });
     tip.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
+        event.preventDefault();
+        closeTipPopover();
         tip.blur();
+        return;
+      }
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleTipPopover(tip);
       }
     });
   });
@@ -997,9 +1150,13 @@ function initTips() {
     const target = event.target instanceof HTMLElement ? event.target : null;
     if (!target) return;
     if (target.closest(".tip")) return;
-    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    if (active && active.classList.contains("tip")) {
-      active.blur();
+    if (target.closest(".tip-popover")) return;
+    closeTipPopover();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeTipPopover();
     }
   });
 }
@@ -2486,7 +2643,7 @@ async function openWizardStep() {
       openCoach({
         title: `Guia · ${getWizardModuleTitle(next.moduleKey)}`,
         text: isShopify
-          ? "1) Escribe el dominio Shopify.\n2) Presiona “Conectar Shopify” y completa el OAuth.\n3) Al volver, seguimos con Alegra."
+          ? "1) Escribe el dominio Shopify.\n2) Presiona “Conectar Shopify” y completa la autorizacion.\n3) Al volver, seguimos con Alegra."
           : "1) Selecciona una cuenta Alegra (o crea una nueva).\n2) Presiona “Conectar Alegra”.\n3) Al terminar, pasamos a configurar la tienda.",
         target: target instanceof HTMLElement ? target : null,
         actions: [
@@ -2549,7 +2706,7 @@ async function openWizardStep() {
     const stepTitle = getWizardModuleTitle(next.moduleKey);
     const defaultTextMap = {
       "shopify-rules":
-        "Define las reglas del modo automatico (webhooks) y el estado al publicar.\nLuego guarda para continuar.",
+        "Define las reglas del modo automatico (se sincroniza solo) y el estado al publicar.\nLuego guarda para continuar.",
       "alegra-inventory":
         "Configura inventario/bodegas (publicar stock, bodegas a sincronizar).\nLuego guarda para continuar.",
       "sync-orders":
@@ -2559,7 +2716,7 @@ async function openWizardStep() {
       "alegra-logistics":
         "Opcional: reglas de traslados/bodegas (si aplican a tu flujo).\nLuego guarda para continuar.",
       "shopify-tech":
-        "Crea webhooks para activar sincronizacion automatica.\nLuego verifica el estado.",
+        "Activa la sincronizacion automatica.\nLuego verifica el estado.",
     };
     openCoach({
       title: `Guia · ${stepTitle}`,
@@ -6072,7 +6229,7 @@ async function loadShopifyWebhooksStatus() {
     const connected = Number(result?.connected || 0);
     const missing = Array.isArray(result?.missing) ? result.missing : [];
     if (!total) {
-      setShopifyWebhooksStatus("Sin datos de webhooks.", "is-error");
+      setShopifyWebhooksStatus("Sin datos de sincronizacion automatica.", "is-error");
       return false;
     }
     if (!missing.length) {
@@ -6093,7 +6250,7 @@ async function createShopifyWebhooks() {
     setShopifyWebhooksStatus("Dominio Shopify requerido.", "is-error");
     return;
   }
-  setShopifyWebhooksStatus("Creando webhooks...");
+  setShopifyWebhooksStatus("Activando sincronizacion automatica...");
   try {
     const result = await fetchJson("/api/shopify/webhooks", {
       method: "POST",
@@ -6104,9 +6261,7 @@ async function createShopifyWebhooks() {
     const okCount = items.filter((item) => item.ok).length;
     const total = items.length || 0;
     const statusText =
-      total > 0
-        ? `Creados ${okCount}/${total}`
-        : result?.message || "Webhooks creados.";
+      total > 0 ? `Activados ${okCount}/${total}` : result?.message || "Sincronizacion automatica activada.";
     setShopifyWebhooksStatus(statusText, okCount === total ? "is-ok" : "is-error");
     await loadShopifyWebhooksStatus();
     advanceWizardStep("shopify-tech");
@@ -6121,10 +6276,10 @@ async function deleteShopifyWebhooks() {
     setShopifyWebhooksStatus("Dominio Shopify requerido.", "is-error");
     return;
   }
-  if (!window.confirm("Eliminar los webhooks de Shopify para esta tienda?")) {
+  if (!window.confirm("Desactivar la sincronizacion automatica para esta tienda?")) {
     return;
   }
-  setShopifyWebhooksStatus("Eliminando webhooks...");
+  setShopifyWebhooksStatus("Desactivando sincronizacion automatica...");
   try {
     const result = await fetchJson("/api/shopify/webhooks/delete", {
       method: "POST",
@@ -6133,7 +6288,8 @@ async function deleteShopifyWebhooks() {
     });
     const deleted = Number(result?.deleted || 0);
     const total = Number(result?.total || 0);
-    const statusText = total > 0 ? `Eliminados ${deleted}/${total}` : "Webhooks eliminados.";
+    const statusText =
+      total > 0 ? `Desactivados ${deleted}/${total}` : "Sincronizacion automatica desactivada.";
     setShopifyWebhooksStatus(statusText, deleted === total ? "is-ok" : "is-error");
     await loadShopifyWebhooksStatus();
   } catch (error) {

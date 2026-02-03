@@ -3011,7 +3011,7 @@ textarea::placeholder {
   font-weight: 700;
   margin-left: 6px;
   position: relative;
-  cursor: help;
+  cursor: pointer;
 }
 
 .tip:focus-visible {
@@ -3045,6 +3045,83 @@ textarea::placeholder {
 .tip:focus::after {
   opacity: 1;
   transform: translate(-50%, 0);
+}
+
+.tip::after {
+  display: none !important;
+}
+
+.tip-popover {
+  position: fixed;
+  z-index: 1200;
+  width: min(360px, calc(100vw - 24px));
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 12px;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.18);
+  padding: 10px 12px;
+  display: none;
+  pointer-events: auto;
+}
+
+.tip-popover.is-open {
+  display: block;
+}
+
+.tip-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.tip-popover-title {
+  font-size: 12px;
+  font-weight: 900;
+  margin: 0;
+  color: var(--text);
+}
+
+.tip-popover-close {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.tip-popover-close:hover {
+  background: rgba(15, 23, 42, 0.04);
+  color: var(--text);
+}
+
+.tip-popover-text {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.35;
+  white-space: pre-line;
+}
+
+@media (max-width: 720px) {
+  .tip-popover {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    top: auto !important;
+    width: auto;
+    max-height: calc(100vh - 24px);
+    overflow: auto;
+  }
 }
 
 @media (max-width: 1100px) {
