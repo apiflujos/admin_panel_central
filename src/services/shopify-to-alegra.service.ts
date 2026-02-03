@@ -79,6 +79,7 @@ export async function syncShopifyOrderToAlegra(
   if (orderMode === "db_only") {
     const orderMeta = buildOrderMetaFromPayload(payload);
     await upsertContact({
+      shopDomain,
       shopifyId: payload.customer?.id ? String(payload.customer.id) : undefined,
       name: orderMeta.customerName,
       email: orderMeta.customerEmail || undefined,
@@ -88,6 +89,7 @@ export async function syncShopifyOrderToAlegra(
     });
     if (orderId) {
       await upsertOrder({
+        shopDomain,
         shopifyId: orderId,
         orderNumber: orderMeta.orderNumber,
         customerName: orderMeta.customerName,
@@ -273,6 +275,7 @@ export async function syncShopifyOrderToAlegra(
   }
 
   await upsertContact({
+    shopDomain,
     shopifyId: payload.customer?.id ? String(payload.customer.id) : undefined,
     alegraId: contactId,
     name: contactName,
@@ -298,6 +301,7 @@ export async function syncShopifyOrderToAlegra(
     if (orderId) {
       const orderMeta = buildOrderMetaFromPayload(payload);
       await upsertOrder({
+        shopDomain,
         shopifyId: orderId,
         orderNumber: orderMeta.orderNumber,
         customerName: orderMeta.customerName,
@@ -371,6 +375,7 @@ export async function syncShopifyOrderToAlegra(
       }
       const orderMeta = buildOrderMetaFromPayload(payload);
       await upsertOrder({
+        shopDomain,
         shopifyId: orderId,
         alegraId: invoiceId,
         orderNumber: orderMeta.orderNumber,

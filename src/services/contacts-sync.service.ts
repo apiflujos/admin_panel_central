@@ -176,6 +176,7 @@ async function syncShopifyCustomerToAlegra(
   }
 
   await upsertContact({
+    shopDomain: ctx.shopDomain,
     shopifyId: normalized.id,
     alegraId: alegraContactId,
     name: normalized.name,
@@ -244,6 +245,7 @@ async function syncAlegraContactToShopify(
   }
 
   await upsertContact({
+    shopDomain: ctx.shopDomain,
     shopifyId: shopifyCustomerId,
     alegraId: normalized.id,
     name: normalized.name,

@@ -74,6 +74,12 @@ export async function processShopifyWebhook(eventType: string, payload: unknown)
   }
 }
 
+function extractShopDomain(payload: unknown) {
+  if (!payload || typeof payload !== "object") return "";
+  const raw = (payload as { __shopDomain?: unknown }).__shopDomain;
+  return typeof raw === "string" ? raw : "";
+}
+
 async function handleShopifyOrder(payload: unknown) {
   // TODO: map order to Alegra contact + invoice sync workflow.
   const result = await syncShopifyOrderToAlegra(
@@ -83,7 +89,8 @@ async function handleShopifyOrder(payload: unknown) {
 }
 
 async function handleShopifyRefund(payload: unknown) {
-  const ctx = await buildSyncContext();
+  const shopDomain = extractShopDomain(payload);
+  const ctx = await buildSyncContext(shopDomain);
   const data = (payload || {}) as Record<string, unknown>;
   try {
     const result = await createInventoryAdjustmentFromRefund(
@@ -114,6 +121,7 @@ async function handleShopifyRefund(payload: unknown) {
 
 async function handleShopifyInventory(payload: unknown) {
   const data = (payload || {}) as Record<string, unknown>;
+  const shopDomain = extractShopDomain(payload);
   const inventoryItemId = data.inventory_item_id || data.inventoryItemId;
   const availableRaw = data.available ?? data.availableQuantity;
   const available =
@@ -140,6 +148,7 @@ async function handleShopifyInventory(payload: unknown) {
   const shopifyProductId = mapping.shopifyProductId || mapping.shopifyId;
   if (shopifyProductId) {
     await upsertProduct({
+      shopDomain,
       shopifyId: shopifyProductId,
       inventoryQuantity: available,
       source: "shopify",
@@ -160,12 +169,14 @@ async function handleShopifyInventory(payload: unknown) {
 
 async function handleShopifyProduct(payload: unknown) {
   const data = (payload || {}) as Record<string, unknown>;
+  const shopDomain = extractShopDomain(payload);
   const productId = data.id ? String(data.id) : "";
   if (productId) {
     const variants = Array.isArray(data.variants) ? data.variants : [];
     const firstVariant = variants[0] as Record<string, unknown> | undefined;
     const sku = firstVariant?.sku ? String(firstVariant.sku) : null;
     await upsertProduct({
+      shopDomain,
       shopifyId: productId,
       name: data.title ? String(data.title) : null,
       sku,
@@ -327,4 +338,3 @@ function buildLogMeta(event: WebhookEvent) {
     message: "Item webhook processed",
   };
 }
-

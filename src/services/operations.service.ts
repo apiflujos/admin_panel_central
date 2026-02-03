@@ -79,7 +79,10 @@ export async function syncOperation(orderId: string) {
   }
 
   const payload = mapOrderToPayload(order);
-  const result = await syncShopifyOrderToAlegra(payload);
+  const result = await syncShopifyOrderToAlegra({
+    ...(payload as Record<string, unknown>),
+    __shopDomain: ctx.shopDomain,
+  });
   return { status: "synced", result };
 }
 
@@ -226,7 +229,10 @@ export async function seedOperations() {
           return { orderId: order.id, status: "skipped_duplicate" };
         }
         const payload = mapOrderToPayload(order);
-        const result = await syncShopifyOrderToAlegra(payload);
+        const result = await syncShopifyOrderToAlegra({
+          ...(payload as Record<string, unknown>),
+          __shopDomain: ctx.shopDomain,
+        });
         return { orderId: order.id, status: "synced", result };
       })
     );

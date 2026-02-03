@@ -1,6 +1,7 @@
 import { getOrgId, getPool } from "../db";
 
 type ContactInput = {
+  shopDomain?: string | null;
   shopifyId?: string | number | null;
   alegraId?: string | number | null;
   name?: string | null;
@@ -11,9 +12,17 @@ type ContactInput = {
   source?: string | null;
 };
 
+const normalizeShopDomain = (value: unknown) =>
+  String(value || "")
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+    .toLowerCase();
+
 export async function upsertContact(input: ContactInput) {
   const pool = getPool();
   const orgId = getOrgId();
+  const shopDomain = normalizeShopDomain(input.shopDomain || "");
   const shopifyId = input.shopifyId ? String(input.shopifyId) : null;
   const alegraId = input.alegraId ? String(input.alegraId) : null;
   const name = input.name ? String(input.name) : null;
@@ -32,31 +41,33 @@ export async function upsertContact(input: ContactInput) {
     SELECT id
     FROM contacts
     WHERE organization_id = $1
+      AND shop_domain = $2
       AND (
-        shopify_id = $2
-        OR alegra_id = $3
-        OR (email = $4 AND $4 IS NOT NULL AND $4 <> '')
+        shopify_id = $3
+        OR alegra_id = $4
+        OR (email = $5 AND $5 IS NOT NULL AND $5 <> '')
       )
     LIMIT 1
     `,
-    [orgId, shopifyId, alegraId, email]
+    [orgId, shopDomain, shopifyId, alegraId, email]
   );
 
   if (existing.rows.length) {
     await pool.query(
       `
       UPDATE contacts
-      SET shopify_id = COALESCE($2, shopify_id),
-          alegra_id = COALESCE($3, alegra_id),
-          name = COALESCE($4, name),
-          email = COALESCE($5, email),
-          phone = COALESCE($6, phone),
-          doc = COALESCE($7, doc),
-          address = COALESCE($8, address),
-          source = COALESCE($9, source),
+      SET shop_domain = COALESCE(NULLIF($2, ''), shop_domain),
+          shopify_id = COALESCE($3, shopify_id),
+          alegra_id = COALESCE($4, alegra_id),
+          name = COALESCE($5, name),
+          email = COALESCE($6, email),
+          phone = COALESCE($7, phone),
+          doc = COALESCE($8, doc),
+          address = COALESCE($9, address),
+          source = COALESCE($10, source),
           sync_status = CASE
-            WHEN COALESCE($2, shopify_id) IS NOT NULL
-             AND COALESCE($3, alegra_id) IS NOT NULL
+            WHEN COALESCE($3, shopify_id) IS NOT NULL
+             AND COALESCE($4, alegra_id) IS NOT NULL
             THEN 'synced'
             ELSE 'pending'
           END,
@@ -64,7 +75,7 @@ export async function upsertContact(input: ContactInput) {
           updated_at = NOW()
       WHERE id = $1
       `,
-      [existing.rows[0].id, shopifyId, alegraId, name, email, phone, doc, address, source]
+      [existing.rows[0].id, shopDomain, shopifyId, alegraId, name, email, phone, doc, address, source]
     );
     return { updated: true };
   }
@@ -73,15 +84,16 @@ export async function upsertContact(input: ContactInput) {
   await pool.query(
     `
     INSERT INTO contacts
-      (organization_id, shopify_id, alegra_id, name, email, phone, doc, address, source, sync_status, last_sync_at)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
+      (organization_id, shop_domain, shopify_id, alegra_id, name, email, phone, doc, address, source, sync_status, last_sync_at)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())
     `,
-    [orgId, shopifyId, alegraId, name, email, phone, doc, address, source, syncStatus]
+    [orgId, shopDomain, shopifyId, alegraId, name, email, phone, doc, address, source, syncStatus]
   );
   return { created: true };
 }
 
 export async function listContacts(options: {
+  shopDomain?: string;
   query?: string;
   status?: string;
   source?: string;
@@ -102,6 +114,9 @@ export async function listContacts(options: {
     idx += 1;
   };
 
+  if (typeof options.shopDomain === "string") {
+    add("shop_domain = $idx", normalizeShopDomain(options.shopDomain));
+  }
   if (options.query) {
     const q = `%${options.query}%`;
     where.push(

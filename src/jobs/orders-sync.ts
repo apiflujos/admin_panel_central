@@ -80,7 +80,10 @@ export function startOrdersSyncPoller() {
         const results = await Promise.allSettled(
           batch.map(async (order) => {
             const payload = mapOrderToPayload(order);
-            await syncShopifyOrderToAlegra(payload);
+            await syncShopifyOrderToAlegra({
+              ...(payload as Record<string, unknown>),
+              __shopDomain: credential.shopDomain,
+            });
             processed += 1;
             const updatedAt = extractUpdatedAt(order);
             if (updatedAt && updatedAt > lastSeen) {

@@ -9,6 +9,7 @@ import { getStoreConfigForDomain } from "./store-configs.service";
 type SyncContext = {
   shopify: ShopifyClient;
   alegra: AlegraClient;
+  shopDomain: string;
   shopifyLocationId?: string;
   syncEnabled: boolean;
   publishOnStock: boolean;
@@ -70,6 +71,7 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
       apiKey: alegraSettings.apiKey,
       baseUrl: getAlegraBaseUrl(alegraSettings.environment),
     }),
+    shopDomain: resolvedDomain,
     shopifyLocationId: shopifySettings.locationId,
     syncEnabled: rules.syncEnabled !== false,
     publishOnStock: rules.publishOnStock,
