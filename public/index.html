@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260203af" />
+    <link rel="stylesheet" href="styles.css?v=20260203ag" />
   </head>
   <body>
     <div class="app-shell">
@@ -796,15 +796,6 @@
                               <h4>Sincronizacion masiva (inicio)</h4>
                               <span class="tip" data-tip="Usala para iniciar el catalogo. Se ejecuta cuando la lanzas manualmente.">?</span>
                             </div>
-                            <div class="mode-head-right">
-                              <label for="products-sync-publish">Publicar</label>
-                              <input type="checkbox" id="products-sync-publish" class="toggle" checked />
-                              <label for="products-publish-status-mass">Estado</label>
-                              <select id="products-publish-status-mass" data-depends-on="products-sync-publish">
-                                <option value="draft">Borrador</option>
-                                <option value="active">Activo</option>
-                              </select>
-                            </div>
                           </div>
                           <div class="mode-grid">
                             <div class="mode-field">
@@ -826,6 +817,17 @@
                               <input type="checkbox" id="products-sync-only-active" class="toggle" checked />
                             </div>
                             <div class="mode-toggle">
+                              <label for="products-sync-publish">Publicar en Shopify</label>
+                              <input type="checkbox" id="products-sync-publish" class="toggle" checked />
+                            </div>
+                            <div class="mode-toggle">
+                              <label for="products-publish-status-mass">Estado</label>
+                              <select id="products-publish-status-mass" data-depends-on="products-sync-publish">
+                                <option value="draft">Borrador</option>
+                                <option value="active">Activo</option>
+                              </select>
+                            </div>
+                            <div class="mode-toggle">
                               <label for="products-sync-include-inventory">Incluir inventario</label>
                               <input type="checkbox" id="products-sync-include-inventory" class="toggle" checked />
                             </div>
@@ -844,20 +846,22 @@
                               <h4>Sincronizacion automatica</h4>
                               <span class="tip" data-tip="Se ejecuta cuando llega un cambio desde Alegra.">?</span>
                             </div>
-                            <div class="mode-head-right">
-                              <label for="rules-auto-publish">Publicar</label>
+                          </div>
+                          <div class="mode-toggle-grid" aria-label="Opciones automatico">
+                            <div class="mode-toggle">
+                              <label for="rules-only-active">Solo activos en Alegra</label>
+                              <input type="checkbox" id="rules-only-active" class="toggle" />
+                            </div>
+                            <div class="mode-toggle">
+                              <label for="rules-auto-publish">Publicar en Shopify</label>
                               <input type="checkbox" id="rules-auto-publish" class="toggle" />
+                            </div>
+                            <div class="mode-toggle">
                               <label for="rules-auto-status">Estado</label>
                               <select id="rules-auto-status" data-depends-on="rules-auto-publish">
                                 <option value="draft">Borrador</option>
                                 <option value="active">Activo</option>
                               </select>
-                            </div>
-                          </div>
-                          <div class="mode-grid">
-                            <div class="mode-field">
-                              <label for="rules-only-active">Solo activos en Alegra</label>
-                              <input type="checkbox" id="rules-only-active" class="toggle" />
                             </div>
                           </div>
                         </div>
@@ -868,19 +872,19 @@
                               <h4>Sincronizacion manual (desde Productos)</h4>
                               <span class="tip" data-tip="Se ejecuta cuando publicas un producto desde la tabla (acciones por SKU).">?</span>
                             </div>
-                            <div class="mode-head-right">
+                            <button class="ghost mode-head-action" type="button" data-nav-to="products">Ir a Productos</button>
+                          </div>
+                          <div class="mode-toggle-grid" aria-label="Opciones manual">
+                            <div class="mode-toggle">
+                              <label for="products-include-images">Publicar fotos</label>
+                              <input type="checkbox" id="products-include-images" class="toggle" />
+                            </div>
+                            <div class="mode-toggle">
                               <label for="products-publish-status">Estado</label>
                               <select id="products-publish-status">
                                 <option value="draft">Borrador</option>
                                 <option value="active">Activo</option>
                               </select>
-                            </div>
-                            <button class="ghost mode-head-action" type="button" data-nav-to="products">Ir a Productos</button>
-                          </div>
-                          <div class="mode-grid">
-                            <div class="mode-field">
-                              <label for="products-include-images">Publicar fotos (manual y masivo)</label>
-                              <input type="checkbox" id="products-include-images" class="toggle" />
                             </div>
                           </div>
                         </div>
@@ -1506,6 +1510,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260203af" type="module"></script>
+    <script src="app.js?v=20260203ag" type="module"></script>
   </body>
 </html>

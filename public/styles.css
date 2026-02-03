@@ -2551,6 +2551,8 @@ textarea::placeholder {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .mode-head-right label {
@@ -2564,6 +2566,10 @@ textarea::placeholder {
   border-radius: 10px;
   font-size: 12px;
   font-weight: 800;
+}
+
+.mode-head-right .toggle {
+  margin-right: 8px;
 }
 
 .mode-head-action {
@@ -2599,6 +2605,8 @@ textarea::placeholder {
   background: var(--panel);
   display: grid;
   gap: 8px;
+  align-content: start;
+  min-height: 78px;
 }
 
 .mode-toggle label {
@@ -2609,6 +2617,12 @@ textarea::placeholder {
 
 .mode-toggle .toggle {
   justify-self: start;
+}
+
+.mode-toggle select,
+.mode-toggle input:not([type="checkbox"]),
+.mode-toggle textarea {
+  width: 100%;
 }
 
 .mode-field {
