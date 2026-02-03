@@ -16,11 +16,16 @@ async function performRepair(poolInstance: Pool) {
         "CREATE TABLE IF NOT EXISTS shopify_oauth_states (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), shop_domain TEXT NOT NULL, nonce TEXT NOT NULL, store_name TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE TABLE IF NOT EXISTS alegra_accounts (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), user_email TEXT NOT NULL, api_key_encrypted TEXT NOT NULL, environment TEXT DEFAULT 'prod', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE TABLE IF NOT EXISTS sync_mappings (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), entity TEXT NOT NULL, shopify_id TEXT, alegra_id TEXT, parent_id TEXT, metadata_json JSONB NOT NULL DEFAULT '{}');",
-        "CREATE TABLE IF NOT EXISTS contacts (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), source TEXT NOT NULL DEFAULT 'shopify', shopify_id TEXT, alegra_id TEXT, name TEXT, email TEXT, phone TEXT, doc TEXT, address TEXT, sync_status TEXT NOT NULL DEFAULT 'pending', last_sync_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
-        "CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), source TEXT NOT NULL DEFAULT 'shopify', shopify_order_id TEXT, alegra_invoice_id TEXT, shopify_order_number TEXT, customer_name TEXT, customer_email TEXT, products_summary TEXT, processed_at TIMESTAMPTZ, status TEXT, total NUMERIC, currency TEXT, alegra_status TEXT, invoice_number TEXT, source_updated_at TIMESTAMPTZ, sync_status TEXT NOT NULL DEFAULT 'pending', last_sync_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
-        "CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), source TEXT NOT NULL DEFAULT 'alegra', alegra_item_id TEXT, shopify_product_id TEXT, name TEXT, reference TEXT, sku TEXT, status_alegra TEXT, status_shopify TEXT, inventory_quantity NUMERIC, warehouse_ids TEXT[], source_updated_at TIMESTAMPTZ, sync_status TEXT NOT NULL DEFAULT 'pending', last_sync_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
-        "CREATE UNIQUE INDEX IF NOT EXISTS products_org_alegra_idx ON products (organization_id, alegra_item_id);",
-        "CREATE UNIQUE INDEX IF NOT EXISTS products_org_shopify_idx ON products (organization_id, shopify_product_id);",
+        "CREATE TABLE IF NOT EXISTS contacts (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), shop_domain TEXT NOT NULL DEFAULT '', source TEXT NOT NULL DEFAULT 'shopify', shopify_id TEXT, alegra_id TEXT, name TEXT, email TEXT, phone TEXT, doc TEXT, address TEXT, sync_status TEXT NOT NULL DEFAULT 'pending', last_sync_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
+        "CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), shop_domain TEXT NOT NULL DEFAULT '', source TEXT NOT NULL DEFAULT 'shopify', shopify_order_id TEXT, alegra_invoice_id TEXT, shopify_order_number TEXT, customer_name TEXT, customer_email TEXT, products_summary TEXT, processed_at TIMESTAMPTZ, status TEXT, total NUMERIC, currency TEXT, alegra_status TEXT, invoice_number TEXT, source_updated_at TIMESTAMPTZ, sync_status TEXT NOT NULL DEFAULT 'pending', last_sync_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
+        "CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), shop_domain TEXT NOT NULL DEFAULT '', source TEXT NOT NULL DEFAULT 'alegra', alegra_item_id TEXT, shopify_product_id TEXT, name TEXT, reference TEXT, sku TEXT, status_alegra TEXT, status_shopify TEXT, inventory_quantity NUMERIC, warehouse_ids TEXT[], source_updated_at TIMESTAMPTZ, sync_status TEXT NOT NULL DEFAULT 'pending', last_sync_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
+        "ALTER TABLE contacts ADD COLUMN IF NOT EXISTS shop_domain TEXT NOT NULL DEFAULT '';",
+        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS shop_domain TEXT NOT NULL DEFAULT '';",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS shop_domain TEXT NOT NULL DEFAULT '';",
+        "DROP INDEX IF EXISTS products_org_alegra_idx;",
+        "DROP INDEX IF EXISTS products_org_shopify_idx;",
+        "CREATE UNIQUE INDEX IF NOT EXISTS products_org_alegra_store_idx ON products (organization_id, shop_domain, alegra_item_id);",
+        "CREATE UNIQUE INDEX IF NOT EXISTS products_org_shopify_store_idx ON products (organization_id, shop_domain, shopify_product_id);",
         "CREATE INDEX IF NOT EXISTS products_org_ref_idx ON products (organization_id, reference);",
         "CREATE INDEX IF NOT EXISTS products_org_sku_idx ON products (organization_id, sku);",
         "CREATE INDEX IF NOT EXISTS products_org_updated_idx ON products (organization_id, updated_at DESC);",
@@ -160,10 +165,14 @@ async function performRepair(poolInstance: Pool) {
         "ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW();",
         "CREATE INDEX IF NOT EXISTS sync_mappings_shopify_idx ON sync_mappings (entity, shopify_id);",
         "CREATE INDEX IF NOT EXISTS sync_mappings_alegra_idx ON sync_mappings (entity, alegra_id);",
-        "CREATE UNIQUE INDEX IF NOT EXISTS contacts_shopify_idx ON contacts (organization_id, shopify_id);",
-        "CREATE UNIQUE INDEX IF NOT EXISTS contacts_alegra_idx ON contacts (organization_id, alegra_id);",
-        "CREATE UNIQUE INDEX IF NOT EXISTS orders_shopify_idx ON orders (organization_id, shopify_order_id);",
-        "CREATE UNIQUE INDEX IF NOT EXISTS orders_alegra_idx ON orders (organization_id, alegra_invoice_id);",
+        "DROP INDEX IF EXISTS contacts_shopify_idx;",
+        "DROP INDEX IF EXISTS contacts_alegra_idx;",
+        "DROP INDEX IF EXISTS orders_shopify_idx;",
+        "DROP INDEX IF EXISTS orders_alegra_idx;",
+        "CREATE UNIQUE INDEX IF NOT EXISTS contacts_shopify_store_idx ON contacts (organization_id, shop_domain, shopify_id);",
+        "CREATE UNIQUE INDEX IF NOT EXISTS contacts_alegra_store_idx ON contacts (organization_id, shop_domain, alegra_id);",
+        "CREATE UNIQUE INDEX IF NOT EXISTS orders_shopify_store_idx ON orders (organization_id, shop_domain, shopify_order_id);",
+        "CREATE UNIQUE INDEX IF NOT EXISTS orders_alegra_store_idx ON orders (organization_id, shop_domain, alegra_invoice_id);",
         "CREATE INDEX IF NOT EXISTS sync_logs_org_status_idx ON sync_logs (organization_id, status, created_at);",
         "CREATE INDEX IF NOT EXISTS webhook_events_source_type_idx ON webhook_events (source, event_type, received_at);",
         "CREATE UNIQUE INDEX IF NOT EXISTS retry_queue_sync_log_id_idx ON retry_queue (sync_log_id);",
@@ -183,6 +192,40 @@ async function performRepair(poolInstance: Pool) {
           console.error("DB repair query failed:", query, error);
         }
       }
+
+      // Backfill: if there is only one Shopify store, assign it as default shop_domain for legacy rows.
+      try {
+        const orgId = Number(process.env.APP_ORG_ID || 1);
+        const stores = await poolInstance.query<{ shop_domain: string }>(
+          `
+          SELECT DISTINCT shop_domain
+          FROM shopify_stores
+          WHERE organization_id = $1
+          `,
+          [orgId]
+        );
+        const uniqueDomains = stores.rows
+          .map((row) => String(row.shop_domain || "").trim())
+          .filter(Boolean);
+        if (uniqueDomains.length === 1) {
+          const domain = uniqueDomains[0];
+          await poolInstance.query(
+            `UPDATE products SET shop_domain = $1 WHERE organization_id = $2 AND (shop_domain IS NULL OR shop_domain = '')`,
+            [domain, orgId]
+          );
+          await poolInstance.query(
+            `UPDATE orders SET shop_domain = $1 WHERE organization_id = $2 AND (shop_domain IS NULL OR shop_domain = '')`,
+            [domain, orgId]
+          );
+          await poolInstance.query(
+            `UPDATE contacts SET shop_domain = $1 WHERE organization_id = $2 AND (shop_domain IS NULL OR shop_domain = '')`,
+            [domain, orgId]
+          );
+        }
+      } catch (error: unknown) {
+        console.error("DB shop_domain backfill failed:", error);
+      }
+
       await poolInstance.query(
         "INSERT INTO organizations (id, name) VALUES (1, 'Default') ON CONFLICT DO NOTHING;"
       );

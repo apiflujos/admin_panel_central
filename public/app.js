@@ -125,6 +125,9 @@ const companyLogo = document.getElementById("company-logo");
 const storeNameInput = document.getElementById("store-name");
 const storeActiveField = document.getElementById("store-active-field");
 const storeActiveSelect = document.getElementById("store-active-select");
+const ordersStoreSelect = document.getElementById("orders-store-select");
+const productsStoreSelect = document.getElementById("products-store-select");
+const contactsStoreSelect = document.getElementById("contacts-store-select");
 const shopifyDomain = document.getElementById("shopify-domain");
 const shopifyToken = document.getElementById("shopify-token");
 const wizardStart = document.getElementById("wizard-start");
@@ -230,7 +233,6 @@ const productsClearBtn = document.getElementById("products-clear");
 const productsDateFilter = document.getElementById("products-date-filter");
 const productsSort = document.getElementById("products-sort");
 const productsLimitInput = document.getElementById("products-limit");
-const productsPublishFilter = document.getElementById("products-publish-filter");
 const productsWarehouseFilter = document.getElementById("products-warehouse-filter");
 const productsWarehouseSummary = document.getElementById("products-warehouse-summary");
 const productsWarehouseSelectAll = document.getElementById("products-warehouse-select-all");
@@ -3124,14 +3126,13 @@ function applyProductSettings() {
   if (productsSyncIncludeInventory) {
     productsSyncIncludeInventory.checked = productSettings.sync.includeInventory !== false;
   }
-  updateSyncWarehouseState();
-  if (productsLimitInput) productsLimitInput.value = productSettings.filters.listLimit || "30";
-  if (productsPublishFilter) productsPublishFilter.value = productSettings.filters.publishStatus || "all";
-  if (productsDateFilter) productsDateFilter.value = productSettings.filters.productsDate || "";
-  if (productsSort) productsSort.value = productSettings.filters.productsSort || "date_desc";
-  if (productsInStockOnly) {
-    productsInStockOnly.checked = Boolean(productSettings.filters.inStockOnly);
-  }
+	updateSyncWarehouseState();
+	if (productsLimitInput) productsLimitInput.value = productSettings.filters.listLimit || "30";
+	if (productsDateFilter) productsDateFilter.value = productSettings.filters.productsDate || "";
+	if (productsSort) productsSort.value = productSettings.filters.productsSort || "date_desc";
+	if (productsInStockOnly) {
+	  productsInStockOnly.checked = Boolean(productSettings.filters.inStockOnly);
+	}
   if (productsStatusFilter) {
     productsStatusFilter.value = productSettings.filters.statusFilter || "all";
   }
@@ -3172,13 +3173,13 @@ function refreshProductSettingsFromInputs() {
       limit: ordersLimit ? ordersLimit.value : "",
       search: opsSearch ? opsSearch.value.trim() : "",
       orderNumber: ordersSyncNumber ? ordersSyncNumber.value.trim() : "",
-    },
-    filters: {
-      publishStatus: productsPublishFilter ? productsPublishFilter.value : "all",
-      productsDate: productsDateFilter ? productsDateFilter.value : "",
-      productsSort: productsSort ? productsSort.value : "date_desc",
-      listLimit: productsLimitInput ? productsLimitInput.value : "",
-      warehouseIds: getSelectedWarehouseIds(),
+	    },
+	    filters: {
+	      publishStatus: "all",
+	      productsDate: productsDateFilter ? productsDateFilter.value : "",
+	      productsSort: productsSort ? productsSort.value : "date_desc",
+	      listLimit: productsLimitInput ? productsLimitInput.value : "",
+	      warehouseIds: getSelectedWarehouseIds(),
       inStockOnly: productsInStockOnly ? productsInStockOnly.checked : false,
       statusFilter: productsStatusFilter ? productsStatusFilter.value : "all",
       ordersDate: ordersDateFilter ? ordersDateFilter.value : "",
@@ -3574,11 +3575,28 @@ function renderStoreActiveSelect(stores) {
     storeNameInput.placeholder = getActiveStoreLabel() || "Tienda de ejemplo";
   }
   updateStoreModuleTitles();
+  renderStoreContextSelects(stores);
   setShopifyWebhooksStatus("Sin configurar");
   collapseAllGroupsAndModules();
   openDefaultGroups();
   loadLegacyStoreConfig().catch(() => null);
   openWizardStep();
+}
+
+function renderStoreContextSelects(stores) {
+  const selects = [ordersStoreSelect, productsStoreSelect, contactsStoreSelect].filter(Boolean);
+  if (!selects.length) return;
+  const list = Array.isArray(stores) ? stores : [];
+  const options = list
+    .map((store) => `<option value="${store.shopDomain}">${store.storeName || store.shopDomain}</option>`)
+    .join("");
+  selects.forEach((select) => {
+    select.innerHTML = options;
+    select.disabled = list.length <= 1;
+    if (activeStoreDomain) {
+      select.value = activeStoreDomain;
+    }
+  });
 }
 
 function renderAlegraAccountOptions(accounts) {
@@ -4758,10 +4776,11 @@ async function loadShopifyLookup(products) {
     return;
   }
   try {
+    const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
     const payload = await fetchJson("/api/shopify/lookup-batch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ skus }),
+      body: JSON.stringify({ skus, shopDomain }),
     });
     shopifyLookup = payload.results || {};
   } catch {
@@ -4780,27 +4799,13 @@ function renderProducts() {
     return;
   }
 
-  const publishFilter = productSettings.filters?.publishStatus || "all";
   const dateFilter = productSettings.filters?.productsDate || "";
   const sortMode = productSettings.filters?.productsSort || "date_desc";
   const inStockOnly = Boolean(productSettings.filters?.inStockOnly);
   const statusFilter = productSettings.filters?.statusFilter || "all";
   const selectedWarehouses = new Set(productSettings.filters?.warehouseIds || []);
   const parentRows = productsRows.filter((row) => row.type === "parent");
-  const filteredParents = parentRows.filter((row) => {
-    if (publishFilter === "all") return true;
-    const product = row.item;
-    const lookup = product.sku ? shopifyLookup[product.sku] : null;
-    const variantLookup = (product.variantBarcodes || [])
-      .map((sku) => shopifyLookup[sku])
-      .find((entry) => entry?.published);
-    const resolvedLookup = lookup?.published ? lookup : variantLookup;
-    const isPublished = Boolean(resolvedLookup?.published);
-    const status = String(resolvedLookup?.status || "").toLowerCase();
-    if (publishFilter === "published") return isPublished;
-    if (publishFilter === "unpublished") return !isPublished;
-    return isPublished && status === publishFilter;
-  });
+  const filteredParents = parentRows;
 
   const dateFilteredParents = dateFilter
     ? filteredParents.filter((row) => {
@@ -4818,7 +4823,6 @@ function renderProducts() {
     return matchesStatus && matchesStock && matchesWarehouse;
   });
   const useFilteredCount =
-    publishFilter !== "all" ||
     Boolean(dateFilter) ||
     inStockOnly ||
     statusFilter !== "all" ||
@@ -4988,14 +4992,16 @@ async function loadProducts() {
   productsLoading = true;
   renderProducts();
   setProductsStatus("Cargando productos...");
-  try {
-    const limit = productsLimitInput ? clampProductsLimit(Number(productsLimitInput.value)) : 30;
-    const params = new URLSearchParams();
-    params.set("start", String(productsStart));
-    params.set("limit", String(limit));
-    if (productsQuery) params.set("query", productsQuery);
-    const inStockOnly = Boolean(productSettings.filters?.inStockOnly);
-    if (inStockOnly) params.set("inStockOnly", "1");
+	try {
+	  const limit = productsLimitInput ? clampProductsLimit(Number(productsLimitInput.value)) : 30;
+	  const params = new URLSearchParams();
+	  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+	  if (shopDomain) params.set("shopDomain", shopDomain);
+	  params.set("start", String(productsStart));
+	  params.set("limit", String(limit));
+	  if (productsQuery) params.set("query", productsQuery);
+	  const inStockOnly = Boolean(productSettings.filters?.inStockOnly);
+	  if (inStockOnly) params.set("inStockOnly", "1");
     const warehouseIds = Array.isArray(productSettings.filters?.warehouseIds)
       ? productSettings.filters.warehouseIds
       : [];
@@ -5040,6 +5046,7 @@ async function publishProduct(alegraId) {
     setProductsStatus("Publicacion cancelada.");
     return;
   }
+  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   setProductsStatus(`Publicando ${alegraId}...`);
   try {
     await fetchJson("/api/shopify/publish", {
@@ -5047,6 +5054,7 @@ async function publishProduct(alegraId) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         alegraId,
+        shopDomain,
         settings: {
           status: productSettings.publish.status,
           includeImages: productSettings.publish.includeImages,
@@ -5091,8 +5099,8 @@ async function runProductsSync(mode) {
   const stopProgress = startSyncProgress("Productos");
   updateProductsProgress(0, "Productos 0% · ETA --:--");
   let syncStartTime = Date.now();
-  let currentSyncId = "";
-  let latestTotals = {
+	let currentSyncId = "";
+	let latestTotals = {
     total: null,
     scanned: 0,
     processed: 0,
@@ -5103,17 +5111,19 @@ async function runProductsSync(mode) {
     rateLimitRetries: 0,
     parents: 0,
     variants: 0,
-  };
-  try {
-    const response = await fetch("/api/sync/products?stream=1", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mode: resolvedMode,
-        batchSize: 5,
-        filters: {
-          dateStart: productSettings.sync.dateStart || null,
-          dateEnd: productSettings.sync.dateEnd || null,
+	};
+	try {
+	  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+	  const response = await fetch("/api/sync/products?stream=1", {
+	    method: "POST",
+	    headers: { "Content-Type": "application/json" },
+	    body: JSON.stringify({
+	      shopDomain,
+	      mode: resolvedMode,
+	      batchSize: 5,
+	      filters: {
+	        dateStart: productSettings.sync.dateStart || null,
+	        dateEnd: productSettings.sync.dateEnd || null,
           limit: productSettings.sync.limit ? Number(productSettings.sync.limit) : null,
           query: productSettings.sync.query || null,
           includeInventory: productSettings.sync.includeInventory !== false,
@@ -5289,23 +5299,25 @@ async function runOrdersSync() {
     total: null,
     processed: 0,
   };
-  try {
-    const orderNumber = productSettings.orders.orderNumber
-      ? productSettings.orders.orderNumber.replace(/^#/, "")
-      : "";
-    const response = await fetch("/api/sync/orders?stream=1", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        filters: {
-          dateStart: productSettings.orders.dateStart || null,
-          dateEnd: productSettings.orders.dateEnd || null,
-          limit: productSettings.orders.limit ? Number(productSettings.orders.limit) : null,
-          orderNumber: orderNumber || null,
-        },
-        stream: true,
-      }),
-    });
+	try {
+	  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+	  const orderNumber = productSettings.orders.orderNumber
+	    ? productSettings.orders.orderNumber.replace(/^#/, "")
+	    : "";
+	  const response = await fetch("/api/sync/orders?stream=1", {
+	    method: "POST",
+	    headers: { "Content-Type": "application/json" },
+	    body: JSON.stringify({
+	      shopDomain,
+	      filters: {
+	        dateStart: productSettings.orders.dateStart || null,
+	        dateEnd: productSettings.orders.dateEnd || null,
+	        limit: productSettings.orders.limit ? Number(productSettings.orders.limit) : null,
+	        orderNumber: orderNumber || null,
+	      },
+	      stream: true,
+	    }),
+	  });
     if (!response.ok || !response.body) {
       const text = await response.text();
       throw new Error(text || "No se pudo sincronizar pedidos.");
@@ -5519,6 +5531,8 @@ async function loadOperations() {
   try {
     const days = ordersDaysSelect ? Number(ordersDaysSelect.value) : 30;
     const params = new URLSearchParams();
+    const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+    if (shopDomain) params.set("shopDomain", shopDomain);
     if (Number.isFinite(days) && days > 0) params.set("days", String(days));
     if (opsSearch && opsSearch.value.trim()) {
       params.set("query", opsSearch.value.trim());
@@ -5693,6 +5707,8 @@ function renderContacts(items) {
 
 async function loadContacts() {
   const params = new URLSearchParams();
+  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+  if (shopDomain) params.set("shopDomain", shopDomain);
   const query = contactsSearch ? contactsSearch.value.trim() : "";
   const status = contactsStatusFilter ? contactsStatusFilter.value : "";
   const source = contactsSourceFilter ? contactsSourceFilter.value : "";
@@ -7049,8 +7065,8 @@ if (logRetry) {
 if (alegraAccountSelect) {
   alegraAccountSelect.addEventListener("change", toggleAlegraAccountFields);
 }
-  if (storeActiveSelect) {
-    storeActiveSelect.addEventListener("change", () => {
+	  if (storeActiveSelect) {
+	    storeActiveSelect.addEventListener("change", () => {
       const nextDomain = storeActiveSelect.value || "";
       activeStoreDomain = nextDomain;
       activeStoreName =
@@ -7064,19 +7080,37 @@ if (alegraAccountSelect) {
     } catch {
       // ignore storage errors
     }
-      updateStoreModuleTitles();
-      renderConnections({ stores: storesCache });
-      setShopifyWebhooksStatus("Sin configurar");
-      collapseAllGroupsAndModules();
-      openDefaultGroups();
-      loadLegacyStoreConfig().catch(() => null);
-      openWizardStep();
+	      updateStoreModuleTitles();
+	      renderConnections({ stores: storesCache });
+	      renderStoreContextSelects(storesCache);
+	      setShopifyWebhooksStatus("Sin configurar");
+	      collapseAllGroupsAndModules();
+	      openDefaultGroups();
+	      loadLegacyStoreConfig().catch(() => null);
+	      openWizardStep();
+	      loadProducts().catch(() => null);
+	      loadOperations().catch(() => null);
+	      loadContacts().catch(() => null);
+	    });
+	  }
+
+  const bindStoreContextSelect = (select) => {
+    if (!select || !storeActiveSelect) return;
+    select.addEventListener("change", () => {
+      const nextDomain = select.value || "";
+      if (!nextDomain || storeActiveSelect.value === nextDomain) return;
+      storeActiveSelect.value = nextDomain;
+      storeActiveSelect.dispatchEvent(new Event("change"));
     });
-  }
-if (connectShopify) {
-  connectShopify.addEventListener("click", () => {
-    try {
-      startShopifyOAuthFlow();
+  };
+  bindStoreContextSelect(ordersStoreSelect);
+  bindStoreContextSelect(productsStoreSelect);
+  bindStoreContextSelect(contactsStoreSelect);
+
+	if (connectShopify) {
+	  connectShopify.addEventListener("click", () => {
+	    try {
+	      startShopifyOAuthFlow();
     } catch (error) {
       showToast(error?.message || "No se pudo conectar Shopify.", "is-error");
     }
@@ -7725,14 +7759,13 @@ if (ordersClearBtn) {
   });
 }
 
-if (productsClearBtn) {
-  productsClearBtn.addEventListener("click", () => {
-    if (productsSearchInput) productsSearchInput.value = "";
-    if (productsPublishFilter) productsPublishFilter.value = "all";
-    if (productsDateStart) productsDateStart.value = "";
-    if (productsDateEnd) productsDateEnd.value = "";
-    if (productsSyncQuery) productsSyncQuery.value = "";
-    if (productsLimitInput) productsLimitInput.value = "30";
+	if (productsClearBtn) {
+	  productsClearBtn.addEventListener("click", () => {
+	    if (productsSearchInput) productsSearchInput.value = "";
+	    if (productsDateStart) productsDateStart.value = "";
+	    if (productsDateEnd) productsDateEnd.value = "";
+	    if (productsSyncQuery) productsSyncQuery.value = "";
+	    if (productsLimitInput) productsLimitInput.value = "30";
     if (productsDateFilter) productsDateFilter.value = "";
     if (productsSort) productsSort.value = "date_desc";
     if (productsInStockOnly) productsInStockOnly.checked = false;
@@ -7807,22 +7840,21 @@ if (rulesAutoPublish && rulesAutoStatus) {
     });
   }
 
-const productSettingInputs = [
-  productsPublishStatus,
-  productsIncludeImages,
-  productsDateStart,
-  productsDateEnd,
-  productsSyncLimitInput,
-  productsSyncQuery,
-  productsSyncOnlyActive,
-  productsSyncPublish,
-  productsSyncOnlyPublished,
-  productsSyncIncludeInventory,
-  productsPublishFilter,
-  productsDateFilter,
-  productsSort,
-  productsLimitInput,
-  productsInStockOnly,
+	const productSettingInputs = [
+	  productsPublishStatus,
+	  productsIncludeImages,
+	  productsDateStart,
+	  productsDateEnd,
+	  productsSyncLimitInput,
+	  productsSyncQuery,
+	  productsSyncOnlyActive,
+	  productsSyncPublish,
+	  productsSyncOnlyPublished,
+	  productsSyncIncludeInventory,
+	  productsDateFilter,
+	  productsSort,
+	  productsLimitInput,
+	  productsInStockOnly,
   productsStatusFilter,
   ordersDateStart,
   ordersDateEnd,

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260203aj" />
+    <link rel="stylesheet" href="styles.css?v=20260203ak" />
   </head>
   <body>
     <div class="app-shell">
@@ -347,6 +347,10 @@
               <span class="panel-tag">Pedidos</span>
             </div>
             <div class="toolbar products-toolbar">
+              <div class="toolbar-store">
+                <label for="orders-store-select">Tienda</label>
+                <select id="orders-store-select"></select>
+              </div>
               <input type="text" id="ops-search" placeholder="Buscar por orden, cliente o producto" />
               <input type="date" id="orders-date-filter" />
               <select id="orders-days">
@@ -415,6 +419,10 @@
               <span class="panel-tag">Alegra → Shopify</span>
             </div>
             <div class="toolbar products-toolbar">
+              <div class="toolbar-store">
+                <label for="products-store-select">Tienda</label>
+                <select id="products-store-select"></select>
+              </div>
               <input type="text" id="products-search" placeholder="Buscar por nombre o referencia" />
               <input type="date" id="products-date-filter" />
               <select id="products-sort">
@@ -424,14 +432,6 @@
                 <option value="ref_desc">Orden: Referencia (Z-A)</option>
               </select>
               <input type="number" id="products-limit" min="1" max="30" value="30" placeholder="Limite listado" />
-              <select id="products-publish-filter">
-                <option value="all">Estado: Todos</option>
-                <option value="published">Publicado</option>
-                <option value="unpublished">No publicado</option>
-                <option value="active">Activo</option>
-                <option value="draft">Borrador</option>
-                <option value="archived">Archivado</option>
-              </select>
               <button class="ghost" id="products-search-btn">Buscar</button>
               <button class="primary" id="products-refresh">Refrescar</button>
               <button class="ghost" id="products-clear">Borrar filtros</button>
@@ -508,6 +508,10 @@
               <span class="panel-tag">Contactos</span>
             </div>
             <div class="toolbar products-toolbar">
+              <div class="toolbar-store">
+                <label for="contacts-store-select">Tienda</label>
+                <select id="contacts-store-select"></select>
+              </div>
               <input type="text" id="contacts-search" placeholder="Buscar por nombre, email o telefono" />
               <input type="date" id="contacts-date-start" />
               <input type="date" id="contacts-date-end" />
@@ -1510,6 +1514,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260203aj" type="module"></script>
+    <script src="app.js?v=20260203ak" type="module"></script>
   </body>
 </html>

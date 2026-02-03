@@ -2183,6 +2183,40 @@ button {
   max-width: 90px;
 }
 
+.toolbar-store {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.toolbar-store label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.toolbar-store select {
+  min-width: 220px;
+  padding: 6px 10px;
+}
+
+@media (max-width: 720px) {
+  .toolbar-store {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .toolbar-store select {
+    min-width: 0;
+    flex: 1;
+  }
+}
+
 .products-toolbar {
   flex-wrap: wrap;
 }

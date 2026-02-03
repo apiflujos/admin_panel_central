@@ -41,8 +41,9 @@ export async function syncContactsBulkHandler(req: Request, res: Response) {
 
 export async function listContactsHandler(req: Request, res: Response) {
   try {
-    const { query, status, source, from, to, limit, offset } = req.query;
+    const { query, status, source, from, to, limit, offset, shopDomain } = req.query;
     const result = await listContacts({
+      shopDomain: typeof shopDomain === "string" ? shopDomain : undefined,
       query: typeof query === "string" ? query : undefined,
       status: typeof status === "string" ? status : undefined,
       source: typeof source === "string" ? source : undefined,

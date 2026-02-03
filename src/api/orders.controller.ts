@@ -72,6 +72,7 @@ async function loadEinvoiceEnabled() {
 
 export async function listOrdersHandler(req: Request, res: Response) {
   try {
+    const shopDomain = typeof req.query.shopDomain === "string" ? req.query.shopDomain.trim() : "";
     const query = typeof req.query.query === "string" ? req.query.query.trim() : "";
     const date = typeof req.query.date === "string" ? req.query.date : "";
     const days = Number(req.query.days || 0);
@@ -80,6 +81,7 @@ export async function listOrdersHandler(req: Request, res: Response) {
     const offset = Number(req.query.offset || 0);
 
     const result = await listOrders({
+      shopDomain: shopDomain || undefined,
       query: query || undefined,
       date: date || undefined,
       days: Number.isFinite(days) && days > 0 ? days : undefined,

@@ -19,6 +19,7 @@ import {
 } from "../services/alegra-items-cache.service";
 import { resolveStoreConfig } from "../services/store-config.service";
 import { getStoreConfigForDomain } from "../services/store-configs.service";
+import { getShopifyConnectionByDomain } from "../services/store-connections.service";
 import { upsertProduct, listProducts } from "../services/products.service";
 import { upsertOrder } from "../services/orders.service";
 
@@ -74,6 +75,7 @@ type AlegraItem = {
 };
 
 type ShopifyConfig = {
+  shopDomain: string;
   baseAdmin: string;
   accessToken: string;
   apiVersion: string;
@@ -222,6 +224,13 @@ const normalizeText = (value: unknown) => {
 
 const persistProductsFromAlegra = async (items: AlegraItem[]) => {
   if (!Array.isArray(items) || items.length === 0) return;
+  let shopDomain = "";
+  try {
+    const shopify = await getShopifyCredential();
+    shopDomain = shopify?.shopDomain ? String(shopify.shopDomain) : "";
+  } catch {
+    shopDomain = "";
+  }
   await Promise.all(
     items.map(async (item) => {
       const sourceUpdatedAt = resolveItemDate(item);
@@ -232,6 +241,7 @@ const persistProductsFromAlegra = async (items: AlegraItem[]) => {
             .filter(Boolean)
         : [];
       await upsertProduct({
+        shopDomain,
         alegraId: item.id,
         name: item.name || null,
         reference: normalizeText(item.reference || item.code || item.barcode),
@@ -306,17 +316,22 @@ const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
   }
 };
 
-async function getShopifyConfig(): Promise<ShopifyConfig> {
-  const shopify = await getShopifyCredential();
-  const rawDomain = shopify.shopDomain.trim();
-  const cleanedDomain = rawDomain.replace(/^https?:\/\//, "").replace(/\/$/, "");
+async function getShopifyConfig(shopDomain?: string): Promise<ShopifyConfig> {
+  const normalize = (value: string) =>
+    value.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  const normalized = shopDomain ? normalize(String(shopDomain)) : "";
+  const connection = normalized ? await getShopifyConnectionByDomain(normalized) : null;
+  const shopify = connection ? null : await getShopifyCredential();
+  const rawDomain = connection?.shopDomain || shopify?.shopDomain || "";
+  const cleanedDomain = normalize(rawDomain);
   const baseAdmin = `https://${cleanedDomain}/admin`;
   return {
+    shopDomain: cleanedDomain,
     baseAdmin,
-    accessToken: shopify.accessToken,
-    apiVersion: resolveShopifyApiVersion(shopify.apiVersion),
+    accessToken: connection?.accessToken || shopify?.accessToken || "",
+    apiVersion: resolveShopifyApiVersion(shopify?.apiVersion),
     vendorDefault: process.env.SHOPIFY_VENDOR || "",
-    locationId: shopify.locationId || "",
+    locationId: shopify?.locationId || "",
   };
 }
 
@@ -911,6 +926,7 @@ export async function listProductsHandler(req: Request, res: Response) {
     const start = Number(req.query.start || 0);
     const limit = Number(req.query.limit || 30);
     const query = typeof req.query.query === "string" ? req.query.query.trim() : "";
+    const shopDomain = typeof req.query.shopDomain === "string" ? req.query.shopDomain.trim() : "";
     const inStockOnly =
       String(req.query.inStockOnly || "").toLowerCase() === "1" ||
       String(req.query.inStockOnly || "").toLowerCase() === "true";
@@ -920,6 +936,7 @@ export async function listProductsHandler(req: Request, res: Response) {
       .filter(Boolean);
 
     const result = await listProducts({
+      shopDomain: shopDomain || undefined,
       query: query || undefined,
       inStockOnly,
       warehouseIds: warehouseIds.length ? warehouseIds : undefined,
@@ -1080,13 +1097,11 @@ export async function syncInventoryAdjustmentsHandler(req: Request, res: Respons
 }
 
 export async function publishShopifyHandler(req: Request, res: Response) {
-  const { alegraId, settings = {}, alegraItem } = req.body || {};
+  const { alegraId, settings = {}, alegraItem, shopDomain } = req.body || {};
   try {
-    const shopifyConfig = await getShopifyConfig();
-    const shopifyCredential = await getShopifyCredential();
-    const storeConfig = shopifyCredential?.shopDomain
-      ? await resolveStoreConfig(shopifyCredential.shopDomain)
-      : await resolveStoreConfig(null);
+    const shopifyConfig = await getShopifyConfig(shopDomain ? String(shopDomain) : "");
+    const storeDomain = shopifyConfig.shopDomain;
+    const storeConfig = storeDomain ? await resolveStoreConfig(storeDomain) : await resolveStoreConfig(null);
     let item: AlegraItem | undefined = alegraItem;
     if (!item && alegraId) {
       const query = new URLSearchParams();
@@ -1102,9 +1117,7 @@ export async function publishShopifyHandler(req: Request, res: Response) {
       res.status(400).json({ error: "alegraId o alegraItem requerido" });
       return;
     }
-    const storeConfigFull = shopifyCredential?.shopDomain
-      ? await getStoreConfigForDomain(shopifyCredential.shopDomain)
-      : null;
+    const storeConfigFull = storeDomain ? await getStoreConfigForDomain(storeDomain) : null;
     const warehouseIds =
       storeConfigFull?.rules?.warehouseIds && storeConfigFull.rules.warehouseIds.length
         ? storeConfigFull.rules.warehouseIds
@@ -1127,6 +1140,7 @@ export async function publishShopifyHandler(req: Request, res: Response) {
     const shopifyProductId = (published as any)?.product?.id;
     const sourceUpdatedAt = resolveItemDate(item);
     await upsertProduct({
+      shopDomain: storeDomain,
       alegraId: item.id,
       shopifyId: shopifyProductId,
       name: item.name || null,
@@ -1144,7 +1158,7 @@ export async function publishShopifyHandler(req: Request, res: Response) {
       direction: "alegra->shopify",
       status: "success",
       message: "Producto publicado",
-      request: { alegraId, settings },
+      request: { alegraId, settings, shopDomain: storeDomain || null },
     });
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : "Shopify publish error" });
@@ -1153,7 +1167,7 @@ export async function publishShopifyHandler(req: Request, res: Response) {
       direction: "alegra->shopify",
       status: "fail",
       message: error instanceof Error ? error.message : "Shopify publish error",
-      request: { alegraId, settings },
+      request: { alegraId, settings, shopDomain: shopDomain || null },
     });
   }
 }
@@ -1162,6 +1176,7 @@ export async function lookupShopifyHandler(req: Request, res: Response) {
   const skus = Array.isArray(req.body?.skus)
     ? req.body.skus.map((sku: string) => String(sku).trim()).filter(Boolean)
     : [];
+  const shopDomain = typeof req.body?.shopDomain === "string" ? String(req.body.shopDomain).trim() : "";
   if (skus.length === 0) {
     res.json({ results: {} });
     return;
@@ -1170,11 +1185,13 @@ export async function lookupShopifyHandler(req: Request, res: Response) {
   const seenProducts = new Map<string, { id?: string; status?: string; title?: string }>();
 
   try {
-    const shopifyCredential = await getShopifyCredential();
+    const shopifyCredential = shopDomain
+      ? await getShopifyConnectionByDomain(shopDomain)
+      : await getShopifyCredential();
     const client = new ShopifyClient({
       shopDomain: shopifyCredential.shopDomain,
       accessToken: shopifyCredential.accessToken,
-      apiVersion: resolveShopifyApiVersion(shopifyCredential.apiVersion),
+      apiVersion: resolveShopifyApiVersion((shopifyCredential as { apiVersion?: string }).apiVersion),
     });
     for (const sku of skus) {
       if (results[sku]) continue;
@@ -1208,7 +1225,7 @@ export async function lookupShopifyHandler(req: Request, res: Response) {
       direction: "shopify->alegra",
       status: "success",
       message: "Lookup batch ok",
-      request: { skus },
+      request: { skus, shopDomain: shopDomain || null },
     });
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : "Shopify lookup error" });
@@ -1217,7 +1234,7 @@ export async function lookupShopifyHandler(req: Request, res: Response) {
       direction: "shopify->alegra",
       status: "fail",
       message: error instanceof Error ? error.message : "Shopify lookup error",
-      request: { skus },
+      request: { skus, shopDomain: shopDomain || null },
     });
   }
 }
@@ -1227,6 +1244,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
     const maxItems = Number.isFinite(Number(filters.limit)) ? Number(filters.limit) : null;
     const onlyActive = filters.onlyActive !== false;
     const includeInventory = filters.includeInventory !== false;
+  const shopDomainInput = typeof req.body?.shopDomain === "string" ? String(req.body.shopDomain).trim() : "";
   const safeBatchSize = Math.max(1, Math.min(Number(batchSize) || 5, 10));
   const hasDateFilter = Boolean(filters.dateStart || filters.dateEnd);
   const rawQuery = filters.query ? extractIdentifier(String(filters.query)) : "";
@@ -1301,24 +1319,20 @@ export async function syncProductsHandler(req: Request, res: Response) {
         total = checkpoint.total ?? total;
       }
     }
-    const shopifyCredential = publishOnSync ? await getShopifyCredential() : null;
-    const shopifyConfig = publishOnSync ? await getShopifyConfig() : null;
-    const storeConfig = shopifyCredential?.shopDomain
-      ? await resolveStoreConfig(shopifyCredential.shopDomain)
-      : await resolveStoreConfig(null);
-    const storeConfigFull = shopifyCredential?.shopDomain
-      ? await getStoreConfigForDomain(shopifyCredential.shopDomain)
-      : null;
+    const shopifyConfig = publishOnSync ? await getShopifyConfig(shopDomainInput) : null;
+    const storeDomain = shopifyConfig?.shopDomain || "";
+    const storeConfig = storeDomain ? await resolveStoreConfig(storeDomain) : await resolveStoreConfig(null);
+    const storeConfigFull = storeDomain ? await getStoreConfigForDomain(storeDomain) : null;
     const warehouseIds =
       storeConfigFull?.rules?.warehouseIds && storeConfigFull.rules.warehouseIds.length
         ? storeConfigFull.rules.warehouseIds
         : await loadWarehouseIdsForSync();
     const shopifyClient =
-      publishOnSync && shopifyCredential
+      publishOnSync && shopifyConfig
         ? new ShopifyClient({
-            shopDomain: shopifyCredential.shopDomain,
-            accessToken: shopifyCredential.accessToken,
-            apiVersion: resolveShopifyApiVersion(shopifyCredential.apiVersion),
+            shopDomain: storeDomain,
+            accessToken: shopifyConfig.accessToken,
+            apiVersion: shopifyConfig.apiVersion,
           })
         : null;
     const identifierCache = new Map<
@@ -1443,6 +1457,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
             const shopifyProductId = (publishedResult as any)?.product?.id;
             const sourceUpdatedAt = resolveItemDate(current.item);
             await upsertProduct({
+              shopDomain: storeDomain,
               alegraId: current.item.id,
               shopifyId: shopifyProductId,
               name: current.item.name || null,
@@ -1878,6 +1893,12 @@ export async function syncProductsHandler(req: Request, res: Response) {
 
 export async function syncOrdersHandler(req: Request, res: Response) {
   const { filters = {} } = req.body || {};
+  const shopDomainInput =
+    typeof req.body?.shopDomain === "string"
+      ? String(req.body.shopDomain).trim()
+      : typeof filters?.shopDomain === "string"
+        ? String(filters.shopDomain).trim()
+        : "";
   const stream =
     req.query.stream === "1" ||
     req.query.stream === "true" ||
@@ -1903,11 +1924,14 @@ export async function syncOrdersHandler(req: Request, res: Response) {
         streamOpen = false;
       });
     }
-    const shopifyCredential = await getShopifyCredential();
+    const shopifyCredential = shopDomainInput
+      ? await getShopifyConnectionByDomain(shopDomainInput)
+      : await getShopifyCredential();
+    const effectiveShopDomain = shopifyCredential.shopDomain;
     const client = new ShopifyClient({
-      shopDomain: shopifyCredential.shopDomain,
+      shopDomain: effectiveShopDomain,
       accessToken: shopifyCredential.accessToken,
-      apiVersion: resolveShopifyApiVersion(shopifyCredential.apiVersion),
+      apiVersion: resolveShopifyApiVersion((shopifyCredential as { apiVersion?: string }).apiVersion),
     });
     let orders: ShopifyOrder[] = [];
     const limit = Number(filters.limit || 0);
@@ -1943,6 +1967,7 @@ export async function syncOrdersHandler(req: Request, res: Response) {
             ? (mapping.metadata as { invoiceNumber?: string }).invoiceNumber
             : undefined;
         await upsertOrder({
+          shopDomain: effectiveShopDomain,
           shopifyId: _order.id,
           alegraId: mapping?.alegraId || undefined,
           orderNumber: _order.name,
@@ -1962,7 +1987,10 @@ export async function syncOrdersHandler(req: Request, res: Response) {
           skipped += 1;
         } else {
           const payload = mapOrderToPayload(_order);
-          const result = await syncShopifyOrderToAlegra(payload);
+          const result = await syncShopifyOrderToAlegra({
+            ...(payload as Record<string, unknown>),
+            __shopDomain: effectiveShopDomain,
+          });
           if (result && typeof result === "object" && "skipped" in result) {
             skipped += 1;
           } else if (result && typeof result === "object" && (result as { handled?: boolean }).handled === false) {
@@ -1988,7 +2016,7 @@ export async function syncOrdersHandler(req: Request, res: Response) {
         direction: "shopify->alegra",
         status: "success",
         message: "Sync pedidos ok",
-        request: { filters },
+        request: { filters, shopDomain: effectiveShopDomain || null },
         response: { count: total, processed, total, synced, skipped, failed },
       });
       return;
@@ -1999,7 +2027,7 @@ export async function syncOrdersHandler(req: Request, res: Response) {
       direction: "shopify->alegra",
       status: "success",
       message: "Sync pedidos ok",
-      request: { filters },
+      request: { filters, shopDomain: effectiveShopDomain || null },
       response: { count: total, processed, total, synced, skipped, failed },
     });
   } catch (error) {
@@ -2151,6 +2179,7 @@ export async function backfillProductsHandler(req: Request, res: Response) {
         const variants = product.variants?.edges || [];
         const sku = variants[0]?.node?.sku || null;
         await upsertProduct({
+          shopDomain: shopifyCredential.shopDomain,
           shopifyId: product.id,
           name: product.title || null,
           sku,
