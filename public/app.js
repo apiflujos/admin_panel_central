@@ -3674,7 +3674,7 @@ function renderAlegraAccountOptions(accounts) {
     `<option value="new">Nueva cuenta Alegra</option>`,
     ...accounts.map(
       (account) =>
-        `<option value="${account.id}">${account.email} (${account.environment || "prod"})</option>`
+        `<option value="${account.id}" data-needs-reconnect="${account.needsReconnect ? "1" : "0"}">${account.email} (${account.environment || "prod"})${account.needsReconnect ? " · reconectar" : ""}</option>`
     ),
   ];
   alegraAccountSelect.innerHTML = options.join("");
@@ -3685,9 +3685,19 @@ function renderAlegraAccountOptions(accounts) {
 function toggleAlegraAccountFields() {
   if (!alegraAccountSelect) return;
   const isNew = alegraAccountSelect.value === "new";
+  const selected = alegraAccountSelect.selectedOptions?.[0];
+  const needsReconnect = selected?.getAttribute("data-needs-reconnect") === "1";
   if (alegraEmail) alegraEmail.closest(".field").style.display = isNew ? "" : "none";
-  if (alegraKey) alegraKey.closest(".field").style.display = isNew ? "" : "none";
   if (alegraEnvField) alegraEnvField.style.display = isNew ? "" : "none";
+  if (alegraKey) {
+    const showKey = isNew || needsReconnect;
+    alegraKey.closest(".field").style.display = showKey ? "" : "none";
+    alegraKey.placeholder = needsReconnect ? "Pega la clave para reconectar" : "api_********";
+    if (needsReconnect) {
+      showToast("Esta cuenta Alegra requiere reconectar. Pega la clave y presiona Conectar Alegra.", "is-warn");
+      focusFieldWithContext(alegraKey);
+    }
+  }
 }
 
 function normalizeShopDomain(value) {
@@ -7116,6 +7126,10 @@ async function connectStore(kind) {
     payload.alegra = {};
     if (alegraAccountSelect && alegraAccountSelect.value !== "new") {
       payload.alegra.accountId = Number(alegraAccountSelect.value);
+      const apiKey = alegraKey ? alegraKey.value.trim() : "";
+      if (apiKey) {
+        payload.alegra.apiKey = apiKey;
+      }
     } else {
       const email = alegraEmail ? alegraEmail.value.trim() : "";
       const apiKey = alegraKey ? alegraKey.value.trim() : "";

@@ -140,11 +140,12 @@ export async function listStoreConnections() {
   const alegraAccounts = await pool.query<{
     id: number;
     user_email: string;
+    api_key_encrypted: string | null;
     environment: string | null;
     created_at: string;
   }>(
     `
-    SELECT id, user_email, environment, created_at
+    SELECT id, user_email, api_key_encrypted, environment, created_at
     FROM alegra_accounts
     WHERE organization_id = $1
     ORDER BY created_at DESC
@@ -215,6 +216,19 @@ export async function listStoreConnections() {
       id: row.id,
       email: row.user_email,
       environment: row.environment || "prod",
+      needsReconnect: (() => {
+        if (!row.api_key_encrypted) return true;
+        try {
+          const decrypted = JSON.parse(decryptString(row.api_key_encrypted)) as { apiKey?: string };
+          return !String(decrypted?.apiKey || "").trim();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "";
+          if (message.includes("CRYPTO_KEY_BASE64")) {
+            throw error;
+          }
+          return true;
+        }
+      })(),
     })),
   };
 }
@@ -397,6 +411,18 @@ async function resolveAlegraAccountId(
 ) {
   if (!input) return undefined;
   if (input.accountId) {
+    const apiKey = input.apiKey?.trim();
+    if (apiKey) {
+      const encrypted = encryptString(JSON.stringify({ apiKey }));
+      await pool.query(
+        `
+        UPDATE alegra_accounts
+        SET api_key_encrypted = $1
+        WHERE organization_id = $2 AND id = $3
+        `,
+        [encrypted, orgId, input.accountId]
+      );
+    }
     return input.accountId;
   }
   const email = input.email?.trim();
@@ -490,8 +516,18 @@ async function seedFromLegacyCredentials(pool: ReturnType<typeof getPool>, orgId
   const alegraCred = creds.rows.find((row) => row.provider === "alegra");
   if (!shopifyCred || !alegraCred) return;
 
-  const shopify = JSON.parse(decryptString(shopifyCred.data_encrypted));
-  const alegra = JSON.parse(decryptString(alegraCred.data_encrypted));
+  let shopify: any;
+  let alegra: any;
+  try {
+    shopify = JSON.parse(decryptString(shopifyCred.data_encrypted));
+    alegra = JSON.parse(decryptString(alegraCred.data_encrypted));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("CRYPTO_KEY_BASE64")) {
+      throw error;
+    }
+    return;
+  }
   if (!shopify?.shopDomain || !shopify?.accessToken) return;
   if (!alegra?.email || !alegra?.apiKey) return;
 
