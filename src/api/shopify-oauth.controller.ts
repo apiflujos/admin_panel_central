@@ -10,15 +10,40 @@ import {
 } from "../services/shopify-oauth.service";
 import { registerShopifyWebhooks } from "./shopify-webhooks.controller";
 
-const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY || "";
-const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET || "";
-const SHOPIFY_SCOPES = process.env.SHOPIFY_SCOPES || "";
-const APP_HOST = (process.env.APP_HOST || "").replace(/\/$/, "");
+type OAuthEnv = {
+  apiKey: string;
+  apiSecret: string;
+  scopes: string;
+  appHost: string;
+};
 
-function ensureOAuthEnv() {
-  if (!SHOPIFY_API_KEY || !SHOPIFY_API_SECRET || !SHOPIFY_SCOPES || !APP_HOST) {
-    throw new Error("OAuth env vars missing");
+function resolveAppHost(req: Request) {
+  const explicit = String(process.env.APP_HOST || process.env.PUBLIC_URL || "").trim();
+  if (explicit) return explicit.replace(/\/$/, "");
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+  const forwardedHost = String(req.headers["x-forwarded-host"] || "").split(",")[0].trim();
+  const proto = forwardedProto || req.protocol || "https";
+  const host = forwardedHost || String(req.headers.host || "").trim();
+  if (!host) return "";
+  return `${proto}://${host}`.replace(/\/$/, "");
+}
+
+function ensureOAuthEnv(req: Request): OAuthEnv {
+  const apiKey = String(process.env.SHOPIFY_API_KEY || "").trim();
+  const apiSecret = String(process.env.SHOPIFY_API_SECRET || "").trim();
+  const scopes = String(process.env.SHOPIFY_SCOPES || "").trim();
+  const appHost = resolveAppHost(req);
+
+  const missing: string[] = [];
+  if (!apiKey) missing.push("SHOPIFY_API_KEY");
+  if (!apiSecret) missing.push("SHOPIFY_API_SECRET");
+  if (!scopes) missing.push("SHOPIFY_SCOPES");
+  if (!appHost) missing.push("APP_HOST (o PUBLIC_URL)");
+  if (missing.length) {
+    throw new Error(`Configuracion OAuth incompleta. Falta: ${missing.join(", ")}`);
   }
+
+  return { apiKey, apiSecret, scopes, appHost };
 }
 
 function buildHmacMessage(query: Record<string, unknown>) {
@@ -35,12 +60,12 @@ function buildHmacMessage(query: Record<string, unknown>) {
   return entries.map(([key, value]) => `${key}=${value}`).join("&");
 }
 
-function validateHmac(query: Record<string, unknown>) {
+function validateHmac(query: Record<string, unknown>, apiSecret: string) {
   const provided = String(query.hmac || "");
   if (!provided) return false;
   const message = buildHmacMessage(query);
   const digest = crypto
-    .createHmac("sha256", SHOPIFY_API_SECRET)
+    .createHmac("sha256", apiSecret)
     .update(message)
     .digest("hex");
   const digestBuffer = Buffer.from(digest, "utf8");
@@ -51,7 +76,7 @@ function validateHmac(query: Record<string, unknown>) {
 
 export async function startShopifyOAuth(req: Request, res: Response) {
   try {
-    ensureOAuthEnv();
+    const env = ensureOAuthEnv(req);
     const shopParam = String(req.query.shop || "").trim();
     const storeNameParam = String(req.query.storeName || "").trim();
     if (!shopParam || !isValidShopDomain(shopParam)) {
@@ -60,11 +85,11 @@ export async function startShopifyOAuth(req: Request, res: Response) {
     const shop = normalizeShopDomainForOAuth(shopParam);
     const nonce = crypto.randomBytes(16).toString("hex");
     await createOAuthState(shop, nonce, storeNameParam || null);
-    const redirectUri = `${APP_HOST}/auth/callback`;
+    const redirectUri = `${env.appHost}/auth/callback`;
     const authorizeUrl =
       `https://${shop}/admin/oauth/authorize` +
-      `?client_id=${encodeURIComponent(SHOPIFY_API_KEY)}` +
-      `&scope=${encodeURIComponent(SHOPIFY_SCOPES)}` +
+      `?client_id=${encodeURIComponent(env.apiKey)}` +
+      `&scope=${encodeURIComponent(env.scopes)}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
       `&state=${encodeURIComponent(nonce)}`;
     return res.redirect(authorizeUrl);
@@ -75,7 +100,7 @@ export async function startShopifyOAuth(req: Request, res: Response) {
 
 export async function shopifyOAuthCallback(req: Request, res: Response) {
   try {
-    ensureOAuthEnv();
+    const env = ensureOAuthEnv(req);
     if (req.query.error) {
       return res.status(400).send(String(req.query.error_description || req.query.error));
     }
@@ -88,7 +113,7 @@ export async function shopifyOAuthCallback(req: Request, res: Response) {
     if (!isValidShopDomain(shop)) {
       return res.status(400).send("Shop domain invalido");
     }
-    if (!validateHmac(req.query as Record<string, unknown>)) {
+    if (!validateHmac(req.query as Record<string, unknown>, env.apiSecret)) {
       return res.status(400).send("HMAC invalido");
     }
     const stateResult = await consumeOAuthState(shop, state);
@@ -99,8 +124,8 @@ export async function shopifyOAuthCallback(req: Request, res: Response) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        client_id: SHOPIFY_API_KEY,
-        client_secret: SHOPIFY_API_SECRET,
+        client_id: env.apiKey,
+        client_secret: env.apiSecret,
         code,
       }),
     });
@@ -122,7 +147,7 @@ export async function shopifyOAuthCallback(req: Request, res: Response) {
       shopDomain: normalizedShop,
       accessToken,
       storeName,
-      scopes: tokenPayload.scope || SHOPIFY_SCOPES,
+      scopes: tokenPayload.scope || env.scopes,
     });
     const client = new ShopifyClient({
       shopDomain: normalizedShop,
@@ -130,9 +155,9 @@ export async function shopifyOAuthCallback(req: Request, res: Response) {
     });
     await registerShopifyWebhooks({
       client,
-      baseUrl: APP_HOST,
+      baseUrl: env.appHost,
     });
-    const redirectUrl = new URL(`${APP_HOST}/dashboard`);
+    const redirectUrl = new URL(`${env.appHost}/dashboard`);
     if (connectionResult?.isNew) {
       redirectUrl.searchParams.set("onboard", normalizedShop);
     }
