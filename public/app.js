@@ -2035,7 +2035,7 @@ function validateInitialConnection(kind) {
       if (!alegraKey || !alegraKey.value.trim()) {
         errors.push({
           field: alegraKey,
-          message: "API Key Alegra requerida.",
+          message: "Clave de acceso de Alegra requerida.",
         });
       }
     }
@@ -2710,7 +2710,7 @@ async function openWizardStep() {
       "alegra-inventory":
         "Configura inventario/bodegas (publicar stock, bodegas a sincronizar).\nLuego guarda para continuar.",
       "sync-orders":
-        "Elige el modo de pedidos (solo BD / contacto / factura).\nLuego guarda para continuar.",
+        "Elige que hacer con pedidos nuevos (solo registrar / crear contacto / crear factura).\nLuego guarda para continuar.",
       "alegra-invoice":
         "Opcional si vas a crear facturas: resolucion, bodega, pagos y factura electronica.\nLuego guarda para continuar.",
       "alegra-logistics":
@@ -3021,7 +3021,7 @@ async function loadSettings() {
       shopifyToken.placeholder = "shpat_********";
     }
     if (statusTextShopify) {
-      statusTextShopify.textContent = data.shopify.hasAccessToken ? "Conectado" : "Sin token";
+      statusTextShopify.textContent = data.shopify.hasAccessToken ? "Conectado" : "Sin conexion";
     }
     if (statusLedShopify) {
       statusLedShopify.classList.toggle("is-ok", Boolean(data.shopify.hasAccessToken));
@@ -3043,7 +3043,7 @@ async function loadSettings() {
       alegraKey.placeholder = "api_********";
     }
     if (statusTextAlegra) {
-      statusTextAlegra.textContent = data.alegra.hasApiKey ? "Conectado" : "Sin token";
+      statusTextAlegra.textContent = data.alegra.hasApiKey ? "Conectado" : "Sin conexion";
     }
     if (statusLedAlegra) {
       statusLedAlegra.classList.toggle("is-ok", Boolean(data.alegra.hasApiKey));
@@ -3854,12 +3854,12 @@ async function loadInventoryCheckpoint() {
 
 function setMetricsStatusPills(shopifyOk, alegraOk) {
   if (metricsShopifyStatus) {
-    metricsShopifyStatus.textContent = shopifyOk ? "Shopify activo" : "Shopify sin token";
+    metricsShopifyStatus.textContent = shopifyOk ? "Shopify activo" : "Shopify sin conexion";
     metricsShopifyStatus.classList.toggle("is-ok", Boolean(shopifyOk));
     metricsShopifyStatus.classList.toggle("is-off", !shopifyOk);
   }
   if (metricsAlegraStatus) {
-    metricsAlegraStatus.textContent = alegraOk ? "Alegra activo" : "Alegra sin token";
+    metricsAlegraStatus.textContent = alegraOk ? "Alegra activo" : "Alegra sin conexion";
     metricsAlegraStatus.classList.toggle("is-ok", Boolean(alegraOk));
     metricsAlegraStatus.classList.toggle("is-off", !alegraOk);
   }
@@ -4674,7 +4674,7 @@ function renderProducts() {
         .find((entry) => entry?.published);
       const resolvedLookup = lookup?.published ? lookup : variantLookup;
       const isPublished = Boolean(resolvedLookup?.published);
-      const statusLabel = isPublished ? "Publicado" : product.sku ? "Pendiente" : "Sin SKU";
+      const statusLabel = isPublished ? "Publicado" : product.sku ? "Pendiente" : "Sin codigo";
       const statusClass = isPublished ? "status-chip is-success" : "status-chip is-warning";
       const alegraStatus = normalizeStatus(product.status) === "inactive" ? "Inactivo" : "Activo";
       const alegraStatusClass =
@@ -7288,7 +7288,7 @@ if (qaTokenGenerate) {
   qaTokenGenerate.addEventListener("click", async () => {
     qaTokenGenerate.disabled = true;
     if (qaTokenHint) {
-      qaTokenHint.textContent = "Generando token...";
+      qaTokenHint.textContent = "Generando clave...";
     }
     try {
       const result = await fetchJson("/api/auth/token", {
@@ -7303,14 +7303,14 @@ if (qaTokenGenerate) {
         const expiresAt = result?.expiresAt ? new Date(result.expiresAt) : null;
         qaTokenHint.textContent = expiresAt
           ? `Vence: ${expiresAt.toLocaleString()}`
-          : "Token generado.";
+          : "Clave generada.";
       }
     } catch (error) {
       if (qaTokenHint) {
         qaTokenHint.textContent =
-          (error && error.message) || "No se pudo generar el token.";
+          (error && error.message) || "No se pudo generar la clave.";
       }
-      showToast(error?.message || "No se pudo generar el token.", "is-error");
+      showToast(error?.message || "No se pudo generar la clave.", "is-error");
     } finally {
       qaTokenGenerate.disabled = false;
     }
@@ -7320,7 +7320,7 @@ if (qaTokenGenerate) {
 if (qaTokenCopy) {
   qaTokenCopy.addEventListener("click", async () => {
     if (!qaTokenValue || !qaTokenValue.value) {
-      showToast("Primero genera un token.", "is-warn");
+      showToast("Primero genera una clave.", "is-warn");
       return;
     }
     let copied = false;
@@ -7335,7 +7335,7 @@ if (qaTokenCopy) {
         copied = false;
       }
     }
-    showToast(copied ? "Token copiado." : "No se pudo copiar.", copied ? "is-ok" : "is-error");
+    showToast(copied ? "Clave copiada." : "No se pudo copiar.", copied ? "is-ok" : "is-error");
   });
 }
 if (shopifyWebhooksDelete) {

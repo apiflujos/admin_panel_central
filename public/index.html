@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260203h" />
+    <link rel="stylesheet" href="styles.css?v=20260203i" />
   </head>
   <body>
     <div class="app-shell">
@@ -469,7 +469,7 @@
                       <th>Producto / Referencia</th>
                       <th>ID Alegra</th>
                       <th>ID Shopify</th>
-                      <th>Referencia/SKU</th>
+	                      <th>Referencia/Codigo</th>
                       <th>Fecha</th>
                       <th>Estado Alegra</th>
                       <th>Stock total</th>
@@ -665,10 +665,10 @@
 	                      </select>
 	                    </div>
 	                    <div class="field" id="alegra-env-field">
-	                      <label>Entorno Alegra <span class="tip" data-tip="Prod es el entorno real. Sandbox es para pruebas (si tu cuenta lo soporta).">?</span></label>
+	                      <label>Entorno Alegra <span class="tip" data-tip="Produccion es el entorno real. Pruebas es para validar sin afectar tu operacion (si tu cuenta lo soporta).">?</span></label>
 	                      <select id="alegra-env-select">
 	                        <option value="prod">Produccion</option>
-	                        <option value="sandbox">Sandbox</option>
+	                        <option value="sandbox">Pruebas</option>
 	                      </select>
 	                    </div>
 	                    <div class="field">
@@ -689,12 +689,12 @@
                         <img class="provider-logo" src="/brands/openai.png?v=20260201s" alt="OpenAI" />
                         <h4>IA</h4>
                       </div>
-                      <p class="kpi-sub">Token del proveedor IA</p>
-                    </div>
-                    <button class="primary" id="ai-save" type="button">Guardar token</button>
-	                  </div>
-	                  <div class="settings-grid connection-fields">
-	                    <div class="field span-2">
+	                      <p class="kpi-sub">Clave del proveedor de IA</p>
+	                    </div>
+	                    <button class="primary" id="ai-save" type="button">Guardar clave</button>
+		                  </div>
+		                  <div class="settings-grid connection-fields">
+		                    <div class="field span-2">
 		                      <label>Token de IA <span class="tip" data-tip="Clave del proveedor de IA (por ejemplo OpenAI). Se usa para el asistente y QA.">?</span></label>
 	                      <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
 		                  </div>
@@ -710,27 +710,27 @@
 	              <h4 class="group-title">Administracion</h4>
 	            </div>
 	            <div class="settings-group-body">
-	              <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera un token temporal para QA y pruebas API sin consola.">
-	                <div class="panel-header">
-	                  <h3 data-module-toggle="qa-token">Token temporal QA</h3>
-	                  <span class="panel-tag tag-bridge">QA</span>
-	                </div>
-	                <div class="module-body">
-	                  <div class="settings-grid">
-	                    <div class="field span-2">
-	                      <label>Token temporal</label>
-	                      <div class="field-actions inline">
-	                        <input type="text" id="qa-token-value" readonly placeholder="Genera un token para QA" />
-	                        <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
-	                      </div>
-	                      <p class="field-hint" id="qa-token-hint">Vence en 30 minutos.</p>
-	                    </div>
-	                  </div>
-	                  <div class="toolbar is-actions">
-	                    <button class="primary" id="qa-token-generate" type="button">Generar token</button>
-	                  </div>
-	                </div>
-	              </div>
+		              <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera una clave temporal para QA y pruebas sin consola.">
+		                <div class="panel-header">
+		                  <h3 data-module-toggle="qa-token">Clave temporal QA</h3>
+		                  <span class="panel-tag tag-bridge">QA</span>
+		                </div>
+		                <div class="module-body">
+		                  <div class="settings-grid">
+		                    <div class="field span-2">
+		                      <label>Clave temporal</label>
+		                      <div class="field-actions inline">
+		                        <input type="text" id="qa-token-value" readonly placeholder="Genera una clave para QA" />
+		                        <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
+		                      </div>
+		                      <p class="field-hint" id="qa-token-hint">Vence en 30 minutos.</p>
+		                    </div>
+		                  </div>
+		                  <div class="toolbar is-actions">
+		                    <button class="primary" id="qa-token-generate" type="button">Generar clave</button>
+		                  </div>
+		                </div>
+		              </div>
 
 	              <div class="panel admin-only module" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas para esta organizacion.">
 	                <div class="panel-header">
@@ -801,7 +801,7 @@
                             <option value="draft">Borrador</option>
                             <option value="active">Activo</option>
                           </select>
-                          <span class="field-hint">Automatico 1 a 1: define si publica o deja en borrador.</span>
+	                          <span class="field-hint">Automatico: define si publica o deja en borrador.</span>
                         </div>
                         <div class="field span-2">
                           <div class="settings-divider">Reglas comunes</div>
@@ -830,7 +830,7 @@
                       </div>
                       <div class="toolbar is-actions">
                         <button class="ghost" type="button" data-nav-to="products">Ir a Productos</button>
-                        <span class="kpi-sub">Ahi haces sincronizacion masiva y acciones por SKU.</span>
+	                        <span class="kpi-sub">Ahi haces sincronizacion masiva y acciones por codigo de producto.</span>
                       </div>
                       <div class="module-footer">
                         <button class="ghost module-action" data-module-edit="shopify-rules" type="button">Editar</button>
@@ -913,12 +913,12 @@
 	                        <div class="field is-toggle">
 	                          <label>Sincronizar desde Shopify <span class="tip" data-tip="Crea o actualiza contactos en Alegra cuando llegan pedidos o clientes desde Shopify.">?</span></label>
 	                          <input type="checkbox" id="sync-contacts-shopify" class="toggle" />
-	                          <span class="field-hint">Automatico 1 a 1: crea/actualiza cuando llegan pedidos o clientes.</span>
+		                          <span class="field-hint">Automatico: crea/actualiza cuando llegan pedidos o clientes.</span>
 	                        </div>
 	                        <div class="field is-toggle">
 	                          <label>Sincronizar desde Alegra <span class="tip" data-tip="Envía contactos de Alegra hacia Shopify cuando haya cambios o altas nuevas.">?</span></label>
 	                          <input type="checkbox" id="sync-contacts-alegra" class="toggle" />
-	                          <span class="field-hint">Automatico 1 a 1: envia contactos cuando hay cambios o altas nuevas.</span>
+		                          <span class="field-hint">Automatico: envia contactos cuando hay cambios o altas nuevas.</span>
 	                        </div>
                         <div class="field span-2">
 	                          <label>Prioridad de identificacion <span class="tip" data-tip="Orden para identificar el mismo cliente en ambas plataformas.">?</span></label>
@@ -935,7 +935,7 @@
                         <div class="field span-2">
                           <label>Buscar contacto (email, telefono o documento) <span class="tip" data-tip="Usa email, telefono o documento para sincronizar un contacto puntual.">?</span></label>
                           <input type="text" id="sync-contact-identifier" placeholder="cliente@email.com o 3000000000" />
-                          <span class="field-hint">Manual 1 a 1: sincroniza un contacto puntual.</span>
+	                          <span class="field-hint">Manual (uno a uno): sincroniza un contacto puntual.</span>
                         </div>
                         <div class="field">
                           <label>Fuente <span class="tip" data-tip="Indica desde donde se toma el contacto original.">?</span></label>
@@ -990,30 +990,30 @@
                     <div class="module-body">
                       <div class="settings-grid">
                         <div class="field span-2">
-                          <div class="settings-divider">Automatico (Shopify → Alegra)</div>
+	                          <div class="settings-divider">Automatico (Shopify a Alegra)</div>
                         </div>
 	                        <div class="field is-toggle">
 	                          <label>Procesar pedidos nuevos <span class="tip" data-tip="Si esta activo, cada pedido nuevo de Shopify se procesa segun la opcion de la derecha.">?</span></label>
 	                          <input type="checkbox" id="sync-orders-shopify-enabled" class="toggle" />
-	                          <span class="field-hint">Automatico 1 a 1: procesa pedidos nuevos segun la regla seleccionada.</span>
+		                          <span class="field-hint">Automatico: procesa pedidos nuevos segun la regla seleccionada.</span>
 	                        </div>
                         <div class="field">
-                          <label>Que crear en Alegra <span class="tip" data-tip="Define si solo guardas en BD o si creas contacto/factura en Alegra.">?</span></label>
-                          <select id="sync-orders-shopify">
-                            <option value="db_only">Solo base de datos</option>
-                            <option value="contact_only">Crear contacto</option>
-                            <option value="invoice">Crear factura</option>
-                            <option value="off">No sincronizar</option>
-                          </select>
+	                          <label>Que crear en Alegra <span class="tip" data-tip="Define si solo registras el pedido o si creas contacto/factura en Alegra.">?</span></label>
+	                          <select id="sync-orders-shopify">
+	                            <option value="db_only">Solo registrar</option>
+	                            <option value="contact_only">Crear contacto</option>
+	                            <option value="invoice">Crear factura</option>
+	                            <option value="off">No sincronizar</option>
+	                          </select>
                           <span class="field-hint">Aplica en automatico y en sincronizacion masiva desde Pedidos.</span>
                         </div>
                         <div class="field span-2">
-                          <div class="settings-divider">Automatico (Alegra → Shopify)</div>
+	                          <div class="settings-divider">Automatico (Alegra a Shopify)</div>
                         </div>
 	                        <div class="field is-toggle">
 	                          <label>Procesar facturas nuevas <span class="tip" data-tip="Si esta activo, las facturas de Alegra pueden crear pedidos en Shopify segun la opcion de la derecha.">?</span></label>
 	                          <input type="checkbox" id="sync-orders-alegra-enabled" class="toggle" />
-	                          <span class="field-hint">Automatico 1 a 1: procesa facturas nuevas segun la regla seleccionada.</span>
+		                          <span class="field-hint">Automatico: procesa facturas nuevas segun la regla seleccionada.</span>
 	                        </div>
                         <div class="field">
                           <label>Como crear pedido en Shopify <span class="tip" data-tip="Borrador crea el pedido sin publicar; Activo lo crea listo para gestionar.">?</span></label>
@@ -1437,6 +1437,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260203h" type="module"></script>
+    <script src="app.js?v=20260203i" type="module"></script>
   </body>
 </html>
