@@ -1220,6 +1220,12 @@ button {
   gap: 8px;
 }
 
+.panel.module .module-body {
+  max-width: 980px;
+  width: 100%;
+  margin-inline: auto;
+}
+
 .module-footer {
   display: flex;
   justify-content: flex-end;
@@ -2569,6 +2575,9 @@ textarea::placeholder {
   border-radius: 14px;
   padding: 10px;
   background: rgba(15, 23, 42, 0.015);
+  max-width: 920px;
+  width: 100%;
+  margin-inline: auto;
 }
 
 .mode-head {
@@ -2624,16 +2633,18 @@ textarea::placeholder {
 .mode-grid {
   margin-top: 8px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 280px));
   gap: 10px;
   align-items: start;
+  justify-content: center;
 }
 
 .mode-toggle-grid {
   margin-top: 10px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 280px));
   gap: 10px;
+  justify-content: center;
 }
 
 .mode-toggle {
@@ -2645,6 +2656,8 @@ textarea::placeholder {
   gap: 8px;
   align-content: start;
   min-height: 78px;
+  width: 100%;
+  max-width: 280px;
 }
 
 .mode-toggle label {
@@ -2681,6 +2694,34 @@ textarea::placeholder {
 
 .mode-field-wide {
   grid-column: 1 / -1;
+  max-width: 580px;
+  width: 100%;
+  justify-self: center;
+}
+
+@media (max-width: 720px) {
+  .panel.module .module-body {
+    max-width: none;
+  }
+
+  .mode-section {
+    max-width: none;
+  }
+
+  .mode-grid,
+  .mode-toggle-grid {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+
+  .mode-toggle {
+    max-width: none;
+  }
+
+  .mode-field-wide {
+    max-width: none;
+    justify-self: stretch;
+  }
 }
 
 .mode-actions {

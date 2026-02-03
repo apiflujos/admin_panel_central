@@ -70,7 +70,9 @@ export async function removeConnection(req: Request, res: Response) {
       res.status(400).json({ error: "ID invalido" });
       return;
     }
-    await deleteStoreConnection(id);
+    const purgeDataRaw = String(req.query?.purgeData || req.query?.purge || "").trim().toLowerCase();
+    const purgeData = purgeDataRaw === "1" || purgeDataRaw === "true" || purgeDataRaw === "yes";
+    await deleteStoreConnection(id, { purgeData });
     const list = await listStoreConnections();
     res.status(200).json(list);
     await createSyncLog({
@@ -78,7 +80,7 @@ export async function removeConnection(req: Request, res: Response) {
       direction: "shopify->alegra",
       status: "success",
       message: "Conexion eliminada",
-      request: { id },
+      request: { id, purgeData },
     });
   } catch (error) {
     const message = getErrorMessage(error);

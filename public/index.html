@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260203al" />
+    <link rel="stylesheet" href="styles.css?v=20260203am" />
   </head>
   <body>
     <div class="app-shell">
@@ -749,11 +749,14 @@
 	              <span class="settings-group-subtitle">Configuracion de la tienda activa</span>
 	            </div>
 	            <div class="settings-group-body">
-	              <div class="settings-grid store-meta">
-	                <div class="field span-2" id="store-active-field">
-	                  <label>Tienda <span class="tip" data-tip="Esta tienda define el alcance: todo lo de abajo se guarda por tienda activa.">?</span></label>
-	                  <select id="store-active-select"></select>
-	                </div>
+		              <div class="settings-grid store-meta">
+		                <div class="field span-2" id="store-active-field">
+		                  <label>Tienda <span class="tip" data-tip="Esta tienda define el alcance: todo lo de abajo se guarda por tienda activa.">?</span></label>
+		                  <div class="field-actions inline">
+			                  <select id="store-active-select"></select>
+			                  <button class="ghost danger" id="store-delete" type="button" title="Eliminar tienda">Eliminar tienda</button>
+		                  </div>
+		                </div>
 		                <div class="field span-2">
 		                  <span class="field-hint store-scope-hint">Todo lo de abajo se guarda por tienda. Si cambias de tienda activa, cambian estos ajustes.</span>
 		                </div>
@@ -1510,6 +1513,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260203al" type="module"></script>
+    <script src="app.js?v=20260203am" type="module"></script>
   </body>
 </html>

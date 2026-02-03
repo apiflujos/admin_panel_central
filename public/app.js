@@ -125,6 +125,7 @@ const companyLogo = document.getElementById("company-logo");
 const storeNameInput = document.getElementById("store-name");
 const storeActiveField = document.getElementById("store-active-field");
 const storeActiveSelect = document.getElementById("store-active-select");
+const storeDelete = document.getElementById("store-delete");
 const ordersStoreSelect = document.getElementById("orders-store-select");
 const productsStoreSelect = document.getElementById("products-store-select");
 const contactsStoreSelect = document.getElementById("contacts-store-select");
@@ -4025,7 +4026,7 @@ function renderConnections(settings) {
             </div>
             <div class="connection-summary-meta">
               <span class="status-pill ${overallConnected ? "is-ok" : "is-off"}">${overallLabel}</span>
-              <button class="ghost danger" data-connection-remove="${store.id}">Eliminar</button>
+              <button class="ghost danger" data-connection-remove="${store.id}">Eliminar tienda</button>
             </div>
           </div>
         </div>
@@ -7143,10 +7144,54 @@ if (connectionsGrid) {
     if (!(target instanceof HTMLElement)) return;
     const id = target.dataset.connectionRemove;
     if (!id) return;
-    if (!confirm("Eliminar esta conexion?")) return;
-    fetchJson(`/api/connections/${id}`, { method: "DELETE" })
-      .then(() => loadConnections())
-      .catch(() => null);
+    const storeId = Number(id);
+    const store = storesCache.find((item) => Number(item?.id) === storeId);
+    const storeLabel = store?.storeName || store?.shopDomain || "esta tienda";
+    if (!confirm(`Eliminar la tienda "${storeLabel}"?\nEsto desconecta Shopify y Alegra.`)) return;
+    const purgeData = confirm(
+      `Borrar tambien los datos sincronizados de "${storeLabel}"?\nIncluye productos, pedidos y contactos de esta tienda.`
+    );
+    const suffix = purgeData ? "?purgeData=1" : "";
+    showToast(purgeData ? "Eliminando tienda y data..." : "Eliminando tienda...", "is-warn");
+    fetchJson(`/api/connections/${storeId}${suffix}`, { method: "DELETE" })
+      .then(() => {
+        showToast(purgeData ? "Tienda y data eliminadas." : "Tienda eliminada.", "is-ok");
+        return loadConnections();
+      })
+      .catch((error) => {
+        showToast(error?.message || "No se pudo eliminar.", "is-error");
+      });
+  });
+}
+
+if (storeDelete) {
+  storeDelete.addEventListener("click", () => {
+    const domain = normalizeShopDomain(activeStoreDomain || storeActiveSelect?.value || "");
+    if (!domain) {
+      showToast("No hay tienda activa para eliminar.", "is-warn");
+      return;
+    }
+    const store = storesCache.find((item) => normalizeShopDomain(item?.shopDomain || "") === domain);
+    const storeId = Number(store?.id);
+    const storeLabel = store?.storeName || store?.shopDomain || domain;
+    if (!Number.isFinite(storeId)) {
+      showToast("No se pudo resolver el ID de la tienda.", "is-error");
+      return;
+    }
+    if (!confirm(`Eliminar la tienda "${storeLabel}"?\nEsto desconecta Shopify y Alegra.`)) return;
+    const purgeData = confirm(
+      `Borrar tambien los datos sincronizados de "${storeLabel}"?\nIncluye productos, pedidos y contactos de esta tienda.`
+    );
+    const suffix = purgeData ? "?purgeData=1" : "";
+    showToast(purgeData ? "Eliminando tienda y data..." : "Eliminando tienda...", "is-warn");
+    fetchJson(`/api/connections/${storeId}${suffix}`, { method: "DELETE" })
+      .then(() => {
+        showToast(purgeData ? "Tienda y data eliminadas." : "Tienda eliminada.", "is-ok");
+        return loadConnections();
+      })
+      .catch((error) => {
+        showToast(error?.message || "No se pudo eliminar.", "is-error");
+      });
   });
 }
 if (cfgWarehouseSync) {

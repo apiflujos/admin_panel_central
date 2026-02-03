@@ -236,7 +236,56 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
   return { storeId, shopDomain, alegraAccountId, isNew };
 }
 
-export async function deleteStoreConnection(storeId: number) {
+type DeleteStoreConnectionOptions = {
+  purgeData?: boolean;
+};
+
+async function purgeStoreData(pool: ReturnType<typeof getPool>, orgId: number, shopDomain: string) {
+  await pool.query(
+    `
+    DELETE FROM inventory_transfer_decisions
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM products
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM orders
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM contacts
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM shopify_oauth_states
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM shopify_store_configs
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+}
+
+export async function deleteStoreConnection(storeId: number, options: DeleteStoreConnectionOptions = {}) {
   const pool = getPool();
   const orgId = getOrgId();
 
@@ -254,21 +303,40 @@ export async function deleteStoreConnection(storeId: number) {
   }
 
   const shopDomain = store.rows[0].shop_domain;
-  await pool.query(
-    `
-    DELETE FROM shopify_stores
-    WHERE id = $1 AND organization_id = $2
-    `,
-    [storeId, orgId]
-  );
 
-  await pool.query(
-    `
-    DELETE FROM shopify_store_configs
-    WHERE organization_id = $1 AND shop_domain = $2
-    `,
-    [orgId, shopDomain]
-  );
+  await pool.query("BEGIN");
+  try {
+    if (options.purgeData) {
+      await purgeStoreData(pool, orgId, shopDomain);
+    } else {
+      await pool.query(
+        `
+        DELETE FROM shopify_oauth_states
+        WHERE organization_id = $1 AND shop_domain = $2
+        `,
+        [orgId, shopDomain]
+      );
+      await pool.query(
+        `
+        DELETE FROM shopify_store_configs
+        WHERE organization_id = $1 AND shop_domain = $2
+        `,
+        [orgId, shopDomain]
+      );
+    }
+
+    await pool.query(
+      `
+      DELETE FROM shopify_stores
+      WHERE id = $1 AND organization_id = $2
+      `,
+      [storeId, orgId]
+    );
+    await pool.query("COMMIT");
+  } catch (error) {
+    await pool.query("ROLLBACK");
+    throw error;
+  }
 }
 
 async function resolveAlegraAccountId(
