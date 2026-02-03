@@ -2078,6 +2078,41 @@ function focusFieldWithContext(field) {
   }, 200);
 }
 
+function resolveWizardFocusableTarget(target) {
+  if (!(target instanceof HTMLElement)) return null;
+
+  // If it is already a focusable control, use it.
+  const tag = target.tagName;
+  if (
+    tag === "INPUT" ||
+    tag === "SELECT" ||
+    tag === "TEXTAREA" ||
+    tag === "BUTTON" ||
+    tag === "SUMMARY"
+  ) {
+    return target;
+  }
+
+  // If it's a <details>, focus its <summary>.
+  if (tag === "DETAILS") {
+    const summary = target.querySelector("summary");
+    if (summary instanceof HTMLElement) return summary;
+  }
+
+  // If it's a container (like .field), focus the first interactive element inside.
+  const inside = target.querySelector("input, select, textarea, summary, button");
+  if (inside instanceof HTMLElement) return inside;
+
+  return null;
+}
+
+function focusWizardTarget(target) {
+  const focusable = resolveWizardFocusableTarget(target) || target;
+  if (focusable instanceof HTMLElement) {
+    focusFieldWithContext(focusable);
+  }
+}
+
 function validateInitialConnection(kind) {
   const errors = [];
   if (storeNameInput) clearFieldError(storeNameInput);
@@ -2710,7 +2745,7 @@ async function openWizardStep() {
     ensureConnectionsSetupOpen();
     const target = next.focusTarget || getWizardModuleStatus(next.moduleKey).focusTarget;
     if (target) {
-      focusFieldWithContext(target);
+      focusWizardTarget(target);
     } else {
       showToast("Completa las conexiones para continuar.", "is-warn");
     }
@@ -2721,14 +2756,13 @@ async function openWizardStep() {
         text: isShopify
           ? "1) Escribe el dominio Shopify.\n2) Presiona “Conectar Shopify” y completa la autorizacion.\n3) Al volver, seguimos con Alegra."
           : "1) Selecciona una cuenta Alegra (o crea una nueva).\n2) Presiona “Conectar Alegra”.\n3) Al terminar, pasamos a configurar la tienda.",
-        target: target instanceof HTMLElement ? target : null,
+        target: resolveWizardFocusableTarget(target) || (target instanceof HTMLElement ? target : null),
         actions: [
           {
             label: "Ir al campo",
             kind: "primary",
             onClick: () => {
-              if (target) focusFieldWithContext(target);
-              closeCoach({ persistDismiss: false });
+              if (target) focusWizardTarget(target);
             },
           },
           {
@@ -2776,7 +2810,8 @@ async function openWizardStep() {
     getWizardModuleStatus(next.moduleKey).focusTarget ||
     panel.querySelector("input:not([type=\"hidden\"]), select, textarea, summary, button");
   if (focusTarget instanceof HTMLElement) {
-    setTimeout(() => focusTarget.focus(), 250);
+    // En wizard el foco debe quedar EXACTO en el campo/toggle/selector.
+    focusWizardTarget(focusTarget);
   }
   if (!isCoachDismissed()) {
     const stepTitle = getWizardModuleTitle(next.moduleKey);
@@ -2797,7 +2832,7 @@ async function openWizardStep() {
     openCoach({
       title: `Guia · ${stepTitle}`,
       text: defaultTextMap[next.moduleKey] || "Sigue este paso y guarda para continuar.",
-      target: focusTarget instanceof HTMLElement ? focusTarget : panel,
+      target: resolveWizardFocusableTarget(focusTarget) || panel,
       actions: [
         {
           label: "Entendido",
