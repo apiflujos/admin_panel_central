@@ -1946,6 +1946,8 @@ button {
   right: 16px;
   bottom: 16px;
   width: min(420px, calc(100vw - 32px));
+  max-height: calc(100vh - 24px);
+  overflow: auto;
   background: #ffffff;
   border: 1px solid rgba(15, 23, 42, 0.18);
   border-radius: 14px;

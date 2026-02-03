@@ -692,6 +692,9 @@ let coachTitleEl = null;
 let coachTextEl = null;
 let coachActionsEl = null;
 let coachHighlightEl = null;
+let coachAnchorEl = null;
+let coachScrollBound = false;
+let coachRepositionHandler = null;
 
 function ensureCoach() {
   if (coachEl) return coachEl;
@@ -736,6 +739,79 @@ function ensureCoach() {
   return coachEl;
 }
 
+function resolveCoachAnchor(target) {
+  if (!(target instanceof HTMLElement)) return null;
+  return target.closest(".field") || target;
+}
+
+function positionCoach(panel, anchor) {
+  if (!(panel instanceof HTMLElement)) return;
+
+  // Reset to defaults first (CSS fallback uses right/bottom).
+  panel.style.left = "";
+  panel.style.top = "";
+  panel.style.right = "";
+  panel.style.bottom = "";
+
+  const isMobile = window.matchMedia?.("(max-width: 720px)")?.matches ?? false;
+  if (isMobile) {
+    // Bottom sheet on small screens (more stable + avoids covering target).
+    panel.style.left = "12px";
+    panel.style.right = "12px";
+    panel.style.bottom = "12px";
+    panel.style.top = "auto";
+    return;
+  }
+  if (!(anchor instanceof HTMLElement)) return;
+
+  const anchorRect = anchor.getBoundingClientRect();
+  const panelRect = panel.getBoundingClientRect();
+  const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
+  const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+  const gap = 12;
+  const margin = 12;
+
+  let left = anchorRect.right + gap;
+  let top = anchorRect.top;
+
+  // Prefer placing to the right; if it doesn't fit, move to the left.
+  if (left + panelRect.width > viewportW - margin) {
+    left = anchorRect.left - gap - panelRect.width;
+  }
+
+  // Clamp inside viewport.
+  left = Math.min(Math.max(left, margin), Math.max(margin, viewportW - panelRect.width - margin));
+  top = Math.min(Math.max(top, margin), Math.max(margin, viewportH - panelRect.height - margin));
+
+  panel.style.left = `${Math.round(left)}px`;
+  panel.style.top = `${Math.round(top)}px`;
+  panel.style.right = "auto";
+  panel.style.bottom = "auto";
+}
+
+function bindCoachReposition() {
+  if (coachScrollBound) return;
+  coachScrollBound = true;
+  const handler = () => {
+    if (!coachEl || !coachEl.classList.contains("is-open")) return;
+    if (!coachAnchorEl) return;
+    positionCoach(coachEl, coachAnchorEl);
+  };
+  coachRepositionHandler = handler;
+  window.addEventListener("scroll", handler, { passive: true });
+  window.addEventListener("resize", handler);
+}
+
+function unbindCoachReposition() {
+  if (!coachScrollBound) return;
+  const handler = coachRepositionHandler;
+  if (typeof handler !== "function") return;
+  window.removeEventListener("scroll", handler);
+  window.removeEventListener("resize", handler);
+  coachScrollBound = false;
+  coachRepositionHandler = null;
+}
+
 function setCoachHighlight(target) {
   if (coachHighlightEl && coachHighlightEl !== target) {
     coachHighlightEl.classList.remove("coach-highlight");
@@ -751,6 +827,8 @@ function closeCoach(options = {}) {
   if (!coachEl) return;
   coachEl.classList.remove("is-open");
   setCoachHighlight(null);
+  coachAnchorEl = null;
+  unbindCoachReposition();
   if (persistDismiss) {
     try {
       localStorage.setItem(COACH_DISMISSED_KEY, "1");
@@ -775,6 +853,7 @@ function openCoach(payload) {
   const text = payload?.text ? String(payload.text) : "";
   const target = payload?.target instanceof HTMLElement ? payload.target : null;
   const actions = Array.isArray(payload?.actions) ? payload.actions : [];
+  const anchor = resolveCoachAnchor(target);
 
   coachTitleEl.textContent = title;
   coachTextEl.textContent = text;
@@ -797,7 +876,12 @@ function openCoach(payload) {
   });
 
   panel.classList.add("is-open");
-  setCoachHighlight(target);
+  coachAnchorEl = anchor;
+  setCoachHighlight(anchor);
+  bindCoachReposition();
+  requestAnimationFrame(() => {
+    positionCoach(panel, anchor);
+  });
 }
 
 function initHelpPanels() {
