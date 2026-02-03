@@ -150,36 +150,22 @@ export async function getSettings() {
   const pool = getPool();
   const orgId = getOrgId();
 
-  const shopify = await readCredential(pool, orgId, "shopify");
-  const alegra = await readCredential(pool, orgId, "alegra");
-  const ai = await readCredential(pool, orgId, "ai");
+  const shopify = await readShopifySettingsSummary(pool, orgId);
+  const alegra = await readAlegraSettingsSummary(pool, orgId);
+  const ai = await readCredentialSafe(pool, orgId, "ai");
   const rules = await readRules(pool, orgId);
   const invoice = await readInvoiceSettings(pool, orgId);
   const taxRules = await readTaxRules(pool, orgId);
   const paymentMappings = await readPaymentMappings(pool, orgId);
 
   return {
-    shopify: shopify
-      ? {
-          shopDomain: shopify.shopDomain || "",
-          locationId: shopify.locationId || "",
-          apiVersion: shopify.apiVersion || "",
-          hasAccessToken: Boolean(shopify.accessToken),
-        }
-      : null,
-    alegra: alegra
-      ? {
-          email: alegra.email || "",
-          accountId: alegra.accountId || "",
-          hasApiKey: Boolean(alegra.apiKey),
-          environment: alegra.environment || "prod",
-        }
-      : null,
-    ai: ai
-      ? {
-          hasApiKey: Boolean(ai.apiKey),
-        }
-      : null,
+    shopify,
+    alegra,
+    ai: ai.data
+      ? { hasApiKey: Boolean((ai.data as { apiKey?: string }).apiKey), needsReconnect: ai.needsReconnect }
+      : ai.needsReconnect
+        ? { hasApiKey: false, needsReconnect: true }
+        : null,
     rules,
     invoice,
     taxRules,
@@ -573,6 +559,161 @@ async function readCredential(
   }
   const decrypted = decryptString(result.rows[0].data_encrypted);
   return JSON.parse(decrypted) as Record<string, string>;
+}
+
+const isCryptoKeyMisconfigured = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error || "");
+  return message.includes("CRYPTO_KEY_BASE64 must be 32 bytes");
+};
+
+async function readCredentialSafe(
+  pool: ReturnType<typeof getPool>,
+  orgId: number,
+  provider: string
+): Promise<{ data: Record<string, string> | null; needsReconnect: boolean }> {
+  const result = await pool.query<{ data_encrypted: string }>(
+    `
+    SELECT data_encrypted
+    FROM credentials
+    WHERE organization_id = $1 AND provider = $2
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId, provider]
+  );
+  if (!result.rows.length) {
+    return { data: null, needsReconnect: false };
+  }
+  try {
+    const decrypted = decryptString(result.rows[0].data_encrypted);
+    return { data: JSON.parse(decrypted) as Record<string, string>, needsReconnect: false };
+  } catch (error) {
+    if (isCryptoKeyMisconfigured(error)) {
+      throw error;
+    }
+    return { data: null, needsReconnect: true };
+  }
+}
+
+async function readShopifySettingsSummary(pool: ReturnType<typeof getPool>, orgId: number) {
+  const stores = await pool.query<{
+    shop_domain: string;
+    access_token_encrypted: string | null;
+  }>(
+    `
+    SELECT shop_domain, access_token_encrypted
+    FROM shopify_stores
+    WHERE organization_id = $1
+    ORDER BY created_at DESC
+    LIMIT 20
+    `,
+    [orgId]
+  );
+
+  let hasAnyStore = false;
+  let hasAccessToken = false;
+  let needsReconnect = false;
+  let shopDomain = "";
+
+  for (const row of stores.rows) {
+    if (!row.shop_domain) continue;
+    hasAnyStore = true;
+    shopDomain = shopDomain || row.shop_domain;
+    if (!row.access_token_encrypted) continue;
+    try {
+      const decrypted = JSON.parse(decryptString(row.access_token_encrypted)) as { accessToken?: string };
+      const token = String(decrypted?.accessToken || "").trim();
+      if (token) {
+        hasAccessToken = true;
+      }
+    } catch (error) {
+      if (isCryptoKeyMisconfigured(error)) {
+        throw error;
+      }
+      needsReconnect = true;
+    }
+  }
+
+  if (hasAnyStore || hasAccessToken || needsReconnect) {
+    return { shopDomain, locationId: "", apiVersion: "", hasAccessToken, needsReconnect };
+  }
+
+  // fallback legacy
+  const legacy = await readCredentialSafe(pool, orgId, "shopify");
+  if (!legacy.data && !legacy.needsReconnect) return null;
+  const legacyShopDomain = String(legacy.data?.shopDomain || "").trim();
+  const legacyHasToken = Boolean(String(legacy.data?.accessToken || "").trim());
+  return {
+    shopDomain: legacyShopDomain,
+    locationId: String(legacy.data?.locationId || ""),
+    apiVersion: String(legacy.data?.apiVersion || ""),
+    hasAccessToken: legacyHasToken,
+    needsReconnect: legacy.needsReconnect,
+  };
+}
+
+async function readAlegraSettingsSummary(pool: ReturnType<typeof getPool>, orgId: number) {
+  const accounts = await pool.query<{
+    user_email: string;
+    api_key_encrypted: string | null;
+    environment: string | null;
+  }>(
+    `
+    SELECT user_email, api_key_encrypted, environment
+    FROM alegra_accounts
+    WHERE organization_id = $1
+    ORDER BY created_at DESC
+    LIMIT 20
+    `,
+    [orgId]
+  );
+
+  let hasAnyAccount = false;
+  let hasApiKey = false;
+  let needsReconnect = false;
+  let email = "";
+  let environment = "prod";
+
+  for (const row of accounts.rows) {
+    if (!row.user_email) continue;
+    hasAnyAccount = true;
+    email = email || row.user_email;
+    environment = (row.environment || "prod") === "sandbox" ? "sandbox" : "prod";
+    if (!row.api_key_encrypted) {
+      needsReconnect = true;
+      continue;
+    }
+    try {
+      const decrypted = JSON.parse(decryptString(row.api_key_encrypted)) as { apiKey?: string };
+      const apiKey = String(decrypted?.apiKey || "").trim();
+      if (apiKey) {
+        hasApiKey = true;
+      }
+    } catch (error) {
+      if (isCryptoKeyMisconfigured(error)) {
+        throw error;
+      }
+      needsReconnect = true;
+    }
+  }
+
+  if (hasAnyAccount || hasApiKey || needsReconnect) {
+    return { email, accountId: "", hasApiKey, environment, needsReconnect };
+  }
+
+  // fallback legacy
+  const legacy = await readCredentialSafe(pool, orgId, "alegra");
+  if (!legacy.data && !legacy.needsReconnect) return null;
+  const legacyEmail = String(legacy.data?.email || "").trim();
+  const legacyHasKey = Boolean(String(legacy.data?.apiKey || "").trim());
+  const legacyEnv = (legacy.data?.environment || "prod") === "sandbox" ? "sandbox" : "prod";
+  return {
+    email: legacyEmail,
+    accountId: String(legacy.data?.accountId || ""),
+    hasApiKey: legacyHasKey,
+    environment: legacyEnv,
+    needsReconnect: legacy.needsReconnect,
+  };
 }
 
 async function readRules(pool: ReturnType<typeof getPool>, orgId: number) {
