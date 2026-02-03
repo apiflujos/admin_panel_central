@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260203n" />
+    <link rel="stylesheet" href="styles.css?v=20260203p" />
   </head>
   <body>
     <div class="app-shell">
@@ -73,8 +73,8 @@
 	          </button>
 		          <div class="nav-submenu" id="settings-submenu" aria-label="Submenu configuracion">
 		            <button class="nav-subitem is-active" type="button" data-settings-pane-link="connections" title="Conexiones">Conexiones</button>
-		            <button class="nav-subitem" type="button" data-settings-pane-link="integrations" title="Integraciones">Integraciones</button>
 		            <button class="nav-subitem" type="button" data-settings-pane-link="stores" title="Tiendas">Tiendas</button>
+		            <button class="nav-subitem" type="button" data-settings-pane-link="integrations" title="Integraciones">Integraciones</button>
 		          </div>
 	        </nav>
 	        <div class="sidebar-footer"></div>
@@ -799,11 +799,11 @@
 	                          <span class="field-hint">Automatico 1 a 1: aplica cuando llega un cambio desde Alegra.</span>
 	                        </div>
                         <div class="field">
-                          <label>Estado al auto-publicar <span class="tip" data-tip="Activo publica (si cumple regla de stock); Borrador actualiza sin publicar.">?</span></label>
-                          <select id="rules-auto-status">
-                            <option value="draft">Borrador</option>
-                            <option value="active">Activo</option>
-                          </select>
+	                          <label>Estado al auto-publicar <span class="tip" data-tip="Activo publica (si cumple regla de stock); Borrador actualiza sin publicar.">?</span></label>
+	                          <select id="rules-auto-status" data-depends-on="rules-auto-publish">
+	                            <option value="draft">Borrador</option>
+	                            <option value="active">Activo</option>
+	                          </select>
 	                          <span class="field-hint">Automatico: define si publica o deja en borrador.</span>
                         </div>
                         <div class="field span-2">
@@ -1002,12 +1002,12 @@
 	                        </div>
                         <div class="field">
 	                          <label>Que crear en Alegra <span class="tip" data-tip="Define si solo registras el pedido o si creas contacto/factura en Alegra.">?</span></label>
-	                          <select id="sync-orders-shopify">
-	                            <option value="db_only">Solo registrar</option>
-	                            <option value="contact_only">Crear contacto</option>
-	                            <option value="invoice">Crear factura</option>
-	                            <option value="off">No sincronizar</option>
-	                          </select>
+		                          <select id="sync-orders-shopify" data-depends-on="sync-orders-shopify-enabled">
+		                            <option value="db_only">Solo registrar</option>
+		                            <option value="contact_only">Crear contacto</option>
+		                            <option value="invoice">Crear factura</option>
+		                            <option value="off">No sincronizar</option>
+		                          </select>
                           <span class="field-hint">Aplica en automatico y en sincronizacion masiva desde Pedidos.</span>
                         </div>
                         <div class="field span-2">
@@ -1020,11 +1020,11 @@
 	                        </div>
                         <div class="field">
                           <label>Como crear pedido en Shopify <span class="tip" data-tip="Borrador crea el pedido sin publicar; Activo lo crea listo para gestionar.">?</span></label>
-                          <select id="sync-orders-alegra">
-                            <option value="draft">Crear pedido borrador</option>
-                            <option value="active">Crear pedido activo</option>
-                            <option value="off">No sincronizar</option>
-                          </select>
+	                          <select id="sync-orders-alegra" data-depends-on="sync-orders-alegra-enabled">
+	                            <option value="draft">Crear pedido borrador</option>
+	                            <option value="active">Crear pedido activo</option>
+	                            <option value="off">No sincronizar</option>
+	                          </select>
                           <span class="field-hint">Aplica cuando la fuente sea Alegra → Shopify.</span>
                         </div>
                       </div>
@@ -1057,47 +1057,47 @@
                   <span class="kpi-sub">Secuencia de decision</span>
                 </div>
                 <div class="field">
-                  <label>Estrategia principal</label>
-                  <select id="cfg-transfer-strategy">
-                    <option value="manual">Manual (sin estrategia)</option>
-                    <option value="consolidation">Consolidacion</option>
-                    <option value="priority">Prioridad</option>
-                    <option value="max_stock">Mayor existencia</option>
-                  </select>
+	                  <label>Estrategia principal</label>
+	                  <select id="cfg-transfer-strategy" data-depends-on="cfg-transfer-enabled">
+	                    <option value="manual">Manual (sin estrategia)</option>
+	                    <option value="consolidation">Consolidacion</option>
+	                    <option value="priority">Prioridad</option>
+	                    <option value="max_stock">Mayor existencia</option>
+	                  </select>
                 </div>
                 <div class="field">
-                  <label>Estrategia de respaldo</label>
-                  <select id="cfg-transfer-fallback">
-                    <option value="">Ninguna</option>
-                    <option value="manual">Manual (sin estrategia)</option>
-                    <option value="consolidation">Consolidacion</option>
-                    <option value="priority">Prioridad</option>
-                    <option value="max_stock">Mayor existencia</option>
-                  </select>
+	                  <label>Estrategia de respaldo</label>
+	                  <select id="cfg-transfer-fallback" data-depends-on="cfg-transfer-enabled">
+	                    <option value="">Ninguna</option>
+	                    <option value="manual">Manual (sin estrategia)</option>
+	                    <option value="consolidation">Consolidacion</option>
+	                    <option value="priority">Prioridad</option>
+	                    <option value="max_stock">Mayor existencia</option>
+	                  </select>
                 </div>
                 <div class="field">
-                  <label>Desempate</label>
-                  <select id="cfg-transfer-tiebreak">
-                    <option value="">Ninguno</option>
-                    <option value="max_stock">Mayor existencia</option>
-                    <option value="priority">Prioridad</option>
-                    <option value="random">Aleatorio</option>
-                  </select>
+	                  <label>Desempate</label>
+	                  <select id="cfg-transfer-tiebreak" data-depends-on="cfg-transfer-enabled">
+	                    <option value="">Ninguno</option>
+	                    <option value="max_stock">Mayor existencia</option>
+	                    <option value="priority">Prioridad</option>
+	                    <option value="random">Aleatorio</option>
+	                  </select>
                 </div>
 	                <div class="field is-toggle">
 	                  <label>Permitir dividir pedido</label>
-	                  <input type="checkbox" id="cfg-transfer-split" class="toggle" />
-	                </div>
+	                  <input type="checkbox" id="cfg-transfer-split" class="toggle" data-depends-on="cfg-transfer-enabled" />
+		            </div>
                 <div class="field field-span">
                   <span class="kpi-sub">Bodegas elegibles</span>
                 </div>
                 <div class="field">
-                  <label>Bodega prioritaria</label>
-                  <select id="cfg-transfer-priority"></select>
-                </div>
-                <div class="field span-2" id="cfg-transfer-origin-field">
-                  <label>Bodegas origen</label>
-                  <details class="multi-select">
+	                  <label>Bodega prioritaria</label>
+	                  <select id="cfg-transfer-priority" data-depends-on="cfg-transfer-enabled"></select>
+	                </div>
+	                <div class="field span-2" id="cfg-transfer-origin-field" data-depends-on="cfg-transfer-enabled">
+	                  <label>Bodegas origen</label>
+	                  <details class="multi-select">
                     <summary>
                       <span>Seleccionar bodegas</span>
                       <em id="cfg-transfer-origin-summary">Todas</em>
@@ -1106,16 +1106,16 @@
                   </details>
                 </div>
                 <div class="field">
-                  <label>Stock minimo por bodega</label>
-                  <input type="number" id="cfg-transfer-min-stock" min="0" step="1" placeholder="0" />
-                </div>
+	                  <label>Stock minimo por bodega</label>
+	                  <input type="number" id="cfg-transfer-min-stock" data-depends-on="cfg-transfer-enabled" min="0" step="1" placeholder="0" />
+	                </div>
                 <div class="field field-span">
                   <span class="kpi-sub">Traslados de inventario</span>
                 </div>
                 <div class="field">
-                  <label>Destino</label>
-                  <select id="cfg-transfer-dest"></select>
-                </div>
+	                  <label>Destino</label>
+	                  <select id="cfg-transfer-dest" data-depends-on="cfg-transfer-enabled"></select>
+	                </div>
 	                <div class="field is-toggle">
 	                  <label>Traslado automatico</label>
 	                  <input type="checkbox" id="cfg-transfer-enabled" class="toggle" />
@@ -1147,68 +1147,68 @@
                   <p class="field-hint">Opcional. Si queda vacio, se usa el precio base de Alegra.</p>
                 </div>
                 <div class="field">
-                  <label>Lista para precio base</label>
-                  <select id="cfg-price-general" data-allow-empty="true" data-empty-label="Usar precio base de Alegra"></select>
-                </div>
-                <div class="field">
-                  <label>Lista para descuentos</label>
-                  <select id="cfg-price-discount" data-allow-empty="true" data-empty-label="No aplicar descuento"></select>
-                </div>
-                <div class="field">
-                  <label>Lista para mayoristas</label>
-                  <select id="cfg-price-wholesale" data-allow-empty="true" data-empty-label="No aplicar mayorista"></select>
-                </div>
-                <div class="field">
-                  <label>Moneda</label>
-                  <select id="cfg-price-currency">
-                    <option value="">Auto</option>
-                    <option value="COP">COP</option>
-                    <option value="USD">USD</option>
-                  </select>
-                </div>
+	                  <label>Lista para precio base</label>
+	                  <select id="cfg-price-general" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="Usar precio base de Alegra"></select>
+	                </div>
+	                <div class="field">
+	                  <label>Lista para descuentos</label>
+	                  <select id="cfg-price-discount" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="No aplicar descuento"></select>
+	                </div>
+	                <div class="field">
+	                  <label>Lista para mayoristas</label>
+	                  <select id="cfg-price-wholesale" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="No aplicar mayorista"></select>
+	                </div>
+	                <div class="field">
+	                  <label>Moneda</label>
+	                  <select id="cfg-price-currency" data-depends-on="cfg-price-enabled">
+	                    <option value="">Auto</option>
+	                    <option value="COP">COP</option>
+	                    <option value="USD">USD</option>
+	                  </select>
+	                </div>
 	                <div class="field is-toggle">
 	                  <label>Facturar automaticamente</label>
 	                  <input type="checkbox" id="cfg-generate-invoice" class="toggle" />
 	                </div>
 	                <div class="field is-toggle">
 	                  <label>Habilitar factura electronica</label>
-	                  <input type="checkbox" id="cfg-einvoice-enabled" class="toggle" />
+		                  <input type="checkbox" id="cfg-einvoice-enabled" class="toggle" data-depends-on="cfg-generate-invoice" />
+		                </div>
+                <div class="field">
+	                  <label>Resolucion DIAN</label>
+	                  <select id="cfg-resolution" data-depends-on="cfg-generate-invoice"></select>
 	                </div>
-                <div class="field">
-                  <label>Resolucion DIAN</label>
-                  <select id="cfg-resolution"></select>
-                </div>
-                <div class="field">
-                  <label>Centro de costos</label>
-                  <select id="cfg-cost-center"></select>
-                </div>
-                <div class="field">
-                  <label>Bodega</label>
-                  <select id="cfg-warehouse"></select>
-                </div>
-                <div class="field">
-                  <label>Vendedor</label>
-                  <select id="cfg-seller"></select>
-                </div>
-                <div class="field">
-                  <label>Metodo de pago</label>
-                  <select id="cfg-payment-method" data-allow-empty="true" data-empty-label="No aplicar"></select>
-                </div>
-                <div class="field">
-                  <label>Cuenta bancaria</label>
-                  <select id="cfg-bank-account" data-allow-empty="true" data-empty-label="No aplicar"></select>
-                </div>
+	                <div class="field">
+	                  <label>Centro de costos</label>
+	                  <select id="cfg-cost-center" data-depends-on="cfg-generate-invoice"></select>
+	                </div>
+	                <div class="field">
+	                  <label>Bodega</label>
+	                  <select id="cfg-warehouse" data-depends-on="cfg-generate-invoice"></select>
+	                </div>
+	                <div class="field">
+	                  <label>Vendedor</label>
+	                  <select id="cfg-seller" data-depends-on="cfg-generate-invoice"></select>
+	                </div>
+	                <div class="field">
+	                  <label>Metodo de pago</label>
+	                  <select id="cfg-payment-method" data-depends-on="cfg-generate-invoice" data-allow-empty="true" data-empty-label="No aplicar"></select>
+	                </div>
+	                <div class="field">
+	                  <label>Cuenta bancaria</label>
+	                  <select id="cfg-bank-account" data-depends-on="cfg-generate-invoice,cfg-apply-payment" data-allow-empty="true" data-empty-label="No aplicar"></select>
+	                </div>
                 <div class="field field-span">
                   <p class="field-hint">Si aparecen "Sin datos", crea metodos de pago y cuentas en Alegra.</p>
                 </div>
 	                <div class="field is-toggle">
 	                  <label>Aplicar pago</label>
-	                  <input type="checkbox" id="cfg-apply-payment" class="toggle" />
+		                  <input type="checkbox" id="cfg-apply-payment" class="toggle" data-depends-on="cfg-generate-invoice" />
+		                </div>
+	                <div class="field">
+	                  <label>Observaciones</label>
+	                  <input type="text" id="cfg-observations" data-depends-on="cfg-generate-invoice" placeholder="Pedido {{order.name}}" />
 	                </div>
-                <div class="field">
-                  <label>Observaciones</label>
-                  <input type="text" id="cfg-observations" placeholder="Pedido {{order.name}}" />
-                </div>
                 <div class="field field-span">
                   <p class="field-hint" id="cfg-store-message"></p>
                 </div>
@@ -1283,18 +1283,18 @@
 	                                <span>Actualizacion de inventario activa</span>
 	                                <input type="checkbox" id="inventory-cron-enabled" class="toggle" />
 	                              </label>
-	                              <div class="field">
-	                                <label>Intervalo de actualizacion</label>
-	                                <select id="inventory-cron-interval-select">
-                                  <option value="5">Cada 5 minutos</option>
-                                  <option value="10">Cada 10 minutos</option>
-                                  <option value="15">Cada 15 minutos</option>
-                                </select>
-                              </div>
-	                              <div class="field is-toggle">
-	                                <label>Auto-publicar ajustes en Shopify</label>
-	                                <input type="checkbox" id="cfg-inventory-auto-publish" class="toggle" />
-	                              </div>
+		                              <div class="field">
+		                                <label>Intervalo de actualizacion</label>
+		                                <select id="inventory-cron-interval-select" data-depends-on="inventory-cron-enabled">
+		                                  <option value="5">Cada 5 minutos</option>
+		                                  <option value="10">Cada 10 minutos</option>
+		                                  <option value="15">Cada 15 minutos</option>
+		                                </select>
+		                              </div>
+		                              <div class="field is-toggle">
+		                                <label>Auto-publicar ajustes en Shopify</label>
+		                                <input type="checkbox" id="cfg-inventory-auto-publish" class="toggle" data-depends-on="inventory-cron-enabled" />
+		                              </div>
                             </div>
                           </div>
                         </div>
@@ -1440,6 +1440,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260203n" type="module"></script>
+    <script src="app.js?v=20260203p" type="module"></script>
   </body>
 </html>

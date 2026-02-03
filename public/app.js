@@ -1045,6 +1045,79 @@ function initToggleFields() {
   });
 }
 
+function parseDependsOn(value) {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function isToggleOnById(id) {
+  const toggle = document.getElementById(id);
+  if (!(toggle instanceof HTMLInputElement)) return true;
+  if (toggle.type !== "checkbox") return true;
+  return Boolean(toggle.checked);
+}
+
+function setDependentEnabled(element, enabled) {
+  const shouldDisable = !enabled;
+  const nodes = [];
+
+  if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement || element instanceof HTMLButtonElement) {
+    nodes.push(element);
+  } else if (element instanceof HTMLElement) {
+    element
+      .querySelectorAll("input, select, textarea, button")
+      .forEach((node) => nodes.push(node));
+  }
+
+  nodes.forEach((node) => {
+    // Don't disable the toggle itself if it happens to be inside the dependent container.
+    if (node instanceof HTMLInputElement && node.classList.contains("toggle")) return;
+    node.disabled = shouldDisable;
+  });
+
+  if (element instanceof HTMLElement) {
+    element.classList.toggle("is-dep-disabled", shouldDisable);
+    element.querySelectorAll("details").forEach((details) => {
+      if (shouldDisable) details.open = false;
+      const summary = details.querySelector("summary");
+      if (summary instanceof HTMLElement) {
+        summary.setAttribute("aria-disabled", shouldDisable ? "true" : "false");
+        summary.tabIndex = shouldDisable ? -1 : 0;
+        summary.style.pointerEvents = shouldDisable ? "none" : "";
+      }
+    });
+  }
+}
+
+function applyToggleDependencies() {
+  document.querySelectorAll("[data-depends-on]").forEach((element) => {
+    if (!(element instanceof HTMLElement)) return;
+    const ids = parseDependsOn(element.getAttribute("data-depends-on") || "");
+    if (!ids.length) return;
+    const enabled = ids.every((id) => isToggleOnById(id));
+    setDependentEnabled(element, enabled);
+  });
+}
+
+function initToggleDependencies() {
+  const toggleIds = new Set();
+  document.querySelectorAll("[data-depends-on]").forEach((element) => {
+    if (!(element instanceof HTMLElement)) return;
+    parseDependsOn(element.getAttribute("data-depends-on") || "").forEach((id) => toggleIds.add(id));
+  });
+
+  toggleIds.forEach((id) => {
+    const toggle = document.getElementById(id);
+    if (!(toggle instanceof HTMLInputElement)) return;
+    if (toggle.type !== "checkbox") return;
+    toggle.addEventListener("change", applyToggleDependencies);
+  });
+
+  applyToggleDependencies();
+}
+
 function initTips() {
   let tipPopoverEl = null;
   let tipPopoverTextEl = null;
@@ -3229,6 +3302,7 @@ async function loadSettings() {
   await loadConnections();
   await loadLegacyStoreConfig();
   updatePrerequisites();
+  applyToggleDependencies();
   loadSettingsWarehouses().catch(() => null);
   loadInventoryCheckpoint().catch(() => null);
 }
@@ -3868,6 +3942,7 @@ async function loadLegacyStoreConfig() {
     clearLegacyStoreConfig();
   } finally {
     updatePrerequisites();
+    applyToggleDependencies();
   }
 }
 
@@ -7750,6 +7825,7 @@ async function init() {
   cleanupLegacyConnectionsUi();
   initGroupControls();
   initToggleFields();
+  initToggleDependencies();
   initTips();
   initSetupModeControls();
   updateWizardStartAvailability();
