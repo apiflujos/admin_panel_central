@@ -2539,8 +2539,28 @@ textarea::placeholder {
   min-width: 0;
 }
 
-.mode-head-action {
+.mode-head-right {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mode-head-right label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.mode-head-right select {
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mode-head-action {
+  margin-left: 0;
 }
 
 .mode-head h4 {

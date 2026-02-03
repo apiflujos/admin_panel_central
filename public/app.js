@@ -245,6 +245,7 @@ const productsPageGo = document.getElementById("products-page-go");
 const productsCountLabel = document.getElementById("products-count");
 const productsStatus = document.getElementById("products-status");
 const productsPublishStatus = document.getElementById("products-publish-status");
+const productsPublishStatusMass = document.getElementById("products-publish-status-mass");
 const productsIncludeImages = document.getElementById("products-include-images");
 const rulesOnlyActive = document.getElementById("rules-only-active");
 const rulesSyncEnabled = document.getElementById("rules-sync-enabled");
@@ -3107,6 +3108,7 @@ function initGroupControls() {
 
 function applyProductSettings() {
   if (productsPublishStatus) productsPublishStatus.value = productSettings.publish.status;
+  if (productsPublishStatusMass) productsPublishStatusMass.value = productSettings.publish.status;
   if (productsIncludeImages) productsIncludeImages.checked = productSettings.publish.includeImages;
   if (productsDateStart) productsDateStart.value = productSettings.sync.dateStart;
   if (productsDateEnd) productsDateEnd.value = productSettings.sync.dateEnd;
@@ -7746,6 +7748,18 @@ if (productsClearBtn) {
     productsStart = 0;
     refreshProductSettingsFromInputs();
     loadProducts();
+  });
+}
+
+if (productsPublishStatusMass && productsPublishStatus) {
+  productsPublishStatusMass.addEventListener("change", () => {
+    productsPublishStatus.value = productsPublishStatusMass.value;
+    productsPublishStatus.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  productsPublishStatus.addEventListener("change", () => {
+    if (productsPublishStatusMass.value !== productsPublishStatus.value) {
+      productsPublishStatusMass.value = productsPublishStatus.value;
+    }
   });
 }
 

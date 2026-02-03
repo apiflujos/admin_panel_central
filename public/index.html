@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260203y" />
+    <link rel="stylesheet" href="styles.css?v=20260203aa" />
   </head>
   <body>
     <div class="app-shell">
@@ -792,8 +792,17 @@
                       <div class="mode-sections">
                         <div class="mode-section">
                           <div class="mode-head">
-                            <h4>Sincronizacion masiva (inicio)</h4>
-                            <span class="tip" data-tip="Usala para iniciar el catalogo. Se ejecuta cuando la lanzas manualmente.">?</span>
+                            <div class="mode-head-left">
+                              <h4>Sincronizacion masiva (inicio)</h4>
+                              <span class="tip" data-tip="Usala para iniciar el catalogo. Se ejecuta cuando la lanzas manualmente.">?</span>
+                            </div>
+                            <div class="mode-head-right">
+                              <label for="products-publish-status-mass">Estado</label>
+                              <select id="products-publish-status-mass" data-depends-on="products-sync-publish">
+                                <option value="draft">Borrador</option>
+                                <option value="active">Activo</option>
+                              </select>
+                            </div>
                           </div>
                           <div class="mode-grid">
                             <div class="mode-field">
@@ -835,8 +844,17 @@
 
                         <div class="mode-section">
                           <div class="mode-head">
-                            <h4>Sincronizacion automatica</h4>
-                            <span class="tip" data-tip="Se ejecuta cuando llega un cambio desde Alegra.">?</span>
+                            <div class="mode-head-left">
+                              <h4>Sincronizacion automatica</h4>
+                              <span class="tip" data-tip="Se ejecuta cuando llega un cambio desde Alegra.">?</span>
+                            </div>
+                            <div class="mode-head-right">
+                              <label for="rules-auto-status">Estado</label>
+                              <select id="rules-auto-status" data-depends-on="rules-auto-publish">
+                                <option value="draft">Borrador</option>
+                                <option value="active">Activo</option>
+                              </select>
+                            </div>
                           </div>
                           <div class="mode-grid">
                             <div class="mode-field">
@@ -847,13 +865,6 @@
                               <label for="rules-auto-publish">Publicar en Shopify</label>
                               <input type="checkbox" id="rules-auto-publish" class="toggle" />
                             </div>
-                            <div class="mode-field">
-                              <label for="rules-auto-status">Estado al auto-publicar <span class="tip" data-tip="Activo publica; Borrador actualiza sin publicar.">?</span></label>
-                              <select id="rules-auto-status" data-depends-on="rules-auto-publish">
-                                <option value="draft">Borrador</option>
-                                <option value="active">Activo</option>
-                              </select>
-                            </div>
                           </div>
                         </div>
 
@@ -863,16 +874,16 @@
                               <h4>Sincronizacion manual (desde Productos)</h4>
                               <span class="tip" data-tip="Se ejecuta cuando publicas un producto desde la tabla (acciones por SKU).">?</span>
                             </div>
-                            <button class="ghost mode-head-action" type="button" data-nav-to="products">Ir a Productos</button>
-                          </div>
-                          <div class="mode-grid">
-                            <div class="mode-field">
-                              <label for="products-publish-status">Estado al publicar</label>
+                            <div class="mode-head-right">
+                              <label for="products-publish-status">Estado</label>
                               <select id="products-publish-status">
                                 <option value="draft">Borrador</option>
                                 <option value="active">Activo</option>
                               </select>
                             </div>
+                            <button class="ghost mode-head-action" type="button" data-nav-to="products">Ir a Productos</button>
+                          </div>
+                          <div class="mode-grid">
                             <div class="mode-field">
                               <label for="products-include-images">Publicar fotos (manual y masivo)</label>
                               <input type="checkbox" id="products-include-images" class="toggle" />
@@ -1501,6 +1512,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260203y" type="module"></script>
+    <script src="app.js?v=20260203aa" type="module"></script>
   </body>
 </html>
