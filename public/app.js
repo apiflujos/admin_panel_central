@@ -6917,7 +6917,29 @@ function clearConnectionForm() {
   toggleAlegraAccountFields();
 }
 
-function startShopifyOAuthFlow() {
+async function connectShopifyWithToken(params) {
+  const tokenValue = shopifyToken ? shopifyToken.value.trim() : "";
+  if (!tokenValue) {
+    throw new Error("Token Shopify requerido.");
+  }
+  const response = await fetchJson("/api/connections", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      storeName: params.storeName || "",
+      shopify: {
+        shopDomain: params.shopDomain,
+        accessToken: tokenValue,
+      },
+    }),
+  });
+  if (shopifyToken) shopifyToken.value = "";
+  showToast("Shopify conectado.", "is-ok");
+  await loadConnections();
+  return response;
+}
+
+async function startShopifyOAuthFlow() {
   clearPendingConfigCopy();
   if (!validateInitialConnection("shopify")) {
     throw new Error("Completa los campos obligatorios.");
@@ -6932,6 +6954,14 @@ function startShopifyOAuthFlow() {
     "";
   if (!normalizedInput) {
     throw new Error("Dominio Shopify requerido");
+  }
+  const tokenValue = shopifyToken ? shopifyToken.value.trim() : "";
+  if (tokenValue) {
+    await connectShopifyWithToken({
+      shopDomain: normalizedInput,
+      storeName: resolvedStoreName,
+    });
+    return;
   }
   const params = new URLSearchParams({ shop: normalizedInput });
   if (resolvedStoreName) {
@@ -7115,14 +7145,17 @@ if (alegraAccountSelect) {
   bindStoreContextSelect(contactsStoreSelect);
 
 	if (connectShopify) {
-	  connectShopify.addEventListener("click", () => {
+	  connectShopify.addEventListener("click", async () => {
 	    try {
-	      startShopifyOAuthFlow();
-    } catch (error) {
-      showToast(error?.message || "No se pudo conectar Shopify.", "is-error");
-    }
-  });
-}
+	      setButtonLoading(connectShopify, true, "Conectando...");
+	      await startShopifyOAuthFlow();
+	    } catch (error) {
+	      showToast(error?.message || "No se pudo conectar Shopify.", "is-error");
+	    } finally {
+	      setButtonLoading(connectShopify, false);
+	    }
+	  });
+	}
 if (connectAlegra) {
   connectAlegra.addEventListener("click", () => {
     setButtonLoading(connectAlegra, true, "Conectando...");

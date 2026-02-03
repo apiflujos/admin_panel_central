@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260203am" />
+    <link rel="stylesheet" href="styles.css?v=20260203an" />
   </head>
   <body>
     <div class="app-shell">
@@ -647,6 +647,11 @@
 		                      <label>Shopify dominio <span class="tip" data-tip="Dominio de la tienda (ej: tu-tienda.myshopify.com). Se usa para conectar Shopify a esta integracion.">?</span></label>
 		                      <input type="text" id="shopify-domain" placeholder="tu-tienda.myshopify.com" />
 		                      <span class="field-hint">Se usa para iniciar la autorizacion de Shopify.</span>
+	                    </div>
+	                    <div class="field span-2">
+	                      <label>Token Shopify (opcional) <span class="tip" data-tip="Si ya tienes un Admin API token (custom app) de esta tienda, pegalo aqui y presiona Conectar Shopify. Si lo dejas vacio, se abrira OAuth.">?</span></label>
+	                      <input type="password" id="shopify-token" placeholder="shpat_********" autocomplete="new-password" />
+	                      <span class="field-hint">Recomendado solo si no puedes usar OAuth hoy. Se guarda cifrado.</span>
 	                    </div>
 	                  </div>
                 </div>
@@ -1513,6 +1518,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260203am" type="module"></script>
+    <script src="app.js?v=20260203an" type="module"></script>
   </body>
 </html>
