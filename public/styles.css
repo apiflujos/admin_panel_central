@@ -1167,14 +1167,6 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 20px;
-  line-height: 1.15;
-}
-
-@media (max-width: 720px) {
-  .panel-header h3[data-module-toggle] {
-    font-size: 18px;
-  }
 }
 
 .panel.module.is-readonly .panel-header h3[data-module-toggle]::before {
@@ -1388,7 +1380,7 @@ button {
 }
 
 .settings-group-header h4 {
-  font-size: 12px;
+  font-size: 17px;
   color: var(--muted);
 }
 
@@ -1399,8 +1391,15 @@ button {
 }
 
 .group-arrow {
-  font-size: 12px;
+  font-size: 17px;
   color: var(--muted);
+}
+
+.settings-group-header .provider-logo {
+  width: 34px;
+  height: 34px;
+  padding: 3px;
+  border-radius: 6px;
 }
 
 .settings-group.provider-group[data-group="products"] .settings-group-header {
@@ -1442,7 +1441,7 @@ button {
 
 .settings-group-header::after {
   content: "▾";
-  font-size: 12px;
+  font-size: 17px;
   color: var(--muted);
   margin-left: auto;
   display: inline-block;
