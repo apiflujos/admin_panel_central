@@ -6,6 +6,18 @@ import { ensureInventoryRulesColumns, getOrgId, getPool } from "../db";
 import { resolveStoreConfig } from "./store-config.service";
 import { getStoreConfigForDomain } from "./store-configs.service";
 
+const isCryptoKeyMisconfigured = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error || "");
+  return message.includes("CRYPTO_KEY_BASE64 must be 32 bytes");
+};
+
+const normalizeShopDomain = (value: string) =>
+  value
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+    .toLowerCase();
+
 type SyncContext = {
   shopify: ShopifyClient;
   alegra: AlegraClient;
@@ -107,8 +119,17 @@ async function loadCredential(
   if (!result.rows.length) {
     return null;
   }
-  const decrypted = decryptString(result.rows[0].data_encrypted);
-  return JSON.parse(decrypted) as ProviderSettings;
+  try {
+    const decrypted = decryptString(result.rows[0].data_encrypted);
+    return JSON.parse(decrypted) as ProviderSettings;
+  } catch (error) {
+    if (isCryptoKeyMisconfigured(error)) throw error;
+    throw new Error(
+      provider === "shopify"
+        ? "Credenciales Shopify antiguas. Ve a Configuracion → Conexiones y reconecta Shopify."
+        : "Credenciales Alegra antiguas. Ve a Configuracion → Conexiones y reconecta Alegra."
+    );
+  }
 }
 
 async function loadShopifySettings(
@@ -120,7 +141,7 @@ async function loadShopifySettings(
     const domain = normalizeShopDomain(shopDomain);
     const store = await pool.query<{
       shop_domain: string;
-      access_token_encrypted: string;
+      access_token_encrypted: string | null;
     }>(
       `
       SELECT shop_domain, access_token_encrypted
@@ -132,12 +153,22 @@ async function loadShopifySettings(
       [orgId, domain]
     );
     if (store.rows.length) {
-      const decrypted = JSON.parse(decryptString(store.rows[0].access_token_encrypted));
-      return {
-        shopDomain: store.rows[0].shop_domain,
-        accessToken: decrypted.accessToken,
-      } as ProviderSettings;
+      const encrypted = store.rows[0].access_token_encrypted;
+      if (!encrypted) {
+        throw new Error(`Shopify no conectado para ${domain}. Ve a Configuracion → Conexiones y conecta Shopify.`);
+      }
+      try {
+        const decrypted = JSON.parse(decryptString(encrypted));
+        return {
+          shopDomain: store.rows[0].shop_domain,
+          accessToken: decrypted.accessToken,
+        } as ProviderSettings;
+      } catch (error) {
+        if (isCryptoKeyMisconfigured(error)) throw error;
+        throw new Error(`Reconecta Shopify para ${domain}. (Token guardado antiguo o invalido)`);
+      }
     }
+    throw new Error(`Shopify no conectado para ${domain}. Ve a Configuracion → Conexiones y conecta Shopify.`);
   }
   return loadCredential(pool, orgId, "shopify");
 }
@@ -169,24 +200,28 @@ async function loadAlegraSettings(
       `,
       [orgId, domain]
     );
-    if (result.rows.length && result.rows[0].user_email && result.rows[0].api_key_encrypted) {
-      const decrypted = JSON.parse(decryptString(result.rows[0].api_key_encrypted));
-      return {
-        email: result.rows[0].user_email,
-        apiKey: decrypted.apiKey,
-        environment: result.rows[0].environment || "prod",
-      } as ProviderSettings;
+    if (result.rows.length) {
+      const email = result.rows[0].user_email;
+      const encrypted = result.rows[0].api_key_encrypted;
+      if (!email || !encrypted) {
+        throw new Error(`Alegra no conectado para ${domain}. Ve a Configuracion → Conexiones y conecta Alegra.`);
+      }
+      try {
+        const decrypted = JSON.parse(decryptString(encrypted));
+        return {
+          email,
+          apiKey: decrypted.apiKey,
+          environment: result.rows[0].environment || "prod",
+        } as ProviderSettings;
+      } catch (error) {
+        if (isCryptoKeyMisconfigured(error)) throw error;
+        throw new Error(`Reconecta Alegra para ${domain}. (Clave guardada antigua o invalida)`);
+      }
     }
+    throw new Error(`Alegra no conectado para ${domain}. Ve a Configuracion → Conexiones y conecta Alegra.`);
   }
   return loadCredential(pool, orgId, "alegra");
 }
-
-const normalizeShopDomain = (value: string) =>
-  value
-    .trim()
-    .replace(/^https?:\/\//, "")
-    .replace(/\/.*$/, "")
-    .toLowerCase();
 
 async function loadInventoryRules(
   pool: ReturnType<typeof getPool>,
