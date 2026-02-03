@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260202j" />
+    <link rel="stylesheet" href="styles.css?v=20260203a" />
   </head>
   <body>
     <div class="app-shell">
@@ -603,7 +603,7 @@
 	          </div>
 
 	          <div class="settings-pane is-active" data-settings-pane="connections">
-	            <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (OAuth) y luego Alegra (API Key o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa (ej: Oliva Shoes Colombia).&#10;4) Configura Productos (auto-publicacion + inventario/bodegas) y Pedidos/Contactos (auto + manual + masivo).&#10;5) Operacion: webhooks/cron/salud.&#10;&#10;Tip: la configuracion guiada se usa para tienda nueva; si ya hay tienda activa, usa Manual.">
+		            <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-setup-open="0" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (OAuth) y luego Alegra (API Key o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa (ej: Oliva Shoes Colombia).&#10;4) Configura Productos (auto-publicacion + inventario/bodegas) y Pedidos/Contactos (auto + manual + masivo).&#10;5) Operacion: webhooks/cron/salud.&#10;&#10;Tip: la configuracion guiada se usa para tienda nueva; si ya hay tienda activa, usa Manual.">
 	            <div class="panel-header">
 	              <h3 data-module-toggle="connections" data-title-base="Nueva conexion">Nueva conexion</h3>
 	              <span class="panel-tag">Acceso</span>
@@ -613,19 +613,27 @@
                 <button class="setup-mode" type="button" data-setup-mode="guided">Configuracion guiada</button>
                 <button class="setup-mode" type="button" data-setup-mode="manual">Configuracion manual</button>
               </div>
-              <div class="setup-guided" data-setup-panel="guided">
-                <div class="toolbar wizard-actions">
-                  <button class="primary" id="wizard-start" type="button">Iniciar configuracion guiada</button>
-                  <button class="ghost" id="wizard-stop" type="button">Salir de la guia</button>
-                  <span class="kpi-sub" id="wizard-hint">Te guia por lo que falta para dejar la tienda lista.</span>
-                  <span class="status-pill is-off" id="wizard-store-pill">Sin tienda activa</span>
-                </div>
-	              </div>
-	              <div class="settings-grid store-meta">
-	                <div class="field span-2">
-	                  <label>Nombre de la tienda <span class="tip" data-tip="Nombre visible de la tienda. Se usa para identificar esta configuracion y aparece en Tiendas.">?</span></label>
-	                  <input type="text" id="store-name" placeholder="Tienda de ejemplo" />
-	                  <span class="field-hint">Este nombre identifica el set de configuraciones.</span>
+	              <div class="setup-guided" data-setup-panel="guided">
+	                <div class="toolbar wizard-actions">
+	                  <button class="primary" id="wizard-start" type="button">Iniciar configuracion guiada</button>
+	                  <button class="ghost" id="wizard-stop" type="button">Salir de la guia</button>
+	                  <button class="ghost info" id="wizard-skip" type="button" title="Saltar este paso si no aplica">Saltar paso</button>
+	                  <span class="kpi-sub" id="wizard-hint">Te guia por lo que falta para dejar la tienda lista.</span>
+	                  <span class="status-pill is-off" id="wizard-store-pill">Sin tienda activa</span>
+	                </div>
+		              </div>
+		              <div class="setup-manual" data-setup-panel="manual">
+		                <div class="toolbar wizard-actions">
+		                  <button class="primary" id="manual-open" type="button">Abrir configuracion manual</button>
+		                  <span class="kpi-sub">Muestra el formulario para conectar Shopify/Alegra sin asistente.</span>
+		                </div>
+		              </div>
+		              <div class="connections-form" id="connections-form">
+		              <div class="settings-grid store-meta">
+		                <div class="field span-2">
+		                  <label>Nombre de la tienda <span class="tip" data-tip="Nombre visible de la tienda. Se usa para identificar esta configuracion y aparece en Tiendas.">?</span></label>
+		                  <input type="text" id="store-name" placeholder="Tienda de ejemplo" />
+		                  <span class="field-hint">Este nombre identifica el set de configuraciones.</span>
 	                </div>
 	                <div class="field span-2" id="copy-config-field">
 	                  <label>Configuracion inicial <span class="tip" data-tip="Opcional. Si ya tienes otra tienda configurada, puedes copiar reglas y sincronizaciones para no empezar desde cero.">?</span></label>
@@ -633,11 +641,11 @@
 	                  <span class="field-hint">Copia configuracion desde otra tienda o inicia en blanco.</span>
 	                </div>
 	              </div>
-	              <div class="connections-compact">
-                <div class="connection-block">
-                  <div class="connection-block-header">
-                    <div>
-                      <div class="provider-title">
+		              <div class="connections-compact">
+	                <div class="connection-block">
+	                  <div class="connection-block-header">
+	                    <div>
+	                      <div class="provider-title">
                         <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
                         <h4>Shopify</h4>
                       </div>
@@ -705,12 +713,13 @@
 	                    <div class="field span-2">
 	                      <label>IA API Key <span class="tip" data-tip="Token del proveedor IA (ej: OpenAI). Se usa para el asistente y QA.">?</span></label>
 	                      <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
-	                    </div>
-	                  </div>
-	                </div>
-              </div>
-            </div>
-          </div>
+		                  </div>
+		                </div>
+	              </div>
+	              </div>
+	            </div>
+	          </div>
+	        </div>
 
 	          <div class="settings-group provider-group" data-group="admin">
 	            <div class="settings-group-header" data-group-toggle="admin">
@@ -1446,6 +1455,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260202j" type="module"></script>
+    <script src="app.js?v=20260203a" type="module"></script>
   </body>
 </html>

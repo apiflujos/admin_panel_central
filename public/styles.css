@@ -1871,12 +1871,24 @@ button {
   display: none;
 }
 
+.setup-manual {
+  display: none;
+}
+
 .module[data-module="connections"][data-setup-mode="manual"] .setup-guided {
   display: none;
 }
 
 .module[data-module="connections"][data-setup-mode="guided"] .setup-guided {
   display: block;
+}
+
+.module[data-module="connections"][data-setup-mode="manual"] .setup-manual {
+  display: block;
+}
+
+.module[data-module="connections"][data-setup-open="0"] .connections-form {
+  display: none;
 }
 
 .toolbar.wizard-actions {
