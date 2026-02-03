@@ -3305,21 +3305,27 @@ textarea::placeholder {
 }
 
 .tip-popover-header {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 10px;
   margin-bottom: 6px;
+  padding-right: 36px;
 }
 
 .tip-popover-title {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
   margin: 0;
   color: var(--text);
+  text-align: center;
 }
 
 .tip-popover-close {
+  position: absolute;
+  right: 0;
+  top: 0;
   width: 28px;
   min-width: 28px;
   height: 28px;
@@ -3341,11 +3347,14 @@ textarea::placeholder {
 }
 
 .tip-popover-text {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 13px;
+  color: #334155;
   margin: 0;
-  line-height: 1.35;
+  line-height: 1.5;
   white-space: pre-line;
+  text-align: left;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 @media (max-width: 720px) {
