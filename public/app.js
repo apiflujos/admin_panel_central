@@ -133,7 +133,7 @@ const wizardSkip = document.getElementById("wizard-skip");
 const manualOpen = document.getElementById("manual-open");
 const wizardHint = document.getElementById("wizard-hint");
 const setupModePicker = document.getElementById("setup-mode-picker");
-const settingsSubnav = document.getElementById("settings-subnav");
+const settingsSubmenu = document.getElementById("settings-submenu");
 const copyConfigField = document.getElementById("copy-config-field");
 const copyConfigSelect = document.getElementById("copy-config-select");
 const DEFAULT_WIZARD_HINT = wizardHint ? wizardHint.textContent : "";
@@ -458,9 +458,12 @@ function setSettingsPane(paneKey, options = {}) {
   document.querySelectorAll("[data-settings-pane]").forEach((pane) => {
     pane.classList.toggle("is-active", pane.getAttribute("data-settings-pane") === next);
   });
-  if (settingsSubnav) {
-    settingsSubnav.querySelectorAll("[data-settings-tab]").forEach((button) => {
-      button.classList.toggle("is-active", button.getAttribute("data-settings-tab") === next);
+  if (settingsSubmenu) {
+    settingsSubmenu.querySelectorAll("[data-settings-pane-link]").forEach((button) => {
+      button.classList.toggle(
+        "is-active",
+        button.getAttribute("data-settings-pane-link") === next
+      );
     });
   }
   if (persist) saveSettingsPane(next);
@@ -469,6 +472,20 @@ function setSettingsPane(paneKey, options = {}) {
 function syncSettingsPane() {
   const stored = getStoredSettingsPane();
   setSettingsPane(stored || "connections", { persist: false });
+}
+
+function updateSettingsSubmenuAvailability() {
+  if (!settingsSubmenu) return;
+  const hasStores = Boolean(storesCache && storesCache.length);
+  settingsSubmenu.querySelectorAll("[data-settings-pane-link]").forEach((button) => {
+    const key = button.getAttribute("data-settings-pane-link") || "";
+    if (key !== "stores") return;
+    button.toggleAttribute("disabled", !hasStores);
+    button.classList.toggle("is-disabled", !hasStores);
+    if (!hasStores && button.classList.contains("is-active")) {
+      setSettingsPane("connections");
+    }
+  });
 }
 
 function getSettingsPaneForElement(element) {
@@ -486,18 +503,35 @@ function ensureSettingsPaneForElement(element, options = {}) {
   setSettingsPane(key, { persist });
 }
 
-function initSettingsTabs() {
-  if (!settingsSubnav) return;
-  settingsSubnav.addEventListener("click", (event) => {
+function initSettingsSubmenu() {
+  if (!settingsSubmenu) {
+    syncSettingsPane();
+    return;
+  }
+  settingsSubmenu.addEventListener("click", (event) => {
     const target = event.target instanceof HTMLElement ? event.target : null;
     if (!target) return;
-    const button = target.closest("[data-settings-tab]");
+    const button = target.closest("[data-settings-pane-link]");
     if (!(button instanceof HTMLElement)) return;
-    const key = button.getAttribute("data-settings-tab") || "";
+    const key = button.getAttribute("data-settings-pane-link") || "";
     if (key !== "stores" && key !== "connections") return;
+    if (button.hasAttribute("disabled")) return;
+    activateNav("settings");
     setSettingsPane(key);
   });
+  updateSettingsSubmenuAvailability();
   syncSettingsPane();
+}
+
+function cleanupLegacyConnectionsUi() {
+  // Compat: si el navegador cargó HTML viejo por cache/deploy anterior, eliminamos botones redundantes.
+  const legacyIds = ["wizard-start", "wizard-stop", "wizard-skip", "manual-open", "wizard-hint", "wizard-store-pill"];
+  legacyIds.forEach((id) => {
+    const node = document.getElementById(id);
+    if (node) node.remove();
+  });
+  document.querySelectorAll(".setup-guided, .setup-manual, [data-setup-panel=\"guided\"], [data-setup-panel=\"manual\"]")
+    .forEach((node) => node.remove());
 }
 
 function setSidebarCollapsed(collapsed) {
@@ -2985,6 +3019,7 @@ async function loadConnections() {
     renderAlegraAccountOptions(data.alegraAccounts || []);
     const stores = Array.isArray(data.stores) ? data.stores : [];
     storesCache = stores;
+    updateSettingsSubmenuAvailability();
     renderCopyConfigOptions(stores);
     activeStoreDomain = stores[0]?.shopDomain || "";
     activeStoreName = stores[0]?.storeName || "";
@@ -2996,6 +3031,7 @@ async function loadConnections() {
     updatePrerequisites();
     initSetupMode(stores.length);
     updateWizardStartAvailability();
+    syncSettingsPane();
     await maybeApplyPendingStoreConfigCopy();
   } catch {
     renderConnections({ stores: [] });
@@ -3004,10 +3040,12 @@ async function loadConnections() {
     activeStoreDomain = "";
     activeStoreName = "";
     storesCache = [];
+    updateSettingsSubmenuAvailability();
     renderStoreActiveSelect([]);
     updatePrerequisites();
     initSetupMode(0);
     updateWizardStartAvailability();
+    syncSettingsPane();
   }
 }
 
@@ -7351,7 +7389,8 @@ async function init() {
   };
   loadSidebarState();
   captureOnboardingParam();
-  initSettingsTabs();
+  initSettingsSubmenu();
+  cleanupLegacyConnectionsUi();
   initGroupControls();
   initToggleFields();
   initTips();

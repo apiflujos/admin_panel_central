@@ -168,6 +168,49 @@ body {
   border-color: rgba(0, 43, 91, 0.2);
 }
 
+.nav-submenu {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: -6px;
+  margin-left: 28px;
+  padding-left: 10px;
+  border-left: 1px solid var(--stroke);
+}
+
+.nav-item.is-active + .nav-submenu {
+  display: flex;
+}
+
+.nav-subitem {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 6px 10px;
+  border-radius: 8px;
+  text-align: left;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.nav-subitem.is-active,
+.nav-subitem:hover {
+  background: rgba(0, 43, 91, 0.08);
+  color: var(--primary);
+  border-color: rgba(0, 43, 91, 0.18);
+}
+
+.nav-subitem.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.app-shell.is-collapsed .nav-submenu {
+  display: none !important;
+}
+
 .nav-icon {
   width: 18px;
   height: 18px;

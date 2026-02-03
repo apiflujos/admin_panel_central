@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260203d" />
+    <link rel="stylesheet" href="styles.css?v=20260203f" />
   </head>
   <body>
     <div class="app-shell">
@@ -62,18 +62,22 @@
             </span>
             <span class="nav-label">Logs de API</span>
           </button>
-          <button class="nav-item" data-target="settings" title="Configuracion">
-            <span class="nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                <circle cx="12" cy="12" r="3.2" />
-                <path d="M19.4 15a7.5 7.5 0 0 0 0-6l2-1.2-2-3.4-2.3 1a7.4 7.4 0 0 0-5.2-2.2L11 1H7l-.6 2.2a7.4 7.4 0 0 0-5.2 2.2l-2.3-1-2 3.4 2 1.2a7.5 7.5 0 0 0 0 6l-2 1.2 2 3.4 2.3-1a7.4 7.4 0 0 0 5.2 2.2L7 23h4l.6-2.2a7.4 7.4 0 0 0 5.2-2.2l2.3 1 2-3.4-2-1.2z" />
-              </svg>
-            </span>
-            <span class="nav-label">Configuracion</span>
-          </button>
-        </nav>
-        <div class="sidebar-footer"></div>
-      </aside>
+	          <button class="nav-item" data-target="settings" title="Configuracion">
+	            <span class="nav-icon" aria-hidden="true">
+	              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+	                <circle cx="12" cy="12" r="3.2" />
+	                <path d="M19.4 15a7.5 7.5 0 0 0 0-6l2-1.2-2-3.4-2.3 1a7.4 7.4 0 0 0-5.2-2.2L11 1H7l-.6 2.2a7.4 7.4 0 0 0-5.2 2.2l-2.3-1-2 3.4 2 1.2a7.5 7.5 0 0 0 0 6l-2 1.2 2 3.4 2.3-1a7.4 7.4 0 0 0 5.2 2.2L7 23h4l.6-2.2a7.4 7.4 0 0 0 5.2-2.2l2.3 1 2-3.4-2-1.2z" />
+	              </svg>
+	            </span>
+	            <span class="nav-label">Configuracion</span>
+	          </button>
+	          <div class="nav-submenu" id="settings-submenu" aria-label="Submenu configuracion">
+	            <button class="nav-subitem is-active" type="button" data-settings-pane-link="connections" title="Conexiones">Conexiones</button>
+	            <button class="nav-subitem" type="button" data-settings-pane-link="stores" title="Tiendas">Tiendas</button>
+	          </div>
+	        </nav>
+	        <div class="sidebar-footer"></div>
+	      </aside>
 
       <main class="content">
         <header class="topbar">
@@ -596,17 +600,12 @@
           </div>
 	        </section>
 
-	        <section class="section" id="settings">
-	          <div class="settings-subnav" id="settings-subnav" aria-label="Submenu configuraciones">
-	            <button class="settings-tab is-active" type="button" data-settings-tab="connections">Conexiones</button>
-	            <button class="settings-tab" type="button" data-settings-tab="stores">Tiendas</button>
-	          </div>
-
-	          <div class="settings-pane is-active" data-settings-pane="connections">
-		            <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-setup-open="0" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (OAuth) y luego Alegra (API Key o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa (ej: Oliva Shoes Colombia).&#10;4) Configura Productos (auto-publicacion + inventario/bodegas) y Pedidos/Contactos (auto + manual + masivo).&#10;5) Operacion: webhooks/cron/salud.&#10;&#10;Tip: la configuracion guiada se usa para tienda nueva; si ya hay tienda activa, usa Manual.">
-	            <div class="panel-header">
-	              <h3 data-module-toggle="connections" data-title-base="Nueva conexion">Nueva conexion</h3>
-	              <span class="panel-tag">Acceso</span>
+		        <section class="section" id="settings">
+		          <div class="settings-pane is-active" data-settings-pane="connections">
+			            <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-setup-open="0" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (OAuth) y luego Alegra (API Key o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa (ej: Oliva Shoes Colombia).&#10;4) Configura Productos (auto-publicacion + inventario/bodegas) y Pedidos/Contactos (auto + manual + masivo).&#10;5) Operacion: webhooks/cron/salud.&#10;&#10;Tip: la configuracion guiada se usa para tienda nueva; si ya hay tienda activa, usa Manual.">
+		            <div class="panel-header">
+		              <h3 data-module-toggle="connections" data-title-base="Nueva conexion">Nueva conexion</h3>
+		              <span class="panel-tag">Acceso</span>
 	            </div>
 	            <div class="module-body">
               <div class="setup-mode-picker" id="setup-mode-picker" aria-label="Modo de configuracion">
@@ -1440,6 +1439,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260203d" type="module"></script>
+    <script src="app.js?v=20260203f" type="module"></script>
   </body>
 </html>
