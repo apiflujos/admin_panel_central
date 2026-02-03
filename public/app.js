@@ -324,6 +324,7 @@ const SETTINGS_PANE_KEY = "apiflujos-settings-pane";
 const COPY_CONFIG_FROM_KEY = "apiflujos-copy-config-from";
 const COPY_CONFIG_TO_KEY = "apiflujos-copy-config-to";
 const COPY_CONFIG_AT_KEY = "apiflujos-copy-config-at";
+const COACH_DISMISSED_KEY = "apiflujos-wizard-coach-dismissed";
 const WIZARD_MODULE_ORDER = [
   "connect-shopify",
   "connect-alegra",
@@ -650,6 +651,119 @@ function closeHelpPanels(except) {
       panel.classList.remove("is-open");
     }
   });
+}
+
+let coachEl = null;
+let coachTitleEl = null;
+let coachTextEl = null;
+let coachActionsEl = null;
+let coachHighlightEl = null;
+
+function ensureCoach() {
+  if (coachEl) return coachEl;
+  const overlay = document.createElement("div");
+  overlay.className = "coach-overlay";
+  overlay.setAttribute("aria-hidden", "true");
+
+  const panel = document.createElement("div");
+  panel.className = "coach";
+  panel.setAttribute("role", "dialog");
+  panel.setAttribute("aria-label", "Guia de configuracion");
+
+  const title = document.createElement("p");
+  title.className = "coach-title";
+  title.textContent = "Configuracion guiada";
+
+  const text = document.createElement("p");
+  text.className = "coach-text";
+  text.textContent = "";
+
+  const actions = document.createElement("div");
+  actions.className = "coach-actions";
+
+  panel.appendChild(title);
+  panel.appendChild(text);
+  panel.appendChild(actions);
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+
+  coachEl = panel;
+  coachTitleEl = title;
+  coachTextEl = text;
+  coachActionsEl = actions;
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeCoach({ persistDismiss: false });
+    }
+  });
+
+  return coachEl;
+}
+
+function setCoachHighlight(target) {
+  if (coachHighlightEl && coachHighlightEl !== target) {
+    coachHighlightEl.classList.remove("coach-highlight");
+  }
+  coachHighlightEl = target instanceof HTMLElement ? target : null;
+  if (coachHighlightEl) {
+    coachHighlightEl.classList.add("coach-highlight");
+  }
+}
+
+function closeCoach(options = {}) {
+  const { persistDismiss = false } = options || {};
+  if (!coachEl) return;
+  coachEl.classList.remove("is-open");
+  setCoachHighlight(null);
+  if (persistDismiss) {
+    try {
+      localStorage.setItem(COACH_DISMISSED_KEY, "1");
+    } catch {
+      // ignore storage errors
+    }
+  }
+}
+
+function isCoachDismissed() {
+  try {
+    return localStorage.getItem(COACH_DISMISSED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function openCoach(payload) {
+  const panel = ensureCoach();
+  if (!coachTitleEl || !coachTextEl || !coachActionsEl) return;
+  const title = payload?.title ? String(payload.title) : "Configuracion guiada";
+  const text = payload?.text ? String(payload.text) : "";
+  const target = payload?.target instanceof HTMLElement ? payload.target : null;
+  const actions = Array.isArray(payload?.actions) ? payload.actions : [];
+
+  coachTitleEl.textContent = title;
+  coachTextEl.textContent = text;
+  coachActionsEl.innerHTML = "";
+
+  actions.forEach((action) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = action.kind === "primary" ? "primary" : "ghost";
+    if (action.variant) button.classList.add(action.variant);
+    button.textContent = action.label || "Accion";
+    button.addEventListener("click", () => {
+      try {
+        action.onClick?.();
+      } catch {
+        // ignore
+      }
+    });
+    coachActionsEl.appendChild(button);
+  });
+
+  panel.classList.add("is-open");
+  setCoachHighlight(target);
 }
 
 function initHelpPanels() {
@@ -1923,6 +2037,7 @@ function finishWizardFlow(message) {
   clearWizardState();
   updateWizardUI();
   setConnectionsSetupOpen(false);
+  closeCoach({ persistDismiss: false });
   showToast(message || "Asistente completado.", "is-ok");
 }
 
@@ -1930,6 +2045,7 @@ function stopWizardFlow() {
   clearWizardState();
   updateWizardUI();
   setConnectionsSetupOpen(false);
+  closeCoach({ persistDismiss: false });
   collapseAllGroupsAndModules();
   openDefaultGroups();
   showToast("Asistente finalizado.", "is-ok");
@@ -2202,6 +2318,7 @@ async function openWizardStep() {
   const state = getWizardState();
   if (!state || !isWizardStateActive(state)) {
     updateWizardUI();
+    closeCoach({ persistDismiss: false });
     return;
   }
 
@@ -2235,6 +2352,32 @@ async function openWizardStep() {
       focusFieldWithContext(target);
     } else {
       showToast("Completa las conexiones para continuar.", "is-warn");
+    }
+    if (!isCoachDismissed()) {
+      const isShopify = next.moduleKey === "connect-shopify";
+      openCoach({
+        title: `Guia · ${getWizardModuleTitle(next.moduleKey)}`,
+        text: isShopify
+          ? "1) Escribe el dominio Shopify.\n2) Presiona “Conectar Shopify” y completa el OAuth.\n3) Al volver, seguimos con Alegra."
+          : "1) Selecciona una cuenta Alegra (o crea una nueva).\n2) Presiona “Conectar Alegra”.\n3) Al terminar, pasamos a configurar la tienda.",
+        target: target instanceof HTMLElement ? target : null,
+        actions: [
+          {
+            label: "Ir al campo",
+            kind: "primary",
+            onClick: () => {
+              if (target) focusFieldWithContext(target);
+              closeCoach({ persistDismiss: false });
+            },
+          },
+          {
+            label: "Salir guia",
+            kind: "ghost",
+            variant: "danger",
+            onClick: () => stopWizardFlow(),
+          },
+        ],
+      });
     }
     updateWizardUI();
     return;
@@ -2274,6 +2417,46 @@ async function openWizardStep() {
   if (focusTarget instanceof HTMLElement) {
     setTimeout(() => focusTarget.focus(), 250);
   }
+  if (!isCoachDismissed()) {
+    const stepTitle = getWizardModuleTitle(next.moduleKey);
+    const defaultTextMap = {
+      "shopify-rules":
+        "Define las reglas del modo automatico (webhooks) y el estado al publicar.\nLuego guarda para continuar.",
+      "alegra-inventory":
+        "Configura inventario/bodegas (publicar stock, bodegas a sincronizar).\nLuego guarda para continuar.",
+      "sync-orders":
+        "Elige el modo de pedidos (solo BD / contacto / factura).\nLuego guarda para continuar.",
+      "alegra-invoice":
+        "Opcional si vas a crear facturas: resolucion, bodega, pagos y factura electronica.\nLuego guarda para continuar.",
+      "alegra-logistics":
+        "Opcional: reglas de traslados/bodegas (si aplican a tu flujo).\nLuego guarda para continuar.",
+      "shopify-tech":
+        "Crea webhooks para activar sincronizacion automatica.\nLuego verifica el estado.",
+    };
+    openCoach({
+      title: `Guia · ${stepTitle}`,
+      text: defaultTextMap[next.moduleKey] || "Sigue este paso y guarda para continuar.",
+      target: focusTarget instanceof HTMLElement ? focusTarget : panel,
+      actions: [
+        {
+          label: "Entendido",
+          kind: "primary",
+          onClick: () => closeCoach({ persistDismiss: false }),
+        },
+        {
+          label: "Saltar paso",
+          kind: "ghost",
+          onClick: () => skipWizardStep(),
+        },
+        {
+          label: "Salir guia",
+          kind: "ghost",
+          variant: "danger",
+          onClick: () => stopWizardFlow(),
+        },
+      ],
+    });
+  }
   updateWizardUI();
 }
 
@@ -2295,6 +2478,7 @@ function skipWizardStep() {
   if (!confirm(`Saltar ${label}? Puedes volver luego y terminarlo.`)) return;
   wizard.step += 1;
   setWizardState(wizard);
+  closeCoach({ persistDismiss: false });
   openWizardStep();
 }
 
@@ -5554,6 +5738,11 @@ if (wizardStart) {
   wizardStart.addEventListener("click", async () => {
     setButtonLoading(wizardStart, true, "Iniciando...");
     try {
+      try {
+        localStorage.removeItem(COACH_DISMISSED_KEY);
+      } catch {
+        // ignore
+      }
       await startWizardFlow();
     } catch (error) {
       showToast(error?.message || "No se pudo iniciar el asistente.", "is-error");
@@ -5580,6 +5769,7 @@ if (manualOpen) {
     setSetupMode("manual", { persist: true, stopWizard: true });
     setConnectionsSetupOpen(true);
     setSettingsPane("connections", { persist: false });
+    closeCoach({ persistDismiss: false });
     const target = storeNameInput || shopifyDomain;
     if (target) focusFieldWithContext(target);
   });

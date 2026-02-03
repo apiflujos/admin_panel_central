@@ -1891,6 +1891,68 @@ button {
   display: none;
 }
 
+.coach-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.coach {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: min(420px, calc(100vw - 32px));
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 14px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+  padding: 12px;
+  display: none;
+  pointer-events: auto;
+}
+
+.coach.is-open {
+  display: block;
+}
+
+.coach-title {
+  font-size: 12px;
+  font-weight: 900;
+  margin: 0 0 6px;
+  color: var(--text);
+}
+
+.coach-text {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 10px;
+  line-height: 1.35;
+  white-space: pre-line;
+}
+
+.coach-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.coach-highlight {
+  outline: 3px solid rgba(14, 116, 144, 0.35);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
+@media (max-width: 720px) {
+  .coach {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+  }
+}
+
 .toolbar.wizard-actions {
   padding: 10px 12px;
   border: 1px dashed rgba(15, 23, 42, 0.18);
