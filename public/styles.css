@@ -1140,19 +1140,19 @@ button {
 }
 
 .panel[data-provider="shopify"] {
-  --provider-accent: var(--shopify-green);
+  --provider-accent: #0f172a;
 }
 
 .panel[data-provider="alegra"] {
-  --provider-accent: var(--alegra-green);
+  --provider-accent: #0f172a;
 }
 
 .panel[data-provider="bridge"]::before {
-  background: linear-gradient(90deg, var(--alegra-green), var(--shopify-green));
+  background: #0f172a;
 }
 
 .settings-group.provider-group[data-group="products"] .panel[data-provider="bridge"]::before {
-  background: var(--shopify-green);
+  background: #0f172a;
 }
 
 .panel-header {
@@ -1403,22 +1403,22 @@ button {
 }
 
 .settings-group.provider-group[data-group="products"] .settings-group-header {
-  border-left: 3px solid var(--shopify-green);
+  border-left: 3px solid #0f172a;
   padding-left: 10px;
 }
 
 .settings-group.provider-group[data-group="orders"] .settings-group-header {
-  border-left: 3px solid var(--alegra-green);
+  border-left: 3px solid #0f172a;
   padding-left: 10px;
 }
 
 .settings-group.provider-group[data-group="operations"] .settings-group-header {
-  border-left: 3px solid var(--primary);
+  border-left: 3px solid #0f172a;
   padding-left: 10px;
 }
 
 .settings-group.provider-group[data-group="admin"] .settings-group-header {
-  border-left: 3px solid var(--stroke);
+  border-left: 3px solid #0f172a;
   padding-left: 10px;
 }
 
@@ -1654,23 +1654,27 @@ button {
 }
 
 .panel-tag.tag-shopify {
-  color: var(--shopify-ink);
-  background: rgba(149, 191, 71, 0.2);
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.12);
 }
 
 .panel-tag.tag-alegra {
-  color: var(--alegra-blue);
-  background: rgba(0, 255, 162, 0.2);
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.12);
 }
 
 .panel-tag.tag-bridge {
-  color: var(--alegra-blue);
-  background: linear-gradient(90deg, rgba(0, 255, 162, 0.22), rgba(149, 191, 71, 0.22));
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.12);
 }
 
 .settings-group.provider-group[data-group="products"] .panel-tag.tag-bridge {
-  color: var(--shopify-ink);
-  background: rgba(149, 191, 71, 0.22);
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.12);
 }
 
 .panel-tag.tag-core {
@@ -2116,11 +2120,11 @@ button {
 }
 
 .panel.module[data-manager="alegra"] {
-  border-top: 3px solid var(--alegra-blue);
+  border-top: none;
 }
 
 .panel.module[data-manager="shopify"] {
-  border-top: 3px solid var(--shopify-green-dark);
+  border-top: none;
 }
 
 .connection-actions {
