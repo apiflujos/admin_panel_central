@@ -3875,11 +3875,16 @@ function renderConnections(settings) {
   if (!connectionsGrid) return;
   connectionsGrid.innerHTML = "";
   const stores = Array.isArray(settings.stores) ? settings.stores : [];
-  if (!stores.length) {
-    connectionsGrid.innerHTML = `<div class="connection-card empty">Sin conexiones.</div>`;
+  const activeDomain = normalizeShopDomain(activeStoreDomain || storeActiveSelect?.value || "");
+  const list = activeDomain
+    ? stores.filter((store) => normalizeShopDomain(store?.shopDomain || "") === activeDomain)
+    : stores;
+
+  if (!list.length) {
+    connectionsGrid.innerHTML = `<div class="connection-card empty">Sin conexiones para esta tienda.</div>`;
     return;
   }
-  connectionsGrid.innerHTML = stores
+  connectionsGrid.innerHTML = list
     .map((store) => {
       const shopifyConnected = Boolean(store.shopifyConnected ?? store.status === "Conectado");
       const alegraConnected = Boolean(store.alegraConnected ?? store.alegraAccountId);
@@ -3898,7 +3903,7 @@ function renderConnections(settings) {
           <div class="status-row connection-title">
             <span class="status-led ${storeLed}"></span>
             <div>
-              <p>Conexion tienda</p>
+              <p>Tienda</p>
               <span class="muted">${storeLabel}</span>
             </div>
             <span class="status-pill ${overallConnected ? "is-ok" : "is-off"}">${overallLabel}</span>
@@ -6977,12 +6982,12 @@ if (logRetry) {
 if (alegraAccountSelect) {
   alegraAccountSelect.addEventListener("change", toggleAlegraAccountFields);
 }
-if (storeActiveSelect) {
-  storeActiveSelect.addEventListener("change", () => {
-    const nextDomain = storeActiveSelect.value || "";
-    activeStoreDomain = nextDomain;
-    activeStoreName =
-      storesCache.find((store) => store.shopDomain === nextDomain)?.storeName || "";
+  if (storeActiveSelect) {
+    storeActiveSelect.addEventListener("change", () => {
+      const nextDomain = storeActiveSelect.value || "";
+      activeStoreDomain = nextDomain;
+      activeStoreName =
+        storesCache.find((store) => store.shopDomain === nextDomain)?.storeName || "";
     if (storeNameInput) {
       storeNameInput.placeholder = getActiveStoreLabel() || "Tienda de ejemplo";
     }
@@ -6992,14 +6997,15 @@ if (storeActiveSelect) {
     } catch {
       // ignore storage errors
     }
-    updateStoreModuleTitles();
-    setShopifyWebhooksStatus("Sin configurar");
-    collapseAllGroupsAndModules();
-    openDefaultGroups();
-    loadLegacyStoreConfig().catch(() => null);
-    openWizardStep();
-  });
-}
+      updateStoreModuleTitles();
+      renderConnections({ stores: storesCache });
+      setShopifyWebhooksStatus("Sin configurar");
+      collapseAllGroupsAndModules();
+      openDefaultGroups();
+      loadLegacyStoreConfig().catch(() => null);
+      openWizardStep();
+    });
+  }
 if (connectShopify) {
   connectShopify.addEventListener("click", () => {
     try {

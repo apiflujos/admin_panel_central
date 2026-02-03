@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260203l" />
+    <link rel="stylesheet" href="styles.css?v=20260203m" />
   </head>
   <body>
     <div class="app-shell">
@@ -695,7 +695,7 @@
 		                  </div>
 		                  <div class="settings-grid connection-fields">
 		                    <div class="field span-2">
-		                      <label>Token de IA <span class="tip" data-tip="Clave del proveedor de IA (por ejemplo OpenAI). Se usa para el asistente y QA.">?</span></label>
+			                      <label>Token de IA <span class="tip" data-tip="Clave del proveedor de IA (por ejemplo OpenAI). Se usa para el asistente y soporte.">?</span></label>
 	                      <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
 		                  </div>
 		                </div>
@@ -705,37 +705,58 @@
 	          </div>
 	        </div>
 
-	          <div class="settings-group provider-group" data-group="admin">
-	            <div class="settings-group-header" data-group-toggle="admin">
-	              <h4 class="group-title">Administracion</h4>
+		          <div class="settings-group provider-group" data-group="integrations">
+		            <div class="settings-group-header" data-group-toggle="integrations">
+		              <h4 class="group-title">Integraciones</h4>
+		            </div>
+		            <div class="settings-group-body">
+			              <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera una clave temporal para integraciones y pruebas (API) sin consola.">
+			                <div class="panel-header">
+			                  <h3 data-module-toggle="qa-token">Clave temporal de integracion</h3>
+			                  <span class="panel-tag tag-bridge">Integraciones</span>
+			                </div>
+			                <div class="module-body">
+			                  <div class="settings-grid">
+			                    <div class="field span-2">
+			                      <label>Clave temporal</label>
+			                      <div class="field-actions inline">
+			                        <input type="text" id="qa-token-value" readonly placeholder="Genera una clave temporal" />
+			                        <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
+			                      </div>
+			                      <p class="field-hint" id="qa-token-hint">Vence en 30 minutos.</p>
+			                    </div>
+			                  </div>
+			                  <div class="toolbar is-actions">
+			                    <button class="primary" id="qa-token-generate" type="button">Generar clave</button>
+			                  </div>
+			                </div>
+			              </div>
+
+		            </div>
+		          </div>
+		        </div>
+
+	        <div class="settings-pane" data-settings-pane="stores">
+	          <div class="settings-group store-group" data-group="store">
+	            <div class="settings-group-header" data-group-toggle="store" data-help="Selecciona la tienda activa y gestiona conexiones y configuraciones de esa tienda.">
+	              <h3 data-store-title data-title-base="Tiendas">Tiendas</h3>
+	              <span class="settings-group-subtitle">Configuracion de la tienda activa</span>
 	            </div>
 	            <div class="settings-group-body">
-		              <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera una clave temporal para QA y pruebas sin consola.">
-		                <div class="panel-header">
-		                  <h3 data-module-toggle="qa-token">Clave temporal QA</h3>
-		                  <span class="panel-tag tag-bridge">QA</span>
-		                </div>
-		                <div class="module-body">
-		                  <div class="settings-grid">
-		                    <div class="field span-2">
-		                      <label>Clave temporal</label>
-		                      <div class="field-actions inline">
-		                        <input type="text" id="qa-token-value" readonly placeholder="Genera una clave para QA" />
-		                        <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
-		                      </div>
-		                      <p class="field-hint" id="qa-token-hint">Vence en 30 minutos.</p>
-		                    </div>
-		                  </div>
-		                  <div class="toolbar is-actions">
-		                    <button class="primary" id="qa-token-generate" type="button">Generar clave</button>
-		                  </div>
+	              <div class="settings-grid store-meta">
+	                <div class="field span-2" id="store-active-field">
+	                  <label>Tienda <span class="tip" data-tip="Esta tienda define el alcance: todo lo de abajo se guarda por tienda activa.">?</span></label>
+	                  <select id="store-active-select"></select>
+	                </div>
+		                <div class="field span-2">
+		                  <span class="field-hint store-scope-hint">Todo lo de abajo se guarda por tienda. Si cambias de tienda activa, cambian estos ajustes.</span>
 		                </div>
 		              </div>
 
-	              <div class="panel admin-only module" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas para esta organizacion.">
+	              <div class="panel admin-only module" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas para la tienda activa.">
 	                <div class="panel-header">
 	                  <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
-	                  <span class="panel-tag tag-bridge">Conexiones</span>
+	                  <span class="panel-tag tag-bridge">Tienda</span>
 	                </div>
 	                <div class="module-body">
 	                  <div class="connections-grid" id="connections-grid">
@@ -743,30 +764,10 @@
 	                  </div>
 	                </div>
 	              </div>
-	            </div>
-	          </div>
-	        </div>
 
-	        <div class="settings-pane" data-settings-pane="stores">
-          <div class="settings-group store-group" data-group="store">
-            <div class="settings-group-header" data-group-toggle="store" data-help="Selecciona la tienda activa y gestiona conexiones y configuraciones de esa tienda.">
-              <h3 data-store-title data-title-base="Tiendas">Tiendas</h3>
-              <span class="settings-group-subtitle">Configuracion de la tienda activa</span>
-            </div>
-            <div class="settings-group-body">
-              <div class="settings-grid store-meta">
-                <div class="field span-2" id="store-active-field">
-                  <label>Tienda <span class="tip" data-tip="Esta tienda define el alcance: todo lo de abajo se guarda por tienda activa.">?</span></label>
-                  <select id="store-active-select"></select>
-                </div>
-	                <div class="field span-2">
-	                  <span class="field-hint store-scope-hint">Todo lo de abajo se guarda por tienda. Si cambias de tienda activa, cambian estos ajustes.</span>
-	                </div>
-	              </div>
-
-	          <div class="settings-group provider-group" data-group="products">
-	                <div class="settings-group-header" data-group-toggle="products">
-	                  <h4 class="group-title">
+		          <div class="settings-group provider-group" data-group="products">
+		                <div class="settings-group-header" data-group-toggle="products">
+		                  <h4 class="group-title">
 	                    <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
 	                    <span class="group-arrow">→</span>
                     <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
@@ -1437,6 +1438,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260203l" type="module"></script>
+    <script src="app.js?v=20260203m" type="module"></script>
   </body>
 </html>
