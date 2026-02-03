@@ -428,7 +428,7 @@ function activateNav(target) {
 }
 
 function resolveSettingsPaneKey(value) {
-  const normalized = value === "stores" ? "stores" : "connections";
+  const normalized = value === "stores" ? "stores" : (value === "integrations" ? "integrations" : "connections");
   if (normalized === "stores" && (!storesCache || storesCache.length === 0)) {
     return "connections";
   }
@@ -438,7 +438,7 @@ function resolveSettingsPaneKey(value) {
 function getStoredSettingsPane() {
   try {
     const stored = localStorage.getItem(SETTINGS_PANE_KEY) || "";
-    return stored === "stores" || stored === "connections" ? stored : "";
+    return stored === "stores" || stored === "connections" || stored === "integrations" ? stored : "";
   } catch {
     return "";
   }
@@ -493,7 +493,7 @@ function getSettingsPaneForElement(element) {
   const pane = element.closest("[data-settings-pane]");
   if (!(pane instanceof HTMLElement)) return "";
   const key = pane.getAttribute("data-settings-pane") || "";
-  return key === "stores" || key === "connections" ? key : "";
+  return key === "stores" || key === "connections" || key === "integrations" ? key : "";
 }
 
 function ensureSettingsPaneForElement(element, options = {}) {
@@ -514,7 +514,7 @@ function initSettingsSubmenu() {
     const button = target.closest("[data-settings-pane-link]");
     if (!(button instanceof HTMLElement)) return;
     const key = button.getAttribute("data-settings-pane-link") || "";
-    if (key !== "stores" && key !== "connections") return;
+    if (key !== "stores" && key !== "connections" && key !== "integrations") return;
     if (button.hasAttribute("disabled")) return;
     activateNav("settings");
     setSettingsPane(key);

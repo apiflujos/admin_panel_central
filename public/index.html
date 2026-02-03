@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260203m" />
+    <link rel="stylesheet" href="styles.css?v=20260203n" />
   </head>
   <body>
     <div class="app-shell">
@@ -71,10 +71,11 @@
 	            </span>
 	            <span class="nav-label">Configuracion</span>
 	          </button>
-	          <div class="nav-submenu" id="settings-submenu" aria-label="Submenu configuracion">
-	            <button class="nav-subitem is-active" type="button" data-settings-pane-link="connections" title="Conexiones">Conexiones</button>
-	            <button class="nav-subitem" type="button" data-settings-pane-link="stores" title="Tiendas">Tiendas</button>
-	          </div>
+		          <div class="nav-submenu" id="settings-submenu" aria-label="Submenu configuracion">
+		            <button class="nav-subitem is-active" type="button" data-settings-pane-link="connections" title="Conexiones">Conexiones</button>
+		            <button class="nav-subitem" type="button" data-settings-pane-link="integrations" title="Integraciones">Integraciones</button>
+		            <button class="nav-subitem" type="button" data-settings-pane-link="stores" title="Tiendas">Tiendas</button>
+		          </div>
 	        </nav>
 	        <div class="sidebar-footer"></div>
 	      </aside>
@@ -704,37 +705,38 @@
 	            </div>
 	          </div>
 	        </div>
+	      </div>
 
-		          <div class="settings-group provider-group" data-group="integrations">
-		            <div class="settings-group-header" data-group-toggle="integrations">
-		              <h4 class="group-title">Integraciones</h4>
-		            </div>
-		            <div class="settings-group-body">
-			              <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera una clave temporal para integraciones y pruebas (API) sin consola.">
-			                <div class="panel-header">
-			                  <h3 data-module-toggle="qa-token">Clave temporal de integracion</h3>
-			                  <span class="panel-tag tag-bridge">Integraciones</span>
-			                </div>
-			                <div class="module-body">
-			                  <div class="settings-grid">
-			                    <div class="field span-2">
-			                      <label>Clave temporal</label>
-			                      <div class="field-actions inline">
-			                        <input type="text" id="qa-token-value" readonly placeholder="Genera una clave temporal" />
-			                        <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
-			                      </div>
-			                      <p class="field-hint" id="qa-token-hint">Vence en 30 minutos.</p>
-			                    </div>
-			                  </div>
-			                  <div class="toolbar is-actions">
-			                    <button class="primary" id="qa-token-generate" type="button">Generar clave</button>
-			                  </div>
-			                </div>
-			              </div>
-
-		            </div>
-		          </div>
-		        </div>
+	      <div class="settings-pane" data-settings-pane="integrations">
+	        <div class="settings-group provider-group" data-group="integrations">
+	          <div class="settings-group-header" data-group-toggle="integrations">
+	            <h4 class="group-title">Integraciones</h4>
+	          </div>
+	          <div class="settings-group-body">
+	            <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera una clave temporal para integraciones y pruebas (API) sin consola.">
+	              <div class="panel-header">
+	                <h3 data-module-toggle="qa-token">Clave temporal de integracion</h3>
+	                <span class="panel-tag tag-bridge">Integraciones</span>
+	              </div>
+	              <div class="module-body">
+	                <div class="settings-grid">
+	                  <div class="field span-2">
+	                    <label>Clave temporal</label>
+	                    <div class="field-actions inline">
+	                      <input type="text" id="qa-token-value" readonly placeholder="Genera una clave temporal" />
+	                      <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
+	                    </div>
+	                    <p class="field-hint" id="qa-token-hint">Vence en 30 minutos.</p>
+	                  </div>
+	                </div>
+	                <div class="toolbar is-actions">
+	                  <button class="primary" id="qa-token-generate" type="button">Generar clave</button>
+	                </div>
+	              </div>
+	            </div>
+	          </div>
+	        </div>
+	      </div>
 
 	        <div class="settings-pane" data-settings-pane="stores">
 	          <div class="settings-group store-group" data-group="store">
@@ -1438,6 +1440,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260203m" type="module"></script>
+    <script src="app.js?v=20260203n" type="module"></script>
   </body>
 </html>
