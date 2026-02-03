@@ -23,6 +23,11 @@ const normalizeShopDomain = (value: string) =>
     .replace(/^https?:\/\//, "")
     .replace(/\/.*$/, "");
 
+const isCryptoKeyMisconfigured = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error || "");
+  return message.includes("CRYPTO_KEY_BASE64 must be 32 bytes");
+};
+
 export async function getShopifyConnectionByDomain(shopDomain: string) {
   const pool = getPool();
   const orgId = getOrgId();
@@ -51,8 +56,7 @@ export async function getShopifyConnectionByDomain(shopDomain: string) {
   try {
     decrypted = JSON.parse(decryptString(row.access_token_encrypted));
   } catch (error) {
-    const message = (error as { message?: string })?.message || "";
-    if (message.includes("CRYPTO_KEY_BASE64")) {
+    if (isCryptoKeyMisconfigured(error)) {
       throw new Error("Configuracion de seguridad invalida. Revisa CRYPTO_KEY_BASE64 en el servidor.");
     }
     throw new Error("No se pudo validar la conexion de Shopify. Vuelve a conectar Shopify para esta tienda.");
@@ -168,8 +172,7 @@ export async function listStoreConnections() {
             };
             shopifyConnected = Boolean(String(decrypted?.accessToken || "").trim());
           } catch (error) {
-            const message = error instanceof Error ? error.message : "";
-            if (message.includes("CRYPTO_KEY_BASE64")) {
+            if (isCryptoKeyMisconfigured(error)) {
               throw error;
             }
             shopifyConnected = false;
@@ -187,8 +190,7 @@ export async function listStoreConnections() {
               };
               alegraConnected = Boolean(String(decrypted?.apiKey || "").trim());
             } catch (error) {
-              const message = error instanceof Error ? error.message : "";
-              if (message.includes("CRYPTO_KEY_BASE64")) {
+              if (isCryptoKeyMisconfigured(error)) {
                 throw error;
               }
               alegraConnected = false;
@@ -222,8 +224,7 @@ export async function listStoreConnections() {
           const decrypted = JSON.parse(decryptString(row.api_key_encrypted)) as { apiKey?: string };
           return !String(decrypted?.apiKey || "").trim();
         } catch (error) {
-          const message = error instanceof Error ? error.message : "";
-          if (message.includes("CRYPTO_KEY_BASE64")) {
+          if (isCryptoKeyMisconfigured(error)) {
             throw error;
           }
           return true;
@@ -522,8 +523,7 @@ async function seedFromLegacyCredentials(pool: ReturnType<typeof getPool>, orgId
     shopify = JSON.parse(decryptString(shopifyCred.data_encrypted));
     alegra = JSON.parse(decryptString(alegraCred.data_encrypted));
   } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    if (message.includes("CRYPTO_KEY_BASE64")) {
+    if (isCryptoKeyMisconfigured(error)) {
       throw error;
     }
     return;

@@ -50,7 +50,7 @@ export function decryptString(payload: string) {
       throw error;
     }
     throw new Error(
-      "No se pudo leer credenciales guardadas. Revisa CRYPTO_KEY_BASE64 (debe ser estable) y vuelve a conectar la tienda."
+      "No se pudo leer credenciales guardadas (probablemente son antiguas). Vuelve a conectar la tienda."
     );
   }
 }
