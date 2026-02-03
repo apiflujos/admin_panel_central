@@ -152,6 +152,8 @@ const alegraEmail = document.getElementById("alegra-email");
 const alegraKey = document.getElementById("alegra-key");
 const connectShopify = document.getElementById("connect-shopify");
 const connectAlegra = document.getElementById("connect-alegra");
+const shopifyConnectionPill = document.getElementById("shopify-connection-pill");
+const alegraConnectionPill = document.getElementById("alegra-connection-pill");
 const aiKey = document.getElementById("ai-key");
 const aiSave = document.getElementById("ai-save");
 const passwordCurrent = document.getElementById("password-current");
@@ -2821,7 +2823,13 @@ function initSetupMode(storesCount = 0) {
   const stored = getSavedSetupMode();
   const defaultMode = "guided";
   setSetupMode(stored || defaultMode, { persist: false });
-  setConnectionsSetupOpen(false);
+  const panel = getModulePanel("connections");
+  const alreadyOpen = panel?.getAttribute("data-setup-open") === "1";
+  const activePane =
+    document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
+  const wizardActive = isWizardStateActive(getWizardState());
+  const shouldOpen = alreadyOpen || activePane === "connections" || wizardActive || storesCount === 0;
+  setConnectionsSetupOpen(shouldOpen);
 }
 
 async function openWizardStep() {
@@ -3486,12 +3494,6 @@ async function loadConnections() {
     storesCache = stores;
     updateSettingsSubmenuAvailability();
     renderCopyConfigOptions(stores);
-    activeStoreDomain = stores[0]?.shopDomain || "";
-    activeStoreName = stores[0]?.storeName || "";
-    if (storeNameInput) {
-      storeNameInput.placeholder =
-        getActiveStoreLabel() || "Tienda de ejemplo";
-    }
     renderStoreActiveSelect(stores);
     updatePrerequisites();
     initSetupMode(stores.length);
@@ -3561,6 +3563,24 @@ function isAlegraConnectedForDomain(domain) {
   return Boolean(store?.alegraConnected);
 }
 
+function applyConnectionPill(pill, ok, text) {
+  if (!(pill instanceof HTMLElement)) return;
+  pill.textContent = text;
+  pill.classList.toggle("is-ok", Boolean(ok));
+  pill.classList.toggle("is-off", !ok);
+}
+
+function updateConnectionPills() {
+  const domain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+  const store = domain ? getStoreConnectionByDomain(domain) : null;
+  const shopifyOk = Boolean(store?.shopifyConnected);
+  const alegraOk = Boolean(store?.alegraConnected);
+  const shopifyLabel = store?.shopifyNeedsReconnect ? "Reconectar" : (shopifyOk ? "Conectado" : "Pendiente");
+  const alegraLabel = store?.alegraNeedsReconnect ? "Reconectar" : (alegraOk ? "Conectado" : "Pendiente");
+  applyConnectionPill(shopifyConnectionPill, shopifyOk && !store?.shopifyNeedsReconnect, shopifyLabel);
+  applyConnectionPill(alegraConnectionPill, alegraOk && !store?.alegraNeedsReconnect, alegraLabel);
+}
+
 function setConnectionsSetupOpen(open) {
   const panel = getModulePanel("connections");
   if (!panel) return;
@@ -3582,6 +3602,7 @@ function renderStoreActiveSelect(stores) {
     storeActiveField.style.display = "none";
     storeActiveSelect.innerHTML = "";
     shopifyAdminBase = "";
+    updateConnectionPills();
     return;
   }
   storeActiveField.style.display = "";
@@ -3613,10 +3634,21 @@ function renderStoreActiveSelect(stores) {
   updateStoreModuleTitles();
   renderStoreContextSelects(stores);
   setShopifyWebhooksStatus("Sin configurar");
+  const activePane =
+    document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
+  const keepConnectionsOpen = activePane === "connections" || getModulePanel("connections")?.getAttribute("data-setup-open") === "1";
   collapseAllGroupsAndModules();
   openDefaultGroups();
+  if (keepConnectionsOpen) {
+    const panel = getModulePanel("connections");
+    if (panel) setModuleCollapsed(panel, false);
+    const summary = getModulePanel("connections-summary");
+    if (summary) setModuleCollapsed(summary, false);
+    setConnectionsSetupOpen(true);
+  }
   loadLegacyStoreConfig().catch(() => null);
   openWizardStep();
+  updateConnectionPills();
 }
 
 function renderStoreContextSelects(stores) {
@@ -4051,30 +4083,45 @@ function renderConnections(settings) {
   connectionsGrid.innerHTML = "";
   const stores = Array.isArray(settings.stores) ? settings.stores : [];
   const activeDomain = normalizeShopDomain(activeStoreDomain || storeActiveSelect?.value || "");
-  const list = activeDomain
-    ? stores.filter((store) => normalizeShopDomain(store?.shopDomain || "") === activeDomain)
-    : stores;
+  const list = stores
+    .slice()
+    .sort((a, b) => {
+      const aIsActive = normalizeShopDomain(a?.shopDomain || "") === activeDomain;
+      const bIsActive = normalizeShopDomain(b?.shopDomain || "") === activeDomain;
+      if (aIsActive === bIsActive) return 0;
+      return aIsActive ? -1 : 1;
+    });
 
   if (!list.length) {
-    connectionsGrid.innerHTML = `<div class="connection-card empty">Sin conexiones para esta tienda.</div>`;
+    connectionsGrid.innerHTML = `<div class="connection-card empty">Sin conexiones.</div>`;
     return;
   }
   connectionsGrid.innerHTML = list
     .map((store) => {
-      const shopifyConnected = Boolean(store.shopifyConnected ?? store.status === "Conectado");
-      const alegraConnected = Boolean(store.alegraConnected ?? store.alegraAccountId);
+      const domain = normalizeShopDomain(store?.shopDomain || "");
+      const isActive = domain && domain === activeDomain;
+      const shopifyNeedsReconnect = Boolean(store.shopifyNeedsReconnect);
+      const alegraNeedsReconnect = Boolean(store.alegraNeedsReconnect);
+      const shopifyConnected = Boolean(store.shopifyConnected ?? store.status === "Conectado") && !shopifyNeedsReconnect;
+      const alegraConnected = Boolean(store.alegraConnected ?? store.alegraAccountId) && !alegraNeedsReconnect;
       const shopifyLabel = store.shopDomain || "Shopify sin dominio";
       const storeLabel = store.storeName || store.shopDomain || "Tienda";
       const alegraLabel = store.alegraEmail
         ? `${store.alegraEmail} (${store.alegraEnvironment || "prod"})`
         : "Sin Alegra asignado";
       const overallConnected = shopifyConnected && alegraConnected;
-      const overallLabel = overallConnected ? "Conectado" : "Pendiente";
+      const overallLabel = overallConnected
+        ? "Conectado"
+        : shopifyNeedsReconnect
+          ? "Reconectar Shopify"
+          : alegraNeedsReconnect
+            ? "Reconectar Alegra"
+            : "Pendiente";
       const storeLed = storeLabel ? "is-ok" : "is-off";
       const shopifyLed = shopifyConnected ? "is-ok" : "is-off";
       const alegraLed = alegraConnected ? "is-ok" : "is-off";
       return `
-        <div class="connection-card">
+        <div class="connection-card${isActive ? " is-active" : ""}">
           <div class="connection-summary-row">
             <div class="connection-summary-cell">
               <span class="status-led ${storeLed}"></span>
@@ -4098,6 +4145,7 @@ function renderConnections(settings) {
               </div>
             </div>
             <div class="connection-summary-meta">
+              ${isActive ? `<span class="status-pill is-ok">Activa</span>` : ""}
               <span class="status-pill ${overallConnected ? "is-ok" : "is-off"}">${overallLabel}</span>
               <button class="ghost danger" data-connection-remove="${store.id}">Eliminar tienda</button>
             </div>
@@ -6392,7 +6440,10 @@ if (storeNameInput) {
 }
 
 if (shopifyDomain) {
-  shopifyDomain.addEventListener("input", updateWizardStartAvailability);
+  shopifyDomain.addEventListener("input", () => {
+    updateWizardStartAvailability();
+    updateConnectionPills();
+  });
 }
 
 if (syncOrdersShopifyEnabled) {
@@ -6997,7 +7048,10 @@ async function connectShopifyWithToken(params) {
   });
   if (shopifyToken) shopifyToken.value = "";
   showToast("Shopify conectado.", "is-ok");
+  setConnectionsSetupOpen(true);
+  setSettingsPane("connections", { persist: false });
   await loadConnections();
+  updateConnectionPills();
   return response;
 }
 
@@ -7055,7 +7109,7 @@ async function connectStore(kind) {
   const payload = {
     storeName: resolvedStoreName,
     shopify: {
-      shopDomain: shopDomainValue,
+      shopDomain: normalizedInput || shopDomainValue,
     },
   };
   if (kind === "alegra") {
@@ -7094,8 +7148,15 @@ async function connectStore(kind) {
     await saveCredentials(kind);
   }
   clearConnectionForm();
+  setConnectionsSetupOpen(true);
+  setSettingsPane("connections", { persist: false });
   await loadConnections();
-  await loadSettings();
+  try {
+    await loadSettings();
+  } catch (error) {
+    showToast(error?.message || "Conexion guardada, pero no se pudieron cargar las configuraciones.", "is-warn");
+  }
+  updateConnectionPills();
 }
 
 if (refreshButton) {
@@ -7186,10 +7247,21 @@ if (alegraAccountSelect) {
 	      renderConnections({ stores: storesCache });
 	      renderStoreContextSelects(storesCache);
 	      setShopifyWebhooksStatus("Sin configurar");
+	      const activePane =
+	        document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
+	      const keepConnectionsOpen = activePane === "connections" || getModulePanel("connections")?.getAttribute("data-setup-open") === "1";
 	      collapseAllGroupsAndModules();
 	      openDefaultGroups();
+	      if (keepConnectionsOpen) {
+	        const panel = getModulePanel("connections");
+	        if (panel) setModuleCollapsed(panel, false);
+	        const summary = getModulePanel("connections-summary");
+	        if (summary) setModuleCollapsed(summary, false);
+	        setConnectionsSetupOpen(true);
+	      }
 	      loadLegacyStoreConfig().catch(() => null);
 	      openWizardStep();
+	      updateConnectionPills();
 	      loadProducts().catch(() => null);
 	      loadOperations().catch(() => null);
 	      loadContacts().catch(() => null);

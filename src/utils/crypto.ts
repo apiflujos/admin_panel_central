@@ -30,12 +30,27 @@ export function encryptString(plainText: string) {
 }
 
 export function decryptString(payload: string) {
-  const parsed = JSON.parse(payload) as EncryptedPayload;
-  const iv = Buffer.from(parsed.iv, "base64");
-  const tag = Buffer.from(parsed.tag, "base64");
-  const data = Buffer.from(parsed.data, "base64");
-  const decipher = crypto.createDecipheriv("aes-256-gcm", getKey(), iv);
-  decipher.setAuthTag(tag);
-  const decrypted = Buffer.concat([decipher.update(data), decipher.final()]);
-  return decrypted.toString("utf8");
+  let parsed: EncryptedPayload;
+  try {
+    parsed = JSON.parse(payload) as EncryptedPayload;
+  } catch {
+    throw new Error("Payload cifrado invalido.");
+  }
+  try {
+    const iv = Buffer.from(parsed.iv, "base64");
+    const tag = Buffer.from(parsed.tag, "base64");
+    const data = Buffer.from(parsed.data, "base64");
+    const decipher = crypto.createDecipheriv("aes-256-gcm", getKey(), iv);
+    decipher.setAuthTag(tag);
+    const decrypted = Buffer.concat([decipher.update(data), decipher.final()]);
+    return decrypted.toString("utf8");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("CRYPTO_KEY_BASE64")) {
+      throw error;
+    }
+    throw new Error(
+      "No se pudo leer credenciales guardadas. Revisa CRYPTO_KEY_BASE64 (debe ser estable) y vuelve a conectar la tienda."
+    );
+  }
 }

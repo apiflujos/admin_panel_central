@@ -1495,6 +1495,14 @@ button {
   flex-wrap: wrap;
 }
 
+.connection-block-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .connection-block-header h4 {
   margin: 0;
   font-size: 14px;
@@ -2084,6 +2092,11 @@ button {
   display: grid;
   gap: 6px;
   min-height: 0;
+}
+
+.connection-card.is-active {
+  border-color: rgba(15, 23, 42, 0.28);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.1);
 }
 
 .connection-summary-row {

@@ -72,11 +72,12 @@ export async function listStoreConnections() {
     id: number;
     shop_domain: string;
     store_name: string | null;
-    access_token_encrypted: string;
+    access_token_encrypted: string | null;
     created_at: string;
     alegra_account_id: number | null;
     user_email: string | null;
     environment: string | null;
+    alegra_api_key_encrypted: string | null;
   }>(
     `
     SELECT s.id,
@@ -86,7 +87,8 @@ export async function listStoreConnections() {
            s.created_at,
            c.alegra_account_id,
            a.user_email,
-           a.environment
+           a.environment,
+           a.api_key_encrypted AS alegra_api_key_encrypted
     FROM shopify_stores s
     LEFT JOIN shopify_store_configs c
       ON c.organization_id = s.organization_id
@@ -105,11 +107,12 @@ export async function listStoreConnections() {
       id: number;
       shop_domain: string;
       store_name: string | null;
-      access_token_encrypted: string;
+      access_token_encrypted: string | null;
       created_at: string;
       alegra_account_id: number | null;
       user_email: string | null;
       environment: string | null;
+      alegra_api_key_encrypted: string | null;
     }>(
       `
       SELECT s.id,
@@ -119,7 +122,8 @@ export async function listStoreConnections() {
              s.created_at,
              c.alegra_account_id,
              a.user_email,
-             a.environment
+             a.environment,
+             a.api_key_encrypted AS alegra_api_key_encrypted
       FROM shopify_stores s
       LEFT JOIN shopify_store_configs c
         ON c.organization_id = s.organization_id
@@ -153,9 +157,56 @@ export async function listStoreConnections() {
       id: row.id,
       shopDomain: row.shop_domain,
       storeName: row.store_name || "",
-      status: row.access_token_encrypted ? "Conectado" : "Sin token",
-      shopifyConnected: Boolean(row.access_token_encrypted),
-      alegraConnected: Boolean(row.alegra_account_id),
+      ...(() => {
+        let shopifyConnected = false;
+        let shopifyNeedsReconnect = false;
+        if (row.access_token_encrypted) {
+          try {
+            const decrypted = JSON.parse(decryptString(row.access_token_encrypted)) as {
+              accessToken?: string;
+            };
+            shopifyConnected = Boolean(String(decrypted?.accessToken || "").trim());
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "";
+            if (message.includes("CRYPTO_KEY_BASE64")) {
+              throw error;
+            }
+            shopifyConnected = false;
+            shopifyNeedsReconnect = true;
+          }
+        }
+
+        let alegraConnected = false;
+        let alegraNeedsReconnect = false;
+        if (row.alegra_account_id) {
+          if (row.alegra_api_key_encrypted) {
+            try {
+              const decrypted = JSON.parse(decryptString(row.alegra_api_key_encrypted)) as {
+                apiKey?: string;
+              };
+              alegraConnected = Boolean(String(decrypted?.apiKey || "").trim());
+            } catch (error) {
+              const message = error instanceof Error ? error.message : "";
+              if (message.includes("CRYPTO_KEY_BASE64")) {
+                throw error;
+              }
+              alegraConnected = false;
+              alegraNeedsReconnect = true;
+            }
+          } else {
+            alegraConnected = false;
+            alegraNeedsReconnect = true;
+          }
+        }
+
+        const status = !row.access_token_encrypted
+          ? "Pendiente"
+          : shopifyNeedsReconnect
+            ? "Reconectar Shopify"
+            : "Conectado";
+
+        return { status, shopifyConnected, shopifyNeedsReconnect, alegraConnected, alegraNeedsReconnect };
+      })(),
       alegraAccountId: row.alegra_account_id || undefined,
       alegraEmail: row.user_email || "",
       alegraEnvironment: row.environment || "prod",

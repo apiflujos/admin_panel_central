@@ -640,7 +640,10 @@
                       </div>
 	                      <p class="kpi-sub">Autorizacion de Shopify para esta tienda</p>
                     </div>
-                    <button class="primary" id="connect-shopify" type="button">Conectar Shopify</button>
+                    <div class="connection-block-actions">
+                      <span class="status-pill is-off" id="shopify-connection-pill">Pendiente</span>
+                      <button class="primary" id="connect-shopify" type="button">Conectar Shopify</button>
+                    </div>
 	                  </div>
 		                  <div class="settings-grid connection-fields">
 		                    <div class="field span-2">
@@ -673,7 +676,10 @@
                       </div>
                       <p class="kpi-sub">Cuenta y credenciales</p>
                     </div>
-                    <button class="primary" id="connect-alegra" type="button">Conectar Alegra</button>
+                    <div class="connection-block-actions">
+                      <span class="status-pill is-off" id="alegra-connection-pill">Pendiente</span>
+                      <button class="primary" id="connect-alegra" type="button">Conectar Alegra</button>
+                    </div>
 	                  </div>
 	                  <div class="settings-grid connection-fields">
 	                    <div class="field">
@@ -722,6 +728,18 @@
 	            </div>
 	          </div>
 	        </div>
+
+          <div class="panel admin-only module module-compact" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas. Cada tarjeta corresponde a una tienda (multi-tienda).">
+            <div class="panel-header">
+              <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
+              <span class="panel-tag tag-bridge">Conexiones</span>
+            </div>
+            <div class="module-body">
+              <div class="connections-grid" id="connections-grid">
+                <div class="connection-card empty">Sin conexiones.</div>
+              </div>
+            </div>
+          </div>
 	      </div>
 
 	      <div class="settings-pane" data-settings-pane="integrations">
@@ -774,18 +792,6 @@
 		                  <span class="field-hint store-scope-hint">Todo lo de abajo se guarda por tienda. Si cambias de tienda activa, cambian estos ajustes.</span>
 		                </div>
 		              </div>
-
-	              <div class="panel admin-only module" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas para la tienda activa.">
-	                <div class="panel-header">
-	                  <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
-	                  <span class="panel-tag tag-bridge">Tienda</span>
-	                </div>
-	                <div class="module-body">
-	                  <div class="connections-grid" id="connections-grid">
-	                    <div class="connection-card empty">Sin conexiones.</div>
-	                  </div>
-	                </div>
-	              </div>
 
 		          <div class="settings-group provider-group" data-group="products">
 		                <div class="settings-group-header" data-group-toggle="products">
