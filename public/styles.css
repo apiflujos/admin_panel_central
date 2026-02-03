@@ -2514,6 +2514,94 @@ textarea::placeholder {
   width: auto;
 }
 
+.submodules {
+  display: grid;
+  gap: 10px;
+}
+
+.submodule-card {
+  border: 1px solid var(--stroke);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(0, 43, 91, 0.02);
+}
+
+.submodule-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.submodule-head h4 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.submodule-body {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.setting-item {
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--panel);
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+}
+
+.setting-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.setting-control {
+  width: min(360px, 100%);
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.setting-control-wide {
+  width: min(520px, 100%);
+}
+
+.setting-control label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.setting-control select,
+.setting-control input:not([type="checkbox"]),
+.setting-control textarea {
+  width: 100%;
+}
+
+.setting-actions {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.toolbar.is-actions.setting-toolbar {
+  justify-content: center;
+}
+
+.toolbar.is-actions.setting-toolbar .kpi-sub {
+  margin-left: 0;
+}
+
 .field {
   display: grid;
   gap: 5px;
