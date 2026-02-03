@@ -4127,38 +4127,28 @@ function renderConnections(settings) {
           : alegraNeedsReconnect
             ? "Reconectar Alegra"
             : "Pendiente";
-      const storeLed = storeLabel ? "is-ok" : "is-off";
-      const shopifyLed = shopifyConnected ? "is-ok" : "is-off";
-      const alegraLed = alegraConnected ? "is-ok" : "is-off";
       return `
         <div class="connection-card${isActive ? " is-active" : ""}">
-          <div class="connection-summary-row">
-            <div class="connection-summary-cell">
-              <span class="status-led ${storeLed}"></span>
-              <div class="connection-summary-text">
-                <p>Tienda</p>
-                <span class="muted">${storeLabel}</span>
-              </div>
+          <div class="connection-tiles" aria-label="Resumen de conexiones">
+            <div class="connection-tile">
+              <div class="connection-tile-label">Tienda</div>
+              <div class="connection-tile-value">${storeLabel}</div>
             </div>
-            <div class="connection-summary-cell">
-              <span class="status-led ${shopifyLed}"></span>
-              <div class="connection-summary-text">
-                <p>Shopify</p>
-                <span class="muted">${shopifyLabel}</span>
-              </div>
+            <div class="connection-tile">
+              <div class="connection-tile-label">Shopify</div>
+              <div class="connection-tile-value">${shopifyLabel}</div>
             </div>
-            <div class="connection-summary-cell">
-              <span class="status-led ${alegraLed}"></span>
-              <div class="connection-summary-text">
-                <p>Alegra</p>
-                <span class="muted">${alegraLabel}</span>
-              </div>
+            <div class="connection-tile">
+              <div class="connection-tile-label">Alegra</div>
+              <div class="connection-tile-value">${alegraLabel}</div>
             </div>
-            <div class="connection-summary-meta">
+          </div>
+          <div class="connection-footer">
+            <div class="connection-footer-pills">
               ${isActive ? `<span class="status-pill is-ok">Activa</span>` : ""}
               <span class="status-pill ${overallConnected ? "is-ok" : "is-off"}">${overallLabel}</span>
-              <button class="ghost danger" data-connection-remove="${store.id}">Eliminar tienda</button>
             </div>
+            <button class="ghost danger" data-connection-remove="${store.id}">Eliminar tienda</button>
           </div>
         </div>
       `;
