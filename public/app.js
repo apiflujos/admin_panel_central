@@ -336,7 +336,6 @@ const WIZARD_MODULE_ORDER = [
   "sync-orders",
   "alegra-invoice",
   "alegra-logistics",
-  "shopify-tech",
 ];
 const DEFAULT_PRODUCT_SETTINGS = {
   publish: {
@@ -2406,7 +2405,6 @@ function openWizardGroups(moduleKey) {
     "sync-orders": "orders",
     "alegra-logistics": "orders",
     "alegra-invoice": "orders",
-    "shopify-tech": "operations",
     "alegra-tech": "operations",
   };
   const groupKey = map[moduleKey];
@@ -2554,6 +2552,13 @@ function getWizardModuleStatus(moduleKey) {
     return { complete: false, focusTarget: null };
   }
   const orderMode = syncOrdersShopify ? syncOrdersShopify.value : "db_only";
+  if (moduleKey === "sync-orders") {
+    const needsAutomation = Boolean(syncOrdersShopifyEnabled?.checked);
+    if (needsAutomation && !shopifyWebhooksStatus?.classList.contains("is-ok")) {
+      return { complete: false, focusTarget: shopifyWebhooksCreate };
+    }
+    return { complete: true, focusTarget: null };
+  }
   if (moduleKey === "alegra-invoice") {
     if (orderMode !== "invoice") return { complete: true, focusTarget: null };
     if (cfgGenerateInvoice && !cfgGenerateInvoice.checked) {
@@ -2585,10 +2590,6 @@ function getWizardModuleStatus(moduleKey) {
     }
     return { complete: true, focusTarget: null };
   }
-  if (moduleKey === "shopify-tech") {
-    const ok = Boolean(shopifyWebhooksStatus?.classList.contains("is-ok"));
-    return { complete: ok, focusTarget: ok ? null : shopifyWebhooksCreate };
-  }
   return { complete: true, focusTarget: null };
 }
 
@@ -2598,10 +2599,11 @@ async function findNextWizardStep(fromIndex = 0) {
     const moduleKey = WIZARD_MODULE_ORDER[index];
     if (shouldSkipWizardStep(moduleKey)) continue;
 
-    if (moduleKey === "shopify-tech") {
+    if (moduleKey === "sync-orders" && syncOrdersShopifyEnabled?.checked) {
       const ok = await loadShopifyWebhooksStatus();
-      if (ok) continue;
-      return { index, moduleKey, focusTarget: shopifyWebhooksCreate };
+      if (!ok) {
+        return { index, moduleKey, focusTarget: shopifyWebhooksCreate };
+      }
     }
 
     const status = getWizardModuleStatus(moduleKey);
@@ -2617,6 +2619,13 @@ function setModuleEnabled(panel, enabled) {
   panel.classList.toggle("is-disabled", !enabled);
   setModuleReadonly(panel, !enabled);
   panel.querySelectorAll(".module-action").forEach((button) => {
+    button.disabled = !enabled;
+  });
+  panel.querySelectorAll("button").forEach((button) => {
+    if (!(button instanceof HTMLButtonElement)) return;
+    if (button.classList.contains("module-action")) return;
+    if (button.closest(".module-footer")) return;
+    if (button.hasAttribute("data-nav-to")) return;
     button.disabled = !enabled;
   });
 }
@@ -2708,7 +2717,6 @@ function updatePrerequisites() {
   applyPrereqState("alegra-inventory", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
   applyPrereqState("sync-contacts", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
   applyPrereqState("sync-orders", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
-  applyPrereqState("shopify-tech", resolvePrereqState({ store: true, shopify: true }, storeContext));
   applyPrereqState("alegra-tech", resolvePrereqState({ alegra: true }, globalContext));
 
   const invoiceState = resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext);
@@ -2897,13 +2905,11 @@ async function openWizardStep() {
       "alegra-inventory":
         "Configura inventario/bodegas (bodegas fuente y sincronizacion automatica).\nLuego guarda para continuar.",
       "sync-orders":
-        "Elige que hacer con pedidos nuevos (solo registrar / crear contacto / crear factura).\nLuego guarda para continuar.",
+        "Elige que hacer con pedidos nuevos (solo registrar / crear contacto / crear factura).\nActiva la automatizacion y verifica el estado.\nLuego guarda para continuar.",
       "alegra-invoice":
         "Opcional si vas a crear facturas: resolucion, bodega, pagos y factura electronica.\nLuego guarda para continuar.",
       "alegra-logistics":
         "Opcional: reglas de traslados/bodegas (si aplican a tu flujo).\nLuego guarda para continuar.",
-      "shopify-tech":
-        "Activa la sincronizacion automatica.\nLuego verifica el estado.",
     };
     openCoach({
       title: `Guia · ${stepTitle}`,
@@ -3102,7 +3108,7 @@ function initGroupControls() {
     if (!panel) return;
     const nextCollapsed = !panel.classList.contains("is-collapsed");
     setGroupCollapsed(panel, nextCollapsed);
-    if (key === "operations" && !nextCollapsed) {
+    if (key === "orders" && !nextCollapsed) {
       loadShopifyWebhooksStatus().catch(() => null);
     }
   });
@@ -6428,7 +6434,7 @@ async function loadShopifyWebhooksStatus() {
     const connected = Number(result?.connected || 0);
     const missing = Array.isArray(result?.missing) ? result.missing : [];
     if (!total) {
-      setShopifyWebhooksStatus("Sin datos de sincronizacion automatica.", "is-error");
+      setShopifyWebhooksStatus("Sin datos de automatizacion.", "is-error");
       return false;
     }
     if (!missing.length) {
@@ -6449,7 +6455,7 @@ async function createShopifyWebhooks() {
     setShopifyWebhooksStatus("Dominio Shopify requerido.", "is-error");
     return;
   }
-  setShopifyWebhooksStatus("Activando sincronizacion automatica...");
+  setShopifyWebhooksStatus("Activando automatizacion...");
   try {
     const result = await fetchJson("/api/shopify/webhooks", {
       method: "POST",
@@ -6460,10 +6466,10 @@ async function createShopifyWebhooks() {
     const okCount = items.filter((item) => item.ok).length;
     const total = items.length || 0;
     const statusText =
-      total > 0 ? `Activados ${okCount}/${total}` : result?.message || "Sincronizacion automatica activada.";
+      total > 0 ? `Activados ${okCount}/${total}` : result?.message || "Automatizacion activada.";
     setShopifyWebhooksStatus(statusText, okCount === total ? "is-ok" : "is-error");
     await loadShopifyWebhooksStatus();
-    advanceWizardStep("shopify-tech");
+    advanceWizardStep("sync-orders");
   } catch (error) {
     setShopifyWebhooksStatus(error?.message || "No se pudieron crear.", "is-error");
   }
@@ -6475,10 +6481,10 @@ async function deleteShopifyWebhooks() {
     setShopifyWebhooksStatus("Dominio Shopify requerido.", "is-error");
     return;
   }
-  if (!window.confirm("Desactivar la sincronizacion automatica para esta tienda?")) {
+  if (!window.confirm("Desactivar la automatizacion para esta tienda?")) {
     return;
   }
-  setShopifyWebhooksStatus("Desactivando sincronizacion automatica...");
+  setShopifyWebhooksStatus("Desactivando automatizacion...");
   try {
     const result = await fetchJson("/api/shopify/webhooks/delete", {
       method: "POST",
@@ -6488,7 +6494,7 @@ async function deleteShopifyWebhooks() {
     const deleted = Number(result?.deleted || 0);
     const total = Number(result?.total || 0);
     const statusText =
-      total > 0 ? `Desactivados ${deleted}/${total}` : "Sincronizacion automatica desactivada.";
+      total > 0 ? `Desactivados ${deleted}/${total}` : "Automatizacion desactivada.";
     setShopifyWebhooksStatus(statusText, deleted === total ? "is-ok" : "is-error");
     await loadShopifyWebhooksStatus();
   } catch (error) {

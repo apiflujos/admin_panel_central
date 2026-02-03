@@ -47,8 +47,17 @@ export async function getShopifyConnectionByDomain(shopDomain: string) {
   if (!row?.access_token_encrypted) {
     throw new Error("Conexion Shopify no encontrada");
   }
-  const decrypted = JSON.parse(decryptString(row.access_token_encrypted));
-  const token = String(decrypted?.accessToken || "").trim();
+  let decrypted: unknown;
+  try {
+    decrypted = JSON.parse(decryptString(row.access_token_encrypted));
+  } catch (error) {
+    const message = (error as { message?: string })?.message || "";
+    if (message.includes("CRYPTO_KEY_BASE64")) {
+      throw new Error("Configuracion de seguridad invalida. Revisa CRYPTO_KEY_BASE64 en el servidor.");
+    }
+    throw new Error("No se pudo validar la conexion de Shopify. Vuelve a conectar Shopify para esta tienda.");
+  }
+  const token = String((decrypted as { accessToken?: string } | null)?.accessToken || "").trim();
   if (!token) {
     throw new Error("Access token Shopify requerido");
   }

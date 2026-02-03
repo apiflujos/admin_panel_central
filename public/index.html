@@ -1081,11 +1081,11 @@
                           </div>
                         </div>
 
-                        <div class="mode-section">
-                          <div class="mode-head">
-                            <h4>Sincronizacion automatica (facturas nuevas)</h4>
-                            <span class="tip" data-tip="Se ejecuta cuando llega una factura nueva desde Alegra.">?</span>
-                          </div>
+	                        <div class="mode-section">
+	                          <div class="mode-head">
+	                            <h4>Sincronizacion automatica (facturas nuevas)</h4>
+	                            <span class="tip" data-tip="Se ejecuta cuando llega una factura nueva desde Alegra.">?</span>
+	                          </div>
                           <div class="mode-grid">
                             <div class="mode-field">
                               <label for="sync-orders-alegra-enabled">Procesar facturas nuevas</label>
@@ -1098,14 +1098,31 @@
                                 <option value="active">Crear pedido activo</option>
                                 <option value="off">No sincronizar</option>
                               </select>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="toolbar is-actions">
-                        <button class="ghost" type="button" data-nav-to="operations">Ir a Pedidos</button>
-                        <span class="kpi-sub">Ahi haces acciones manuales por orden y revisas estados.</span>
-                      </div>
+	                            </div>
+	                          </div>
+	                        </div>
+	                      </div>
+	                      <div class="mode-section">
+	                        <div class="mode-head">
+	                          <h4>Automatizacion en tiempo real (Shopify)</h4>
+	                          <span class="tip" data-tip="Activalo para que pedidos, inventario y productos se sincronicen solos. Si cambias el dominio de la tienda, vuelve a activarlo.">?</span>
+	                        </div>
+	                        <div class="settings-grid">
+	                          <div class="field span-2">
+		                          <p class="field-hint">Activa la automatizacion para que el sistema procese cambios automaticamente.</p>
+	                          </div>
+	                        </div>
+	                        <div class="toolbar is-actions">
+		                        <button class="primary" id="shopify-webhooks-create" type="button">Activar automatizacion</button>
+		                        <button class="ghost danger" id="shopify-webhooks-delete" type="button">Desactivar automatizacion</button>
+		                        <button class="ghost info" id="shopify-webhooks-status-btn" type="button">Ver estado</button>
+		                        <span class="kpi-sub" id="shopify-webhooks-status">Sin configurar</span>
+	                        </div>
+	                      </div>
+	                      <div class="toolbar is-actions">
+	                        <button class="ghost" type="button" data-nav-to="operations">Ir a Pedidos</button>
+	                        <span class="kpi-sub">Ahi haces acciones manuales por orden y revisas estados.</span>
+	                      </div>
                       <div class="module-footer">
                         <button class="ghost module-action" data-module-edit="sync-orders" type="button">Editar</button>
                         <button class="primary module-action" data-module-save="sync-orders" type="button">Guardar</button>
@@ -1297,35 +1314,14 @@
                 </div>
               </div>
               <div class="settings-group provider-group" data-group="operations">
-                <div class="settings-group-header" data-group-toggle="operations">
-                  <h4 class="group-title">Operacion</h4>
-                </div>
-                <div class="settings-group-body">
-	                  <div class="panel admin-only module" data-provider="shopify" data-manager="shopify" data-module="shopify-tech" data-help="Activa y valida la sincronizacion automatica para pedidos, productos e inventario. Si cambias el dominio, vuelve a activarla.">
-                    <div class="panel-header">
-	                      <h3 data-module-toggle="shopify-tech" data-title-base="Sincronizacion automatica">Sincronizacion automatica</h3>
-                      <span class="panel-tag tag-shopify">Shopify</span>
-                    </div>
-                    <div class="module-body">
-                      <div class="settings-grid">
-                        <div class="field span-2">
-	                          <p class="field-hint">Activa la sincronizacion automatica de pedidos, inventario y productos.</p>
-                        </div>
-                      </div>
-                      <div class="toolbar is-actions">
-	                        <button class="primary" id="shopify-webhooks-create" type="button">Activar sincronizacion automatica</button>
-	                        <button class="ghost danger" id="shopify-webhooks-delete" type="button">Desactivar sincronizacion automatica</button>
-	                        <button class="ghost info" id="shopify-webhooks-status-btn" type="button">Ver estado</button>
-	                        <span class="kpi-sub" id="shopify-webhooks-status">Sin configurar</span>
-                      </div>
-                      <p class="field-hint module-warning is-hidden" data-module-warning="shopify-tech"></p>
-                    </div>
-                  </div>
-
-	                  <div class="panel admin-only module" data-provider="alegra" data-manager="alegra" data-module="alegra-tech" data-help="Actualizacion global para inventario y ajustes. Aplica a todas las tiendas.">
-                    <div class="panel-header">
-	                      <h3 data-module-toggle="alegra-tech" data-title-base="Actualizacion global">Actualizacion global</h3>
-                      <span class="panel-tag tag-alegra">Alegra</span>
+	                <div class="settings-group-header" data-group-toggle="operations">
+	                  <h4 class="group-title">Operacion</h4>
+	                </div>
+	                <div class="settings-group-body">
+		                  <div class="panel admin-only module" data-provider="alegra" data-manager="alegra" data-module="alegra-tech" data-help="Actualizacion global para inventario y ajustes. Aplica a todas las tiendas.">
+	                    <div class="panel-header">
+		                      <h3 data-module-toggle="alegra-tech" data-title-base="Actualizacion global">Actualizacion global</h3>
+	                      <span class="panel-tag tag-alegra">Alegra</span>
                     </div>
                     <div class="module-body">
                       <div class="settings-grid">
