@@ -1070,6 +1070,7 @@ function isToggleOnById(id) {
 
 function setDependentEnabled(element, enabled) {
   const shouldDisable = !enabled;
+  const isReadonlyFree = element instanceof HTMLElement ? Boolean(element.closest("[data-readonly-free=\"1\"]")) : false;
   const nodes = [];
 
   if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement || element instanceof HTMLButtonElement) {
@@ -1083,12 +1084,15 @@ function setDependentEnabled(element, enabled) {
   nodes.forEach((node) => {
     // Don't disable the toggle itself if it happens to be inside the dependent container.
     if (node instanceof HTMLInputElement && node.classList.contains("toggle")) return;
+    if (isReadonlyFree) return;
     node.disabled = shouldDisable;
   });
 
   if (element instanceof HTMLElement) {
-    element.classList.toggle("is-dep-disabled", shouldDisable);
+    // En secciones de accion (ej: sincronizacion masiva) no bloqueamos controles; solo aplicamos el estado visual.
+    element.classList.toggle("is-dep-disabled", shouldDisable && !isReadonlyFree);
     element.querySelectorAll("details").forEach((details) => {
+      if (isReadonlyFree) return;
       if (shouldDisable) details.open = false;
       const summary = details.querySelector("summary");
       if (summary instanceof HTMLElement) {
@@ -2651,7 +2655,8 @@ async function findNextWizardStep(fromIndex = 0) {
 function setModuleEnabled(panel, enabled) {
   if (!panel) return;
   panel.classList.toggle("is-disabled", !enabled);
-  setModuleReadonly(panel, !enabled);
+  // Ojo: no forzamos "editable" al habilitar; solo bloqueamos cuando falta prerequisito.
+  if (!enabled) setModuleReadonly(panel, true);
   panel.querySelectorAll(".module-action").forEach((button) => {
     button.disabled = !enabled;
   });
@@ -2660,6 +2665,7 @@ function setModuleEnabled(panel, enabled) {
     if (button.classList.contains("module-action")) return;
     if (button.closest(".module-footer")) return;
     if (button.hasAttribute("data-nav-to")) return;
+    if (button.closest("[data-readonly-free=\"1\"]")) return;
     button.disabled = !enabled;
   });
 }
@@ -2669,6 +2675,7 @@ function setModulePrereqButtons(panel, disabled) {
   panel.querySelectorAll("button").forEach((button) => {
     if (!(button instanceof HTMLButtonElement)) return;
     if (button.closest(".panel-header")) return;
+    if (button.closest("[data-readonly-free=\"1\"]")) return;
     if (disabled) {
       if (!button.dataset.prereqDisabled) {
         button.dataset.prereqDisabled = "true";
@@ -5202,6 +5209,20 @@ async function publishProduct(alegraId) {
 
 async function runProductsSync(mode) {
   refreshProductSettingsFromInputs();
+  const activeStore = getActiveStore();
+  const storeConnections = getStoreConnections(activeStore);
+  if (!activeStore) {
+    showToast("Primero crea o selecciona una tienda activa en Nueva conexion.", "is-warn");
+    setProductsStatus("Sin tienda activa. Crea/selecciona una tienda para sincronizar.");
+    if (productsSyncStatus) productsSyncStatus.textContent = "Sin tienda activa";
+    return;
+  }
+  if (!storeConnections.shopifyConnected || !storeConnections.alegraConnected) {
+    showToast("Conecta Shopify y Alegra para ejecutar la sincronizacion masiva.", "is-warn");
+    setProductsStatus("Faltan conexiones: conecta Shopify y Alegra para sincronizar.");
+    if (productsSyncStatus) productsSyncStatus.textContent = "Faltan conexiones";
+    return;
+  }
   if (productSettings.sync.publishOnSync) {
     const confirmPublish = window.confirm(
       "El checkbox de publicar esta activo. ¿Seguro que quieres publicar estos productos en Shopify?"
