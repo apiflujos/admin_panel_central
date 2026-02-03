@@ -1167,6 +1167,14 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+@media (max-width: 720px) {
+  .panel-header h3[data-module-toggle] {
+    font-size: 18px;
+  }
 }
 
 .panel.module.is-readonly .panel-header h3[data-module-toggle]::before {
@@ -2576,6 +2584,32 @@ textarea::placeholder {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 10px;
   align-items: start;
+}
+
+.mode-toggle-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.mode-toggle {
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--panel);
+  display: grid;
+  gap: 8px;
+}
+
+.mode-toggle label {
+  color: #1f2937;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mode-toggle .toggle {
+  justify-self: start;
 }
 
 .mode-field {
