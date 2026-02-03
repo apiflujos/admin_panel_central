@@ -2069,6 +2069,53 @@ button {
   min-height: 0;
 }
 
+.connection-summary-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.connection-summary-cell {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.connection-summary-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.connection-summary-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .connection-summary-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .connection-summary-meta {
+    justify-content: flex-start;
+  }
+}
+
+.panel.module[data-manager="alegra"] {
+  border-top: 3px solid var(--alegra-blue);
+}
+
+.panel.module[data-manager="shopify"] {
+  border-top: 3px solid var(--shopify-green-dark);
+}
+
 .connection-actions {
   display: flex;
   justify-content: flex-end;
@@ -2515,6 +2562,56 @@ textarea::placeholder {
   align-items: center;
   column-gap: 12px;
   row-gap: 4px;
+}
+
+.field.is-toggle-action {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  column-gap: 12px;
+  row-gap: 4px;
+}
+
+.field.is-toggle-action .field-title,
+.field.is-toggle-action .field-action {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.field.is-toggle-action .field-title label {
+  cursor: pointer;
+  user-select: none;
+}
+
+.field.is-toggle-action .field-action label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.field.is-toggle-action .field-toggle {
+  grid-column: 2 / 3;
+  justify-self: end;
+}
+
+.field.is-toggle-action .field-toggle > input.toggle {
+  justify-self: end;
+}
+
+@media (max-width: 720px) {
+  .field.is-toggle-action {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .field.is-toggle-action .field-action {
+    grid-column: 1 / -1;
+  }
+
+  .field.is-toggle-action .field-toggle {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
 }
 
 .field.is-toggle > label {

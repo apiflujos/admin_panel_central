@@ -2892,7 +2892,7 @@ async function openWizardStep() {
       "shopify-rules":
         "Define las reglas del modo automatico (se sincroniza solo) y el estado al publicar.\nLuego guarda para continuar.",
       "alegra-inventory":
-        "Configura inventario/bodegas (publicar stock, bodegas a sincronizar).\nLuego guarda para continuar.",
+        "Configura inventario/bodegas (bodegas fuente y sincronizacion automatica).\nLuego guarda para continuar.",
       "sync-orders":
         "Elige que hacer con pedidos nuevos (solo registrar / crear contacto / crear factura).\nLuego guarda para continuar.",
       "alegra-invoice":
@@ -3975,30 +3975,32 @@ function renderConnections(settings) {
       const alegraLed = alegraConnected ? "is-ok" : "is-off";
       return `
         <div class="connection-card">
-          <div class="status-row connection-title">
-            <span class="status-led ${storeLed}"></span>
-            <div>
-              <p>Tienda</p>
-              <span class="muted">${storeLabel}</span>
+          <div class="connection-summary-row">
+            <div class="connection-summary-cell">
+              <span class="status-led ${storeLed}"></span>
+              <div class="connection-summary-text">
+                <p>Tienda</p>
+                <span class="muted">${storeLabel}</span>
+              </div>
             </div>
-            <span class="status-pill ${overallConnected ? "is-ok" : "is-off"}">${overallLabel}</span>
-          </div>
-          <div class="status-row">
-            <span class="status-led ${shopifyLed}"></span>
-            <div>
-              <p>Shopify</p>
-              <span class="muted">${shopifyLabel}</span>
+            <div class="connection-summary-cell">
+              <span class="status-led ${shopifyLed}"></span>
+              <div class="connection-summary-text">
+                <p>Shopify</p>
+                <span class="muted">${shopifyLabel}</span>
+              </div>
             </div>
-          </div>
-          <div class="status-row">
-            <span class="status-led ${alegraLed}"></span>
-            <div>
-              <p>Alegra</p>
-              <span class="muted">${alegraLabel}</span>
+            <div class="connection-summary-cell">
+              <span class="status-led ${alegraLed}"></span>
+              <div class="connection-summary-text">
+                <p>Alegra</p>
+                <span class="muted">${alegraLabel}</span>
+              </div>
             </div>
-          </div>
-          <div class="connection-actions">
-            <button class="ghost danger" data-connection-remove="${store.id}">Eliminar</button>
+            <div class="connection-summary-meta">
+              <span class="status-pill ${overallConnected ? "is-ok" : "is-off"}">${overallLabel}</span>
+              <button class="ghost danger" data-connection-remove="${store.id}">Eliminar</button>
+            </div>
           </div>
         </div>
       `;
@@ -4439,18 +4441,6 @@ function renderInventoryWarehouseFilters() {
   if (!cfgInventoryWarehouses) return;
   const selected = new Set(storeRuleOverrides?.warehouseIds || inventoryRules.warehouseIds || []);
   cfgInventoryWarehouses.innerHTML = "";
-  const totalCount = settingsWarehousesCatalog.length;
-  const selectAllLabel = document.createElement("label");
-  selectAllLabel.className = "select-all";
-  const selectAllInput = document.createElement("input");
-  selectAllInput.type = "checkbox";
-  selectAllInput.dataset.selectAll = "inventory";
-  selectAllInput.checked = selected.size === 0 || selected.size === totalCount;
-  const selectAllText = document.createElement("span");
-  selectAllText.textContent = "Seleccionar todas";
-  selectAllLabel.appendChild(selectAllInput);
-  selectAllLabel.appendChild(selectAllText);
-  cfgInventoryWarehouses.appendChild(selectAllLabel);
   if (!settingsWarehousesCatalog.length) {
     const empty = document.createElement("span");
     empty.className = "empty";
