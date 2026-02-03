@@ -4674,7 +4674,7 @@ function renderProducts() {
         .find((entry) => entry?.published);
       const resolvedLookup = lookup?.published ? lookup : variantLookup;
       const isPublished = Boolean(resolvedLookup?.published);
-      const statusLabel = isPublished ? "Publicado" : product.sku ? "Pendiente" : "Sin codigo";
+      const statusLabel = isPublished ? "Publicado" : product.sku ? "Pendiente" : "Sin SKU";
       const statusClass = isPublished ? "status-chip is-success" : "status-chip is-warning";
       const alegraStatus = normalizeStatus(product.status) === "inactive" ? "Inactivo" : "Activo";
       const alegraStatusClass =
