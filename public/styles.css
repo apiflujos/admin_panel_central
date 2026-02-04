@@ -1879,6 +1879,22 @@ button {
   opacity: 0.85;
 }
 
+.is-dep-disabled {
+  opacity: 0.5;
+  filter: grayscale(0.18);
+}
+
+.is-dep-disabled label,
+.is-dep-disabled summary,
+.is-dep-disabled button,
+.is-dep-disabled .toggle-field {
+  cursor: not-allowed;
+}
+
+.is-dep-disabled .tip {
+  cursor: help;
+}
+
 .toggle {
   appearance: none;
   width: 44px;

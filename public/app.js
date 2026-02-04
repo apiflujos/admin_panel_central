@@ -310,6 +310,7 @@ const shopifyWebhooksCreate = document.getElementById("shopify-webhooks-create")
 const shopifyWebhooksDelete = document.getElementById("shopify-webhooks-delete");
 const shopifyWebhooksStatusBtn = document.getElementById("shopify-webhooks-status-btn");
 const shopifyWebhooksStatus = document.getElementById("shopify-webhooks-status");
+const shopifyAutomationEnabled = document.getElementById("shopify-automation-enabled");
 
 let shopifyAdminBase = "";
 let currentUserRole = "agent";
@@ -1123,7 +1124,43 @@ function isToggleOnById(id) {
   const toggle = document.getElementById(id);
   if (!(toggle instanceof HTMLInputElement)) return true;
   if (toggle.type !== "checkbox") return true;
+  // Si el toggle está deshabilitado, su efecto es OFF (aunque conserve el check).
+  if (toggle.disabled) return false;
   return Boolean(toggle.checked);
+}
+
+function formatControlLabelText(label) {
+  if (!(label instanceof HTMLElement)) return "";
+  const parts = [];
+  label.childNodes.forEach((node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      parts.push(node.textContent || "");
+      return;
+    }
+    if (node instanceof HTMLElement && !node.classList.contains("tip")) {
+      parts.push(node.textContent || "");
+    }
+  });
+  return parts
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getControlLabelById(id) {
+  if (!id) return "";
+  const label = document.querySelector(`label[for="${CSS.escape(id)}"]`);
+  return formatControlLabelText(label);
+}
+
+function buildDependencyDisabledReason(element) {
+  if (!(element instanceof HTMLElement)) return "";
+  const custom = element.getAttribute("data-disabled-message");
+  if (custom && custom.trim()) return custom.trim();
+  const ids = parseDependsOn(element.getAttribute("data-depends-on") || "");
+  const first = ids.length ? getControlLabelById(ids[0]) : "";
+  if (first) return `Activa “${first}” para habilitar esta función.`;
+  return "Activa la opción requerida para habilitar esta función.";
 }
 
 function setDependentEnabled(element, enabled) {
@@ -1131,8 +1168,10 @@ function setDependentEnabled(element, enabled) {
   const nodes = [];
   const container =
     element instanceof HTMLElement
-      ? element.closest(".mode-field, .mode-toggle, .field") || element
+      ? element.closest(".mode-field, .mode-toggle, .field, .mode-section, .module") || element
       : null;
+  const visualTarget = container instanceof HTMLElement ? container : (element instanceof HTMLElement ? element : null);
+  const wasDisabled = visualTarget instanceof HTMLElement ? visualTarget.classList.contains("is-dep-disabled") : false;
 
   if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement || element instanceof HTMLButtonElement) {
     nodes.push(element);
@@ -1143,31 +1182,31 @@ function setDependentEnabled(element, enabled) {
   }
 
   nodes.forEach((node) => {
-    // Don't disable the toggle itself if it happens to be inside the dependent container.
-    if (node instanceof HTMLInputElement && node.classList.contains("toggle")) return;
     node.disabled = shouldDisable;
   });
 
+  if (visualTarget instanceof HTMLElement) {
+    visualTarget.classList.toggle("is-dep-disabled", shouldDisable);
+    if (shouldDisable) {
+      visualTarget.setAttribute("data-disabled-reason", buildDependencyDisabledReason(element));
+    } else {
+      visualTarget.removeAttribute("data-disabled-reason");
+    }
+  }
+
   if (element instanceof HTMLElement) {
-    element.classList.toggle("is-dep-disabled", shouldDisable);
     element.querySelectorAll("details").forEach((details) => {
       if (shouldDisable) details.open = false;
       const summary = details.querySelector("summary");
       if (summary instanceof HTMLElement) {
         summary.setAttribute("aria-disabled", shouldDisable ? "true" : "false");
         summary.tabIndex = shouldDisable ? -1 : 0;
-        summary.style.pointerEvents = shouldDisable ? "none" : "";
       }
     });
   }
 
-  // Regla de oro UX: si un campo/accion no aplica, desaparece (no solo disabled).
-  if (container instanceof HTMLElement && container !== document.body) {
-    container.hidden = shouldDisable;
-    container.classList.toggle("is-dep-hidden", shouldDisable);
-  } else if (element instanceof HTMLElement) {
-    element.hidden = shouldDisable;
-  }
+  const isDisabledNow = visualTarget instanceof HTMLElement ? visualTarget.classList.contains("is-dep-disabled") : false;
+  return wasDisabled !== isDisabledNow;
 }
 
 function applyToggleDependencies() {
@@ -1184,20 +1223,7 @@ function applyToggleDependencies() {
       const ids = parseDependsOn(element.getAttribute("data-depends-on") || "");
       if (!ids.length) return;
       const enabled = ids.every((id) => isToggleOnById(id));
-
-      // Regla UX: si la funcion base está apagada, la accion dependiente también debe quedar apagada.
-      if (
-        !enabled &&
-        element instanceof HTMLInputElement &&
-        element.type === "checkbox" &&
-        element.classList.contains("toggle") &&
-        element.checked
-      ) {
-        element.checked = false;
-        changed = true;
-      }
-
-      setDependentEnabled(element, enabled);
+      changed = setDependentEnabled(element, enabled) || changed;
     });
     if (!changed) break;
   }
@@ -1218,6 +1244,38 @@ function initToggleDependencies() {
   });
 
   applyToggleDependencies();
+}
+
+function initDependencyDisabledToasts() {
+  let lastToastAt = 0;
+  let lastMessage = "";
+  document.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (!target) return;
+      if (target.closest(".tip, .tip-popover, .toast, .help-panel, .help-launch")) return;
+
+      const disabledContainer = target.closest(".is-dep-disabled[data-disabled-reason]");
+      if (!(disabledContainer instanceof HTMLElement)) return;
+      const message = (disabledContainer.getAttribute("data-disabled-reason") || "").trim();
+      if (!message) return;
+
+      const now = Date.now();
+      if (message === lastMessage && now - lastToastAt < 900) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      lastToastAt = now;
+      lastMessage = message;
+
+      event.preventDefault();
+      event.stopPropagation();
+      showToast(message, "is-warn", { timeoutMs: 4500 });
+    },
+    true,
+  );
 }
 
 function initTips() {
@@ -4847,6 +4905,7 @@ function renderSyncWarehouseFilters() {
     cfgWarehouseSync.appendChild(label);
   });
   updateSyncWarehouseSummary();
+  applyToggleDependencies();
 }
 
 function renderInventoryWarehouseFilters() {
@@ -4877,6 +4936,7 @@ function renderInventoryWarehouseFilters() {
     cfgInventoryWarehouses.appendChild(label);
   });
   updateInventoryWarehouseSummary();
+  applyToggleDependencies();
 }
 
 async function loadSettingsWarehouses() {
@@ -6820,6 +6880,23 @@ function setShopifyWebhooksStatus(text, state) {
   }
 }
 
+let shopifyAutomationToggleSyncing = false;
+let shopifyAutomationToggleBusy = false;
+let shopifyAutomationToggleValue =
+  shopifyAutomationEnabled instanceof HTMLInputElement ? Boolean(shopifyAutomationEnabled.checked) : true;
+
+function setShopifyAutomationToggleState(nextEnabled, options = {}) {
+  if (!(shopifyAutomationEnabled instanceof HTMLInputElement)) return;
+  const next = Boolean(nextEnabled);
+  shopifyAutomationToggleSyncing = true;
+  shopifyAutomationEnabled.checked = next;
+  shopifyAutomationToggleSyncing = false;
+  shopifyAutomationToggleValue = next;
+  if (options.applyDependencies !== false) {
+    applyToggleDependencies();
+  }
+}
+
 function setContactsSyncStatus(text, state) {
   if (!syncContactsStatus) return;
   syncContactsStatus.textContent = text || "";
@@ -6845,13 +6922,16 @@ async function loadShopifyWebhooksStatus() {
     const missing = Array.isArray(result?.missing) ? result.missing : [];
     if (!total) {
       setShopifyWebhooksStatus("Sin datos de automatizacion.", "is-error");
+      setShopifyAutomationToggleState(false);
       return false;
     }
     if (!missing.length) {
       setShopifyWebhooksStatus(`Creado y conectado (${connected}/${total})`, "is-ok");
+      setShopifyAutomationToggleState(true);
       return true;
     }
     setShopifyWebhooksStatus(`Faltan ${missing.length} (${connected}/${total})`, "is-error");
+    setShopifyAutomationToggleState(false);
     return false;
   } catch (error) {
     setShopifyWebhooksStatus(error?.message || "No se pudo consultar.", "is-error");
@@ -6863,7 +6943,7 @@ async function createShopifyWebhooks() {
   const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   if (!shopDomain) {
     setShopifyWebhooksStatus("Dominio Shopify requerido.", "is-error");
-    return;
+    return false;
   }
   setShopifyWebhooksStatus("Activando automatizacion...");
   try {
@@ -6880,8 +6960,10 @@ async function createShopifyWebhooks() {
     setShopifyWebhooksStatus(statusText, okCount === total ? "is-ok" : "is-error");
     await loadShopifyWebhooksStatus();
     advanceWizardStep("sync-orders");
+    return okCount === total;
   } catch (error) {
     setShopifyWebhooksStatus(error?.message || "No se pudieron crear.", "is-error");
+    return false;
   }
 }
 
@@ -6889,10 +6971,10 @@ async function deleteShopifyWebhooks() {
   const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   if (!shopDomain) {
     setShopifyWebhooksStatus("Dominio Shopify requerido.", "is-error");
-    return;
+    return false;
   }
   if (!window.confirm("Desactivar la automatizacion para esta tienda?")) {
-    return;
+    return false;
   }
   setShopifyWebhooksStatus("Desactivando automatizacion...");
   try {
@@ -6907,8 +6989,10 @@ async function deleteShopifyWebhooks() {
       total > 0 ? `Desactivados ${deleted}/${total}` : "Automatizacion desactivada.";
     setShopifyWebhooksStatus(statusText, deleted === total ? "is-ok" : "is-error");
     await loadShopifyWebhooksStatus();
+    return deleted === total;
   } catch (error) {
     setShopifyWebhooksStatus(error?.message || "No se pudieron eliminar.", "is-error");
+    return false;
   }
 }
 
@@ -8206,7 +8290,23 @@ if (productsSyncStopBtn) {
 
 if (shopifyWebhooksCreate) {
   shopifyWebhooksCreate.addEventListener("click", () => {
-    createShopifyWebhooks();
+    if (shopifyAutomationToggleBusy) {
+      showToast("Espera a que termine la operación de automatización.", "is-warn");
+      return;
+    }
+    const previous = shopifyAutomationToggleValue;
+    setShopifyAutomationToggleState(true);
+    shopifyAutomationToggleBusy = true;
+    createShopifyWebhooks()
+      .then((ok) => {
+        if (!ok) setShopifyAutomationToggleState(previous);
+      })
+      .catch(() => {
+        setShopifyAutomationToggleState(previous);
+      })
+      .finally(() => {
+        shopifyAutomationToggleBusy = false;
+      });
   });
 }
 
@@ -8266,12 +8366,52 @@ if (qaTokenCopy) {
 }
 if (shopifyWebhooksDelete) {
   shopifyWebhooksDelete.addEventListener("click", () => {
-    deleteShopifyWebhooks();
+    if (shopifyAutomationToggleBusy) {
+      showToast("Espera a que termine la operación de automatización.", "is-warn");
+      return;
+    }
+    const previous = shopifyAutomationToggleValue;
+    setShopifyAutomationToggleState(false);
+    shopifyAutomationToggleBusy = true;
+    deleteShopifyWebhooks()
+      .then((ok) => {
+        if (!ok) setShopifyAutomationToggleState(previous);
+      })
+      .catch(() => {
+        setShopifyAutomationToggleState(previous);
+      })
+      .finally(() => {
+        shopifyAutomationToggleBusy = false;
+      });
   });
 }
 if (shopifyWebhooksStatusBtn) {
   shopifyWebhooksStatusBtn.addEventListener("click", () => {
-    loadShopifyWebhooksStatus();
+    loadShopifyWebhooksStatus().catch(() => null);
+  });
+}
+
+if (shopifyAutomationEnabled instanceof HTMLInputElement) {
+  shopifyAutomationEnabled.addEventListener("change", async () => {
+    if (shopifyAutomationToggleSyncing) return;
+    const previous = shopifyAutomationToggleValue;
+    const next = Boolean(shopifyAutomationEnabled.checked);
+    shopifyAutomationToggleValue = next;
+    applyToggleDependencies();
+
+    if (shopifyAutomationToggleBusy) {
+      setShopifyAutomationToggleState(previous);
+      showToast("Espera a que termine la operación de automatización.", "is-warn");
+      return;
+    }
+
+    shopifyAutomationToggleBusy = true;
+    const ok = next ? await createShopifyWebhooks() : await deleteShopifyWebhooks();
+    shopifyAutomationToggleBusy = false;
+
+    if (!ok) {
+      setShopifyAutomationToggleState(previous);
+    }
   });
 }
 
@@ -8627,6 +8767,7 @@ async function init() {
   initGroupControls();
   initToggleFields();
   initToggleDependencies();
+  initDependencyDisabledToasts();
   initTips();
   initSetupModeControls();
   initShopifyConnectPicker();
