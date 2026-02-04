@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260204p14" />
+    <link rel="stylesheet" href="styles.css?v=20260204p15" />
   </head>
   <body>
     <div class="app-shell">
@@ -837,27 +837,27 @@
                               <input type="number" id="products-sync-limit" min="1" placeholder="200" />
                             </div>
                           </div>
-                          <div class="mode-toggle-grid" aria-label="Opciones masivo">
-                            <div class="mode-toggle">
-                              <label for="products-sync-only-active">Solo activos en Alegra</label>
-                              <input type="checkbox" id="products-sync-only-active" class="toggle" checked />
-                            </div>
-                            <div class="mode-toggle">
-                              <label for="products-sync-publish">Publicar en Shopify</label>
-                              <input type="checkbox" id="products-sync-publish" class="toggle" checked />
-                            </div>
-                            <div class="mode-toggle">
-                              <label for="products-publish-status-mass">Estado</label>
-                              <select id="products-publish-status-mass" data-depends-on="products-sync-publish">
-                                <option value="draft">Borrador</option>
-                                <option value="active">Activo</option>
-                              </select>
-                            </div>
-                            <div class="mode-toggle">
-                              <label for="products-sync-include-inventory">Incluir inventario</label>
-                              <input type="checkbox" id="products-sync-include-inventory" class="toggle" checked />
-                            </div>
-                          </div>
+	                          <div class="mode-toggle-grid" aria-label="Opciones masivo">
+	                            <div class="mode-toggle">
+	                              <label for="products-sync-only-active">Solo activos en Alegra <span class="tip" data-tip="Si está activo, el masivo solo toma productos activos en Alegra.\n\nRecomendado: dejarlo activo para el catalogo inicial (evita crear productos descontinuados).">?</span></label>
+	                              <input type="checkbox" id="products-sync-only-active" class="toggle" checked />
+	                            </div>
+	                            <div class="mode-toggle">
+	                              <label for="products-sync-publish">Publicar en Shopify <span class="tip" data-tip="Si está apagado, el masivo solo sincroniza/actualiza datos pero no publica productos en Shopify.\n\nTip: apágalo si quieres revisar primero y publicar después.">?</span></label>
+	                              <input type="checkbox" id="products-sync-publish" class="toggle" checked />
+	                            </div>
+	                            <div class="mode-toggle">
+	                              <label for="products-publish-status-mass">Estado <span class="tip" data-tip="Define cómo queda el producto cuando se publica:\n- Borrador: no queda visible en tienda.\n- Activo: queda listo para vender.\n\nNota: si “Publicar en Shopify” está apagado, el estado no aplica.">?</span></label>
+	                              <select id="products-publish-status-mass" data-depends-on="products-sync-publish">
+	                                <option value="draft">Borrador</option>
+	                                <option value="active">Activo</option>
+	                              </select>
+	                            </div>
+	                            <div class="mode-toggle">
+	                              <label for="products-sync-include-inventory">Incluir inventario <span class="tip" data-tip="Si está activo, el masivo también sincroniza existencias según las bodegas configuradas en “Inventario y bodegas”.\n\nTip: déjalo activo si ya tienes bodegas definidas.">?</span></label>
+	                              <input type="checkbox" id="products-sync-include-inventory" class="toggle" checked />
+	                            </div>
+	                          </div>
                           <div class="mode-actions">
                             <button class="primary" id="products-sync-filtered" type="button">Sincronizar masivo</button>
 	                            <button class="ghost danger" id="products-sync-stop" type="button" hidden>Detener</button>
@@ -873,27 +873,27 @@
 		                              <span class="tip" data-tip="Se ejecuta sola cuando llega un cambio desde Alegra.\n\nImportante:\n- Estas reglas tambien se usan cuando publicas manualmente desde Productos (acciones por SKU).\n\nTip:\n- Si apagas “Publicar en Shopify”, el sistema no publica (pero puede seguir actualizando datos segun tu configuracion).">?</span>
 		                            </div>
 		                          </div>
-		                          <div class="mode-toggle-grid" aria-label="Opciones automatico">
-		                            <div class="mode-toggle">
-		                              <label for="rules-only-active">Solo activos en Alegra</label>
-	                              <input type="checkbox" id="rules-only-active" class="toggle" />
-	                            </div>
-	                            <div class="mode-toggle">
-	                              <label for="rules-auto-publish">Publicar en Shopify</label>
-	                              <input type="checkbox" id="rules-auto-publish" class="toggle" />
-	                            </div>
-	                            <div class="mode-toggle">
-	                              <label for="rules-auto-images">Publicar fotos</label>
-	                              <input type="checkbox" id="rules-auto-images" class="toggle" />
-	                            </div>
-	                            <div class="mode-toggle">
-	                              <label for="rules-auto-status">Estado</label>
-	                              <select id="rules-auto-status" data-depends-on="rules-auto-publish">
-	                                <option value="draft">Borrador</option>
-	                                <option value="active">Activo</option>
-	                              </select>
-	                            </div>
-	                          </div>
+			                          <div class="mode-toggle-grid" aria-label="Opciones automatico">
+			                            <div class="mode-toggle">
+			                              <label for="rules-only-active">Solo activos en Alegra <span class="tip" data-tip="Si está activo, solo se sincronizan productos activos en Alegra.\n\nAfecta:\n- Sincronización automática.\n- Publicación manual (acciones por SKU).">?</span></label>
+		                              <input type="checkbox" id="rules-only-active" class="toggle" />
+			                            </div>
+			                            <div class="mode-toggle">
+			                              <label for="rules-auto-publish">Publicar en Shopify <span class="tip" data-tip="Enciende/apaga la publicación en Shopify.\n\nSi lo apagas:\n- No se publican productos automáticamente.\n- Tampoco se publican desde acciones por SKU.\n\nTip: útil para modo “solo sincronizar datos” sin publicar.">?</span></label>
+			                              <input type="checkbox" id="rules-auto-publish" class="toggle" />
+			                            </div>
+			                            <div class="mode-toggle">
+			                              <label for="rules-auto-images">Publicar fotos <span class="tip" data-tip="Si está activo, intentamos subir fotos del producto a Shopify.\n\nNota: si una foto falla, el producto puede publicarse igual (solo queda sin esa foto).">?</span></label>
+			                              <input type="checkbox" id="rules-auto-images" class="toggle" />
+			                            </div>
+			                            <div class="mode-toggle">
+			                              <label for="rules-auto-status">Estado <span class="tip" data-tip="Define el estado de publicación cuando “Publicar en Shopify” está activo:\n- Borrador\n- Activo">?</span></label>
+			                              <select id="rules-auto-status" data-depends-on="rules-auto-publish">
+			                                <option value="draft">Borrador</option>
+			                                <option value="active">Activo</option>
+			                              </select>
+			                            </div>
+			                          </div>
 	                        </div>
 
 		                        <div class="mode-section">
@@ -1485,6 +1485,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260204p14" type="module"></script>
+    <script src="app.js?v=20260204p15" type="module"></script>
   </body>
 </html>

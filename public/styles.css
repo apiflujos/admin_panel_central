@@ -1172,27 +1172,40 @@ button {
 
 .panel.module.is-readonly .panel-header h3[data-module-toggle]::before {
   content: "Bloqueado";
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #64748b;
-  background: rgba(148, 163, 184, 0.18);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  padding: 2px 6px;
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  padding: 3px 8px;
   border-radius: 999px;
 }
 
 .panel.module.is-saved .panel-header h3[data-module-toggle]::after {
   content: "Guardado";
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: #0f766e;
   background: rgba(13, 148, 136, 0.12);
   border: 1px solid rgba(13, 148, 136, 0.35);
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: 999px;
   margin-left: 6px;
+}
+
+.panel.module.is-readonly {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.22);
+}
+
+.panel.module.is-readonly .module-body {
+  opacity: 0.86;
+}
+
+.panel.module.is-readonly .panel-header {
+  opacity: 1;
 }
 
 .panel.module .panel-header {
@@ -1240,6 +1253,14 @@ button {
   width: auto;
   min-width: 92px;
   font-weight: 700;
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+/* Override global button sizing for module footer (debe ser compacto). */
+.module-footer button {
+  width: auto;
   min-height: 30px;
   padding: 0 10px;
   font-size: 12px;
@@ -1357,11 +1378,13 @@ button {
 }
 
 .settings-group {
-  border: 1px solid var(--stroke);
-  border-radius: 12px;
-  padding: 8px;
-  background: #fff;
-  margin-top: 8px;
+  border: 2px solid rgba(15, 23, 42, 0.12);
+  border-radius: 16px;
+  padding: 0;
+  background: var(--panel);
+  margin-top: 10px;
+  overflow: hidden;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
 }
 
 .settings-group.store-group {
@@ -1369,7 +1392,7 @@ button {
 }
 
 .settings-group.provider-group {
-  background: #fafafa;
+  background: var(--panel);
 }
 
 .settings-group-header {
@@ -1380,11 +1403,15 @@ button {
   cursor: pointer;
   user-select: none;
   position: relative;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: var(--panel);
-  border: 2px solid rgba(15, 23, 42, 0.12);
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+  padding: 12px 14px;
+  border-radius: 16px 16px 0 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.03), rgba(15, 23, 42, 0.01));
+  border: 0;
+  box-shadow: none;
+}
+
+.settings-group.is-collapsed .settings-group-header {
+  border-radius: 16px;
 }
 
 .settings-group-header h3,
@@ -1419,23 +1446,43 @@ button {
 }
 
 .settings-group.provider-group[data-group="products"] .settings-group-header {
-  border-left: 3px solid #0f172a;
-  padding-left: 10px;
+  padding-left: 18px;
 }
 
 .settings-group.provider-group[data-group="orders"] .settings-group-header {
-  border-left: 3px solid #0f172a;
-  padding-left: 10px;
+  padding-left: 18px;
 }
 
 .settings-group.provider-group[data-group="operations"] .settings-group-header {
-  border-left: 3px solid #0f172a;
-  padding-left: 10px;
+  padding-left: 18px;
 }
 
 .settings-group.provider-group[data-group="admin"] .settings-group-header {
-  border-left: 3px solid #0f172a;
-  padding-left: 10px;
+  padding-left: 18px;
+}
+
+.settings-group.provider-group[data-group="products"] .settings-group-header::before,
+.settings-group.provider-group[data-group="orders"] .settings-group-header::before,
+.settings-group.provider-group[data-group="operations"] .settings-group-header::before,
+.settings-group.provider-group[data-group="admin"] .settings-group-header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  background: #0f172a;
+}
+
+.settings-group.provider-group[data-group="products"] .settings-group-header::before,
+.settings-group.provider-group[data-group="orders"] .settings-group-header::before,
+.settings-group.provider-group[data-group="operations"] .settings-group-header::before,
+.settings-group.provider-group[data-group="admin"] .settings-group-header::before {
+  border-top-left-radius: 16px;
+}
+
+.settings-group.is-collapsed .settings-group-header::before {
+  border-bottom-left-radius: 16px;
 }
 
 .settings-group-subtitle {
@@ -1447,8 +1494,8 @@ button {
 .settings-group-body {
   display: grid;
   gap: 8px;
-  margin-top: 8px;
-  padding-left: 4px;
+  margin-top: 0;
+  padding: 10px;
 }
 
 .settings-group.is-collapsed .settings-group-body {
@@ -2649,6 +2696,31 @@ textarea::placeholder {
   gap: 10px;
 }
 
+.panel.module[data-module="shopify-rules"] .mode-sections,
+.panel.module[data-module="alegra-inventory"] .mode-sections {
+  border: 2px solid rgba(15, 23, 42, 0.12);
+  border-radius: 16px;
+  padding: 10px;
+  background: #fff;
+}
+
+.panel.module[data-module="shopify-rules"] .mode-section,
+.panel.module[data-module="alegra-inventory"] .mode-section {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.panel.module[data-module="shopify-rules"] .mode-section + .mode-section,
+.panel.module[data-module="alegra-inventory"] .mode-section + .mode-section {
+  border-top: 1px dashed rgba(15, 23, 42, 0.18);
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
 .mode-section {
   border: 1px solid var(--stroke);
   border-radius: 14px;
@@ -3745,4 +3817,13 @@ textarea::placeholder {
   .connection-actions button {
     min-width: 120px;
   }
+}
+
+/* Final overrides (compact module actions) */
+.module-footer button {
+  width: auto !important;
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
+  min-width: 92px !important;
 }
