@@ -252,11 +252,7 @@ const productsPageInput = document.getElementById("products-page-input");
 const productsPageGo = document.getElementById("products-page-go");
 const productsCountLabel = document.getElementById("products-count");
 const productsStatus = document.getElementById("products-status");
-const productsPublishStatus = document.getElementById("products-publish-status");
 const productsPublishStatusMass = document.getElementById("products-publish-status-mass");
-const productsIncludeImages = document.getElementById("products-include-images");
-const productsManualOnlyActive = document.getElementById("products-manual-only-active");
-const productsManualPublish = document.getElementById("products-manual-publish");
 const rulesOnlyActive = document.getElementById("rules-only-active");
 const rulesSyncEnabled = document.getElementById("rules-sync-enabled");
 const productsDateStart = document.getElementById("products-date-start");
@@ -3210,9 +3206,9 @@ function initGroupControls() {
 }
 
 function applyProductSettings() {
-  if (productsPublishStatus) productsPublishStatus.value = productSettings.publish.status;
   if (productsPublishStatusMass) productsPublishStatusMass.value = productSettings.publish.status;
-  if (productsIncludeImages) productsIncludeImages.checked = productSettings.publish.includeImages;
+  if (rulesAutoStatus) rulesAutoStatus.value = productSettings.publish.status;
+  if (rulesAutoImages) rulesAutoImages.checked = productSettings.publish.includeImages;
   if (productsDateStart) productsDateStart.value = productSettings.sync.dateStart;
   if (productsDateEnd) productsDateEnd.value = productSettings.sync.dateEnd;
   if (productsSyncLimitInput) productsSyncLimitInput.value = productSettings.sync.limit || "";
@@ -3250,8 +3246,8 @@ function applyProductSettings() {
 function refreshProductSettingsFromInputs() {
   productSettings = {
     publish: {
-      status: productsPublishStatus ? productsPublishStatus.value : "draft",
-      includeImages: productsIncludeImages ? productsIncludeImages.checked : true,
+      status: rulesAutoStatus ? rulesAutoStatus.value : "draft",
+      includeImages: rulesAutoImages ? rulesAutoImages.checked : true,
     },
     sync: {
       dateStart: productsDateStart ? productsDateStart.value : "",
@@ -3990,15 +3986,8 @@ function applyRuleSettings(settings, options = {}) {
     syncEnabled: settings.syncEnabled !== false,
     warehouseIds: Array.isArray(settings.warehouseIds) ? settings.warehouseIds : [],
   };
-  // Manual 1-a-1 comparte las mismas opciones.
-  if (productsManualOnlyActive) productsManualOnlyActive.checked = Boolean(settings.onlyActiveItems);
-  if (productsManualPublish) productsManualPublish.checked = Boolean(settings.autoPublishOnWebhook);
-  if (productsIncludeImages) productsIncludeImages.checked = settings.includeImages !== false;
-  if (productsPublishStatus) {
-    productsPublishStatus.value = settings.autoPublishStatus === "active" ? "active" : "draft";
-  }
   if (productsPublishStatusMass) {
-    productsPublishStatusMass.value = productsPublishStatus?.value || "draft";
+    productsPublishStatusMass.value = rulesAutoStatus?.value || "draft";
   }
   renderInventoryWarehouseFilters();
 }
@@ -5275,11 +5264,7 @@ async function loadProducts() {
 
 async function publishProduct(alegraId) {
   refreshProductSettingsFromInputs();
-  const publishEnabled = productsManualPublish
-    ? productsManualPublish.checked
-    : rulesAutoPublish
-      ? rulesAutoPublish.checked
-      : true;
+  const publishEnabled = rulesAutoPublish ? rulesAutoPublish.checked : true;
   if (!publishEnabled) {
     showToast("Publicar en Shopify esta apagado en Configuracion → Productos.", "is-warn");
     setProductsStatus("Publicacion desactivada.");
@@ -5292,11 +5277,7 @@ async function publishProduct(alegraId) {
   }
   const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   setProductsStatus(`Publicando ${alegraId}...`);
-  const onlyActive = productsManualOnlyActive
-    ? productsManualOnlyActive.checked
-    : rulesOnlyActive
-      ? rulesOnlyActive.checked
-      : false;
+  const onlyActive = rulesOnlyActive ? rulesOnlyActive.checked : false;
   try {
     await fetchJson("/api/shopify/publish", {
       method: "POST",
@@ -8153,26 +8134,24 @@ if (ordersClearBtn) {
   });
 }
 
-if (productsPublishStatusMass && productsPublishStatus) {
+if (productsPublishStatusMass && rulesAutoStatus) {
   productsPublishStatusMass.addEventListener("change", () => {
-    productsPublishStatus.value = productsPublishStatusMass.value;
-    productsPublishStatus.dispatchEvent(new Event("change", { bubbles: true }));
+    rulesAutoStatus.value = productsPublishStatusMass.value;
+    rulesAutoStatus.dispatchEvent(new Event("change", { bubbles: true }));
   });
-  productsPublishStatus.addEventListener("change", () => {
-    if (productsPublishStatusMass.value !== productsPublishStatus.value) {
-      productsPublishStatusMass.value = productsPublishStatus.value;
+  rulesAutoStatus.addEventListener("change", () => {
+    if (productsPublishStatusMass.value !== rulesAutoStatus.value) {
+      productsPublishStatusMass.value = rulesAutoStatus.value;
     }
   });
 }
 
-if (productsSyncPublish && productsPublishStatus) {
+if (productsSyncPublish) {
   productsSyncPublish.addEventListener("change", () => {
     if (!productsSyncPublish.checked) {
-      productsPublishStatus.value = "draft";
       if (productsPublishStatusMass) {
         productsPublishStatusMass.value = "draft";
       }
-      productsPublishStatus.dispatchEvent(new Event("change", { bubbles: true }));
     }
     applyToggleDependencies();
   });
@@ -8188,60 +8167,7 @@ if (rulesAutoPublish && rulesAutoStatus) {
   });
 }
 
-// Productos: Manual 1-a-1 y Automatico comparten las mismas opciones.
-(() => {
-  const lock = { active: false };
-
-  const dispatchChange = (node) => {
-    if (!(node instanceof HTMLElement)) return;
-    node.dispatchEvent(new Event("change", { bubbles: true }));
-  };
-
-  const mirrorChecked = (from, to) => {
-    if (!(from instanceof HTMLInputElement) || !(to instanceof HTMLInputElement)) return;
-    if (to.checked === from.checked) return;
-    to.checked = from.checked;
-    dispatchChange(to);
-  };
-
-  const mirrorValue = (from, to) => {
-    if (!(from instanceof HTMLSelectElement) || !(to instanceof HTMLSelectElement)) return;
-    if (to.value === from.value) return;
-    to.value = from.value;
-    dispatchChange(to);
-  };
-
-  const bindMirror = (a, b, kind) => {
-    if (!(a instanceof HTMLElement) || !(b instanceof HTMLElement)) return;
-    a.addEventListener("change", () => {
-      if (lock.active) return;
-      lock.active = true;
-      try {
-        if (kind === "checked") mirrorChecked(a, b);
-        else mirrorValue(a, b);
-        applyToggleDependencies();
-      } finally {
-        lock.active = false;
-      }
-    });
-    b.addEventListener("change", () => {
-      if (lock.active) return;
-      lock.active = true;
-      try {
-        if (kind === "checked") mirrorChecked(b, a);
-        else mirrorValue(b, a);
-        applyToggleDependencies();
-      } finally {
-        lock.active = false;
-      }
-    });
-  };
-
-  bindMirror(rulesOnlyActive, productsManualOnlyActive, "checked");
-  bindMirror(rulesAutoPublish, productsManualPublish, "checked");
-  bindMirror(rulesAutoImages, productsIncludeImages, "checked");
-  bindMirror(rulesAutoStatus, productsPublishStatus, "value");
-})();
+// Productos: configuracion unica (automatico + manual) en el bloque de reglas.
 
   if (productsSyncClear) {
     productsSyncClear.addEventListener("click", () => {
@@ -8264,14 +8190,14 @@ if (rulesAutoPublish && rulesAutoStatus) {
     });
   }
 
-	const productSettingInputs = [
-	  productsPublishStatus,
-	  productsIncludeImages,
-	  productsDateStart,
-	  productsDateEnd,
-	  productsSyncLimitInput,
-	  productsSyncQuery,
-	  productsSyncOnlyActive,
+		const productSettingInputs = [
+		  rulesAutoStatus,
+		  rulesAutoImages,
+		  productsDateStart,
+		  productsDateEnd,
+		  productsSyncLimitInput,
+		  productsSyncQuery,
+		  productsSyncOnlyActive,
 	  productsSyncPublish,
 	  productsSyncOnlyPublished,
 	  productsSyncIncludeInventory,

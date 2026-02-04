@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260204p11" />
+    <link rel="stylesheet" href="styles.css?v=20260204p12" />
   </head>
   <body>
     <div class="app-shell">
@@ -866,16 +866,16 @@
 	                          </div>
 	                        </div>
 
-                        <div class="mode-section">
-                          <div class="mode-head">
-                            <div class="mode-head-left">
-                              <h4>Sincronizacion automatica</h4>
-                              <span class="tip" data-tip="Se ejecuta cuando llega un cambio desde Alegra.">?</span>
-                            </div>
-                          </div>
-	                          <div class="mode-toggle-grid" aria-label="Opciones automatico">
-	                            <div class="mode-toggle">
-	                              <label for="rules-only-active">Solo activos en Alegra</label>
+	                        <div class="mode-section">
+	                          <div class="mode-head">
+	                            <div class="mode-head-left">
+	                              <h4>Sincronizacion automatica</h4>
+	                              <span class="tip" data-tip="Se ejecuta cuando llega un cambio desde Alegra. Estas reglas tambien se usan cuando publicas manualmente desde Productos.">?</span>
+	                            </div>
+	                          </div>
+		                          <div class="mode-toggle-grid" aria-label="Opciones automatico">
+		                            <div class="mode-toggle">
+		                              <label for="rules-only-active">Solo activos en Alegra</label>
 	                              <input type="checkbox" id="rules-only-active" class="toggle" />
 	                            </div>
 	                            <div class="mode-toggle">
@@ -896,37 +896,19 @@
 	                          </div>
 	                        </div>
 
-                        <div class="mode-section">
-                          <div class="mode-head">
-                            <div class="mode-head-left">
-                              <h4>Sincronizacion manual (desde Productos)</h4>
-                              <span class="tip" data-tip="Se ejecuta cuando la lanzas desde la seccion Productos (acciones por SKU).">?</span>
-                            </div>
-                            <button class="ghost mode-head-action" type="button" data-nav-to="products">Ir a Productos</button>
-	                          </div>
-	                          <div class="mode-toggle-grid" aria-label="Opciones manual">
-	                            <div class="mode-toggle">
-	                              <label for="products-manual-only-active">Solo activos en Alegra</label>
-	                              <input type="checkbox" id="products-manual-only-active" class="toggle" />
+	                        <div class="mode-section">
+	                          <div class="mode-head">
+	                            <div class="mode-head-left">
+	                              <h4>Sincronizacion manual (desde Productos)</h4>
+	                              <span class="tip" data-tip="Se ejecuta cuando la lanzas desde Productos (acciones por SKU). Usa la misma configuracion de Sincronizacion automatica.">?</span>
 	                            </div>
-	                            <div class="mode-toggle">
-	                              <label for="products-manual-publish">Publicar en Shopify</label>
-	                              <input type="checkbox" id="products-manual-publish" class="toggle" />
-	                            </div>
-	                            <div class="mode-toggle">
-	                              <label for="products-include-images">Publicar fotos</label>
-	                              <input type="checkbox" id="products-include-images" class="toggle" />
-	                            </div>
-	                            <div class="mode-toggle">
-	                              <label for="products-publish-status">Estado</label>
-	                              <select id="products-publish-status" data-depends-on="products-manual-publish">
-	                                <option value="draft">Borrador</option>
-	                                <option value="active">Activo</option>
-	                              </select>
-	                            </div>
-	                          </div>
-	                        </div>
-                      </div>
+	                            <button class="ghost mode-head-action" type="button" data-nav-to="products">Ir a Productos</button>
+		                          </div>
+		                          <div class="module-note">
+		                            <p>Las opciones (Solo activos, Publicar, Fotos y Estado) se configuran una sola vez en <strong>Sincronizacion automatica</strong>.</p>
+		                          </div>
+		                        </div>
+	                      </div>
                       <div class="module-footer">
                         <button class="ghost module-action" data-module-edit="shopify-rules" type="button">Editar</button>
                         <button class="primary module-action" data-module-save="shopify-rules" type="button">Guardar</button>
@@ -1510,6 +1492,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260204p11" type="module"></script>
+    <script src="app.js?v=20260204p12" type="module"></script>
   </body>
 </html>
