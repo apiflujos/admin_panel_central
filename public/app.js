@@ -7698,13 +7698,15 @@ if (alegraAccountSelect) {
 		      setShopifyWebhooksStatus("Sin configurar");
 		      const activePane =
 		        document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
-	      const keepConnectionsOpen = activePane === "connections" || getModulePanel("connections")?.getAttribute("data-setup-open") === "1";
-	      collapseAllGroupsAndModules();
-	      openDefaultGroups();
-	      if (keepConnectionsOpen) {
-	        const panel = getModulePanel("connections");
-	        if (panel) setModuleCollapsed(panel, false);
-	        const summary = getModulePanel("connections-summary");
+		      const keepConnectionsOpen = activePane === "connections" || getModulePanel("connections")?.getAttribute("data-setup-open") === "1";
+		      collapseAllGroupsAndModules();
+		      openDefaultGroups();
+		      const storeGroup = getGroupPanel("store");
+		      if (storeGroup) setGroupCollapsed(storeGroup, false);
+		      if (keepConnectionsOpen) {
+		        const panel = getModulePanel("connections");
+		        if (panel) setModuleCollapsed(panel, false);
+		        const summary = getModulePanel("connections-summary");
 	        if (summary) setModuleCollapsed(summary, false);
 	        setConnectionsSetupOpen(true);
 	      }
