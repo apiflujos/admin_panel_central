@@ -81,52 +81,41 @@ export async function saveSettings(payload: SettingsPayload) {
 
   await ensureOrganization(pool, orgId);
 
+  // Importante: no intentamos leer credenciales existentes cuando el payload no trae una clave nueva.
+  // Esto evita que un "save" de reglas/inventario falle por credenciales legacy cifradas con otra llave.
   if (payload.shopify) {
-    const existingShopify = await readCredential(pool, orgId, "shopify");
-    const accessToken = payload.shopify.accessToken?.trim()
-      ? payload.shopify.accessToken
-      : existingShopify?.accessToken;
-    const data = encryptString(
-      JSON.stringify({
-        ...existingShopify,
-        ...payload.shopify,
-        shopDomain: normalizeShopDomain(payload.shopify.shopDomain),
-        accessToken,
-      })
-    );
-    await upsertCredential(pool, orgId, "shopify", data);
+    const accessToken = payload.shopify.accessToken?.trim() || "";
+    if (accessToken) {
+      const data = encryptString(
+        JSON.stringify({
+          shopDomain: normalizeShopDomain(payload.shopify.shopDomain),
+          accessToken,
+        })
+      );
+      await upsertCredential(pool, orgId, "shopify", data);
+    }
   }
   if (payload.alegra) {
-    const existingAlegra = await readCredential(pool, orgId, "alegra");
-    const apiKey = payload.alegra.apiKey?.trim()
-      ? payload.alegra.apiKey
-      : existingAlegra?.apiKey;
-    const rawEnv =
-      payload.alegra.environment !== undefined
-        ? payload.alegra.environment
-        : existingAlegra?.environment;
-    const environment = rawEnv === "sandbox" ? "sandbox" : "prod";
-    const data = encryptString(
-      JSON.stringify({
-        ...existingAlegra,
-        ...payload.alegra,
-        apiKey,
-        environment,
-      })
-    );
-    await upsertCredential(pool, orgId, "alegra", data);
+    const apiKey = payload.alegra.apiKey?.trim() || "";
+    if (apiKey) {
+      const rawEnv = payload.alegra.environment;
+      const environment = rawEnv === "sandbox" ? "sandbox" : "prod";
+      const data = encryptString(
+        JSON.stringify({
+          email: payload.alegra.email,
+          apiKey,
+          environment,
+        })
+      );
+      await upsertCredential(pool, orgId, "alegra", data);
+    }
   }
   if (payload.ai) {
-    const existingAi = await readCredential(pool, orgId, "ai");
-    const trimmed = payload.ai.apiKey?.trim() || "";
-    const apiKey = trimmed ? trimmed : existingAi?.apiKey;
-    const data = encryptString(
-      JSON.stringify({
-        ...existingAi,
-        apiKey,
-      })
-    );
-    await upsertCredential(pool, orgId, "ai", data);
+    const apiKey = payload.ai.apiKey?.trim() || "";
+    if (apiKey) {
+      const data = encryptString(JSON.stringify({ apiKey }));
+      await upsertCredential(pool, orgId, "ai", data);
+    }
   }
 
   if (payload.rules) {

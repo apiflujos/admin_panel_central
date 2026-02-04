@@ -3058,7 +3058,7 @@ async function handleModuleSave(moduleKey) {
   const panel = getModulePanel(moduleKey);
   const saveActions = {
     ai: async () => {
-      await saveSettings();
+      await saveSettings({ includeAi: true });
     },
     "alegra-tech": async () => {
       await saveSettings({ includeRules: true });
@@ -6506,7 +6506,7 @@ if (aiSave) {
   aiSave.addEventListener("click", async () => {
     setButtonLoading(aiSave, true, "Guardando...");
     try {
-      await saveSettings();
+      await saveSettings({ includeAi: true });
       showToast("Token guardado.", "is-ok");
     } catch (error) {
       showToast(error?.message || "No se pudo guardar.", "is-error");
@@ -6901,11 +6901,17 @@ async function saveStoreConfigFromSettings() {
 async function saveSettings(options = {}) {
   const includeRules = options.includeRules === true;
   const includeInvoice = options.includeInvoice === true;
-  const payload = {
-    ai: {
-      apiKey: aiKey ? aiKey.value : "",
-    },
-  };
+  const includeAi = options.includeAi === true;
+  const payload = {};
+  const aiValue = aiKey ? aiKey.value.trim() : "";
+  if (includeAi) {
+    if (!aiValue) {
+      throw new Error("Token de IA requerido.");
+    }
+    payload.ai = { apiKey: aiValue };
+  } else if (aiValue) {
+    payload.ai = { apiKey: aiValue };
+  }
   if (includeInvoice) {
     payload.invoice = {
       generateInvoice: cfgGenerateInvoice ? cfgGenerateInvoice.checked : true,
@@ -6955,6 +6961,9 @@ async function saveSettings(options = {}) {
       apiKey: alegraKeyValue,
       environment: alegraEnvSelect ? alegraEnvSelect.value : "prod",
     };
+  }
+  if (!Object.keys(payload).length) {
+    return;
   }
   await fetchJson("/api/settings", {
     method: "PUT",
