@@ -1000,7 +1000,7 @@
 	                    </div>
 	                    <div class="module-body">
 		                      <div class="mode-sections">
-		                        <div class="mode-section">
+		                        <div class="mode-section" data-readonly-free="1">
 		                          <div class="mode-head">
 		                            <h4>Sincronizacion masiva (inicio)</h4>
 		                            <span class="tip" data-tip="Usala para crear/normalizar la base de contactos. Elige la dirección, un rango de fechas y si quieres crear contactos nuevos en el destino.">?</span>
@@ -1031,6 +1031,8 @@
 		                            </div>
 		                            <div class="mode-actions">
 		                              <button class="primary" id="sync-contacts-bulk-run" type="button">Sincronizar masivo</button>
+		                              <button class="ghost danger" id="sync-contacts-bulk-stop" type="button" hidden>Detener</button>
+		                              <button class="ghost" id="sync-contacts-bulk-clear" type="button">Limpiar</button>
 		                              <span class="kpi-sub" id="sync-contacts-status">Sin datos</span>
 		                            </div>
 		                          </div>
@@ -1039,7 +1041,7 @@
 		                        <div class="mode-section">
 		                          <div class="mode-head">
 		                            <h4>Sincronizacion automatica y manual</h4>
-		                            <span class="tip" data-tip="Define qué direcciones están activas y si se permiten creaciones nuevas en el destino. Manual (1 contacto) usa estas mismas reglas.">?</span>
+		                            <span class="tip" data-tip="Define qué direcciones están activas y si se permiten creaciones nuevas en el destino.">?</span>
 		                          </div>
 		                          <div class="mode-grid">
 		                            <div class="mode-field">
@@ -1067,34 +1069,18 @@
 		                              </select>
 		                            </div>
 		                          </div>
-
-	                          <div class="settings-divider">Manual (1 contacto)</div>
-		                          <div class="mode-grid">
-		                            <div class="mode-field">
-		                              <label for="sync-contact-identifier">Buscar contacto</label>
-		                              <input type="text" id="sync-contact-identifier" placeholder="email, telefono o documento" />
-		                            </div>
-		                            <div class="mode-field">
-		                              <label for="sync-contact-source">De dónde a dónde</label>
-		                              <select id="sync-contact-source">
-		                                <option value="shopify">Shopify → Alegra</option>
-		                                <option value="alegra">Alegra → Shopify</option>
-		                              </select>
-		                            </div>
-	                            <div class="mode-actions">
-	                              <button class="primary" id="sync-contact-run" type="button">Sincronizar</button>
-	                            </div>
-	                          </div>
-	                        </div>
-	                      </div>
-	                      <p class="module-note">Puedes validar y buscar contactos sincronizados en el modulo Contactos.</p>
-	                      <div class="module-footer">
-	                        <button class="ghost module-action" data-module-edit="sync-contacts" type="button">Editar</button>
-	                        <button class="primary module-action" data-module-save="sync-contacts" type="button">Guardar</button>
-	                      </div>
-	                      <p class="field-hint module-warning is-hidden" data-module-warning="sync-contacts"></p>
-	                    </div>
-	                  </div>
+		                        </div>
+		                      </div>
+		                      <div class="module-footer">
+		                        <button class="ghost module-action" data-module-edit="sync-contacts" type="button">Editar</button>
+		                        <button class="primary module-action" data-module-save="sync-contacts" type="button">
+		                          Guardar
+		                          <span class="tip" data-tip="Guarda estas reglas para la tienda activa. Para validar y buscar contactos sincronizados, usa el módulo Contactos.">?</span>
+		                        </button>
+		                      </div>
+		                      <p class="field-hint module-warning is-hidden" data-module-warning="sync-contacts"></p>
+		                    </div>
+		                  </div>
 	                </div>
 	              </div>
 
