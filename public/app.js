@@ -2038,6 +2038,10 @@ function getGroupPanel(name) {
 function setModuleReadonly(panel, readonly) {
   if (!panel) return;
   panel.classList.toggle("is-readonly", Boolean(readonly));
+  // UX: algunos modulos dejan secciones "libres" (por ejemplo, acciones masivas).
+  // En esos casos no mostramos "Bloqueado" como si todo estuviera bloqueado.
+  const hasReadonlyFree = Boolean(panel.querySelector('[data-readonly-free="1"]'));
+  panel.classList.toggle("is-partial-readonly", Boolean(readonly) && hasReadonlyFree);
   const controls = panel.querySelectorAll("input, select, textarea");
   controls.forEach((control) => {
     if (control.closest(".panel-actions") || control.closest(".module-footer")) return;

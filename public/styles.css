@@ -1182,6 +1182,10 @@ button {
   border-radius: 999px;
 }
 
+.panel.module.is-partial-readonly .panel-header h3[data-module-toggle]::before {
+  display: none;
+}
+
 .panel.module.is-saved .panel-header h3[data-module-toggle]::after {
   content: "Guardado";
   font-size: 10px;
@@ -1206,6 +1210,65 @@ button {
 
 .panel.module.is-readonly .panel-header {
   opacity: 1;
+}
+
+/* Productos e inventario: un solo "modulo" (grupo) con 2 submodulos (cards) */
+.settings-group.provider-group[data-group="products"] .settings-group-body {
+  gap: 0;
+  padding: 0;
+}
+
+.settings-group.provider-group[data-group="products"] .panel.module {
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 12px 14px;
+  background: transparent;
+}
+
+.settings-group.provider-group[data-group="products"] .panel[data-provider]::before {
+  display: none;
+}
+
+.settings-group.provider-group[data-group="products"] .panel.module + .panel.module {
+  border-top: 1px solid rgba(15, 23, 42, 0.14);
+}
+
+.settings-group.provider-group[data-group="products"] .panel.module .panel-meta {
+  display: none;
+}
+
+.settings-group.provider-group[data-group="products"] .panel.module .panel-header {
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.settings-group.provider-group[data-group="products"] .panel.module .module-body {
+  max-width: none;
+  margin: 0;
+}
+
+.settings-group.provider-group[data-group="products"] .panel.module[data-module="shopify-rules"] .mode-sections,
+.settings-group.provider-group[data-group="products"] .panel.module[data-module="alegra-inventory"] .mode-sections {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.settings-group.provider-group[data-group="products"] .panel.module[data-module="shopify-rules"] .mode-section,
+.settings-group.provider-group[data-group="products"] .panel.module[data-module="alegra-inventory"] .mode-section {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 14px;
+  padding: 10px;
+  background: #fff;
+  max-width: none;
+  margin: 0;
+}
+
+.settings-group.provider-group[data-group="products"] .panel.module[data-module="shopify-rules"] .mode-section + .mode-section,
+.settings-group.provider-group[data-group="products"] .panel.module[data-module="alegra-inventory"] .mode-section + .mode-section {
+  border-top: 1px solid rgba(15, 23, 42, 0.12);
+  margin-top: 10px;
 }
 
 .panel.module .panel-header {
