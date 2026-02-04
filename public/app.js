@@ -3032,7 +3032,9 @@ async function handleModuleSave(moduleKey) {
       await saveStoreConfigFromSettings();
     },
     "alegra-inventory": async () => {
+      // Guardamos (1) bodegas por tienda y (2) frecuencia/estado de automatizacion global.
       await saveStoreConfigFromSettings();
+      await saveSettings({ includeRules: true });
     },
     "alegra-logistics": async () => {
       await saveStoreConfigFromSettings();

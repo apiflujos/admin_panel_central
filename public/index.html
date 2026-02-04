@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260204p5" />
+    <link rel="stylesheet" href="styles.css?v=20260204p7" />
   </head>
   <body>
     <div class="app-shell">
@@ -938,45 +938,77 @@
 	                  <div class="panel admin-only module" data-provider="bridge" data-manager="alegra" data-module="alegra-inventory" id="inventory-rules-panel" data-help="Inventario automatico por tienda: define de que bodegas se toma el stock y si lo mantenemos actualizado en Shopify.">
 	                    <div class="panel-header">
 	                      <h3 data-module-toggle="alegra-inventory" data-title-base="Inventario y bodegas">
-	                        Ajustes de inventario automaticos
-	                        <span class="tip" data-tip="Aqui eliges de que bodegas se toma el stock y si se actualiza automaticamente.">?</span>
+	                        Ajustes de inventario automático
+	                        <span class="tip" data-tip="Esto mantiene el stock al día: corre solo cada cierto tiempo y actualiza Shopify usando las bodegas que elijas.">?</span>
 	                      </h3>
 	                      <div class="panel-meta">
 	                        <span class="panel-tag tag-bridge">Alegra → Shopify</span>
 	                      </div>
 	                    </div>
                     <div class="module-body">
-                      <div class="mode-sections">
-	                        <div class="mode-section">
-	                          <div class="mode-head">
-	                            <h4>Inventario</h4>
-	                            <span class="tip" data-tip="Elige las bodegas que cuentan para el stock. Si no seleccionas ninguna, se usan todas.">?</span>
-	                          </div>
-	                          <div class="mode-grid">
-	                            <div class="mode-field">
-	                              <label for="rules-sync-enabled">Actualizar stock en Shopify</label>
-	                              <input type="checkbox" id="rules-sync-enabled" class="toggle" />
-	                            </div>
-	                            <div class="mode-field mode-field-wide">
-	                              <label for="cfg-inventory-warehouses">Bodegas que cuentan para stock</label>
-	                              <details class="multi-select">
-	                                <summary>
-	                                  <span>Seleccionar bodegas</span>
-	                                  <em id="cfg-inventory-warehouses-summary">Todas</em>
-	                                </summary>
-                                <div class="checkbox-grid single" id="cfg-inventory-warehouses"></div>
-                              </details>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="module-footer">
-                        <button class="ghost module-action" data-module-edit="alegra-inventory" type="button">Editar</button>
-                        <button class="primary module-action" data-module-save="alegra-inventory" type="button">Guardar</button>
-                      </div>
-                      <p class="field-hint module-warning is-hidden" data-module-warning="alegra-inventory"></p>
-                    </div>
-                  </div>
+		                      <div class="mode-sections">
+		                        <div class="mode-section">
+		                          <div class="mode-head">
+		                            <h4>Inventario</h4>
+		                            <span class="tip" data-tip="Elige las bodegas que cuentan para el stock. Si no seleccionas ninguna, se usan todas.">?</span>
+		                          </div>
+		                          <div class="mode-toggle-grid" aria-label="Opciones de inventario">
+		                            <div class="mode-toggle">
+		                              <label for="rules-sync-enabled">Actualizar stock en Shopify</label>
+		                              <input type="checkbox" id="rules-sync-enabled" class="toggle" />
+		                            </div>
+		                            <div class="mode-toggle">
+		                              <label for="cfg-inventory-warehouses">Bodegas que cuentan para stock</label>
+		                              <details class="multi-select">
+		                                <summary>
+		                                  <span>Seleccionar bodegas</span>
+		                                  <em id="cfg-inventory-warehouses-summary">Todas</em>
+		                                </summary>
+		                                <div class="checkbox-grid single" id="cfg-inventory-warehouses"></div>
+		                              </details>
+		                            </div>
+		                          </div>
+		                        </div>
+		                        <div class="mode-section">
+		                          <div class="mode-head">
+		                            <h4>Actualización automática</h4>
+		                            <span class="tip" data-tip="Si está activa, el sistema revisa cambios de inventario y los aplica en Shopify cada cierto tiempo (según la frecuencia que elijas).">?</span>
+		                          </div>
+		                          <div class="mode-toggle-grid" aria-label="Frecuencia de inventario">
+		                            <div class="mode-toggle">
+		                              <label for="inventory-cron-enabled">Automatización activa</label>
+		                              <input type="checkbox" id="inventory-cron-enabled" class="toggle" />
+		                            </div>
+		                            <div class="mode-toggle">
+		                              <label for="inventory-cron-interval-select">Cada cuánto se actualiza</label>
+		                              <select id="inventory-cron-interval-select" data-depends-on="inventory-cron-enabled">
+		                                <option value="5">Cada 5 minutos</option>
+		                                <option value="10">Cada 10 minutos</option>
+		                                <option value="15">Cada 15 minutos</option>
+		                              </select>
+		                            </div>
+		                            <div class="mode-toggle">
+		                              <label for="cfg-inventory-auto-publish">Aplicar cambios automáticamente</label>
+		                              <input type="checkbox" id="cfg-inventory-auto-publish" class="toggle" data-depends-on="inventory-cron-enabled" />
+		                            </div>
+		                          </div>
+		                          <div class="mode-actions" aria-label="Estado de automatización">
+		                            <span class="kpi-sub">
+		                              <span class="status-led" id="inventory-cron-led"></span>
+		                              <strong>Estado:</strong> <span id="inventory-cron-status">Sin datos</span>
+		                            </span>
+		                            <span class="kpi-sub"><strong>Última actualización:</strong> <span id="inventory-cron-checkpoint">-</span></span>
+		                            <span class="kpi-sub"><strong>Frecuencia actual:</strong> <span id="inventory-cron-interval">-</span></span>
+		                          </div>
+		                        </div>
+		                      </div>
+	                      <div class="module-footer">
+	                        <button class="ghost module-action" data-module-edit="alegra-inventory" type="button">Editar</button>
+	                        <button class="primary module-action" data-module-save="alegra-inventory" type="button">Guardar</button>
+	                      </div>
+	                      <p class="field-hint module-warning is-hidden" data-module-warning="alegra-inventory"></p>
+	                    </div>
+	                  </div>
 
                 </div>
               </div>
@@ -1347,72 +1379,6 @@
                   </div>
                 </div>
               </div>
-              <div class="settings-group provider-group" data-group="operations">
-	                <div class="settings-group-header" data-group-toggle="operations">
-	                  <h4 class="group-title">Operacion</h4>
-	                </div>
-	                <div class="settings-group-body">
-		                  <div class="panel admin-only module" data-provider="alegra" data-manager="alegra" data-module="alegra-tech" data-help="Actualizacion global para inventario y ajustes. Aplica a todas las tiendas.">
-	                    <div class="panel-header">
-		                      <h3 data-module-toggle="alegra-tech" data-title-base="Actualizacion global">Actualizacion global</h3>
-	                      <span class="panel-tag tag-alegra">Alegra</span>
-                    </div>
-                    <div class="module-body">
-                      <div class="settings-grid">
-                        <div class="field span-2">
-                          <div class="status-card cron-card single-column">
-                            <div class="cron-summary">
-                              <div class="cron-item">
-                                <span class="status-led" id="inventory-cron-led"></span>
-                                <div>
-	                                  <p>Actualizacion de inventario</p>
-                                  <span id="inventory-cron-status">Sin datos</span>
-                                </div>
-                              </div>
-                              <div class="cron-item">
-                                <div>
-                                  <p>Ultimo checkpoint</p>
-                                  <span id="inventory-cron-checkpoint">-</span>
-                                </div>
-                              </div>
-                              <div class="cron-item">
-                                <div>
-                                  <p>Intervalo</p>
-                                  <span id="inventory-cron-interval">-</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div class="cron-controls">
-                              <label class="toggle-field">
-	                                <span>Actualizacion de inventario activa</span>
-	                                <input type="checkbox" id="inventory-cron-enabled" class="toggle" />
-	                              </label>
-		                              <div class="field">
-		                                <label>Intervalo de actualizacion</label>
-		                                <select id="inventory-cron-interval-select" data-depends-on="inventory-cron-enabled">
-		                                  <option value="5">Cada 5 minutos</option>
-		                                  <option value="10">Cada 10 minutos</option>
-		                                  <option value="15">Cada 15 minutos</option>
-		                                </select>
-		                              </div>
-		                              <div class="field is-toggle">
-		                                <label>Auto-publicar ajustes en Shopify</label>
-		                                <input type="checkbox" id="cfg-inventory-auto-publish" class="toggle" data-depends-on="inventory-cron-enabled" />
-		                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="module-footer">
-                        <button class="ghost module-action" data-module-edit="alegra-tech" type="button">Editar</button>
-                        <button class="primary module-action" data-module-save="alegra-tech" type="button">Guardar</button>
-                      </div>
-                      <p class="field-hint module-warning is-hidden" data-module-warning="alegra-tech"></p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
         </div>
@@ -1544,6 +1510,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260204p5" type="module"></script>
+    <script src="app.js?v=20260204p7" type="module"></script>
   </body>
 </html>
