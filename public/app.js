@@ -423,6 +423,11 @@ function setProductsBulkSyncRunning(running) {
     productsSyncClear.hidden = isRunning;
     productsSyncClear.disabled = isRunning;
   }
+  // UX: durante una sincronizacion masiva, evitamos acciones que cambien filtros/local state.
+  if (productsClearBtn) {
+    productsClearBtn.hidden = isRunning;
+    productsClearBtn.disabled = isRunning;
+  }
 }
 
 function showSection(target) {
