@@ -453,6 +453,10 @@ body {
   justify-content: flex-start;
 }
 
+.is-hidden {
+  display: none !important;
+}
+
 .sync-progress {
   display: none;
   align-items: center;
@@ -1668,6 +1672,122 @@ button {
 
 .settings-pane[data-settings-pane="stores"] #stores-switcher-panel {
   margin-bottom: 10px;
+}
+
+.stores-pane-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.stores-pane-aside {
+  position: sticky;
+  top: 12px;
+  align-self: start;
+}
+
+@media (max-width: 980px) {
+  .stores-pane-layout {
+    grid-template-columns: 1fr;
+  }
+  .stores-pane-aside {
+    position: static;
+  }
+}
+
+.store-switcher {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.store-switcher-items {
+  display: grid;
+  gap: 6px;
+  overflow: auto;
+  max-height: 340px;
+  padding-right: 4px;
+}
+
+.store-item {
+  width: 100%;
+  text-align: left;
+  justify-content: flex-start;
+  border: 1px solid var(--stroke);
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.store-item:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.store-item.is-active {
+  border-color: rgba(11, 107, 179, 0.65);
+  background: rgba(11, 107, 179, 0.06);
+}
+
+.store-item-title {
+  font-weight: 800;
+  font-size: 13px;
+  color: #0f172a;
+  line-height: 1.15;
+}
+
+.store-item-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.store-item-meta {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.store-item-pill {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: rgba(15, 23, 42, 0.04);
+  color: #0f172a;
+}
+
+.store-item-pill.is-ok {
+  border-color: rgba(11, 179, 158, 0.45);
+  background: rgba(11, 179, 158, 0.08);
+}
+
+.store-item-pill.is-off {
+  border-color: rgba(148, 163, 184, 0.6);
+  background: rgba(148, 163, 184, 0.12);
+  color: #334155;
+}
+
+.store-switcher-active {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.store-switcher-kicker {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.store-switcher-name {
+  font-size: 16px;
+  font-weight: 900;
+  color: #0f172a;
 }
 
 .connections-compact {

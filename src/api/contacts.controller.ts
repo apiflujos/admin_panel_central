@@ -22,28 +22,108 @@ export async function syncContactHandler(req: Request, res: Response) {
 
 export async function syncContactsBulkHandler(req: Request, res: Response) {
   try {
-    const { direction, source, target, limit, from, to, createInDestination, shopDomain } =
-      req.body || {};
+    const {
+      direction,
+      source,
+      target,
+      limit,
+      from,
+      to,
+      createInDestination,
+      createInAlegra,
+      createInShopify,
+      directions,
+      shopDomain,
+    } = req.body || {};
     const wantsStream = String(req.query?.stream || "") === "1" || req.body?.stream === true;
-    if (!direction && !source) {
+    if (!direction && !source && !directions) {
       return res.status(400).json({ error: "missing_direction" });
     }
     const parsedLimit = typeof limit === "number" ? limit : Number(limit || 0);
-    const payload = {
-      direction:
-        direction === "alegra_to_shopify" ? "alegra_to_shopify" : "shopify_to_alegra",
-      source: source === "alegra" ? "alegra" : "shopify",
-      target: target === "shopify" ? "shopify" : "alegra",
-      limit: Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined,
-      from: typeof from === "string" ? from : undefined,
-      to: typeof to === "string" ? to : undefined,
-      createInDestination: typeof createInDestination === "boolean" ? createInDestination : undefined,
-      shopDomain: shopDomain ? String(shopDomain) : undefined,
-    } as const;
+    const normalizedShopDomain = shopDomain ? String(shopDomain) : undefined;
+    const normalizedFrom = typeof from === "string" ? from : undefined;
+    const normalizedTo = typeof to === "string" ? to : undefined;
+    const normalizedLimit =
+      Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
+
+    const isBidirectional =
+      direction === "bidirectional" ||
+      (directions && (directions.shopifyToAlegra || directions.alegraToShopify));
+
+    const phases: Array<{
+      direction: "shopify_to_alegra" | "alegra_to_shopify";
+      directionLabel: string;
+      createInDestination?: boolean;
+    }> = [];
+
+    if (isBidirectional) {
+      const wantsShopifyToAlegra =
+        typeof directions?.shopifyToAlegra === "boolean"
+          ? directions.shopifyToAlegra
+          : true;
+      const wantsAlegraToShopify =
+        typeof directions?.alegraToShopify === "boolean"
+          ? directions.alegraToShopify
+          : true;
+
+      if (wantsShopifyToAlegra) {
+        phases.push({
+          direction: "shopify_to_alegra",
+          directionLabel: "Shopify → Alegra",
+          createInDestination:
+            typeof createInAlegra === "boolean"
+              ? createInAlegra
+              : typeof createInDestination === "boolean"
+                ? createInDestination
+                : undefined,
+        });
+      }
+      if (wantsAlegraToShopify) {
+        phases.push({
+          direction: "alegra_to_shopify",
+          directionLabel: "Alegra → Shopify",
+          createInDestination:
+            typeof createInShopify === "boolean"
+              ? createInShopify
+              : typeof createInDestination === "boolean"
+                ? createInDestination
+                : undefined,
+        });
+      }
+    } else {
+      const resolvedDirection =
+        direction === "alegra_to_shopify" ? "alegra_to_shopify" : "shopify_to_alegra";
+      phases.push({
+        direction: resolvedDirection,
+        directionLabel: resolvedDirection === "alegra_to_shopify" ? "Alegra → Shopify" : "Shopify → Alegra",
+        createInDestination: typeof createInDestination === "boolean" ? createInDestination : undefined,
+      });
+    }
+
+    if (!phases.length) {
+      return res.status(400).json({ error: "missing_direction" });
+    }
 
     if (!wantsStream) {
-      const result = await syncContactsBulk(payload);
-      return res.json(result);
+      const results = [];
+      for (const phase of phases) {
+        const sourceResolved = phase.direction === "alegra_to_shopify" ? "alegra" : "shopify";
+        const targetResolved = phase.direction === "alegra_to_shopify" ? "shopify" : "alegra";
+        results.push(
+          await syncContactsBulk({
+            direction: phase.direction,
+            source: sourceResolved,
+            target: targetResolved,
+            limit: normalizedLimit,
+            from: normalizedFrom,
+            to: normalizedTo,
+            createInDestination: phase.createInDestination,
+            shopDomain: normalizedShopDomain,
+            force: true,
+          })
+        );
+      }
+      return res.json({ bidirectional: phases.length > 1, phases: results });
     }
 
     res.status(200);
@@ -66,18 +146,71 @@ export async function syncContactsBulkHandler(req: Request, res: Response) {
       }
     };
 
-    const startedAt = Date.now();
-    write({ type: "start", startedAt });
-
     try {
-      const result = await syncContactsBulk({
-        ...payload,
-        shouldAbort: () => closed,
-        onProgress: (progress) => {
-          write({ type: "progress", ...progress });
-        },
-      });
-      write({ type: "complete", ...result });
+      const startedAt = Date.now();
+      write({ type: "start", startedAt, phaseTotal: phases.length });
+      const phaseTotal = phases.length;
+      const aggregates = { total: 0, processed: 0, synced: 0, skipped: 0, failed: 0 };
+      const phaseResults = [];
+
+      for (let index = 0; index < phases.length; index += 1) {
+        const phaseIndex = index + 1;
+        const phase = phases[index]!;
+        const phaseStartedAt = Date.now();
+        write({
+          type: "phase_start",
+          startedAt: phaseStartedAt,
+          phaseIndex,
+          phaseTotal,
+          direction: phase.direction,
+          directionLabel: phase.directionLabel,
+        });
+
+        const sourceResolved = phase.direction === "alegra_to_shopify" ? "alegra" : "shopify";
+        const targetResolved = phase.direction === "alegra_to_shopify" ? "shopify" : "alegra";
+        const result = await syncContactsBulk({
+          direction: phase.direction,
+          source: sourceResolved,
+          target: targetResolved,
+          limit: normalizedLimit,
+          from: normalizedFrom,
+          to: normalizedTo,
+          createInDestination: phase.createInDestination,
+          shopDomain: normalizedShopDomain,
+          force: true,
+          shouldAbort: () => closed,
+          onProgress: (progress) => {
+            write({
+              type: "progress",
+              phaseIndex,
+              phaseTotal,
+              direction: phase.direction,
+              directionLabel: phase.directionLabel,
+              ...progress,
+            });
+          },
+        });
+
+        phaseResults.push({ ...result, direction: phase.direction, directionLabel: phase.directionLabel });
+        write({
+          type: "phase_complete",
+          phaseIndex,
+          phaseTotal,
+          direction: phase.direction,
+          directionLabel: phase.directionLabel,
+          ...result,
+        });
+
+        const numeric = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : 0);
+        aggregates.processed += numeric((result as any)?.processed);
+        aggregates.synced += numeric((result as any)?.synced);
+        aggregates.skipped += numeric((result as any)?.skipped);
+        aggregates.failed += numeric((result as any)?.failed);
+        // `total` in each phase is "total in phase"; aggregate as sum for display.
+        aggregates.total += numeric((result as any)?.total);
+      }
+
+      write({ type: "complete", ...aggregates, phases: phaseResults });
     } catch (error) {
       const code = (error as { code?: string })?.code;
       if (closed) {

@@ -779,38 +779,42 @@
 	        </div>
 	      </div>
 
-		        <div class="settings-pane" data-settings-pane="stores">
-			          <div class="panel admin-only" id="stores-switcher-panel" data-help="Tiendas conectadas: elige la tienda activa. Todo lo de abajo (productos, pedidos, contactos, etc.) se guarda por tienda activa.">
-			            <div class="panel-header">
-			              <h3>
-			                Tiendas conectadas
-			                <span class="tip" data-tip="Las configuraciones se guardan por tienda. Cambiar la tienda activa no afecta a las demás.">?</span>
-			              </h3>
-			            </div>
-			            <div class="module-body">
-			              <div class="settings-grid store-meta">
-			                <div class="field span-2" id="store-active-field">
-			                  <label>Tienda</label>
-			                  <div class="field-actions inline">
-				                  <select id="store-active-select"></select>
-				                  <button class="ghost danger" id="store-delete" type="button" title="Eliminar tienda">Eliminar tienda</button>
+			        <div class="settings-pane" data-settings-pane="stores">
+			          <div class="stores-pane-layout">
+			            <aside class="stores-pane-aside" aria-label="Tiendas conectadas">
+			              <div class="panel admin-only" id="stores-switcher-panel" data-help="Tiendas conectadas: elige la tienda activa. Todo lo de abajo (productos, pedidos, contactos, etc.) se guarda por tienda activa.">
+			                <div class="panel-header">
+			                  <h3>
+			                    Tiendas conectadas
+			                    <span class="tip" data-tip="Las configuraciones se guardan por tienda. Cambiar la tienda activa no afecta a las demás.">?</span>
+			                  </h3>
+			                </div>
+			                <div class="module-body">
+			                  <div class="store-switcher" id="store-active-field" aria-label="Selector de tienda">
+			                    <div class="store-switcher-active">
+			                      <div>
+			                        <div class="store-switcher-kicker">Tienda activa</div>
+			                        <div class="store-switcher-name" id="store-active-name">-</div>
+			                      </div>
+			                      <button class="ghost danger" id="store-delete" type="button" title="Eliminar tienda">Eliminar</button>
+			                    </div>
+			                    <div class="store-switcher-items" id="store-active-list"></div>
+			                    <div class="field-hint store-scope-hint">Configuración independiente por tienda.</div>
+			                    <select id="store-active-select" class="is-hidden" aria-hidden="true" tabindex="-1"></select>
 			                  </div>
 			                </div>
-			                <div class="field span-2">
-			                  <span class="field-hint store-scope-hint">Configuración independiente por tienda.</span>
-			                </div>
 			              </div>
-			            </div>
-			          </div>
+			            </aside>
 
-			          <div class="settings-group store-group" data-group="store">
-			            <div class="settings-group-header" data-group-toggle="store" data-help="Configuracion de la tienda activa: todo lo de abajo aplica solo a la tienda seleccionada arriba.">
-			              <h3 data-store-title data-title-base="Tienda">Tienda</h3>
-			            </div>
-			            <div class="settings-group-body">
+			            <div class="stores-pane-main">
+			              <div class="settings-group store-group" data-group="store">
+			                <div class="settings-group-header" data-group-toggle="store" data-help="Configuracion de la tienda activa: todo lo de abajo aplica solo a la tienda seleccionada arriba.">
+			                  <h3 data-store-title data-title-base="Tienda">Tienda</h3>
+			                </div>
+			                <div class="settings-group-body">
 
-			          <div class="settings-group provider-group" data-group="products">
-			                <div class="settings-group-header" data-group-toggle="products">
+				          <div class="settings-group provider-group" data-group="products">
+				                <div class="settings-group-header" data-group-toggle="products">
 			                  <h4 class="group-title">
 		                    <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
 	                    <span class="group-arrow">→</span>
@@ -914,9 +918,11 @@
 				                                <option value="draft">Borrador</option>
 				                                <option value="active">Activo</option>
 				                              </select>
-			                            </div>
-			                          </div>
-	                        </div>
+			                </div>
+			              </div>
+			            </div>
+			          </div>
+				        </div>
 	                      </div>
                       <div class="module-footer">
                         <button class="ghost module-action" data-module-edit="shopify-rules" type="button">Editar</button>
@@ -1014,35 +1020,42 @@
 	                    </div>
 	                    <div class="module-body">
 		                      <div class="mode-sections">
-		                        <div class="mode-section" data-readonly-free="1">
-		                          <div class="mode-head">
-		                            <h4>Sincronizacion masiva (inicio)</h4>
-		                            <span class="tip" data-tip="Usala para crear/normalizar la base de contactos. Elige la dirección, un rango de fechas y si quieres crear contactos nuevos en el destino.">?</span>
-		                          </div>
-		                          <div class="mode-grid">
-		                            <div class="mode-field">
-		                              <label for="sync-contacts-bulk-direction">De dónde a dónde</label>
-		                              <select id="sync-contacts-bulk-direction">
-		                                <option value="shopify_to_alegra">Shopify → Alegra</option>
-		                                <option value="alegra_to_shopify">Alegra → Shopify</option>
-		                              </select>
-		                            </div>
-		                            <div class="mode-field">
-		                              <label for="sync-contacts-bulk-date-start">Fecha inicio</label>
-		                              <input type="date" id="sync-contacts-bulk-date-start" />
-		                            </div>
+			                        <div class="mode-section" data-readonly-free="1">
+			                          <div class="mode-head">
+			                            <h4>Sincronizacion masiva (inicio)</h4>
+			                            <span class="tip" data-tip="Usala para crear/normalizar la base de contactos. Elige la dirección, un rango de fechas y si quieres crear contactos nuevos en el destino.">?</span>
+			                          </div>
+			                          <div class="mode-grid">
+			                            <div class="mode-field">
+			                              <label for="sync-contacts-bulk-date-start">Fecha inicio</label>
+			                              <input type="date" id="sync-contacts-bulk-date-start" />
+			                            </div>
 		                            <div class="mode-field">
 		                              <label for="sync-contacts-bulk-date-end">Fecha fin</label>
 		                              <input type="date" id="sync-contacts-bulk-date-end" />
 		                            </div>
-		                            <div class="mode-field">
-		                              <label for="sync-contact-limit">Limite (opcional)</label>
-		                              <input type="number" id="sync-contact-limit" min="1" placeholder="200" />
-		                            </div>
-		                            <div class="mode-field">
-		                              <label for="sync-contacts-bulk-create" id="sync-contacts-bulk-create-label">Crear contacto en destino <span class="tip" data-tip="Si está activo y el contacto no existe en el destino, lo creamos. Si lo apagas, solo actualizamos contactos ya existentes (mapeados o encontrados).">?</span></label>
-		                              <input type="checkbox" id="sync-contacts-bulk-create" class="toggle" checked />
-		                            </div>
+			                            <div class="mode-field">
+			                              <label for="sync-contact-limit">Limite (opcional)</label>
+			                              <input type="number" id="sync-contact-limit" min="1" placeholder="200" />
+			                            </div>
+			                          </div>
+			                          <div class="mode-toggle-grid" aria-label="Direcciones masivo">
+			                            <div class="mode-toggle">
+			                              <label for="sync-contacts-bulk-shopify">Shopify → Alegra <span class="tip" data-tip="Trae contactos desde Shopify y los sincroniza en Alegra. Puedes activarlo junto con “Alegra → Shopify” para hacerlo bidireccional.">?</span></label>
+			                              <input type="checkbox" id="sync-contacts-bulk-shopify" class="toggle" checked />
+			                            </div>
+			                            <div class="mode-toggle">
+			                              <label for="sync-contacts-bulk-create-alegra">Crear en Alegra <span class="tip" data-tip="Si está activo y el contacto no existe en Alegra, lo creamos. Si lo apagas, solo actualizamos contactos ya existentes.">?</span></label>
+			                              <input type="checkbox" id="sync-contacts-bulk-create-alegra" class="toggle" data-depends-on="sync-contacts-bulk-shopify" checked />
+			                            </div>
+			                            <div class="mode-toggle">
+			                              <label for="sync-contacts-bulk-alegra">Alegra → Shopify <span class="tip" data-tip="Trae contactos desde Alegra y los sincroniza en Shopify. Puedes activarlo junto con “Shopify → Alegra” para hacerlo bidireccional.">?</span></label>
+			                              <input type="checkbox" id="sync-contacts-bulk-alegra" class="toggle" checked />
+			                            </div>
+			                            <div class="mode-toggle">
+			                              <label for="sync-contacts-bulk-create-shopify">Crear en Shopify <span class="tip" data-tip="Si está activo y el contacto no existe en Shopify, lo creamos. Si lo apagas, solo actualizamos contactos ya existentes.">?</span></label>
+			                              <input type="checkbox" id="sync-contacts-bulk-create-shopify" class="toggle" data-depends-on="sync-contacts-bulk-alegra" checked />
+			                            </div>
 			                            <div class="mode-actions">
 			                              <button class="primary" id="sync-contacts-bulk-run" type="button">Sincronizar masivo</button>
 			                              <button class="ghost danger" id="sync-contacts-bulk-stop" type="button" hidden>Detener</button>

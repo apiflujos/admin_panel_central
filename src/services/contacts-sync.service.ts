@@ -378,6 +378,7 @@ export async function syncContactsBulk(options: {
   to?: string;
   createInDestination?: boolean;
   shopDomain?: string;
+  force?: boolean;
   onProgress?: (payload: {
     total: number | null;
     processed: number;
@@ -392,6 +393,7 @@ export async function syncContactsBulk(options: {
   const storeConfig = await resolveStoreConfig(options.shopDomain || null);
   const priority = normalizeMatchPriority(storeConfig.contactMatchPriority);
   const limit = typeof options.limit === "number" && options.limit > 0 ? options.limit : 200;
+  const force = options.force === true;
 
   const direction: SyncDirection =
     options.direction === "alegra_to_shopify"
@@ -431,7 +433,7 @@ export async function syncContactsBulk(options: {
   };
 
   if (direction === "shopify_to_alegra") {
-    if (!storeConfig.syncContactsFromShopify) {
+    if (!force && !storeConfig.syncContactsFromShopify) {
       return { skipped: true, reason: "sync_disabled" };
     }
     const createInAlegra =
@@ -471,7 +473,11 @@ export async function syncContactsBulk(options: {
   }
 
   if (!storeConfig.syncContactsFromAlegra) {
-    return { skipped: true, reason: "sync_disabled" };
+    if (force) {
+      // continue
+    } else {
+      return { skipped: true, reason: "sync_disabled" };
+    }
   }
   const createInShopify =
     typeof options.createInDestination === "boolean"

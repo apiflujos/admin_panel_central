@@ -132,6 +132,8 @@ const companyLogo = document.getElementById("company-logo");
 const storeNameInput = document.getElementById("store-name");
 const storeActiveField = document.getElementById("store-active-field");
 const storeActiveSelect = document.getElementById("store-active-select");
+const storeActiveList = document.getElementById("store-active-list");
+const storeActiveNameLabel = document.getElementById("store-active-name");
 const storeDelete = document.getElementById("store-delete");
 const ordersStoreSelect = document.getElementById("orders-store-select");
 const productsStoreSelect = document.getElementById("products-store-select");
@@ -223,11 +225,12 @@ const syncContactsShopify = document.getElementById("sync-contacts-shopify");
 const syncContactsAlegra = document.getElementById("sync-contacts-alegra");
 const syncContactsPriority = document.getElementById("sync-contacts-priority");
 const syncContactLimit = document.getElementById("sync-contact-limit");
-const syncContactsBulkDirection = document.getElementById("sync-contacts-bulk-direction");
 const syncContactsBulkDateStart = document.getElementById("sync-contacts-bulk-date-start");
 const syncContactsBulkDateEnd = document.getElementById("sync-contacts-bulk-date-end");
-const syncContactsBulkCreate = document.getElementById("sync-contacts-bulk-create");
-const syncContactsBulkCreateLabel = document.getElementById("sync-contacts-bulk-create-label");
+const syncContactsBulkShopify = document.getElementById("sync-contacts-bulk-shopify");
+const syncContactsBulkAlegra = document.getElementById("sync-contacts-bulk-alegra");
+const syncContactsBulkCreateAlegra = document.getElementById("sync-contacts-bulk-create-alegra");
+const syncContactsBulkCreateShopify = document.getElementById("sync-contacts-bulk-create-shopify");
 const syncContactsBulkRun = document.getElementById("sync-contacts-bulk-run");
 const syncContactsBulkStop = document.getElementById("sync-contacts-bulk-stop");
 const syncContactsBulkClear = document.getElementById("sync-contacts-bulk-clear");
@@ -3687,6 +3690,9 @@ function updateStoreModuleTitles() {
     const label = getActiveStoreLabel();
     storeTitle.textContent = label ? `${base} · ${label}` : base;
   }
+  if (storeActiveNameLabel) {
+    storeActiveNameLabel.textContent = getActiveStoreLabel() || "-";
+  }
   updateWizardStorePill();
 }
 
@@ -3765,6 +3771,10 @@ function renderStoreActiveSelect(stores, options = {}) {
   if (!stores.length) {
     storeActiveField.style.display = "none";
     storeActiveSelect.innerHTML = "";
+    renderStoreActiveList([]);
+    if (storeActiveNameLabel) {
+      storeActiveNameLabel.textContent = "-";
+    }
     shopifyAdminBase = "";
     updateConnectionPills();
     return;
@@ -3796,6 +3806,7 @@ function renderStoreActiveSelect(stores, options = {}) {
     storeNameInput.placeholder = getActiveStoreLabel() || "Tienda de ejemplo";
   }
   updateStoreModuleTitles();
+  renderStoreActiveList(stores);
   renderStoreContextSelects(stores);
   setShopifyWebhooksStatus("Sin configurar");
   const activePane =
@@ -3875,6 +3886,44 @@ function normalizeShopDomain(value) {
     .replace(/^https?:\/\//, "")
     .replace(/\/.*$/, "")
     .toLowerCase();
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => {
+    if (char === "&") return "&amp;";
+    if (char === "<") return "&lt;";
+    if (char === ">") return "&gt;";
+    if (char === '"') return "&quot;";
+    if (char === "'") return "&#39;";
+    return char;
+  });
+}
+
+function renderStoreActiveList(stores) {
+  if (!(storeActiveList instanceof HTMLElement)) return;
+  const list = Array.isArray(stores) ? stores : [];
+  const activeDomain = normalizeShopDomain(activeStoreDomain || "");
+  storeActiveList.innerHTML = list
+    .map((store) => {
+      const domain = store.shopDomain || "";
+      const normalizedDomain = normalizeShopDomain(domain);
+      const title = store.storeName || domain;
+      const subtitle = store.storeName ? domain : "";
+      const isActive = normalizedDomain && normalizedDomain === activeDomain;
+      const shopifyOk = Boolean(store.shopifyConnected);
+      const alegraOk = Boolean(store.alegraConnected);
+      return `
+        <button class="ghost store-item ${isActive ? "is-active" : ""}" type="button" data-store-domain="${escapeHtml(domain)}">
+          <span class="store-item-title">${escapeHtml(title)}</span>
+          ${subtitle ? `<span class="store-item-sub">${escapeHtml(subtitle)}</span>` : ""}
+          <span class="store-item-meta" aria-hidden="true">
+            <span class="store-item-pill ${shopifyOk ? "is-ok" : "is-off"}">Shopify</span>
+            <span class="store-item-pill ${alegraOk ? "is-ok" : "is-off"}">Alegra</span>
+          </span>
+        </button>
+      `;
+    })
+    .join("");
 }
 
 function getShopifyConnectMethod() {
@@ -4187,8 +4236,6 @@ function applyLegacyStoreConfig(config) {
   if (syncContactsPriority) {
     syncContactsPriority.value = priorityKey;
   }
-  updateContactsBulkCreateLabel();
-  applyContactsBulkCreateDefaults();
   if (syncOrdersShopify) {
     syncOrdersShopify.value = String(orderSync.shopifyToAlegra || defaultShopifyMode);
   }
@@ -4235,8 +4282,6 @@ function clearLegacyStoreConfig() {
   if (syncContactsCreateAlegra) syncContactsCreateAlegra.checked = true;
   if (syncContactsCreateShopify) syncContactsCreateShopify.checked = true;
   if (syncContactsPriority) syncContactsPriority.value = "document_phone_email";
-  updateContactsBulkCreateLabel();
-  applyContactsBulkCreateDefaults();
   if (syncOrdersShopify) {
     syncOrdersShopify.value = "db_only";
   }
@@ -6844,48 +6889,18 @@ async function deleteShopifyWebhooks() {
   }
 }
 
-function getContactsBulkDirection() {
-  const value =
-    syncContactsBulkDirection instanceof HTMLSelectElement
-      ? String(syncContactsBulkDirection.value || "")
-      : "";
-  return value === "alegra_to_shopify" ? "alegra_to_shopify" : "shopify_to_alegra";
-}
-
-function updateContactsBulkCreateLabel() {
-  if (!(syncContactsBulkCreateLabel instanceof HTMLElement)) return;
-  const direction = getContactsBulkDirection();
-  // We only update the text node; keep the tooltip inside the label.
-  const labelText = direction === "alegra_to_shopify" ? "Crear en Shopify " : "Crear en Alegra ";
-  const existingTip = syncContactsBulkCreateLabel.querySelector(".tip");
-  syncContactsBulkCreateLabel.textContent = labelText;
-  if (existingTip) syncContactsBulkCreateLabel.appendChild(existingTip);
-}
-
-function applyContactsBulkCreateDefaults() {
-  if (!(syncContactsBulkCreate instanceof HTMLInputElement)) return;
-  const direction = getContactsBulkDirection();
-  if (direction === "alegra_to_shopify") {
-    if (syncContactsCreateShopify instanceof HTMLInputElement) {
-      syncContactsBulkCreate.checked = syncContactsCreateShopify.checked !== false;
-    }
-    return;
-  }
-  if (syncContactsCreateAlegra instanceof HTMLInputElement) {
-    syncContactsBulkCreate.checked = syncContactsCreateAlegra.checked !== false;
-  }
-}
-
-function isContactsDirectionEnabled(direction) {
-  if (direction === "alegra_to_shopify") {
-    return syncContactsAlegra instanceof HTMLInputElement ? syncContactsAlegra.checked !== false : true;
-  }
-  return syncContactsShopify instanceof HTMLInputElement ? syncContactsShopify.checked !== false : true;
+function getContactsBulkSelections() {
+  const shopifyToAlegra =
+    syncContactsBulkShopify instanceof HTMLInputElement ? syncContactsBulkShopify.checked !== false : true;
+  const alegraToShopify =
+    syncContactsBulkAlegra instanceof HTMLInputElement ? syncContactsBulkAlegra.checked !== false : true;
+  return { shopifyToAlegra, alegraToShopify };
 }
 
 function updateContactsActionVisibility() {
-  const bulkDirection = getContactsBulkDirection();
-  const bulkEnabled = isContactsDirectionEnabled(bulkDirection) && !contactsBulkSyncRunning;
+  const selections = getContactsBulkSelections();
+  const anyDirection = Boolean(selections.shopifyToAlegra || selections.alegraToShopify);
+  const bulkEnabled = anyDirection && !contactsBulkSyncRunning;
 
   if (syncContactsBulkRun instanceof HTMLButtonElement) {
     syncContactsBulkRun.hidden = !bulkEnabled;
@@ -6907,20 +6922,31 @@ async function runBulkContactSync() {
     setContactsSyncStatus("Dominio Shopify requerido.", "is-error");
     return;
   }
-  const direction = getContactsBulkDirection();
-  if (!isContactsDirectionEnabled(direction)) {
-    setContactsSyncStatus("Esta direccion está desactivada en Automatizacion.", "is-warn");
+  const selections = getContactsBulkSelections();
+  const shopifyToAlegra = Boolean(selections.shopifyToAlegra);
+  const alegraToShopify = Boolean(selections.alegraToShopify);
+  if (!shopifyToAlegra && !alegraToShopify) {
+    setContactsSyncStatus("Activa al menos una direccion (Shopify → Alegra o Alegra → Shopify).", "is-warn");
     updateContactsActionVisibility();
     return;
   }
-  const source = direction === "alegra_to_shopify" ? "alegra" : "shopify";
-  const target = direction === "alegra_to_shopify" ? "shopify" : "alegra";
   const limit = syncContactLimit ? Number(syncContactLimit.value || 0) : 0;
   const from = syncContactsBulkDateStart instanceof HTMLInputElement ? syncContactsBulkDateStart.value : "";
   const to = syncContactsBulkDateEnd instanceof HTMLInputElement ? syncContactsBulkDateEnd.value : "";
-  const createInDestination =
-    syncContactsBulkCreate instanceof HTMLInputElement ? syncContactsBulkCreate.checked !== false : true;
-  const directionLabel = direction === "alegra_to_shopify" ? "Alegra → Shopify" : "Shopify → Alegra";
+  const createInAlegra =
+    syncContactsBulkCreateAlegra instanceof HTMLInputElement
+      ? syncContactsBulkCreateAlegra.checked !== false
+      : true;
+  const createInShopify =
+    syncContactsBulkCreateShopify instanceof HTMLInputElement
+      ? syncContactsBulkCreateShopify.checked !== false
+      : true;
+  const directionLabel =
+    shopifyToAlegra && alegraToShopify
+      ? "Bidireccional"
+      : shopifyToAlegra
+        ? "Shopify → Alegra"
+        : "Alegra → Shopify";
   setContactsSyncStatus("Sincronizando masivo...");
   setContactsBulkSyncRunning(true);
   updateContactsActionVisibility();
@@ -6941,12 +6967,15 @@ async function runBulkContactSync() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        direction,
-        source,
-        target,
+        direction: shopifyToAlegra && alegraToShopify ? "bidirectional" : (shopifyToAlegra ? "shopify_to_alegra" : "alegra_to_shopify"),
+        directions: {
+          shopifyToAlegra,
+          alegraToShopify,
+        },
         from: from || undefined,
         to: to || undefined,
-        createInDestination,
+        createInAlegra,
+        createInShopify,
         limit: limit || undefined,
         shopDomain,
         stream: true,
@@ -6977,8 +7006,16 @@ async function runBulkContactSync() {
         }
         if (payload.type === "start") {
           syncStartTime = payload.startedAt || Date.now();
-          if (Number.isFinite(payload.total)) {
-            latestTotals.total = payload.total;
+          continue;
+        }
+        if (payload.type === "phase_start") {
+          syncStartTime = payload.startedAt || Date.now();
+          latestTotals = { total: null, processed: 0, synced: 0, skipped: 0, failed: 0 };
+          const phaseIndex = Number(payload.phaseIndex || 1);
+          const phaseTotal = Number(payload.phaseTotal || 1);
+          const phaseLabel = String(payload.directionLabel || "").trim();
+          if (syncContactsStatus) {
+            syncContactsStatus.textContent = `Fase ${phaseIndex}/${phaseTotal} · ${phaseLabel}`;
           }
           continue;
         }
@@ -6993,10 +7030,16 @@ async function runBulkContactSync() {
           };
           const total = Number(latestTotals.total) || 0;
           const processed = Number(latestTotals.processed) || 0;
+          const phaseIndex = Number(payload.phaseIndex || 1);
+          const phaseTotal = Number(payload.phaseTotal || 1);
+          const phasePercent = total > 0 ? (processed / total) * 100 : 0;
           const elapsedMs = Date.now() - syncStartTime;
           const rate = processed > 0 ? elapsedMs / processed : 0;
           const remainingMs = total > 0 && rate > 0 ? rate * Math.max(0, total - processed) : 0;
-          const percent = total > 0 ? (processed / total) * 100 : 0;
+          const percent =
+            phaseTotal > 0
+              ? ((Math.max(0, phaseIndex - 1) + (phasePercent / 100)) / phaseTotal) * 100
+              : phasePercent;
           const etaText = total > 0 ? formatDuration(remainingMs) : "--:--";
           updateContactsProgress(percent, `Contactos ${Math.round(percent)}% · ETA ${etaText}`);
           if (syncContactsStatus) {
@@ -7006,11 +7049,15 @@ async function runBulkContactSync() {
             const totalLabel = total > 0 ? `${processed}/${total}` : `${processed}/?`;
             const last = payload.last && typeof payload.last === "object" ? payload.last : null;
             const lastLabel = last?.label ? String(last.label) : "";
+            const phaseLabel = String(payload.directionLabel || directionLabel);
             syncContactsStatus.textContent =
-              `Procesados ${totalLabel} · Sincronizados ${synced} · Saltados ${skipped} · Fallidos ${failed}` +
+              `Fase ${phaseIndex}/${phaseTotal} · ${phaseLabel} · Procesados ${totalLabel} · Sincronizados ${synced} · Saltados ${skipped} · Fallidos ${failed}` +
               (lastLabel ? ` · Último: ${lastLabel}` : "") +
               ` · ${directionLabel}`;
           }
+          continue;
+        }
+        if (payload.type === "phase_complete") {
           continue;
         }
         if (payload.type === "complete") {
@@ -7040,16 +7087,7 @@ async function runBulkContactSync() {
         }
       }
     }
-    const total = Number(latestTotals.total) || 0;
-    const processed = Number(latestTotals.processed) || 0;
-    const synced = Number(latestTotals.synced) || 0;
-    const skipped = Number(latestTotals.skipped) || 0;
-    const failed = Number(latestTotals.failed) || 0;
-    const summary =
-      total > 0
-        ? `Total: ${total} · Procesados: ${processed} · Sincronizados: ${synced} · Saltados: ${skipped} · Fallidos: ${failed} · ${directionLabel}`
-        : "Contactos sincronizados.";
-    setContactsSyncStatus(summary, "is-ok");
+    // Si el stream termina sin "complete", igual cerramos UI.
     finishContactsProgress("Contactos 100%");
     stopProgress("Contactos 100%");
   } catch (error) {
@@ -7638,27 +7676,28 @@ if (logRetry) {
 if (alegraAccountSelect) {
   alegraAccountSelect.addEventListener("change", toggleAlegraAccountFields);
 }
-	  if (storeActiveSelect) {
-	    storeActiveSelect.addEventListener("change", () => {
-      const nextDomain = storeActiveSelect.value || "";
-      activeStoreDomain = nextDomain;
-      activeStoreName =
-        storesCache.find((store) => store.shopDomain === nextDomain)?.storeName || "";
-    if (storeNameInput) {
-      storeNameInput.placeholder = getActiveStoreLabel() || "Tienda de ejemplo";
-    }
-    shopifyAdminBase = nextDomain ? `https://${nextDomain}/admin` : "";
-    try {
-      localStorage.setItem("apiflujos-active-store", nextDomain);
-    } catch {
-      // ignore storage errors
-    }
-	      updateStoreModuleTitles();
-	      renderConnections({ stores: storesCache });
-	      renderStoreContextSelects(storesCache);
-	      setShopifyWebhooksStatus("Sin configurar");
-	      const activePane =
-	        document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
+		  if (storeActiveSelect) {
+		    storeActiveSelect.addEventListener("change", () => {
+	      const nextDomain = storeActiveSelect.value || "";
+	      activeStoreDomain = nextDomain;
+	      activeStoreName =
+	        storesCache.find((store) => store.shopDomain === nextDomain)?.storeName || "";
+	    if (storeNameInput) {
+	      storeNameInput.placeholder = getActiveStoreLabel() || "Tienda de ejemplo";
+	    }
+	    shopifyAdminBase = nextDomain ? `https://${nextDomain}/admin` : "";
+	    try {
+	      localStorage.setItem("apiflujos-active-store", nextDomain);
+	    } catch {
+	      // ignore storage errors
+	    }
+		      updateStoreModuleTitles();
+		      renderStoreActiveList(storesCache);
+		      renderConnections({ stores: storesCache });
+		      renderStoreContextSelects(storesCache);
+		      setShopifyWebhooksStatus("Sin configurar");
+		      const activePane =
+		        document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
 	      const keepConnectionsOpen = activePane === "connections" || getModulePanel("connections")?.getAttribute("data-setup-open") === "1";
 	      collapseAllGroupsAndModules();
 	      openDefaultGroups();
@@ -7675,8 +7714,21 @@ if (alegraAccountSelect) {
 	      loadProducts().catch(() => null);
 	      loadOperations().catch(() => null);
 	      loadContacts().catch(() => null);
-	    });
-	  }
+		    });
+		  }
+
+		  if (storeActiveList && storeActiveSelect) {
+		    storeActiveList.addEventListener("click", (event) => {
+		      const target = event.target;
+		      if (!(target instanceof HTMLElement)) return;
+		      const button = target.closest("[data-store-domain]");
+		      if (!(button instanceof HTMLElement)) return;
+		      const nextDomain = button.getAttribute("data-store-domain") || "";
+		      if (!nextDomain || storeActiveSelect.value === nextDomain) return;
+		      storeActiveSelect.value = nextDomain;
+		      storeActiveSelect.dispatchEvent(new Event("change"));
+		    });
+		  }
 
   const bindStoreContextSelect = (select) => {
     if (!select || !storeActiveSelect) return;
@@ -8204,18 +8256,20 @@ if (shopifyWebhooksStatusBtn) {
     });
   }
 
-  if (syncContactsBulkDirection) {
-    syncContactsBulkDirection.addEventListener("change", () => {
-      updateContactsBulkCreateLabel();
-      applyContactsBulkCreateDefaults();
-      updateContactsActionVisibility();
-    });
-  }
+	  const bindContactsBulkToggle = (el) => {
+	    if (!(el instanceof HTMLInputElement)) return;
+	    el.addEventListener("change", () => {
+	      applyToggleDependencies();
+	      updateContactsActionVisibility();
+	    });
+	  };
+	  bindContactsBulkToggle(syncContactsBulkShopify);
+	  bindContactsBulkToggle(syncContactsBulkAlegra);
 
-  if (syncContactsBulkStop) {
-    syncContactsBulkStop.addEventListener("click", () => {
-      if (contactsBulkSyncAbort) {
-        try {
+	  if (syncContactsBulkStop) {
+	    syncContactsBulkStop.addEventListener("click", () => {
+	      if (contactsBulkSyncAbort) {
+	        try {
           contactsBulkSyncAbort.abort();
         } catch {
           // ignore abort failures
