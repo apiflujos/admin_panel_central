@@ -255,6 +255,8 @@ const productsStatus = document.getElementById("products-status");
 const productsPublishStatus = document.getElementById("products-publish-status");
 const productsPublishStatusMass = document.getElementById("products-publish-status-mass");
 const productsIncludeImages = document.getElementById("products-include-images");
+const productsManualOnlyActive = document.getElementById("products-manual-only-active");
+const productsManualPublish = document.getElementById("products-manual-publish");
 const rulesOnlyActive = document.getElementById("rules-only-active");
 const rulesSyncEnabled = document.getElementById("rules-sync-enabled");
 const productsDateStart = document.getElementById("products-date-start");
@@ -287,6 +289,7 @@ const ordersDaysSelect = document.getElementById("orders-days");
 const ordersSort = document.getElementById("orders-sort");
 const rulesAutoPublish = document.getElementById("rules-auto-publish");
 const rulesAutoStatus = document.getElementById("rules-auto-status");
+const rulesAutoImages = document.getElementById("rules-auto-images");
 const cfgWarehouseSync = document.getElementById("cfg-warehouse-sync");
 const cfgWarehouseSyncSummary = document.getElementById("cfg-warehouse-sync-summary");
 const cfgWarehouseSelectAll = document.getElementById("cfg-warehouse-select-all");
@@ -319,6 +322,7 @@ let inventoryRules = {
   inventoryAdjustmentsIntervalMinutes: 5,
   inventoryAdjustmentsAutoPublish: true,
   onlyActiveItems: false,
+  includeImages: true,
   syncEnabled: true,
   warehouseIds: [],
 };
@@ -410,6 +414,17 @@ let assistantHasSpoken = false;
 let assistantFiles = [];
 let activeEinvoiceOrderId = "";
 
+function setProductsBulkSyncRunning(running) {
+  const isRunning = Boolean(running);
+  if (productsSyncStopBtn) {
+    productsSyncStopBtn.hidden = !isRunning;
+    productsSyncStopBtn.disabled = !isRunning;
+  }
+  if (productsSyncClear) {
+    productsSyncClear.hidden = isRunning;
+    productsSyncClear.disabled = isRunning;
+  }
+}
 
 function showSection(target) {
   sections.forEach((section) => {
@@ -3319,19 +3334,20 @@ async function loadSettings() {
     cfgPaymentMethod.dataset.selected = data.invoice.paymentMethod || "";
     cfgBankAccount.dataset.selected = data.invoice.bankAccountId || "";
   }
-  if (data.rules) {
-    inventoryRules = {
-      publishOnStock: data.rules.publishOnStock !== false,
-      autoPublishOnWebhook: Boolean(data.rules.autoPublishOnWebhook),
-      autoPublishStatus: data.rules.autoPublishStatus === "active" ? "active" : "draft",
-      inventoryAdjustmentsEnabled: data.rules.inventoryAdjustmentsEnabled !== false,
-      inventoryAdjustmentsIntervalMinutes: Number(data.rules.inventoryAdjustmentsIntervalMinutes || 5),
-      inventoryAdjustmentsAutoPublish: data.rules.inventoryAdjustmentsAutoPublish !== false,
-      onlyActiveItems: Boolean(data.rules.onlyActiveItems),
-      syncEnabled: data.rules.syncEnabled !== false,
-      warehouseIds: Array.isArray(data.rules.warehouseIds) ? data.rules.warehouseIds : [],
-    };
-  }
+    if (data.rules) {
+      inventoryRules = {
+        publishOnStock: data.rules.publishOnStock !== false,
+        autoPublishOnWebhook: Boolean(data.rules.autoPublishOnWebhook),
+        autoPublishStatus: data.rules.autoPublishStatus === "active" ? "active" : "draft",
+        inventoryAdjustmentsEnabled: data.rules.inventoryAdjustmentsEnabled !== false,
+        inventoryAdjustmentsIntervalMinutes: Number(data.rules.inventoryAdjustmentsIntervalMinutes || 5),
+        inventoryAdjustmentsAutoPublish: data.rules.inventoryAdjustmentsAutoPublish !== false,
+        onlyActiveItems: Boolean(data.rules.onlyActiveItems),
+        includeImages: data.rules.includeImages !== false,
+        syncEnabled: data.rules.syncEnabled !== false,
+        warehouseIds: Array.isArray(data.rules.warehouseIds) ? data.rules.warehouseIds : [],
+      };
+    }
   if (rulesAutoPublish) rulesAutoPublish.checked = inventoryRules.autoPublishOnWebhook;
   if (rulesAutoStatus) rulesAutoStatus.value = inventoryRules.autoPublishStatus;
   if (rulesOnlyActive) rulesOnlyActive.checked = Boolean(inventoryRules.onlyActiveItems);
@@ -3884,6 +3900,9 @@ function applyRuleSettings(settings, options = {}) {
   if (!settings) return;
   const includeCron = options.includeCron !== false;
   if (rulesAutoPublish) rulesAutoPublish.checked = Boolean(settings.autoPublishOnWebhook);
+  if (rulesAutoImages) {
+    rulesAutoImages.checked = settings.includeImages !== false;
+  }
   if (rulesAutoStatus) {
     rulesAutoStatus.value = settings.autoPublishStatus === "active" ? "active" : "draft";
   }
@@ -3904,9 +3923,20 @@ function applyRuleSettings(settings, options = {}) {
     autoPublishOnWebhook: Boolean(settings.autoPublishOnWebhook),
     autoPublishStatus: settings.autoPublishStatus === "active" ? "active" : "draft",
     onlyActiveItems: Boolean(settings.onlyActiveItems),
+    includeImages: settings.includeImages !== false,
     syncEnabled: settings.syncEnabled !== false,
     warehouseIds: Array.isArray(settings.warehouseIds) ? settings.warehouseIds : [],
   };
+  // Manual 1-a-1 comparte las mismas opciones.
+  if (productsManualOnlyActive) productsManualOnlyActive.checked = Boolean(settings.onlyActiveItems);
+  if (productsManualPublish) productsManualPublish.checked = Boolean(settings.autoPublishOnWebhook);
+  if (productsIncludeImages) productsIncludeImages.checked = settings.includeImages !== false;
+  if (productsPublishStatus) {
+    productsPublishStatus.value = settings.autoPublishStatus === "active" ? "active" : "draft";
+  }
+  if (productsPublishStatusMass) {
+    productsPublishStatusMass.value = productsPublishStatus?.value || "draft";
+  }
   renderInventoryWarehouseFilters();
 }
 
@@ -5172,15 +5202,28 @@ async function loadProducts() {
 
 async function publishProduct(alegraId) {
   refreshProductSettingsFromInputs();
-  const confirmPublish = window.confirm(
-    "Vas a publicar este producto en Shopify. ¿Confirmas que quieres publicarlo?"
-  );
+  const publishEnabled = productsManualPublish
+    ? productsManualPublish.checked
+    : rulesAutoPublish
+      ? rulesAutoPublish.checked
+      : true;
+  if (!publishEnabled) {
+    showToast("Publicar en Shopify esta apagado en Configuracion → Productos.", "is-warn");
+    setProductsStatus("Publicacion desactivada.");
+    return;
+  }
+  const confirmPublish = window.confirm("Vas a publicar este producto en Shopify. ¿Confirmas?");
   if (!confirmPublish) {
     setProductsStatus("Publicacion cancelada.");
     return;
   }
   const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   setProductsStatus(`Publicando ${alegraId}...`);
+  const onlyActive = productsManualOnlyActive
+    ? productsManualOnlyActive.checked
+    : rulesOnlyActive
+      ? rulesOnlyActive.checked
+      : false;
   try {
     await fetchJson("/api/shopify/publish", {
       method: "POST",
@@ -5192,7 +5235,8 @@ async function publishProduct(alegraId) {
           status: productSettings.publish.status,
           includeImages: productSettings.publish.includeImages,
           vendor: productSettings.publish.vendor,
-          publishOnSync: productSettings.sync.publishOnSync !== false,
+          publishOnSync: publishEnabled,
+          onlyActive,
         },
       }),
     });
@@ -5208,12 +5252,14 @@ async function runProductsSync(mode) {
   const activeStore = getActiveStore();
   const storeConnections = getStoreConnections(activeStore);
   if (!activeStore) {
+    setProductsBulkSyncRunning(false);
     showToast("Primero crea o selecciona una tienda activa en Nueva conexion.", "is-warn");
     setProductsStatus("Sin tienda activa. Crea/selecciona una tienda para sincronizar.");
     if (productsSyncStatus) productsSyncStatus.textContent = "Sin tienda activa";
     return;
   }
   if (!storeConnections.shopifyConnected || !storeConnections.alegraConnected) {
+    setProductsBulkSyncRunning(false);
     showToast("Conecta Shopify y Alegra para ejecutar la sincronizacion masiva.", "is-warn");
     setProductsStatus("Faltan conexiones: conecta Shopify y Alegra para sincronizar.");
     if (productsSyncStatus) productsSyncStatus.textContent = "Faltan conexiones";
@@ -5228,6 +5274,7 @@ async function runProductsSync(mode) {
       if (productsSyncStatus) {
         productsSyncStatus.textContent = "Cancelado por el usuario";
       }
+      setProductsBulkSyncRunning(false);
       return;
     }
   }
@@ -5240,14 +5287,12 @@ async function runProductsSync(mode) {
   if (productsSyncStatus) {
     productsSyncStatus.textContent = "Sincronizando...";
   }
-  if (productsSyncStopBtn) {
-    productsSyncStopBtn.disabled = false;
-  }
+  setProductsBulkSyncRunning(true);
   const stopProgress = startSyncProgress("Productos");
   updateProductsProgress(0, "Productos 0% · ETA --:--");
   let syncStartTime = Date.now();
-	let currentSyncId = "";
-	let latestTotals = {
+		let currentSyncId = "";
+		let latestTotals = {
     total: null,
     scanned: 0,
     processed: 0,
@@ -5259,9 +5304,9 @@ async function runProductsSync(mode) {
     parents: 0,
     variants: 0,
 	};
-	try {
-	  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
-	  const response = await fetch("/api/sync/products?stream=1", {
+		try {
+		  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+		  const response = await fetch("/api/sync/products?stream=1", {
 	    method: "POST",
 	    headers: { "Content-Type": "application/json" },
 	    body: JSON.stringify({
@@ -5369,30 +5414,24 @@ async function runProductsSync(mode) {
           if (productsSyncStatus) {
             productsSyncStatus.textContent = summary;
           }
-          finishProductsProgress("Productos 100%");
-          stopProgress("Productos 100%");
-          if (productsSyncStopBtn) {
-            productsSyncStopBtn.disabled = true;
-          }
-          activeProductsSyncId = "";
-          return;
-        }
-        if (payload.type === "canceled") {
+	          finishProductsProgress("Productos 100%");
+	          stopProgress("Productos 100%");
+	          activeProductsSyncId = "";
+	          return;
+	        }
+	        if (payload.type === "canceled") {
           const summary = "Sincronizacion detenida por el usuario.";
           setProductsStatus(summary);
           if (productsSyncStatus) {
             productsSyncStatus.textContent = summary;
           }
-          finishProductsProgress("Productos detenido");
-          stopProgress("Productos detenido");
-          if (productsSyncStopBtn) {
-            productsSyncStopBtn.disabled = true;
-          }
-          activeProductsSyncId = "";
-          return;
-        }
-        if (payload.type === "error") {
-          throw new Error(payload.error || "No se pudo sincronizar productos.");
+	          finishProductsProgress("Productos detenido");
+	          stopProgress("Productos detenido");
+	          activeProductsSyncId = "";
+	          return;
+	        }
+	        if (payload.type === "error") {
+	          throw new Error(payload.error || "No se pudo sincronizar productos.");
         }
       }
     }
@@ -5412,26 +5451,22 @@ async function runProductsSync(mode) {
     if (productsSyncStatus) {
       productsSyncStatus.textContent = summary;
     }
-    finishProductsProgress("Productos 100%");
-    stopProgress("Productos 100%");
-    if (productsSyncStopBtn) {
-      productsSyncStopBtn.disabled = true;
-    }
-    activeProductsSyncId = "";
-  } catch (error) {
-    const message = error?.message || "No se pudo sincronizar productos.";
-    setProductsStatus(message);
+	    finishProductsProgress("Productos 100%");
+	    stopProgress("Productos 100%");
+	    activeProductsSyncId = "";
+	  } catch (error) {
+	    const message = error?.message || "No se pudo sincronizar productos.";
+	    setProductsStatus(message);
     if (productsSyncStatus) {
       productsSyncStatus.textContent = message;
     }
-    stopProgress("Error en productos");
-    finishProductsProgress("Error en productos");
-    if (productsSyncStopBtn) {
-      productsSyncStopBtn.disabled = true;
-    }
-    activeProductsSyncId = "";
-  }
-}
+	    stopProgress("Error en productos");
+	    finishProductsProgress("Error en productos");
+	    activeProductsSyncId = "";
+	  } finally {
+	    setProductsBulkSyncRunning(false);
+	  }
+	}
 
 async function runOrdersSync() {
   refreshProductSettingsFromInputs();
@@ -6772,6 +6807,7 @@ async function saveStoreConfigFromSettings() {
       autoPublishOnWebhook: rulesAutoPublish ? rulesAutoPublish.checked : false,
       autoPublishStatus:
         rulesAutoStatus && rulesAutoStatus.value === "active" ? "active" : "draft",
+      includeImages: rulesAutoImages ? rulesAutoImages.checked !== false : true,
       syncEnabled: rulesSyncEnabled ? rulesSyncEnabled.checked : true,
       warehouseIds: getSelectedInventoryWarehouseIds(),
     },
@@ -7723,7 +7759,7 @@ if (productsSyncIncludeInventory) {
 }
 
 if (productsSyncStopBtn) {
-  productsSyncStopBtn.disabled = true;
+  setProductsBulkSyncRunning(false);
   productsSyncStopBtn.addEventListener("click", async () => {
     try {
       productsSyncStopBtn.disabled = true;
@@ -8069,6 +8105,61 @@ if (rulesAutoPublish && rulesAutoStatus) {
     applyToggleDependencies();
   });
 }
+
+// Productos: Manual 1-a-1 y Automatico comparten las mismas opciones.
+(() => {
+  const lock = { active: false };
+
+  const dispatchChange = (node) => {
+    if (!(node instanceof HTMLElement)) return;
+    node.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+
+  const mirrorChecked = (from, to) => {
+    if (!(from instanceof HTMLInputElement) || !(to instanceof HTMLInputElement)) return;
+    if (to.checked === from.checked) return;
+    to.checked = from.checked;
+    dispatchChange(to);
+  };
+
+  const mirrorValue = (from, to) => {
+    if (!(from instanceof HTMLSelectElement) || !(to instanceof HTMLSelectElement)) return;
+    if (to.value === from.value) return;
+    to.value = from.value;
+    dispatchChange(to);
+  };
+
+  const bindMirror = (a, b, kind) => {
+    if (!(a instanceof HTMLElement) || !(b instanceof HTMLElement)) return;
+    a.addEventListener("change", () => {
+      if (lock.active) return;
+      lock.active = true;
+      try {
+        if (kind === "checked") mirrorChecked(a, b);
+        else mirrorValue(a, b);
+        applyToggleDependencies();
+      } finally {
+        lock.active = false;
+      }
+    });
+    b.addEventListener("change", () => {
+      if (lock.active) return;
+      lock.active = true;
+      try {
+        if (kind === "checked") mirrorChecked(b, a);
+        else mirrorValue(b, a);
+        applyToggleDependencies();
+      } finally {
+        lock.active = false;
+      }
+    });
+  };
+
+  bindMirror(rulesOnlyActive, productsManualOnlyActive, "checked");
+  bindMirror(rulesAutoPublish, productsManualPublish, "checked");
+  bindMirror(rulesAutoImages, productsIncludeImages, "checked");
+  bindMirror(rulesAutoStatus, productsPublishStatus, "value");
+})();
 
   if (productsSyncClear) {
     productsSyncClear.addEventListener("click", () => {

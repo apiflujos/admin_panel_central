@@ -13,6 +13,7 @@ export type AlegraItem = {
   reference?: string;
   code?: string;
   barcode?: string;
+  images?: Array<{ url?: string } | string>;
   customFields?: Array<{ name?: string; label?: string; value?: string }>;
   status?: string;
   price?: number | Array<{ idPriceList?: number; price?: number }>;
@@ -30,6 +31,11 @@ export type AlegraInventoryPayload = {
     warehouses?: Array<{ id: number; availableQuantity?: number }>;
   };
 };
+
+const normalizeImageUrls = (images: Array<{ url?: string } | string> = []) =>
+  images
+    .map((image) => (typeof image === "string" ? image : image?.url))
+    .filter((url): url is string => typeof url === "string" && url.length > 0);
 
 export async function syncAlegraItemToShopify(alegraItemId: string) {
   const ctx = await buildSyncContext();
@@ -154,6 +160,29 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem) {
         shopifyInventoryItemId: variant.inventoryItem?.id,
         metadata: { sku: variant.sku },
       });
+    }
+
+    if (productId && ctx.includeImages) {
+      const urls = normalizeImageUrls(item.images || []);
+      if (urls.length) {
+        try {
+          await withRetry(() => ctx.shopify.addProductImagesByUrl(productId, urls), {
+            label: "addProductImages",
+            retries: 1,
+          });
+        } catch (error) {
+          await createSyncLog({
+            entity: "product_images",
+            direction: "alegra->shopify",
+            status: "warn",
+            message:
+              error instanceof Error
+                ? `No se pudieron agregar fotos: ${error.message}`
+                : "No se pudieron agregar fotos",
+            request: { alegraItemId, shopifyProductId: productId },
+          });
+        }
+      }
     }
     await upsertProduct({
       ...baseProductInput,

@@ -183,6 +183,10 @@ export async function listStoreConfigs() {
           rules.publishOnStock,
           defaults.rules?.publishOnStock ?? true
         ),
+        includeImages: normalizeBoolean(
+          (rules as Record<string, unknown>).includeImages,
+          true
+        ),
         onlyActiveItems: normalizeBoolean(
           (rules as Record<string, unknown>).onlyActiveItems,
           Boolean((defaults.rules as Record<string, unknown>)?.onlyActiveItems)
@@ -368,6 +372,10 @@ export async function getStoreConfigForDomain(shopDomain: string) {
       publishOnStock: normalizeBoolean(
         rules.publishOnStock,
         defaults.rules?.publishOnStock ?? true
+      ),
+      includeImages: normalizeBoolean(
+        (rules as Record<string, unknown>).includeImages,
+        true
       ),
       onlyActiveItems: normalizeBoolean(
         (rules as Record<string, unknown>).onlyActiveItems,

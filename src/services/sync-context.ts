@@ -28,6 +28,7 @@ type SyncContext = {
   onlyActiveItems: boolean;
   autoPublishOnWebhook: boolean;
   autoPublishStatus: "draft" | "active";
+  includeImages: boolean;
   alegraWarehouseId?: string;
   alegraWarehouseIds?: string[];
   priceListGeneralId?: string;
@@ -39,6 +40,7 @@ type SyncContext = {
 type InventoryRules = {
   syncEnabled?: boolean;
   publishOnStock: boolean;
+  includeImages?: boolean;
   onlyActiveItems?: boolean;
   autoPublishOnWebhook: boolean;
   autoPublishStatus: "draft" | "active";
@@ -87,6 +89,7 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
     shopifyLocationId: shopifySettings.locationId,
     syncEnabled: rules.syncEnabled !== false,
     publishOnStock: rules.publishOnStock,
+    includeImages: (rules as InventoryRules).includeImages !== false,
     onlyActiveItems: Boolean(rules.onlyActiveItems),
     autoPublishOnWebhook: rules.autoPublishOnWebhook,
     autoPublishStatus: normalizeAutoStatus(rules.autoPublishStatus),
@@ -248,6 +251,7 @@ async function loadInventoryRules(
       publishOnStock: true,
       autoPublishOnWebhook: true,
       autoPublishStatus: "draft" as const,
+      includeImages: true,
       warehouseIds: [],
     };
   }
@@ -255,6 +259,7 @@ async function loadInventoryRules(
     publishOnStock: result.rows[0].publish_on_stock,
     autoPublishOnWebhook: result.rows[0].auto_publish_on_webhook,
     autoPublishStatus: result.rows[0].auto_publish_status === "active" ? "active" : "draft",
+    includeImages: true,
     warehouseIds: normalizeWarehouseIds(result.rows[0].warehouse_ids),
   };
 }

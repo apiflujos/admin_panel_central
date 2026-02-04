@@ -1158,6 +1158,20 @@ export async function publishShopifyHandler(req: Request, res: Response) {
       res.status(400).json({ error: "alegraId o alegraItem requerido" });
       return;
     }
+    const onlyActive =
+      settings &&
+      typeof settings === "object" &&
+      (settings as Record<string, unknown>).onlyActive !== undefined
+        ? String((settings as Record<string, unknown>).onlyActive).toLowerCase() === "true" ||
+          String((settings as Record<string, unknown>).onlyActive).toLowerCase() === "1"
+        : false;
+    if (onlyActive) {
+      const statusValue = String(item.status || "").toLowerCase();
+      if (statusValue === "inactive") {
+        res.status(400).json({ error: "Producto inactivo en Alegra. (Desactiva 'Solo activos en Alegra' si quieres forzarlo.)" });
+        return;
+      }
+    }
     const storeConfigFull = storeDomain ? await getStoreConfigForDomain(storeDomain) : null;
     const warehouseIds =
       storeConfigFull?.rules?.warehouseIds && storeConfigFull.rules.warehouseIds.length

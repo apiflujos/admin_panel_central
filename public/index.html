@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260203ap4" />
+    <link rel="stylesheet" href="styles.css?v=20260204p2" />
   </head>
   <body>
     <div class="app-shell">
@@ -860,11 +860,11 @@
                           </div>
                           <div class="mode-actions">
                             <button class="primary" id="products-sync-filtered" type="button">Sincronizar masivo</button>
-                            <button class="ghost danger" id="products-sync-stop" type="button">Detener</button>
-                            <button class="ghost" id="products-sync-clear" type="button">Limpiar</button>
-                            <span class="kpi-sub" id="products-sync-status">Sin datos</span>
-                          </div>
-                        </div>
+	                            <button class="ghost danger" id="products-sync-stop" type="button" hidden>Detener</button>
+	                            <button class="ghost" id="products-sync-clear" type="button">Limpiar</button>
+	                            <span class="kpi-sub" id="products-sync-status">Sin datos</span>
+	                          </div>
+	                        </div>
 
                         <div class="mode-section">
                           <div class="mode-head">
@@ -873,24 +873,28 @@
                               <span class="tip" data-tip="Se ejecuta cuando llega un cambio desde Alegra.">?</span>
                             </div>
                           </div>
-                          <div class="mode-toggle-grid" aria-label="Opciones automatico">
-                            <div class="mode-toggle">
-                              <label for="rules-only-active">Solo activos en Alegra</label>
-                              <input type="checkbox" id="rules-only-active" class="toggle" />
-                            </div>
-                            <div class="mode-toggle">
-                              <label for="rules-auto-publish">Publicar en Shopify</label>
-                              <input type="checkbox" id="rules-auto-publish" class="toggle" />
-                            </div>
-                            <div class="mode-toggle">
-                              <label for="rules-auto-status">Estado</label>
-                              <select id="rules-auto-status" data-depends-on="rules-auto-publish">
-                                <option value="draft">Borrador</option>
-                                <option value="active">Activo</option>
-                              </select>
-                            </div>
-                          </div>
-                        </div>
+	                          <div class="mode-toggle-grid" aria-label="Opciones automatico">
+	                            <div class="mode-toggle">
+	                              <label for="rules-only-active">Solo activos en Alegra</label>
+	                              <input type="checkbox" id="rules-only-active" class="toggle" />
+	                            </div>
+	                            <div class="mode-toggle">
+	                              <label for="rules-auto-publish">Publicar en Shopify</label>
+	                              <input type="checkbox" id="rules-auto-publish" class="toggle" />
+	                            </div>
+	                            <div class="mode-toggle">
+	                              <label for="rules-auto-images">Publicar fotos</label>
+	                              <input type="checkbox" id="rules-auto-images" class="toggle" />
+	                            </div>
+	                            <div class="mode-toggle">
+	                              <label for="rules-auto-status">Estado</label>
+	                              <select id="rules-auto-status" data-depends-on="rules-auto-publish">
+	                                <option value="draft">Borrador</option>
+	                                <option value="active">Activo</option>
+	                              </select>
+	                            </div>
+	                          </div>
+	                        </div>
 
                         <div class="mode-section">
                           <div class="mode-head">
@@ -899,21 +903,29 @@
                               <span class="tip" data-tip="Se ejecuta cuando la lanzas desde la seccion Productos (acciones por SKU).">?</span>
                             </div>
                             <button class="ghost mode-head-action" type="button" data-nav-to="products">Ir a Productos</button>
-                          </div>
-                          <div class="mode-toggle-grid" aria-label="Opciones manual">
-                            <div class="mode-toggle">
-                              <label for="products-include-images">Publicar fotos</label>
-                              <input type="checkbox" id="products-include-images" class="toggle" />
-                            </div>
-                            <div class="mode-toggle">
-                              <label for="products-publish-status">Estado</label>
-                              <select id="products-publish-status">
-                                <option value="draft">Borrador</option>
-                                <option value="active">Activo</option>
-                              </select>
-                            </div>
-                          </div>
-                        </div>
+	                          </div>
+	                          <div class="mode-toggle-grid" aria-label="Opciones manual">
+	                            <div class="mode-toggle">
+	                              <label for="products-manual-only-active">Solo activos en Alegra</label>
+	                              <input type="checkbox" id="products-manual-only-active" class="toggle" />
+	                            </div>
+	                            <div class="mode-toggle">
+	                              <label for="products-manual-publish">Publicar en Shopify</label>
+	                              <input type="checkbox" id="products-manual-publish" class="toggle" />
+	                            </div>
+	                            <div class="mode-toggle">
+	                              <label for="products-include-images">Publicar fotos</label>
+	                              <input type="checkbox" id="products-include-images" class="toggle" />
+	                            </div>
+	                            <div class="mode-toggle">
+	                              <label for="products-publish-status">Estado</label>
+	                              <select id="products-publish-status" data-depends-on="products-manual-publish">
+	                                <option value="draft">Borrador</option>
+	                                <option value="active">Activo</option>
+	                              </select>
+	                            </div>
+	                          </div>
+	                        </div>
                       </div>
                       <div class="module-footer">
                         <button class="ghost module-action" data-module-edit="shopify-rules" type="button">Editar</button>
@@ -1532,6 +1544,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260203ap4" type="module"></script>
+    <script src="app.js?v=20260204p2" type="module"></script>
   </body>
 </html>

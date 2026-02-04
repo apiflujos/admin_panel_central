@@ -24,10 +24,12 @@ type GraphQlRequest = {
 
 export class ShopifyClient {
   private endpoint: string;
+  private restBase: string;
 
   constructor(private config: ShopifyConfig) {
     const version = resolveShopifyApiVersion(config.apiVersion);
     this.endpoint = `https://${config.shopDomain}/admin/api/${version}/graphql.json`;
+    this.restBase = `https://${config.shopDomain}/admin/api/${version}`;
   }
 
   private async request<T>(body: GraphQlRequest) {
@@ -232,6 +234,47 @@ export class ShopifyClient {
         },
       }
     );
+  }
+
+  private resolveNumericId(id: string) {
+    const text = String(id || "");
+    const match = text.match(/(\d+)(?:\D*)$/);
+    return match ? match[1] : null;
+  }
+
+  async addProductImagesByUrl(productId: string, urls: string[]) {
+    const numericId = this.resolveNumericId(productId);
+    if (!numericId) {
+      return { added: 0, skipped: urls.length };
+    }
+    const list = Array.isArray(urls) ? urls : [];
+    const unique = Array.from(
+      new Set(
+        list
+          .map((url) => String(url || "").trim())
+          .filter((url) => url.length > 0)
+      )
+    );
+    if (!unique.length) {
+      return { added: 0, skipped: 0 };
+    }
+    let added = 0;
+    for (const src of unique.slice(0, 15)) {
+      const response = await fetch(`${this.restBase}/products/${numericId}/images.json`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": this.config.accessToken,
+        },
+        body: JSON.stringify({ image: { src } }),
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Shopify images error: ${response.status} ${text}`);
+      }
+      added += 1;
+    }
+    return { added, skipped: Math.max(0, unique.length - Math.min(unique.length, 15)) };
   }
 
   async updateProductStatus(productId: string, publish: boolean) {
