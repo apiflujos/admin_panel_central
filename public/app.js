@@ -2050,7 +2050,7 @@ function setModuleReadonly(panel, readonly) {
   panel.querySelectorAll("details").forEach((details) => {
     if (!readonly) return;
     if (details.closest("[data-readonly-free=\"1\"]")) return;
-    details.open = false;
+    // UX: mantener el estado visual; solo bloqueamos interacciones por CSS.
   });
 }
 
@@ -3292,7 +3292,8 @@ function refreshProductSettingsFromInputs() {
   saveProductSettings(productSettings);
 }
 
-async function loadSettings() {
+async function loadSettings(options = {}) {
+  const preserveUi = options.preserveUi === true;
   storeRuleOverrides = null;
   storeInvoiceOverrides = null;
   const data = await fetchJson("/api/settings");
@@ -3404,7 +3405,7 @@ async function loadSettings() {
     );
   }
   setMetricsStatusPills(data.shopify?.hasAccessToken, data.alegra?.hasApiKey);
-  await loadConnections();
+  await loadConnections({ preserveUi });
   await loadLegacyStoreConfig();
   updatePrerequisites();
   applyToggleDependencies();
@@ -3543,7 +3544,7 @@ async function maybeApplyPendingStoreConfigCopy() {
   }
 }
 
-async function loadConnections() {
+async function loadConnections(options = {}) {
   try {
     const data = await fetchJson("/api/connections");
     maybeShowCryptoWarning(data);
@@ -3553,7 +3554,7 @@ async function loadConnections() {
     storesCache = stores;
     updateSettingsSubmenuAvailability();
     renderCopyConfigOptions(stores);
-    renderStoreActiveSelect(stores);
+    renderStoreActiveSelect(stores, options);
     updatePrerequisites();
     initSetupMode(stores.length);
     updateWizardStartAvailability();
@@ -3567,7 +3568,7 @@ async function loadConnections() {
     activeStoreName = "";
     storesCache = [];
     updateSettingsSubmenuAvailability();
-    renderStoreActiveSelect([]);
+    renderStoreActiveSelect([], options);
     updatePrerequisites();
     initSetupMode(0);
     updateWizardStartAvailability();
@@ -3666,7 +3667,7 @@ function ensureConnectionsSetupOpen() {
   }
 }
 
-function renderStoreActiveSelect(stores) {
+function renderStoreActiveSelect(stores, options = {}) {
   if (!storeActiveSelect || !storeActiveField) return;
   if (!stores.length) {
     storeActiveField.style.display = "none";
@@ -3706,15 +3707,19 @@ function renderStoreActiveSelect(stores) {
   setShopifyWebhooksStatus("Sin configurar");
   const activePane =
     document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
-  const keepConnectionsOpen = activePane === "connections" || getModulePanel("connections")?.getAttribute("data-setup-open") === "1";
-  collapseAllGroupsAndModules();
-  openDefaultGroups();
-  if (keepConnectionsOpen) {
-    const panel = getModulePanel("connections");
-    if (panel) setModuleCollapsed(panel, false);
-    const summary = getModulePanel("connections-summary");
-    if (summary) setModuleCollapsed(summary, false);
-    setConnectionsSetupOpen(true);
+  const keepConnectionsOpen =
+    activePane === "connections" || getModulePanel("connections")?.getAttribute("data-setup-open") === "1";
+  const preserveUi = options && options.preserveUi === true;
+  if (!preserveUi) {
+    collapseAllGroupsAndModules();
+    openDefaultGroups();
+    if (keepConnectionsOpen) {
+      const panel = getModulePanel("connections");
+      if (panel) setModuleCollapsed(panel, false);
+      const summary = getModulePanel("connections-summary");
+      if (summary) setModuleCollapsed(summary, false);
+      setConnectionsSetupOpen(true);
+    }
   }
   loadLegacyStoreConfig().catch(() => null);
   openWizardStep();
@@ -6973,7 +6978,7 @@ async function saveSettings(options = {}) {
   if (aiKey) {
     aiKey.value = "";
   }
-  await loadSettings();
+  await loadSettings({ preserveUi: true });
   await loadResolutions();
   await Promise.all([
     loadCatalog(cfgCostCenter, "cost-centers"),
@@ -7295,7 +7300,7 @@ async function connectStore(kind) {
   setSettingsPane("connections", { persist: false });
   await loadConnections();
   try {
-    await loadSettings();
+    await loadSettings({ preserveUi: true });
   } catch (error) {
     showToast(error?.message || "Conexion guardada, pero no se pudieron cargar las configuraciones.", "is-warn");
   }
