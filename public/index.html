@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260204p12" />
+    <link rel="stylesheet" href="styles.css?v=20260204p13" />
   </head>
   <body>
     <div class="app-shell">
@@ -816,13 +816,13 @@
                     </div>
                     <div class="module-body">
                       <div class="mode-sections">
-                        <div class="mode-section" data-readonly-free="1">
-                          <div class="mode-head">
-                            <div class="mode-head-left">
-                              <h4>Sincronizacion masiva (inicio)</h4>
-                              <span class="tip" data-tip="Usala para iniciar el catalogo. Se ejecuta cuando la lanzas manualmente.">?</span>
-                            </div>
-                          </div>
+	                        <div class="mode-section" data-readonly-free="1">
+	                          <div class="mode-head">
+	                            <div class="mode-head-left">
+	                              <h4>Sincronizacion masiva (inicio)</h4>
+	                              <span class="tip" data-tip="Usala para iniciar el catalogo en Shopify con tus productos de Alegra.\n\nComo funciona:\n- Toma productos segun el rango de fechas.\n- Aplica opciones de publicar/estado/inventario.\n\nRecomendacion:\n- Empieza con un rango corto para validar antes de correr un masivo grande.">?</span>
+	                            </div>
+	                          </div>
                           <div class="mode-grid">
                             <div class="mode-field">
                               <label for="products-date-start">Fecha inicio</label>
@@ -866,13 +866,13 @@
 	                          </div>
 	                        </div>
 
-	                        <div class="mode-section">
-	                          <div class="mode-head">
-	                            <div class="mode-head-left">
-	                              <h4>Sincronizacion automatica</h4>
-	                              <span class="tip" data-tip="Se ejecuta cuando llega un cambio desde Alegra. Estas reglas tambien se usan cuando publicas manualmente desde Productos.">?</span>
-	                            </div>
-	                          </div>
+		                        <div class="mode-section">
+		                          <div class="mode-head">
+		                            <div class="mode-head-left">
+		                              <h4>Sincronizacion automatica</h4>
+		                              <span class="tip" data-tip="Se ejecuta sola cuando llega un cambio desde Alegra.\n\nImportante:\n- Estas reglas tambien se usan cuando publicas manualmente desde Productos (acciones por SKU).\n\nTip:\n- Si apagas “Publicar en Shopify”, el sistema no publica (pero puede seguir actualizando datos segun tu configuracion).">?</span>
+		                            </div>
+		                          </div>
 		                          <div class="mode-toggle-grid" aria-label="Opciones automatico">
 		                            <div class="mode-toggle">
 		                              <label for="rules-only-active">Solo activos en Alegra</label>
@@ -896,18 +896,15 @@
 	                          </div>
 	                        </div>
 
-	                        <div class="mode-section">
-	                          <div class="mode-head">
-	                            <div class="mode-head-left">
-	                              <h4>Sincronizacion manual (desde Productos)</h4>
-	                              <span class="tip" data-tip="Se ejecuta cuando la lanzas desde Productos (acciones por SKU). Usa la misma configuracion de Sincronizacion automatica.">?</span>
-	                            </div>
-	                            <button class="ghost mode-head-action" type="button" data-nav-to="products">Ir a Productos</button>
-		                          </div>
-		                          <div class="module-note">
-		                            <p>Las opciones (Solo activos, Publicar, Fotos y Estado) se configuran una sola vez en <strong>Sincronizacion automatica</strong>.</p>
-		                          </div>
-		                        </div>
+		                        <div class="mode-section">
+		                          <div class="mode-head">
+		                            <div class="mode-head-left">
+		                              <h4>Sincronizacion manual (desde Productos)</h4>
+		                              <span class="tip" data-tip="Se ejecuta cuando la lanzas desde Productos (acciones por SKU).\n\nUsa la misma configuracion de Sincronizacion automatica:\n- Solo activos en Alegra\n- Publicar en Shopify\n- Publicar fotos\n- Estado (Borrador/Activo)\n\nPor eso no se repite aqui.">?</span>
+		                            </div>
+		                            <button class="ghost mode-head-action" type="button" data-nav-to="products">Ir a Productos</button>
+			                          </div>
+			                        </div>
 	                      </div>
                       <div class="module-footer">
                         <button class="ghost module-action" data-module-edit="shopify-rules" type="button">Editar</button>
@@ -1166,15 +1163,11 @@
 		                        <button class="ghost info" id="shopify-webhooks-status-btn" type="button">Ver estado</button>
 		                        <span class="kpi-sub" id="shopify-webhooks-status">Sin configurar</span>
 	                        </div>
+		                      </div>
+	                      <div class="module-footer">
+	                        <button class="ghost module-action" data-module-edit="sync-orders" type="button">Editar</button>
+	                        <button class="primary module-action" data-module-save="sync-orders" type="button">Guardar</button>
 	                      </div>
-	                      <div class="toolbar is-actions">
-	                        <button class="ghost" type="button" data-nav-to="operations">Ir a Pedidos</button>
-	                        <span class="kpi-sub">Ahi haces acciones manuales por orden y revisas estados.</span>
-	                      </div>
-                      <div class="module-footer">
-                        <button class="ghost module-action" data-module-edit="sync-orders" type="button">Editar</button>
-                        <button class="primary module-action" data-module-save="sync-orders" type="button">Guardar</button>
-                      </div>
                       <p class="field-hint module-warning is-hidden" data-module-warning="sync-orders"></p>
                     </div>
                   </div>
@@ -1492,6 +1485,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260204p12" type="module"></script>
+    <script src="app.js?v=20260204p13" type="module"></script>
   </body>
 </html>

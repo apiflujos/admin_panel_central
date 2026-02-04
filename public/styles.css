@@ -1110,7 +1110,7 @@ button {
 
 .panel {
   background: var(--panel);
-  border: 1px solid var(--stroke);
+  border: 2px solid rgba(15, 23, 42, 0.12);
   border-radius: 10px;
   padding: 10px;
   box-shadow: var(--shadow);
@@ -1122,6 +1122,7 @@ button {
 .panel.module {
   padding: 9px;
   gap: 6px;
+  border-color: rgba(15, 23, 42, 0.16);
 }
 
 .panel[data-provider] {
@@ -1135,7 +1136,7 @@ button {
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 6px;
   background: var(--provider-accent, var(--stroke));
 }
 
@@ -1231,12 +1232,17 @@ button {
   justify-content: flex-end;
   gap: 6px;
   margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
 }
 
 .module-footer button {
   width: auto;
-  min-width: 120px;
+  min-width: 92px;
   font-weight: 700;
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
 }
 
 .module-footer .ghost {
@@ -1374,20 +1380,24 @@ button {
   cursor: pointer;
   user-select: none;
   position: relative;
-  padding: 6px 8px;
-  border-radius: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 2px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
 }
 
 .settings-group-header h3,
 .settings-group-header h4 {
   margin: 0;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
 }
 
 .settings-group-header h4 {
-  font-size: 17px;
-  color: var(--muted);
+  font-size: 18px;
+  color: var(--text);
 }
 
 .group-title {
@@ -1402,9 +1412,9 @@ button {
 }
 
 .settings-group-header .provider-logo {
-  width: 34px;
-  height: 34px;
-  padding: 3px;
+  width: 48px;
+  height: 48px;
+  padding: 4px;
   border-radius: 6px;
 }
 
