@@ -4653,7 +4653,12 @@ function renderInventoryWarehouseFilters() {
 async function loadSettingsWarehouses() {
   if (!cfgWarehouseSync && !cfgInventoryWarehouses) return;
   try {
-    const data = await fetchJson("/api/alegra/warehouses");
+    const params = new URLSearchParams();
+    const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+    if (shopDomain) params.set("shopDomain", shopDomain);
+    params.set("t", String(Date.now()));
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const data = await fetchJson(`/api/alegra/warehouses${query}`);
     settingsWarehousesCatalog = Array.isArray(data.items) ? data.items : [];
     settingsWarehousesCatalog.sort((a, b) =>
       String(a?.name || "").localeCompare(String(b?.name || ""), "es")
@@ -4859,7 +4864,12 @@ function renderWarehouseFilters() {
 async function loadWarehouseFilters() {
   if (!productsWarehouseFilter) return;
   try {
-    const data = await fetchJson("/api/alegra/warehouses");
+    const params = new URLSearchParams();
+    const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+    if (shopDomain) params.set("shopDomain", shopDomain);
+    params.set("t", String(Date.now()));
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const data = await fetchJson(`/api/alegra/warehouses${query}`);
     warehousesCatalog = Array.isArray(data.items) ? data.items : [];
     warehousesCatalog.sort((a, b) =>
       String(a?.name || "").localeCompare(String(b?.name || ""), "es")

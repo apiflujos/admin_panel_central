@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260204p4" />
+    <link rel="stylesheet" href="styles.css?v=20260204p5" />
   </head>
   <body>
     <div class="app-shell">
@@ -935,35 +935,35 @@
                     </div>
                   </div>
 
-                  <div class="panel admin-only module" data-provider="bridge" data-manager="alegra" data-module="alegra-inventory" id="inventory-rules-panel" data-help="Ajustes de inventario automaticos por tienda: define bodegas fuente en Alegra y la sincronizacion automatica hacia Shopify.">
-                    <div class="panel-header">
-                      <h3 data-module-toggle="alegra-inventory" data-title-base="Inventario y bodegas">
-                        Ajustes de inventario automaticos
-                        <span class="tip" data-tip="Define las bodegas fuente y la sincronizacion automatica de inventario.">?</span>
-                      </h3>
-                      <div class="panel-meta">
-                        <span class="panel-tag tag-bridge">Alegra → Shopify</span>
-                      </div>
-                    </div>
+	                  <div class="panel admin-only module" data-provider="bridge" data-manager="alegra" data-module="alegra-inventory" id="inventory-rules-panel" data-help="Inventario automatico por tienda: define de que bodegas se toma el stock y si lo mantenemos actualizado en Shopify.">
+	                    <div class="panel-header">
+	                      <h3 data-module-toggle="alegra-inventory" data-title-base="Inventario y bodegas">
+	                        Ajustes de inventario automaticos
+	                        <span class="tip" data-tip="Aqui eliges de que bodegas se toma el stock y si se actualiza automaticamente.">?</span>
+	                      </h3>
+	                      <div class="panel-meta">
+	                        <span class="panel-tag tag-bridge">Alegra → Shopify</span>
+	                      </div>
+	                    </div>
                     <div class="module-body">
                       <div class="mode-sections">
-                        <div class="mode-section">
-                          <div class="mode-head">
-                            <h4>Inventario</h4>
-                            <span class="tip" data-tip="Define bodegas fuente y activa/desactiva la sincronizacion de inventario.">?</span>
-                          </div>
-                          <div class="mode-grid">
-                            <div class="mode-field">
-                              <label for="rules-sync-enabled">Sincronizar inventario</label>
-                              <input type="checkbox" id="rules-sync-enabled" class="toggle" />
-                            </div>
-                            <div class="mode-field mode-field-wide">
-                              <label for="cfg-inventory-warehouses">Bodegas de inventario (Alegra)</label>
-                              <details class="multi-select">
-                                <summary>
-                                  <span>Seleccionar bodegas</span>
-                                  <em id="cfg-inventory-warehouses-summary">Todas</em>
-                                </summary>
+	                        <div class="mode-section">
+	                          <div class="mode-head">
+	                            <h4>Inventario</h4>
+	                            <span class="tip" data-tip="Elige las bodegas que cuentan para el stock. Si no seleccionas ninguna, se usan todas.">?</span>
+	                          </div>
+	                          <div class="mode-grid">
+	                            <div class="mode-field">
+	                              <label for="rules-sync-enabled">Actualizar stock en Shopify</label>
+	                              <input type="checkbox" id="rules-sync-enabled" class="toggle" />
+	                            </div>
+	                            <div class="mode-field mode-field-wide">
+	                              <label for="cfg-inventory-warehouses">Bodegas que cuentan para stock</label>
+	                              <details class="multi-select">
+	                                <summary>
+	                                  <span>Seleccionar bodegas</span>
+	                                  <em id="cfg-inventory-warehouses-summary">Todas</em>
+	                                </summary>
                                 <div class="checkbox-grid single" id="cfg-inventory-warehouses"></div>
                               </details>
                             </div>
@@ -1544,6 +1544,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260204p4" type="module"></script>
+    <script src="app.js?v=20260204p5" type="module"></script>
   </body>
 </html>

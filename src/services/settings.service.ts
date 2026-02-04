@@ -191,9 +191,36 @@ export async function listInvoiceResolutions(accountId?: number) {
   }
 }
 
-export async function listAlegraCatalogItems(catalog: string, accountId?: number) {
+async function resolveAlegraAccountIdForShopDomain(shopDomain: string) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const domain = String(normalizeShopDomain(shopDomain || "") || "")
+    .trim()
+    .toLowerCase();
+  if (!domain) return undefined;
+  const result = await pool.query<{ alegra_account_id: number | null }>(
+    `
+    SELECT alegra_account_id
+    FROM shopify_store_configs
+    WHERE organization_id = $1 AND shop_domain = $2
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId, domain]
+  );
+  const raw = result.rows[0]?.alegra_account_id;
+  return typeof raw === "number" && Number.isFinite(raw) ? raw : undefined;
+}
+
+export async function listAlegraCatalogItems(catalog: string, accountId?: number, shopDomain?: string) {
   try {
-    const alegra = await getAlegraClient(accountId);
+    const resolvedAccountId =
+      typeof accountId === "number" && Number.isFinite(accountId)
+        ? accountId
+        : shopDomain
+          ? await resolveAlegraAccountIdForShopDomain(shopDomain)
+          : undefined;
+    const alegra = await getAlegraClient(resolvedAccountId);
     switch (catalog) {
       case "warehouses":
         return { items: await alegra.listWarehouses() };

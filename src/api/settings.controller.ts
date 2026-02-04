@@ -132,9 +132,12 @@ export async function listAlegraCatalog(req: Request, res: Response) {
   try {
     const catalog = req.params.catalog;
     const accountId = req.query.accountId ? Number(req.query.accountId) : undefined;
+    const shopDomain =
+      typeof req.query.shopDomain === "string" ? req.query.shopDomain.trim() : undefined;
     const result = await listAlegraCatalogItems(
       catalog,
-      Number.isFinite(accountId as number) ? (accountId as number) : undefined
+      Number.isFinite(accountId as number) ? (accountId as number) : undefined,
+      shopDomain
     );
     res.status(200).json(result);
     await safeCreateLog({
