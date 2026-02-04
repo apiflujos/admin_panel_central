@@ -528,9 +528,15 @@
               <input type="number" id="contacts-limit" min="1" placeholder="Filas por pagina" />
               <button class="ghost" id="contacts-search-btn">Buscar</button>
               <button class="primary" id="contacts-refresh">Refrescar</button>
-              <button class="ghost" id="contacts-clear">Borrar filtros</button>
-            </div>
-            <div class="table-card">
+	              <button class="ghost" id="contacts-clear">Borrar filtros</button>
+	            </div>
+	            <div class="sync-progress" id="contacts-progress" aria-hidden="true">
+	              <div class="sync-progress-track">
+	                <div class="sync-progress-bar" id="contacts-progress-bar"></div>
+	              </div>
+	              <span class="sync-progress-label" id="contacts-progress-label">Sincronizando 0%</span>
+	            </div>
+	            <div class="table-card">
               <table class="table" id="contacts-table">
                 <thead>
                   <tr>
@@ -774,32 +780,34 @@
 	      </div>
 
 		        <div class="settings-pane" data-settings-pane="stores">
-		          <div class="panel admin-only" id="stores-switcher-panel" data-help="Tiendas conectadas: elige la tienda activa. Todo lo de abajo (productos, pedidos, contactos, etc.) se guarda por tienda activa.">
-		            <div class="panel-header">
-		              <h3>Tiendas conectadas</h3>
-		            </div>
-		            <div class="module-body">
-		              <div class="settings-grid store-meta">
-		                <div class="field span-2" id="store-active-field">
-		                  <label>Tienda activa <span class="tip" data-tip="Cambia la tienda activa para ver y guardar configuraciones diferentes por tienda.">?</span></label>
-		                  <div class="field-actions inline">
-			                  <select id="store-active-select"></select>
-			                  <button class="ghost danger" id="store-delete" type="button" title="Eliminar tienda">Eliminar tienda</button>
-		                  </div>
-		                </div>
-		                <div class="field span-2">
-		                  <span class="field-hint store-scope-hint">Todo lo de abajo se guarda por tienda. Si cambias de tienda activa, cambian estos ajustes.</span>
-		                </div>
-		              </div>
-		            </div>
-		          </div>
+			          <div class="panel admin-only" id="stores-switcher-panel" data-help="Tiendas conectadas: elige la tienda activa. Todo lo de abajo (productos, pedidos, contactos, etc.) se guarda por tienda activa.">
+			            <div class="panel-header">
+			              <h3>
+			                Tiendas conectadas
+			                <span class="tip" data-tip="Las configuraciones se guardan por tienda. Cambiar la tienda activa no afecta a las demás.">?</span>
+			              </h3>
+			            </div>
+			            <div class="module-body">
+			              <div class="settings-grid store-meta">
+			                <div class="field span-2" id="store-active-field">
+			                  <label>Tienda</label>
+			                  <div class="field-actions inline">
+				                  <select id="store-active-select"></select>
+				                  <button class="ghost danger" id="store-delete" type="button" title="Eliminar tienda">Eliminar tienda</button>
+			                  </div>
+			                </div>
+			                <div class="field span-2">
+			                  <span class="field-hint store-scope-hint">Configuración independiente por tienda.</span>
+			                </div>
+			              </div>
+			            </div>
+			          </div>
 
-		          <div class="settings-group store-group" data-group="store">
-		            <div class="settings-group-header" data-group-toggle="store" data-help="Configuracion de la tienda activa: todo lo de abajo aplica solo a la tienda seleccionada arriba.">
-		              <h3 data-store-title data-title-base="Tienda activa">Tienda activa</h3>
-		              <span class="settings-group-subtitle">Configuracion por tienda</span>
-		            </div>
-		            <div class="settings-group-body">
+			          <div class="settings-group store-group" data-group="store">
+			            <div class="settings-group-header" data-group-toggle="store" data-help="Configuracion de la tienda activa: todo lo de abajo aplica solo a la tienda seleccionada arriba.">
+			              <h3 data-store-title data-title-base="Tienda">Tienda</h3>
+			            </div>
+			            <div class="settings-group-body">
 
 			          <div class="settings-group provider-group" data-group="products">
 			                <div class="settings-group-header" data-group-toggle="products">
@@ -866,13 +874,19 @@
 		                              <input type="checkbox" id="products-sync-include-inventory" class="toggle" checked />
 		                            </div>
 	                          </div>
-                          <div class="mode-actions">
-                            <button class="primary" id="products-sync-filtered" type="button">Sincronizar masivo</button>
-	                            <button class="ghost danger" id="products-sync-stop" type="button" hidden>Detener</button>
-	                            <button class="ghost" id="products-sync-clear" type="button">Limpiar</button>
-	                            <span class="kpi-sub" id="products-sync-status">Sin datos</span>
-	                          </div>
-	                        </div>
+	                          <div class="mode-actions">
+	                            <button class="primary" id="products-sync-filtered" type="button">Sincronizar masivo</button>
+		                            <button class="ghost danger" id="products-sync-stop" type="button" hidden>Detener</button>
+		                            <button class="ghost" id="products-sync-clear" type="button">Limpiar</button>
+		                            <span class="kpi-sub" id="products-sync-status">Sin datos</span>
+		                          </div>
+		                          <div class="sync-progress" id="products-sync-progress" aria-hidden="true">
+		                            <div class="sync-progress-track">
+		                              <div class="sync-progress-bar" id="products-sync-progress-bar"></div>
+		                            </div>
+		                            <span class="sync-progress-label" id="products-sync-progress-label">Sincronizando 0%</span>
+		                          </div>
+		                        </div>
 
 		                        <div class="mode-section">
 			                          <div class="mode-head">
@@ -989,10 +1003,10 @@
 	                <div class="settings-group-body">
 		                  <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="sync-contacts" data-module-priority="core" data-help="Modulo principal de Contactos: define como se identifican y sincronizan clientes entre Shopify y Alegra. Incluye modos automatico (se sincroniza solo), masivo e individual (manual).">
 	                    <div class="panel-header">
-	                      <h3 data-module-toggle="sync-contacts" data-title-base="Contactos bidireccionales">
-	                        Contactos bidireccionales
-	                        <span class="tip" data-tip="Configura sincronizacion masiva, automatica y manual (1 contacto) entre Shopify y Alegra.">?</span>
-	                      </h3>
+		                      <h3 data-module-toggle="sync-contacts" data-title-base="Contactos bidireccionales">
+		                        Contactos bidireccionales
+		                        <span class="tip" data-tip="Configura sincronizacion masiva y automatica entre Shopify y Alegra.">?</span>
+		                      </h3>
 	                      <div class="panel-meta">
 	                        <span class="panel-tag tag-core">Core</span>
 	                        <span class="panel-tag tag-bridge">Alegra ↔ Shopify</span>
@@ -1029,14 +1043,20 @@
 		                              <label for="sync-contacts-bulk-create" id="sync-contacts-bulk-create-label">Crear contacto en destino <span class="tip" data-tip="Si está activo y el contacto no existe en el destino, lo creamos. Si lo apagas, solo actualizamos contactos ya existentes (mapeados o encontrados).">?</span></label>
 		                              <input type="checkbox" id="sync-contacts-bulk-create" class="toggle" checked />
 		                            </div>
-		                            <div class="mode-actions">
-		                              <button class="primary" id="sync-contacts-bulk-run" type="button">Sincronizar masivo</button>
-		                              <button class="ghost danger" id="sync-contacts-bulk-stop" type="button" hidden>Detener</button>
-		                              <button class="ghost" id="sync-contacts-bulk-clear" type="button">Limpiar</button>
-		                              <span class="kpi-sub" id="sync-contacts-status">Sin datos</span>
-		                            </div>
-		                          </div>
-		                        </div>
+			                            <div class="mode-actions">
+			                              <button class="primary" id="sync-contacts-bulk-run" type="button">Sincronizar masivo</button>
+			                              <button class="ghost danger" id="sync-contacts-bulk-stop" type="button" hidden>Detener</button>
+			                              <button class="ghost" id="sync-contacts-bulk-clear" type="button">Limpiar</button>
+			                              <span class="kpi-sub" id="sync-contacts-status">Sin datos</span>
+			                            </div>
+			                            <div class="sync-progress" id="contacts-sync-progress" aria-hidden="true">
+			                              <div class="sync-progress-track">
+			                                <div class="sync-progress-bar" id="contacts-sync-progress-bar"></div>
+			                              </div>
+			                              <span class="sync-progress-label" id="contacts-sync-progress-label">Sincronizando 0%</span>
+			                            </div>
+			                          </div>
+			                        </div>
 
 		                        <div class="mode-section">
 		                          <div class="mode-head">

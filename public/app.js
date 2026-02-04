@@ -31,6 +31,12 @@ const ordersProgressLabel = document.getElementById("orders-progress-label");
 const ordersSyncProgress = document.getElementById("orders-sync-progress");
 const ordersSyncProgressBar = document.getElementById("orders-sync-progress-bar");
 const ordersSyncProgressLabel = document.getElementById("orders-sync-progress-label");
+const contactsProgress = document.getElementById("contacts-progress");
+const contactsProgressBar = document.getElementById("contacts-progress-bar");
+const contactsProgressLabel = document.getElementById("contacts-progress-label");
+const contactsSyncProgress = document.getElementById("contacts-sync-progress");
+const contactsSyncProgressBar = document.getElementById("contacts-sync-progress-bar");
+const contactsSyncProgressLabel = document.getElementById("contacts-sync-progress-label");
 const contactsSearch = document.getElementById("contacts-search");
 const contactsDateStart = document.getElementById("contacts-date-start");
 const contactsDateEnd = document.getElementById("contacts-date-end");
@@ -1120,6 +1126,10 @@ function isToggleOnById(id) {
 function setDependentEnabled(element, enabled) {
   const shouldDisable = !enabled;
   const nodes = [];
+  const container =
+    element instanceof HTMLElement
+      ? element.closest(".mode-field, .mode-toggle, .field") || element
+      : null;
 
   if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement || element instanceof HTMLButtonElement) {
     nodes.push(element);
@@ -1146,6 +1156,14 @@ function setDependentEnabled(element, enabled) {
         summary.style.pointerEvents = shouldDisable ? "none" : "";
       }
     });
+  }
+
+  // Regla de oro UX: si un campo/accion no aplica, desaparece (no solo disabled).
+  if (container instanceof HTMLElement && container !== document.body) {
+    container.hidden = shouldDisable;
+    container.classList.toggle("is-dep-hidden", shouldDisable);
+  } else if (element instanceof HTMLElement) {
+    element.hidden = shouldDisable;
   }
 }
 
@@ -2055,6 +2073,40 @@ function finishOrdersProgress(labelText) {
     setTimeout(() => {
       ordersSyncProgress.classList.remove("is-active");
       ordersSyncProgressBar.style.width = "0%";
+    }, 800);
+  }
+}
+
+function updateContactsProgress(percent, labelText) {
+  const normalized = Math.min(100, Math.max(0, percent));
+  if (contactsProgress && contactsProgressBar && contactsProgressLabel) {
+    contactsProgress.classList.add("is-active");
+    contactsProgressBar.style.width = `${normalized}%`;
+    contactsProgressLabel.textContent = labelText;
+  }
+  if (contactsSyncProgress && contactsSyncProgressBar && contactsSyncProgressLabel) {
+    contactsSyncProgress.classList.add("is-active");
+    contactsSyncProgressBar.style.width = `${normalized}%`;
+    contactsSyncProgressLabel.textContent = labelText;
+  }
+}
+
+function finishContactsProgress(labelText) {
+  const finalText = labelText || "Contactos 100%";
+  if (contactsProgress && contactsProgressBar && contactsProgressLabel) {
+    contactsProgressBar.style.width = "100%";
+    contactsProgressLabel.textContent = finalText;
+    setTimeout(() => {
+      contactsProgress.classList.remove("is-active");
+      contactsProgressBar.style.width = "0%";
+    }, 800);
+  }
+  if (contactsSyncProgress && contactsSyncProgressBar && contactsSyncProgressLabel) {
+    contactsSyncProgressBar.style.width = "100%";
+    contactsSyncProgressLabel.textContent = finalText;
+    setTimeout(() => {
+      contactsSyncProgress.classList.remove("is-active");
+      contactsSyncProgressBar.style.width = "0%";
     }, 800);
   }
 }
@@ -6868,13 +6920,24 @@ async function runBulkContactSync() {
   const to = syncContactsBulkDateEnd instanceof HTMLInputElement ? syncContactsBulkDateEnd.value : "";
   const createInDestination =
     syncContactsBulkCreate instanceof HTMLInputElement ? syncContactsBulkCreate.checked !== false : true;
+  const directionLabel = direction === "alegra_to_shopify" ? "Alegra → Shopify" : "Shopify → Alegra";
   setContactsSyncStatus("Sincronizando masivo...");
   setContactsBulkSyncRunning(true);
   updateContactsActionVisibility();
   const controller = new AbortController();
   contactsBulkSyncAbort = controller;
+  const stopProgress = startSyncProgress("Contactos");
+  updateContactsProgress(0, "Contactos 0% · ETA --:--");
+  let syncStartTime = Date.now();
+  let latestTotals = {
+    total: null,
+    processed: 0,
+    synced: 0,
+    skipped: 0,
+    failed: 0,
+  };
   try {
-    const result = await fetchJson("/api/sync/contacts/bulk", {
+    const response = await fetch("/api/sync/contacts/bulk?stream=1", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -6886,21 +6949,119 @@ async function runBulkContactSync() {
         createInDestination,
         limit: limit || undefined,
         shopDomain,
+        stream: true,
       }),
       signal: controller.signal,
     });
-    if (result?.skipped) {
-      setContactsSyncStatus("Sin cambios.");
-    } else {
-      const total = Number(result?.total || 0);
-      setContactsSyncStatus(`Sincronizados ${total}.`, "is-ok");
+    if (!response.ok || !response.body) {
+      const text = await response.text();
+      throw new Error(text || "No se pudo sincronizar.");
     }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        let payload;
+        try {
+          payload = JSON.parse(trimmed);
+        } catch {
+          continue;
+        }
+        if (payload.type === "start") {
+          syncStartTime = payload.startedAt || Date.now();
+          if (Number.isFinite(payload.total)) {
+            latestTotals.total = payload.total;
+          }
+          continue;
+        }
+        if (payload.type === "progress") {
+          latestTotals = {
+            ...latestTotals,
+            total: payload.total ?? latestTotals.total,
+            processed: payload.processed ?? latestTotals.processed,
+            synced: payload.synced ?? latestTotals.synced,
+            skipped: payload.skipped ?? latestTotals.skipped,
+            failed: payload.failed ?? latestTotals.failed,
+          };
+          const total = Number(latestTotals.total) || 0;
+          const processed = Number(latestTotals.processed) || 0;
+          const elapsedMs = Date.now() - syncStartTime;
+          const rate = processed > 0 ? elapsedMs / processed : 0;
+          const remainingMs = total > 0 && rate > 0 ? rate * Math.max(0, total - processed) : 0;
+          const percent = total > 0 ? (processed / total) * 100 : 0;
+          const etaText = total > 0 ? formatDuration(remainingMs) : "--:--";
+          updateContactsProgress(percent, `Contactos ${Math.round(percent)}% · ETA ${etaText}`);
+          if (syncContactsStatus) {
+            const synced = Number(latestTotals.synced) || 0;
+            const skipped = Number(latestTotals.skipped) || 0;
+            const failed = Number(latestTotals.failed) || 0;
+            const totalLabel = total > 0 ? `${processed}/${total}` : `${processed}/?`;
+            const last = payload.last && typeof payload.last === "object" ? payload.last : null;
+            const lastLabel = last?.label ? String(last.label) : "";
+            syncContactsStatus.textContent =
+              `Procesados ${totalLabel} · Sincronizados ${synced} · Saltados ${skipped} · Fallidos ${failed}` +
+              (lastLabel ? ` · Último: ${lastLabel}` : "") +
+              ` · ${directionLabel}`;
+          }
+          continue;
+        }
+        if (payload.type === "complete") {
+          const total = payload.total ?? payload.processed ?? 0;
+          const processed = payload.processed ?? 0;
+          const synced = payload.synced ?? 0;
+          const skipped = payload.skipped ?? 0;
+          const failed = payload.failed ?? 0;
+          const summary =
+            total > 0
+              ? `Total: ${total} · Procesados: ${processed} · Sincronizados: ${synced} · Saltados: ${skipped} · Fallidos: ${failed} · ${directionLabel}`
+              : "Sin contactos para sincronizar con esos filtros.";
+          setContactsSyncStatus(summary, "is-ok");
+          finishContactsProgress("Contactos 100%");
+          stopProgress("Contactos 100%");
+          return;
+        }
+        if (payload.type === "canceled") {
+          const summary = "Sincronizacion detenida por el usuario.";
+          setContactsSyncStatus(summary, "is-warn");
+          finishContactsProgress("Contactos detenido");
+          stopProgress("Contactos detenido");
+          return;
+        }
+        if (payload.type === "error") {
+          throw new Error(payload.error || "No se pudo sincronizar.");
+        }
+      }
+    }
+    const total = Number(latestTotals.total) || 0;
+    const processed = Number(latestTotals.processed) || 0;
+    const synced = Number(latestTotals.synced) || 0;
+    const skipped = Number(latestTotals.skipped) || 0;
+    const failed = Number(latestTotals.failed) || 0;
+    const summary =
+      total > 0
+        ? `Total: ${total} · Procesados: ${processed} · Sincronizados: ${synced} · Saltados: ${skipped} · Fallidos: ${failed} · ${directionLabel}`
+        : "Contactos sincronizados.";
+    setContactsSyncStatus(summary, "is-ok");
+    finishContactsProgress("Contactos 100%");
+    stopProgress("Contactos 100%");
   } catch (error) {
     const message = String(error?.message || "");
     if (message.includes("aborted") || message.includes("AbortError")) {
       setContactsSyncStatus("Detenido.");
+      finishContactsProgress("Contactos detenido");
+      stopProgress("Contactos detenido");
     } else {
       setContactsSyncStatus(error?.message || "No se pudo sincronizar.", "is-error");
+      finishContactsProgress("Error en contactos");
+      stopProgress("Error en contactos");
     }
   } finally {
     contactsBulkSyncAbort = null;

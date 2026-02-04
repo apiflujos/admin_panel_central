@@ -24,11 +24,12 @@ export async function syncContactsBulkHandler(req: Request, res: Response) {
   try {
     const { direction, source, target, limit, from, to, createInDestination, shopDomain } =
       req.body || {};
+    const wantsStream = String(req.query?.stream || "") === "1" || req.body?.stream === true;
     if (!direction && !source) {
       return res.status(400).json({ error: "missing_direction" });
     }
     const parsedLimit = typeof limit === "number" ? limit : Number(limit || 0);
-    const result = await syncContactsBulk({
+    const payload = {
       direction:
         direction === "alegra_to_shopify" ? "alegra_to_shopify" : "shopify_to_alegra",
       source: source === "alegra" ? "alegra" : "shopify",
@@ -38,8 +39,58 @@ export async function syncContactsBulkHandler(req: Request, res: Response) {
       to: typeof to === "string" ? to : undefined,
       createInDestination: typeof createInDestination === "boolean" ? createInDestination : undefined,
       shopDomain: shopDomain ? String(shopDomain) : undefined,
+    } as const;
+
+    if (!wantsStream) {
+      const result = await syncContactsBulk(payload);
+      return res.json(result);
+    }
+
+    res.status(200);
+    res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+
+    let closed = false;
+    req.on("close", () => {
+      closed = true;
     });
-    return res.json(result);
+
+    const write = (data: Record<string, unknown>) => {
+      if (closed || res.writableEnded) return;
+      try {
+        res.write(`${JSON.stringify(data)}\n`);
+      } catch {
+        // ignore write failures (connection might be closing)
+      }
+    };
+
+    const startedAt = Date.now();
+    write({ type: "start", startedAt });
+
+    try {
+      const result = await syncContactsBulk({
+        ...payload,
+        shouldAbort: () => closed,
+        onProgress: (progress) => {
+          write({ type: "progress", ...progress });
+        },
+      });
+      write({ type: "complete", ...result });
+    } catch (error) {
+      const code = (error as { code?: string })?.code;
+      if (closed) {
+        return res.end();
+      }
+      if (code === "canceled") {
+        write({ type: "canceled" });
+      } else {
+        const message = (error as { message?: string })?.message || "Sync failed";
+        write({ type: "error", error: message });
+      }
+    }
+    return res.end();
   } catch (error) {
     const message = (error as { message?: string })?.message || "Sync failed";
     return res.status(500).json({ error: message });

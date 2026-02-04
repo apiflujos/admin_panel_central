@@ -378,6 +378,15 @@ export async function syncContactsBulk(options: {
   to?: string;
   createInDestination?: boolean;
   shopDomain?: string;
+  onProgress?: (payload: {
+    total: number | null;
+    processed: number;
+    synced: number;
+    skipped: number;
+    failed: number;
+    last?: { label?: string };
+  }) => void;
+  shouldAbort?: () => boolean;
 }) {
   const ctx = await buildSyncContext(options.shopDomain);
   const storeConfig = await resolveStoreConfig(options.shopDomain || null);
@@ -393,6 +402,33 @@ export async function syncContactsBulk(options: {
 
   const from = normalizeIsoDate(options.from);
   const to = normalizeIsoDate(options.to);
+  const onProgress = typeof options.onProgress === "function" ? options.onProgress : null;
+  const shouldAbort = typeof options.shouldAbort === "function" ? options.shouldAbort : null;
+  const counters = {
+    total: direction === "alegra_to_shopify" ? limit : null,
+    processed: 0,
+    synced: 0,
+    skipped: 0,
+    failed: 0,
+  };
+  const emit = (lastLabel?: string) => {
+    if (!onProgress) return;
+    onProgress({
+      total: typeof counters.total === "number" ? counters.total : null,
+      processed: counters.processed,
+      synced: counters.synced,
+      skipped: counters.skipped,
+      failed: counters.failed,
+      last: lastLabel ? { label: lastLabel } : undefined,
+    });
+  };
+  const maybeAbort = () => {
+    if (shouldAbort && shouldAbort()) {
+      const error = new Error("canceled");
+      (error as { code?: string }).code = "canceled";
+      throw error;
+    }
+  };
 
   if (direction === "shopify_to_alegra") {
     if (!storeConfig.syncContactsFromShopify) {
@@ -409,11 +445,29 @@ export async function syncContactsBulk(options: {
     const customers = query
       ? await ctx.shopify.listAllCustomersByQuery(query, limit)
       : await ctx.shopify.listAllCustomers(limit);
-    const results = [];
+    counters.total = customers.length;
+    emit();
     for (const customer of customers) {
-      results.push(await syncShopifyCustomerToAlegra(ctx, customer, priority, { createInAlegra }));
+      maybeAbort();
+      const label = customer.email || customer.phone || customer.id || "";
+      try {
+        const result = await syncShopifyCustomerToAlegra(ctx, customer, priority, { createInAlegra });
+        counters.processed += 1;
+        if (result?.synced) counters.synced += 1;
+        if (result?.skipped) counters.skipped += 1;
+      } catch {
+        counters.processed += 1;
+        counters.failed += 1;
+      }
+      emit(label);
     }
-    return { total: customers.length, results };
+    return {
+      total: counters.total,
+      processed: counters.processed,
+      synced: counters.synced,
+      skipped: counters.skipped,
+      failed: counters.failed,
+    };
   }
 
   if (!storeConfig.syncContactsFromAlegra) {
@@ -423,7 +477,6 @@ export async function syncContactsBulk(options: {
     typeof options.createInDestination === "boolean"
       ? options.createInDestination
       : storeConfig.syncContactsCreateInShopify;
-  const results = [];
   const pageSize = 50;
   let start = 0;
   let remaining = limit;
@@ -457,19 +510,45 @@ export async function syncContactsBulk(options: {
     }
     return true;
   };
+  emit();
   while (remaining > 0) {
+    maybeAbort();
     const batch = (await ctx.alegra.listContacts({
       limit: Math.min(pageSize, remaining),
       start,
     })) as Array<Record<string, unknown>>;
     if (!Array.isArray(batch) || !batch.length) break;
     for (const item of batch) {
+      maybeAbort();
       if (!withinRange(item)) continue;
-      results.push(await syncAlegraContactToShopify(ctx, item, priority, { createInShopify }));
+      const label =
+        (item.email ? String(item.email) : "") ||
+        (item.phonePrimary ? String(item.phonePrimary) : "") ||
+        (item.identification ? String(item.identification) : "") ||
+        (item.id ? String(item.id) : "");
+      try {
+        const result = await syncAlegraContactToShopify(ctx, item, priority, { createInShopify });
+        counters.processed += 1;
+        if (result?.synced) counters.synced += 1;
+        if (result?.skipped) counters.skipped += 1;
+      } catch {
+        counters.processed += 1;
+        counters.failed += 1;
+      }
+      emit(label);
     }
     if (batch.length < pageSize) break;
     start += pageSize;
     remaining -= pageSize;
   }
-  return { total: results.length, results };
+  // Para Alegra no siempre sabemos el total desde el inicio; reportamos el total real al final.
+  counters.total = counters.processed;
+  emit();
+  return {
+    total: counters.total,
+    processed: counters.processed,
+    synced: counters.synced,
+    skipped: counters.skipped,
+    failed: counters.failed,
+  };
 }
