@@ -1165,7 +1165,7 @@ button {
 
 .panel-header h3 {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--text);
 }
@@ -2925,7 +2925,7 @@ textarea::placeholder {
 
 .mode-head h4 {
   margin: 0;
-  font-size: 9px;
+  font-size: 14px;
   font-weight: 800;
   color: #0f172a;
 } 
