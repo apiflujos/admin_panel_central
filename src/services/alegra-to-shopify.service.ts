@@ -32,6 +32,12 @@ export type AlegraInventoryPayload = {
   };
 };
 
+type InventoryAdjustmentsRule = {
+  warehouseId: string;
+  minQty?: number;
+  maxQty?: number;
+};
+
 const normalizeImageUrls = (images: Array<{ url?: string } | string> = []) =>
   images
     .map((image) => (typeof image === "string" ? image : image?.url))
@@ -47,6 +53,7 @@ export async function syncAlegraItemToShopify(alegraItemId: string) {
     {
       ...buildAlegraProductInput(item, {
         warehouseIds: allowedWarehouseIds,
+        inventoryAdjustmentsRules: ctx.inventoryAdjustmentsRules,
         source: "alegra",
       }),
       shopDomain: ctx.shopDomain,
@@ -77,7 +84,11 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem) {
 
   const mapped = await getMappingByAlegraId("item", alegraItemId);
   const identifiers = extractIdentifiers(item);
-  const availableQuantity = resolveAvailableQuantity(item.inventory, allowedWarehouseIds);
+  const availableQuantity = resolveAvailableQuantity(
+    item.inventory,
+    allowedWarehouseIds,
+    ctx.inventoryAdjustmentsRules
+  );
   const effectiveQuantity = availableQuantity ?? 0;
   const statusInactive = item.status && item.status.toLowerCase() === "inactive";
   const baseProductInput = buildAlegraProductInput(item, {
@@ -244,7 +255,11 @@ export async function syncAlegraInventoryPayloadToShopify(
   const allowedWarehouseIds = Array.isArray(ctx.alegraWarehouseIds)
     ? ctx.alegraWarehouseIds
     : [];
-  const availableQuantity = resolveAvailableQuantity(payload.inventory, allowedWarehouseIds);
+  const availableQuantity = resolveAvailableQuantity(
+    payload.inventory,
+    allowedWarehouseIds,
+    ctx.inventoryAdjustmentsRules
+  );
   if (!ctx.syncEnabled) {
     await upsertProduct({
       shopDomain: ctx.shopDomain,
@@ -415,14 +430,18 @@ function buildAlegraProductInput(
   options: {
     warehouseIds?: string[];
     availableQuantity?: number | null;
+    inventoryAdjustmentsRules?: InventoryAdjustmentsRule[];
     source?: string;
   } = {}
 ) {
   const warehouseIds = Array.isArray(options.warehouseIds) ? options.warehouseIds : [];
+  const inventoryAdjustmentsRules = Array.isArray(options.inventoryAdjustmentsRules)
+    ? options.inventoryAdjustmentsRules
+    : [];
   const availableQuantity =
     typeof options.availableQuantity === "number"
       ? options.availableQuantity
-      : resolveAvailableQuantity(item.inventory, warehouseIds);
+      : resolveAvailableQuantity(item.inventory, warehouseIds, inventoryAdjustmentsRules);
   const resolvedWarehouseIds =
     Array.isArray(item.inventory?.warehouses) && item.inventory?.warehouses?.length
       ? item.inventory.warehouses.map((warehouse) => String(warehouse.id)).filter(Boolean)
@@ -488,15 +507,37 @@ function resolvePrice(
 
 function resolveAvailableQuantity(
   inventory: AlegraItem["inventory"] | AlegraInventoryPayload["inventory"] | undefined,
-  warehouseIds: string[] = []
+  warehouseIds: string[] = [],
+  adjustmentRules: InventoryAdjustmentsRule[] = []
 ) {
   if (!inventory) {
     return null;
   }
-  if (warehouseIds.length && inventory.warehouses) {
+  if (inventory.warehouses) {
+    const rulesByWarehouse = new Map<string, InventoryAdjustmentsRule>();
+    adjustmentRules.forEach((rule) => {
+      if (!rule || !rule.warehouseId) return;
+      rulesByWarehouse.set(String(rule.warehouseId), rule);
+    });
     const total = inventory.warehouses
-      .filter((warehouse) => warehouseIds.includes(String(warehouse.id)))
-      .reduce((acc, warehouse) => acc + Number(warehouse.availableQuantity || 0), 0);
+      .filter((warehouse) =>
+        warehouseIds.length ? warehouseIds.includes(String(warehouse.id)) : true
+      )
+      .reduce((acc, warehouse) => {
+        const id = String(warehouse.id);
+        const rawQty = Number(warehouse.availableQuantity || 0);
+        const qty = Number.isFinite(rawQty) ? rawQty : 0;
+        const rule = rulesByWarehouse.get(id);
+        const minQty = rule && typeof rule.minQty === "number" ? rule.minQty : null;
+        const maxQty = rule && typeof rule.maxQty === "number" ? rule.maxQty : null;
+        if (minQty !== null && minQty > 0 && qty < minQty) {
+          return acc;
+        }
+        if (maxQty !== null && maxQty > 0 && qty > maxQty) {
+          return acc + maxQty;
+        }
+        return acc + qty;
+      }, 0);
     return Number.isFinite(total) ? total : null;
   }
   if (typeof inventory.availableQuantity === "number") {

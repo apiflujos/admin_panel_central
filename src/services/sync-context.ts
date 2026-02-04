@@ -31,10 +31,17 @@ type SyncContext = {
   includeImages: boolean;
   alegraWarehouseId?: string;
   alegraWarehouseIds?: string[];
+  inventoryAdjustmentsRules: InventoryAdjustmentsRule[];
   priceListGeneralId?: string;
   priceListDiscountId?: string;
   priceListWholesaleId?: string;
   priceListCurrency?: string;
+};
+
+type InventoryAdjustmentsRule = {
+  warehouseId: string;
+  minQty?: number;
+  maxQty?: number;
 };
 
 type InventoryRules = {
@@ -45,6 +52,7 @@ type InventoryRules = {
   autoPublishOnWebhook: boolean;
   autoPublishStatus: "draft" | "active";
   warehouseIds: string[];
+  inventoryAdjustmentsRules?: InventoryAdjustmentsRule[];
 };
 
 const normalizeAutoStatus = (value: unknown): "draft" | "active" =>
@@ -95,6 +103,9 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
     autoPublishStatus: normalizeAutoStatus(rules.autoPublishStatus),
     alegraWarehouseId: warehouseId,
     alegraWarehouseIds: rules.warehouseIds,
+    inventoryAdjustmentsRules: Array.isArray((rules as InventoryRules).inventoryAdjustmentsRules)
+      ? ((rules as InventoryRules).inventoryAdjustmentsRules as InventoryAdjustmentsRule[])
+      : [],
     priceListGeneralId: storeConfig.priceListGeneralId,
     priceListDiscountId: storeConfig.priceListDiscountId,
     priceListWholesaleId: storeConfig.priceListWholesaleId,
