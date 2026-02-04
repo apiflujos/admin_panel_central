@@ -3025,6 +3025,7 @@ textarea::placeholder {
 /* Inventario/Productos: evitar controles centrados (alinear a la izquierda). */
 .panel.module[data-module="alegra-inventory"] .mode-toggle-grid {
   justify-content: flex-start;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .panel.module[data-module="alegra-inventory"] .mode-toggle {
