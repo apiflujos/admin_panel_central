@@ -821,10 +821,10 @@
                 <div class="settings-group-body">
                   <div class="panel admin-only module" data-provider="bridge" data-manager="alegra" data-module="shopify-rules" data-module-priority="core" id="legacy-publish-panel" data-help="Modulo principal de Productos: define como se publican y actualizan productos en Shopify cuando llegan cambios desde Alegra (automatico: se sincroniza solo) o cuando publicas manual/masivo desde el panel de Productos.">
                     <div class="panel-header">
-	                      <h3 data-module-toggle="shopify-rules" data-title-base="Sincronizacion y publicacion de productos">
-	                        Sincronizacion y publicacion de productos
-	                        <span class="tip" data-tip="Define como se sincronizan y publican productos desde Alegra hacia Shopify: masivo para iniciar catalogo y reglas para el modo automatico.">?</span>
-	                      </h3>
+		                      <h3 data-module-toggle="shopify-rules" data-title-base="Sincronizacion y publicacion de productos">
+		                        Sincronizacion y publicacion de productos
+		                        <span class="tip" data-tip="Reglas por tienda para llevar productos de Alegra a Shopify.\nMasivo = catálogo inicial o re-sincronización por fechas.\nAutomático = se ejecuta solo cuando llegan cambios.">?</span>
+		                      </h3>
                       <div class="panel-meta">
                         <span class="panel-tag tag-core">Core</span>
                         <span class="panel-tag tag-bridge">Alegra → Shopify</span>
@@ -835,10 +835,10 @@
 	                        <div class="mode-section" data-readonly-free="1">
 		                          <div class="mode-head">
 		                            <div class="mode-head-left">
-		                              <h4>Sincronizacion masiva (inicio)</h4>
-		                              <span class="tip" data-tip="Úsala para crear el catálogo inicial en Shopify desde Alegra. Toma productos por rango de fechas y aplica tus opciones (publicar, estado e inventario). Recomendación: prueba primero con un rango corto.">?</span>
-		                            </div>
-		                          </div>
+			                              <h4>Sincronizacion masiva (inicio)</h4>
+			                              <span class="tip" data-tip="Crea/actualiza productos en Shopify desde Alegra en lote.\nUsa fechas + límite para controlar el alcance.\nRecomendación: prueba con un rango corto y, si es tu primera vez, apaga “Publicar” para validar.">?</span>
+			                            </div>
+			                          </div>
                           <div class="mode-grid">
                             <div class="mode-field">
                               <label for="products-date-start">Fecha inicio</label>
@@ -859,7 +859,7 @@
 		                              <input type="checkbox" id="products-sync-only-active" class="toggle" checked />
 		                            </div>
 		                            <div class="mode-toggle">
-		                              <label for="products-sync-publish">Publicar en Shopify <span class="tip" data-tip="Si lo apagas, solo sincronizamos/actualizamos datos, pero no publicamos en Shopify. Útil si quieres revisar primero y publicar después.">?</span></label>
+			                              <label for="products-sync-publish">Publicar en Shopify <span class="tip" data-tip="Si lo apagas, solo sincronizamos/actualizamos datos, pero no publicamos en Shopify. Útil si quieres revisar primero y publicar después.">?</span></label>
 		                              <input type="checkbox" id="products-sync-publish" class="toggle" checked />
 		                            </div>
 		                            <div class="mode-toggle">
@@ -891,10 +891,10 @@
 		                        <div class="mode-section">
 			                          <div class="mode-head">
 			                            <div class="mode-head-left">
-			                              <h4>Sincronizacion automatica</h4>
-			                              <span class="tip" data-tip="Se ejecuta sola cuando llega un cambio desde Alegra. Estas reglas también aplican cuando publicas manualmente desde Productos (por SKU). Si apagas “Publicar en Shopify”, el sistema no publica productos.">?</span>
-			                            </div>
-			                          </div>
+				                              <h4>Sincronizacion automatica</h4>
+				                              <span class="tip" data-tip="Se ejecuta sola cuando llegan cambios desde Alegra.\nEstas reglas también aplican cuando sincronizas manualmente desde el módulo Productos.\nSi apagas “Publicar en Shopify”, el sistema no deja productos visibles (solo actualiza datos).">?</span>
+				                            </div>
+				                          </div>
 				                          <div class="mode-toggle-grid" aria-label="Opciones automatico">
 				                            <div class="mode-toggle">
 				                              <label for="rules-only-active">Solo activos en Alegra <span class="tip" data-tip="Si está activo, solo se sincronizan productos activos en Alegra (automático y manual por SKU).">?</span></label>
@@ -999,12 +999,12 @@
 	                  </h4>
 	                </div>
 	                <div class="settings-group-body">
-		                  <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="sync-contacts" data-module-priority="core" data-help="Modulo principal de Contactos: define como se identifican y sincronizan clientes entre Shopify y Alegra. Incluye modos automatico (se sincroniza solo), masivo e individual (manual).">
-	                    <div class="panel-header">
-		                      <h3 data-module-toggle="sync-contacts" data-title-base="Contactos bidireccionales">
-		                        Contactos bidireccionales
-		                        <span class="tip" data-tip="Configura sincronizacion masiva y automatica entre Shopify y Alegra.">?</span>
-		                      </h3>
+			                  <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="sync-contacts" data-module-priority="core" data-help="Modulo principal de Contactos: define como se identifican y sincronizan clientes entre Shopify y Alegra. Incluye masivo y automático.">
+		                    <div class="panel-header">
+			                      <h3 data-module-toggle="sync-contacts" data-title-base="Contactos bidireccionales">
+			                        Contactos bidireccionales
+			                        <span class="tip" data-tip="Sincroniza clientes entre Shopify y Alegra.\nPara evitar duplicados: usa el mapeo existente y la “Prioridad de identificación” antes de crear.">?</span>
+			                      </h3>
 	                      <div class="panel-meta">
 	                        <span class="panel-tag tag-core">Core</span>
 	                        <span class="panel-tag tag-bridge">Alegra ↔ Shopify</span>
@@ -1014,10 +1014,10 @@
 		                      <div class="mode-sections">
 			                        <div class="mode-section" data-readonly-free="1">
 			                          <div class="mode-head">
-			                            <h4>Sincronizacion masiva (inicio)</h4>
-			                            <span class="tip" data-tip="Usala para crear/normalizar la base de contactos. Elige la dirección, un rango de fechas y si quieres crear contactos nuevos en el destino.">?</span>
-			                          </div>
-			                          <div class="mode-grid">
+				                            <h4>Sincronizacion masiva (inicio)</h4>
+				                            <span class="tip" data-tip="Crea/normaliza contactos en lote.\nPuedes correr una dirección o ambas (bidireccional). Si activas ambas, se ejecuta en 2 fases.\nTip anti-duplicados: define la prioridad y prueba primero con “Crear” apagado.">?</span>
+				                          </div>
+				                          <div class="mode-grid">
 			                            <div class="mode-field">
 			                              <label for="sync-contacts-bulk-date-start">Fecha inicio</label>
 			                              <input type="date" id="sync-contacts-bulk-date-start" />
@@ -1031,65 +1031,65 @@
 			                              <input type="number" id="sync-contact-limit" min="1" placeholder="200" />
 			                            </div>
 			                          </div>
-			                          <div class="mode-toggle-grid" aria-label="Direcciones masivo">
-			                            <div class="mode-toggle">
-			                              <label for="sync-contacts-bulk-shopify">Shopify → Alegra <span class="tip" data-tip="Trae contactos desde Shopify y los sincroniza en Alegra. Puedes activarlo junto con “Alegra → Shopify” para hacerlo bidireccional.">?</span></label>
-			                              <input type="checkbox" id="sync-contacts-bulk-shopify" class="toggle" checked />
-			                            </div>
-			                            <div class="mode-toggle">
-			                              <label for="sync-contacts-bulk-create-alegra">Crear en Alegra <span class="tip" data-tip="Si está activo y el contacto no existe en Alegra, lo creamos. Si lo apagas, solo actualizamos contactos ya existentes.">?</span></label>
-			                              <input type="checkbox" id="sync-contacts-bulk-create-alegra" class="toggle" data-depends-on="sync-contacts-bulk-shopify" checked />
-			                            </div>
-			                            <div class="mode-toggle">
-			                              <label for="sync-contacts-bulk-alegra">Alegra → Shopify <span class="tip" data-tip="Trae contactos desde Alegra y los sincroniza en Shopify. Puedes activarlo junto con “Shopify → Alegra” para hacerlo bidireccional.">?</span></label>
-			                              <input type="checkbox" id="sync-contacts-bulk-alegra" class="toggle" checked />
-			                            </div>
-			                            <div class="mode-toggle">
-			                              <label for="sync-contacts-bulk-create-shopify">Crear en Shopify <span class="tip" data-tip="Si está activo y el contacto no existe en Shopify, lo creamos. Si lo apagas, solo actualizamos contactos ya existentes.">?</span></label>
-			                              <input type="checkbox" id="sync-contacts-bulk-create-shopify" class="toggle" data-depends-on="sync-contacts-bulk-alegra" checked />
-			                            </div>
-			                            <div class="mode-actions">
-			                              <button class="primary" id="sync-contacts-bulk-run" type="button">Sincronizar masivo</button>
-			                              <button class="ghost danger" id="sync-contacts-bulk-stop" type="button" hidden>Detener</button>
-			                              <button class="ghost" id="sync-contacts-bulk-clear" type="button">Limpiar</button>
-			                              <span class="kpi-sub" id="sync-contacts-status">Sin datos</span>
-			                            </div>
-			                            <div class="sync-progress" id="contacts-sync-progress" aria-hidden="true">
-			                              <div class="sync-progress-track">
-			                                <div class="sync-progress-bar" id="contacts-sync-progress-bar"></div>
-			                              </div>
-			                              <span class="sync-progress-label" id="contacts-sync-progress-label">Sincronizando 0%</span>
-			                            </div>
-			                          </div>
-			                        </div>
+				                          <div class="mode-toggle-grid" aria-label="Direcciones masivo">
+				                            <div class="mode-toggle">
+				                              <label for="sync-contacts-bulk-shopify">Shopify → Alegra <span class="tip" data-tip="Trae contactos desde Shopify (según fechas) y los actualiza/crea en Alegra.">?</span></label>
+				                              <input type="checkbox" id="sync-contacts-bulk-shopify" class="toggle" checked />
+				                            </div>
+				                            <div class="mode-toggle">
+				                              <label for="sync-contacts-bulk-create-alegra">Crear en Alegra <span class="tip" data-tip="Solo aplica a Shopify → Alegra.\nON: si no existe en Alegra, lo creamos.\nOFF: solo actualizamos contactos ya existentes (sin crear nuevos).">?</span></label>
+				                              <input type="checkbox" id="sync-contacts-bulk-create-alegra" class="toggle" data-depends-on="sync-contacts-bulk-shopify" checked />
+				                            </div>
+				                            <div class="mode-toggle">
+				                              <label for="sync-contacts-bulk-alegra">Alegra → Shopify <span class="tip" data-tip="Trae contactos desde Alegra (según fechas) y los actualiza/crea en Shopify.">?</span></label>
+				                              <input type="checkbox" id="sync-contacts-bulk-alegra" class="toggle" checked />
+				                            </div>
+				                            <div class="mode-toggle">
+				                              <label for="sync-contacts-bulk-create-shopify">Crear en Shopify <span class="tip" data-tip="Solo aplica a Alegra → Shopify.\nON: si no existe en Shopify, lo creamos.\nOFF: solo actualizamos clientes ya existentes (sin crear nuevos).">?</span></label>
+				                              <input type="checkbox" id="sync-contacts-bulk-create-shopify" class="toggle" data-depends-on="sync-contacts-bulk-alegra" checked />
+				                            </div>
+				                          </div>
+				                          <div class="mode-actions">
+				                            <button class="primary" id="sync-contacts-bulk-run" type="button">Sincronizar masivo</button>
+				                            <button class="ghost danger" id="sync-contacts-bulk-stop" type="button" hidden>Detener</button>
+				                            <button class="ghost" id="sync-contacts-bulk-clear" type="button">Limpiar</button>
+				                            <span class="kpi-sub" id="sync-contacts-status">Sin datos</span>
+				                          </div>
+				                          <div class="sync-progress" id="contacts-sync-progress" aria-hidden="true">
+				                            <div class="sync-progress-track">
+				                              <div class="sync-progress-bar" id="contacts-sync-progress-bar"></div>
+				                            </div>
+				                            <span class="sync-progress-label" id="contacts-sync-progress-label">Sincronizando 0%</span>
+				                          </div>
+				                        </div>
 
-		                        <div class="mode-section">
-		                          <div class="mode-head">
-		                            <h4>Sincronizacion automatica y manual</h4>
-		                            <span class="tip" data-tip="Define qué direcciones están activas y si se permiten creaciones nuevas en el destino.">?</span>
-		                          </div>
-		                          <div class="mode-grid">
-		                            <div class="mode-field">
-		                              <label for="sync-contacts-shopify">Shopify → Alegra <span class="tip" data-tip="Si está activo, puedes sincronizar contactos desde Shopify hacia Alegra (manual y masivo).">?</span></label>
-		                              <input type="checkbox" id="sync-contacts-shopify" class="toggle" checked />
-		                            </div>
-		                            <div class="mode-field">
-		                              <label for="sync-contacts-create-alegra">Crear en Alegra <span class="tip" data-tip="Si está activo y el contacto no existe en Alegra, lo creamos. Si lo apagas, solo actualizamos contactos ya existentes.">?</span></label>
-		                              <input type="checkbox" id="sync-contacts-create-alegra" class="toggle" data-depends-on="sync-contacts-shopify" checked />
-		                            </div>
-		                            <div class="mode-field">
-		                              <label for="sync-contacts-alegra">Alegra → Shopify <span class="tip" data-tip="Si está activo, puedes sincronizar contactos desde Alegra hacia Shopify (manual y masivo).">?</span></label>
-		                              <input type="checkbox" id="sync-contacts-alegra" class="toggle" checked />
-		                            </div>
-		                            <div class="mode-field">
-		                              <label for="sync-contacts-create-shopify">Crear en Shopify <span class="tip" data-tip="Si está activo y el contacto no existe en Shopify, lo creamos. Si lo apagas, solo actualizamos contactos ya existentes.">?</span></label>
-		                              <input type="checkbox" id="sync-contacts-create-shopify" class="toggle" data-depends-on="sync-contacts-alegra" checked />
-		                            </div>
-		                            <div class="mode-field">
-		                              <label for="sync-contacts-priority">Prioridad de identificacion</label>
-		                              <select id="sync-contacts-priority">
-		                                <option value="document_phone_email">Documento → Teléfono → Email</option>
-		                                <option value="email_document_phone">Email → Documento → Teléfono</option>
+			                        <div class="mode-section">
+			                          <div class="mode-head">
+			                            <h4>Sincronizacion automatica</h4>
+			                            <span class="tip" data-tip="Define qué direcciones están permitidas en automático.\nNota: el masivo usa los toggles de arriba (dirección + crear).">?</span>
+			                          </div>
+			                          <div class="mode-grid">
+			                            <div class="mode-field">
+			                              <label for="sync-contacts-shopify">Shopify → Alegra <span class="tip" data-tip="Permite que el sistema sincronice automáticamente desde Shopify hacia Alegra.">?</span></label>
+			                              <input type="checkbox" id="sync-contacts-shopify" class="toggle" checked />
+			                            </div>
+			                            <div class="mode-field">
+			                              <label for="sync-contacts-create-alegra">Crear en Alegra <span class="tip" data-tip="En automático, permite crear nuevos contactos en Alegra cuando no existen.\nSi lo apagas, solo se actualizan existentes.">?</span></label>
+			                              <input type="checkbox" id="sync-contacts-create-alegra" class="toggle" data-depends-on="sync-contacts-shopify" checked />
+			                            </div>
+			                            <div class="mode-field">
+			                              <label for="sync-contacts-alegra">Alegra → Shopify <span class="tip" data-tip="Permite que el sistema sincronice automáticamente desde Alegra hacia Shopify.">?</span></label>
+			                              <input type="checkbox" id="sync-contacts-alegra" class="toggle" checked />
+			                            </div>
+			                            <div class="mode-field">
+			                              <label for="sync-contacts-create-shopify">Crear en Shopify <span class="tip" data-tip="En automático, permite crear nuevos clientes en Shopify cuando no existen.\nSi lo apagas, solo se actualizan existentes.">?</span></label>
+			                              <input type="checkbox" id="sync-contacts-create-shopify" class="toggle" data-depends-on="sync-contacts-alegra" checked />
+			                            </div>
+			                            <div class="mode-field">
+			                              <label for="sync-contacts-priority">Prioridad de identificación <span class="tip" data-tip="Antes de crear, buscamos el contacto en el destino usando este orden.\nSi encontramos match, actualizamos (evita duplicados).\nRecomendación: si Documento es confiable, ponlo primero.">?</span></label>
+			                              <select id="sync-contacts-priority">
+			                                <option value="document_phone_email">Documento → Teléfono → Email</option>
+			                                <option value="email_document_phone">Email → Documento → Teléfono</option>
 		                                <option value="phone_document_email">Teléfono → Documento → Email</option>
 		                              </select>
 		                            </div>
