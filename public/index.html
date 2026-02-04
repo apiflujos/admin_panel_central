@@ -773,16 +773,15 @@
 	        </div>
 	      </div>
 
-	        <div class="settings-pane" data-settings-pane="stores">
-	          <div class="settings-group store-group" data-group="store">
-	            <div class="settings-group-header" data-group-toggle="store" data-help="Selecciona la tienda activa y gestiona conexiones y configuraciones de esa tienda.">
-	              <h3 data-store-title data-title-base="Tiendas">Tiendas</h3>
-	              <span class="settings-group-subtitle">Configuracion de la tienda activa</span>
-	            </div>
-	            <div class="settings-group-body">
+		        <div class="settings-pane" data-settings-pane="stores">
+		          <div class="panel admin-only" id="stores-switcher-panel" data-help="Tiendas conectadas: elige la tienda activa. Todo lo de abajo (productos, pedidos, contactos, etc.) se guarda por tienda activa.">
+		            <div class="panel-header">
+		              <h3>Tiendas conectadas</h3>
+		            </div>
+		            <div class="module-body">
 		              <div class="settings-grid store-meta">
 		                <div class="field span-2" id="store-active-field">
-		                  <label>Tienda <span class="tip" data-tip="Esta tienda define el alcance: todo lo de abajo se guarda por tienda activa.">?</span></label>
+		                  <label>Tienda activa <span class="tip" data-tip="Cambia la tienda activa para ver y guardar configuraciones diferentes por tienda.">?</span></label>
 		                  <div class="field-actions inline">
 			                  <select id="store-active-select"></select>
 			                  <button class="ghost danger" id="store-delete" type="button" title="Eliminar tienda">Eliminar tienda</button>
@@ -792,11 +791,20 @@
 		                  <span class="field-hint store-scope-hint">Todo lo de abajo se guarda por tienda. Si cambias de tienda activa, cambian estos ajustes.</span>
 		                </div>
 		              </div>
+		            </div>
+		          </div>
 
-		          <div class="settings-group provider-group" data-group="products">
-		                <div class="settings-group-header" data-group-toggle="products">
-		                  <h4 class="group-title">
-	                    <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
+		          <div class="settings-group store-group" data-group="store">
+		            <div class="settings-group-header" data-group-toggle="store" data-help="Configuracion de la tienda activa: todo lo de abajo aplica solo a la tienda seleccionada arriba.">
+		              <h3 data-store-title data-title-base="Tienda activa">Tienda activa</h3>
+		              <span class="settings-group-subtitle">Configuracion por tienda</span>
+		            </div>
+		            <div class="settings-group-body">
+
+			          <div class="settings-group provider-group" data-group="products">
+			                <div class="settings-group-header" data-group-toggle="products">
+			                  <h4 class="group-title">
+		                    <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
 	                    <span class="group-arrow">→</span>
                     <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
                     Productos e inventario
