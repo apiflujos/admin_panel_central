@@ -1552,7 +1552,7 @@ button {
   letter-spacing: 0.12em;
 }
 
-.module.is-readonly input,
+.module.is-readonly input:not(.toggle),
 .module.is-readonly select,
 .module.is-readonly textarea {
   background: #f8fafc;
@@ -1560,7 +1560,7 @@ button {
   color: var(--text);
 }
 
-.module.is-readonly input:disabled,
+.module.is-readonly input:not(.toggle):disabled,
 .module.is-readonly select:disabled,
 .module.is-readonly textarea:disabled {
   opacity: 1;
@@ -1616,18 +1616,23 @@ button {
 }
 
 .toggle:disabled {
-  opacity: 1;
+  opacity: 0.72;
   cursor: not-allowed;
 }
 
 .toggle:disabled::after {
-  background: #cbd5e1;
+  background: #e2e8f0;
   box-shadow: none;
 }
 
 .toggle:disabled:checked {
-  background: #94a3b8;
-  border-color: rgba(71, 85, 105, 0.6);
+  background: var(--primary);
+  border-color: rgba(0, 43, 91, 0.55);
+}
+
+.toggle:disabled:not(:checked) {
+  background: rgba(15, 23, 42, 0.12);
+  border-color: rgba(15, 23, 42, 0.18);
 }
 
 .toggle-field {
