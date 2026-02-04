@@ -17,6 +17,23 @@ type OAuthEnv = {
   appHost: string;
 };
 
+export function shopifyOAuthStatus(req: Request, res: Response) {
+  const apiKey = String(process.env.SHOPIFY_API_KEY || "").trim();
+  const apiSecret = String(process.env.SHOPIFY_API_SECRET || "").trim();
+  const scopes = String(process.env.SHOPIFY_SCOPES || "").trim();
+  const appHost = resolveAppHost(req);
+  const missing: string[] = [];
+  if (!apiKey) missing.push("SHOPIFY_API_KEY");
+  if (!apiSecret) missing.push("SHOPIFY_API_SECRET");
+  if (!scopes) missing.push("SHOPIFY_SCOPES");
+  if (!appHost) missing.push("APP_HOST (o PUBLIC_URL)");
+  res.status(200).json({
+    enabled: missing.length === 0,
+    missing,
+    appHost,
+  });
+}
+
 function resolveAppHost(req: Request) {
   const explicit = String(process.env.APP_HOST || process.env.PUBLIC_URL || "").trim();
   if (explicit) return explicit.replace(/\/$/, "");

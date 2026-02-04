@@ -310,6 +310,8 @@ let activeStoreConfig = null;
 let shopifyHasToken = false;
 let alegraHasToken = false;
 let transferOriginIds = [];
+let shopifyOAuthAvailable = true;
+let shopifyOAuthMissing = [];
 
 function getTransferOriginDetails() {
   return cfgTransferOrigin ? cfgTransferOrigin.closest("details") : null;
@@ -329,6 +331,7 @@ let inventoryRules = {
 let globalInvoiceSettings = null;
 let storeRuleOverrides = null;
 let storeInvoiceOverrides = null;
+let cryptoWarningShown = false;
 
 const PRODUCT_SETTINGS_KEY = "apiflujos-products-settings";
 const STORE_WIZARD_KEY = "apiflujos-store-wizard";
@@ -1366,6 +1369,7 @@ function initSetupModeControls() {
 
 function initShopifyConnectPicker() {
   applyShopifyConnectMethod(getShopifyConnectMethod());
+  loadShopifyOAuthStatus().catch(() => null);
   if (!shopifyConnectPicker) return;
   shopifyConnectPicker.addEventListener("click", (event) => {
     const target = event.target instanceof HTMLElement ? event.target : null;
@@ -1380,6 +1384,37 @@ function initShopifyConnectPicker() {
         setShopifyConnectMethod("token");
       }
     });
+  }
+}
+
+async function loadShopifyOAuthStatus() {
+  if (!shopifyConnectPicker) return;
+  try {
+    const status = await fetchJson("/api/auth/shopify/status");
+    shopifyOAuthAvailable = Boolean(status && status.enabled);
+    shopifyOAuthMissing = Array.isArray(status?.missing) ? status.missing : [];
+  } catch {
+    shopifyOAuthAvailable = false;
+    shopifyOAuthMissing = [];
+  }
+  applyShopifyOAuthAvailability();
+}
+
+function applyShopifyOAuthAvailability() {
+  if (!shopifyConnectPicker) return;
+  const oauthBtn = shopifyConnectPicker.querySelector('[data-shopify-connect="oauth"]');
+  if (oauthBtn instanceof HTMLButtonElement) {
+    const disabled = !shopifyOAuthAvailable;
+    oauthBtn.disabled = disabled;
+    oauthBtn.classList.toggle("is-disabled", disabled);
+    oauthBtn.title = disabled
+      ? `No disponible: falta configurar ${shopifyOAuthMissing.length ? shopifyOAuthMissing.join(", ") : "OAuth"} en el servidor.`
+      : "";
+  }
+  if (!shopifyOAuthAvailable && getShopifyConnectMethod() === "oauth") {
+    setShopifyConnectMethod("token");
+  } else {
+    applyShopifyConnectMethod(getShopifyConnectMethod());
   }
 }
 
@@ -3511,6 +3546,7 @@ async function maybeApplyPendingStoreConfigCopy() {
 async function loadConnections() {
   try {
     const data = await fetchJson("/api/connections");
+    maybeShowCryptoWarning(data);
     renderConnections(data);
     renderAlegraAccountOptions(data.alegraAccounts || []);
     const stores = Array.isArray(data.stores) ? data.stores : [];
@@ -3537,6 +3573,17 @@ async function loadConnections() {
     updateWizardStartAvailability();
     syncSettingsPane();
   }
+}
+
+function maybeShowCryptoWarning(payload) {
+  if (cryptoWarningShown) return;
+  const misconfigured = Boolean(payload && payload.securityMisconfigured);
+  if (!misconfigured) return;
+  cryptoWarningShown = true;
+  showToast(
+    "Seguridad: CRYPTO_KEY_BASE64 no es estable o esta mal configurada. Por eso no se pueden leer credenciales guardadas. Solucion: fija CRYPTO_KEY_BASE64 en Render y reconecta la(s) tienda(s).",
+    "is-warn"
+  );
 }
 
 function updateStoreModuleTitles() {
@@ -3753,13 +3800,17 @@ function setShopifyConnectMethod(method) {
 
 function applyShopifyConnectMethod(method) {
   const next = method === "token" ? "token" : "oauth";
+  const resolved = next === "oauth" && !shopifyOAuthAvailable ? "token" : next;
   if (shopifyConnectPicker) {
     shopifyConnectPicker.querySelectorAll("[data-shopify-connect]").forEach((button) => {
       if (!(button instanceof HTMLButtonElement)) return;
-      button.classList.toggle("is-active", button.getAttribute("data-shopify-connect") === next);
+      button.classList.toggle(
+        "is-active",
+        button.getAttribute("data-shopify-connect") === resolved
+      );
     });
   }
-  const isToken = next === "token";
+  const isToken = resolved === "token";
   if (shopifyTokenField) {
     shopifyTokenField.style.display = isToken ? "" : "none";
   }
@@ -3770,9 +3821,14 @@ function applyShopifyConnectMethod(method) {
     }
   }
   if (shopifyConnectHint) {
-    shopifyConnectHint.textContent = isToken
-      ? "Pega la clave de acceso de esta tienda y conecta."
-      : "Por app (OAuth2) abre la autorizacion de Shopify para esta tienda.";
+    if (!shopifyOAuthAvailable) {
+      shopifyConnectHint.textContent =
+        "La autorizacion (OAuth2) no esta configurada en el servidor. Usa clave de acceso.";
+    } else {
+      shopifyConnectHint.textContent = isToken
+        ? "Pega la clave de acceso de esta tienda y conecta."
+        : "Por autorizacion abre la pantalla de Shopify para conectar esta tienda.";
+    }
   }
 }
 

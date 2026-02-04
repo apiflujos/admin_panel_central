@@ -2072,6 +2072,10 @@ button {
   gap: 8px;
 }
 
+.panel.module[data-module="connections-summary"] .module-body {
+  max-width: none;
+}
+
 .module-compact {
   max-width: 760px;
   justify-self: start;
@@ -2111,7 +2115,7 @@ button {
   align-items: stretch;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 720px) {
   .connection-tiles {
     grid-template-columns: 1fr;
   }
@@ -2701,9 +2705,10 @@ textarea::placeholder {
   margin-top: 10px;
   display: grid;
   /* UX: en desktop deben caber 4 opciones en una sola fila. */
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 200px));
   gap: 8px;
-  justify-content: stretch;
+  justify-content: center;
+  align-items: stretch;
 }
 
 .mode-toggle {
@@ -2714,9 +2719,11 @@ textarea::placeholder {
   display: grid;
   gap: 6px;
   align-content: start;
-  min-height: 62px;
+  min-height: 74px;
   width: 100%;
   max-width: none;
+  text-align: center;
+  justify-items: center;
 }
 
 .mode-toggle label {
@@ -2727,7 +2734,7 @@ textarea::placeholder {
 }
 
 .mode-toggle .toggle {
-  justify-self: start;
+  justify-self: center;
 }
 
 .mode-toggle select,
@@ -2749,7 +2756,7 @@ textarea::placeholder {
 }
 
 .mode-field .toggle {
-  justify-self: start;
+  justify-self: center;
 }
 
 .mode-field-wide {

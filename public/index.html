@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260201s" />
-    <link rel="stylesheet" href="styles.css?v=20260204p7" />
+    <link rel="stylesheet" href="styles.css?v=20260204p8" />
   </head>
   <body>
     <div class="app-shell">
@@ -651,19 +651,19 @@
 			                      <input type="text" id="shopify-domain" placeholder="tu-tienda.myshopify.com" />
 			                      <span class="field-hint">Se usa para iniciar la autorizacion de Shopify.</span>
 		                    </div>
-		                    <div class="field span-2">
-		                      <label>Metodo de conexion <span class="tip" data-tip="Elige como conectar Shopify: por app (OAuth2) o manual (si ya tienes una clave de acceso de Shopify para esta tienda).">?</span></label>
-		                      <div class="setup-mode-picker" id="shopify-connect-picker" aria-label="Metodo de conexion Shopify">
-		                        <button class="setup-mode is-active" type="button" data-shopify-connect="oauth">Por app (OAuth2)</button>
-		                        <button class="setup-mode" type="button" data-shopify-connect="token">Integracion manual</button>
-		                      </div>
-		                      <span class="field-hint" id="shopify-connect-hint">Por app (OAuth2) abre la autorizacion de Shopify para esta tienda.</span>
-		                    </div>
-		                    <div class="field span-2" id="shopify-token-field">
-		                      <label>Clave de acceso Shopify <span class="tip" data-tip="Pega aqui la clave de acceso (Admin API) de Shopify para esta tienda y presiona Conectar Shopify.">?</span></label>
-		                      <input type="password" id="shopify-token" placeholder="shpat_********" autocomplete="new-password" />
-		                      <span class="field-hint">Se guarda cifrada. Usala solo si no puedes conectar por app (OAuth2).</span>
-		                    </div>
+			                    <div class="field span-2">
+			                      <label>Metodo de conexion <span class="tip" data-tip="Elige como conectar Shopify: por autorizacion (OAuth2) o por clave de acceso (Admin API).">?</span></label>
+			                      <div class="setup-mode-picker" id="shopify-connect-picker" aria-label="Metodo de conexion Shopify">
+			                        <button class="setup-mode is-active" type="button" data-shopify-connect="oauth">Por autorizacion</button>
+			                        <button class="setup-mode" type="button" data-shopify-connect="token">Por clave de acceso</button>
+			                      </div>
+			                      <span class="field-hint" id="shopify-connect-hint">Por autorizacion abre la pantalla de Shopify para conectar esta tienda.</span>
+			                    </div>
+			                    <div class="field span-2" id="shopify-token-field">
+			                      <label>Clave de acceso Shopify <span class="tip" data-tip="Pega aqui la clave de acceso (Admin API) de Shopify para esta tienda y presiona Conectar Shopify.">?</span></label>
+			                      <input type="password" id="shopify-token" placeholder="shpat_********" autocomplete="new-password" />
+			                      <span class="field-hint">Se guarda cifrada. Usala si no puedes conectar por autorizacion.</span>
+			                    </div>
 		                  </div>
                 </div>
 
@@ -957,9 +957,9 @@
 		                              <label for="rules-sync-enabled">Actualizar stock en Shopify</label>
 		                              <input type="checkbox" id="rules-sync-enabled" class="toggle" />
 		                            </div>
-		                            <div class="mode-toggle">
-		                              <label for="cfg-inventory-warehouses">Bodegas que cuentan para stock</label>
-		                              <details class="multi-select">
+			                            <div class="mode-toggle">
+			                              <label for="cfg-inventory-warehouses">Bodegas para stock</label>
+			                              <details class="multi-select">
 		                                <summary>
 		                                  <span>Seleccionar bodegas</span>
 		                                  <em id="cfg-inventory-warehouses-summary">Todas</em>
@@ -975,22 +975,22 @@
 		                            <span class="tip" data-tip="Si está activa, el sistema revisa cambios de inventario y los aplica en Shopify cada cierto tiempo (según la frecuencia que elijas).">?</span>
 		                          </div>
 		                          <div class="mode-toggle-grid" aria-label="Frecuencia de inventario">
-		                            <div class="mode-toggle">
-		                              <label for="inventory-cron-enabled">Automatización activa</label>
-		                              <input type="checkbox" id="inventory-cron-enabled" class="toggle" />
-		                            </div>
-		                            <div class="mode-toggle">
-		                              <label for="inventory-cron-interval-select">Cada cuánto se actualiza</label>
-		                              <select id="inventory-cron-interval-select" data-depends-on="inventory-cron-enabled">
+			                            <div class="mode-toggle">
+			                              <label for="inventory-cron-enabled">Automatización</label>
+			                              <input type="checkbox" id="inventory-cron-enabled" class="toggle" />
+			                            </div>
+			                            <div class="mode-toggle">
+			                              <label for="inventory-cron-interval-select">Frecuencia</label>
+			                              <select id="inventory-cron-interval-select" data-depends-on="inventory-cron-enabled">
 		                                <option value="5">Cada 5 minutos</option>
 		                                <option value="10">Cada 10 minutos</option>
 		                                <option value="15">Cada 15 minutos</option>
 		                              </select>
 		                            </div>
-		                            <div class="mode-toggle">
-		                              <label for="cfg-inventory-auto-publish">Aplicar cambios automáticamente</label>
-		                              <input type="checkbox" id="cfg-inventory-auto-publish" class="toggle" data-depends-on="inventory-cron-enabled" />
-		                            </div>
+			                            <div class="mode-toggle">
+			                              <label for="cfg-inventory-auto-publish">Aplicar cambios a Shopify <span class="tip" data-tip="Si está activo, los ajustes de inventario se aplican en Shopify sin pedir confirmación. Si lo apagas, el sistema solo revisa pero no aplica cambios.">?</span></label>
+			                              <input type="checkbox" id="cfg-inventory-auto-publish" class="toggle" data-depends-on="inventory-cron-enabled" />
+			                            </div>
 		                          </div>
 		                          <div class="mode-actions" aria-label="Estado de automatización">
 		                            <span class="kpi-sub">
@@ -1510,6 +1510,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260204p7" type="module"></script>
+    <script src="app.js?v=20260204p8" type="module"></script>
   </body>
 </html>

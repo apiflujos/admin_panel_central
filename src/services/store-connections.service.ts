@@ -25,7 +25,11 @@ const normalizeShopDomain = (value: string) =>
 
 const isCryptoKeyMisconfigured = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error || "");
-  return message.includes("CRYPTO_KEY_BASE64 must be 32 bytes");
+  return (
+    message.includes("CRYPTO_KEY_BASE64 must be 32 bytes") ||
+    message.includes("CRYPTO_KEY_BASE64") ||
+    message.toLowerCase().includes("invalid key length")
+  );
 };
 
 export async function getShopifyConnectionByDomain(shopDomain: string) {
@@ -123,6 +127,7 @@ export async function getAlegraConnectionByDomain(shopDomain: string) {
 export async function listStoreConnections() {
   const pool = getPool();
   const orgId = getOrgId();
+  let securityMisconfigured = false;
 
   let stores = await pool.query<{
     id: number;
@@ -209,8 +214,7 @@ export async function listStoreConnections() {
     [orgId]
   );
 
-  return {
-    stores: stores.rows.map((row) => ({
+  const mappedStores = stores.rows.map((row) => ({
       id: row.id,
       shopDomain: row.shop_domain,
       storeName: row.store_name || "",
@@ -225,10 +229,13 @@ export async function listStoreConnections() {
             shopifyConnected = Boolean(String(decrypted?.accessToken || "").trim());
           } catch (error) {
             if (isCryptoKeyMisconfigured(error)) {
-              throw error;
+              securityMisconfigured = true;
+              shopifyConnected = false;
+              shopifyNeedsReconnect = true;
+            } else {
+              shopifyConnected = false;
+              shopifyNeedsReconnect = true;
             }
-            shopifyConnected = false;
-            shopifyNeedsReconnect = true;
           }
         }
 
@@ -243,10 +250,13 @@ export async function listStoreConnections() {
               alegraConnected = Boolean(String(decrypted?.apiKey || "").trim());
             } catch (error) {
               if (isCryptoKeyMisconfigured(error)) {
-                throw error;
+                securityMisconfigured = true;
+                alegraConnected = false;
+                alegraNeedsReconnect = true;
+              } else {
+                alegraConnected = false;
+                alegraNeedsReconnect = true;
               }
-              alegraConnected = false;
-              alegraNeedsReconnect = true;
             }
           } else {
             alegraConnected = false;
@@ -265,8 +275,9 @@ export async function listStoreConnections() {
       alegraAccountId: row.alegra_account_id || undefined,
       alegraEmail: row.user_email || "",
       alegraEnvironment: row.environment || "prod",
-    })),
-    alegraAccounts: alegraAccounts.rows.map((row) => ({
+    }));
+
+  const mappedAlegraAccounts = alegraAccounts.rows.map((row) => ({
       id: row.id,
       email: row.user_email,
       environment: row.environment || "prod",
@@ -277,12 +288,18 @@ export async function listStoreConnections() {
           return !String(decrypted?.apiKey || "").trim();
         } catch (error) {
           if (isCryptoKeyMisconfigured(error)) {
-            throw error;
+            securityMisconfigured = true;
+            return true;
           }
           return true;
         }
       })(),
-    })),
+    }));
+
+  return {
+    securityMisconfigured,
+    stores: mappedStores,
+    alegraAccounts: mappedAlegraAccounts,
   };
 }
 

@@ -45,7 +45,7 @@ import {
   deleteShopifyWebhooksHandler,
   getShopifyWebhooksStatusHandler,
 } from "./shopify-webhooks.controller";
-import { shopifyOAuthCallback, startShopifyOAuth } from "./shopify-oauth.controller";
+import { shopifyOAuthCallback, shopifyOAuthStatus, startShopifyOAuth } from "./shopify-oauth.controller";
 import { listContactsHandler, syncContactHandler, syncContactsBulkHandler } from "./contacts.controller";
 import { listOrdersHandler, backfillOrdersHandler } from "./orders.controller";
 
@@ -70,6 +70,7 @@ router.use(wrap(authMiddleware));
 router.post("/auth/logout", wrap(logoutHandler));
 router.post("/auth/password", wrap(changePasswordHandler));
 router.get("/auth/me", wrap(authMe));
+router.get("/auth/shopify/status", requireAdmin, wrap(shopifyOAuthStatus));
 router.post("/auth/token", requireAdmin, wrap(createAuthTokenHandler));
 router.get("/profile", wrap(getProfileHandler));
 router.put("/profile", wrap(updateProfileHandler));
