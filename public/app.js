@@ -1171,13 +1171,36 @@ function setDependentEnabled(element, enabled) {
 }
 
 function applyToggleDependencies() {
-  document.querySelectorAll("[data-depends-on]").forEach((element) => {
-    if (!(element instanceof HTMLElement)) return;
-    const ids = parseDependsOn(element.getAttribute("data-depends-on") || "");
-    if (!ids.length) return;
-    const enabled = ids.every((id) => isToggleOnById(id));
-    setDependentEnabled(element, enabled);
-  });
+  const dependents = Array.from(document.querySelectorAll("[data-depends-on]")).filter(
+    (element) => element instanceof HTMLElement,
+  );
+
+  // Puede haber dependencias en cadena (A depende de X y B depende de A).
+  // Aplicamos varias pasadas para que el apagado se propague en el mismo "change".
+  for (let pass = 0; pass < 6; pass += 1) {
+    let changed = false;
+    dependents.forEach((element) => {
+      if (!(element instanceof HTMLElement)) return;
+      const ids = parseDependsOn(element.getAttribute("data-depends-on") || "");
+      if (!ids.length) return;
+      const enabled = ids.every((id) => isToggleOnById(id));
+
+      // Regla UX: si la funcion base está apagada, la accion dependiente también debe quedar apagada.
+      if (
+        !enabled &&
+        element instanceof HTMLInputElement &&
+        element.type === "checkbox" &&
+        element.classList.contains("toggle") &&
+        element.checked
+      ) {
+        element.checked = false;
+        changed = true;
+      }
+
+      setDependentEnabled(element, enabled);
+    });
+    if (!changed) break;
+  }
 }
 
 function initToggleDependencies() {

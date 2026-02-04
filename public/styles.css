@@ -28,7 +28,7 @@ body {
   font-family: "Manrope", sans-serif;
   background: var(--bg);
   color: var(--text);
-  font-size: 10.5px;
+  font-size: 11.5px;
 }
 
 .login-page {
@@ -1169,7 +1169,7 @@ button {
 
 .panel-header h3 {
   margin: 0;
-  font-size: 16.8px;
+  font-size: 14.2px;
   font-weight: 800;
   color: var(--text);
 }
@@ -1500,7 +1500,7 @@ button {
 }
 
 .settings-group-title {
-  font-size: 7.6px;
+  font-size: 8.2px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -1548,20 +1548,20 @@ button {
 .settings-group-header h3,
 .settings-group-header h4 {
   margin: 0;
-  font-size: 11.35px;
+  font-size: 15.2px;
   font-weight: 800;
   color: var(--text);
 }
 
 .settings-group-header h4 {
-  font-size: 11.35px;
+  font-size: 15.2px;
   color: var(--text);
 }
 
 /* Titulos principales (ej: Tiendas, Productos e inventario) */
 .settings-group-header h3[data-store-title],
 .settings-group-header h4.group-title {
-  font-size: 11.35px;
+  font-size: 15.2px;
 }
 
 .group-title {
@@ -1571,7 +1571,7 @@ button {
 }
 
 .group-arrow {
-  font-size: 10.7px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -1717,13 +1717,13 @@ button {
 
 .store-item-title {
   font-weight: 800;
-  font-size: 11.35px;
+  font-size: 10.8px;
   color: #0f172a;
   line-height: 1.15;
 }
 
 .store-item-sub {
-  font-size: 9.2px;
+  font-size: 8.5px;
   color: var(--muted);
 }
 
@@ -1735,7 +1735,7 @@ button {
 }
 
 .store-item-pill {
-  font-size: 8.4px;
+  font-size: 8.2px;
   padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid var(--stroke);
@@ -1763,12 +1763,12 @@ button {
 }
 
 .store-switcher-kicker {
-  font-size: 9.2px;
+  font-size: 8.5px;
   color: var(--muted);
 }
 
 .store-switcher-name {
-  font-size: 13.6px;
+  font-size: 12.5px;
   font-weight: 900;
   color: #0f172a;
 }
@@ -3000,7 +3000,7 @@ textarea::placeholder {
 }
 
 .mode-head-right label {
-  font-size: 9.2px;
+  font-size: 9.8px;
   font-weight: 800;
   color: var(--muted);
 }
@@ -3008,7 +3008,7 @@ textarea::placeholder {
 .mode-head-right select {
   padding: 4px 8px;
   border-radius: 10px;
-  font-size: 10.1px;
+  font-size: 10.6px;
   font-weight: 800;
 }
 
@@ -3022,7 +3022,7 @@ textarea::placeholder {
 
 .mode-head h4 {
   margin: 0;
-  font-size: 11.8px;
+  font-size: 12.8px;
   font-weight: 800;
   color: #0f172a;
 } 
@@ -3033,7 +3033,7 @@ textarea::placeholder {
   grid-template-columns: repeat(auto-fill, minmax(220px, 280px));
   gap: 10px;
   align-items: start;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .mode-toggle-grid {
@@ -3042,7 +3042,7 @@ textarea::placeholder {
   /* UX: en desktop deben caber 4 opciones en una sola fila. */
   grid-template-columns: repeat(auto-fit, minmax(140px, 190px));
   gap: 6px;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: stretch;
 }
 
@@ -3057,23 +3057,23 @@ textarea::placeholder {
   min-height: 58px;
   width: 100%;
   max-width: none;
-  text-align: center;
-  justify-items: center;
+  text-align: left;
+  justify-items: stretch;
 }
 
 .mode-toggle label {
   color: #1f2937;
-  font-size: 9.2px;
+  font-size: 10.2px;
   font-weight: 800;
   line-height: 1.2;
   min-height: 26px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .mode-toggle .toggle {
-  justify-self: center;
+  justify-self: flex-start;
 }
 
 .mode-toggle select,
@@ -3199,19 +3199,19 @@ textarea::placeholder {
 
 .mode-field label {
   color: #1f2937;
-  font-size: 10.1px;
+  font-size: 10.6px;
   font-weight: 800;
 }
 
 .mode-field .toggle {
-  justify-self: center;
+  justify-self: flex-start;
 }
 
 .mode-field-wide {
   grid-column: 1 / -1;
   max-width: 580px;
   width: 100%;
-  justify-self: center;
+  justify-self: flex-start;
 }
 
 @media (max-width: 720px) {
