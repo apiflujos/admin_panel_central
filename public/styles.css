@@ -1498,6 +1498,12 @@ button {
   color: var(--text);
 }
 
+/* Titulos principales (ej: Tiendas, Productos e inventario) */
+.settings-group-header h3[data-store-title],
+.settings-group-header h4.group-title {
+  font-size: 13.5px;
+}
+
 .group-title {
   display: inline-flex;
   align-items: center;
