@@ -213,8 +213,6 @@ const cfgInventoryPublishStock = document.getElementById("cfg-inventory-publish-
 const cfgInventoryAutoPublish = document.getElementById("cfg-inventory-auto-publish");
 const cfgInventoryWarehouses = document.getElementById("cfg-inventory-warehouses");
 const cfgInventoryWarehousesSummary = document.getElementById("cfg-inventory-warehouses-summary");
-const cfgInventoryAdjustRules = document.getElementById("cfg-inventory-adjustment-rules");
-const cfgInventoryAdjustRulesAdd = document.getElementById("cfg-inventory-adjustment-rules-add");
 const syncContactsShopify = document.getElementById("sync-contacts-shopify");
 const syncContactsAlegra = document.getElementById("sync-contacts-alegra");
 const syncContactsPriority = document.getElementById("sync-contacts-priority");
@@ -415,7 +413,6 @@ let activeProductsSyncId = "";
 let assistantHasSpoken = false;
 let assistantFiles = [];
 let activeEinvoiceOrderId = "";
-let inventoryAdjustmentsRules = [];
 
 function setProductsBulkSyncRunning(running) {
   const isRunning = Boolean(running);
@@ -3089,9 +3086,6 @@ async function handleModuleSave(moduleKey) {
       await saveStoreConfigFromSettings();
       await saveSettings({ includeRules: true });
     },
-    "inventory-adjustment-rules": async () => {
-      await saveStoreConfigFromSettings();
-    },
     "alegra-logistics": async () => {
       await saveStoreConfigFromSettings();
     },
@@ -3119,7 +3113,7 @@ async function handleModuleSave(moduleKey) {
       throw new Error("Completa los campos obligatorios.");
     }
     await action();
-    if (moduleKey === "alegra-invoice" || moduleKey === "alegra-inventory" || moduleKey === "inventory-adjustment-rules" || moduleKey === "alegra-logistics" || moduleKey === "shopify-rules" || moduleKey === "sync-contacts" || moduleKey === "sync-orders") {
+    if (moduleKey === "alegra-invoice" || moduleKey === "alegra-inventory" || moduleKey === "alegra-logistics" || moduleKey === "shopify-rules" || moduleKey === "sync-contacts" || moduleKey === "sync-orders") {
       if (hadWarning) {
         setStoreConfigStatus("Guardado con recomendaciones pendientes.", "is-warn");
       } else {
@@ -3130,7 +3124,7 @@ async function handleModuleSave(moduleKey) {
     setModuleSaved(panel, true);
     advanceWizardStep(moduleKey);
   } catch (error) {
-    if (moduleKey === "alegra-invoice" || moduleKey === "alegra-inventory" || moduleKey === "inventory-adjustment-rules" || moduleKey === "alegra-logistics" || moduleKey === "shopify-rules" || moduleKey === "sync-contacts" || moduleKey === "sync-orders") {
+    if (moduleKey === "alegra-invoice" || moduleKey === "alegra-inventory" || moduleKey === "alegra-logistics" || moduleKey === "shopify-rules" || moduleKey === "sync-contacts" || moduleKey === "sync-orders") {
       setStoreConfigStatus(error?.message || "No se pudo guardar.", "is-error");
     }
     throw error;
@@ -4014,11 +4008,7 @@ function applyRuleSettings(settings, options = {}) {
   if (productsPublishStatusMass) {
     productsPublishStatusMass.value = rulesAutoStatus?.value || "draft";
   }
-  inventoryAdjustmentsRules = Array.isArray(settings.inventoryAdjustmentsRules)
-    ? settings.inventoryAdjustmentsRules
-    : [];
   renderInventoryWarehouseFilters();
-  renderInventoryAdjustmentsRules();
 }
 
 function applyLegacyStoreConfig(config) {
@@ -4732,7 +4722,7 @@ function renderInventoryWarehouseFilters() {
 }
 
 async function loadSettingsWarehouses() {
-  if (!cfgWarehouseSync && !cfgInventoryWarehouses && !cfgInventoryAdjustRules) return;
+  if (!cfgWarehouseSync && !cfgInventoryWarehouses) return;
   try {
     const params = new URLSearchParams();
     const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
@@ -4749,7 +4739,6 @@ async function loadSettingsWarehouses() {
   }
   renderSyncWarehouseFilters();
   renderInventoryWarehouseFilters();
-  renderInventoryAdjustmentsRules();
   renderTransferOriginFilters();
 }
 
@@ -4779,162 +4768,6 @@ function updateInventoryWarehouseSummary() {
     return;
   }
   cfgInventoryWarehousesSummary.textContent = `${selected.length} seleccionadas`;
-}
-
-function normalizeAdjustRuleQty(value) {
-  const parsed = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) return null;
-  return Math.floor(parsed);
-}
-
-function normalizeInventoryAdjustmentsRules(value) {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((rule) => {
-      if (!rule || typeof rule !== "object") return null;
-      const item = rule;
-      const warehouseId = String(item.warehouseId || "").trim();
-      if (!warehouseId) return null;
-      const minQty = normalizeAdjustRuleQty(item.minQty);
-      const maxQty = normalizeAdjustRuleQty(item.maxQty);
-      const normalized = { warehouseId };
-      if (minQty !== null) normalized.minQty = minQty;
-      if (maxQty !== null) normalized.maxQty = maxQty;
-      if (
-        typeof normalized.minQty === "number" &&
-        typeof normalized.maxQty === "number" &&
-        normalized.maxQty < normalized.minQty
-      ) {
-        delete normalized.maxQty;
-      }
-      return normalized;
-    })
-    .filter(Boolean);
-}
-
-function getInventoryAdjustmentsRulesFromInputs() {
-  if (!(cfgInventoryAdjustRules instanceof HTMLElement)) {
-    return normalizeInventoryAdjustmentsRules(inventoryAdjustmentsRules);
-  }
-  const rows = Array.from(cfgInventoryAdjustRules.querySelectorAll("[data-adjust-rule-row]"));
-  const parsed = rows
-    .map((row) => {
-      if (!(row instanceof HTMLElement)) return null;
-      const warehouseSelect = row.querySelector("select[data-adjust-rule-field='warehouse']");
-      const minInput = row.querySelector("input[data-adjust-rule-field='min']");
-      const maxInput = row.querySelector("input[data-adjust-rule-field='max']");
-      const warehouseId =
-        warehouseSelect instanceof HTMLSelectElement ? String(warehouseSelect.value || "").trim() : "";
-      if (!warehouseId) return null;
-      const minQty =
-        minInput instanceof HTMLInputElement ? normalizeAdjustRuleQty(minInput.value) : null;
-      const maxQty =
-        maxInput instanceof HTMLInputElement ? normalizeAdjustRuleQty(maxInput.value) : null;
-      const normalized = { warehouseId };
-      if (minQty !== null) normalized.minQty = minQty;
-      if (maxQty !== null) normalized.maxQty = maxQty;
-      return normalized;
-    })
-    .filter(Boolean);
-  return normalizeInventoryAdjustmentsRules(parsed);
-}
-
-function getInventoryAdjustmentsRulesDraftFromInputs() {
-  if (!(cfgInventoryAdjustRules instanceof HTMLElement)) {
-    return Array.isArray(inventoryAdjustmentsRules) ? inventoryAdjustmentsRules : [];
-  }
-  const rows = Array.from(cfgInventoryAdjustRules.querySelectorAll("[data-adjust-rule-row]"));
-  return rows
-    .map((row) => {
-      if (!(row instanceof HTMLElement)) return null;
-      const warehouseSelect = row.querySelector("select[data-adjust-rule-field='warehouse']");
-      const minInput = row.querySelector("input[data-adjust-rule-field='min']");
-      const maxInput = row.querySelector("input[data-adjust-rule-field='max']");
-      const warehouseId =
-        warehouseSelect instanceof HTMLSelectElement ? String(warehouseSelect.value || "") : "";
-      const minQty = minInput instanceof HTMLInputElement ? String(minInput.value || "") : "";
-      const maxQty = maxInput instanceof HTMLInputElement ? String(maxInput.value || "") : "";
-      return { warehouseId, minQty, maxQty };
-    })
-    .filter(Boolean);
-}
-
-function renderInventoryAdjustmentsRules() {
-  if (!(cfgInventoryAdjustRules instanceof HTMLElement)) return;
-  cfgInventoryAdjustRules.innerHTML = "";
-
-  const head = document.createElement("div");
-  head.className = "rules-head";
-  head.innerHTML = `
-    <span>Bodega</span>
-    <span>Mínimo</span>
-    <span>Máximo</span>
-    <span></span>
-  `;
-  cfgInventoryAdjustRules.appendChild(head);
-
-  const list = Array.isArray(inventoryAdjustmentsRules) ? inventoryAdjustmentsRules : [];
-  if (!list.length) {
-    const empty = document.createElement("span");
-    empty.className = "empty";
-    empty.textContent = "Sin reglas. Se usa el stock real de las bodegas seleccionadas.";
-    cfgInventoryAdjustRules.appendChild(empty);
-    return;
-  }
-
-  const sortedWarehouses = [...settingsWarehousesCatalog].sort((a, b) =>
-    String(a?.name || "").localeCompare(String(b?.name || ""), "es")
-  );
-
-  list.forEach((rule, index) => {
-    const row = document.createElement("div");
-    row.className = "rules-row";
-    row.dataset.adjustRuleRow = String(index);
-
-    const warehouseSelect = document.createElement("select");
-    warehouseSelect.dataset.adjustRuleField = "warehouse";
-    const defaultOpt = document.createElement("option");
-    defaultOpt.value = "";
-    defaultOpt.textContent = "Selecciona bodega...";
-    warehouseSelect.appendChild(defaultOpt);
-    sortedWarehouses.forEach((warehouse) => {
-      const id = String(warehouse.id || warehouse._id || "");
-      if (!id) return;
-      const option = document.createElement("option");
-      option.value = id;
-      option.textContent = warehouse.name || `Bodega ${id}`;
-      warehouseSelect.appendChild(option);
-    });
-    warehouseSelect.value = String(rule?.warehouseId || "");
-
-    const minInput = document.createElement("input");
-    minInput.type = "number";
-    minInput.min = "0";
-    minInput.step = "1";
-    minInput.placeholder = "—";
-    minInput.dataset.adjustRuleField = "min";
-    minInput.value = rule?.minQty ? String(rule.minQty) : "";
-
-    const maxInput = document.createElement("input");
-    maxInput.type = "number";
-    maxInput.min = "0";
-    maxInput.step = "1";
-    maxInput.placeholder = "—";
-    maxInput.dataset.adjustRuleField = "max";
-    maxInput.value = rule?.maxQty ? String(rule.maxQty) : "";
-
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "ghost danger rules-remove";
-    remove.textContent = "Quitar";
-    remove.dataset.adjustRuleRemove = String(index);
-
-    row.appendChild(warehouseSelect);
-    row.appendChild(minInput);
-    row.appendChild(maxInput);
-    row.appendChild(remove);
-    cfgInventoryAdjustRules.appendChild(row);
-  });
 }
 
 function getSelectedTransferOriginIds() {
@@ -7050,7 +6883,6 @@ async function saveStoreConfigFromSettings() {
       includeImages: rulesAutoImages ? rulesAutoImages.checked !== false : true,
       syncEnabled: rulesSyncEnabled ? rulesSyncEnabled.checked : true,
       warehouseIds: getSelectedInventoryWarehouseIds(),
-      inventoryAdjustmentsRules: getInventoryAdjustmentsRulesFromInputs(),
     },
     sync: {
       contacts: {
@@ -7715,32 +7547,6 @@ if (cfgInventoryWarehouses) {
       selectAllInput.checked = selected === 0 || selected === total;
     }
     updateInventoryWarehouseSummary();
-  });
-}
-if (cfgInventoryAdjustRulesAdd) {
-  cfgInventoryAdjustRulesAdd.addEventListener("click", () => {
-    inventoryAdjustmentsRules = getInventoryAdjustmentsRulesDraftFromInputs();
-    inventoryAdjustmentsRules.push({ warehouseId: "", minQty: "", maxQty: "" });
-    renderInventoryAdjustmentsRules();
-  });
-}
-if (cfgInventoryAdjustRules) {
-  cfgInventoryAdjustRules.addEventListener("input", () => {
-    inventoryAdjustmentsRules = getInventoryAdjustmentsRulesDraftFromInputs();
-  });
-  cfgInventoryAdjustRules.addEventListener("change", () => {
-    inventoryAdjustmentsRules = getInventoryAdjustmentsRulesDraftFromInputs();
-  });
-  cfgInventoryAdjustRules.addEventListener("click", (event) => {
-    const target = event.target instanceof HTMLElement ? event.target : null;
-    if (!target) return;
-    const remove = target.closest("[data-adjust-rule-remove]");
-    if (!(remove instanceof HTMLElement)) return;
-    const rawIndex = Number(remove.getAttribute("data-adjust-rule-remove") || "");
-    if (!Number.isFinite(rawIndex)) return;
-    inventoryAdjustmentsRules = getInventoryAdjustmentsRulesDraftFromInputs();
-    inventoryAdjustmentsRules.splice(rawIndex, 1);
-    renderInventoryAdjustmentsRules();
   });
 }
 if (cfgTransferOrigin) {

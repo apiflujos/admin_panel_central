@@ -1772,12 +1772,6 @@ button {
   opacity: 1;
 }
 
-.module.is-readonly #cfg-inventory-adjustment-rules-add,
-.module.is-readonly .rules-table button {
-  pointer-events: none;
-  opacity: 0.65;
-}
-
 .module.is-disabled {
   opacity: 0.85;
 }
@@ -2996,53 +2990,6 @@ textarea::placeholder {
 
 .mode-toggle .multi-select summary em {
   font-size: 9.5px;
-}
-
-/* Reglas: ajustes de inventario por bodega */
-.rules-table {
-  display: grid;
-  gap: 8px;
-}
-
-.rules-table .rules-head {
-  display: grid;
-  grid-template-columns: minmax(180px, 1fr) 140px 140px 92px;
-  gap: 8px;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  padding: 0 2px;
-}
-
-.rules-table .rules-row {
-  display: grid;
-  grid-template-columns: minmax(180px, 1fr) 140px 140px 92px;
-  gap: 8px;
-  align-items: center;
-}
-
-.rules-table select,
-.rules-table input:not([type="checkbox"]) {
-  width: 100%;
-}
-
-.rules-table .rules-remove {
-  width: 100%;
-}
-
-@media (max-width: 720px) {
-  .rules-table .rules-head {
-    display: none;
-  }
-
-  .rules-table .rules-row {
-    grid-template-columns: 1fr;
-  }
-
-  .rules-table .rules-row > * {
-    width: 100%;
-  }
 }
 
 /* Pilot: Productos mas minimalista y compacto (sin recuadro por opcion). */

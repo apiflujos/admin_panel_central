@@ -12,39 +12,6 @@ const normalizeShopDomain = (value: string) =>
 const normalizeIdList = (value?: unknown) =>
   Array.isArray(value) ? value.map((id) => String(id)).filter(Boolean) : [];
 
-type InventoryAdjustmentsRule = {
-  warehouseId: string;
-  minQty?: number;
-  maxQty?: number;
-};
-
-const normalizeInventoryAdjustmentsRules = (value: unknown): InventoryAdjustmentsRule[] => {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((rule) => {
-      if (!rule || typeof rule !== "object") return null;
-      const item = rule as Record<string, unknown>;
-      const warehouseId = String(item.warehouseId || "").trim();
-      if (!warehouseId) return null;
-      const minQtyRaw = item.minQty;
-      const maxQtyRaw = item.maxQty;
-      const minQty = typeof minQtyRaw === "number" ? minQtyRaw : Number(minQtyRaw);
-      const maxQty = typeof maxQtyRaw === "number" ? maxQtyRaw : Number(maxQtyRaw);
-      const normalized: InventoryAdjustmentsRule = { warehouseId };
-      if (Number.isFinite(minQty) && minQty > 0) normalized.minQty = Math.floor(minQty);
-      if (Number.isFinite(maxQty) && maxQty > 0) normalized.maxQty = Math.floor(maxQty);
-      if (
-        typeof normalized.minQty === "number" &&
-        typeof normalized.maxQty === "number" &&
-        normalized.maxQty < normalized.minQty
-      ) {
-        delete normalized.maxQty;
-      }
-      return normalized;
-    })
-    .filter((rule): rule is InventoryAdjustmentsRule => Boolean(rule));
-};
-
 const normalizeBoolean = (value: unknown, fallback: boolean) => {
   if (typeof value === "boolean") return value;
   return fallback;
@@ -249,9 +216,6 @@ export async function listStoreConfigs() {
         warehouseIds: normalizeIdList(
           (rules as Record<string, unknown>).warehouseIds || defaults.rules?.warehouseIds || []
         ),
-        inventoryAdjustmentsRules: normalizeInventoryAdjustmentsRules(
-          (rules as Record<string, unknown>).inventoryAdjustmentsRules
-        ),
       },
       invoice: {
         generateInvoice: normalizeBoolean(
@@ -441,9 +405,6 @@ export async function getStoreConfigForDomain(shopDomain: string) {
       ),
       warehouseIds: normalizeIdList(
         (rules as Record<string, unknown>).warehouseIds || defaults.rules?.warehouseIds || []
-      ),
-      inventoryAdjustmentsRules: normalizeInventoryAdjustmentsRules(
-        (rules as Record<string, unknown>).inventoryAdjustmentsRules
       ),
     },
     invoice: {
