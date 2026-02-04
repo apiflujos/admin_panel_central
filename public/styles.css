@@ -1194,6 +1194,11 @@ button {
   display: none;
 }
 
+/* Ajustes de inventario: no mostrar badge "Bloqueado" (el módulo se maneja con Editar/Guardar). */
+.panel.module[data-module="alegra-inventory"].is-readonly .panel-header h3[data-module-toggle]::before {
+  display: none;
+}
+
 .panel.module.is-saved .panel-header h3[data-module-toggle]::after {
   content: "Guardado";
   font-size: 10px;
@@ -1234,7 +1239,24 @@ button {
   background: transparent;
 }
 
+.settings-group.provider-group[data-group="contacts"] .settings-group-body {
+  gap: 0;
+  padding: 0;
+}
+
+.settings-group.provider-group[data-group="contacts"] .panel.module {
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 12px 14px;
+  background: transparent;
+}
+
 .settings-group.provider-group[data-group="products"] .panel[data-provider]::before {
+  display: none;
+}
+
+.settings-group.provider-group[data-group="contacts"] .panel[data-provider]::before {
   display: none;
 }
 
@@ -1246,7 +1268,16 @@ button {
   display: none;
 }
 
+.settings-group.provider-group[data-group="contacts"] .panel.module .panel-meta {
+  display: none;
+}
+
 .settings-group.provider-group[data-group="products"] .panel.module .panel-header {
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.settings-group.provider-group[data-group="contacts"] .panel.module .panel-header {
   padding: 0;
   margin-bottom: 8px;
 }
@@ -1256,8 +1287,19 @@ button {
   margin: 0;
 }
 
+.settings-group.provider-group[data-group="contacts"] .panel.module .module-body {
+  max-width: none;
+  margin: 0;
+}
+
 .settings-group.provider-group[data-group="products"] .panel.module[data-module="shopify-rules"] .mode-sections,
 .settings-group.provider-group[data-group="products"] .panel.module[data-module="alegra-inventory"] .mode-sections {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.settings-group.provider-group[data-group="contacts"] .panel.module[data-module="sync-contacts"] .mode-sections {
   border: 0;
   padding: 0;
   background: transparent;
@@ -1273,8 +1315,22 @@ button {
   margin: 0;
 }
 
+.settings-group.provider-group[data-group="contacts"] .panel.module[data-module="sync-contacts"] .mode-section {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 14px;
+  padding: 10px;
+  background: #fff;
+  max-width: none;
+  margin: 0;
+}
+
 .settings-group.provider-group[data-group="products"] .panel.module[data-module="shopify-rules"] .mode-section + .mode-section,
 .settings-group.provider-group[data-group="products"] .panel.module[data-module="alegra-inventory"] .mode-section + .mode-section {
+  border-top: 1px solid rgba(15, 23, 42, 0.12);
+  margin-top: 10px;
+}
+
+.settings-group.provider-group[data-group="contacts"] .panel.module[data-module="sync-contacts"] .mode-section + .mode-section {
   border-top: 1px solid rgba(15, 23, 42, 0.12);
   margin-top: 10px;
 }
@@ -1526,6 +1582,10 @@ button {
   padding-left: 18px;
 }
 
+.settings-group.provider-group[data-group="contacts"] .settings-group-header {
+  padding-left: 18px;
+}
+
 .settings-group.provider-group[data-group="orders"] .settings-group-header {
   padding-left: 18px;
 }
@@ -1539,6 +1599,7 @@ button {
 }
 
 .settings-group.provider-group[data-group="products"] .settings-group-header::before,
+.settings-group.provider-group[data-group="contacts"] .settings-group-header::before,
 .settings-group.provider-group[data-group="orders"] .settings-group-header::before,
 .settings-group.provider-group[data-group="operations"] .settings-group-header::before,
 .settings-group.provider-group[data-group="admin"] .settings-group-header::before {
@@ -1552,6 +1613,7 @@ button {
 }
 
 .settings-group.provider-group[data-group="products"] .settings-group-header::before,
+.settings-group.provider-group[data-group="contacts"] .settings-group-header::before,
 .settings-group.provider-group[data-group="orders"] .settings-group-header::before,
 .settings-group.provider-group[data-group="operations"] .settings-group-header::before,
 .settings-group.provider-group[data-group="admin"] .settings-group-header::before {
@@ -3020,6 +3082,21 @@ textarea::placeholder {
 
 .panel.module[data-module="shopify-rules"] input.toggle:checked::after {
   transform: translateX(18px);
+}
+
+/* Contactos: evitar controles centrados (alinear a la izquierda). */
+.panel.module[data-module="sync-contacts"] .mode-grid {
+  justify-content: flex-start;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.panel.module[data-module="sync-contacts"] .mode-field .toggle {
+  justify-self: flex-start;
+}
+
+.panel.module[data-module="sync-contacts"] .mode-field-wide {
+  justify-self: stretch;
+  max-width: none;
 }
 
 /* Inventario/Productos: evitar controles centrados (alinear a la izquierda). */

@@ -2477,10 +2477,6 @@ function reorderSettingsPanels() {
   if (!ordersBody) return;
 
   const syncOrdersPanel = ordersBody.querySelector('.module[data-module="sync-orders"]');
-  const syncContactsPanel = ordersBody.querySelector('.module[data-module="sync-contacts"]');
-  if (syncOrdersPanel && syncContactsPanel) {
-    ordersBody.insertBefore(syncOrdersPanel, syncContactsPanel);
-  }
 
   const invoicePanel = ordersBody.querySelector('.module[data-module="alegra-invoice"]');
   const logisticsPanel = ordersBody.querySelector('.module[data-module="alegra-logistics"]');
@@ -2507,7 +2503,7 @@ function openWizardGroups(moduleKey) {
   const map = {
     "shopify-rules": "products",
     "alegra-inventory": "products",
-    "sync-contacts": "orders",
+    "sync-contacts": "contacts",
     "sync-orders": "orders",
     "alegra-logistics": "orders",
     "alegra-invoice": "orders",
