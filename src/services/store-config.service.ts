@@ -23,6 +23,8 @@ export type StoreConfig = {
   currency?: string;
   syncContactsFromShopify: boolean;
   syncContactsFromAlegra: boolean;
+  syncContactsCreateInAlegra: boolean;
+  syncContactsCreateInShopify: boolean;
   contactMatchPriority: ContactMatchRule[];
   syncOrdersShopifyToAlegra: ShopifyOrderMode;
   syncOrdersAlegraToShopify: AlegraOrderMode;
@@ -174,6 +176,8 @@ export async function getStoreConfigByDomain(shopDomain: string): Promise<StoreC
     currency: (priceLists.currency as string | undefined) || row.currency || undefined,
     syncContactsFromShopify: contactSync.fromShopify !== false,
     syncContactsFromAlegra: contactSync.fromAlegra !== false,
+    syncContactsCreateInAlegra: contactSync.createInAlegra !== false,
+    syncContactsCreateInShopify: contactSync.createInShopify !== false,
     contactMatchPriority: normalizeMatchPriority(contactSync.matchPriority),
     syncOrdersShopifyToAlegra: normalizeShopifyOrderMode(orderSync.shopifyToAlegra),
     syncOrdersAlegraToShopify: normalizeAlegraOrderMode(orderSync.alegraToShopify),
@@ -214,6 +218,8 @@ export async function getDefaultStoreConfig(): Promise<StoreConfig> {
     transferStrategy: "manual",
     syncContactsFromShopify: true,
     syncContactsFromAlegra: true,
+    syncContactsCreateInAlegra: true,
+    syncContactsCreateInShopify: true,
     contactMatchPriority: ["document", "phone", "email"],
     syncOrdersShopifyToAlegra: "invoice",
     syncOrdersAlegraToShopify: "off",

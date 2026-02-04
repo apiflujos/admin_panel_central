@@ -260,6 +260,8 @@ export async function listStoreConfigs() {
         contacts: {
           fromShopify: normalizeBoolean(contactSync.fromShopify, true),
           fromAlegra: normalizeBoolean(contactSync.fromAlegra, true),
+          createInAlegra: normalizeBoolean((contactSync as Record<string, unknown>).createInAlegra, true),
+          createInShopify: normalizeBoolean((contactSync as Record<string, unknown>).createInShopify, true),
           matchPriority: normalizeContactPriority(
             contactSync.matchPriority,
             ["document", "phone", "email"]
@@ -450,6 +452,8 @@ export async function getStoreConfigForDomain(shopDomain: string) {
       contacts: {
         fromShopify: normalizeBoolean(contactSync.fromShopify, true),
         fromAlegra: normalizeBoolean(contactSync.fromAlegra, true),
+        createInAlegra: normalizeBoolean((contactSync as Record<string, unknown>).createInAlegra, true),
+        createInShopify: normalizeBoolean((contactSync as Record<string, unknown>).createInShopify, true),
         matchPriority: normalizeContactPriority(
           contactSync.matchPriority,
           ["document", "phone", "email"]

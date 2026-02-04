@@ -220,9 +220,15 @@ const syncContactIdentifier = document.getElementById("sync-contact-identifier")
 const syncContactSource = document.getElementById("sync-contact-source");
 const syncContactRun = document.getElementById("sync-contact-run");
 const syncContactLimit = document.getElementById("sync-contact-limit");
-const syncContactsShopifyRun = document.getElementById("sync-contacts-shopify-run");
-const syncContactsAlegraRun = document.getElementById("sync-contacts-alegra-run");
+const syncContactsBulkDirection = document.getElementById("sync-contacts-bulk-direction");
+const syncContactsBulkDateStart = document.getElementById("sync-contacts-bulk-date-start");
+const syncContactsBulkDateEnd = document.getElementById("sync-contacts-bulk-date-end");
+const syncContactsBulkCreate = document.getElementById("sync-contacts-bulk-create");
+const syncContactsBulkCreateLabel = document.getElementById("sync-contacts-bulk-create-label");
+const syncContactsBulkRun = document.getElementById("sync-contacts-bulk-run");
 const syncContactsStatus = document.getElementById("sync-contacts-status");
+const syncContactsCreateAlegra = document.getElementById("sync-contacts-create-alegra");
+const syncContactsCreateShopify = document.getElementById("sync-contacts-create-shopify");
 const syncOrdersShopify = document.getElementById("sync-orders-shopify");
 const syncOrdersAlegra = document.getElementById("sync-orders-alegra");
 const syncOrdersShopifyEnabled = document.getElementById("sync-orders-shopify-enabled");
@@ -4100,9 +4106,17 @@ function applyLegacyStoreConfig(config) {
   if (syncContactsAlegra) {
     syncContactsAlegra.checked = contactSync.fromAlegra !== false;
   }
+  if (syncContactsCreateAlegra) {
+    syncContactsCreateAlegra.checked = contactSync.createInAlegra !== false;
+  }
+  if (syncContactsCreateShopify) {
+    syncContactsCreateShopify.checked = contactSync.createInShopify !== false;
+  }
   if (syncContactsPriority) {
     syncContactsPriority.value = priorityKey;
   }
+  updateContactsBulkCreateLabel();
+  applyContactsBulkCreateDefaults();
   if (syncOrdersShopify) {
     syncOrdersShopify.value = String(orderSync.shopifyToAlegra || defaultShopifyMode);
   }
@@ -4146,7 +4160,11 @@ function clearLegacyStoreConfig() {
   applyInvoiceSettings(globalInvoiceSettings);
   if (syncContactsShopify) syncContactsShopify.checked = true;
   if (syncContactsAlegra) syncContactsAlegra.checked = true;
+  if (syncContactsCreateAlegra) syncContactsCreateAlegra.checked = true;
+  if (syncContactsCreateShopify) syncContactsCreateShopify.checked = true;
   if (syncContactsPriority) syncContactsPriority.value = "document_phone_email";
+  updateContactsBulkCreateLabel();
+  applyContactsBulkCreateDefaults();
   if (syncOrdersShopify) {
     syncOrdersShopify.value = "db_only";
   }
@@ -6783,19 +6801,67 @@ async function runSingleContactSync() {
   }
 }
 
-async function runBulkContactSync(source) {
+function getContactsBulkDirection() {
+  const value =
+    syncContactsBulkDirection instanceof HTMLSelectElement
+      ? String(syncContactsBulkDirection.value || "")
+      : "";
+  return value === "alegra_to_shopify" ? "alegra_to_shopify" : "shopify_to_alegra";
+}
+
+function updateContactsBulkCreateLabel() {
+  if (!(syncContactsBulkCreateLabel instanceof HTMLElement)) return;
+  const direction = getContactsBulkDirection();
+  // We only update the text node; keep the tooltip inside the label.
+  const labelText = direction === "alegra_to_shopify" ? "Crear en Shopify " : "Crear en Alegra ";
+  const existingTip = syncContactsBulkCreateLabel.querySelector(".tip");
+  syncContactsBulkCreateLabel.textContent = labelText;
+  if (existingTip) syncContactsBulkCreateLabel.appendChild(existingTip);
+}
+
+function applyContactsBulkCreateDefaults() {
+  if (!(syncContactsBulkCreate instanceof HTMLInputElement)) return;
+  const direction = getContactsBulkDirection();
+  if (direction === "alegra_to_shopify") {
+    if (syncContactsCreateShopify instanceof HTMLInputElement) {
+      syncContactsBulkCreate.checked = syncContactsCreateShopify.checked !== false;
+    }
+    return;
+  }
+  if (syncContactsCreateAlegra instanceof HTMLInputElement) {
+    syncContactsBulkCreate.checked = syncContactsCreateAlegra.checked !== false;
+  }
+}
+
+async function runBulkContactSync() {
   const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   if (!shopDomain) {
     setContactsSyncStatus("Dominio Shopify requerido.", "is-error");
     return;
   }
+  const direction = getContactsBulkDirection();
+  const source = direction === "alegra_to_shopify" ? "alegra" : "shopify";
+  const target = direction === "alegra_to_shopify" ? "shopify" : "alegra";
   const limit = syncContactLimit ? Number(syncContactLimit.value || 0) : 0;
+  const from = syncContactsBulkDateStart instanceof HTMLInputElement ? syncContactsBulkDateStart.value : "";
+  const to = syncContactsBulkDateEnd instanceof HTMLInputElement ? syncContactsBulkDateEnd.value : "";
+  const createInDestination =
+    syncContactsBulkCreate instanceof HTMLInputElement ? syncContactsBulkCreate.checked !== false : true;
   setContactsSyncStatus("Sincronizando masivo...");
   try {
     const result = await fetchJson("/api/sync/contacts/bulk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ source, limit: limit || undefined, shopDomain }),
+      body: JSON.stringify({
+        direction,
+        source,
+        target,
+        from: from || undefined,
+        to: to || undefined,
+        createInDestination,
+        limit: limit || undefined,
+        shopDomain,
+      }),
     });
     if (result?.skipped) {
       setContactsSyncStatus("Sin cambios.");
@@ -6888,6 +6954,8 @@ async function saveStoreConfigFromSettings() {
       contacts: {
         fromShopify: syncContactsShopify ? syncContactsShopify.checked : true,
         fromAlegra: syncContactsAlegra ? syncContactsAlegra.checked : true,
+        createInAlegra: syncContactsCreateAlegra ? syncContactsCreateAlegra.checked : true,
+        createInShopify: syncContactsCreateShopify ? syncContactsCreateShopify.checked : true,
         matchPriority,
       },
       orders: {
@@ -7934,27 +8002,28 @@ if (shopifyWebhooksStatusBtn) {
   });
 }
 
-if (syncContactRun) {
-  syncContactRun.addEventListener("click", () => {
-    runSingleContactSync();
-  });
-}
+  if (syncContactRun) {
+    syncContactRun.addEventListener("click", () => {
+      runSingleContactSync();
+    });
+  }
 
-if (syncContactsShopifyRun) {
-  syncContactsShopifyRun.addEventListener("click", () => {
-    runBulkContactSync("shopify");
-  });
-}
+  if (syncContactsBulkRun) {
+    syncContactsBulkRun.addEventListener("click", () => {
+      runBulkContactSync();
+    });
+  }
 
-if (syncContactsAlegraRun) {
-  syncContactsAlegraRun.addEventListener("click", () => {
-    runBulkContactSync("alegra");
-  });
-}
+  if (syncContactsBulkDirection) {
+    syncContactsBulkDirection.addEventListener("change", () => {
+      updateContactsBulkCreateLabel();
+      applyContactsBulkCreateDefaults();
+    });
+  }
 
-if (ordersSyncBtn) {
-  ordersSyncBtn.addEventListener("click", runOrdersSync);
-}
+  if (ordersSyncBtn) {
+    ordersSyncBtn.addEventListener("click", runOrdersSync);
+  }
 
 if (ordersSyncClear) {
   ordersSyncClear.addEventListener("click", () => {

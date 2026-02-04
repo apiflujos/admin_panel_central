@@ -22,14 +22,21 @@ export async function syncContactHandler(req: Request, res: Response) {
 
 export async function syncContactsBulkHandler(req: Request, res: Response) {
   try {
-    const { source, limit, shopDomain } = req.body || {};
-    if (!source) {
-      return res.status(400).json({ error: "missing_source" });
+    const { direction, source, target, limit, from, to, createInDestination, shopDomain } =
+      req.body || {};
+    if (!direction && !source) {
+      return res.status(400).json({ error: "missing_direction" });
     }
     const parsedLimit = typeof limit === "number" ? limit : Number(limit || 0);
     const result = await syncContactsBulk({
+      direction:
+        direction === "alegra_to_shopify" ? "alegra_to_shopify" : "shopify_to_alegra",
       source: source === "alegra" ? "alegra" : "shopify",
+      target: target === "shopify" ? "shopify" : "alegra",
       limit: Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined,
+      from: typeof from === "string" ? from : undefined,
+      to: typeof to === "string" ? to : undefined,
+      createInDestination: typeof createInDestination === "boolean" ? createInDestination : undefined,
       shopDomain: shopDomain ? String(shopDomain) : undefined,
     });
     return res.json(result);

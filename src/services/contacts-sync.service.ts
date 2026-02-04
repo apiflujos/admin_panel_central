@@ -5,6 +5,7 @@ import { upsertContact } from "./contacts.service";
 import type { ShopifyCustomer } from "../connectors/shopify";
 
 type SyncSource = "shopify" | "alegra";
+type SyncDirection = "shopify_to_alegra" | "alegra_to_shopify";
 
 type ContactRecord = {
   id?: string;
@@ -19,6 +20,21 @@ const isEmail = (value: string) => value.includes("@");
 
 const normalizePhone = (value?: string) =>
   value ? value.replace(/[^\d+]/g, "").trim() : "";
+
+const normalizeIsoDate = (value?: string) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  // Expected input: YYYY-MM-DD (from <input type="date">).
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return "";
+  return raw;
+};
+
+const parseIsoDay = (value?: string) => {
+  const iso = normalizeIsoDate(value);
+  if (!iso) return null;
+  const parsed = Date.parse(`${iso}T00:00:00.000Z`);
+  return Number.isNaN(parsed) ? null : new Date(parsed);
+};
 
 const normalizeMatchPriority = (value: string[] | undefined) => {
   const fallback = ["document", "phone", "email"];
@@ -133,8 +149,10 @@ async function findShopifyCustomerByPriority(
 async function syncShopifyCustomerToAlegra(
   ctx: Awaited<ReturnType<typeof buildSyncContext>>,
   contact: ShopifyCustomer,
-  matchPriority: string[]
+  matchPriority: string[],
+  options: { createInAlegra?: boolean } = {}
 ) {
+  const createInAlegra = options.createInAlegra !== false;
   const normalized = normalizeShopifyCustomer(contact);
   if (!normalized.email && !normalized.phone) {
     return { skipped: true, reason: "missing_contact_data" };
@@ -163,6 +181,19 @@ async function syncShopifyCustomerToAlegra(
   if (alegraContactId) {
     await ctx.alegra.updateContact(alegraContactId, payload);
   } else {
+    if (!createInAlegra) {
+      await upsertContact({
+        shopDomain: ctx.shopDomain,
+        shopifyId: normalized.id,
+        name: normalized.name,
+        email: normalized.email,
+        phone: normalized.phone,
+        doc: normalized.doc,
+        address: normalized.address,
+        source: "shopify",
+      });
+      return { skipped: true, reason: "create_disabled" };
+    }
     const created = (await ctx.alegra.createContact(payload)) as { id?: string | number };
     alegraContactId = created?.id ? String(created.id) : "";
   }
@@ -193,8 +224,10 @@ async function syncShopifyCustomerToAlegra(
 async function syncAlegraContactToShopify(
   ctx: Awaited<ReturnType<typeof buildSyncContext>>,
   contact: Record<string, unknown>,
-  matchPriority: string[]
+  matchPriority: string[],
+  options: { createInShopify?: boolean } = {}
 ) {
+  const createInShopify = options.createInShopify !== false;
   const normalized = normalizeAlegraContact(contact);
   if (!normalized.email && !normalized.phone) {
     return { skipped: true, reason: "missing_contact_data" };
@@ -232,6 +265,19 @@ async function syncAlegraContactToShopify(
   if (shopifyCustomerId) {
     await ctx.shopify.updateCustomer(shopifyCustomerId, payload);
   } else {
+    if (!createInShopify) {
+      await upsertContact({
+        shopDomain: ctx.shopDomain,
+        alegraId: normalized.id,
+        name: normalized.name,
+        email: normalized.email,
+        phone: normalized.phone,
+        doc: normalized.doc,
+        address: normalized.address,
+        source: "alegra",
+      });
+      return { skipped: true, reason: "create_disabled" };
+    }
     const created = await ctx.shopify.createCustomer(payload);
     shopifyCustomerId = created?.id || "";
   }
@@ -291,7 +337,9 @@ export async function syncSingleContact(options: {
     if (!customer) {
       return { skipped: true, reason: "not_found" };
     }
-    return syncShopifyCustomerToAlegra(ctx, customer, priority);
+    return syncShopifyCustomerToAlegra(ctx, customer, priority, {
+      createInAlegra: storeConfig.syncContactsCreateInAlegra,
+    });
   }
 
   if (!storeConfig.syncContactsFromAlegra) {
@@ -316,12 +364,19 @@ export async function syncSingleContact(options: {
   if (!alegraContact) {
     return { skipped: true, reason: "not_found" };
   }
-  return syncAlegraContactToShopify(ctx, alegraContact, priority);
+  return syncAlegraContactToShopify(ctx, alegraContact, priority, {
+    createInShopify: storeConfig.syncContactsCreateInShopify,
+  });
 }
 
 export async function syncContactsBulk(options: {
-  source: SyncSource;
+  direction?: SyncDirection;
+  source?: SyncSource;
+  target?: SyncSource;
   limit?: number;
+  from?: string;
+  to?: string;
+  createInDestination?: boolean;
   shopDomain?: string;
 }) {
   const ctx = await buildSyncContext(options.shopDomain);
@@ -329,14 +384,34 @@ export async function syncContactsBulk(options: {
   const priority = normalizeMatchPriority(storeConfig.contactMatchPriority);
   const limit = typeof options.limit === "number" && options.limit > 0 ? options.limit : 200;
 
-  if (options.source === "shopify") {
+  const direction: SyncDirection =
+    options.direction === "alegra_to_shopify"
+      ? "alegra_to_shopify"
+      : options.source === "alegra"
+        ? "alegra_to_shopify"
+        : "shopify_to_alegra";
+
+  const from = normalizeIsoDate(options.from);
+  const to = normalizeIsoDate(options.to);
+
+  if (direction === "shopify_to_alegra") {
     if (!storeConfig.syncContactsFromShopify) {
       return { skipped: true, reason: "sync_disabled" };
     }
-    const customers = await ctx.shopify.listAllCustomers(limit);
+    const createInAlegra =
+      typeof options.createInDestination === "boolean"
+        ? options.createInDestination
+        : storeConfig.syncContactsCreateInAlegra;
+    const queryParts = [];
+    if (from) queryParts.push(`created_at:>='${from}'`);
+    if (to) queryParts.push(`created_at:<='${to}'`);
+    const query = queryParts.join(" ").trim();
+    const customers = query
+      ? await ctx.shopify.listAllCustomersByQuery(query, limit)
+      : await ctx.shopify.listAllCustomers(limit);
     const results = [];
     for (const customer of customers) {
-      results.push(await syncShopifyCustomerToAlegra(ctx, customer, priority));
+      results.push(await syncShopifyCustomerToAlegra(ctx, customer, priority, { createInAlegra }));
     }
     return { total: customers.length, results };
   }
@@ -344,10 +419,44 @@ export async function syncContactsBulk(options: {
   if (!storeConfig.syncContactsFromAlegra) {
     return { skipped: true, reason: "sync_disabled" };
   }
+  const createInShopify =
+    typeof options.createInDestination === "boolean"
+      ? options.createInDestination
+      : storeConfig.syncContactsCreateInShopify;
   const results = [];
   const pageSize = 50;
   let start = 0;
   let remaining = limit;
+  const fromDate = parseIsoDay(from);
+  const toDate = parseIsoDay(to);
+  const resolveAlegraTimestamp = (item: Record<string, unknown>) => {
+    const candidates = [
+      item.dateCreated,
+      item.createdAt,
+      item.created_at,
+      item.updatedAt,
+      item.updated_at,
+      item.date,
+    ];
+    for (const candidate of candidates) {
+      if (!candidate) continue;
+      const parsed = Date.parse(String(candidate));
+      if (!Number.isNaN(parsed)) return new Date(parsed);
+    }
+    return null;
+  };
+  const withinRange = (item: Record<string, unknown>) => {
+    if (!fromDate && !toDate) return true;
+    const ts = resolveAlegraTimestamp(item);
+    if (!ts) return true;
+    if (fromDate && ts < fromDate) return false;
+    if (toDate) {
+      const end = new Date(toDate);
+      end.setUTCDate(end.getUTCDate() + 1);
+      if (ts >= end) return false;
+    }
+    return true;
+  };
   while (remaining > 0) {
     const batch = (await ctx.alegra.listContacts({
       limit: Math.min(pageSize, remaining),
@@ -355,7 +464,8 @@ export async function syncContactsBulk(options: {
     })) as Array<Record<string, unknown>>;
     if (!Array.isArray(batch) || !batch.length) break;
     for (const item of batch) {
-      results.push(await syncAlegraContactToShopify(ctx, item, priority));
+      if (!withinRange(item)) continue;
+      results.push(await syncAlegraContactToShopify(ctx, item, priority, { createInShopify }));
     }
     if (batch.length < pageSize) break;
     start += pageSize;

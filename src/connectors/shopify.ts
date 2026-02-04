@@ -166,6 +166,34 @@ export class ShopifyClient {
     return customers;
   }
 
+  async listAllCustomersByQuery(query: string, limit?: number) {
+    let cursor: string | null = null;
+    let hasNextPage = true;
+    const customers: ShopifyCustomer[] = [];
+    const cleanedQuery = String(query || "").trim();
+    while (hasNextPage) {
+      const data: { customers: ShopifyCustomerConnection } =
+        await this.request<{ customers: ShopifyCustomerConnection }>(
+        <GraphQlRequest>{
+          query: CUSTOMERS_PAGED_QUERY,
+          variables: { query: cleanedQuery || null, cursor },
+        }
+      );
+      const page =
+        data.customers?.edges?.map((edge: { node: ShopifyCustomer }) => edge.node) || [];
+      customers.push(...page);
+      if (limit && customers.length >= limit) {
+        return customers.slice(0, limit);
+      }
+      hasNextPage = Boolean(data.customers?.pageInfo?.hasNextPage);
+      cursor = data.customers?.pageInfo?.endCursor || null;
+      if (!cursor) {
+        hasNextPage = false;
+      }
+    }
+    return customers;
+  }
+
   async searchCustomers(query: string) {
     const data = await this.request<{ customers: ShopifyCustomerConnection }>(
       <GraphQlRequest>{

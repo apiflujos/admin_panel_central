@@ -999,62 +999,88 @@
 	                      </div>
 	                    </div>
 	                    <div class="module-body">
-	                      <div class="mode-sections">
-	                        <div class="mode-section">
-	                          <div class="mode-head">
-	                            <h4>Sincronizacion masiva (inicio)</h4>
-	                            <span class="tip" data-tip="Usala para iniciar o para normalizar datos: trae contactos en bloque desde Shopify o desde Alegra.">?</span>
-	                          </div>
-	                          <div class="mode-grid">
-	                            <div class="mode-field">
-	                              <label for="sync-contact-limit">Limite</label>
-	                              <input type="number" id="sync-contact-limit" min="1" placeholder="200" />
-	                            </div>
-	                            <div class="mode-actions">
-	                              <button class="ghost" id="sync-contacts-shopify-run" type="button">Desde Shopify</button>
-	                              <button class="ghost" id="sync-contacts-alegra-run" type="button">Desde Alegra</button>
-	                              <span class="kpi-sub" id="sync-contacts-status">Sin datos</span>
-	                            </div>
-	                          </div>
-	                        </div>
+		                      <div class="mode-sections">
+		                        <div class="mode-section">
+		                          <div class="mode-head">
+		                            <h4>Sincronizacion masiva (inicio)</h4>
+		                            <span class="tip" data-tip="Usala para crear/normalizar la base de contactos. Elige la dirección, un rango de fechas y si quieres crear contactos nuevos en el destino.">?</span>
+		                          </div>
+		                          <div class="mode-grid">
+		                            <div class="mode-field">
+		                              <label for="sync-contacts-bulk-direction">De dónde a dónde</label>
+		                              <select id="sync-contacts-bulk-direction">
+		                                <option value="shopify_to_alegra">Shopify → Alegra</option>
+		                                <option value="alegra_to_shopify">Alegra → Shopify</option>
+		                              </select>
+		                            </div>
+		                            <div class="mode-field">
+		                              <label for="sync-contacts-bulk-date-start">Fecha inicio</label>
+		                              <input type="date" id="sync-contacts-bulk-date-start" />
+		                            </div>
+		                            <div class="mode-field">
+		                              <label for="sync-contacts-bulk-date-end">Fecha fin</label>
+		                              <input type="date" id="sync-contacts-bulk-date-end" />
+		                            </div>
+		                            <div class="mode-field">
+		                              <label for="sync-contact-limit">Limite (opcional)</label>
+		                              <input type="number" id="sync-contact-limit" min="1" placeholder="200" />
+		                            </div>
+		                            <div class="mode-field">
+		                              <label for="sync-contacts-bulk-create" id="sync-contacts-bulk-create-label">Crear contacto en destino <span class="tip" data-tip="Si está activo y el contacto no existe en el destino, lo creamos. Si lo apagas, solo actualizamos contactos ya existentes (mapeados o encontrados).">?</span></label>
+		                              <input type="checkbox" id="sync-contacts-bulk-create" class="toggle" checked />
+		                            </div>
+		                            <div class="mode-actions">
+		                              <button class="primary" id="sync-contacts-bulk-run" type="button">Sincronizar masivo</button>
+		                              <span class="kpi-sub" id="sync-contacts-status">Sin datos</span>
+		                            </div>
+		                          </div>
+		                        </div>
 
-	                        <div class="mode-section">
-	                          <div class="mode-head">
-	                            <h4>Sincronizacion automatica y manual</h4>
-	                            <span class="tip" data-tip="Automatica: se ejecuta cuando llega un cambio. Manual: la lanzas para un contacto especifico cuando lo necesites.">?</span>
-	                          </div>
-	                          <div class="mode-grid">
-	                            <div class="mode-field">
-	                              <label for="sync-contacts-shopify">Sincronizar desde Shopify</label>
-	                              <input type="checkbox" id="sync-contacts-shopify" class="toggle" />
-	                            </div>
-	                            <div class="mode-field">
-	                              <label for="sync-contacts-alegra">Sincronizar desde Alegra</label>
-	                              <input type="checkbox" id="sync-contacts-alegra" class="toggle" />
-	                            </div>
-	                            <div class="mode-field">
-	                              <label for="sync-contacts-priority">Prioridad de identificacion</label>
-	                              <select id="sync-contacts-priority">
-	                                <option value="document_phone_email">Documento → Teléfono → Email</option>
-	                                <option value="email_document_phone">Email → Documento → Teléfono</option>
-	                                <option value="phone_document_email">Teléfono → Documento → Email</option>
-	                              </select>
-	                            </div>
-	                          </div>
+		                        <div class="mode-section">
+		                          <div class="mode-head">
+		                            <h4>Sincronizacion automatica y manual</h4>
+		                            <span class="tip" data-tip="Define qué direcciones están activas y si se permiten creaciones nuevas en el destino. Manual (1 contacto) usa estas mismas reglas.">?</span>
+		                          </div>
+		                          <div class="mode-grid">
+		                            <div class="mode-field">
+		                              <label for="sync-contacts-shopify">Shopify → Alegra <span class="tip" data-tip="Si está activo, puedes sincronizar contactos desde Shopify hacia Alegra (manual y masivo).">?</span></label>
+		                              <input type="checkbox" id="sync-contacts-shopify" class="toggle" checked />
+		                            </div>
+		                            <div class="mode-field">
+		                              <label for="sync-contacts-create-alegra">Crear en Alegra <span class="tip" data-tip="Si está activo y el contacto no existe en Alegra, lo creamos. Si lo apagas, solo actualizamos contactos ya existentes.">?</span></label>
+		                              <input type="checkbox" id="sync-contacts-create-alegra" class="toggle" data-depends-on="sync-contacts-shopify" checked />
+		                            </div>
+		                            <div class="mode-field">
+		                              <label for="sync-contacts-alegra">Alegra → Shopify <span class="tip" data-tip="Si está activo, puedes sincronizar contactos desde Alegra hacia Shopify (manual y masivo).">?</span></label>
+		                              <input type="checkbox" id="sync-contacts-alegra" class="toggle" checked />
+		                            </div>
+		                            <div class="mode-field">
+		                              <label for="sync-contacts-create-shopify">Crear en Shopify <span class="tip" data-tip="Si está activo y el contacto no existe en Shopify, lo creamos. Si lo apagas, solo actualizamos contactos ya existentes.">?</span></label>
+		                              <input type="checkbox" id="sync-contacts-create-shopify" class="toggle" data-depends-on="sync-contacts-alegra" checked />
+		                            </div>
+		                            <div class="mode-field">
+		                              <label for="sync-contacts-priority">Prioridad de identificacion</label>
+		                              <select id="sync-contacts-priority">
+		                                <option value="document_phone_email">Documento → Teléfono → Email</option>
+		                                <option value="email_document_phone">Email → Documento → Teléfono</option>
+		                                <option value="phone_document_email">Teléfono → Documento → Email</option>
+		                              </select>
+		                            </div>
+		                          </div>
 
 	                          <div class="settings-divider">Manual (1 contacto)</div>
-	                          <div class="mode-grid">
-	                            <div class="mode-field">
-	                              <label for="sync-contact-identifier">Buscar contacto</label>
-	                              <input type="text" id="sync-contact-identifier" placeholder="email, telefono o documento" />
-	                            </div>
-	                            <div class="mode-field">
-	                              <label for="sync-contact-source">Fuente</label>
-	                              <select id="sync-contact-source">
-	                                <option value="shopify">Shopify → Alegra</option>
-	                                <option value="alegra">Alegra → Shopify</option>
-	                              </select>
-	                            </div>
+		                          <div class="mode-grid">
+		                            <div class="mode-field">
+		                              <label for="sync-contact-identifier">Buscar contacto</label>
+		                              <input type="text" id="sync-contact-identifier" placeholder="email, telefono o documento" />
+		                            </div>
+		                            <div class="mode-field">
+		                              <label for="sync-contact-source">De dónde a dónde</label>
+		                              <select id="sync-contact-source">
+		                                <option value="shopify">Shopify → Alegra</option>
+		                                <option value="alegra">Alegra → Shopify</option>
+		                              </select>
+		                            </div>
 	                            <div class="mode-actions">
 	                              <button class="primary" id="sync-contact-run" type="button">Sincronizar</button>
 	                            </div>
