@@ -2972,6 +2972,7 @@ textarea::placeholder {
   border-radius: 14px;
   padding: 8px;
   background: rgba(15, 23, 42, 0.015);
+  justify-content: flex-start;
 }
 
 .panel.module[data-module="shopify-rules"] .mode-toggle {
@@ -2979,10 +2980,17 @@ textarea::placeholder {
   background: transparent;
   padding: 0;
   min-height: 0;
+  text-align: left;
+  justify-items: stretch;
 }
 
 .panel.module[data-module="shopify-rules"] .mode-toggle label {
   min-height: 0;
+  justify-content: flex-start;
+}
+
+.panel.module[data-module="shopify-rules"] .mode-toggle .toggle {
+  justify-self: flex-start;
 }
 
 .panel.module[data-module="shopify-rules"] input.toggle {
@@ -2999,6 +3007,24 @@ textarea::placeholder {
 
 .panel.module[data-module="shopify-rules"] input.toggle:checked::after {
   transform: translateX(18px);
+}
+
+/* Inventario/Productos: evitar controles centrados (alinear a la izquierda). */
+.panel.module[data-module="alegra-inventory"] .mode-toggle-grid {
+  justify-content: flex-start;
+}
+
+.panel.module[data-module="alegra-inventory"] .mode-toggle {
+  text-align: left;
+  justify-items: stretch;
+}
+
+.panel.module[data-module="alegra-inventory"] .mode-toggle label {
+  justify-content: flex-start;
+}
+
+.panel.module[data-module="alegra-inventory"] .mode-toggle .toggle {
+  justify-self: flex-start;
 }
 
 .mode-field {
