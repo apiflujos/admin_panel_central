@@ -7248,8 +7248,17 @@ async function sendAssistantMessage() {
 
 async function loadCatalog(select, endpoint) {
   try {
-    const data = await fetchJson(`/api/alegra/${endpoint}`);
+    const params = new URLSearchParams();
+    const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+    if (shopDomain) {
+      params.set("shopDomain", shopDomain);
+    }
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const data = await fetchJson(`/api/alegra/${endpoint}${query}`);
     const items = Array.isArray(data.items) ? data.items : [];
+    if (data && typeof data === "object" && "error" in data && data.error) {
+      throw new Error(String(data.error));
+    }
     select.innerHTML = "";
     const allowEmpty = select.dataset.allowEmpty === "true";
     if (allowEmpty) {
@@ -8506,10 +8515,14 @@ if (alegraAccountSelect) {
 	        if (summary) setModuleCollapsed(summary, false);
 	        setConnectionsSetupOpen(true);
 	      }
-	      loadLegacyStoreConfig().catch(() => null);
-	      openWizardStep();
-	      updateConnectionPills();
-	      loadProducts().catch(() => null);
+		      loadLegacyStoreConfig().catch(() => null);
+		      // Refrescar catálogos dependientes de la tienda (bodegas, listas, etc.)
+		      loadSettingsWarehouses().catch(() => null);
+		      loadCatalog(cfgTransferDest, "warehouses").catch(() => null);
+		      loadCatalog(cfgTransferPriority, "warehouses").catch(() => null);
+		      openWizardStep();
+		      updateConnectionPills();
+		      loadProducts().catch(() => null);
 	      loadOperations().catch(() => null);
 	      loadContacts().catch(() => null);
 		    });
