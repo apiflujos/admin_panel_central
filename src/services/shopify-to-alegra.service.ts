@@ -846,10 +846,25 @@ function interpolateObservations(
   if (!template) {
     return undefined;
   }
-  return template
-    .replace("{{order.name}}", payload.name || "")
-    .replace("{{order.id}}", payload.id ? String(payload.id) : "")
-    .replace("{{customer.email}}", payload.email || payload.customer?.email || "");
+  const tokens: Record<string, string> = {
+    "{{order.name}}": payload.name || "",
+    "{{order.id}}": payload.id ? String(payload.id) : "",
+    "{{order.total}}": payload.total_price ? String(payload.total_price) : "",
+    "{{order.currency}}": payload.currency || "",
+    "{{order.payment_gateways}}": Array.from(new Set(extractPaymentGateways(payload)))
+      .filter(Boolean)
+      .join(", "),
+    "{{order.items_summary}}": buildProductsSummaryFromPayload(payload) || "",
+    "{{customer.email}}": payload.email || payload.customer?.email || "",
+    "{{customer.phone}}": payload.customer?.phone || "",
+    "{{customer.name}}": buildContactName(payload) || "",
+  };
+
+  let result = template;
+  Object.entries(tokens).forEach(([token, value]) => {
+    result = result.split(token).join(value);
+  });
+  return result;
 }
 
 function extractOrderId(payload: ShopifyOrderPayload) {

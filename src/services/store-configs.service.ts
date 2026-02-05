@@ -28,6 +28,27 @@ const normalizeAutoStatus = (value: unknown, fallback: unknown) => {
   return value === "active" ? "active" : value === "draft" ? "draft" : resolvedFallback;
 };
 
+const normalizeInvoiceStatus = (
+  value: unknown,
+  fallback: unknown
+): "draft" | "active" => {
+  const resolvedFallback = fallback === "active" ? "active" : "draft";
+  return value === "active" ? "active" : value === "draft" ? "draft" : resolvedFallback;
+};
+
+const normalizeObservationsFields = (value: unknown) => {
+  if (!Array.isArray(value)) return [];
+  const allowed = new Set([
+    "order_name",
+    "payment_gateways",
+    "items_summary",
+    "customer_email",
+    "customer_phone",
+    "order_total",
+  ]);
+  return value.map((item) => String(item)).filter((item) => allowed.has(item));
+};
+
 const normalizeTransferStrategy = (value: unknown) => {
   if (value === "consolidation" || value === "priority" || value === "max_stock") {
     return value;
@@ -233,6 +254,10 @@ export async function listStoreConfigs() {
           invoice.generateInvoice,
           normalizeBoolean(invoiceDefaults.generateInvoice, false)
         ),
+        invoiceStatus: normalizeInvoiceStatus(
+          invoice.invoiceStatus,
+          (invoiceDefaults as Record<string, unknown>)?.invoiceStatus
+        ),
         resolutionId: normalizeText(
           invoice.resolutionId,
           normalizeText(invoiceDefaults.resolutionId, "")
@@ -261,6 +286,13 @@ export async function listStoreConfigs() {
         observationsTemplate: normalizeText(
           invoice.observationsTemplate,
           normalizeText(invoiceDefaults.observationsTemplate, "")
+        ),
+        observationsFields: normalizeObservationsFields(
+          (invoice as Record<string, unknown>).observationsFields
+        ),
+        observationsExtra: normalizeText(
+          (invoice as Record<string, unknown>).observationsExtra,
+          ""
         ),
         einvoiceEnabled: normalizeBoolean(
           invoice.einvoiceEnabled,
@@ -444,6 +476,10 @@ export async function getStoreConfigForDomain(shopDomain: string) {
         invoice.generateInvoice,
         normalizeBoolean(invoiceDefaults.generateInvoice, false)
       ),
+      invoiceStatus: normalizeInvoiceStatus(
+        invoice.invoiceStatus,
+        (invoiceDefaults as Record<string, unknown>)?.invoiceStatus
+      ),
       resolutionId: normalizeText(
         invoice.resolutionId,
         normalizeText(invoiceDefaults.resolutionId, "")
@@ -472,6 +508,13 @@ export async function getStoreConfigForDomain(shopDomain: string) {
       observationsTemplate: normalizeText(
         invoice.observationsTemplate,
         normalizeText(invoiceDefaults.observationsTemplate, "")
+      ),
+      observationsFields: normalizeObservationsFields(
+        (invoice as Record<string, unknown>).observationsFields
+      ),
+      observationsExtra: normalizeText(
+        (invoice as Record<string, unknown>).observationsExtra,
+        ""
       ),
       einvoiceEnabled: normalizeBoolean(
         invoice.einvoiceEnabled,

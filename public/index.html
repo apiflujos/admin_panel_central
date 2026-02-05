@@ -1386,15 +1386,11 @@
 	                      <span class="tip" data-tip="Estas reglas se usan cuando Pedidos (Shopify → Alegra) está en “Crear factura”.">?</span>
 	                    </div>
 	                  </div>
-		                  <div class="mode-grid">
-		                    <div class="field is-toggle mode-field">
-		                      <label>Habilitar factura electronica</label>
-		                      <input type="checkbox" id="cfg-einvoice-enabled" class="toggle" data-depends-on="cfg-generate-invoice" />
-		                    </div>
-		                    <div class="field mode-field">
-		                      <label>Tipo de factura</label>
-		                      <select id="cfg-invoice-status" data-depends-on="cfg-generate-invoice">
-		                        <option value="draft">Borrador</option>
+			                  <div class="mode-grid">
+			                    <div class="field mode-field">
+			                      <label>Tipo de factura</label>
+			                      <select id="cfg-invoice-status" data-depends-on="cfg-generate-invoice">
+			                        <option value="draft">Borrador</option>
 		                        <option value="active">Activa</option>
 		                      </select>
 		                    </div>
@@ -1423,18 +1419,56 @@
 	                      <select id="cfg-bank-account" data-depends-on="cfg-generate-invoice,cfg-apply-payment" data-allow-empty="true" data-empty-label="No aplicar"></select>
 	                      <p class="field-hint">Si aparecen "Sin datos", crea metodos de pago y cuentas en Alegra.</p>
 	                    </div>
-	                    <div class="field is-toggle mode-field">
-	                      <label>Aplicar pago</label>
-	                      <input type="checkbox" id="cfg-apply-payment" class="toggle" data-depends-on="cfg-generate-invoice" />
-	                    </div>
-	                    <div class="field mode-field">
-	                      <label>Observaciones</label>
-	                      <input type="text" id="cfg-observations" data-depends-on="cfg-generate-invoice" placeholder="Pedido {{order.name}}" />
-	                    </div>
-	                  </div>
-	                  <p class="field-hint" id="cfg-store-message"></p>
-	                </div>
-	              </div>
+		                    <div class="field is-toggle mode-field">
+		                      <label>Aplicar pago</label>
+		                      <input type="checkbox" id="cfg-apply-payment" class="toggle" data-depends-on="cfg-generate-invoice" />
+		                    </div>
+		                    <div class="field mode-field">
+		                      <label>Observaciones</label>
+		                      <details class="multi-select" id="cfg-observations-fields" data-depends-on="cfg-generate-invoice">
+		                        <summary>
+		                          <span>Seleccionar campos</span>
+		                          <em id="cfg-observations-fields-summary">Ninguno</em>
+		                        </summary>
+		                        <div class="checkbox-grid single" id="cfg-observations-fields-options">
+		                          <label>
+		                            <input type="checkbox" data-observation-key="order_name" data-observation-line="Pedido: {{order.name}}" />
+		                            <span>Número de pedido</span>
+		                          </label>
+		                          <label>
+		                            <input type="checkbox" data-observation-key="payment_gateways" data-observation-line="Pago (Shopify): {{order.payment_gateways}}" />
+		                            <span>Tipo de pago (Shopify)</span>
+		                          </label>
+		                          <label>
+		                            <input type="checkbox" data-observation-key="items_summary" data-observation-line="Productos: {{order.items_summary}}" />
+		                            <span>Productos</span>
+		                          </label>
+		                          <label>
+		                            <input type="checkbox" data-observation-key="customer_email" data-observation-line="Email: {{customer.email}}" />
+		                            <span>Email</span>
+		                          </label>
+		                          <label>
+		                            <input type="checkbox" data-observation-key="customer_phone" data-observation-line="Teléfono: {{customer.phone}}" />
+		                            <span>Teléfono</span>
+		                          </label>
+		                          <label>
+		                            <input type="checkbox" data-observation-key="order_total" data-observation-line="Total: {{order.total}} {{order.currency}}" />
+		                            <span>Total</span>
+		                          </label>
+		                        </div>
+		                      </details>
+		                      <input type="text" id="cfg-observations-extra" data-depends-on="cfg-generate-invoice" placeholder="Texto adicional (opcional)" />
+			                      <input type="hidden" id="cfg-observations" data-depends-on="cfg-generate-invoice" />
+			                      <p class="field-hint" id="cfg-observations-preview">-</p>
+			                    </div>
+			                    <div class="field is-toggle mode-field field-span">
+			                      <label>Factura electrónica (opcional) <span class="tip" data-tip="Actívalo solo si necesitas capturar datos de factura electrónica por pedido (NIT/razón social, etc.). No bloquea la factura estándar.">?</span></label>
+			                      <input type="checkbox" id="cfg-einvoice-enabled" class="toggle" data-depends-on="cfg-generate-invoice" />
+			                    </div>
+			                  </div>
+			                  <p class="field-hint" id="cfg-store-message"></p>
+			                </div>
+		              </div>
 	              <p class="field-hint module-warning is-hidden" data-module-warning="alegra-invoice"></p>
 	            </div>
 	                  </div>

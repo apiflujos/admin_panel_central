@@ -199,6 +199,10 @@ const cfgSeller = document.getElementById("cfg-seller");
 	const cfgBankAccount = document.getElementById("cfg-bank-account");
 	const cfgApplyPayment = document.getElementById("cfg-apply-payment");
 	const cfgObservations = document.getElementById("cfg-observations");
+	const cfgObservationsExtra = document.getElementById("cfg-observations-extra");
+	const cfgObservationsFields = document.getElementById("cfg-observations-fields");
+	const cfgObservationsFieldsSummary = document.getElementById("cfg-observations-fields-summary");
+	const cfgObservationsPreview = document.getElementById("cfg-observations-preview");
 	const cfgGenerateInvoice = document.getElementById("cfg-generate-invoice");
 	const cfgEinvoiceEnabled = document.getElementById("cfg-einvoice-enabled");
 	const cfgInvoiceStatus = document.getElementById("cfg-invoice-status");
@@ -2484,21 +2488,22 @@ function setModulePrereqWarning(moduleKey, message) {
   }
 }
 
-function clearInvoiceErrors() {
-  clearFieldError(cfgResolution);
-  clearFieldError(cfgWarehouse);
-  clearFieldError(cfgPaymentMethod);
-  clearFieldError(cfgBankAccount);
-  clearFieldError(cfgApplyPayment);
-  clearFieldError(cfgEinvoiceEnabled);
-  clearFieldWarning(cfgResolution);
-  clearFieldWarning(cfgWarehouse);
-  clearFieldWarning(cfgPaymentMethod);
-  clearFieldWarning(cfgBankAccount);
-  clearFieldWarning(cfgApplyPayment);
-  clearFieldWarning(cfgEinvoiceEnabled);
-  setModuleWarning("alegra-invoice", "");
-}
+	function clearInvoiceErrors() {
+	  clearFieldError(cfgResolution);
+	  clearFieldError(cfgWarehouse);
+	  clearFieldError(cfgPaymentMethod);
+	  clearFieldError(cfgBankAccount);
+	  clearFieldError(cfgApplyPayment);
+	  clearFieldError(cfgEinvoiceEnabled);
+	  clearFieldError(cfgObservationsExtra);
+	  clearFieldWarning(cfgResolution);
+	  clearFieldWarning(cfgWarehouse);
+	  clearFieldWarning(cfgPaymentMethod);
+	  clearFieldWarning(cfgBankAccount);
+	  clearFieldWarning(cfgApplyPayment);
+	  clearFieldWarning(cfgEinvoiceEnabled);
+	  setModuleWarning("alegra-invoice", "");
+	}
 
 	function clearTransferErrors() {
 	  clearFieldError(cfgTransferDestMode);
@@ -4509,13 +4514,117 @@ async function startWizardFlow() {
 	  }
 	  if (cfgApplyPayment) cfgApplyPayment.checked = Boolean(settings.applyPayment);
 	  if (cfgObservations) cfgObservations.value = settings.observationsTemplate || "";
+	  applyObservationSettings(settings);
 	  if (cfgResolution) cfgResolution.dataset.selected = settings.resolutionId || "";
 	  if (cfgCostCenter) cfgCostCenter.dataset.selected = settings.costCenterId || "";
 	  if (cfgWarehouse) cfgWarehouse.dataset.selected = settings.warehouseId || "";
-  if (cfgSeller) cfgSeller.dataset.selected = settings.sellerId || "";
-  if (cfgPaymentMethod) cfgPaymentMethod.dataset.selected = settings.paymentMethod || "";
-  if (cfgBankAccount) cfgBankAccount.dataset.selected = settings.bankAccountId || "";
-}
+	  if (cfgSeller) cfgSeller.dataset.selected = settings.sellerId || "";
+	  if (cfgPaymentMethod) cfgPaymentMethod.dataset.selected = settings.paymentMethod || "";
+	  if (cfgBankAccount) cfgBankAccount.dataset.selected = settings.bankAccountId || "";
+	}
+
+	function applyObservationSettings(settings) {
+	  if (!(cfgObservations instanceof HTMLInputElement)) return;
+	  const template = String(settings?.observationsTemplate || "").trim();
+	  const rawFields = settings?.observationsFields;
+	  const fields = Array.isArray(rawFields) ? rawFields.map((item) => String(item)) : [];
+	  const extra = typeof settings?.observationsExtra === "string" ? settings.observationsExtra : "";
+
+	  if (cfgObservationsExtra instanceof HTMLInputElement) {
+	    cfgObservationsExtra.value = extra;
+	  }
+
+	  const optionsRoot = cfgObservationsFields
+	    ? cfgObservationsFields.querySelector("#cfg-observations-fields-options")
+	    : null;
+	  const inputs = optionsRoot
+	    ? Array.from(optionsRoot.querySelectorAll("input[type=\"checkbox\"][data-observation-key]"))
+	    : [];
+
+	  if (inputs.length) {
+	    if (fields.length) {
+	      inputs.forEach((input) => {
+	        const key = input.getAttribute("data-observation-key") || "";
+	        input.checked = Boolean(key && fields.includes(key));
+	      });
+	    } else if (template) {
+	      // Fallback: intenta mapear el template a checks + extra.
+	      const knownLines = new Map(
+	        inputs.map((input) => [
+	          input.getAttribute("data-observation-line") || "",
+	          input.getAttribute("data-observation-key") || "",
+	        ]),
+	      );
+	      const remaining = [];
+	      template.split("\n").forEach((line) => {
+	        const trimmed = line.trim();
+	        if (!trimmed) return;
+	        const key = knownLines.get(trimmed);
+	        if (key) {
+	          const match = inputs.find((input) => input.getAttribute("data-observation-key") === key);
+	          if (match) match.checked = true;
+	        } else {
+	          remaining.push(trimmed);
+	        }
+	      });
+	      if (cfgObservationsExtra instanceof HTMLInputElement && remaining.length) {
+	        cfgObservationsExtra.value = remaining.join("\n");
+	      }
+	    } else {
+	      inputs.forEach((input) => {
+	        input.checked = false;
+	      });
+	    }
+	  }
+
+	  updateObservationsTemplateFromUi();
+	}
+
+	function getSelectedObservationKeys() {
+	  const optionsRoot = cfgObservationsFields
+	    ? cfgObservationsFields.querySelector("#cfg-observations-fields-options")
+	    : null;
+	  if (!optionsRoot) return [];
+	  return Array.from(optionsRoot.querySelectorAll("input[type=\"checkbox\"][data-observation-key]"))
+	    .filter((input) => input.checked)
+	    .map((input) => String(input.getAttribute("data-observation-key") || ""))
+	    .filter(Boolean);
+	}
+
+	function updateObservationsSummary() {
+	  if (!(cfgObservationsFieldsSummary instanceof HTMLElement)) return;
+	  const keys = getSelectedObservationKeys();
+	  cfgObservationsFieldsSummary.textContent = keys.length ? `${keys.length} seleccionados` : "Ninguno";
+	}
+
+	function updateObservationsTemplateFromUi() {
+	  if (!(cfgObservations instanceof HTMLInputElement)) return;
+	  const lines = [];
+	  const optionsRoot = cfgObservationsFields
+	    ? cfgObservationsFields.querySelector("#cfg-observations-fields-options")
+	    : null;
+	  if (optionsRoot) {
+	    optionsRoot
+	      .querySelectorAll("input[type=\"checkbox\"][data-observation-line]")
+	      .forEach((input) => {
+	        if (!(input instanceof HTMLInputElement)) return;
+	        if (!input.checked) return;
+	        const line = String(input.getAttribute("data-observation-line") || "").trim();
+	        if (line) lines.push(line);
+	      });
+	  }
+	  const extra =
+	    cfgObservationsExtra instanceof HTMLInputElement ? cfgObservationsExtra.value.trim() : "";
+	  if (extra) {
+	    lines.push(extra);
+	  }
+	  const template = lines.join("\n").trim();
+	  cfgObservations.value = template;
+	  updateObservationsSummary();
+	  if (cfgObservationsPreview instanceof HTMLElement) {
+	    cfgObservationsPreview.textContent = template || "-";
+	  }
+	}
 
 function applyRuleSettings(settings, options = {}) {
   if (!settings) return;
@@ -8153,11 +8262,14 @@ async function saveStoreConfigFromSettings() {
 	      warehouseId: cfgWarehouse ? cfgWarehouse.value : "",
 	      sellerId: cfgSeller ? cfgSeller.value : "",
 	      paymentMethod: cfgPaymentMethod ? cfgPaymentMethod.value : "",
-      bankAccountId: cfgBankAccount ? cfgBankAccount.value : "",
-      applyPayment: cfgApplyPayment ? cfgApplyPayment.checked : false,
-      observationsTemplate: cfgObservations ? cfgObservations.value : "",
-      einvoiceEnabled: cfgEinvoiceEnabled ? cfgEinvoiceEnabled.checked : false,
-    },
+	      bankAccountId: cfgBankAccount ? cfgBankAccount.value : "",
+	      applyPayment: cfgApplyPayment ? cfgApplyPayment.checked : false,
+	      observationsTemplate: cfgObservations ? cfgObservations.value : "",
+	      observationsFields: getSelectedObservationKeys(),
+	      observationsExtra:
+	        cfgObservationsExtra instanceof HTMLInputElement ? cfgObservationsExtra.value.trim() : "",
+	      einvoiceEnabled: cfgEinvoiceEnabled ? cfgEinvoiceEnabled.checked : false,
+	    },
     rules: {
       publishOnStock: cfgInventoryPublishStock ? cfgInventoryPublishStock.checked : true,
       onlyActiveItems: rulesOnlyActive ? rulesOnlyActive.checked : false,
@@ -8973,11 +9085,24 @@ if (cfgEinvoiceEnabled) {
       }
     });
   }
-if (profileSave) {
-  profileSave.addEventListener("click", () => {
-    saveProfile();
-  });
-}
+  if (cfgObservationsFields) {
+    cfgObservationsFields.addEventListener("change", () => {
+      updateObservationsTemplateFromUi();
+    });
+  }
+  if (cfgObservationsExtra) {
+    cfgObservationsExtra.addEventListener("input", () => {
+      updateObservationsTemplateFromUi();
+    });
+    cfgObservationsExtra.addEventListener("change", () => {
+      updateObservationsTemplateFromUi();
+    });
+  }
+	if (profileSave) {
+	  profileSave.addEventListener("click", () => {
+	    saveProfile();
+	  });
+	}
 if (profilePhoto) {
   profilePhoto.addEventListener("change", async () => {
     try {
