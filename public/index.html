@@ -901,6 +901,16 @@
                               <label for="products-sync-limit">Limite (opcional)</label>
                               <input type="number" id="products-sync-limit" min="1" placeholder="200" />
                             </div>
+                            <div class="mode-field" id="cfg-warehouse-sync-field">
+                              <label>Bodegas para stock (masivo) <span class="tip" data-tip="Opcional. Si eliges bodegas aquí, el masivo calcula/filtra el stock usando solo esas bodegas. Si dejas “Todas”, usamos las bodegas guardadas en “Inventario y bodegas” (también aplican para automático).">?</span></label>
+                              <details class="multi-select">
+                                <summary>
+                                  <span>Seleccionar bodegas</span>
+                                  <em id="cfg-warehouse-sync-summary">Todas</em>
+                                </summary>
+                                <div class="checkbox-grid single" id="cfg-warehouse-sync"></div>
+                              </details>
+                            </div>
                           </div>
 	                          <div class="mode-toggle-grid" aria-label="Opciones masivo">
 		                            <div class="mode-toggle">
@@ -921,16 +931,6 @@
 		                            <div class="mode-toggle">
 		                              <label for="products-sync-include-inventory">Incluir inventario <span class="tip" data-tip="Si está activo, el masivo también actualiza existencias en Shopify usando las bodegas configuradas en “Inventario y bodegas”.">?</span></label>
 		                              <input type="checkbox" id="products-sync-include-inventory" class="toggle" checked />
-		                            </div>
-		                            <div class="mode-toggle mode-wide" id="cfg-warehouse-sync-field">
-		                              <label>Bodegas para stock (masivo) <span class="tip" data-tip="Opcional. Si eliges bodegas aquí, el masivo calcula/filtra el stock usando solo esas bodegas. Si dejas “Todas”, usamos las bodegas guardadas en “Inventario y bodegas” (también aplican para automático).">?</span></label>
-		                              <details class="multi-select">
-		                                <summary>
-		                                  <span>Seleccionar bodegas</span>
-		                                  <em id="cfg-warehouse-sync-summary">Todas</em>
-		                                </summary>
-		                                <div class="checkbox-grid single" id="cfg-warehouse-sync"></div>
-		                              </details>
 		                            </div>
 	                          </div>
 	                          <div class="mode-actions">
@@ -1185,7 +1185,6 @@
                     </div>
 		                    <div class="module-body">
 			                      <div class="mode-sections">
-			                        <div class="settings-divider">Pedidos (Shopify → Alegra)</div>
 			                        <div class="mode-section" data-readonly-free="1">
 			                          <div class="mode-head">
 			                            <div class="mode-head-left">
@@ -1248,7 +1247,6 @@
 							                          </select>
 							                        </div>
 
-			                        <div class="settings-divider">Facturas (Alegra → Shopify)</div>
 			                        <div class="mode-section" data-readonly-free="1">
 			                          <div class="mode-head">
 			                            <div class="mode-head-left">
