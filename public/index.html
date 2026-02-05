@@ -1376,60 +1376,57 @@
 	                  </div>
 	                </div>
 
-	                <div class="mode-section">
-	                  <div class="mode-head">
-	                    <div class="mode-head-left">
-	                      <label class="mode-title-toggle" for="cfg-generate-invoice" data-dep-controller="1">
-	                        <input type="checkbox" id="cfg-generate-invoice" class="toggle" data-dep-controller="1" />
-	                        <span>Facturacion automatica</span>
-	                      </label>
-	                      <span class="tip" data-tip="Estas reglas se usan cuando Pedidos (Shopify → Alegra) está en “Crear factura”.">?</span>
-	                    </div>
-	                  </div>
-			                  <div class="mode-grid">
+		                <div class="mode-section">
+		                  <div class="mode-head">
+		                    <div class="mode-head-left">
+		                      <h4>Reglas de facturación</h4>
+		                      <span class="tip" data-tip="Estas reglas se usan cuando en Pedidos seleccionas “Crear factura”.">?</span>
+		                    </div>
+		                  </div>
+				                  <div class="mode-grid">
+				                    <div class="field mode-field">
+				                      <label>Tipo de factura</label>
+				                      <select id="cfg-invoice-status">
+				                        <option value="draft">Borrador</option>
+			                        <option value="active">Activa</option>
+			                      </select>
+			                    </div>
 			                    <div class="field mode-field">
-			                      <label>Tipo de factura</label>
-			                      <select id="cfg-invoice-status" data-depends-on="cfg-generate-invoice">
-			                        <option value="draft">Borrador</option>
-		                        <option value="active">Activa</option>
-		                      </select>
+				                      <label>Resolucion DIAN</label>
+				                      <select id="cfg-resolution"></select>
+			                    </div>
+		                    <div class="field mode-field">
+		                      <label>Bodega</label>
+		                      <select id="cfg-warehouse"></select>
 		                    </div>
 		                    <div class="field mode-field">
-		                      <label>Resolucion DIAN</label>
-		                      <select id="cfg-resolution" data-depends-on="cfg-generate-invoice"></select>
-		                    </div>
-	                    <div class="field mode-field">
-	                      <label>Bodega</label>
-	                      <select id="cfg-warehouse" data-depends-on="cfg-generate-invoice"></select>
-	                    </div>
-	                    <div class="field mode-field">
-	                      <label>Centro de costos</label>
-	                      <select id="cfg-cost-center" data-depends-on="cfg-generate-invoice"></select>
-	                    </div>
-	                    <div class="field mode-field">
-	                      <label>Vendedor</label>
-	                      <select id="cfg-seller" data-depends-on="cfg-generate-invoice"></select>
-	                    </div>
-	                    <div class="field mode-field">
-	                      <label>Metodo de pago</label>
-	                      <select id="cfg-payment-method" data-depends-on="cfg-generate-invoice" data-allow-empty="true" data-empty-label="No aplicar"></select>
-	                    </div>
-	                    <div class="field mode-field">
-	                      <label>Cuenta bancaria</label>
-	                      <select id="cfg-bank-account" data-depends-on="cfg-generate-invoice,cfg-apply-payment" data-allow-empty="true" data-empty-label="No aplicar"></select>
-	                      <p class="field-hint">Si aparecen "Sin datos", crea metodos de pago y cuentas en Alegra.</p>
-	                    </div>
-		                    <div class="field is-toggle mode-field">
-		                      <label>Aplicar pago</label>
-		                      <input type="checkbox" id="cfg-apply-payment" class="toggle" data-depends-on="cfg-generate-invoice" />
+		                      <label>Centro de costos</label>
+		                      <select id="cfg-cost-center"></select>
 		                    </div>
 		                    <div class="field mode-field">
-		                      <label>Observaciones</label>
-		                      <details class="multi-select" id="cfg-observations-fields" data-depends-on="cfg-generate-invoice">
-		                        <summary>
-		                          <span>Seleccionar campos</span>
-		                          <em id="cfg-observations-fields-summary">Ninguno</em>
-		                        </summary>
+		                      <label>Vendedor</label>
+		                      <select id="cfg-seller"></select>
+		                    </div>
+		                    <div class="field mode-field">
+		                      <label>Metodo de pago</label>
+		                      <select id="cfg-payment-method" data-allow-empty="true" data-empty-label="No aplicar"></select>
+		                    </div>
+		                    <div class="field mode-field">
+		                      <label>Cuenta bancaria</label>
+		                      <select id="cfg-bank-account" data-depends-on="cfg-apply-payment" data-allow-empty="true" data-empty-label="No aplicar"></select>
+		                      <p class="field-hint">Si aparecen "Sin datos", crea metodos de pago y cuentas en Alegra.</p>
+		                    </div>
+			                    <div class="field is-toggle mode-field">
+			                      <label>Aplicar pago</label>
+			                      <input type="checkbox" id="cfg-apply-payment" class="toggle" />
+			                    </div>
+			                    <div class="field mode-field">
+			                      <label>Observaciones</label>
+			                      <details class="multi-select" id="cfg-observations-fields">
+			                        <summary>
+			                          <span>Seleccionar campos</span>
+			                          <em id="cfg-observations-fields-summary">Ninguno</em>
+			                        </summary>
 		                        <div class="checkbox-grid single" id="cfg-observations-fields-options">
 		                          <label>
 		                            <input type="checkbox" data-observation-key="order_name" data-observation-line="Pedido: {{order.name}}" />
@@ -1455,15 +1452,16 @@
 		                            <input type="checkbox" data-observation-key="order_total" data-observation-line="Total: {{order.total}} {{order.currency}}" />
 		                            <span>Total</span>
 		                          </label>
-		                        </div>
-		                      </details>
-		                      <input type="text" id="cfg-observations-extra" data-depends-on="cfg-generate-invoice" placeholder="Texto adicional (opcional)" />
-			                      <input type="hidden" id="cfg-observations" data-depends-on="cfg-generate-invoice" />
+			                        </div>
+			                      </details>
+			                      <input type="text" id="cfg-observations-extra" placeholder="Texto adicional (opcional)" />
+			                      <input type="hidden" id="cfg-observations" />
 			                      <p class="field-hint" id="cfg-observations-preview">-</p>
 			                    </div>
-			                    <div class="field is-toggle mode-field field-span">
-			                      <label>Factura electrónica (opcional) <span class="tip" data-tip="Actívalo solo si necesitas capturar datos de factura electrónica por pedido (NIT/razón social, etc.). No bloquea la factura estándar.">?</span></label>
-			                      <input type="checkbox" id="cfg-einvoice-enabled" class="toggle" data-depends-on="cfg-generate-invoice" />
+			                    <div class="field is-toggle mode-field">
+			                      <label>Factura electrónica (opcional)</label>
+			                      <input type="checkbox" id="cfg-einvoice-enabled" class="toggle" />
+			                      <p class="field-hint">Actívala solo si necesitas capturar datos de factura electrónica por pedido (NIT/razón social, etc.). No bloquea la factura estándar.</p>
 			                    </div>
 			                  </div>
 			                  <p class="field-hint" id="cfg-store-message"></p>

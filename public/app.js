@@ -2630,33 +2630,37 @@ function validateInitialConnection(kind) {
 
 	function validateInvoiceModule() {
 	  clearInvoiceErrors();
-	  if (!cfgGenerateInvoice || !cfgGenerateInvoice.checked) {
-	    setModuleWarning("sync-orders", "");
-	    return true;
-	  }
 	  const ordersShopifyEnabled =
 	    syncOrdersShopifyEnabled instanceof HTMLInputElement
 	      ? Boolean(syncOrdersShopifyEnabled.checked)
 	      : true;
 	  const orderMode =
 	    ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
-	  const invoiceRequired = orderMode === "invoice";
-	  const errors = [];
-	  const recommendations = [];
-	  if (cfgApplyPayment && cfgApplyPayment.checked) {
-	    if (!cfgPaymentMethod || !String(cfgPaymentMethod.value || "").trim()) {
-	      errors.push({
-	        field: cfgPaymentMethod,
-	        message: "Método de pago requerido (o apaga “Aplicar pago”).",
-	      });
-	    }
-	    if (!cfgBankAccount || !String(cfgBankAccount.value || "").trim()) {
-	      errors.push({
-	        field: cfgBankAccount,
-	        message: "Cuenta bancaria requerida (o apaga “Aplicar pago”).",
-	      });
-	    }
-	  }
+		  const invoiceRequired = orderMode === "invoice";
+		  const errors = [];
+		  const recommendations = [];
+		  if (cfgApplyPayment && cfgApplyPayment.checked) {
+		    if (!cfgPaymentMethod || !String(cfgPaymentMethod.value || "").trim()) {
+		      if (invoiceRequired) {
+		        errors.push({
+		          field: cfgPaymentMethod,
+		          message: "Método de pago requerido (o apaga “Aplicar pago”).",
+		        });
+		      } else {
+		        recommendations.push("Método de pago");
+		      }
+		    }
+		    if (!cfgBankAccount || !String(cfgBankAccount.value || "").trim()) {
+		      if (invoiceRequired) {
+		        errors.push({
+		          field: cfgBankAccount,
+		          message: "Cuenta bancaria requerida (o apaga “Aplicar pago”).",
+		        });
+		      } else {
+		        recommendations.push("Cuenta bancaria");
+		      }
+		    }
+		  }
 
 	  if (invoiceRequired) {
 	    if (!cfgResolution || !String(cfgResolution.value || "").trim()) {
@@ -2976,18 +2980,24 @@ function getWizardModuleStatus(moduleKey) {
     }
     return { complete: true, focusTarget: null };
   }
-  if (moduleKey === "alegra-invoice") {
-    if (orderMode !== "invoice") return { complete: true, focusTarget: null };
-    if (cfgGenerateInvoice && !cfgGenerateInvoice.checked) {
-      return { complete: false, focusTarget: cfgGenerateInvoice };
-    }
-    if (cfgApplyPayment && cfgApplyPayment.checked) {
-      if (!cfgBankAccount || !String(cfgBankAccount.value || "").trim()) {
-        return { complete: false, focusTarget: cfgBankAccount };
-      }
-    }
-    return { complete: true, focusTarget: null };
-  }
+	  if (moduleKey === "alegra-invoice") {
+	    if (orderMode !== "invoice") return { complete: true, focusTarget: null };
+	    if (!cfgResolution || !String(cfgResolution.value || "").trim()) {
+	      return { complete: false, focusTarget: cfgResolution };
+	    }
+	    if (!cfgWarehouse || !String(cfgWarehouse.value || "").trim()) {
+	      return { complete: false, focusTarget: cfgWarehouse };
+	    }
+	    if (cfgApplyPayment && cfgApplyPayment.checked) {
+	      if (!cfgPaymentMethod || !String(cfgPaymentMethod.value || "").trim()) {
+	        return { complete: false, focusTarget: cfgPaymentMethod };
+	      }
+	      if (!cfgBankAccount || !String(cfgBankAccount.value || "").trim()) {
+	        return { complete: false, focusTarget: cfgBankAccount };
+	      }
+	    }
+		    return { complete: true, focusTarget: null };
+		  }
   if (moduleKey === "alegra-logistics") {
     if (orderMode === "off" || orderMode === "db_only") return { complete: true, focusTarget: null };
     if (cfgTransferEnabled && !cfgTransferEnabled.checked) {
@@ -3173,9 +3183,6 @@ function applyOrderToggle(select, toggle, fallbackValue) {
 }
 
 	function isInvoiceSetupComplete() {
-	  if (!(cfgGenerateInvoice instanceof HTMLInputElement) || !cfgGenerateInvoice.checked) {
-	    return false;
-	  }
 	  const resolutionOk = Boolean(cfgResolution && String(cfgResolution.value || "").trim());
 	  const warehouseOk = Boolean(cfgWarehouse && String(cfgWarehouse.value || "").trim());
 	  if (!resolutionOk || !warehouseOk) return false;
@@ -3189,10 +3196,6 @@ function applyOrderToggle(select, toggle, fallbackValue) {
 	}
 
 	function focusInvoiceSetupFirstMissing() {
-	  if (cfgGenerateInvoice instanceof HTMLInputElement && !cfgGenerateInvoice.checked) {
-	    focusFieldWithContext(cfgGenerateInvoice);
-	    return;
-	  }
 	  const resolutionOk = Boolean(cfgResolution && String(cfgResolution.value || "").trim());
 	  if (!resolutionOk && cfgResolution) {
 	    focusFieldWithContext(cfgResolution);
@@ -3867,9 +3870,6 @@ async function loadSettings(options = {}) {
 	      applyPayment: Boolean(data.invoice.applyPayment),
 	      observationsTemplate: data.invoice.observationsTemplate || "",
 	    };
-	    if (cfgGenerateInvoice) {
-	      cfgGenerateInvoice.checked = Boolean(data.invoice.generateInvoice);
-	    }
 	    if (cfgEinvoiceEnabled) {
 	      cfgEinvoiceEnabled.checked = Boolean(data.invoice.einvoiceEnabled);
 	    }
@@ -4506,7 +4506,6 @@ async function startWizardFlow() {
 
 	function applyInvoiceSettings(settings) {
 	  if (!settings) return;
-	  if (cfgGenerateInvoice) cfgGenerateInvoice.checked = Boolean(settings.generateInvoice);
 	  if (cfgEinvoiceEnabled) cfgEinvoiceEnabled.checked = Boolean(settings.einvoiceEnabled);
 	  if (cfgInvoiceStatus instanceof HTMLSelectElement) {
 	    const raw = String(settings.invoiceStatus || "draft").trim().toLowerCase();
@@ -5665,11 +5664,7 @@ function updateSyncWarehouseState() {
 		    field.removeAttribute("data-disabled-reason");
 		    field.removeAttribute("data-transfer-locked");
 		  }
-		  if (cfgGenerateInvoice instanceof HTMLInputElement) {
-		    cfgWarehouse.disabled = !cfgGenerateInvoice.checked;
-		  } else {
-		    cfgWarehouse.disabled = false;
-		  }
+		  cfgWarehouse.disabled = false;
 		}
 
 	function updateTransferOriginState() {
@@ -8207,7 +8202,7 @@ async function saveStoreConfigFromSettings() {
     syncContactsEnabled instanceof HTMLInputElement ? Boolean(syncContactsEnabled.checked) : true;
   const matchPriorityKey = syncContactsPriority ? syncContactsPriority.value : "document_phone_email";
   const matchPriority = matchPriorityKey.split("_").filter(Boolean);
-  let generateInvoiceValue = cfgGenerateInvoice ? cfgGenerateInvoice.checked : false;
+  const generateInvoiceValue = true;
 	  const payload = {
 	    transfers: {
 	      enabled: cfgTransferEnabled ? cfgTransferEnabled.checked : true,
