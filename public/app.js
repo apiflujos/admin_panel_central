@@ -2914,8 +2914,10 @@ async function findNextWizardStep(fromIndex = 0) {
 function setModuleEnabled(panel, enabled) {
   if (!panel) return;
   panel.classList.toggle("is-disabled", !enabled);
-  // Ojo: no forzamos "editable" al habilitar; solo bloqueamos cuando falta prerequisito.
+  // Sin botones Editar/Guardar: si se habilita por prerequisitos, debe quedar editable.
+  const explicitReadonly = panel.getAttribute("data-module-readonly") === "true";
   if (!enabled) setModuleReadonly(panel, true);
+  else if (!explicitReadonly) setModuleReadonly(panel, false);
   panel.querySelectorAll(".module-action").forEach((button) => {
     button.disabled = !enabled;
   });
@@ -3272,8 +3274,9 @@ function skipWizardStep() {
   openWizardStep();
 }
 
-async function handleModuleSave(moduleKey) {
+async function handleModuleSave(moduleKey, options = {}) {
   if (!moduleKey) return;
+  const { silentValidation = false, showStatus = true } = options || {};
   const panel = getModulePanel(moduleKey);
   const saveActions = {
     ai: async () => {
@@ -3314,21 +3317,34 @@ async function handleModuleSave(moduleKey) {
     };
     const validator = validators[moduleKey];
     if (validator && !validator()) {
+      if (silentValidation) return;
       throw new Error("Completa los campos obligatorios.");
     }
     await action();
-    if (moduleKey === "alegra-invoice" || moduleKey === "alegra-inventory" || moduleKey === "alegra-logistics" || moduleKey === "shopify-rules" || moduleKey === "sync-contacts" || moduleKey === "sync-orders") {
-      if (hadWarning) {
-        setStoreConfigStatus("Guardado con recomendaciones pendientes.", "is-warn");
-      } else {
-        setStoreConfigStatus("Configuracion guardada.", "is-ok");
-      }
+    if (
+      showStatus &&
+      (moduleKey === "alegra-invoice" ||
+        moduleKey === "alegra-inventory" ||
+        moduleKey === "alegra-logistics" ||
+        moduleKey === "shopify-rules" ||
+        moduleKey === "sync-contacts" ||
+        moduleKey === "sync-orders")
+    ) {
+      if (hadWarning) setStoreConfigStatus("Guardado con recomendaciones pendientes.", "is-warn");
+      else setStoreConfigStatus("Configuracion guardada.", "is-ok");
     }
-    setModuleReadonly(panel, true);
     setModuleSaved(panel, true);
     advanceWizardStep(moduleKey);
   } catch (error) {
-    if (moduleKey === "alegra-invoice" || moduleKey === "alegra-inventory" || moduleKey === "alegra-logistics" || moduleKey === "shopify-rules" || moduleKey === "sync-contacts" || moduleKey === "sync-orders") {
+    if (
+      showStatus &&
+      (moduleKey === "alegra-invoice" ||
+        moduleKey === "alegra-inventory" ||
+        moduleKey === "alegra-logistics" ||
+        moduleKey === "shopify-rules" ||
+        moduleKey === "sync-contacts" ||
+        moduleKey === "sync-orders")
+    ) {
       setStoreConfigStatus(error?.message || "No se pudo guardar.", "is-error");
     }
     throw error;
@@ -3336,8 +3352,72 @@ async function handleModuleSave(moduleKey) {
 }
 
 function initModuleControls() {
+  const autosaveKeys = new Set([
+    "shopify-rules",
+    "alegra-inventory",
+    "sync-contacts",
+    "sync-orders",
+    "alegra-logistics",
+    "alegra-invoice",
+  ]);
+  const autosaveTimers = new Map();
+  const autosaveInFlight = new Set();
+
+  const shouldAutosaveTarget = (moduleKey, target) => {
+    if (!autosaveKeys.has(moduleKey)) return false;
+    if (!(target instanceof HTMLElement)) return false;
+    const id = target.id || "";
+    if (id === "shopify-automation-enabled") return false;
+
+    if (moduleKey === "shopify-rules") {
+      return Boolean(id && id.startsWith("rules-"));
+    }
+    if (moduleKey === "alegra-inventory") {
+      if (target.closest("#cfg-inventory-warehouses")) return true;
+      if (id === "rules-sync-enabled") return true;
+      if (id && id.startsWith("inventory-")) return true;
+      return false;
+    }
+    if (moduleKey === "sync-contacts") {
+      if (!id || !id.startsWith("sync-contacts-")) return false;
+      return !id.startsWith("sync-contacts-bulk-");
+    }
+    if (moduleKey === "sync-orders") {
+      return Boolean(id && id.startsWith("sync-orders-"));
+    }
+    if (moduleKey === "alegra-logistics" || moduleKey === "alegra-invoice") {
+      if (moduleKey === "alegra-logistics" && target.closest("#cfg-transfer-origin")) return true;
+      return Boolean(id && id.startsWith("cfg-"));
+    }
+    return false;
+  };
+
+  const scheduleAutosave = (moduleKey, options = {}) => {
+    if (!autosaveKeys.has(moduleKey)) return;
+    const panel = getModulePanel(moduleKey);
+    if (!panel || panel.classList.contains("is-disabled")) return;
+    const delayMs = Number.isFinite(options.delayMs) ? Math.max(150, options.delayMs) : 650;
+
+    const previous = autosaveTimers.get(moduleKey);
+    if (previous) clearTimeout(previous);
+
+    const timer = setTimeout(async () => {
+      autosaveTimers.delete(moduleKey);
+      if (autosaveInFlight.has(moduleKey)) return;
+      autosaveInFlight.add(moduleKey);
+      try {
+        await handleModuleSave(moduleKey, { silentValidation: true, showStatus: false });
+      } catch (error) {
+        showToast(error?.message || "No se pudo guardar.", "is-error");
+      } finally {
+        autosaveInFlight.delete(moduleKey);
+      }
+    }, delayMs);
+    autosaveTimers.set(moduleKey, timer);
+  };
+
   document.querySelectorAll(".module[data-module]").forEach((panel) => {
-    const readonly = panel.getAttribute("data-module-readonly") !== "false";
+    const readonly = panel.getAttribute("data-module-readonly") === "true";
     setModuleReadonly(panel, readonly);
     setModuleSaved(panel, false);
     setModuleCollapsed(panel, false);
@@ -3349,28 +3429,6 @@ function initModuleControls() {
     if (toggle) {
       return;
     }
-    const edit = target.closest("[data-module-edit]");
-    if (edit) {
-      const key = edit.getAttribute("data-module-edit");
-      const panel = getModulePanel(key);
-      setModuleReadonly(panel, false);
-      setModuleSaved(panel, false);
-      return;
-    }
-    const save = target.closest("[data-module-save]");
-    if (save) {
-      const key = save.getAttribute("data-module-save");
-      if (!key) return;
-      const button = save instanceof HTMLButtonElement ? save : null;
-      if (button) setButtonLoading(button, true);
-      handleModuleSave(key)
-        .catch((error) => {
-          showToast(error?.message || "No se pudo guardar.", "is-error");
-        })
-        .finally(() => {
-          if (button) setButtonLoading(button, false);
-        });
-    }
   });
   document.addEventListener("input", (event) => {
     const target = event.target instanceof HTMLElement ? event.target : null;
@@ -3379,6 +3437,8 @@ function initModuleControls() {
     const panel = target.closest(".module[data-module]");
     if (!panel) return;
     setModuleSaved(panel, false);
+    const key = panel.getAttribute("data-module") || "";
+    if (shouldAutosaveTarget(key, target)) scheduleAutosave(key, { delayMs: 800 });
   });
   document.addEventListener("change", (event) => {
     const target = event.target instanceof HTMLElement ? event.target : null;
@@ -3387,6 +3447,8 @@ function initModuleControls() {
     const panel = target.closest(".module[data-module]");
     if (!panel) return;
     setModuleSaved(panel, false);
+    const key = panel.getAttribute("data-module") || "";
+    if (shouldAutosaveTarget(key, target)) scheduleAutosave(key, { delayMs: 300 });
   });
   const clearErrorIfValid = (target) => {
     if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) {
