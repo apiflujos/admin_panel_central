@@ -224,6 +224,7 @@ const cfgInventoryWarehousesSummary = document.getElementById("cfg-inventory-war
 const syncContactsShopify = document.getElementById("sync-contacts-shopify");
 const syncContactsAlegra = document.getElementById("sync-contacts-alegra");
 const syncContactsPriority = document.getElementById("sync-contacts-priority");
+const syncContactsEnabled = document.getElementById("sync-contacts-enabled");
 const syncContactLimit = document.getElementById("sync-contact-limit");
 const syncContactsBulkDateStart = document.getElementById("sync-contacts-bulk-date-start");
 const syncContactsBulkDateEnd = document.getElementById("sync-contacts-bulk-date-end");
@@ -1158,19 +1159,25 @@ function buildDependencyDisabledReason(element) {
   const custom = element.getAttribute("data-disabled-message");
   if (custom && custom.trim()) return custom.trim();
   const ids = parseDependsOn(element.getAttribute("data-depends-on") || "");
-  const first = ids.length ? getControlLabelById(ids[0]) : "";
-  if (first) return `Activa “${first}” para habilitar esta función.`;
+  const firstOffId = ids.find((id) => !isToggleOnById(id)) || ids[0] || "";
+  const label = firstOffId ? getControlLabelById(firstOffId) : "";
+  if (label) return `Activa “${label}” para habilitar esta función.`;
   return "Activa la opción requerida para habilitar esta función.";
 }
 
 function setDependentEnabled(element, enabled) {
   const shouldDisable = !enabled;
   const nodes = [];
+  const isStandaloneContainer =
+    element instanceof HTMLElement &&
+    element.matches(".mode-grid, .mode-toggle-grid, .settings-grid, .toolbar, details.multi-select");
   const container =
-    element instanceof HTMLElement
+    element instanceof HTMLElement && !isStandaloneContainer
       ? element.closest(".mode-field, .mode-toggle, .field, .mode-section, .module") || element
-      : null;
-  const visualTarget = container instanceof HTMLElement ? container : (element instanceof HTMLElement ? element : null);
+      : element instanceof HTMLElement
+        ? element
+        : null;
+  const visualTarget = element instanceof HTMLElement ? element : (container instanceof HTMLElement ? container : null);
   const wasDisabled = visualTarget instanceof HTMLElement ? visualTarget.classList.contains("is-dep-disabled") : false;
 
   if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement || element instanceof HTMLButtonElement) {
@@ -1182,6 +1189,7 @@ function setDependentEnabled(element, enabled) {
   }
 
   nodes.forEach((node) => {
+    if (node instanceof HTMLElement && node.getAttribute("data-dep-controller") === "1") return;
     node.disabled = shouldDisable;
   });
 
@@ -1255,6 +1263,7 @@ function initDependencyDisabledToasts() {
       const target = event.target instanceof HTMLElement ? event.target : null;
       if (!target) return;
       if (target.closest(".tip, .tip-popover, .toast, .help-panel, .help-launch")) return;
+      if (target.closest('[data-dep-controller="1"]')) return;
 
       const disabledContainer = target.closest(".is-dep-disabled[data-disabled-reason]");
       if (!(disabledContainer instanceof HTMLElement)) return;
@@ -4302,6 +4311,10 @@ function applyLegacyStoreConfig(config) {
       : ["document", "phone", "email"];
   const priorityKey = matchPriority.join("_");
   const defaultShopifyMode = "db_only";
+  if (syncContactsEnabled instanceof HTMLInputElement) {
+    const hasAnyDirection = contactSync.fromShopify !== false || contactSync.fromAlegra !== false;
+    syncContactsEnabled.checked = Boolean(hasAnyDirection);
+  }
   if (syncContactsShopify) {
     syncContactsShopify.checked = contactSync.fromShopify !== false;
   }
@@ -4358,6 +4371,7 @@ function clearLegacyStoreConfig() {
   storeInvoiceOverrides = null;
   applyRuleSettings(inventoryRules);
   applyInvoiceSettings(globalInvoiceSettings);
+  if (syncContactsEnabled instanceof HTMLInputElement) syncContactsEnabled.checked = true;
   if (syncContactsShopify) syncContactsShopify.checked = true;
   if (syncContactsAlegra) syncContactsAlegra.checked = true;
   if (syncContactsCreateAlegra) syncContactsCreateAlegra.checked = true;
@@ -7222,6 +7236,8 @@ async function saveStoreConfigFromSettings() {
   }
   const shopifyOrderMode = syncOrdersShopify ? syncOrdersShopify.value : "";
   const alegraOrderMode = syncOrdersAlegra ? syncOrdersAlegra.value : "";
+  const contactsEnabled =
+    syncContactsEnabled instanceof HTMLInputElement ? syncContactsEnabled.checked !== false : true;
   const matchPriorityKey = syncContactsPriority ? syncContactsPriority.value : "document_phone_email";
   const matchPriority = matchPriorityKey.split("_").filter(Boolean);
   let generateInvoiceValue = cfgGenerateInvoice ? cfgGenerateInvoice.checked : false;
@@ -7293,10 +7309,10 @@ async function saveStoreConfigFromSettings() {
     },
     sync: {
       contacts: {
-        fromShopify: syncContactsShopify ? syncContactsShopify.checked : true,
-        fromAlegra: syncContactsAlegra ? syncContactsAlegra.checked : true,
-        createInAlegra: syncContactsCreateAlegra ? syncContactsCreateAlegra.checked : true,
-        createInShopify: syncContactsCreateShopify ? syncContactsCreateShopify.checked : true,
+        fromShopify: contactsEnabled ? (syncContactsShopify ? syncContactsShopify.checked : true) : false,
+        fromAlegra: contactsEnabled ? (syncContactsAlegra ? syncContactsAlegra.checked : true) : false,
+        createInAlegra: contactsEnabled ? (syncContactsCreateAlegra ? syncContactsCreateAlegra.checked : true) : false,
+        createInShopify: contactsEnabled ? (syncContactsCreateShopify ? syncContactsCreateShopify.checked : true) : false,
         matchPriority,
       },
       orders: {

@@ -124,11 +124,19 @@ body {
   align-items: center;
   justify-content: center;
   padding: 0;
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.14);
+  color: var(--text);
+}
+
+.sidebar-toggle:hover {
+  background: rgba(15, 23, 42, 0.08);
+  border-color: rgba(15, 23, 42, 0.2);
 }
 
 .sidebar-toggle svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
 }
 .brand img {
   max-width: 150px;
@@ -1648,10 +1656,11 @@ button {
 .settings-group-header::after {
   content: "▾";
   font-size: 17px;
-  color: var(--muted);
+  color: var(--text);
   margin-left: auto;
   display: inline-block;
   transition: transform 160ms ease;
+  opacity: 0.65;
 }
 
 .settings-group.is-collapsed .settings-group-header::after {
@@ -1893,6 +1902,21 @@ button {
 
 .is-dep-disabled .tip {
   cursor: help;
+}
+
+.is-dep-disabled details,
+.is-dep-disabled summary {
+  pointer-events: none;
+}
+
+.is-dep-disabled [data-dep-controller="1"] {
+  cursor: pointer;
+  opacity: 1;
+  filter: none;
+}
+
+.is-dep-disabled label[data-dep-controller="1"] {
+  cursor: pointer;
 }
 
 .toggle {

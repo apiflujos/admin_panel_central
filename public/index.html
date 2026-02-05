@@ -11,11 +11,11 @@
     <div class="app-shell">
       <aside class="sidebar">
         <div class="sidebar-header">
-          <button class="ghost sidebar-toggle" id="sidebar-toggle" aria-label="Colapsar menu" title="Colapsar menu">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <path d="M15 6l-6 6 6 6" />
-            </svg>
-          </button>
+	          <button class="ghost sidebar-toggle" id="sidebar-toggle" aria-label="Colapsar menu" title="Colapsar menu">
+	            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+	              <path d="M15 6l-6 6 6 6" />
+	            </svg>
+	          </button>
         </div>
         <nav class="nav">
           <button class="nav-item is-active" data-target="dashboard" title="Metricas">
@@ -888,26 +888,26 @@
 		                          </div>
 		                        </div>
 
-		                        <div class="mode-section">
-			                          <div class="mode-head">
-			                            <div class="mode-head-left">
-				                              <h4>Sincronizacion automatica</h4>
-					                              <span class="tip" data-tip="Se ejecuta sola cuando llegan cambios desde Alegra. Estas reglas también aplican cuando sincronizas manualmente desde el módulo Productos. Si apagas “Publicar en Shopify”, el sistema solo actualiza datos y no deja productos visibles.">?</span>
-				                            </div>
-				                          </div>
-				                          <div class="mode-toggle-grid" aria-label="Opciones automatico">
-				                            <div class="mode-toggle">
-				                              <label for="rules-only-active">Solo activos en Alegra <span class="tip" data-tip="Si está activo, solo se sincronizan productos activos en Alegra (automático y manual por SKU).">?</span></label>
-			                              <input type="checkbox" id="rules-only-active" class="toggle" />
-				                            </div>
-					                            <div class="mode-toggle">
-					                              <label for="rules-auto-publish">Publicar en Shopify <span class="tip" data-tip="Enciende/apaga la publicación. Si lo apagas, solo sincronizamos datos, pero no publicamos productos (automático ni manual por SKU).">?</span></label>
-					                              <input type="checkbox" id="rules-auto-publish" class="toggle" data-depends-on="rules-only-active" />
+			                        <div class="mode-section">
+				                          <div class="mode-head">
+				                            <div class="mode-head-left">
+					                              <h4>Sincronizacion automatica</h4>
+						                              <span class="tip" data-tip="Se ejecuta sola cuando llegan cambios desde Alegra. Estas reglas también aplican cuando sincronizas manualmente desde el módulo Productos. Si apagas “Publicar en Shopify”, el sistema solo actualiza datos y no deja productos visibles.">?</span>
 					                            </div>
+				                            <div class="mode-head-right">
+				                              <label for="rules-auto-publish" data-dep-controller="1">Publicar en Shopify</label>
+				                              <input type="checkbox" id="rules-auto-publish" class="toggle" data-dep-controller="1" />
+				                            </div>
+					                          </div>
+					                          <div class="mode-toggle-grid" aria-label="Opciones automatico" data-depends-on="rules-auto-publish">
 					                            <div class="mode-toggle">
-					                              <label for="rules-auto-images">Publicar fotos <span class="tip" data-tip="Si está activo, intentamos subir fotos del producto a Shopify. Si una foto falla, el producto puede publicarse igual (solo quedará sin esa foto).">?</span></label>
-					                              <input type="checkbox" id="rules-auto-images" class="toggle" data-depends-on="rules-auto-publish" />
+					                              <label for="rules-only-active">Solo activos en Alegra <span class="tip" data-tip="Si está activo, solo se sincronizan productos activos en Alegra (automático y manual por SKU).">?</span></label>
+				                              <input type="checkbox" id="rules-only-active" class="toggle" />
 					                            </div>
+						                            <div class="mode-toggle">
+						                              <label for="rules-auto-images">Publicar fotos <span class="tip" data-tip="Si está activo, intentamos subir fotos del producto a Shopify. Si una foto falla, el producto puede publicarse igual (solo quedará sin esa foto).">?</span></label>
+						                              <input type="checkbox" id="rules-auto-images" class="toggle" data-depends-on="rules-auto-publish" />
+						                            </div>
 				                            <div class="mode-toggle">
 				                              <label for="rules-auto-status">Estado <span class="tip" data-tip="Define el estado de publicación cuando “Publicar en Shopify” está activo: Borrador o Activo.">?</span></label>
 				                              <select id="rules-auto-status" data-depends-on="rules-auto-publish">
@@ -936,20 +936,22 @@
 	                    </div>
                     <div class="module-body">
 			                      <div class="mode-sections">
-				                        <div class="mode-section">
-				                          <div class="mode-head">
-				                            <h4>Activar ajustes de inventario</h4>
-				                            <span class="tip" data-tip="Prende o apaga la automatización de inventario, define cada cuánto consultar y de qué bodegas tomar el stock.">?</span>
-				                          </div>
-				                          <div class="mode-toggle-grid" aria-label="Ajustes de inventario">
-				                            <div class="mode-toggle">
-				                              <label for="inventory-cron-enabled">Ajustes de inventario <span class="tip" data-tip="Activa/desactiva el cron que revisa ajustes de inventario en Alegra y actualiza Shopify automáticamente.">?</span></label>
-				                              <input type="checkbox" id="inventory-cron-enabled" class="toggle" />
-				                            </div>
-				                            <div class="mode-toggle">
-				                              <label for="inventory-cron-interval-select">Cada cuánto consultar</label>
-				                              <select id="inventory-cron-interval-select" data-depends-on="inventory-cron-enabled">
-			                                <option value="5">Cada 5 minutos</option>
+					                        <div class="mode-section">
+					                          <div class="mode-head">
+					                            <div class="mode-head-left">
+					                              <h4>Activar ajustes de inventario</h4>
+					                              <span class="tip" data-tip="Prende o apaga la automatización de inventario, define cada cuánto consultar y de qué bodegas tomar el stock.">?</span>
+					                            </div>
+					                            <div class="mode-head-right">
+					                              <label for="inventory-cron-enabled" data-dep-controller="1">Ajustes de inventario</label>
+					                              <input type="checkbox" id="inventory-cron-enabled" class="toggle" data-dep-controller="1" />
+					                            </div>
+					                          </div>
+					                          <div class="mode-toggle-grid" aria-label="Ajustes de inventario" data-depends-on="inventory-cron-enabled">
+					                            <div class="mode-toggle">
+					                              <label for="inventory-cron-interval-select">Cada cuánto consultar</label>
+					                              <select id="inventory-cron-interval-select" data-depends-on="inventory-cron-enabled">
+				                                <option value="5">Cada 5 minutos</option>
 			                                <option value="10">Cada 10 minutos</option>
 			                                <option value="15">Cada 15 minutos</option>
 			                              </select>
@@ -1012,11 +1014,11 @@
 	                    </div>
 	                    <div class="module-body">
 		                      <div class="mode-sections">
-			                        <div class="mode-section" data-readonly-free="1">
-			                          <div class="mode-head">
-					                            <h4>Sincronizacion masiva</h4>
-					                            <span class="tip" data-tip="Crea/normaliza contactos en lote. Puedes correr una dirección o ambas (bidireccional); si activas ambas se ejecuta en 2 fases. Tip anti-duplicados: define la prioridad y prueba primero con “Crear” apagado.">?</span>
-				                          </div>
+				                        <div class="mode-section" data-readonly-free="1" data-depends-on="sync-contacts-enabled">
+				                          <div class="mode-head">
+						                            <h4>Sincronizacion masiva</h4>
+						                            <span class="tip" data-tip="Crea/normaliza contactos en lote. Puedes correr una dirección o ambas (bidireccional); si activas ambas se ejecuta en 2 fases. Tip anti-duplicados: define la prioridad y prueba primero con “Crear” apagado.">?</span>
+					                          </div>
 				                          <div class="mode-grid">
 			                            <div class="mode-field">
 			                              <label for="sync-contacts-bulk-date-start">Fecha inicio</label>
@@ -1063,16 +1065,22 @@
 				                          </div>
 				                        </div>
 
-			                        <div class="mode-section">
-			                          <div class="mode-head">
-			                            <h4>Sincronizacion automatica</h4>
-				                            <span class="tip" data-tip="Define qué direcciones están permitidas en automático. Nota: el masivo usa los toggles de arriba (dirección + crear).">?</span>
-			                          </div>
-			                          <div class="mode-grid">
-			                            <div class="mode-field">
-			                              <label for="sync-contacts-shopify">Shopify → Alegra <span class="tip" data-tip="Permite que el sistema sincronice automáticamente desde Shopify hacia Alegra.">?</span></label>
-			                              <input type="checkbox" id="sync-contacts-shopify" class="toggle" checked />
-			                            </div>
+				                        <div class="mode-section">
+				                          <div class="mode-head">
+				                            <div class="mode-head-left">
+				                              <h4>Sincronizacion automatica</h4>
+					                              <span class="tip" data-tip="Define qué direcciones están permitidas en automático. Nota: el masivo usa los toggles de arriba (dirección + crear).">?</span>
+				                            </div>
+				                            <div class="mode-head-right">
+				                              <label for="sync-contacts-enabled" data-dep-controller="1">Sincronización de contactos</label>
+				                              <input type="checkbox" id="sync-contacts-enabled" class="toggle" data-dep-controller="1" checked />
+				                            </div>
+				                          </div>
+				                          <div class="mode-grid" data-depends-on="sync-contacts-enabled">
+				                            <div class="mode-field">
+				                              <label for="sync-contacts-shopify">Shopify → Alegra <span class="tip" data-tip="Permite que el sistema sincronice automáticamente desde Shopify hacia Alegra.">?</span></label>
+				                              <input type="checkbox" id="sync-contacts-shopify" class="toggle" checked />
+				                            </div>
 			                            <div class="mode-field">
 				                              <label for="sync-contacts-create-alegra">Crear en Alegra <span class="tip" data-tip="En automático, permite crear nuevos contactos en Alegra cuando no existen. Si lo apagas, solo se actualizan existentes.">?</span></label>
 			                              <input type="checkbox" id="sync-contacts-create-alegra" class="toggle" data-depends-on="sync-contacts-shopify" checked />
@@ -1132,20 +1140,22 @@
                     </div>
                     <div class="module-body">
                       <div class="mode-sections">
-                        <div class="mode-section" data-depends-on="shopify-automation-enabled,sync-contacts-shopify">
-                          <div class="mode-head">
-                            <h4>Sincronizacion automatica (pedidos nuevos)</h4>
-                            <span class="tip" data-tip="Se ejecuta cuando llega un pedido nuevo desde Shopify.">?</span>
-                          </div>
-                          <div class="mode-grid">
-                            <div class="mode-field">
-                              <label for="sync-orders-shopify-enabled">Procesar pedidos nuevos</label>
-                              <input type="checkbox" id="sync-orders-shopify-enabled" class="toggle" />
-                            </div>
-                            <div class="mode-field">
-                              <label for="sync-orders-shopify">Que crear en Alegra <span class="tip" data-tip="Registrar, crear contacto o crear factura.">?</span></label>
-                              <select id="sync-orders-shopify" data-depends-on="sync-orders-shopify-enabled">
-                                <option value="db_only">Solo registrar</option>
+	                        <div class="mode-section">
+	                          <div class="mode-head">
+	                            <div class="mode-head-left">
+	                              <h4>Sincronizacion automatica (pedidos nuevos)</h4>
+	                              <span class="tip" data-tip="Se ejecuta cuando llega un pedido nuevo desde Shopify.">?</span>
+	                            </div>
+	                            <div class="mode-head-right">
+	                              <label for="sync-orders-shopify-enabled" data-dep-controller="1">Procesar pedidos nuevos</label>
+	                              <input type="checkbox" id="sync-orders-shopify-enabled" class="toggle" data-dep-controller="1" />
+	                            </div>
+	                          </div>
+	                          <div class="mode-grid" data-depends-on="shopify-automation-enabled,sync-contacts-enabled,sync-contacts-shopify,sync-orders-shopify-enabled">
+	                            <div class="mode-field">
+	                              <label for="sync-orders-shopify">Que crear en Alegra <span class="tip" data-tip="Registrar, crear contacto o crear factura.">?</span></label>
+	                              <select id="sync-orders-shopify" data-depends-on="sync-orders-shopify-enabled">
+	                                <option value="db_only">Solo registrar</option>
                                 <option value="contact_only">Crear contacto</option>
                                 <option value="invoice">Crear factura</option>
                                 <option value="off">No sincronizar</option>
@@ -1154,20 +1164,22 @@
                           </div>
                         </div>
 
-	                        <div class="mode-section" data-depends-on="shopify-automation-enabled">
-	                          <div class="mode-head">
-	                            <h4>Sincronizacion automatica (facturas nuevas)</h4>
-	                            <span class="tip" data-tip="Se ejecuta cuando llega una factura nueva desde Alegra.">?</span>
-	                          </div>
-                          <div class="mode-grid">
-                            <div class="mode-field">
-                              <label for="sync-orders-alegra-enabled">Procesar facturas nuevas</label>
-                              <input type="checkbox" id="sync-orders-alegra-enabled" class="toggle" />
-                            </div>
-                            <div class="mode-field">
-                              <label for="sync-orders-alegra">Como crear pedido en Shopify <span class="tip" data-tip="Borrador crea el pedido sin publicar; Activo lo crea listo para gestionar.">?</span></label>
-                              <select id="sync-orders-alegra" data-depends-on="sync-orders-alegra-enabled">
-                                <option value="draft">Crear pedido borrador</option>
+		                        <div class="mode-section">
+		                          <div class="mode-head">
+		                            <div class="mode-head-left">
+		                              <h4>Sincronizacion automatica (facturas nuevas)</h4>
+		                              <span class="tip" data-tip="Se ejecuta cuando llega una factura nueva desde Alegra.">?</span>
+		                            </div>
+		                            <div class="mode-head-right">
+		                              <label for="sync-orders-alegra-enabled" data-dep-controller="1">Procesar facturas nuevas</label>
+		                              <input type="checkbox" id="sync-orders-alegra-enabled" class="toggle" data-dep-controller="1" />
+		                            </div>
+		                          </div>
+	                          <div class="mode-grid" data-depends-on="shopify-automation-enabled,sync-orders-alegra-enabled">
+	                            <div class="mode-field">
+	                              <label for="sync-orders-alegra">Como crear pedido en Shopify <span class="tip" data-tip="Borrador crea el pedido sin publicar; Activo lo crea listo para gestionar.">?</span></label>
+	                              <select id="sync-orders-alegra" data-depends-on="sync-orders-alegra-enabled">
+	                                <option value="draft">Crear pedido borrador</option>
                                 <option value="active">Crear pedido activo</option>
                                 <option value="off">No sincronizar</option>
                               </select>
@@ -1175,21 +1187,21 @@
 	                          </div>
 	                        </div>
 	                      </div>
-		                      <div class="mode-section">
-		                        <div class="mode-head">
-		                          <h4>Automatizacion en tiempo real (Shopify)</h4>
-		                          <span class="tip" data-tip="Activalo para que pedidos, inventario y productos se sincronicen solos. Si cambias el dominio de la tienda, vuelve a activarlo.">?</span>
-		                        </div>
-		                        <div class="mode-grid">
-		                          <div class="mode-field">
-		                            <label for="shopify-automation-enabled">Activar automatizacion <span class="tip" data-tip="OFF: desconecta los webhooks y bloquea acciones automáticas por tienda.">?</span></label>
-		                            <input type="checkbox" id="shopify-automation-enabled" class="toggle" checked />
-		                          </div>
-		                        </div>
-		                        <div class="settings-grid">
-		                          <div class="field span-2">
-			                          <p class="field-hint">Activa la automatizacion para que el sistema procese cambios automaticamente.</p>
-		                          </div>
+			                      <div class="mode-section">
+			                        <div class="mode-head">
+			                          <div class="mode-head-left">
+			                            <h4>Automatizacion en tiempo real (Shopify)</h4>
+			                            <span class="tip" data-tip="Activalo para que pedidos, inventario y productos se sincronicen solos. Si cambias el dominio de la tienda, vuelve a activarlo.">?</span>
+			                          </div>
+			                          <div class="mode-head-right">
+			                            <label for="shopify-automation-enabled" data-dep-controller="1">Activar automatizacion</label>
+			                            <input type="checkbox" id="shopify-automation-enabled" class="toggle" data-dep-controller="1" checked />
+			                          </div>
+			                        </div>
+			                        <div class="settings-grid">
+			                          <div class="field span-2">
+				                          <p class="field-hint">Activa la automatizacion para que el sistema procese cambios automaticamente.</p>
+			                          </div>
 		                        </div>
 	                        <div class="toolbar is-actions">
 		                        <button class="primary" id="shopify-webhooks-create" type="button">Activar automatizacion</button>
@@ -1206,7 +1218,7 @@
                     </div>
                   </div>
 
-	                  <div class="panel admin-only module" data-provider="alegra" data-manager="shopify" data-module="alegra-logistics" id="inventory-transfer-panel" data-depends-on="sync-orders-shopify-enabled" data-help="Configura bodegas y traslados automaticos (si se requieren) para pedidos Shopify → Alegra.">
+		                  <div class="panel admin-only module" data-provider="alegra" data-manager="shopify" data-module="alegra-logistics" id="inventory-transfer-panel" data-depends-on="sync-orders-shopify-enabled" data-help="Configura bodegas y traslados automaticos (si se requieren) para pedidos Shopify → Alegra.">
             <div class="panel-header">
               <h3 data-module-toggle="alegra-logistics" data-title-base="Logistica e inventario">Logistica e inventario</h3>
               <span class="panel-tag tag-alegra">Alegra</span>
@@ -1275,16 +1287,20 @@
 	                  <label>Stock minimo por bodega</label>
 	                  <input type="number" id="cfg-transfer-min-stock" data-depends-on="cfg-transfer-enabled" min="0" step="1" placeholder="0" />
 	                </div>
-                <div class="field field-span">
-                  <span class="kpi-sub">Traslados de inventario</span>
-                </div>
+	                <div class="field field-span">
+	                  <div class="mode-head">
+	                    <div class="mode-head-left">
+	                      <span class="kpi-sub">Traslados de inventario</span>
+	                    </div>
+	                    <div class="mode-head-right">
+	                      <label for="cfg-transfer-enabled" data-dep-controller="1">Traslado automatico</label>
+	                      <input type="checkbox" id="cfg-transfer-enabled" class="toggle" data-dep-controller="1" />
+	                    </div>
+	                  </div>
+	                </div>
                 <div class="field">
 	                  <label>Destino</label>
 	                  <select id="cfg-transfer-dest" data-depends-on="cfg-transfer-enabled"></select>
-	                </div>
-	                <div class="field is-toggle">
-	                  <label>Traslado automatico</label>
-	                  <input type="checkbox" id="cfg-transfer-enabled" class="toggle" />
 	                </div>
               </div>
               <div class="module-footer">
@@ -1302,12 +1318,16 @@
             </div>
             <div class="module-body">
               <div class="settings-grid">
-                <div class="field field-span">
-                  <span class="kpi-sub">Listas de precios</span>
-                </div>
-	                <div class="field is-toggle">
-	                  <label>Usar listas de precios</label>
-	                  <input type="checkbox" id="cfg-price-enabled" class="toggle" />
+	                <div class="field field-span">
+	                  <div class="mode-head">
+	                    <div class="mode-head-left">
+	                      <span class="kpi-sub">Listas de precios</span>
+	                    </div>
+	                    <div class="mode-head-right">
+	                      <label for="cfg-price-enabled" data-dep-controller="1">Usar</label>
+	                      <input type="checkbox" id="cfg-price-enabled" class="toggle" data-dep-controller="1" />
+	                    </div>
+	                  </div>
 	                </div>
                 <div class="field field-span">
                   <p class="field-hint">Opcional. Si queda vacio, se usa el precio base de Alegra.</p>
@@ -1332,9 +1352,16 @@
 	                    <option value="USD">USD</option>
 	                  </select>
 	                </div>
-	                <div class="field is-toggle">
-	                  <label>Facturar automaticamente</label>
-	                  <input type="checkbox" id="cfg-generate-invoice" class="toggle" />
+	                <div class="field field-span">
+	                  <div class="mode-head">
+	                    <div class="mode-head-left">
+	                      <span class="kpi-sub">Facturacion automatica</span>
+	                    </div>
+	                    <div class="mode-head-right">
+	                      <label for="cfg-generate-invoice" data-dep-controller="1">Facturar automaticamente</label>
+	                      <input type="checkbox" id="cfg-generate-invoice" class="toggle" data-dep-controller="1" />
+	                    </div>
+	                  </div>
 	                </div>
 	                <div class="field is-toggle">
 	                  <label>Habilitar factura electronica</label>
