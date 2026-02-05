@@ -1380,10 +1380,14 @@
 		                  <div class="mode-head">
 		                    <div class="mode-head-left">
 		                      <h4>Reglas de facturación</h4>
-		                      <span class="tip" data-tip="Estas reglas se usan cuando en Pedidos seleccionas “Crear factura”.">?</span>
+		                      <span class="tip" data-tip="Estas reglas se usan cuando en Pedidos seleccionas “Crear factura”. La bodega se toma desde Logística e inventario (Bodega destino).">?</span>
 		                    </div>
 		                  </div>
 				                  <div class="mode-grid">
+			                    <div class="field is-toggle mode-field">
+			                      <label>Factura electrónica (opcional) <span class="tip" data-tip="Actívala solo si necesitas capturar datos de factura electrónica por pedido (NIT/razón social, etc.). No bloquea la factura estándar.">?</span></label>
+			                      <input type="checkbox" id="cfg-einvoice-enabled" class="toggle" />
+			                    </div>
 				                    <div class="field mode-field">
 				                      <label>Tipo de factura</label>
 				                      <select id="cfg-invoice-status">
@@ -1395,10 +1399,7 @@
 				                      <label>Resolucion DIAN</label>
 				                      <select id="cfg-resolution"></select>
 			                    </div>
-		                    <div class="field mode-field">
-		                      <label>Bodega</label>
-		                      <select id="cfg-warehouse"></select>
-		                    </div>
+		                    <select id="cfg-warehouse" class="is-hidden"></select>
 		                    <div class="field mode-field">
 		                      <label>Centro de costos</label>
 		                      <select id="cfg-cost-center"></select>
@@ -1457,11 +1458,6 @@
 			                      <input type="text" id="cfg-observations-extra" placeholder="Texto adicional (opcional)" />
 			                      <input type="hidden" id="cfg-observations" />
 			                      <p class="field-hint" id="cfg-observations-preview">-</p>
-			                    </div>
-			                    <div class="field is-toggle mode-field">
-			                      <label>Factura electrónica (opcional)</label>
-			                      <input type="checkbox" id="cfg-einvoice-enabled" class="toggle" />
-			                      <p class="field-hint">Actívala solo si necesitas capturar datos de factura electrónica por pedido (NIT/razón social, etc.). No bloquea la factura estándar.</p>
 			                    </div>
 			                  </div>
 			                  <p class="field-hint" id="cfg-store-message"></p>

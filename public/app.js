@@ -2636,9 +2636,9 @@ function validateInitialConnection(kind) {
 	      : true;
 	  const orderMode =
 	    ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
-		  const invoiceRequired = orderMode === "invoice";
-		  const errors = [];
-		  const recommendations = [];
+	  const invoiceRequired = orderMode === "invoice";
+	  const errors = [];
+	  const recommendations = [];
 		  if (cfgApplyPayment && cfgApplyPayment.checked) {
 		    if (!cfgPaymentMethod || !String(cfgPaymentMethod.value || "").trim()) {
 		      if (invoiceRequired) {
@@ -2666,15 +2666,9 @@ function validateInitialConnection(kind) {
 	    if (!cfgResolution || !String(cfgResolution.value || "").trim()) {
 	      errors.push({ field: cfgResolution, message: "Resolución requerida." });
 	    }
-	    if (!cfgWarehouse || !String(cfgWarehouse.value || "").trim()) {
-	      errors.push({ field: cfgWarehouse, message: "Bodega requerida." });
-	    }
 	  } else {
 	    if (!cfgResolution || !String(cfgResolution.value || "").trim()) {
 	      recommendations.push("Resolución");
-	    }
-	    if (!cfgWarehouse || !String(cfgWarehouse.value || "").trim()) {
-	      recommendations.push("Bodega");
 	    }
 	  }
 	  if (errors.length) {
@@ -2685,17 +2679,14 @@ function validateInitialConnection(kind) {
     if (first) focusFieldWithContext(first);
     return false;
   }
-	  if (recommendations.length) {
-	    if (!cfgResolution || !String(cfgResolution.value || "").trim()) {
-	      markFieldWarning(cfgResolution, "Recomendado: Resolucion.");
-	    }
-	    if (!cfgWarehouse || !String(cfgWarehouse.value || "").trim()) {
-	      markFieldWarning(cfgWarehouse, "Recomendado: Bodega.");
-	    }
-	    const message = `Recomendado: ${recommendations.join(", ")}.`;
-	    setModuleWarning("alegra-invoice", message);
-	    if (orderMode === "invoice") {
-	      setModuleWarning("sync-orders", "Recomendado: completa Facturacion y Logistica.");
+		  if (recommendations.length) {
+		    if (!cfgResolution || !String(cfgResolution.value || "").trim()) {
+		      markFieldWarning(cfgResolution, "Recomendado: Resolucion.");
+		    }
+		    const message = `Recomendado: ${recommendations.join(", ")}.`;
+		    setModuleWarning("alegra-invoice", message);
+		    if (orderMode === "invoice") {
+		      setModuleWarning("sync-orders", "Recomendado: completa Facturacion y Logistica.");
     } else {
       setModuleWarning("sync-orders", "");
     }
@@ -2980,18 +2971,15 @@ function getWizardModuleStatus(moduleKey) {
     }
     return { complete: true, focusTarget: null };
   }
-	  if (moduleKey === "alegra-invoice") {
-	    if (orderMode !== "invoice") return { complete: true, focusTarget: null };
-	    if (!cfgResolution || !String(cfgResolution.value || "").trim()) {
-	      return { complete: false, focusTarget: cfgResolution };
-	    }
-	    if (!cfgWarehouse || !String(cfgWarehouse.value || "").trim()) {
-	      return { complete: false, focusTarget: cfgWarehouse };
-	    }
-	    if (cfgApplyPayment && cfgApplyPayment.checked) {
-	      if (!cfgPaymentMethod || !String(cfgPaymentMethod.value || "").trim()) {
-	        return { complete: false, focusTarget: cfgPaymentMethod };
-	      }
+		  if (moduleKey === "alegra-invoice") {
+		    if (orderMode !== "invoice") return { complete: true, focusTarget: null };
+		    if (!cfgResolution || !String(cfgResolution.value || "").trim()) {
+		      return { complete: false, focusTarget: cfgResolution };
+		    }
+		    if (cfgApplyPayment && cfgApplyPayment.checked) {
+		      if (!cfgPaymentMethod || !String(cfgPaymentMethod.value || "").trim()) {
+		        return { complete: false, focusTarget: cfgPaymentMethod };
+		      }
 	      if (!cfgBankAccount || !String(cfgBankAccount.value || "").trim()) {
 	        return { complete: false, focusTarget: cfgBankAccount };
 	      }
@@ -3184,8 +3172,7 @@ function applyOrderToggle(select, toggle, fallbackValue) {
 
 	function isInvoiceSetupComplete() {
 	  const resolutionOk = Boolean(cfgResolution && String(cfgResolution.value || "").trim());
-	  const warehouseOk = Boolean(cfgWarehouse && String(cfgWarehouse.value || "").trim());
-	  if (!resolutionOk || !warehouseOk) return false;
+	  if (!resolutionOk) return false;
 	  if (cfgApplyPayment instanceof HTMLInputElement && cfgApplyPayment.checked) {
 	    const paymentMethodOk = Boolean(cfgPaymentMethod && String(cfgPaymentMethod.value || "").trim());
 	    if (!paymentMethodOk) return false;
@@ -3199,11 +3186,6 @@ function applyOrderToggle(select, toggle, fallbackValue) {
 	  const resolutionOk = Boolean(cfgResolution && String(cfgResolution.value || "").trim());
 	  if (!resolutionOk && cfgResolution) {
 	    focusFieldWithContext(cfgResolution);
-	    return;
-	  }
-	  const warehouseOk = Boolean(cfgWarehouse && String(cfgWarehouse.value || "").trim());
-	  if (!warehouseOk && cfgWarehouse) {
-	    focusFieldWithContext(cfgWarehouse);
 	    return;
 	  }
 	  if (cfgApplyPayment instanceof HTMLInputElement && cfgApplyPayment.checked) {
