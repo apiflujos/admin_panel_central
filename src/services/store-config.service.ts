@@ -2,6 +2,7 @@ import { ensureInventoryRulesColumns, ensureInvoiceSettingsColumns, getOrgId, ge
 
 export type TransferStrategy = "manual" | "consolidation" | "priority" | "max_stock";
 export type TransferTieBreak = "" | "priority" | "max_stock" | "random";
+export type TransferDestinationMode = "fixed" | "auto" | "rule";
 export type ContactMatchRule = "document" | "phone" | "email";
 export type ShopifyOrderMode = "invoice" | "contact_only" | "db_only" | "off";
 export type AlegraOrderMode = "draft" | "active" | "off";
@@ -9,6 +10,8 @@ export type AlegraOrderMode = "draft" | "active" | "off";
 export type StoreConfig = {
   shopDomain: string;
   transferEnabled: boolean;
+  transferDestinationMode: TransferDestinationMode;
+  transferDestinationRequired: boolean;
   transferDestinationWarehouseId?: string;
   transferOriginWarehouseIds: string[];
   transferPriorityWarehouseId?: string;
@@ -47,6 +50,11 @@ const normalizeTieBreakRule = (value: unknown): TransferTieBreak => {
     return value;
   }
   return "";
+};
+
+const normalizeDestinationMode = (value: unknown): TransferDestinationMode => {
+  if (value === "auto" || value === "rule") return value;
+  return "fixed";
 };
 
 const normalizeMinStock = (value: unknown): number => {
@@ -163,6 +171,8 @@ export async function getStoreConfigByDomain(shopDomain: string): Promise<StoreC
   return {
     shopDomain: row.shop_domain,
     transferEnabled: transfers.enabled !== false,
+    transferDestinationMode: normalizeDestinationMode(transfers.destinationMode),
+    transferDestinationRequired: transfers.destinationRequired !== false,
     transferDestinationWarehouseId:
       (transfers.destinationWarehouseId as string | undefined) ||
       row.transfer_destination_warehouse_id ||
@@ -234,6 +244,8 @@ export async function getDefaultStoreConfig(): Promise<StoreConfig> {
   return {
     shopDomain: "default",
     transferEnabled: true,
+    transferDestinationMode: "fixed",
+    transferDestinationRequired: true,
     transferDestinationWarehouseId: invoice.rows[0]?.warehouse_id || undefined,
     transferOriginWarehouseIds: parseIdList(rules.rows[0]?.warehouse_ids || null),
     transferStrategy: "manual",

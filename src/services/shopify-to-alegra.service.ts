@@ -150,15 +150,16 @@ export async function syncShopifyOrderToAlegra(
       request: { orderId: orderId || null, warnings: invoiceChecklist.warnings },
     });
   }
-  const transferResult = await createInventoryTransferFromOrder(
-    payload,
-    storeConfig,
-    ctx,
-    pool,
-    orgId,
-    orderId,
-    shopDomain
-  );
+	  const transferResult = await createInventoryTransferFromOrder(
+	    payload,
+	    storeConfig,
+	    invoiceSettings,
+	    ctx,
+	    pool,
+	    orgId,
+	    orderId,
+	    shopDomain
+	  );
   if (transferResult && transferResult.blocked) {
     const orderTagId = orderId ? toOrderGid(String(orderId)) : undefined;
     if (orderTagId) {
@@ -667,9 +668,12 @@ function resolveInvoiceWarehouseId(
   transferResult: TransferDecision | null,
   invoiceSettings: InvoiceSettings
 ) {
-  const destinationId = storeConfig.transferDestinationWarehouseId;
-  if (storeConfig.transferEnabled !== false && destinationId) {
-    return destinationId;
+  if (storeConfig.transferEnabled !== false) {
+    if (storeConfig.transferDestinationMode === "auto") {
+      if (invoiceSettings.warehouseId) return invoiceSettings.warehouseId;
+    } else if (storeConfig.transferDestinationWarehouseId) {
+      return storeConfig.transferDestinationWarehouseId;
+    }
   }
   if (transferResult?.chosenWarehouseId) {
     return transferResult.chosenWarehouseId;
@@ -1016,6 +1020,7 @@ export async function createInventoryAdjustmentFromRefund(
 async function createInventoryTransferFromOrder(
   payload: ShopifyOrderPayload,
   storeConfig: Awaited<ReturnType<typeof resolveStoreConfig>>,
+  invoiceSettings: InvoiceSettings,
   ctx: Awaited<ReturnType<typeof buildSyncContext>>,
   pool: Pool,
   orgId: number,
@@ -1037,7 +1042,12 @@ async function createInventoryTransferFromOrder(
     }
   }
   const transferEnabled = storeConfig.transferEnabled !== false;
-  const destinationId = storeConfig.transferDestinationWarehouseId;
+  const destinationMode = storeConfig.transferDestinationMode || "fixed";
+  const destinationRequired = storeConfig.transferDestinationRequired !== false;
+  const destinationId =
+    destinationMode === "auto"
+      ? invoiceSettings.warehouseId
+      : storeConfig.transferDestinationWarehouseId;
   const strategy = storeConfig.transferStrategy || "manual";
   let originIds = storeConfig.transferOriginWarehouseIds || [];
   if (strategy !== "manual") {
@@ -1061,9 +1071,32 @@ async function createInventoryTransferFromOrder(
     return decision;
   };
 
-  if ((!destinationId && transferEnabled) || !originIds.length) {
+  if (!originIds.length) {
     const decision = {
-      ...shouldBlock("missing_transfer_config", { destinationId, originIds, strategy }),
+      ...shouldBlock("missing_transfer_config", {
+        destinationId,
+        destinationMode,
+        destinationRequired,
+        originIds,
+        strategy,
+      }),
+    };
+    await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
+    if (transferKey) {
+      await markIdempotencyKey(transferKey, "failed", decision.reason);
+    }
+    return decision;
+  }
+
+  if (transferEnabled && destinationRequired && !destinationId) {
+    const decision = {
+      ...shouldBlock("missing_transfer_destination", {
+        destinationId,
+        destinationMode,
+        destinationRequired,
+        originIds,
+        strategy,
+      }),
     };
     await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
     if (transferKey) {
@@ -1114,42 +1147,90 @@ async function createInventoryTransferFromOrder(
     })
   );
 
-  const warehouseStats = originIds.map((warehouseId) => {
-    let itemsWithStock = 0;
-    let totalAvailable = 0;
-    const missingItems: Array<{ alegraId: string; needed: number; available: number }> = [];
-    inventoryByItem.forEach((item) => {
-      const warehouse = item.warehouses.find(
-        (entry) => String(entry?.id) === String(warehouseId)
-      );
-      const available = Number(warehouse?.availableQuantity || 0);
-      totalAvailable += available;
-      if (available >= item.quantity) {
-        itemsWithStock += 1;
-      } else {
-        missingItems.push({
-          alegraId: item.alegraId,
-          needed: item.quantity,
-          available,
-        });
-      }
-    });
-    return {
-      warehouseId,
-      itemsWithStock,
-      totalAvailable,
-      canFulfillAll: itemsWithStock === items.length,
-      missingItems,
-    };
-  });
+  const minStock = typeof storeConfig.transferMinStock === "number" ? storeConfig.transferMinStock : 0;
+  const tieBreakRule = storeConfig.transferTieBreakRule || "";
+  const priorityId = await resolvePriorityWarehouseId(ctx, storeConfig);
 
-  const eligible = warehouseStats.filter((stat) => stat.canFulfillAll);
-  if (!eligible.length) {
+  const allocations: Array<{
+    alegraId: string;
+    sku?: string;
+    quantity: number;
+    warehouseId: string;
+  }> = [];
+  const missingStock: Array<{
+    alegraId: string;
+    sku?: string;
+    needed: number;
+    candidates: Array<{ warehouseId: string; available: number }>;
+  }> = [];
+
+  const getEffectiveAvailable = (
+    item: (typeof inventoryByItem)[number],
+    warehouseId: string
+  ) => {
+    const entry = item.warehouses.find((warehouse) => String(warehouse?.id) === String(warehouseId));
+    const raw = Number(entry?.availableQuantity || 0);
+    const effective = raw - minStock;
+    return Number.isFinite(effective) && effective > 0 ? effective : 0;
+  };
+
+  const pickWarehouseForItem = (
+    candidates: Array<{ warehouseId: string; available: number }>
+  ): string => {
+    if (!candidates.length) return "";
+    const sorted = [...candidates].sort((a, b) => b.available - a.available);
+    const top = sorted[0]?.available ?? 0;
+    const tied = sorted.filter((item) => item.available === top);
+    if (strategy === "priority" && priorityId) {
+      const preferred = tied.find((item) => String(item.warehouseId) === String(priorityId));
+      if (preferred) return preferred.warehouseId;
+    }
+    if (tieBreakRule === "priority" && priorityId) {
+      const preferred = tied.find((item) => String(item.warehouseId) === String(priorityId));
+      if (preferred) return preferred.warehouseId;
+    }
+    return sorted[0].warehouseId;
+  };
+
+  for (const item of inventoryByItem) {
+    const candidates = originIds
+      .map((warehouseId) => ({
+        warehouseId,
+        available: getEffectiveAvailable(item, warehouseId),
+      }))
+      .filter((candidate) => candidate.available >= item.quantity);
+    const chosenWarehouseId = pickWarehouseForItem(candidates);
+    if (!chosenWarehouseId) {
+      missingStock.push({
+        alegraId: item.alegraId,
+        sku: item.sku,
+        needed: item.quantity,
+        candidates: originIds.map((warehouseId) => ({
+          warehouseId,
+          available: getEffectiveAvailable(item, warehouseId),
+        })),
+      });
+      continue;
+    }
+    allocations.push({
+      alegraId: item.alegraId,
+      sku: item.sku,
+      quantity: item.quantity,
+      warehouseId: chosenWarehouseId,
+    });
+  }
+
+  if (missingStock.length) {
     const decision = {
       ...shouldBlock("insufficient_stock", {
-        items: inventoryByItem,
-        warehouses: warehouseStats,
+        destinationId,
+        destinationMode,
+        destinationRequired,
         strategy,
+        minStock,
+        tieBreakRule,
+        priorityId,
+        missingStock,
       }),
     };
     await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
@@ -1159,46 +1240,38 @@ async function createInventoryTransferFromOrder(
     return decision;
   }
 
-  const pickByItems = (list: typeof eligible) =>
-    list.sort((a, b) => b.itemsWithStock - a.itemsWithStock || b.totalAvailable - a.totalAvailable)[0];
-  const pickByMax = (list: typeof eligible) =>
-    list.sort((a, b) => b.totalAvailable - a.totalAvailable)[0];
-  const priorityId = await resolvePriorityWarehouseId(ctx, storeConfig);
-  let chosen = eligible[0];
-  let rule = "consolidation";
+  const byOrigin = new Map<string, Array<{ id: number; quantity: number }>>();
+  allocations.forEach((allocation) => {
+    const list = byOrigin.get(allocation.warehouseId) || [];
+    list.push({ id: Number(allocation.alegraId), quantity: allocation.quantity });
+    byOrigin.set(allocation.warehouseId, list);
+  });
 
-  if (strategy === "priority") {
-    const priority = priorityId
-      ? eligible.find((stat) => String(stat.warehouseId) === String(priorityId))
-      : null;
-    if (priority) {
-      chosen = priority;
-      rule = "priority";
-    } else {
-      const best = pickByMax(eligible);
-      if (best) chosen = best;
-      rule = "max_stock";
-    }
-  } else if (strategy === "max_stock") {
-    const best = pickByMax(eligible);
-    if (best) chosen = best;
-    rule = "max_stock";
-  } else if (strategy === "manual") {
-    const best = pickByItems(eligible);
-    if (best) chosen = best;
-    rule = "manual";
-  } else {
-    const best = pickByItems(eligible);
-    if (best) chosen = best;
-    rule = "consolidation";
-  }
+  const chosenWarehouseId =
+    allocations
+      .map((allocation) => allocation.warehouseId)
+      .reduce<Record<string, number>>((acc, id) => {
+        acc[id] = (acc[id] || 0) + 1;
+        return acc;
+      }, {}) || {};
+  const chosenWarehouseIdResolved = Object.entries(chosenWarehouseId).sort((a, b) => b[1] - a[1])[0]?.[0];
 
   await recordTransferDecision(pool, orgId, shopDomain, orderId, {
     blocked: false,
-    reason: rule,
-    chosenWarehouseId: chosen.warehouseId,
-    rule,
-    details: { priorityId, warehouses: warehouseStats, strategy },
+    reason: "allocation_ok",
+    chosenWarehouseId: chosenWarehouseIdResolved,
+    rule: "allocation_ok",
+    details: {
+      destinationId,
+      destinationMode,
+      destinationRequired,
+      strategy,
+      minStock,
+      tieBreakRule,
+      priorityId,
+      allocations,
+      originsUsed: Array.from(byOrigin.keys()),
+    },
   });
 
   if (!transferEnabled) {
@@ -1208,31 +1281,60 @@ async function createInventoryTransferFromOrder(
     return {
       blocked: false,
       reason: "transfer_disabled",
-      chosenWarehouseId: chosen.warehouseId,
+      chosenWarehouseId: chosenWarehouseIdResolved,
       rule: "transfer_disabled",
     };
   }
 
-  const transferPayload = {
-    date: new Date().toISOString().slice(0, 10),
-    observations: payload.name ? `Traslado Shopify ${payload.name}` : "Traslado Shopify",
-    warehouseFrom: { id: Number(chosen.warehouseId) },
-    warehouseTo: { id: Number(destinationId) },
-    items: items.map((item) => ({
-      id: Number(item.alegraId),
-      quantity: item.quantity,
-    })),
-  };
+  if (!destinationId) {
+    if (transferKey) {
+      await markIdempotencyKey(transferKey, "completed");
+    }
+    return {
+      blocked: false,
+      reason: "transfer_skipped_no_destination",
+      chosenWarehouseId: chosenWarehouseIdResolved,
+      rule: "transfer_skipped_no_destination",
+    };
+  }
+
+  const transfers = Array.from(byOrigin.entries())
+    .filter(([originId]) => String(originId) !== String(destinationId))
+    .map(([originId, transferItems]) => ({
+      originId,
+      transferItems,
+    }));
+
+  if (!transfers.length) {
+    if (transferKey) {
+      await markIdempotencyKey(transferKey, "completed");
+    }
+    return {
+      blocked: false,
+      reason: "transfer_skipped",
+      chosenWarehouseId: chosenWarehouseIdResolved,
+      rule: "transfer_skipped",
+    };
+  }
 
   try {
-    await ctx.alegra.createInventoryTransfer(transferPayload);
+    for (const transfer of transfers) {
+      const transferPayload = {
+        date: new Date().toISOString().slice(0, 10),
+        observations: payload.name ? `Traslado Shopify ${payload.name}` : "Traslado Shopify",
+        warehouseFrom: { id: Number(transfer.originId) },
+        warehouseTo: { id: Number(destinationId) },
+        items: transfer.transferItems,
+      };
+      await ctx.alegra.createInventoryTransfer(transferPayload);
+    }
     if (transferKey) {
       await markIdempotencyKey(transferKey, "completed");
     }
     return {
       blocked: false,
       reason: "transfer_ok",
-      chosenWarehouseId: chosen.warehouseId,
+      chosenWarehouseId: chosenWarehouseIdResolved,
       rule: "transfer_ok",
     };
   } catch (error) {

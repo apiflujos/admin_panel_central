@@ -1255,15 +1255,27 @@
                     </div>
                   </div>
 
-                  <div class="mode-grid" data-depends-on="cfg-transfer-enabled">
-                    <div class="field mode-field">
-                      <label>Destino <span class="tip" data-tip="Bodega destino donde queda el inventario listo para facturar y ajustar stock.">?</span></label>
-                      <select id="cfg-transfer-dest" data-depends-on="cfg-transfer-enabled"></select>
-                    </div>
-                    <div class="field mode-field">
-                      <label>Estrategia principal</label>
-                      <select id="cfg-transfer-strategy" data-depends-on="cfg-transfer-enabled">
-                        <option value="manual">Manual (sin estrategia)</option>
+	                  <div class="mode-grid" data-depends-on="cfg-transfer-enabled">
+	                    <div class="field mode-field">
+	                      <label>Tipo de bodega destino <span class="tip" data-tip="Automática: usa la bodega definida en Facturacion. Fija (HUB): usa la bodega seleccionada aquí. Por regla: disponible próximamente.">?</span></label>
+	                      <select id="cfg-transfer-dest-mode" data-depends-on="cfg-transfer-enabled">
+	                        <option value="fixed">Fija (HUB)</option>
+	                        <option value="auto">Automática</option>
+	                        <option value="rule">Por regla</option>
+	                      </select>
+	                    </div>
+	                    <div class="field mode-field">
+	                      <label>Bodega destino (HUB) <span class="tip" data-tip="Bodega destino donde queda el inventario listo para facturar y ajustar stock. Solo aplica cuando el tipo de destino es Fija (HUB).">?</span></label>
+	                      <select id="cfg-transfer-dest" data-depends-on="cfg-transfer-enabled"></select>
+	                    </div>
+	                    <div class="field mode-field">
+	                      <label for="cfg-transfer-dest-required">Destino requerido <span class="tip" data-tip="Si está ON, el sistema no puede crear factura si no hay un destino definido (por bodega HUB o por Facturacion).">?</span></label>
+	                      <input type="checkbox" id="cfg-transfer-dest-required" class="toggle" data-depends-on="cfg-transfer-enabled" checked />
+	                    </div>
+	                    <div class="field mode-field">
+	                      <label>Estrategia principal</label>
+	                      <select id="cfg-transfer-strategy" data-depends-on="cfg-transfer-enabled">
+	                        <option value="manual">Manual (sin estrategia)</option>
                         <option value="consolidation">Consolidacion</option>
                         <option value="priority">Prioridad</option>
                         <option value="max_stock">Mayor existencia</option>

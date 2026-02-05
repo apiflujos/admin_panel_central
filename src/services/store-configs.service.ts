@@ -47,6 +47,11 @@ const normalizeTieBreakRule = (value: unknown) => {
   return "";
 };
 
+const normalizeDestinationMode = (value: unknown) => {
+  if (value === "auto" || value === "rule") return value;
+  return "fixed";
+};
+
 const normalizeMinStock = (value: unknown, fallback: number) => {
   const parsed = typeof value === "number" ? value : Number(value);
   if (Number.isFinite(parsed) && parsed >= 0) return parsed;
@@ -138,12 +143,14 @@ export async function listStoreConfigs() {
     return {
       shopDomain: row.shop_domain,
       alegraAccountId: row.alegra_account_id || undefined,
-      transfers: {
-        enabled: normalizeBoolean(transfers.enabled, true),
-        destinationWarehouseId:
-          (transfers.destinationWarehouseId as string | undefined) ||
-          row.transfer_destination_warehouse_id ||
-          defaults.invoice?.warehouseId ||
+	      transfers: {
+	        enabled: normalizeBoolean(transfers.enabled, true),
+	        destinationMode: normalizeDestinationMode(transfers.destinationMode),
+	        destinationRequired: normalizeBoolean(transfers.destinationRequired, true),
+	        destinationWarehouseId:
+	          (transfers.destinationWarehouseId as string | undefined) ||
+	          row.transfer_destination_warehouse_id ||
+	          defaults.invoice?.warehouseId ||
           "",
         originWarehouseIds: Array.isArray(transfers.originWarehouseIds)
           ? transfers.originWarehouseIds
@@ -347,12 +354,14 @@ export async function getStoreConfigForDomain(shopDomain: string) {
   const orderSync = (sync.orders as Record<string, unknown>) || {};
   return {
     shopDomain: row.shop_domain,
-    transfers: {
-      enabled: normalizeBoolean(transfers.enabled, true),
-      destinationWarehouseId:
-        (transfers.destinationWarehouseId as string | undefined) ||
-        row.transfer_destination_warehouse_id ||
-        defaults.invoice?.warehouseId ||
+	    transfers: {
+	      enabled: normalizeBoolean(transfers.enabled, true),
+	      destinationMode: normalizeDestinationMode(transfers.destinationMode),
+	      destinationRequired: normalizeBoolean(transfers.destinationRequired, true),
+	      destinationWarehouseId:
+	        (transfers.destinationWarehouseId as string | undefined) ||
+	        row.transfer_destination_warehouse_id ||
+	        defaults.invoice?.warehouseId ||
         "",
       originWarehouseIds: Array.isArray(transfers.originWarehouseIds)
         ? transfers.originWarehouseIds
