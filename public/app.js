@@ -74,6 +74,27 @@ const einvoiceState = document.getElementById("einvoice-state");
 const einvoiceCountry = document.getElementById("einvoice-country");
 const einvoiceZip = document.getElementById("einvoice-zip");
 
+const productsPhotosBulkOpen = document.getElementById("products-photos-bulk-open");
+const photosModal = document.getElementById("photos-modal");
+const photosClose = document.getElementById("photos-close");
+const photosFile = document.getElementById("photos-file");
+const photosMatchBy = document.getElementById("photos-match-by");
+const photosAttachVariant = document.getElementById("photos-attach-variant");
+const photosMode = document.getElementById("photos-mode");
+const photosPublishEnabled = document.getElementById("photos-publish-enabled");
+const photosPublishStatusField = document.getElementById("photos-publish-status-field");
+const photosPublishStatus = document.getElementById("photos-publish-status");
+const photosDryRun = document.getElementById("photos-dry-run");
+const photosLimit = document.getElementById("photos-limit");
+const photosRun = document.getElementById("photos-run");
+const photosStop = document.getElementById("photos-stop");
+const photosClear = document.getElementById("photos-clear");
+const photosStatus = document.getElementById("photos-status");
+const photosProgress = document.getElementById("photos-progress");
+const photosProgressBar = document.getElementById("photos-progress-bar");
+const photosProgressLabel = document.getElementById("photos-progress-label");
+const photosErrors = document.getElementById("photos-errors");
+
 const logTableBody = document.querySelector("#log-table tbody");
 const logStatus = document.getElementById("log-status");
 const logOrderId = document.getElementById("log-order-id");
@@ -468,6 +489,9 @@ let contactsBulkSyncAbort = null;
 let contactsBulkSyncRunning = false;
 let ordersBulkSyncAbort = null;
 let ordersBulkSyncRunning = false;
+let photosBulkAbort = null;
+let activePhotosSyncId = "";
+let photosParsedRows = [];
 let invoicesBackfillAbort = null;
 let invoicesBackfillRunning = false;
 let operationsView = "orders";
@@ -768,6 +792,23 @@ function closeModal() {
   modal.setAttribute("aria-hidden", "true");
 }
 
+function openPhotosModal() {
+  if (!photosModal) return;
+  photosModal.classList.add("is-open");
+  photosModal.setAttribute("aria-hidden", "false");
+  if (photosErrors) photosErrors.textContent = "Sin errores.";
+  if (photosStatus) photosStatus.textContent = "Sin datos";
+  updatePhotosPublishUi();
+  updatePhotosProgress(0, "Procesando 0%");
+  setPhotosRunning(false);
+}
+
+function closePhotosModal() {
+  if (!photosModal) return;
+  photosModal.classList.remove("is-open");
+  photosModal.setAttribute("aria-hidden", "true");
+}
+
 if (modalClose) {
   modalClose.addEventListener("click", closeModal);
 }
@@ -775,6 +816,17 @@ if (modal) {
   modal.addEventListener("click", (event) => {
     if (event.target === modal) {
       closeModal();
+    }
+  });
+}
+
+if (photosClose) {
+  photosClose.addEventListener("click", closePhotosModal);
+}
+if (photosModal) {
+  photosModal.addEventListener("click", (event) => {
+    if (event.target === photosModal) {
+      closePhotosModal();
     }
   });
 }
@@ -818,6 +870,340 @@ function showToast(message, state, options = {}) {
   const timeoutMs = typeof options.timeoutMs === "number" ? options.timeoutMs : (state === "is-error" ? 6500 : 3500);
   if (timeoutMs > 0) {
     window.setTimeout(() => toast.remove(), timeoutMs);
+  }
+}
+
+function setPhotosRunning(running) {
+  const isRunning = Boolean(running);
+  if (photosRun instanceof HTMLButtonElement) photosRun.disabled = isRunning;
+  if (photosStop instanceof HTMLButtonElement) {
+    photosStop.hidden = !isRunning;
+    photosStop.disabled = false;
+  }
+  if (photosProgress instanceof HTMLElement) {
+    photosProgress.setAttribute("aria-hidden", isRunning ? "false" : "true");
+    photosProgress.style.display = isRunning ? "" : "none";
+  }
+}
+
+function updatePhotosPublishUi() {
+  const enabled =
+    photosPublishEnabled instanceof HTMLInputElement
+      ? Boolean(photosPublishEnabled.checked)
+      : false;
+  if (photosPublishStatusField instanceof HTMLElement) {
+    photosPublishStatusField.hidden = !enabled;
+  }
+}
+
+function updatePhotosProgress(percent, label) {
+  const safePercent = Number.isFinite(Number(percent)) ? Math.max(0, Math.min(100, Number(percent))) : 0;
+  if (photosProgressBar instanceof HTMLElement) {
+    photosProgressBar.style.width = `${safePercent}%`;
+  }
+  if (photosProgressLabel instanceof HTMLElement) {
+    photosProgressLabel.textContent = label || `Procesando ${Math.round(safePercent)}%`;
+  }
+}
+
+function parseCsvLine(line, delimiter) {
+  const out = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        const next = line[i + 1];
+        if (next === '"') {
+          current += '"';
+          i += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += ch;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inQuotes = true;
+      continue;
+    }
+    if (ch === delimiter) {
+      out.push(current);
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+  out.push(current);
+  return out;
+}
+
+function detectCsvDelimiter(headerLine) {
+  const comma = (headerLine.match(/,/g) || []).length;
+  const semicolon = (headerLine.match(/;/g) || []).length;
+  const tab = (headerLine.match(/\t/g) || []).length;
+  if (tab > comma && tab > semicolon) return "\t";
+  if (semicolon > comma) return ";";
+  return ",";
+}
+
+function normalizeUrlList(value) {
+  const raw = typeof value === "string" ? value : "";
+  const parts = raw
+    .split(/[|,\s]+/g)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const out = [];
+  for (const part of parts) {
+    try {
+      const url = new URL(part);
+      if (url.protocol !== "http:" && url.protocol !== "https:") continue;
+      out.push(url.toString());
+    } catch {
+      // ignore invalid URLs
+    }
+  }
+  return Array.from(new Set(out));
+}
+
+async function parsePhotosFileToRows() {
+  if (!(photosFile instanceof HTMLInputElement) || !photosFile.files || !photosFile.files.length) {
+    throw new Error("Selecciona un archivo CSV.");
+  }
+  const file = photosFile.files[0];
+  const text = await file.text();
+  const lines = text
+    .split(/\r?\n/g)
+    .map((line) => line.trim())
+    .filter((line) => Boolean(line));
+  if (!lines.length) {
+    throw new Error("El archivo está vacío.");
+  }
+  const delimiter = detectCsvDelimiter(lines[0]);
+  const headers = parseCsvLine(lines[0], delimiter).map((h) => String(h || "").trim().toLowerCase());
+  const idx = (name) => headers.indexOf(name);
+  const matchBy = photosMatchBy instanceof HTMLSelectElement ? String(photosMatchBy.value || "sku") : "sku";
+  const idCandidates =
+    matchBy === "barcode"
+      ? ["barcode", "codigo_barras", "codbarras", "ean", "upc", "code", "codigo", "identifier"]
+      : ["sku", "reference", "referencia", "ref", "code", "codigo", "identifier"];
+  const idIndex = idCandidates.map(idx).find((i) => i >= 0) ?? -1;
+  const imagesIndex = ["images", "image_urls", "urls", "url", "image_url"].map(idx).find((i) => i >= 0) ?? -1;
+  const imageCols = headers
+    .map((h, i) => ({ h, i }))
+    .filter(({ h }) => /^image(_\d+)?$/.test(h) || /^imageurl(_\d+)?$/.test(h) || /^url(_\d+)?$/.test(h))
+    .map(({ i }) => i);
+  const altIndex = ["alt", "alt_text", "texto_alt"].map(idx).find((i) => i >= 0) ?? -1;
+
+  if (idIndex < 0) {
+    throw new Error(`No encuentro la columna para ${matchBy}. Usa una columna "${matchBy}" o "identifier".`);
+  }
+  const rows = [];
+  const parseErrors = [];
+  const limitValue = photosLimit instanceof HTMLInputElement ? Number(photosLimit.value) : NaN;
+  const maxRows = Number.isFinite(limitValue) && limitValue > 0 ? Math.min(500, Math.floor(limitValue)) : 500;
+  for (let lineIndex = 1; lineIndex < lines.length; lineIndex += 1) {
+    if (rows.length >= maxRows) break;
+    const values = parseCsvLine(lines[lineIndex], delimiter);
+    const identifier = String(values[idIndex] || "").trim();
+    if (!identifier) continue;
+    const urls = [];
+    if (imagesIndex >= 0) {
+      urls.push(...normalizeUrlList(values[imagesIndex] || ""));
+    }
+    if (imageCols.length) {
+      imageCols.forEach((i) => {
+        urls.push(...normalizeUrlList(values[i] || ""));
+      });
+    }
+    const deduped = Array.from(new Set(urls)).filter(Boolean);
+    if (!deduped.length) {
+      parseErrors.push(`Línea ${lineIndex + 1}: sin URLs para ${identifier}`);
+      continue;
+    }
+    const alt = altIndex >= 0 ? String(values[altIndex] || "").trim() : "";
+    rows.push({ identifier, urls: deduped.slice(0, 10), alt: alt || null });
+  }
+  if (!rows.length) {
+    const detail = parseErrors.slice(0, 10).join("\n");
+    throw new Error(detail ? `No pude leer filas válidas.\n${detail}` : "No pude leer filas válidas.");
+  }
+  if (photosErrors) {
+    photosErrors.textContent = parseErrors.length ? parseErrors.slice(0, 60).join("\n") : "Sin errores.";
+  }
+  return rows;
+}
+
+async function runPhotosBulkUpload() {
+  const activeStore = getActiveStore();
+  const storeConnections = getStoreConnections(activeStore);
+  if (!activeStore) {
+    showToast("Primero crea o selecciona una tienda activa en Nueva conexion.", "is-warn");
+    if (photosStatus) photosStatus.textContent = "Sin tienda activa";
+    return;
+  }
+  if (!storeConnections.shopifyConnected) {
+    showToast("Conecta Shopify para cargar fotos.", "is-warn");
+    if (photosStatus) photosStatus.textContent = "Falta Shopify";
+    return;
+  }
+
+  setPhotosRunning(true);
+  updatePhotosProgress(0, "Procesando 0%");
+  if (photosStatus) photosStatus.textContent = "Leyendo archivo...";
+
+  try {
+    photosParsedRows = await parsePhotosFileToRows();
+    if (photosStatus) photosStatus.textContent = `Archivo listo: ${photosParsedRows.length} filas`;
+  } catch (error) {
+    setPhotosRunning(false);
+    showToast(error?.message || "No se pudo leer el archivo.", "is-error");
+    if (photosStatus) photosStatus.textContent = error?.message || "Error leyendo archivo";
+    return;
+  }
+
+  const matchBy = photosMatchBy instanceof HTMLSelectElement ? String(photosMatchBy.value || "sku") : "sku";
+  const attachVariant =
+    photosAttachVariant instanceof HTMLInputElement ? photosAttachVariant.checked !== false : true;
+  const mode = photosMode instanceof HTMLSelectElement ? String(photosMode.value || "append") : "append";
+  const publishEnabled =
+    photosPublishEnabled instanceof HTMLInputElement ? photosPublishEnabled.checked === true : false;
+  const publishStatus =
+    photosPublishStatus instanceof HTMLSelectElement ? String(photosPublishStatus.value || "draft") : "draft";
+  const dryRun = photosDryRun instanceof HTMLInputElement ? photosDryRun.checked === true : false;
+
+  if (mode === "replace" && !dryRun) {
+    const ok = window.confirm(
+      "Modo Reemplazar elimina fotos existentes del producto antes de subir las nuevas. ¿Seguro?"
+    );
+    if (!ok) {
+      setPhotosRunning(false);
+      if (photosStatus) photosStatus.textContent = "Cancelado por el usuario";
+      return;
+    }
+  }
+  if (publishEnabled && !dryRun) {
+    const ok = window.confirm(
+      `Cambiar estado del producto está activo. ¿Seguro que quieres forzar estado = ${publishStatus}?`
+    );
+    if (!ok) {
+      setPhotosRunning(false);
+      if (photosStatus) photosStatus.textContent = "Cancelado por el usuario";
+      return;
+    }
+  }
+
+  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+  const controller = new AbortController();
+  photosBulkAbort = controller;
+  let latest = {
+    total: photosParsedRows.length,
+    processed: 0,
+    matched: 0,
+    imagesUploaded: 0,
+    skipped: 0,
+    failed: 0,
+  };
+
+  try {
+    if (photosStatus) photosStatus.textContent = dryRun ? "Simulando..." : "Subiendo fotos...";
+    const response = await fetch("/api/sync/product-images?stream=1", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        shopDomain,
+        matchBy,
+        attachVariant,
+        mode,
+        publishEnabled,
+        publishStatus,
+        dryRun,
+        rows: photosParsedRows,
+        stream: true,
+      }),
+      signal: controller.signal,
+    });
+    if (!response.ok || !response.body) {
+      const text = await response.text();
+      throw new Error(text || "No se pudo procesar el cargador de fotos.");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        let payload;
+        try {
+          payload = JSON.parse(trimmed);
+        } catch {
+          continue;
+        }
+        if (payload.type === "start") {
+          activePhotosSyncId = payload.syncId || "";
+          continue;
+        }
+        if (payload.type === "progress") {
+          latest = {
+            ...latest,
+            total: payload.total ?? latest.total,
+            processed: payload.processed ?? latest.processed,
+            matched: payload.matched ?? latest.matched,
+            imagesUploaded: payload.imagesUploaded ?? latest.imagesUploaded,
+            skipped: payload.skipped ?? latest.skipped,
+            failed: payload.failed ?? latest.failed,
+          };
+          const total = Number(latest.total) || 0;
+          const processed = Number(latest.processed) || 0;
+          const percent = total > 0 ? (processed / total) * 100 : 0;
+          updatePhotosProgress(percent, `Procesando ${Math.round(percent)}%`);
+          if (photosStatus) {
+            photosStatus.textContent = `Procesados ${processed}/${total || "?"} · Encontrados ${latest.matched} · ${dryRun ? "Validados" : "Imágenes"} ${latest.imagesUploaded} · Saltados ${latest.skipped} · Fallidos ${latest.failed}`;
+          }
+          continue;
+        }
+        if (payload.type === "row_error") {
+          const message = payload.message || "Error";
+          if (photosErrors) {
+            const existing = String(photosErrors.textContent || "").trim();
+            const next = existing && existing !== "Sin errores." ? `${existing}\n${message}` : message;
+            photosErrors.textContent = next.split("\n").slice(-80).join("\n");
+          }
+          continue;
+        }
+        if (payload.type === "done") {
+          if (photosStatus) {
+            photosStatus.textContent =
+              payload.message ||
+              `Listo · Procesados ${latest.processed}/${latest.total} · Encontrados ${latest.matched} · Imágenes ${latest.imagesUploaded} · Fallidos ${latest.failed}`;
+          }
+          updatePhotosProgress(100, "Completado 100%");
+          continue;
+        }
+        if (payload.type === "stopped") {
+          if (photosStatus) {
+            photosStatus.textContent = "Detenido";
+          }
+          continue;
+        }
+      }
+    }
+  } catch (error) {
+    const message = error?.message || "No se pudo ejecutar el cargador de fotos.";
+    if (photosStatus) photosStatus.textContent = message;
+    showToast(message, "is-error");
+  } finally {
+    photosBulkAbort = null;
+    setPhotosRunning(false);
   }
 }
 
@@ -9510,6 +9896,71 @@ if (productsSyncFilteredBtn) {
 if (productsSyncIncludeInventory) {
   productsSyncIncludeInventory.addEventListener("change", () => {
     updateSyncWarehouseState();
+  });
+}
+
+if (productsPhotosBulkOpen) {
+  productsPhotosBulkOpen.addEventListener("click", () => {
+    openPhotosModal();
+  });
+}
+
+if (photosPublishEnabled) {
+  photosPublishEnabled.addEventListener("change", () => {
+    updatePhotosPublishUi();
+  });
+}
+
+if (photosRun) {
+  photosRun.addEventListener("click", () => {
+    runPhotosBulkUpload();
+  });
+}
+
+if (photosStop) {
+  photosStop.addEventListener("click", async () => {
+    if (photosBulkAbort) {
+      try {
+        photosBulkAbort.abort();
+      } catch {
+        // ignore abort failures
+      }
+    }
+    try {
+      if (photosStop instanceof HTMLButtonElement) photosStop.disabled = true;
+      await fetchJson("/api/sync/product-images/stop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ syncId: activePhotosSyncId || null }),
+      });
+      if (photosStatus) photosStatus.textContent = "Cancelando...";
+    } catch (error) {
+      const message = error?.message || "No se pudo detener.";
+      if (photosStatus) photosStatus.textContent = message;
+      showToast(message, "is-error");
+    } finally {
+      if (photosStop instanceof HTMLButtonElement) photosStop.disabled = false;
+      setPhotosRunning(false);
+    }
+  });
+}
+
+if (photosClear) {
+  photosClear.addEventListener("click", () => {
+    if (photosFile instanceof HTMLInputElement) photosFile.value = "";
+    if (photosLimit instanceof HTMLInputElement) photosLimit.value = "";
+    if (photosDryRun instanceof HTMLInputElement) photosDryRun.checked = false;
+    if (photosPublishEnabled instanceof HTMLInputElement) photosPublishEnabled.checked = false;
+    if (photosMode instanceof HTMLSelectElement) photosMode.value = "append";
+    if (photosMatchBy instanceof HTMLSelectElement) photosMatchBy.value = "sku";
+    if (photosAttachVariant instanceof HTMLInputElement) photosAttachVariant.checked = true;
+    if (photosPublishStatus instanceof HTMLSelectElement) photosPublishStatus.value = "draft";
+    photosParsedRows = [];
+    activePhotosSyncId = "";
+    if (photosErrors) photosErrors.textContent = "Sin errores.";
+    if (photosStatus) photosStatus.textContent = "Sin datos";
+    updatePhotosPublishUi();
+    updatePhotosProgress(0, "Procesando 0%");
   });
 }
 

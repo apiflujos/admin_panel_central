@@ -120,11 +120,15 @@ async function fetchAlegra(path: string, query?: URLSearchParams, shopDomain?: s
 }
 
 let activeProductsSync: { id: string; canceled: boolean; startedAt: number } | null = null;
+let activeProductImagesSync: { id: string; canceled: boolean; startedAt: number } | null = null;
 
 const createSyncId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 const isSyncCanceled = (syncId: string) =>
   Boolean(activeProductsSync?.id === syncId && activeProductsSync.canceled);
+
+const isProductImagesSyncCanceled = (syncId: string) =>
+  Boolean(activeProductImagesSync?.id === syncId && activeProductImagesSync.canceled);
 
 async function fetchAlegraWithRetry(
   path: string,
@@ -372,6 +376,33 @@ async function fetchShopify(path: string, options: RequestInit = {}, configOverr
   }
   return response.json();
 }
+
+async function fetchShopifyResponse(
+  path: string,
+  options: RequestInit = {},
+  configOverride?: ShopifyConfig
+) {
+  const config = configOverride || (await getShopifyConfig());
+  const url = `${config.baseAdmin}/api/${config.apiVersion}${path}`;
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "X-Shopify-Access-Token": config.accessToken,
+      ...(options.headers || {}),
+    },
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Shopify HTTP ${response.status}: ${text}`);
+  }
+  return response;
+}
+
+const extractNumericShopifyId = (gid: string) => {
+  const raw = String(gid || "").trim();
+  const match = raw.match(/\/(\d+)$|^(\d+)$/);
+  return match ? match[1] || match[2] || "" : "";
+};
 
 type PriceListConfig = {
   generalId?: string;
@@ -2282,6 +2313,287 @@ export async function backfillProductsHandler(req: Request, res: Response) {
   }
 }
 
+export async function syncProductImagesHandler(req: Request, res: Response) {
+  const body = (req.body || {}) as Record<string, unknown>;
+  const shopDomainInput = typeof body.shopDomain === "string" ? body.shopDomain : "";
+  const matchBy = body.matchBy === "barcode" ? "barcode" : "sku";
+  const attachVariant = body.attachVariant !== false;
+  const mode = body.mode === "replace" ? "replace" : "append";
+  const publishEnabled = body.publishEnabled === true;
+  const publishStatus = body.publishStatus === "active" ? "active" : "draft";
+  const dryRun = body.dryRun === true;
+  const rowsInput = Array.isArray(body.rows) ? body.rows : [];
+  const rows = rowsInput
+    .slice(0, 500)
+    .map((row) => (row && typeof row === "object" ? (row as Record<string, unknown>) : null))
+    .filter(Boolean)
+    .map((row) => {
+      const identifier = typeof row!.identifier === "string" ? row!.identifier.trim() : "";
+      const urlsRaw = Array.isArray(row!.urls) ? (row!.urls as unknown[]) : [];
+      const urls = urlsRaw
+        .map((value) => String(value || "").trim())
+        .filter((value) => value.startsWith("http://") || value.startsWith("https://"))
+        .slice(0, 10);
+      const alt = typeof row!.alt === "string" ? row!.alt.trim() : "";
+      return { identifier, urls, alt: alt || null };
+    })
+    .filter((row) => Boolean(row.identifier));
+
+  const stream =
+    req.query.stream === "1" ||
+    req.query.stream === "true" ||
+    body.stream === true;
+  let streamOpen = stream;
+  const sendStream = (payload: Record<string, unknown>) => {
+    if (!streamOpen || res.writableEnded || res.destroyed) return;
+    try {
+      res.write(`${JSON.stringify(payload)}\n`);
+    } catch {
+      streamOpen = false;
+    }
+  };
+
+  if (!rows.length) {
+    res.status(400).json({ error: "rows requerido (max 500)." });
+    return;
+  }
+
+  const startedAt = Date.now();
+  const syncId = createSyncId();
+  activeProductImagesSync = { id: syncId, canceled: false, startedAt };
+
+  let processed = 0;
+  let matched = 0;
+  let imagesUploaded = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  try {
+    if (stream) {
+      res.status(200);
+      res.setHeader("Content-Type", "application/x-ndjson");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders?.();
+      res.on("close", () => {
+        streamOpen = false;
+      });
+    }
+
+    const shopifyConfig = await getShopifyConfig(shopDomainInput ? String(shopDomainInput) : "");
+    if (!shopifyConfig.shopDomain || !shopifyConfig.accessToken) {
+      throw new Error("Shopify no conectado para esta tienda.");
+    }
+    const client = new ShopifyClient({
+      shopDomain: shopifyConfig.shopDomain,
+      accessToken: shopifyConfig.accessToken,
+      apiVersion: shopifyConfig.apiVersion,
+    });
+
+    const clearedProducts = new Set<string>();
+
+    const clearProductImages = async (productId: string) => {
+      const response = await fetchShopifyResponse(
+        `/products/${encodeURIComponent(productId)}/images.json`,
+        { method: "GET" },
+        shopifyConfig
+      );
+      const json = (await response.json().catch(() => ({}))) as { images?: Array<{ id?: number }> };
+      const images = Array.isArray(json.images) ? json.images : [];
+      for (const image of images) {
+        const imageId = image?.id ? String(image.id) : "";
+        if (!imageId) continue;
+        await fetchShopifyResponse(
+          `/products/${encodeURIComponent(productId)}/images/${encodeURIComponent(imageId)}.json`,
+          { method: "DELETE" },
+          shopifyConfig
+        );
+      }
+    };
+
+    const uploadProductImage = async (productId: string, url: string, alt: string | null, variantId?: string) => {
+      const payload: Record<string, unknown> = { src: url };
+      if (alt) payload.alt = alt;
+      if (variantId) payload.variant_ids = [Number(variantId)];
+      await fetchShopifyResponse(
+        `/products/${encodeURIComponent(productId)}/images.json`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: payload }),
+        },
+        shopifyConfig
+      );
+    };
+
+    const setProductStatus = async (productId: string, status: "draft" | "active") => {
+      await fetchShopifyResponse(
+        `/products/${encodeURIComponent(productId)}.json`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ product: { id: Number(productId), status } }),
+        },
+        shopifyConfig
+      );
+    };
+
+    sendStream({
+      type: "start",
+      syncId,
+      startedAt,
+      total: rows.length,
+      matchBy,
+      dryRun,
+      mode,
+    });
+
+    for (const row of rows) {
+      if (isProductImagesSyncCanceled(syncId)) {
+        sendStream({ type: "stopped", syncId, processed, total: rows.length });
+        break;
+      }
+      processed += 1;
+      const identifier = row.identifier;
+      try {
+        const lookup = await client.findVariantByIdentifier(identifier);
+        const node = lookup?.productVariants?.edges?.[0]?.node;
+        const productGid = node?.product?.id ? String(node.product.id) : "";
+        const variantGid = node?.id ? String(node.id) : "";
+        const productId = extractNumericShopifyId(productGid);
+        const variantId = extractNumericShopifyId(variantGid);
+
+        if (!productId) {
+          skipped += 1;
+          sendStream({
+            type: "row_error",
+            message: `[${identifier}] No encontrado en Shopify (${matchBy}).`,
+          });
+          sendStream({
+            type: "progress",
+            syncId,
+            total: rows.length,
+            processed,
+            matched,
+            imagesUploaded,
+            skipped,
+            failed,
+          });
+          continue;
+        }
+
+        const urls = Array.isArray(row.urls) ? row.urls : [];
+        if (!urls.length) {
+          skipped += 1;
+          sendStream({
+            type: "row_error",
+            message: `[${identifier}] Sin URLs.`,
+          });
+          sendStream({
+            type: "progress",
+            syncId,
+            total: rows.length,
+            processed,
+            matched,
+            imagesUploaded,
+            skipped,
+            failed,
+          });
+          continue;
+        }
+
+        matched += 1;
+        if (dryRun) {
+          sendStream({
+            type: "progress",
+            syncId,
+            total: rows.length,
+            processed,
+            matched,
+            imagesUploaded,
+            skipped,
+            failed,
+          });
+          continue;
+        }
+
+        if (mode === "replace" && !clearedProducts.has(productId)) {
+          await clearProductImages(productId);
+          clearedProducts.add(productId);
+        }
+
+        for (const url of urls) {
+          try {
+            // Validación mínima del URL (defensa en profundidad)
+            const parsed = new URL(url);
+            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+              continue;
+            }
+          } catch {
+            continue;
+          }
+          await uploadProductImage(
+            productId,
+            url,
+            row.alt,
+            attachVariant && variantId ? variantId : undefined
+          );
+          imagesUploaded += 1;
+        }
+
+        if (publishEnabled) {
+          await setProductStatus(productId, publishStatus);
+        }
+      } catch (error) {
+        failed += 1;
+        const message = error instanceof Error ? error.message : String(error || "error");
+        sendStream({
+          type: "row_error",
+          message: `[${identifier}] ${message}`,
+        });
+      }
+
+      sendStream({
+        type: "progress",
+        syncId,
+        total: rows.length,
+        processed,
+        matched,
+        imagesUploaded,
+        skipped,
+        failed,
+      });
+    }
+
+    const donePayload = {
+      type: "done",
+      syncId,
+      total: rows.length,
+      processed,
+      matched,
+      imagesUploaded,
+      skipped,
+      failed,
+      message: dryRun ? "Simulación completada." : "Carga de fotos completada.",
+    };
+    if (stream) {
+      sendStream(donePayload);
+      res.end();
+    } else {
+      res.status(200).json(donePayload);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Sync product images error";
+    if (stream) {
+      sendStream({ type: "row_error", message });
+      sendStream({ type: "done", syncId, processed, total: rows.length, failed: failed + 1, message });
+      res.end();
+    } else {
+      res.status(500).json({ error: message });
+    }
+  }
+}
+
 export async function stopProductsSyncHandler(req: Request, res: Response) {
   const requestedId = String(req.body?.syncId || "").trim();
   if (!activeProductsSync) {
@@ -2294,6 +2606,20 @@ export async function stopProductsSyncHandler(req: Request, res: Response) {
   }
   activeProductsSync.canceled = true;
   res.status(200).json({ ok: true, canceled: true, syncId: activeProductsSync.id });
+}
+
+export async function stopProductImagesSyncHandler(req: Request, res: Response) {
+  const requestedId = String(req.body?.syncId || "").trim();
+  if (!activeProductImagesSync) {
+    res.status(200).json({ ok: false, canceled: false, reason: "no_active_sync" });
+    return;
+  }
+  if (requestedId && activeProductImagesSync.id !== requestedId) {
+    res.status(200).json({ ok: false, canceled: false, reason: "sync_id_mismatch" });
+    return;
+  }
+  activeProductImagesSync.canceled = true;
+  res.status(200).json({ ok: true, canceled: true, syncId: activeProductImagesSync.id });
 }
 
 function isPrivateHost(hostname: string) {

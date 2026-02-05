@@ -36,6 +36,8 @@ import {
   publishShopifyHandler,
   syncInventoryAdjustmentsHandler,
   stopProductsSyncHandler,
+  syncProductImagesHandler,
+  stopProductImagesSyncHandler,
   syncOrdersHandler,
   syncProductsHandler,
   backfillProductsHandler,
@@ -112,6 +114,8 @@ router.post("/shopify/webhooks/delete", requireAdmin, wrap(deleteShopifyWebhooks
 router.get("/shopify/webhooks/status", requireAdmin, wrap(getShopifyWebhooksStatusHandler));
 router.post("/sync/products", wrap(syncProductsHandler));
 router.post("/sync/products/stop", wrap(stopProductsSyncHandler));
+router.post("/sync/product-images", wrap(syncProductImagesHandler));
+router.post("/sync/product-images/stop", wrap(stopProductImagesSyncHandler));
 router.post("/sync/orders", wrap(syncOrdersHandler));
 router.post("/sync/invoices", wrap(syncInvoicesToShopifyHandler));
 router.post("/backfill/products", wrap(backfillProductsHandler));

@@ -483,6 +483,7 @@
               <input type="number" id="products-limit" min="1" max="30" value="30" placeholder="Limite listado" />
               <button class="ghost" id="products-search-btn">Buscar</button>
               <button class="primary" id="products-refresh">Refrescar</button>
+              <button class="ghost" id="products-photos-bulk-open" type="button">Fotos masivo</button>
               <button class="ghost" id="products-clear">Borrar filtros</button>
             </div>
             <div class="toolbar products-filters">
@@ -1676,6 +1677,78 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260204p16" type="module"></script>
+    <div class="modal" id="photos-modal" aria-hidden="true">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h4>Cargador masivo de fotos</h4>
+            <p class="kpi-sub">Sube URLs de imágenes por SKU o código de barras (CSV desde Excel).</p>
+          </div>
+          <button id="photos-close" type="button">Cerrar</button>
+        </div>
+        <div class="settings-grid modal-form">
+          <div class="field">
+            <label>Archivo CSV</label>
+            <input type="file" id="photos-file" accept=".csv,text/csv" />
+            <p class="field-hint">
+              Columnas recomendadas: <code>sku</code> o <code>barcode</code> y <code>images</code> (URLs separadas por <code>|</code>).
+              También aceptamos <code>image_1</code>, <code>image_2</code>...
+            </p>
+          </div>
+          <div class="field">
+            <label for="photos-match-by">Match por</label>
+            <select id="photos-match-by">
+              <option value="sku" selected>SKU</option>
+              <option value="barcode">Código de barras</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="photos-attach-variant">Asociar a variante <span class="tip" data-tip="Si está ON, intentamos asociar la imagen a la variante encontrada (si Shopify lo permite). Si OFF, se sube como imagen del producto.">?</span></label>
+            <input type="checkbox" id="photos-attach-variant" class="toggle" checked />
+          </div>
+          <div class="field">
+            <label for="photos-mode">Modo de imágenes <span class="tip" data-tip="Agregar = conserva fotos existentes y añade nuevas. Reemplazar = elimina fotos existentes del producto y luego sube las nuevas (puede ser más lento).">?</span></label>
+            <select id="photos-mode">
+              <option value="append" selected>Agregar</option>
+              <option value="replace">Reemplazar</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="photos-publish-enabled">Cambiar estado del producto <span class="tip" data-tip="ON: al terminar de subir fotos, forzamos el estado del producto (Borrador/Activo). OFF: no tocamos el estado.">?</span></label>
+            <input type="checkbox" id="photos-publish-enabled" class="toggle" />
+          </div>
+          <div class="field" id="photos-publish-status-field" hidden>
+            <label for="photos-publish-status">Estado</label>
+            <select id="photos-publish-status">
+              <option value="draft" selected>Borrador</option>
+              <option value="active">Activo</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="photos-dry-run">Simular (no subir) <span class="tip" data-tip="ON: solo validamos el archivo y buscamos productos en Shopify, pero no subimos fotos.">?</span></label>
+            <input type="checkbox" id="photos-dry-run" class="toggle" />
+          </div>
+          <div class="field">
+            <label for="photos-limit">Límite (opcional)</label>
+            <input type="number" id="photos-limit" min="1" placeholder="200" />
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="primary" id="photos-run" type="button">Ejecutar</button>
+          <button class="ghost danger" id="photos-stop" type="button" hidden>Detener</button>
+          <button class="ghost" id="photos-clear" type="button">Limpiar</button>
+          <span class="kpi-sub" id="photos-status">Sin datos</span>
+        </div>
+        <div class="sync-progress" id="photos-progress" aria-hidden="true">
+          <div class="sync-progress-track">
+            <div class="sync-progress-bar" id="photos-progress-bar"></div>
+          </div>
+          <span class="sync-progress-label" id="photos-progress-label">Procesando 0%</span>
+        </div>
+        <pre id="photos-errors" class="modal-errors">Sin errores.</pre>
+      </div>
+    </div>
+
+    <script src="app.js?v=20260205p01" type="module"></script>
   </body>
 </html>
