@@ -922,18 +922,16 @@
 		                              <label for="products-sync-include-inventory">Incluir inventario <span class="tip" data-tip="Si está activo, el masivo también actualiza existencias en Shopify usando las bodegas configuradas en “Inventario y bodegas”.">?</span></label>
 		                              <input type="checkbox" id="products-sync-include-inventory" class="toggle" checked />
 		                            </div>
-	                          </div>
-	                          <div class="mode-grid">
-	                            <div class="field mode-field field-span" id="cfg-warehouse-sync-field">
-	                              <label>Bodegas para stock (masivo) <span class="tip" data-tip="Opcional. Si eliges bodegas aquí, el masivo calcula/filtra el stock usando solo esas bodegas. Si dejas “Todas”, usamos las bodegas guardadas en “Inventario y bodegas” (también aplican para automático).">?</span></label>
-	                              <details class="multi-select">
-	                                <summary>
-	                                  <span>Seleccionar bodegas</span>
-	                                  <em id="cfg-warehouse-sync-summary">Todas</em>
-	                                </summary>
-	                                <div class="checkbox-grid single" id="cfg-warehouse-sync"></div>
-	                              </details>
-	                            </div>
+		                            <div class="mode-toggle mode-wide" id="cfg-warehouse-sync-field">
+		                              <label>Bodegas para stock (masivo) <span class="tip" data-tip="Opcional. Si eliges bodegas aquí, el masivo calcula/filtra el stock usando solo esas bodegas. Si dejas “Todas”, usamos las bodegas guardadas en “Inventario y bodegas” (también aplican para automático).">?</span></label>
+		                              <details class="multi-select">
+		                                <summary>
+		                                  <span>Seleccionar bodegas</span>
+		                                  <em id="cfg-warehouse-sync-summary">Todas</em>
+		                                </summary>
+		                                <div class="checkbox-grid single" id="cfg-warehouse-sync"></div>
+		                              </details>
+		                            </div>
 	                          </div>
 	                          <div class="mode-actions">
 	                            <button class="primary" id="products-sync-filtered" type="button">Sincronizar masivo</button>
@@ -1187,6 +1185,7 @@
                     </div>
 		                    <div class="module-body">
 			                      <div class="mode-sections">
+			                        <div class="settings-divider">Pedidos (Shopify → Alegra)</div>
 			                        <div class="mode-section" data-readonly-free="1">
 			                          <div class="mode-head">
 			                            <div class="mode-head-left">
@@ -1232,13 +1231,16 @@
 							                              </label>
 								                              <span class="tip" data-tip="ON: procesa pedidos nuevos en tiempo real (webhooks). OFF: no se detectan pedidos nuevos automaticamente.">?</span>
 							                            </div>
-							                            <div class="mode-head-right" aria-label="Estado webhooks Shopify">
-							                              <label for="sync-orders-shopify-invoice">Crear factura <span class="tip" data-tip="Si está ON, se crea la factura usando Logistica/Traslados + Facturacion. Si está OFF, solo registramos el pedido en la base.">?</span></label>
-							                              <input type="checkbox" id="sync-orders-shopify-invoice" class="toggle" data-depends-on="sync-orders-shopify-enabled" />
-							                              <label>Webhooks</label>
-							                              <span class="kpi-sub" id="shopify-webhooks-status">Sin configurar</span>
-							                            </div>
 							                          </div>
+								                          <div class="mode-toggle-grid" aria-label="Opciones automatico pedidos" data-depends-on="sync-orders-shopify-enabled">
+								                            <div class="mode-toggle">
+								                              <label for="sync-orders-shopify-invoice">Crear factura <span class="tip" data-tip="Si está ON, se crea la factura usando Logistica/Traslados + Facturacion. Si está OFF, solo registramos el pedido en la base.">?</span></label>
+								                              <input type="checkbox" id="sync-orders-shopify-invoice" class="toggle" data-depends-on="sync-orders-shopify-enabled" />
+								                            </div>
+								                          </div>
+								                          <div class="mode-actions" aria-label="Estado webhooks Shopify">
+								                            <span class="kpi-sub"><strong>Webhooks:</strong> <span id="shopify-webhooks-status">Sin configurar</span></span>
+								                          </div>
 							                          <select id="sync-orders-shopify" hidden aria-hidden="true" tabindex="-1">
 							                            <option value="db_only">Solo registrar</option>
 							                            <option value="invoice">Crear factura</option>
@@ -1246,6 +1248,7 @@
 							                          </select>
 							                        </div>
 
+			                        <div class="settings-divider">Facturas (Alegra → Shopify)</div>
 			                        <div class="mode-section" data-readonly-free="1">
 			                          <div class="mode-head">
 			                            <div class="mode-head-left">
@@ -1303,7 +1306,9 @@
 							                              </label>
 							                              <span class="tip" data-tip="ON: cuando llega un webhook de Alegra para factura, creamos el pedido en Shopify según el modo seleccionado. Recomendado: configurar el webhook como /api/webhooks/alegra?shopDomain=tu-tienda.myshopify.com.">?</span>
 							                            </div>
-							                            <div class="mode-head-right" id="sync-orders-alegra-mode-field" hidden>
+							                          </div>
+							                          <div class="mode-grid" id="sync-orders-alegra-mode-field" hidden>
+							                            <div class="mode-field">
 							                              <label for="sync-orders-alegra">Crear pedido como</label>
 							                              <select id="sync-orders-alegra">
 							                                <option value="off" selected>Apagado</option>
@@ -1749,6 +1754,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260205p01" type="module"></script>
+    <script src="app.js?v=20260205p02" type="module"></script>
   </body>
 </html>

@@ -2653,7 +2653,7 @@ button {
   padding: 4px;
   border-top: 1px solid var(--stroke);
   background: #fff;
-  max-height: 120px;
+  max-height: 260px;
   overflow: auto;
 }
 
@@ -2686,7 +2686,8 @@ button {
 
 .panel.module .mode-grid details.multi-select,
 .panel.module .mode-toggle details.multi-select {
-  width: min(220px, 100%);
+  width: 100%;
+  max-width: 360px;
   justify-self: flex-start;
 }
 
@@ -3340,6 +3341,14 @@ textarea::placeholder {
 .panel.module .mode-grid .field details.multi-select {
   width: 100%;
   max-width: 220px;
+}
+
+.panel.module .mode-grid .field details.multi-select {
+  max-width: 360px;
+}
+
+.mode-toggle-grid .mode-toggle.mode-wide {
+  grid-column: span 2;
 }
 
 .panel.module .mode-grid .field.field-span select,
