@@ -2,6 +2,7 @@ import { AlegraClient } from "../connectors/alegra";
 import { createSyncLog } from "../services/logs.service";
 import { syncAlegraInventoryPayloadToShopify, syncAlegraItemPayloadToShopify, type AlegraInventoryPayload, type AlegraItem } from "../services/alegra-to-shopify.service";
 import { upsertAlegraItemCacheIfTracked } from "../services/alegra-items-cache.service";
+import { buildSyncContext } from "../services/sync-context";
 import { getAlegraCredential } from "../services/settings.service";
 import { getSyncCheckpoint, saveSyncCheckpoint } from "../services/sync-checkpoints.service";
 import { getAlegraBaseUrl } from "../utils/alegra-env";
@@ -69,14 +70,18 @@ export function startProductsSyncPoller() {
 
   let running = false;
 
-  const run = async () => {
-    if (running) return;
-    running = true;
-    try {
-      const credential = await getAlegraCredential();
-      const alegra = new AlegraClient({
-        email: credential.email,
-        apiKey: credential.apiKey,
+	  const run = async () => {
+	    if (running) return;
+	    running = true;
+	    try {
+	      const ctx = await buildSyncContext();
+	      if (!ctx.webhookItemsEnabled) {
+	        return;
+	      }
+	      const credential = await getAlegraCredential();
+	      const alegra = new AlegraClient({
+	        email: credential.email,
+	        apiKey: credential.apiKey,
         baseUrl: getAlegraBaseUrl(credential.environment),
       });
 

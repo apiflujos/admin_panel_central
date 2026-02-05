@@ -191,6 +191,10 @@ export async function listStoreConfigs() {
           (rules as Record<string, unknown>).onlyActiveItems,
           Boolean((defaults.rules as Record<string, unknown>)?.onlyActiveItems)
         ),
+        webhookItemsEnabled: normalizeBoolean(
+          (rules as Record<string, unknown>).webhookItemsEnabled,
+          true
+        ),
         autoPublishOnWebhook: normalizeBoolean(
           rules.autoPublishOnWebhook,
           defaults.rules?.autoPublishOnWebhook ?? false
@@ -256,23 +260,36 @@ export async function listStoreConfigs() {
           normalizeBoolean(invoiceDefaults.einvoiceEnabled, false)
         ),
       },
-      sync: {
-        contacts: {
-          fromShopify: normalizeBoolean(contactSync.fromShopify, true),
-          fromAlegra: normalizeBoolean(contactSync.fromAlegra, true),
-          createInAlegra: normalizeBoolean((contactSync as Record<string, unknown>).createInAlegra, true),
-          createInShopify: normalizeBoolean((contactSync as Record<string, unknown>).createInShopify, true),
-          matchPriority: normalizeContactPriority(
-            contactSync.matchPriority,
-            ["document", "phone", "email"]
-          ),
-        },
-        orders: {
-          shopifyToAlegra: normalizeShopifyOrderMode(orderSync.shopifyToAlegra),
-          alegraToShopify: normalizeAlegraOrderMode(orderSync.alegraToShopify),
-        },
-      },
-    };
+	    sync: {
+	      contacts: {
+	        enabled: normalizeBoolean(
+	          (contactSync as Record<string, unknown>).enabled,
+	          normalizeBoolean(contactSync.fromShopify, true) ||
+	            normalizeBoolean(contactSync.fromAlegra, true)
+	        ),
+	        fromShopify: normalizeBoolean(contactSync.fromShopify, true),
+	        fromAlegra: normalizeBoolean(contactSync.fromAlegra, true),
+	        createInAlegra: normalizeBoolean((contactSync as Record<string, unknown>).createInAlegra, true),
+	        createInShopify: normalizeBoolean((contactSync as Record<string, unknown>).createInShopify, true),
+	        matchPriority: normalizeContactPriority(
+	          contactSync.matchPriority,
+	          ["document", "phone", "email"]
+	        ),
+	      },
+	      orders: {
+	        shopifyEnabled: normalizeBoolean(
+	          (orderSync as Record<string, unknown>).shopifyEnabled,
+	          normalizeShopifyOrderMode(orderSync.shopifyToAlegra) !== "off"
+	        ),
+	        alegraEnabled: normalizeBoolean(
+	          (orderSync as Record<string, unknown>).alegraEnabled,
+	          normalizeAlegraOrderMode(orderSync.alegraToShopify) !== "off"
+	        ),
+	        shopifyToAlegra: normalizeShopifyOrderMode(orderSync.shopifyToAlegra),
+	        alegraToShopify: normalizeAlegraOrderMode(orderSync.alegraToShopify),
+	      },
+	    },
+	  };
   });
 }
 
@@ -382,6 +399,10 @@ export async function getStoreConfigForDomain(shopDomain: string) {
       onlyActiveItems: normalizeBoolean(
         (rules as Record<string, unknown>).onlyActiveItems,
         Boolean((defaults.rules as Record<string, unknown>)?.onlyActiveItems)
+      ),
+      webhookItemsEnabled: normalizeBoolean(
+        (rules as Record<string, unknown>).webhookItemsEnabled,
+        true
       ),
       autoPublishOnWebhook: normalizeBoolean(
         rules.autoPublishOnWebhook,

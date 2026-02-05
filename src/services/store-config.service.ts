@@ -139,6 +139,23 @@ export async function getStoreConfigByDomain(shopDomain: string): Promise<StoreC
   const sync = (config.sync as Record<string, unknown>) || {};
   const contactSync = (sync.contacts as Record<string, unknown>) || {};
   const orderSync = (sync.orders as Record<string, unknown>) || {};
+  const contactsEnabledRaw = (contactSync as Record<string, unknown>).enabled;
+  const contactsEnabled =
+    typeof contactsEnabledRaw === "boolean"
+      ? contactsEnabledRaw
+      : contactSync.fromShopify !== false || contactSync.fromAlegra !== false;
+  const orderShopifyMode = normalizeShopifyOrderMode(orderSync.shopifyToAlegra);
+  const orderAlegraMode = normalizeAlegraOrderMode(orderSync.alegraToShopify);
+  const ordersShopifyEnabledRaw = (orderSync as Record<string, unknown>).shopifyEnabled;
+  const ordersAlegraEnabledRaw = (orderSync as Record<string, unknown>).alegraEnabled;
+  const ordersShopifyEnabled =
+    typeof ordersShopifyEnabledRaw === "boolean"
+      ? ordersShopifyEnabledRaw
+      : orderShopifyMode !== "off";
+  const ordersAlegraEnabled =
+    typeof ordersAlegraEnabledRaw === "boolean"
+      ? ordersAlegraEnabledRaw
+      : orderAlegraMode !== "off";
   return {
     shopDomain: row.shop_domain,
     transferEnabled: transfers.enabled !== false,
@@ -174,13 +191,15 @@ export async function getStoreConfigByDomain(shopDomain: string): Promise<StoreC
       row.price_list_wholesale_id ||
       undefined,
     currency: (priceLists.currency as string | undefined) || row.currency || undefined,
-    syncContactsFromShopify: contactSync.fromShopify !== false,
-    syncContactsFromAlegra: contactSync.fromAlegra !== false,
-    syncContactsCreateInAlegra: contactSync.createInAlegra !== false,
-    syncContactsCreateInShopify: contactSync.createInShopify !== false,
+    syncContactsFromShopify: contactsEnabled && contactSync.fromShopify !== false,
+    syncContactsFromAlegra: contactsEnabled && contactSync.fromAlegra !== false,
+    syncContactsCreateInAlegra: contactsEnabled && contactSync.createInAlegra !== false,
+    syncContactsCreateInShopify: contactsEnabled && contactSync.createInShopify !== false,
     contactMatchPriority: normalizeMatchPriority(contactSync.matchPriority),
-    syncOrdersShopifyToAlegra: normalizeShopifyOrderMode(orderSync.shopifyToAlegra),
-    syncOrdersAlegraToShopify: normalizeAlegraOrderMode(orderSync.alegraToShopify),
+    syncOrdersShopifyToAlegra:
+      contactsEnabled && ordersShopifyEnabled ? orderShopifyMode : "off",
+    syncOrdersAlegraToShopify:
+      contactsEnabled && ordersAlegraEnabled ? orderAlegraMode : "off",
   };
 }
 

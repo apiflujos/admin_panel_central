@@ -299,6 +299,7 @@ const ordersSyncBtn = document.getElementById("orders-sync");
 const ordersDateFilter = document.getElementById("orders-date-filter");
 const ordersDaysSelect = document.getElementById("orders-days");
 const ordersSort = document.getElementById("orders-sort");
+const rulesAutoEnabled = document.getElementById("rules-auto-enabled");
 const rulesAutoPublish = document.getElementById("rules-auto-publish");
 const rulesAutoStatus = document.getElementById("rules-auto-status");
 const rulesAutoImages = document.getElementById("rules-auto-images");
@@ -2517,7 +2518,12 @@ function validateInvoiceModule() {
     setModuleWarning("sync-orders", "");
     return true;
   }
-  const orderMode = syncOrdersShopify ? syncOrdersShopify.value : "db_only";
+  const ordersShopifyEnabled =
+    syncOrdersShopifyEnabled instanceof HTMLInputElement
+      ? Boolean(syncOrdersShopifyEnabled.checked)
+      : true;
+  const orderMode =
+    ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
   const errors = [];
   const recommendations = [];
   if (!cfgResolution || !String(cfgResolution.value || "").trim()) {
@@ -2607,7 +2613,12 @@ function validateLogisticsModule() {
 }
 
 function validateOrdersModule() {
-  const orderMode = syncOrdersShopify ? syncOrdersShopify.value : "db_only";
+  const ordersShopifyEnabled =
+    syncOrdersShopifyEnabled instanceof HTMLInputElement
+      ? Boolean(syncOrdersShopifyEnabled.checked)
+      : true;
+  const orderMode =
+    ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
   if (orderMode === "invoice") {
     validateInvoiceModule();
     validateLogisticsModule();
@@ -2691,7 +2702,12 @@ function shouldSkipWizardStep(moduleKey) {
   if (moduleKey === "connect-alegra") {
     return Boolean(targetDomain && isAlegraConnectedForDomain(targetDomain));
   }
-  const orderMode = syncOrdersShopify ? syncOrdersShopify.value : "db_only";
+  const ordersShopifyEnabled =
+    syncOrdersShopifyEnabled instanceof HTMLInputElement
+      ? Boolean(syncOrdersShopifyEnabled.checked)
+      : true;
+  const orderMode =
+    ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
   if (moduleKey === "alegra-invoice") {
     return orderMode !== "invoice";
   }
@@ -2821,7 +2837,12 @@ function getWizardModuleStatus(moduleKey) {
   if (!activeStoreConfig) {
     return { complete: false, focusTarget: null };
   }
-  const orderMode = syncOrdersShopify ? syncOrdersShopify.value : "db_only";
+  const ordersShopifyEnabled =
+    syncOrdersShopifyEnabled instanceof HTMLInputElement
+      ? Boolean(syncOrdersShopifyEnabled.checked)
+      : true;
+  const orderMode =
+    ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
   if (moduleKey === "sync-orders") {
     const needsAutomation = Boolean(syncOrdersShopifyEnabled?.checked);
     if (needsAutomation && !shopifyWebhooksStatus?.classList.contains("is-ok")) {
@@ -2974,7 +2995,12 @@ function updatePrerequisites() {
   const store = getActiveStore();
   const hasStore = Boolean(store);
   const storeConnections = getStoreConnections(store);
-  const orderMode = syncOrdersShopify ? syncOrdersShopify.value : "db_only";
+  const ordersShopifyEnabled =
+    syncOrdersShopifyEnabled instanceof HTMLInputElement
+      ? Boolean(syncOrdersShopifyEnabled.checked)
+      : true;
+  const orderMode =
+    ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
   const storeContext = {
     hasStore,
     shopifyConnected: storeConnections.shopifyConnected,
@@ -3008,15 +3034,16 @@ function updateOrderSyncDependencies() {
 function applyOrderToggle(select, toggle, fallbackValue) {
   if (!select || !toggle) return;
   if (!toggle.checked) {
-    if (!select.dataset.lastValue) {
-      select.dataset.lastValue = select.value || fallbackValue;
+    if (select.value && select.value !== "off") {
+      select.dataset.lastValue = select.value;
     }
-    select.value = "off";
     select.disabled = true;
   } else {
-    const next = select.dataset.lastValue || fallbackValue;
-    select.value = next;
     select.disabled = false;
+    if (select.value === "off") {
+      const next = select.dataset.lastValue || fallbackValue;
+      select.value = next;
+    }
   }
 }
 
@@ -4194,6 +4221,9 @@ function applyInvoiceSettings(settings) {
 function applyRuleSettings(settings, options = {}) {
   if (!settings) return;
   const includeCron = options.includeCron !== false;
+  if (rulesAutoEnabled) {
+    rulesAutoEnabled.checked = settings.webhookItemsEnabled !== false;
+  }
   if (rulesAutoPublish) rulesAutoPublish.checked = Boolean(settings.autoPublishOnWebhook);
   if (rulesAutoImages) {
     rulesAutoImages.checked = settings.includeImages !== false;
@@ -4220,6 +4250,7 @@ function applyRuleSettings(settings, options = {}) {
     onlyActiveItems: Boolean(settings.onlyActiveItems),
     includeImages: settings.includeImages !== false,
     syncEnabled: settings.syncEnabled !== false,
+    webhookItemsEnabled: settings.webhookItemsEnabled !== false,
     warehouseIds: Array.isArray(settings.warehouseIds) ? settings.warehouseIds : [],
   };
   if (productsPublishStatusMass) {
@@ -4312,8 +4343,12 @@ function applyLegacyStoreConfig(config) {
   const priorityKey = matchPriority.join("_");
   const defaultShopifyMode = "db_only";
   if (syncContactsEnabled instanceof HTMLInputElement) {
-    const hasAnyDirection = contactSync.fromShopify !== false || contactSync.fromAlegra !== false;
-    syncContactsEnabled.checked = Boolean(hasAnyDirection);
+    const enabledRaw = (contactSync as Record<string, unknown>).enabled;
+    const enabled =
+      typeof enabledRaw === "boolean"
+        ? enabledRaw
+        : contactSync.fromShopify !== false || contactSync.fromAlegra !== false;
+    syncContactsEnabled.checked = Boolean(enabled);
   }
   if (syncContactsShopify) {
     syncContactsShopify.checked = contactSync.fromShopify !== false;
@@ -4337,13 +4372,25 @@ function applyLegacyStoreConfig(config) {
     syncOrdersAlegra.value = String(orderSync.alegraToShopify || "off");
   }
   if (syncOrdersShopifyEnabled) {
-    syncOrdersShopifyEnabled.checked = syncOrdersShopify
-      ? syncOrdersShopify.value !== "off"
-      : true;
+    const enabledRaw = (orderSync as Record<string, unknown>).shopifyEnabled;
+    const enabled =
+      typeof enabledRaw === "boolean"
+        ? enabledRaw
+        : syncOrdersShopify
+          ? syncOrdersShopify.value !== "off"
+          : true;
+    syncOrdersShopifyEnabled.checked = Boolean(enabled);
     applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, defaultShopifyMode);
   }
   if (syncOrdersAlegraEnabled) {
-    syncOrdersAlegraEnabled.checked = syncOrdersAlegra ? syncOrdersAlegra.value !== "off" : true;
+    const enabledRaw = (orderSync as Record<string, unknown>).alegraEnabled;
+    const enabled =
+      typeof enabledRaw === "boolean"
+        ? enabledRaw
+        : syncOrdersAlegra
+          ? syncOrdersAlegra.value !== "off"
+          : true;
+    syncOrdersAlegraEnabled.checked = Boolean(enabled);
     applyOrderToggle(syncOrdersAlegra, syncOrdersAlegraEnabled, "draft");
   }
   renderTransferOriginFilters();
@@ -7237,13 +7284,10 @@ async function saveStoreConfigFromSettings() {
   const shopifyOrderMode = syncOrdersShopify ? syncOrdersShopify.value : "";
   const alegraOrderMode = syncOrdersAlegra ? syncOrdersAlegra.value : "";
   const contactsEnabled =
-    syncContactsEnabled instanceof HTMLInputElement ? syncContactsEnabled.checked !== false : true;
+    syncContactsEnabled instanceof HTMLInputElement ? Boolean(syncContactsEnabled.checked) : true;
   const matchPriorityKey = syncContactsPriority ? syncContactsPriority.value : "document_phone_email";
   const matchPriority = matchPriorityKey.split("_").filter(Boolean);
   let generateInvoiceValue = cfgGenerateInvoice ? cfgGenerateInvoice.checked : false;
-  if (shopifyOrderMode === "contact_only" || shopifyOrderMode === "db_only" || shopifyOrderMode === "off") {
-    generateInvoiceValue = false;
-  }
   const payload = {
     transfers: {
       enabled: cfgTransferEnabled ? cfgTransferEnabled.checked : true,
@@ -7305,17 +7349,27 @@ async function saveStoreConfigFromSettings() {
         rulesAutoStatus && rulesAutoStatus.value === "active" ? "active" : "draft",
       includeImages: rulesAutoImages ? rulesAutoImages.checked !== false : true,
       syncEnabled: rulesSyncEnabled ? rulesSyncEnabled.checked : true,
+      webhookItemsEnabled: rulesAutoEnabled ? rulesAutoEnabled.checked !== false : true,
       warehouseIds: getSelectedInventoryWarehouseIds(),
     },
     sync: {
       contacts: {
-        fromShopify: contactsEnabled ? (syncContactsShopify ? syncContactsShopify.checked : true) : false,
-        fromAlegra: contactsEnabled ? (syncContactsAlegra ? syncContactsAlegra.checked : true) : false,
-        createInAlegra: contactsEnabled ? (syncContactsCreateAlegra ? syncContactsCreateAlegra.checked : true) : false,
-        createInShopify: contactsEnabled ? (syncContactsCreateShopify ? syncContactsCreateShopify.checked : true) : false,
+        enabled: contactsEnabled,
+        fromShopify: syncContactsShopify ? syncContactsShopify.checked !== false : true,
+        fromAlegra: syncContactsAlegra ? syncContactsAlegra.checked !== false : true,
+        createInAlegra: syncContactsCreateAlegra ? syncContactsCreateAlegra.checked !== false : true,
+        createInShopify: syncContactsCreateShopify ? syncContactsCreateShopify.checked !== false : true,
         matchPriority,
       },
       orders: {
+        shopifyEnabled:
+          syncOrdersShopifyEnabled instanceof HTMLInputElement
+            ? Boolean(syncOrdersShopifyEnabled.checked)
+            : true,
+        alegraEnabled:
+          syncOrdersAlegraEnabled instanceof HTMLInputElement
+            ? Boolean(syncOrdersAlegraEnabled.checked)
+            : true,
         shopifyToAlegra: shopifyOrderMode || "db_only",
         alegraToShopify: alegraOrderMode || "off",
       },

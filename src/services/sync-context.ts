@@ -23,6 +23,7 @@ type SyncContext = {
   alegra: AlegraClient;
   shopDomain: string;
   shopifyLocationId?: string;
+  webhookItemsEnabled: boolean;
   syncEnabled: boolean;
   publishOnStock: boolean;
   onlyActiveItems: boolean;
@@ -38,6 +39,7 @@ type SyncContext = {
 };
 
 type InventoryRules = {
+  webhookItemsEnabled?: boolean;
   syncEnabled?: boolean;
   publishOnStock: boolean;
   includeImages?: boolean;
@@ -87,6 +89,7 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
     }),
     shopDomain: resolvedDomain,
     shopifyLocationId: shopifySettings.locationId,
+    webhookItemsEnabled: (rules as InventoryRules).webhookItemsEnabled !== false,
     syncEnabled: rules.syncEnabled !== false,
     publishOnStock: rules.publishOnStock,
     includeImages: (rules as InventoryRules).includeImages !== false,

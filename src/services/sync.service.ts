@@ -225,6 +225,10 @@ async function handleAlegraItem(payload: unknown) {
     return { handled: false, reason: "missing_item_id" };
   }
   await upsertAlegraItemCacheIfTracked(item);
+  const ctx = await buildSyncContext();
+  if (!ctx.webhookItemsEnabled) {
+    return { handled: true, skipped: true, reason: "items_webhook_disabled" };
+  }
   const result = await syncAlegraItemPayloadToShopify(item);
   let inventoryResult = null;
   if (item.inventory) {
