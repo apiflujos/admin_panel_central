@@ -1256,22 +1256,22 @@
                   </div>
 
 	                  <div class="mode-grid" data-depends-on="cfg-transfer-enabled">
-	                    <div class="field mode-field">
-	                      <label>Tipo de bodega destino <span class="tip" data-tip="Automática: usa la bodega definida en Facturacion. Fija (HUB): usa la bodega seleccionada aquí. Por regla: disponible próximamente.">?</span></label>
-	                      <select id="cfg-transfer-dest-mode" data-depends-on="cfg-transfer-enabled">
-	                        <option value="fixed">Fija (HUB)</option>
-	                        <option value="auto">Automática</option>
-	                        <option value="rule">Por regla</option>
-	                      </select>
-	                    </div>
+		                    <div class="field mode-field">
+		                      <label>Tipo de bodega destino <span class="tip" data-tip="Automática: usa Bodega prioritaria (o la primera disponible) como destino. Fija (HUB): usa la bodega seleccionada aquí. Por regla: disponible próximamente.">?</span></label>
+		                      <select id="cfg-transfer-dest-mode" data-depends-on="cfg-transfer-enabled">
+		                        <option value="fixed">Fija (HUB)</option>
+		                        <option value="auto">Automática</option>
+		                        <option value="rule">Por regla</option>
+		                      </select>
+		                    </div>
 	                    <div class="field mode-field">
 	                      <label>Bodega destino (HUB) <span class="tip" data-tip="Bodega destino donde queda el inventario listo para facturar y ajustar stock. Solo aplica cuando el tipo de destino es Fija (HUB).">?</span></label>
 	                      <select id="cfg-transfer-dest" data-depends-on="cfg-transfer-enabled"></select>
 	                    </div>
-	                    <div class="field mode-field">
-	                      <label for="cfg-transfer-dest-required">Destino requerido <span class="tip" data-tip="Si está ON, el sistema no puede crear factura si no hay un destino definido (por bodega HUB o por Facturacion).">?</span></label>
-	                      <input type="checkbox" id="cfg-transfer-dest-required" class="toggle" data-depends-on="cfg-transfer-enabled" checked />
-	                    </div>
+		                    <div class="field mode-field">
+		                      <label for="cfg-transfer-dest-required">Destino requerido <span class="tip" data-tip="Si está ON, el sistema no puede crear factura si no hay un destino definido.">?</span></label>
+		                      <input type="checkbox" id="cfg-transfer-dest-required" class="toggle" data-depends-on="cfg-transfer-enabled" checked />
+		                    </div>
 	                    <div class="field mode-field">
 	                      <label>Estrategia principal</label>
 	                      <select id="cfg-transfer-strategy" data-depends-on="cfg-transfer-enabled">
@@ -1386,15 +1386,22 @@
 	                      <span class="tip" data-tip="Estas reglas se usan cuando Pedidos (Shopify → Alegra) está en “Crear factura”.">?</span>
 	                    </div>
 	                  </div>
-	                  <div class="mode-grid">
-	                    <div class="field is-toggle mode-field">
-	                      <label>Habilitar factura electronica</label>
-	                      <input type="checkbox" id="cfg-einvoice-enabled" class="toggle" data-depends-on="cfg-generate-invoice" />
-	                    </div>
-	                    <div class="field mode-field">
-	                      <label>Resolucion DIAN</label>
-	                      <select id="cfg-resolution" data-depends-on="cfg-generate-invoice"></select>
-	                    </div>
+		                  <div class="mode-grid">
+		                    <div class="field is-toggle mode-field">
+		                      <label>Habilitar factura electronica</label>
+		                      <input type="checkbox" id="cfg-einvoice-enabled" class="toggle" data-depends-on="cfg-generate-invoice" />
+		                    </div>
+		                    <div class="field mode-field">
+		                      <label>Tipo de factura</label>
+		                      <select id="cfg-invoice-status" data-depends-on="cfg-generate-invoice">
+		                        <option value="draft">Borrador</option>
+		                        <option value="active">Activa</option>
+		                      </select>
+		                    </div>
+		                    <div class="field mode-field">
+		                      <label>Resolucion DIAN</label>
+		                      <select id="cfg-resolution" data-depends-on="cfg-generate-invoice"></select>
+		                    </div>
 	                    <div class="field mode-field">
 	                      <label>Bodega</label>
 	                      <select id="cfg-warehouse" data-depends-on="cfg-generate-invoice"></select>

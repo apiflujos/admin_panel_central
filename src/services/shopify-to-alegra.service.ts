@@ -150,16 +150,15 @@ export async function syncShopifyOrderToAlegra(
       request: { orderId: orderId || null, warnings: invoiceChecklist.warnings },
     });
   }
-	  const transferResult = await createInventoryTransferFromOrder(
-	    payload,
-	    storeConfig,
-	    invoiceSettings,
-	    ctx,
-	    pool,
-	    orgId,
-	    orderId,
-	    shopDomain
-	  );
+  const transferResult = await createInventoryTransferFromOrder(
+    payload,
+    storeConfig,
+    ctx,
+    pool,
+    orgId,
+    orderId,
+    shopDomain
+  );
   if (transferResult && transferResult.blocked) {
     const orderTagId = orderId ? toOrderGid(String(orderId)) : undefined;
     if (orderTagId) {
@@ -341,7 +340,20 @@ export async function syncShopifyOrderToAlegra(
   }
   if (!invoiceId) {
     try {
-      invoice = await ctx.alegra.createInvoice(invoicePayload);
+      let payloadToSend: Record<string, unknown> = invoicePayload;
+      try {
+        invoice = await ctx.alegra.createInvoice(payloadToSend);
+      } catch (error) {
+        const status = payloadToSend?.status;
+        if (status === "draft") {
+          const retryPayload = { ...payloadToSend };
+          delete retryPayload.status;
+          payloadToSend = retryPayload;
+          invoice = await ctx.alegra.createInvoice(payloadToSend);
+        } else {
+          throw error;
+        }
+      }
     } catch (error) {
       await safeCreateInvoiceLog(orderId, invoicePayload, "fail", error);
       if (idempotencyKey) {
@@ -641,10 +653,12 @@ function buildInvoicePayload(
 ) {
   const today = new Date().toISOString().slice(0, 10);
   const resolvedPaymentMethod = paymentMethodOverride || settings.paymentMethod;
+  const status = settings.invoiceStatus === "draft" ? "draft" : undefined;
   return {
     client: contactId,
     date: today,
     dueDate: today,
+    status,
     resolution: settings.resolutionId ? { id: settings.resolutionId } : undefined,
     costCenter: settings.costCenterId ? { id: settings.costCenterId } : undefined,
     warehouse: settings.warehouseId ? { id: settings.warehouseId } : undefined,
@@ -668,12 +682,8 @@ function resolveInvoiceWarehouseId(
   transferResult: TransferDecision | null,
   invoiceSettings: InvoiceSettings
 ) {
-  if (storeConfig.transferEnabled !== false) {
-    if (storeConfig.transferDestinationMode === "auto") {
-      if (invoiceSettings.warehouseId) return invoiceSettings.warehouseId;
-    } else if (storeConfig.transferDestinationWarehouseId) {
-      return storeConfig.transferDestinationWarehouseId;
-    }
+  if (storeConfig.transferEnabled !== false && storeConfig.transferDestinationWarehouseId) {
+    return storeConfig.transferDestinationWarehouseId;
   }
   if (transferResult?.chosenWarehouseId) {
     return transferResult.chosenWarehouseId;
@@ -683,6 +693,7 @@ function resolveInvoiceWarehouseId(
 
 type InvoiceSettings = {
   generateInvoice: boolean;
+  invoiceStatus?: "draft" | "active";
   resolutionId: string;
   costCenterId: string;
   warehouseId: string;
@@ -1020,7 +1031,6 @@ export async function createInventoryAdjustmentFromRefund(
 async function createInventoryTransferFromOrder(
   payload: ShopifyOrderPayload,
   storeConfig: Awaited<ReturnType<typeof resolveStoreConfig>>,
-  invoiceSettings: InvoiceSettings,
   ctx: Awaited<ReturnType<typeof buildSyncContext>>,
   pool: Pool,
   orgId: number,
@@ -1044,10 +1054,7 @@ async function createInventoryTransferFromOrder(
   const transferEnabled = storeConfig.transferEnabled !== false;
   const destinationMode = storeConfig.transferDestinationMode || "fixed";
   const destinationRequired = storeConfig.transferDestinationRequired !== false;
-  const destinationId =
-    destinationMode === "auto"
-      ? invoiceSettings.warehouseId
-      : storeConfig.transferDestinationWarehouseId;
+  const destinationId = storeConfig.transferDestinationWarehouseId;
   const strategy = storeConfig.transferStrategy || "manual";
   let originIds = storeConfig.transferOriginWarehouseIds || [];
   if (strategy !== "manual") {

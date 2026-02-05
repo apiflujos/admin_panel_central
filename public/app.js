@@ -195,12 +195,13 @@ const cfgResolution = document.getElementById("cfg-resolution");
 const cfgCostCenter = document.getElementById("cfg-cost-center");
 const cfgWarehouse = document.getElementById("cfg-warehouse");
 const cfgSeller = document.getElementById("cfg-seller");
-const cfgPaymentMethod = document.getElementById("cfg-payment-method");
-const cfgBankAccount = document.getElementById("cfg-bank-account");
-const cfgApplyPayment = document.getElementById("cfg-apply-payment");
-const cfgObservations = document.getElementById("cfg-observations");
-const cfgGenerateInvoice = document.getElementById("cfg-generate-invoice");
+	const cfgPaymentMethod = document.getElementById("cfg-payment-method");
+	const cfgBankAccount = document.getElementById("cfg-bank-account");
+	const cfgApplyPayment = document.getElementById("cfg-apply-payment");
+	const cfgObservations = document.getElementById("cfg-observations");
+	const cfgGenerateInvoice = document.getElementById("cfg-generate-invoice");
 	const cfgEinvoiceEnabled = document.getElementById("cfg-einvoice-enabled");
+	const cfgInvoiceStatus = document.getElementById("cfg-invoice-status");
 	const cfgTransferDestMode = document.getElementById("cfg-transfer-dest-mode");
 	const cfgTransferDest = document.getElementById("cfg-transfer-dest");
 	const cfgTransferDestRequired = document.getElementById("cfg-transfer-dest-required");
@@ -2499,12 +2500,14 @@ function clearInvoiceErrors() {
   setModuleWarning("alegra-invoice", "");
 }
 
-function clearTransferErrors() {
-  clearFieldError(cfgTransferDest);
-  clearFieldWarning(cfgTransferDest);
-  if (cfgTransferOriginField) {
-    const target = cfgTransferOriginField.querySelector("details") || cfgTransferOriginField;
-    clearFieldError(target);
+	function clearTransferErrors() {
+	  clearFieldError(cfgTransferDestMode);
+	  clearFieldWarning(cfgTransferDestMode);
+	  clearFieldError(cfgTransferDest);
+	  clearFieldWarning(cfgTransferDest);
+	  if (cfgTransferOriginField) {
+	    const target = cfgTransferOriginField.querySelector("details") || cfgTransferOriginField;
+	    clearFieldError(target);
     clearFieldWarning(target);
   }
   setModuleWarning("alegra-logistics", "");
@@ -2704,12 +2707,14 @@ function validateInvoiceModule() {
 	  const strategy = cfgTransferStrategy ? cfgTransferStrategy.value || "manual" : "manual";
 	  const selectedOrigins = getSelectedTransferOriginIds();
 	  if (destinationRequired) {
-	    if (destinationMode === "auto") {
-	      if (!cfgWarehouse || !String(cfgWarehouse.value || "").trim()) {
-	        errors.push({ field: cfgWarehouse, message: "Selecciona Bodega en Facturacion (se usa como destino)." });
-	      }
-	    } else if (!cfgTransferDest || !String(cfgTransferDest.value || "").trim()) {
-	      errors.push({ field: cfgTransferDest, message: "Bodega destino (HUB) requerida." });
+	    if (!cfgTransferDest || !String(cfgTransferDest.value || "").trim()) {
+	      errors.push({
+	        field: destinationMode === "auto" ? cfgTransferDestMode : cfgTransferDest,
+	        message:
+	          destinationMode === "auto"
+	            ? "Define el destino automático (usa Bodega prioritaria o cambia a Fija HUB)."
+	            : "Bodega destino (HUB) requerida.",
+	      });
 	    }
 	  }
 	  if (strategy === "manual" && !selectedOrigins.length) {
@@ -3205,9 +3210,7 @@ function focusInvoiceSetupFirstMissing() {
 	  const destinationRequired = isTransferDestinationRequired();
 	  const destinationOk = !destinationRequired
 	    ? true
-	    : destinationMode === "auto"
-	      ? Boolean(cfgWarehouse && String(cfgWarehouse.value || "").trim())
-	      : Boolean(cfgTransferDest && String(cfgTransferDest.value || "").trim());
+	    : Boolean(cfgTransferDest && String(cfgTransferDest.value || "").trim());
 	  if (!destinationOk) return false;
 	  const strategy = cfgTransferStrategy ? cfgTransferStrategy.value || "manual" : "manual";
 	  const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
@@ -3228,13 +3231,8 @@ function focusInvoiceSetupFirstMissing() {
 	  const destinationMode = getTransferDestinationMode();
 	  const destinationRequired = isTransferDestinationRequired();
 	  if (destinationRequired) {
-	    if (destinationMode === "auto") {
-	      if (cfgWarehouse && !String(cfgWarehouse.value || "").trim()) {
-	        focusFieldWithContext(cfgWarehouse);
-	        return;
-	      }
-	    } else if (cfgTransferDest && !String(cfgTransferDest.value || "").trim()) {
-	      focusFieldWithContext(cfgTransferDest);
+	    if (cfgTransferDest && !String(cfgTransferDest.value || "").trim()) {
+	      focusFieldWithContext(destinationMode === "auto" ? cfgTransferDestMode : cfgTransferDest);
 	      return;
 	    }
 	  }
@@ -3253,25 +3251,25 @@ function focusInvoiceSetupFirstMissing() {
   focusFieldWithContext(summary || cfgTransferOriginField || cfgTransferOrigin);
 }
 
-function warnIfShopifyOrdersInvoiceNotReady() {
-  if (!(syncOrdersShopify instanceof HTMLSelectElement)) return true;
+	function warnIfShopifyOrdersInvoiceNotReady() {
+	  if (!(syncOrdersShopify instanceof HTMLSelectElement)) return true;
 	  if (syncOrdersShopify.value !== "invoice") return true;
 	  if (!isTransferSetupComplete()) {
 	    showToast(
-	      "Antes de crear factura, configura Logistica e inventario (Activar traslados + Destino + Bodegas origen).",
+	      "Antes de crear factura, configura Logistica e inventario (Traslados + Destino + Bodegas origen).",
 	      "is-warn",
 	    );
 	    focusTransferSetupFirstMissing();
 	    return false;
 	  }
-  if (isInvoiceSetupComplete()) return true;
-  showToast(
-    "Para crear facturas en Alegra, completa Facturacion (Resolucion + Bodega, y Cuenta bancaria si aplica).",
-    "is-warn",
-  );
-  focusInvoiceSetupFirstMissing();
-  return false;
-}
+	  if (isInvoiceSetupComplete()) return true;
+	  showToast(
+	    "Para crear facturas en Alegra, completa Facturacion (Resolucion + pagos si aplica).",
+	    "is-warn",
+	  );
+	  focusInvoiceSetupFirstMissing();
+	  return false;
+	}
 
 function applySetupModeUI(mode) {
   const panel = getModulePanel("connections");
@@ -3842,30 +3840,33 @@ async function loadSettings(options = {}) {
       aiKey.placeholder = "sk-********";
     }
   }
-  if (data.invoice) {
-    globalInvoiceSettings = {
-      generateInvoice: Boolean(data.invoice.generateInvoice),
-      einvoiceEnabled: Boolean(data.invoice.einvoiceEnabled),
-      resolutionId: data.invoice.resolutionId || "",
-      costCenterId: data.invoice.costCenterId || "",
-      warehouseId: data.invoice.warehouseId || "",
-      sellerId: data.invoice.sellerId || "",
-      paymentMethod: data.invoice.paymentMethod || "",
-      bankAccountId: data.invoice.bankAccountId || "",
-      applyPayment: Boolean(data.invoice.applyPayment),
-      observationsTemplate: data.invoice.observationsTemplate || "",
-    };
-    if (cfgGenerateInvoice) {
-      cfgGenerateInvoice.checked = Boolean(data.invoice.generateInvoice);
-    }
-    if (cfgEinvoiceEnabled) {
-      cfgEinvoiceEnabled.checked = Boolean(data.invoice.einvoiceEnabled);
-    }
-    cfgApplyPayment.checked = Boolean(data.invoice.applyPayment);
-    cfgObservations.value = data.invoice.observationsTemplate || "";
-    cfgResolution.dataset.selected = data.invoice.resolutionId || "";
-    cfgCostCenter.dataset.selected = data.invoice.costCenterId || "";
-    cfgWarehouse.dataset.selected = data.invoice.warehouseId || "";
+	  if (data.invoice) {
+	    globalInvoiceSettings = {
+	      generateInvoice: Boolean(data.invoice.generateInvoice),
+	      einvoiceEnabled: Boolean(data.invoice.einvoiceEnabled),
+	      resolutionId: data.invoice.resolutionId || "",
+	      costCenterId: data.invoice.costCenterId || "",
+	      warehouseId: data.invoice.warehouseId || "",
+	      sellerId: data.invoice.sellerId || "",
+	      paymentMethod: data.invoice.paymentMethod || "",
+	      bankAccountId: data.invoice.bankAccountId || "",
+	      applyPayment: Boolean(data.invoice.applyPayment),
+	      observationsTemplate: data.invoice.observationsTemplate || "",
+	    };
+	    if (cfgGenerateInvoice) {
+	      cfgGenerateInvoice.checked = Boolean(data.invoice.generateInvoice);
+	    }
+	    if (cfgEinvoiceEnabled) {
+	      cfgEinvoiceEnabled.checked = Boolean(data.invoice.einvoiceEnabled);
+	    }
+	    if (cfgInvoiceStatus instanceof HTMLSelectElement && !cfgInvoiceStatus.value) {
+	      cfgInvoiceStatus.value = "draft";
+	    }
+	    cfgApplyPayment.checked = Boolean(data.invoice.applyPayment);
+	    cfgObservations.value = data.invoice.observationsTemplate || "";
+	    cfgResolution.dataset.selected = data.invoice.resolutionId || "";
+	    cfgCostCenter.dataset.selected = data.invoice.costCenterId || "";
+	    cfgWarehouse.dataset.selected = data.invoice.warehouseId || "";
     cfgSeller.dataset.selected = data.invoice.sellerId || "";
     cfgPaymentMethod.dataset.selected = data.invoice.paymentMethod || "";
     cfgBankAccount.dataset.selected = data.invoice.bankAccountId || "";
@@ -4489,15 +4490,19 @@ async function startWizardFlow() {
   return true;
 }
 
-function applyInvoiceSettings(settings) {
-  if (!settings) return;
-  if (cfgGenerateInvoice) cfgGenerateInvoice.checked = Boolean(settings.generateInvoice);
-  if (cfgEinvoiceEnabled) cfgEinvoiceEnabled.checked = Boolean(settings.einvoiceEnabled);
-  if (cfgApplyPayment) cfgApplyPayment.checked = Boolean(settings.applyPayment);
-  if (cfgObservations) cfgObservations.value = settings.observationsTemplate || "";
-  if (cfgResolution) cfgResolution.dataset.selected = settings.resolutionId || "";
-  if (cfgCostCenter) cfgCostCenter.dataset.selected = settings.costCenterId || "";
-  if (cfgWarehouse) cfgWarehouse.dataset.selected = settings.warehouseId || "";
+	function applyInvoiceSettings(settings) {
+	  if (!settings) return;
+	  if (cfgGenerateInvoice) cfgGenerateInvoice.checked = Boolean(settings.generateInvoice);
+	  if (cfgEinvoiceEnabled) cfgEinvoiceEnabled.checked = Boolean(settings.einvoiceEnabled);
+	  if (cfgInvoiceStatus instanceof HTMLSelectElement) {
+	    const raw = String(settings.invoiceStatus || "draft").trim().toLowerCase();
+	    cfgInvoiceStatus.value = raw === "active" ? "active" : "draft";
+	  }
+	  if (cfgApplyPayment) cfgApplyPayment.checked = Boolean(settings.applyPayment);
+	  if (cfgObservations) cfgObservations.value = settings.observationsTemplate || "";
+	  if (cfgResolution) cfgResolution.dataset.selected = settings.resolutionId || "";
+	  if (cfgCostCenter) cfgCostCenter.dataset.selected = settings.costCenterId || "";
+	  if (cfgWarehouse) cfgWarehouse.dataset.selected = settings.warehouseId || "";
   if (cfgSeller) cfgSeller.dataset.selected = settings.sellerId || "";
   if (cfgPaymentMethod) cfgPaymentMethod.dataset.selected = settings.paymentMethod || "";
   if (cfgBankAccount) cfgBankAccount.dataset.selected = settings.bankAccountId || "";
@@ -5310,9 +5315,9 @@ function renderInventoryWarehouseFilters() {
   applyToggleDependencies();
 }
 
-async function loadSettingsWarehouses() {
-  if (!cfgWarehouseSync && !cfgInventoryWarehouses) return;
-  try {
+	async function loadSettingsWarehouses() {
+	  if (!cfgWarehouseSync && !cfgInventoryWarehouses) return;
+	  try {
     const params = new URLSearchParams();
     const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
     if (shopDomain) params.set("shopDomain", shopDomain);
@@ -5326,10 +5331,11 @@ async function loadSettingsWarehouses() {
   } catch {
     settingsWarehousesCatalog = [];
   }
-  renderSyncWarehouseFilters();
-  renderInventoryWarehouseFilters();
-  renderTransferOriginFilters();
-}
+	  renderSyncWarehouseFilters();
+	  renderInventoryWarehouseFilters();
+	  renderTransferOriginFilters();
+	  updateTransferDestinationState();
+	}
 
 function updateSyncWarehouseSummary() {
   if (!cfgWarehouseSyncSummary) return;
@@ -5447,33 +5453,106 @@ function updateSyncWarehouseState() {
 	  return true;
 	}
 
-	function updateTransferDestinationState() {
-	  if (!(cfgTransferDest instanceof HTMLSelectElement)) return;
-	  const mode = getTransferDestinationMode();
-	  const transferEnabled =
-	    cfgTransferEnabled instanceof HTMLInputElement ? cfgTransferEnabled.checked !== false : true;
+		function updateTransferDestinationState() {
+		  if (!(cfgTransferDest instanceof HTMLSelectElement)) return;
+		  const mode = getTransferDestinationMode();
+		  const transferEnabled =
+		    cfgTransferEnabled instanceof HTMLInputElement ? cfgTransferEnabled.checked !== false : true;
 
-	  const field = cfgTransferDest.closest(".mode-field") || cfgTransferDest;
-	  if (!transferEnabled) return;
-	  const shouldDisable = mode === "auto";
-	  cfgTransferDest.disabled = shouldDisable;
-	  if (field instanceof HTMLElement) {
-	    if (shouldDisable) {
-	      field.classList.add("is-dep-disabled");
-	      field.setAttribute("data-disabled-reason", "En Automática, el destino se toma de Facturacion (Bodega).");
-	      field.setAttribute("data-mode-disabled", "1");
-	    } else if (field.getAttribute("data-mode-disabled") === "1") {
-	      field.classList.remove("is-dep-disabled");
-	      field.removeAttribute("data-disabled-reason");
-	      field.removeAttribute("data-mode-disabled");
-	    }
-	  }
+		  const field = cfgTransferDest.closest(".mode-field") || cfgTransferDest;
+		  const pickFirstOptionValue = () => {
+		    const options = Array.from(cfgTransferDest.options || []);
+		    const found = options.find((option) => option && option.value && !option.disabled);
+		    return found ? String(found.value) : "";
+		  };
 
-	  if (mode === "auto" && cfgTransferDest.value) {
-	    // Conserva memoria, pero evita que se use accidentalmente como destino.
-	    cfgTransferDest.dataset.selected = cfgTransferDest.value;
-	  }
-	}
+		  if (!transferEnabled) {
+		    cfgTransferDest.disabled = true;
+		    if (field instanceof HTMLElement && field.getAttribute("data-mode-disabled") === "1") {
+		      field.classList.remove("is-dep-disabled");
+		      field.removeAttribute("data-disabled-reason");
+		      field.removeAttribute("data-mode-disabled");
+		    }
+		    return;
+		  }
+
+		  if (mode === "auto") {
+		    const priorityValue =
+		      cfgTransferPriority instanceof HTMLSelectElement
+		        ? String(cfgTransferPriority.value || "").trim()
+		        : "";
+		    const remembered = String(cfgTransferDest.dataset.selected || "").trim();
+		    const resolved = priorityValue || remembered || pickFirstOptionValue();
+		    if (resolved) {
+		      cfgTransferDest.value = resolved;
+		      cfgTransferDest.dataset.selected = resolved;
+		    }
+		    cfgTransferDest.disabled = true;
+		  } else {
+		    cfgTransferDest.disabled = false;
+		  }
+		  if (field instanceof HTMLElement) {
+		    if (mode === "auto") {
+		      field.classList.add("is-dep-disabled");
+		      field.setAttribute(
+		        "data-disabled-reason",
+		        "Automática: usamos la Bodega prioritaria (o la primera disponible) como destino.",
+		      );
+		      field.setAttribute("data-mode-disabled", "1");
+		    } else if (field.getAttribute("data-mode-disabled") === "1") {
+		      field.classList.remove("is-dep-disabled");
+		      field.removeAttribute("data-disabled-reason");
+		      field.removeAttribute("data-mode-disabled");
+		    }
+		  }
+		  updateInvoiceWarehouseFromTransfer();
+		}
+
+		function updateInvoiceWarehouseFromTransfer() {
+		  if (!(cfgWarehouse instanceof HTMLSelectElement)) return;
+		  const createInvoice =
+		    syncOrdersShopifyInvoice instanceof HTMLInputElement
+		      ? Boolean(syncOrdersShopifyInvoice.checked)
+		      : syncOrdersShopify instanceof HTMLSelectElement
+		        ? syncOrdersShopify.value === "invoice"
+		        : false;
+		  const transferEnabled =
+		    cfgTransferEnabled instanceof HTMLInputElement ? cfgTransferEnabled.checked !== false : true;
+		  const destinationId =
+		    cfgTransferDest instanceof HTMLSelectElement
+		      ? String(cfgTransferDest.value || "").trim()
+		      : "";
+		  const field = cfgWarehouse.closest(".mode-field") || cfgWarehouse;
+		  const shouldLock = createInvoice && transferEnabled && Boolean(destinationId);
+
+		  if (shouldLock) {
+		    cfgWarehouse.dataset.selected = destinationId;
+		    if (cfgWarehouse.options.length) {
+		      cfgWarehouse.value = destinationId;
+		    }
+		    cfgWarehouse.disabled = true;
+		    if (field instanceof HTMLElement) {
+		      field.classList.add("is-dep-disabled");
+		      field.setAttribute(
+		        "data-disabled-reason",
+		        "La factura usa la bodega destino definida en Logistica e inventario.",
+		      );
+		      field.setAttribute("data-transfer-locked", "1");
+		    }
+		    return;
+		  }
+
+		  if (field instanceof HTMLElement && field.getAttribute("data-transfer-locked") === "1") {
+		    field.classList.remove("is-dep-disabled");
+		    field.removeAttribute("data-disabled-reason");
+		    field.removeAttribute("data-transfer-locked");
+		  }
+		  if (cfgGenerateInvoice instanceof HTMLInputElement) {
+		    cfgWarehouse.disabled = !cfgGenerateInvoice.checked;
+		  } else {
+		    cfgWarehouse.disabled = false;
+		  }
+		}
 
 	function updateTransferOriginState() {
 	  if (!cfgTransferStrategy) return;
@@ -7546,22 +7625,31 @@ if (syncOrdersShopifyEnabled) {
   });
 }
 
-if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
-  syncOrdersShopifyInvoice.addEventListener("change", () => {
-    if (!(syncOrdersShopify instanceof HTMLSelectElement)) return;
-    const next = Boolean(syncOrdersShopifyInvoice.checked);
-    if (next) {
-      syncOrdersShopify.value = "invoice";
-      if (cfgGenerateInvoice instanceof HTMLInputElement) cfgGenerateInvoice.checked = true;
-      if (cfgTransferEnabled instanceof HTMLInputElement) cfgTransferEnabled.checked = true;
-      warnIfShopifyOrdersInvoiceNotReady();
-    } else {
-      syncOrdersShopify.value = "db_only";
-    }
-    updateOrderSyncDependencies();
-    applyToggleDependencies();
-  });
-}
+	if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
+	  syncOrdersShopifyInvoice.addEventListener("change", () => {
+	    if (!(syncOrdersShopify instanceof HTMLSelectElement)) return;
+	    const next = Boolean(syncOrdersShopifyInvoice.checked);
+	    if (next) {
+	      const previous = syncOrdersShopify.value;
+	      syncOrdersShopify.value = "invoice";
+	      if (cfgGenerateInvoice instanceof HTMLInputElement) cfgGenerateInvoice.checked = true;
+	      if (cfgTransferEnabled instanceof HTMLInputElement) cfgTransferEnabled.checked = true;
+	      updateTransferDestinationState();
+	      updateInvoiceWarehouseFromTransfer();
+	      const ready = warnIfShopifyOrdersInvoiceNotReady();
+	      if (!ready) {
+	        // No permitir activar "Crear factura" si falta configurar logistica/facturacion.
+	        syncOrdersShopifyInvoice.checked = false;
+	        syncOrdersShopify.value = previous && previous !== "invoice" ? previous : "db_only";
+	      }
+	    } else {
+	      syncOrdersShopify.value = "db_only";
+	      updateInvoiceWarehouseFromTransfer();
+	    }
+	    updateOrderSyncDependencies();
+	    applyToggleDependencies();
+	  });
+	}
 
 if (syncOrdersAlegraEnabled) {
   syncOrdersAlegraEnabled.addEventListener("change", () => {
@@ -7569,26 +7657,30 @@ if (syncOrdersAlegraEnabled) {
   });
 }
 
-if (syncOrdersShopify) {
-  syncOrdersShopify.addEventListener("change", () => {
-    warnIfShopifyOrdersInvoiceNotReady();
-    if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
-      syncOrdersShopifyInvoice.checked = syncOrdersShopify.value === "invoice";
-    }
-    if (syncOrdersShopify.value === "invoice" && cfgGenerateInvoice instanceof HTMLInputElement) {
-      cfgGenerateInvoice.checked = true;
-    }
-    if (syncOrdersShopify.value === "invoice" && cfgTransferEnabled instanceof HTMLInputElement) {
-      cfgTransferEnabled.checked = true;
-    }
-    if (syncOrdersShopifyEnabled) {
-      syncOrdersShopifyEnabled.checked = syncOrdersShopify.value !== "off";
-      applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, "db_only");
-    }
-    updateOrderSyncDependencies();
-    applyToggleDependencies();
-  });
-}
+	if (syncOrdersShopify) {
+	  syncOrdersShopify.addEventListener("change", () => {
+	    if (syncOrdersShopify.value === "invoice" && !warnIfShopifyOrdersInvoiceNotReady()) {
+	      syncOrdersShopify.value = "db_only";
+	    }
+	    if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
+	      syncOrdersShopifyInvoice.checked = syncOrdersShopify.value === "invoice";
+	    }
+	    if (syncOrdersShopify.value === "invoice" && cfgGenerateInvoice instanceof HTMLInputElement) {
+	      cfgGenerateInvoice.checked = true;
+	    }
+	    if (syncOrdersShopify.value === "invoice" && cfgTransferEnabled instanceof HTMLInputElement) {
+	      cfgTransferEnabled.checked = true;
+	    }
+	    updateTransferDestinationState();
+	    updateInvoiceWarehouseFromTransfer();
+	    if (syncOrdersShopifyEnabled) {
+	      syncOrdersShopifyEnabled.checked = syncOrdersShopify.value !== "off";
+	      applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, "db_only");
+	    }
+	    updateOrderSyncDependencies();
+	    applyToggleDependencies();
+	  });
+	}
 
 if (syncOrdersAlegra) {
   syncOrdersAlegra.addEventListener("change", () => {
@@ -8039,13 +8131,15 @@ async function saveStoreConfigFromSettings() {
             ? cfgPriceCurrency.value
             : "",
     },
-    invoice: {
-      generateInvoice: generateInvoiceValue,
-      resolutionId: cfgResolution ? cfgResolution.value : "",
-      costCenterId: cfgCostCenter ? cfgCostCenter.value : "",
-      warehouseId: cfgWarehouse ? cfgWarehouse.value : "",
-      sellerId: cfgSeller ? cfgSeller.value : "",
-      paymentMethod: cfgPaymentMethod ? cfgPaymentMethod.value : "",
+	    invoice: {
+	      generateInvoice: generateInvoiceValue,
+	      invoiceStatus:
+	        cfgInvoiceStatus instanceof HTMLSelectElement ? cfgInvoiceStatus.value || "draft" : "draft",
+	      resolutionId: cfgResolution ? cfgResolution.value : "",
+	      costCenterId: cfgCostCenter ? cfgCostCenter.value : "",
+	      warehouseId: cfgWarehouse ? cfgWarehouse.value : "",
+	      sellerId: cfgSeller ? cfgSeller.value : "",
+	      paymentMethod: cfgPaymentMethod ? cfgPaymentMethod.value : "",
       bankAccountId: cfgBankAccount ? cfgBankAccount.value : "",
       applyPayment: cfgApplyPayment ? cfgApplyPayment.checked : false,
       observationsTemplate: cfgObservations ? cfgObservations.value : "",
@@ -8758,8 +8852,8 @@ if (cfgInventoryWarehouses) {
     updateInventoryWarehouseSummary();
   });
 }
-if (cfgTransferOrigin) {
-  cfgTransferOrigin.addEventListener("change", (event) => {
+	if (cfgTransferOrigin) {
+	  cfgTransferOrigin.addEventListener("change", (event) => {
     const selectAllInput = cfgTransferOrigin.querySelector("input[data-select-all]");
     if (selectAllInput && event?.target === selectAllInput) {
       const nextChecked = selectAllInput.checked;
@@ -8779,8 +8873,22 @@ if (cfgTransferOrigin) {
       const target = cfgTransferOriginField || cfgTransferOrigin;
       clearFieldError(target);
     }
-  });
-}
+	  });
+	}
+	if (cfgTransferDest) {
+	  cfgTransferDest.addEventListener("change", () => {
+	    cfgTransferDest.dataset.selected = cfgTransferDest.value || "";
+	    updateInvoiceWarehouseFromTransfer();
+	    clearTransferErrors();
+	  });
+	}
+	if (cfgTransferPriority) {
+	  cfgTransferPriority.addEventListener("change", () => {
+	    updateTransferDestinationState();
+	    updateInvoiceWarehouseFromTransfer();
+	    clearTransferErrors();
+	  });
+	}
 	if (cfgTransferStrategy) {
 	  cfgTransferStrategy.addEventListener("change", () => {
 	    updateTransferOriginState();
@@ -8818,13 +8926,15 @@ if (cfgPriceEnabled) {
     updatePriceListState();
   });
 }
-if (cfgGenerateInvoice) {
-  cfgGenerateInvoice.addEventListener("change", () => {
-    if (!cfgGenerateInvoice.checked) {
-      clearInvoiceErrors();
-    }
-  });
-}
+	if (cfgGenerateInvoice) {
+	  cfgGenerateInvoice.addEventListener("change", () => {
+	    updateTransferDestinationState();
+	    updateInvoiceWarehouseFromTransfer();
+	    if (!cfgGenerateInvoice.checked) {
+	      clearInvoiceErrors();
+	    }
+	  });
+	}
 if (cfgEinvoiceEnabled) {
   cfgEinvoiceEnabled.addEventListener("change", () => {
     clearFieldWarning(cfgEinvoiceEnabled);
