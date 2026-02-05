@@ -540,6 +540,9 @@ function showSection(target) {
   sections.forEach((section) => {
     section.classList.toggle("is-active", section.id === target);
   });
+  if (target === "operations") {
+    loadOperationsView().catch(() => null);
+  }
   if (target === "products") {
     ensureProductsLoaded();
   }
@@ -699,6 +702,13 @@ function loadSidebarState() {
 navItems.forEach((item) => {
   item.addEventListener("click", () => {
     activateNav(item.getAttribute("data-target"));
+    const opsView = item.getAttribute("data-ops-view") || "";
+    if (item.getAttribute("data-target") === "operations" && (opsView === "orders" || opsView === "invoices")) {
+      setOperationsView(opsView);
+      if (opsView === "invoices") invoicesStart = 0;
+      else ordersStart = 0;
+      loadOperationsView().catch(() => null);
+    }
     const moduleKey = item.getAttribute("data-module");
     const groups = (item.getAttribute("data-groups") || "")
       .split(",")
