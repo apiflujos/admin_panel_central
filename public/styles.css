@@ -2249,6 +2249,10 @@ button {
   align-items: center;
 }
 
+.toolbar-right {
+  margin-left: auto;
+}
+
 .setup-mode-picker {
   display: inline-flex;
   gap: 6px;
@@ -2686,8 +2690,7 @@ button {
 
 .panel.module .mode-grid details.multi-select,
 .panel.module .mode-toggle details.multi-select {
-  width: 100%;
-  max-width: 360px;
+  width: min(220px, 100%);
   justify-self: flex-start;
 }
 
@@ -3343,13 +3346,6 @@ textarea::placeholder {
   max-width: 220px;
 }
 
-.panel.module .mode-grid .field details.multi-select {
-  max-width: 360px;
-}
-
-.mode-toggle-grid .mode-toggle.mode-wide {
-  grid-column: span 2;
-}
 
 .panel.module .mode-grid .field.field-span select,
 .panel.module .mode-grid .field.field-span input:not([type="checkbox"]),
