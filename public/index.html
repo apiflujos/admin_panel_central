@@ -891,34 +891,32 @@
 					                        <div class="mode-section">
 						                          <div class="mode-head">
 						                            <div class="mode-head-left">
+						                              <label for="rules-auto-enabled" data-dep-controller="1">Activar automático</label>
+						                              <input type="checkbox" id="rules-auto-enabled" class="toggle" data-dep-controller="1" checked />
 							                              <h4>Sincronizacion automatica</h4>
 								                              <span class="tip" data-tip="Se ejecuta sola cuando llegan cambios desde Alegra. Estas reglas también aplican cuando sincronizas manualmente desde el módulo Productos. Si apagas “Publicar en Shopify”, el sistema solo actualiza datos y no deja productos visibles.">?</span>
 							                            </div>
-						                            <div class="mode-head-right">
-						                              <label for="rules-auto-enabled">Activar automático</label>
-						                              <input type="checkbox" id="rules-auto-enabled" class="toggle" checked />
-						                            </div>
 							                          </div>
 							                          <div class="mode-toggle-grid" aria-label="Opciones automatico">
 							                            <div class="mode-toggle">
 							                              <label for="rules-only-active">Solo activos en Alegra <span class="tip" data-tip="Si está activo, solo se sincronizan productos activos en Alegra (automático y manual por SKU).">?</span></label>
-						                              <input type="checkbox" id="rules-only-active" class="toggle" data-depends-on="rules-auto-enabled" />
+						                              <input type="checkbox" id="rules-only-active" class="toggle" />
 							                            </div>
 						                            <div class="mode-toggle">
 						                              <label for="rules-auto-publish">Publicar en Shopify <span class="tip" data-tip="Enciende/apaga la publicación. Si lo apagas, solo sincronizamos datos, pero no publicamos productos (automático ni manual por SKU).">?</span></label>
-						                              <input type="checkbox" id="rules-auto-publish" class="toggle" data-depends-on="rules-only-active" />
+						                              <input type="checkbox" id="rules-auto-publish" class="toggle" />
 						                            </div>
-							                            <div class="mode-toggle">
-							                              <label for="rules-auto-images">Publicar fotos <span class="tip" data-tip="Si está activo, intentamos subir fotos del producto a Shopify. Si una foto falla, el producto puede publicarse igual (solo quedará sin esa foto).">?</span></label>
-							                              <input type="checkbox" id="rules-auto-images" class="toggle" data-depends-on="rules-auto-publish" />
-							                            </div>
-				                            <div class="mode-toggle">
-				                              <label for="rules-auto-status">Estado <span class="tip" data-tip="Define el estado de publicación cuando “Publicar en Shopify” está activo: Borrador o Activo.">?</span></label>
-				                              <select id="rules-auto-status" data-depends-on="rules-auto-publish">
-				                                <option value="draft">Borrador</option>
-				                                <option value="active">Activo</option>
-				                              </select>
-				        </div>
+								                            <div class="mode-toggle">
+								                              <label for="rules-auto-images">Publicar fotos <span class="tip" data-tip="Si está activo, intentamos subir fotos del producto a Shopify. Si una foto falla, el producto puede publicarse igual (solo quedará sin esa foto).">?</span></label>
+								                              <input type="checkbox" id="rules-auto-images" class="toggle" />
+								                            </div>
+					                            <div class="mode-toggle">
+					                              <label for="rules-auto-status">Estado <span class="tip" data-tip="Define el estado de publicación cuando “Publicar en Shopify” está activo: Borrador o Activo.">?</span></label>
+					                              <select id="rules-auto-status">
+					                                <option value="draft">Borrador</option>
+					                                <option value="active">Activo</option>
+					                              </select>
+					        </div>
 	                      </div>
                       <div class="module-footer">
                         <button class="ghost module-action" data-module-edit="shopify-rules" type="button">Editar</button>
