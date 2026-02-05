@@ -2628,12 +2628,14 @@ function validateInitialConnection(kind) {
   return true;
 }
 
-	function validateInvoiceModule() {
-	  clearInvoiceErrors();
-	  const ordersShopifyEnabled =
-	    syncOrdersShopifyEnabled instanceof HTMLInputElement
-	      ? Boolean(syncOrdersShopifyEnabled.checked)
-	      : true;
+function validateInvoiceModule() {
+  clearInvoiceErrors();
+  const einvoiceOn =
+    cfgEinvoiceEnabled instanceof HTMLInputElement ? Boolean(cfgEinvoiceEnabled.checked) : false;
+  const ordersShopifyEnabled =
+    syncOrdersShopifyEnabled instanceof HTMLInputElement
+      ? Boolean(syncOrdersShopifyEnabled.checked)
+      : true;
 	  const orderMode =
 	    ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
 	  const invoiceRequired = orderMode === "invoice";
@@ -2662,15 +2664,15 @@ function validateInitialConnection(kind) {
 		    }
 		  }
 
-	  if (invoiceRequired) {
-	    if (!cfgResolution || !String(cfgResolution.value || "").trim()) {
-	      errors.push({ field: cfgResolution, message: "Resolución requerida." });
-	    }
-	  } else {
-	    if (!cfgResolution || !String(cfgResolution.value || "").trim()) {
-	      recommendations.push("Resolución");
-	    }
-	  }
+  if (einvoiceOn) {
+    if (!cfgResolution || !String(cfgResolution.value || "").trim()) {
+      if (invoiceRequired) {
+        errors.push({ field: cfgResolution, message: "Resolución DIAN requerida." });
+      } else {
+        recommendations.push("Resolución DIAN");
+      }
+    }
+  }
 	  if (errors.length) {
 	    errors.forEach((item) => {
 	      if (item.field) markFieldError(item.field, item.message);
@@ -2679,10 +2681,10 @@ function validateInitialConnection(kind) {
     if (first) focusFieldWithContext(first);
     return false;
   }
-		  if (recommendations.length) {
-		    if (!cfgResolution || !String(cfgResolution.value || "").trim()) {
-		      markFieldWarning(cfgResolution, "Recomendado: Resolucion.");
-		    }
+  if (recommendations.length) {
+    if (einvoiceOn && (!cfgResolution || !String(cfgResolution.value || "").trim())) {
+      markFieldWarning(cfgResolution, "Recomendado: Resolución DIAN.");
+    }
 		    const message = `Recomendado: ${recommendations.join(", ")}.`;
 		    setModuleWarning("alegra-invoice", message);
 		    if (orderMode === "invoice") {
@@ -2971,15 +2973,17 @@ function getWizardModuleStatus(moduleKey) {
     }
     return { complete: true, focusTarget: null };
   }
-		  if (moduleKey === "alegra-invoice") {
-		    if (orderMode !== "invoice") return { complete: true, focusTarget: null };
-		    if (!cfgResolution || !String(cfgResolution.value || "").trim()) {
-		      return { complete: false, focusTarget: cfgResolution };
-		    }
-		    if (cfgApplyPayment && cfgApplyPayment.checked) {
-		      if (!cfgPaymentMethod || !String(cfgPaymentMethod.value || "").trim()) {
-		        return { complete: false, focusTarget: cfgPaymentMethod };
-		      }
+  if (moduleKey === "alegra-invoice") {
+    if (orderMode !== "invoice") return { complete: true, focusTarget: null };
+    const einvoiceOn =
+      cfgEinvoiceEnabled instanceof HTMLInputElement ? Boolean(cfgEinvoiceEnabled.checked) : false;
+    if (einvoiceOn && (!cfgResolution || !String(cfgResolution.value || "").trim())) {
+      return { complete: false, focusTarget: cfgResolution };
+    }
+    if (cfgApplyPayment && cfgApplyPayment.checked) {
+      if (!cfgPaymentMethod || !String(cfgPaymentMethod.value || "").trim()) {
+        return { complete: false, focusTarget: cfgPaymentMethod };
+      }
 	      if (!cfgBankAccount || !String(cfgBankAccount.value || "").trim()) {
 	        return { complete: false, focusTarget: cfgBankAccount };
 	      }
@@ -3170,24 +3174,28 @@ function applyOrderToggle(select, toggle, fallbackValue) {
   }
 }
 
-	function isInvoiceSetupComplete() {
-	  const resolutionOk = Boolean(cfgResolution && String(cfgResolution.value || "").trim());
-	  if (!resolutionOk) return false;
-	  if (cfgApplyPayment instanceof HTMLInputElement && cfgApplyPayment.checked) {
-	    const paymentMethodOk = Boolean(cfgPaymentMethod && String(cfgPaymentMethod.value || "").trim());
-	    if (!paymentMethodOk) return false;
-	    const bankOk = Boolean(cfgBankAccount && String(cfgBankAccount.value || "").trim());
+function isInvoiceSetupComplete() {
+  const einvoiceOn =
+    cfgEinvoiceEnabled instanceof HTMLInputElement ? Boolean(cfgEinvoiceEnabled.checked) : false;
+  const resolutionOk = Boolean(cfgResolution && String(cfgResolution.value || "").trim());
+  if (einvoiceOn && !resolutionOk) return false;
+  if (cfgApplyPayment instanceof HTMLInputElement && cfgApplyPayment.checked) {
+    const paymentMethodOk = Boolean(cfgPaymentMethod && String(cfgPaymentMethod.value || "").trim());
+    if (!paymentMethodOk) return false;
+    const bankOk = Boolean(cfgBankAccount && String(cfgBankAccount.value || "").trim());
 	    if (!bankOk) return false;
 	  }
 	  return true;
 	}
 
-	function focusInvoiceSetupFirstMissing() {
-	  const resolutionOk = Boolean(cfgResolution && String(cfgResolution.value || "").trim());
-	  if (!resolutionOk && cfgResolution) {
-	    focusFieldWithContext(cfgResolution);
-	    return;
-	  }
+function focusInvoiceSetupFirstMissing() {
+  const einvoiceOn =
+    cfgEinvoiceEnabled instanceof HTMLInputElement ? Boolean(cfgEinvoiceEnabled.checked) : false;
+  const resolutionOk = Boolean(cfgResolution && String(cfgResolution.value || "").trim());
+  if (einvoiceOn && !resolutionOk && cfgResolution) {
+    focusFieldWithContext(cfgResolution);
+    return;
+  }
 	  if (cfgApplyPayment instanceof HTMLInputElement && cfgApplyPayment.checked) {
 	    const paymentMethodOk = Boolean(cfgPaymentMethod && String(cfgPaymentMethod.value || "").trim());
 	    if (!paymentMethodOk && cfgPaymentMethod) {
@@ -9049,6 +9057,8 @@ if (cfgPriceEnabled) {
 if (cfgEinvoiceEnabled) {
   cfgEinvoiceEnabled.addEventListener("change", () => {
     clearFieldWarning(cfgEinvoiceEnabled);
+    clearFieldError(cfgResolution);
+    applyToggleDependencies();
   });
 }
   if (cfgApplyPayment) {

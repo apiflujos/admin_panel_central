@@ -608,8 +608,8 @@ function buildOrderChecklist(
 function buildInvoiceSettingsChecklist(settings: InvoiceSettings) {
   const blocking: string[] = [];
   const warnings: string[] = [];
-  if (settings.generateInvoice && !settings.resolutionId) {
-    warnings.push("resolution_id");
+  if (settings.generateInvoice && settings.einvoiceEnabled && !settings.resolutionId) {
+    blocking.push("resolution_id");
   }
   if (settings.generateInvoice && settings.applyPayment && !settings.bankAccountId) {
     warnings.push("bank_account_id");

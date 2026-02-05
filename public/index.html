@@ -1395,10 +1395,10 @@
 			                        <option value="active">Activa</option>
 			                      </select>
 			                    </div>
-			                    <div class="field mode-field">
-				                      <label>Resolucion DIAN</label>
-				                      <select id="cfg-resolution"></select>
-			                    </div>
+				                    <div class="field mode-field" data-depends-on="cfg-einvoice-enabled">
+					                      <label>Resolución DIAN <span class="tip" data-tip="Solo aplica si activas Factura electrónica.">?</span></label>
+					                      <select id="cfg-resolution"></select>
+				                    </div>
 		                    <select id="cfg-warehouse" class="is-hidden"></select>
 		                    <div class="field mode-field">
 		                      <label>Centro de costos</label>
