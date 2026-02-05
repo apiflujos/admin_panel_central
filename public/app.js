@@ -2232,6 +2232,12 @@ function setModuleReadonly(panel, readonly) {
   controls.forEach((control) => {
     if (control.closest(".panel-actions") || control.closest(".module-footer")) return;
     if (control.closest("[data-readonly-free=\"1\"]")) return;
+    // Los toggles/controladores de dependencias deben poder cambiarse aun en modo readonly.
+    // Ej: toggles padre en encabezados (Activar automático / Procesar pedidos / etc.).
+    if (control instanceof HTMLElement && control.getAttribute("data-dep-controller") === "1") {
+      control.disabled = false;
+      return;
+    }
     if (readonly) {
       control.disabled = true;
     } else {
