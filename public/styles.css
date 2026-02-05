@@ -1884,6 +1884,11 @@ button {
   opacity: 1;
 }
 
+.module.is-readonly [data-readonly-free="1"] details,
+.module.is-readonly [data-readonly-free="1"] .multi-select {
+  pointer-events: auto;
+}
+
 .module.is-disabled {
   opacity: 0.85;
 }
