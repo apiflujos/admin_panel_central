@@ -7464,7 +7464,11 @@ async function loadCatalog(select, endpoint) {
 
 async function loadResolutions() {
   try {
-    const data = await fetchJson("/api/settings/resolutions");
+    const params = new URLSearchParams();
+    const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+    if (shopDomain) params.set("shopDomain", shopDomain);
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const data = await fetchJson(`/api/settings/resolutions${query}`);
     const items = Array.isArray(data.items) ? data.items : [];
     cfgResolution.innerHTML = "";
     if (!items.length) {
@@ -8694,6 +8698,15 @@ if (alegraAccountSelect) {
 		      loadLegacyStoreConfig().catch(() => null);
 		      // Refrescar catálogos dependientes de la tienda (bodegas, listas, etc.)
 		      loadSettingsWarehouses().catch(() => null);
+		      loadResolutions().catch(() => null);
+		      loadCatalog(cfgCostCenter, "cost-centers").catch(() => null);
+		      loadCatalog(cfgWarehouse, "warehouses").catch(() => null);
+		      loadCatalog(cfgSeller, "sellers").catch(() => null);
+		      loadCatalog(cfgPaymentMethod, "payment-methods").catch(() => null);
+		      loadCatalog(cfgBankAccount, "bank-accounts").catch(() => null);
+		      loadCatalog(cfgPriceGeneral, "price-lists").catch(() => null);
+		      loadCatalog(cfgPriceDiscount, "price-lists").catch(() => null);
+		      loadCatalog(cfgPriceWholesale, "price-lists").catch(() => null);
 		      loadCatalog(cfgTransferDest, "warehouses").catch(() => null);
 		      loadCatalog(cfgTransferPriority, "warehouses").catch(() => null);
 		      openWizardStep();

@@ -169,9 +169,15 @@ export async function getInventoryAdjustmentsEnabled() {
   return rules.inventoryAdjustmentsEnabled !== false;
 }
 
-export async function listInvoiceResolutions(accountId?: number) {
+export async function listInvoiceResolutions(accountId?: number, shopDomain?: string) {
   try {
-    const alegra = await getAlegraClient(accountId);
+    const resolvedAccountId =
+      typeof accountId === "number" && Number.isFinite(accountId)
+        ? accountId
+        : shopDomain
+          ? await resolveAlegraAccountIdForShopDomain(shopDomain)
+          : undefined;
+    const alegra = await getAlegraClient(resolvedAccountId);
     const resolutions = await alegra.listInvoiceResolutions();
     return { items: resolutions || [] };
   } catch (error) {

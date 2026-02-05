@@ -105,8 +105,11 @@ export async function getSettings(_req: Request, res: Response) {
 export async function listResolutions(req: Request, res: Response) {
   try {
     const accountId = req.query.accountId ? Number(req.query.accountId) : undefined;
+    const shopDomain =
+      typeof req.query.shopDomain === "string" ? req.query.shopDomain.trim() : undefined;
     const result = await listInvoiceResolutions(
-      Number.isFinite(accountId as number) ? (accountId as number) : undefined
+      Number.isFinite(accountId as number) ? (accountId as number) : undefined,
+      shopDomain
     );
     res.status(200).json(result);
     await safeCreateLog({
