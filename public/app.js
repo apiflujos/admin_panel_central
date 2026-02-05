@@ -2702,8 +2702,6 @@ function validateOrdersModule() {
   if (orderMode === "invoice") {
     validateInvoiceModule();
     validateLogisticsModule();
-  } else if (orderMode === "contact_only") {
-    validateLogisticsModule();
   }
   return true;
 }
@@ -2926,7 +2924,7 @@ function getWizardModuleStatus(moduleKey) {
   if (moduleKey === "sync-orders") {
     const needsAutomation = Boolean(syncOrdersShopifyEnabled?.checked);
     if (needsAutomation && !shopifyWebhooksStatus?.classList.contains("is-ok")) {
-      return { complete: false, focusTarget: shopifyWebhooksCreate };
+      return { complete: false, focusTarget: shopifyAutomationEnabled || shopifyWebhooksStatus };
     }
     return { complete: true, focusTarget: null };
   }
@@ -2973,7 +2971,7 @@ async function findNextWizardStep(fromIndex = 0) {
     if (moduleKey === "sync-orders" && syncOrdersShopifyEnabled?.checked) {
       const ok = await loadShopifyWebhooksStatus();
       if (!ok) {
-        return { index, moduleKey, focusTarget: shopifyWebhooksCreate };
+        return { index, moduleKey, focusTarget: shopifyAutomationEnabled || shopifyWebhooksStatus };
       }
     }
 
@@ -3100,10 +3098,15 @@ function updatePrerequisites() {
   applyPrereqState("sync-orders", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
   applyPrereqState("alegra-tech", resolvePrereqState({ alegra: true }, globalContext));
 
-  // Facturacion/Logistica se pueden configurar siempre (sin bloquear la UI).
-  // Se usan solo cuando Shopify → Alegra = Factura/Contacto, pero no deben depender del toggle de pedidos.
-  applyPrereqState("alegra-invoice", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
-  applyPrereqState("alegra-logistics", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
+  // Facturacion/Logistica: solo habilitar cuando el flujo Shopify → Alegra crea factura.
+  const invoiceFlowActive = ordersShopifyEnabled && orderMode === "invoice";
+  const invoicePrereqs = resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext);
+  const invoiceDisabled = {
+    enabled: false,
+    message: "Activa “Crear factura” en Pedidos (Shopify → Alegra) para habilitar este modulo.",
+  };
+  applyPrereqState("alegra-invoice", invoiceFlowActive ? invoicePrereqs : invoiceDisabled);
+  applyPrereqState("alegra-logistics", invoiceFlowActive ? invoicePrereqs : invoiceDisabled);
 }
 
 function updateOrderSyncDependencies() {
@@ -4550,10 +4553,16 @@ function applyLegacyStoreConfig(config) {
     syncContactsPriority.value = priorityKey;
   }
   if (syncOrdersShopify) {
-    syncOrdersShopify.value = String(orderSync.shopifyToAlegra || defaultShopifyMode);
+    const raw = String(orderSync.shopifyToAlegra || defaultShopifyMode);
+    const normalized = raw === "contact_only" ? "db_only" : raw;
+    syncOrdersShopify.value = normalized;
+    if (!syncOrdersShopify.value) syncOrdersShopify.value = defaultShopifyMode;
   }
   if (syncOrdersAlegra) {
-    syncOrdersAlegra.value = String(orderSync.alegraToShopify || "off");
+    const raw = String(orderSync.alegraToShopify || "off");
+    const normalized = raw === "active" ? "draft" : raw;
+    syncOrdersAlegra.value = normalized;
+    if (!syncOrdersAlegra.value) syncOrdersAlegra.value = "off";
   }
   if (syncOrdersShopifyEnabled) {
     const enabledRaw = orderSync.shopifyEnabled;

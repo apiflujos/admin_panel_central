@@ -1246,18 +1246,17 @@
 			                                <input type="checkbox" id="sync-orders-shopify-enabled" class="toggle" data-dep-controller="1" />
 			                                <span>Sincronizacion automatica (pedidos nuevos)</span>
 			                              </label>
-			                              <span class="tip" data-tip="Se ejecuta cuando llega un pedido nuevo desde Shopify.">?</span>
+				                              <span class="tip" data-tip="Se ejecuta cuando llega un pedido nuevo desde Shopify. Si eliges crear factura, el módulo Facturacion se habilita para definir reglas (Resolucion, Bodega, etc.).">?</span>
 			                            </div>
 			                          </div>
 			                          <div class="mode-grid" data-depends-on="shopify-automation-enabled,sync-orders-shopify-enabled">
 		                            <div class="mode-field">
-		                              <label for="sync-orders-shopify">Que crear en Alegra <span class="tip" data-tip="Registrar, crear contacto o crear factura.">?</span></label>
-		                              <select id="sync-orders-shopify" data-depends-on="sync-orders-shopify-enabled">
-	                                <option value="db_only">Solo registrar</option>
-                                <option value="contact_only">Crear contacto</option>
-                                <option value="invoice">Crear factura</option>
-                                <option value="off">No sincronizar</option>
-                              </select>
+			                              <label for="sync-orders-shopify">Accion en Alegra <span class="tip" data-tip="Solo registrar guarda el pedido en la base. Crear factura genera la factura en Alegra usando las reglas de Facturacion.">?</span></label>
+			                              <select id="sync-orders-shopify" data-depends-on="sync-orders-shopify-enabled">
+		                                <option value="db_only">Solo registrar</option>
+	                                <option value="invoice">Crear factura</option>
+	                                <option value="off">No sincronizar</option>
+	                              </select>
                             </div>
                           </div>
                         </div>
@@ -1269,42 +1268,39 @@
 				                                <input type="checkbox" id="sync-orders-alegra-enabled" class="toggle" data-dep-controller="1" />
 				                                <span>Sincronizacion automatica (facturas nuevas)</span>
 				                              </label>
-				                              <span class="tip" data-tip="Se ejecuta cuando llega una factura nueva desde Alegra.">?</span>
+					                              <span class="tip" data-tip="Se ejecuta cuando llega una factura nueva desde Alegra. Si está activo, crea un pedido borrador en Shopify.">?</span>
 				                            </div>
 				                          </div>
 			                          <div class="mode-grid" data-depends-on="shopify-automation-enabled,sync-orders-alegra-enabled">
 		                            <div class="mode-field">
-		                              <label for="sync-orders-alegra">Como crear pedido en Shopify <span class="tip" data-tip="Borrador crea el pedido sin publicar; Activo lo crea listo para gestionar.">?</span></label>
-	                              <select id="sync-orders-alegra" data-depends-on="sync-orders-alegra-enabled">
-	                                <option value="draft">Crear pedido borrador</option>
-                                <option value="active">Crear pedido activo</option>
-                                <option value="off">No sincronizar</option>
-                              </select>
+			                              <label for="sync-orders-alegra">Como crear pedido en Shopify <span class="tip" data-tip="Por defecto se crea como borrador (recomendado).">?</span></label>
+		                              <select id="sync-orders-alegra" data-depends-on="sync-orders-alegra-enabled">
+		                                <option value="draft">Crear pedido borrador</option>
+	                                <option value="off">No sincronizar</option>
+	                              </select>
 	                            </div>
 	                          </div>
-	                        </div>
-	                      </div>
-					                      <div class="mode-section">
-					                        <div class="mode-head">
-					                          <div class="mode-head-left">
-					                            <label class="mode-title-toggle" for="shopify-automation-enabled" data-dep-controller="1">
-					                              <input type="checkbox" id="shopify-automation-enabled" class="toggle" data-dep-controller="1" checked />
-					                              <span>Automatizacion en tiempo real (Shopify)</span>
-					                            </label>
-					                            <span class="tip" data-tip="Activalo para que pedidos, inventario y productos se sincronicen solos. Si cambias el dominio de la tienda, vuelve a activarlo.">?</span>
-					                          </div>
-					                        </div>
-				                        <div class="settings-grid">
-				                          <div class="field span-2">
-				                          <p class="field-hint">Activa la automatizacion para que el sistema procese cambios automaticamente.</p>
-			                          </div>
 		                        </div>
-	                        <div class="toolbar is-actions">
-		                        <button class="primary" id="shopify-webhooks-create" type="button">Activar automatizacion</button>
-		                        <button class="ghost danger" id="shopify-webhooks-delete" type="button">Desactivar automatizacion</button>
-		                        <button class="ghost info" id="shopify-webhooks-status-btn" type="button">Ver estado</button>
-		                        <span class="kpi-sub" id="shopify-webhooks-status">Sin configurar</span>
-	                        </div>
+
+		                        <div class="mode-section">
+		                          <div class="mode-head">
+		                            <div class="mode-head-left">
+		                              <label class="mode-title-toggle" for="shopify-automation-enabled" data-dep-controller="1">
+		                                <input type="checkbox" id="shopify-automation-enabled" class="toggle" data-dep-controller="1" checked />
+		                                <span>Automatizacion global</span>
+		                              </label>
+		                              <span class="tip" data-tip="Prende o apaga la automatización (webhooks). Si está OFF, productos, inventario y pedidos automáticos quedan deshabilitados visualmente.">?</span>
+		                            </div>
+		                          </div>
+		                          <div class="settings-grid">
+		                            <div class="field span-2">
+		                              <p class="field-hint">Activa la automatizacion para que el sistema procese cambios automaticamente.</p>
+		                            </div>
+		                          </div>
+		                          <div class="mode-actions" aria-label="Estado de automatizacion">
+		                            <span class="kpi-sub" id="shopify-webhooks-status">Sin configurar</span>
+		                          </div>
+		                        </div>
 		                      </div>
 	                      <p class="field-hint module-warning is-hidden" data-module-warning="sync-orders"></p>
 	                    </div>
