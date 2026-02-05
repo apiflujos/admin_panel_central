@@ -3096,9 +3096,6 @@ function applyPrereqState(moduleKey, state) {
   const panel = getModulePanel(moduleKey);
   if (!panel) return;
   setModuleEnabled(panel, state.enabled);
-  if (moduleKey === "alegra-invoice" || moduleKey === "alegra-logistics") {
-    panel.classList.toggle("is-prereq-blocked", Boolean(state.message));
-  }
   setModulePrereqWarning(moduleKey, state.message);
   setModulePrereqButtons(panel, Boolean(state.message));
 }
@@ -3130,15 +3127,10 @@ function updatePrerequisites() {
   applyPrereqState("sync-orders", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
   applyPrereqState("alegra-tech", resolvePrereqState({ alegra: true }, globalContext));
 
-  // Facturacion/Logistica: solo habilitar cuando el flujo Shopify → Alegra crea factura.
-  const invoiceFlowActive = ordersShopifyEnabled && orderMode === "invoice";
-  const invoicePrereqs = resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext);
-  const invoiceDisabled = {
-    enabled: false,
-    message: "Activa “Crear factura” en Pedidos (Shopify → Alegra) para habilitar este modulo.",
-  };
-  applyPrereqState("alegra-invoice", invoiceFlowActive ? invoicePrereqs : invoiceDisabled);
-  applyPrereqState("alegra-logistics", invoiceFlowActive ? invoicePrereqs : invoiceDisabled);
+  // Facturacion/Logistica se pueden configurar siempre (sin bloquear la UI).
+  // Se usan solo cuando Shopify → Alegra = Factura, pero conviene dejarlos listos.
+  applyPrereqState("alegra-invoice", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
+  applyPrereqState("alegra-logistics", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
 }
 
 function updateOrderSyncDependencies() {
@@ -3176,6 +3168,10 @@ function isInvoiceSetupComplete() {
 }
 
 function focusInvoiceSetupFirstMissing() {
+  if (cfgGenerateInvoice instanceof HTMLInputElement && !cfgGenerateInvoice.checked) {
+    focusFieldWithContext(cfgGenerateInvoice);
+    return;
+  }
   const resolutionOk = Boolean(cfgResolution && String(cfgResolution.value || "").trim());
   if (!resolutionOk && cfgResolution) {
     focusFieldWithContext(cfgResolution);
@@ -3194,7 +3190,7 @@ function focusInvoiceSetupFirstMissing() {
   }
 }
 
-function ensureShopifyOrdersInvoiceReady() {
+function warnIfShopifyOrdersInvoiceNotReady() {
   if (!(syncOrdersShopify instanceof HTMLSelectElement)) return true;
   if (syncOrdersShopify.value !== "invoice") return true;
   if (isInvoiceSetupComplete()) return true;
@@ -7379,9 +7375,6 @@ if (shopifyDomain) {
 
 if (syncOrdersShopifyEnabled) {
   syncOrdersShopifyEnabled.addEventListener("change", () => {
-    if (syncOrdersShopifyEnabled.checked && !ensureShopifyOrdersInvoiceReady()) {
-      syncOrdersShopifyEnabled.checked = false;
-    }
     applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, "db_only");
     updateOrderSyncDependencies();
   });
@@ -7395,10 +7388,7 @@ if (syncOrdersAlegraEnabled) {
 
 if (syncOrdersShopify) {
   syncOrdersShopify.addEventListener("change", () => {
-    if (syncOrdersShopify.value === "invoice" && !ensureShopifyOrdersInvoiceReady()) {
-      const fallback = syncOrdersShopify.dataset.lastValue || "db_only";
-      syncOrdersShopify.value = fallback === "invoice" ? "db_only" : fallback;
-    }
+    warnIfShopifyOrdersInvoiceNotReady();
     if (syncOrdersShopifyEnabled) {
       syncOrdersShopifyEnabled.checked = syncOrdersShopify.value !== "off";
       applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, "db_only");

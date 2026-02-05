@@ -1172,12 +1172,26 @@
                         <span class="panel-tag tag-bridge">Shopify ↔ Alegra</span>
                       </div>
                     </div>
-	                    <div class="module-body">
-	                      <div class="mode-sections">
-	                        <div class="mode-section" data-readonly-free="1">
-	                          <div class="mode-head">
-	                            <div class="mode-head-left">
-	                              <h4>Sincronizacion masiva (Shopify → Alegra)</h4>
+		                    <div class="module-body">
+		                      <div class="mode-sections">
+		                        <div class="mode-section">
+		                          <div class="mode-head">
+		                            <div class="mode-head-left">
+		                              <label class="mode-title-toggle" for="shopify-automation-enabled" data-dep-controller="1">
+		                                <input type="checkbox" id="shopify-automation-enabled" class="toggle" data-dep-controller="1" checked />
+		                                <span>Automatizacion global</span>
+		                              </label>
+		                              <span class="tip" data-tip="Prende o apaga la automatización (webhooks). Si está OFF, productos, inventario y pedidos automáticos quedan deshabilitados visualmente.">?</span>
+		                            </div>
+		                          </div>
+		                          <div class="mode-actions" aria-label="Estado de automatizacion">
+		                            <span class="kpi-sub"><strong>Estado:</strong> <span id="shopify-webhooks-status">Sin configurar</span></span>
+		                          </div>
+		                        </div>
+		                        <div class="mode-section" data-readonly-free="1">
+		                          <div class="mode-head">
+		                            <div class="mode-head-left">
+		                              <h4>Sincronizacion masiva (Shopify → Alegra)</h4>
 	                              <span class="tip" data-tip="Trae pedidos de Shopify por fechas o por número, los guarda en la base y, si corresponde, intenta facturarlos en Alegra. Útil para catálogo inicial o re-procesar un rango.">?</span>
 	                            </div>
 	                          </div>
@@ -1291,29 +1305,10 @@
 	                          </div>
 		                        </div>
 
-		                        <div class="mode-section">
-		                          <div class="mode-head">
-		                            <div class="mode-head-left">
-		                              <label class="mode-title-toggle" for="shopify-automation-enabled" data-dep-controller="1">
-		                                <input type="checkbox" id="shopify-automation-enabled" class="toggle" data-dep-controller="1" checked />
-		                                <span>Automatizacion global</span>
-		                              </label>
-		                              <span class="tip" data-tip="Prende o apaga la automatización (webhooks). Si está OFF, productos, inventario y pedidos automáticos quedan deshabilitados visualmente.">?</span>
-		                            </div>
-		                          </div>
-		                          <div class="settings-grid">
-		                            <div class="field span-2">
-		                              <p class="field-hint">Activa la automatizacion para que el sistema procese cambios automaticamente.</p>
-		                            </div>
-		                          </div>
-		                          <div class="mode-actions" aria-label="Estado de automatizacion">
-		                            <span class="kpi-sub" id="shopify-webhooks-status">Sin configurar</span>
-		                          </div>
-		                        </div>
 		                      </div>
-	                      <p class="field-hint module-warning is-hidden" data-module-warning="sync-orders"></p>
-	                    </div>
-	                  </div>
+		                      <p class="field-hint module-warning is-hidden" data-module-warning="sync-orders"></p>
+		                    </div>
+		                  </div>
 
 			                  <div class="panel admin-only module" data-provider="alegra" data-manager="shopify" data-module="alegra-logistics" id="inventory-transfer-panel" data-help="Configura bodegas y traslados automaticos (si se requieren) para pedidos Shopify → Alegra.">
             <div class="panel-header">
