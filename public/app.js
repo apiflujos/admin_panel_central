@@ -2762,9 +2762,9 @@ function reorderSettingsPanels() {
 
   const invoicePanel = ordersBody.querySelector('.module[data-module="alegra-invoice"]');
   const logisticsPanel = ordersBody.querySelector('.module[data-module="alegra-logistics"]');
-  if (invoicePanel && logisticsPanel) {
-    ordersBody.insertBefore(logisticsPanel, invoicePanel);
-  }
+  if (syncOrdersPanel) ordersBody.appendChild(syncOrdersPanel);
+  if (logisticsPanel) ordersBody.appendChild(logisticsPanel);
+  if (invoicePanel) ordersBody.appendChild(invoicePanel);
 }
 
 function openDefaultGroups() {

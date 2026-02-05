@@ -1174,30 +1174,31 @@
                     </div>
 		                    <div class="module-body">
 		                      <div class="mode-sections">
-		                        <div class="mode-section">
-		                          <div class="mode-head">
-		                            <div class="mode-head-left">
-		                              <label class="mode-title-toggle" for="sync-orders-shopify-enabled" data-dep-controller="1">
-		                                <input type="checkbox" id="sync-orders-shopify-enabled" class="toggle" data-dep-controller="1" />
-		                                <span>Sincronizacion automatica de pedidos (Shopify → Alegra)</span>
-		                              </label>
-		                              <span class="tip" data-tip="ON: procesa pedidos nuevos en tiempo real (webhooks). OFF: no se detectan pedidos nuevos automaticamente.">?</span>
-		                            </div>
-		                          </div>
-		                          <div class="mode-grid" data-depends-on="sync-orders-shopify-enabled">
-		                            <div class="mode-field">
-		                              <label for="sync-orders-shopify">Accion en Alegra <span class="tip" data-tip="Solo registrar: guarda el pedido en la base. Crear factura: activa Logistica/Traslados y Facturacion para generar la factura en Alegra.">?</span></label>
-		                              <select id="sync-orders-shopify" data-depends-on="sync-orders-shopify-enabled">
-		                                <option value="db_only">Solo registrar</option>
-		                                <option value="invoice">Crear factura</option>
-		                                <option value="off">No sincronizar</option>
-		                              </select>
-		                            </div>
-		                          </div>
-		                          <div class="mode-actions" aria-label="Estado webhooks Shopify">
-		                            <span class="kpi-sub"><strong>Webhooks Shopify:</strong> <span id="shopify-webhooks-status">Sin configurar</span></span>
-		                          </div>
-		                        </div>
+					                        <div class="mode-section">
+						                          <div class="mode-head">
+						                            <div class="mode-head-left">
+					                              <label class="mode-title-toggle" for="sync-orders-shopify-enabled" data-dep-controller="1">
+					                                <input type="checkbox" id="sync-orders-shopify-enabled" class="toggle" data-dep-controller="1" />
+					                                <span>Sincronizacion automatica de pedidos</span>
+					                              </label>
+						                              <span class="tip" data-tip="ON: procesa pedidos nuevos en tiempo real (webhooks). OFF: no se detectan pedidos nuevos automaticamente.">?</span>
+					                            </div>
+					                            <div class="mode-head-right" aria-label="Estado webhooks Shopify">
+					                              <label>Webhooks Shopify</label>
+					                              <span class="kpi-sub" id="shopify-webhooks-status">Sin configurar</span>
+					                            </div>
+					                          </div>
+						                          <div class="mode-grid" data-depends-on="sync-orders-shopify-enabled">
+					                            <div class="mode-field">
+						                              <label for="sync-orders-shopify">Accion en Alegra <span class="tip" data-tip="Solo registrar: guarda el pedido en la base. Crear factura: activa Logistica/Traslados y Facturacion para generar la factura en Alegra.">?</span></label>
+						                              <select id="sync-orders-shopify" data-depends-on="sync-orders-shopify-enabled">
+					                                <option value="db_only">Solo registrar</option>
+					                                <option value="invoice">Crear factura</option>
+					                                <option value="off">No sincronizar</option>
+					                              </select>
+					                            </div>
+					                          </div>
+					                        </div>
 		                        <div class="mode-section" data-readonly-free="1">
 		                          <div class="mode-head">
 		                            <div class="mode-head-left">
