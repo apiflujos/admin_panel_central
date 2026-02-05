@@ -4343,7 +4343,7 @@ function applyLegacyStoreConfig(config) {
   const priorityKey = matchPriority.join("_");
   const defaultShopifyMode = "db_only";
   if (syncContactsEnabled instanceof HTMLInputElement) {
-    const enabledRaw = (contactSync as Record<string, unknown>).enabled;
+    const enabledRaw = contactSync.enabled;
     const enabled =
       typeof enabledRaw === "boolean"
         ? enabledRaw
@@ -4372,7 +4372,7 @@ function applyLegacyStoreConfig(config) {
     syncOrdersAlegra.value = String(orderSync.alegraToShopify || "off");
   }
   if (syncOrdersShopifyEnabled) {
-    const enabledRaw = (orderSync as Record<string, unknown>).shopifyEnabled;
+    const enabledRaw = orderSync.shopifyEnabled;
     const enabled =
       typeof enabledRaw === "boolean"
         ? enabledRaw
@@ -4383,7 +4383,7 @@ function applyLegacyStoreConfig(config) {
     applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, defaultShopifyMode);
   }
   if (syncOrdersAlegraEnabled) {
-    const enabledRaw = (orderSync as Record<string, unknown>).alegraEnabled;
+    const enabledRaw = orderSync.alegraEnabled;
     const enabled =
       typeof enabledRaw === "boolean"
         ? enabledRaw
