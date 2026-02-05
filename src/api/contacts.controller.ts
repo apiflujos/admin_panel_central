@@ -12,6 +12,7 @@ export async function syncContactHandler(req: Request, res: Response) {
       source: source === "alegra" ? "alegra" : "shopify",
       identifier: String(identifier),
       shopDomain: shopDomain ? String(shopDomain) : undefined,
+      force: true,
     });
     return res.json(result);
   } catch (error) {

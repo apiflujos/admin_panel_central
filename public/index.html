@@ -1018,7 +1018,7 @@
 	                    </div>
 	                    <div class="module-body">
 		                      <div class="mode-sections">
-				                        <div class="mode-section" data-readonly-free="1" data-depends-on="sync-contacts-enabled">
+				                        <div class="mode-section" data-readonly-free="1">
 				                          <div class="mode-head">
 						                            <h4>Sincronizacion masiva</h4>
 						                            <span class="tip" data-tip="Crea/normaliza contactos en lote. Puedes correr una dirección o ambas (bidireccional); si activas ambas se ejecuta en 2 fases. Tip anti-duplicados: define la prioridad y prueba primero con “Crear” apagado.">?</span>
@@ -1069,21 +1069,19 @@
 				                          </div>
 				                        </div>
 
-				                        <div class="mode-section">
-				                          <div class="mode-head">
-				                            <div class="mode-head-left">
-				                              <h4>Sincronizacion automatica</h4>
-					                              <span class="tip" data-tip="Define qué direcciones están permitidas en automático. Nota: el masivo usa los toggles de arriba (dirección + crear).">?</span>
-				                            </div>
-				                            <div class="mode-head-right">
-				                              <label for="sync-contacts-enabled" data-dep-controller="1">Sincronización de contactos</label>
-				                              <input type="checkbox" id="sync-contacts-enabled" class="toggle" data-dep-controller="1" checked />
-				                            </div>
-				                          </div>
-				                          <div class="mode-grid" data-depends-on="sync-contacts-enabled">
-				                            <div class="mode-field">
-				                              <label for="sync-contacts-shopify">Shopify → Alegra <span class="tip" data-tip="Permite que el sistema sincronice automáticamente desde Shopify hacia Alegra.">?</span></label>
-				                              <input type="checkbox" id="sync-contacts-shopify" class="toggle" checked />
+					                        <div class="mode-section">
+					                          <div class="mode-head">
+					                            <div class="mode-head-left">
+					                              <label for="sync-contacts-enabled" data-dep-controller="1">Activar automatico</label>
+					                              <input type="checkbox" id="sync-contacts-enabled" class="toggle" data-dep-controller="1" checked />
+					                              <h4>Sincronizacion automatica</h4>
+						                              <span class="tip" data-tip="Define qué direcciones están permitidas en automático. Nota: el masivo usa los toggles de arriba (dirección + crear).">?</span>
+					                            </div>
+					                          </div>
+					                          <div class="mode-grid" data-depends-on="sync-contacts-enabled">
+					                            <div class="mode-field">
+					                              <label for="sync-contacts-shopify">Shopify → Alegra <span class="tip" data-tip="Permite que el sistema sincronice automáticamente desde Shopify hacia Alegra.">?</span></label>
+					                              <input type="checkbox" id="sync-contacts-shopify" class="toggle" checked />
 				                            </div>
 			                            <div class="mode-field">
 				                              <label for="sync-contacts-create-alegra">Crear en Alegra <span class="tip" data-tip="En automático, permite crear nuevos contactos en Alegra cuando no existen. Si lo apagas, solo se actualizan existentes.">?</span></label>

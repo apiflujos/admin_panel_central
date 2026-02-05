@@ -309,13 +309,15 @@ export async function syncSingleContact(options: {
   source: SyncSource;
   identifier: string;
   shopDomain?: string;
+  force?: boolean;
 }) {
   const ctx = await buildSyncContext(options.shopDomain);
   const storeConfig = await resolveStoreConfig(options.shopDomain || null);
   const priority = normalizeMatchPriority(storeConfig.contactMatchPriority);
+  const force = options.force === true;
 
   if (options.source === "shopify") {
-    if (!storeConfig.syncContactsFromShopify) {
+    if (!force && !storeConfig.syncContactsFromShopify) {
       return { skipped: true, reason: "sync_disabled" };
     }
     const identifier = options.identifier.trim();
@@ -342,7 +344,7 @@ export async function syncSingleContact(options: {
     });
   }
 
-  if (!storeConfig.syncContactsFromAlegra) {
+  if (!force && !storeConfig.syncContactsFromAlegra) {
     return { skipped: true, reason: "sync_disabled" };
   }
   const identifier = options.identifier.trim();
