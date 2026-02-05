@@ -2684,6 +2684,12 @@ button {
   position: relative;
 }
 
+.panel.module .mode-grid details.multi-select,
+.panel.module .mode-toggle details.multi-select {
+  width: min(220px, 100%);
+  justify-self: flex-start;
+}
+
 .multi-select summary {
   display: grid;
   grid-template-columns: 1fr auto auto;
@@ -3092,7 +3098,7 @@ textarea::placeholder {
 .mode-grid {
   margin-top: 8px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 270px));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 250px));
   gap: 8px;
   align-items: start;
   justify-content: flex-start;
