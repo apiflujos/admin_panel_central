@@ -133,6 +133,22 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
       dateStart?: string;
       dateEnd?: string;
       days?: number;
+      shopDomain?: string;
+    };
+    const shopDomainInput =
+      typeof req.body?.shopDomain === "string" ? String(req.body.shopDomain).trim() : "";
+    const stream =
+      req.query.stream === "1" ||
+      req.query.stream === "true" ||
+      req.body?.stream === true;
+    let streamOpen = stream;
+    const sendStream = (payload: Record<string, unknown>) => {
+      if (!streamOpen || res.writableEnded || res.destroyed) return;
+      try {
+        res.write(`${JSON.stringify(payload)}\n`);
+      } catch {
+        streamOpen = false;
+      }
     };
     const source = String(body.source || "both").toLowerCase();
     const limit = Number.isFinite(body.limit) && Number(body.limit) > 0 ? Number(body.limit) : null;
@@ -140,6 +156,20 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
     const dateEnd = body.dateEnd ? String(body.dateEnd) : "";
     const days = Number.isFinite(body.days) && Number(body.days) > 0 ? Number(body.days) : null;
     const results: Record<string, unknown> = {};
+    const startedAt = Date.now();
+
+    if (stream) {
+      res.status(200);
+      res.setHeader("Content-Type", "application/x-ndjson");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders?.();
+      res.on("close", () => {
+        streamOpen = false;
+      });
+    }
+
+    sendStream({ type: "start", startedAt, total: limit });
 
     if (source === "shopify" || source === "both") {
       const shopifyCredential = await getShopifyCredential();
@@ -166,6 +196,7 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
           : null;
         const alegraStatus = alegraId ? "facturado" : "pendiente";
         await upsertOrder({
+          shopDomain: shopifyCredential.shopDomain,
           shopifyId: order.id,
           alegraId,
           orderNumber: order.name,
@@ -194,6 +225,15 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
         apiKey: alegraCredential.apiKey,
         baseUrl,
       });
+      let effectiveShopDomain = shopDomainInput;
+      if (!effectiveShopDomain) {
+        try {
+          const shopifyCredential = await getShopifyCredential();
+          effectiveShopDomain = shopifyCredential.shopDomain;
+        } catch {
+          effectiveShopDomain = "";
+        }
+      }
       let start = 0;
       const pageSize = 30;
       let processed = 0;
@@ -224,6 +264,7 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
             null;
           const total = typeof invoice.total === "number" ? invoice.total : Number(invoice.total || 0);
           await upsertOrder({
+            shopDomain: effectiveShopDomain || undefined,
             shopifyId,
             alegraId,
             orderNumber: invoiceNumber || shopifyId || null,
@@ -240,17 +281,41 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
             sourceUpdatedAt: processedAt,
           });
           processed += 1;
+          sendStream({ type: "progress", processed, pages, total: limit });
           if (limit !== null && processed >= limit) break;
         }
         start += invoices.length;
         pages += 1;
+        sendStream({ type: "progress", processed, pages, total: limit });
         if (invoices.length < batchLimit) break;
       }
       results.alegra = { processed, pages };
     }
 
+    if (stream) {
+      sendStream({
+        type: "complete",
+        ok: true,
+        processed: (results.alegra as any)?.processed ?? (results.shopify as any)?.processed ?? 0,
+        pages: (results.alegra as any)?.pages ?? 0,
+        results,
+      });
+      streamOpen = false;
+      res.end();
+      return;
+    }
     res.json({ ok: true, ...results });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Backfill error";
+    if (req.query.stream === "1" || req.query.stream === "true" || req.body?.stream === true) {
+      try {
+        res.write(`${JSON.stringify({ type: "error", error: message })}\n`);
+      } catch {
+        // ignore
+      }
+      res.end();
+      return;
+    }
     res.status(500).json({ error: error instanceof Error ? error.message : "Backfill error" });
   }
 }

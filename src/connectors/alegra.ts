@@ -138,6 +138,37 @@ export class AlegraClient {
     return this.request(`/invoices/${id}`);
   }
 
+  async getInvoicePdf(id: string) {
+    const response = await this.requestRaw(`/invoices/${id}/pdf`, {
+      method: "GET",
+      accept: "application/pdf",
+    });
+    const contentType = response.headers.get("content-type") || "application/pdf";
+    if (contentType.includes("application/json")) {
+      const json = await response.json().catch(() => null);
+      const url =
+        json && typeof json === "object"
+          ? (typeof (json as any).pdfUrl === "string"
+              ? (json as any).pdfUrl
+              : typeof (json as any).url === "string"
+                ? (json as any).url
+                : "")
+          : "";
+      if (url) {
+        const fallback = await fetch(url);
+        if (!fallback.ok) {
+          const text = await fallback.text().catch(() => "");
+          throw new Error(`Alegra PDF fetch error: ${fallback.status} ${text}`);
+        }
+        const buffer = Buffer.from(await fallback.arrayBuffer());
+        return { contentType: fallback.headers.get("content-type") || "application/pdf", content: buffer };
+      }
+      throw new Error("Alegra PDF endpoint devolvio JSON inesperado.");
+    }
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return { contentType, content: buffer };
+  }
+
   private async request(
     path: string,
     options: { method?: string; body?: Record<string, unknown> } = {}
@@ -167,5 +198,34 @@ export class AlegraClient {
     }
 
     return response.json();
+  }
+
+  private async requestRaw(
+    path: string,
+    options: { method?: string; body?: Record<string, unknown>; accept?: string } = {}
+  ) {
+    const auth = Buffer.from(`${this.config.email}:${this.config.apiKey}`).toString("base64");
+    const controller = new AbortController();
+    const timeoutMs = Number(process.env.ALEGRA_TIMEOUT_MS || 30000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method: options.method || "GET",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        Accept: options.accept || "application/json",
+        ...(options.body ? { "Content-Type": "application/json" } : {}),
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: controller.signal,
+    }).finally(() => {
+      clearTimeout(timeoutId);
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(`Alegra API error: ${response.status} ${text}`);
+    }
+
+    return response;
   }
 }

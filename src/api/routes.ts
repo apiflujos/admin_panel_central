@@ -48,6 +48,7 @@ import {
 import { shopifyOAuthCallback, shopifyOAuthStatus, startShopifyOAuth } from "./shopify-oauth.controller";
 import { listContactsHandler, syncContactHandler, syncContactsBulkHandler } from "./contacts.controller";
 import { listOrdersHandler, backfillOrdersHandler } from "./orders.controller";
+import { downloadInvoicePdfHandler, listInvoicesHandler } from "./invoices.controller";
 
 export const router = Router();
 
@@ -118,6 +119,8 @@ router.post("/sync/contacts", wrap(syncContactHandler));
 router.post("/sync/contacts/bulk", wrap(syncContactsBulkHandler));
 router.get("/contacts", wrap(listContactsHandler));
 router.get("/orders", wrap(listOrdersHandler));
+router.get("/invoices", wrap(listInvoicesHandler));
+router.get("/invoices/:invoiceId/pdf", wrap(downloadInvoicePdfHandler));
 router.get("/operations", wrap(listOperationsHandler));
 router.post("/operations/seed", wrap(seedOperationsHandler));
 router.post("/operations/:orderId/sync", wrap(syncOperationHandler));

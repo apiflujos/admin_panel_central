@@ -244,6 +244,10 @@ const syncOrdersShopifyEnabled = document.getElementById("sync-orders-shopify-en
 const syncOrdersAlegraEnabled = document.getElementById("sync-orders-alegra-enabled");
 
 const opsTableBody = document.querySelector("#ops-table tbody");
+const invoicesTableBody = document.querySelector("#invoices-table tbody");
+const opsViewOrdersBtn = document.getElementById("ops-view-orders");
+const opsViewInvoicesBtn = document.getElementById("ops-view-invoices");
+const opsViews = Array.from(document.querySelectorAll(".ops-view[data-ops-view]"));
 const opsSearch = document.getElementById("ops-search");
 const opsSearchBtn = document.getElementById("ops-search-btn");
 const ordersRefreshBtn = document.getElementById("orders-refresh");
@@ -281,14 +285,15 @@ const productsSyncOnlyPublished = document.getElementById("products-sync-only-pu
 const productsSyncIncludeInventory = document.getElementById("products-sync-include-inventory");
 const productsSyncFilteredBtn = document.getElementById("products-sync-filtered");
 const productsSyncStopBtn = document.getElementById("products-sync-stop");
-const ordersDateStart = document.getElementById("orders-date-start");
-const ordersDateEnd = document.getElementById("orders-date-end");
+const ordersSyncDateStart = document.getElementById("orders-sync-date-start");
+const ordersSyncDateEnd = document.getElementById("orders-sync-date-end");
+const ordersSyncLimitInput = document.getElementById("orders-sync-limit");
 const ordersSyncNumber = document.getElementById("orders-sync-number");
 const ordersSyncClear = document.getElementById("orders-sync-clear");
 const productsSyncClear = document.getElementById("products-sync-clear");
 const productsSyncStatus = document.getElementById("products-sync-status");
 const ordersSyncStatus = document.getElementById("orders-sync-status");
-const ordersLimit = document.getElementById("orders-limit");
+const ordersListLimit = document.getElementById("orders-limit");
 const ordersPageLabel = document.getElementById("orders-page");
 const ordersPrevBtn = document.getElementById("orders-prev");
 const ordersNextBtn = document.getElementById("orders-next");
@@ -296,9 +301,27 @@ const ordersCountLabel = document.getElementById("orders-count");
 const ordersPageInput = document.getElementById("orders-page-input");
 const ordersPageGo = document.getElementById("orders-page-go");
 const ordersSyncBtn = document.getElementById("orders-sync");
+const ordersSyncStopBtn = document.getElementById("orders-sync-stop");
 const ordersDateFilter = document.getElementById("orders-date-filter");
 const ordersDaysSelect = document.getElementById("orders-days");
 const ordersSort = document.getElementById("orders-sort");
+const invoicesPageLabel = document.getElementById("invoices-page");
+const invoicesPrevBtn = document.getElementById("invoices-prev");
+const invoicesNextBtn = document.getElementById("invoices-next");
+const invoicesCountLabel = document.getElementById("invoices-count");
+const invoicesPageInput = document.getElementById("invoices-page-input");
+const invoicesPageGo = document.getElementById("invoices-page-go");
+
+const invoicesBackfillDateStart = document.getElementById("invoices-backfill-date-start");
+const invoicesBackfillDateEnd = document.getElementById("invoices-backfill-date-end");
+const invoicesBackfillLimit = document.getElementById("invoices-backfill-limit");
+const invoicesBackfillRun = document.getElementById("invoices-backfill-run");
+const invoicesBackfillStop = document.getElementById("invoices-backfill-stop");
+const invoicesBackfillClear = document.getElementById("invoices-backfill-clear");
+const invoicesBackfillStatus = document.getElementById("invoices-backfill-status");
+const invoicesBackfillProgress = document.getElementById("invoices-backfill-progress");
+const invoicesBackfillProgressBar = document.getElementById("invoices-backfill-progress-bar");
+const invoicesBackfillProgressLabel = document.getElementById("invoices-backfill-progress-label");
 const rulesAutoEnabled = document.getElementById("rules-auto-enabled");
 const rulesAutoPublish = document.getElementById("rules-auto-publish");
 const rulesAutoStatus = document.getElementById("rules-auto-status");
@@ -423,6 +446,9 @@ const expandedParents = new Set();
 let operationsList = [];
 let ordersStart = 0;
 let ordersTotal = null;
+let invoicesStart = 0;
+let invoicesTotal = null;
+let invoicesList = [];
 let contactsStart = 0;
 let contactsTotal = null;
 let contactsList = [];
@@ -432,6 +458,47 @@ let assistantFiles = [];
 let activeEinvoiceOrderId = "";
 let contactsBulkSyncAbort = null;
 let contactsBulkSyncRunning = false;
+let ordersBulkSyncAbort = null;
+let ordersBulkSyncRunning = false;
+let invoicesBackfillAbort = null;
+let invoicesBackfillRunning = false;
+let operationsView = "orders";
+
+function setOrdersBulkSyncRunning(running) {
+  const isRunning = Boolean(running);
+  ordersBulkSyncRunning = isRunning;
+  if (ordersSyncStopBtn) {
+    ordersSyncStopBtn.hidden = !isRunning;
+    ordersSyncStopBtn.disabled = !isRunning;
+  }
+}
+
+function setInvoicesBackfillRunning(running) {
+  const isRunning = Boolean(running);
+  invoicesBackfillRunning = isRunning;
+  if (invoicesBackfillStop) {
+    invoicesBackfillStop.hidden = !isRunning;
+    invoicesBackfillStop.disabled = !isRunning;
+  }
+}
+
+function setInvoicesBackfillStatus(text, state) {
+  if (!invoicesBackfillStatus) return;
+  invoicesBackfillStatus.textContent = text || "";
+  invoicesBackfillStatus.classList.remove("is-error", "is-ok", "is-warn");
+  if (state) invoicesBackfillStatus.classList.add(state);
+}
+
+function setOperationsView(next) {
+  const view = next === "invoices" ? "invoices" : "orders";
+  operationsView = view;
+  if (opsViewOrdersBtn) opsViewOrdersBtn.classList.toggle("is-active", view === "orders");
+  if (opsViewInvoicesBtn) opsViewInvoicesBtn.classList.toggle("is-active", view === "invoices");
+  opsViews.forEach((node) => {
+    const key = node.getAttribute("data-ops-view");
+    node.classList.toggle("is-hidden", key !== view);
+  });
+}
 
 function setProductsBulkSyncRunning(running) {
   const isRunning = Boolean(running);
@@ -1169,6 +1236,10 @@ function buildDependencyDisabledReason(element) {
 function setDependentEnabled(element, enabled) {
   const shouldDisable = !enabled;
   const nodes = [];
+  const controllerIds =
+    element instanceof HTMLElement
+      ? parseDependsOn(element.getAttribute("data-depends-on") || "")
+      : [];
   const isStandaloneContainer =
     element instanceof HTMLElement &&
     element.matches(".mode-grid, .mode-toggle-grid, .settings-grid, .toolbar, details.multi-select");
@@ -1191,6 +1262,9 @@ function setDependentEnabled(element, enabled) {
 
   nodes.forEach((node) => {
     if (node instanceof HTMLElement && node.getAttribute("data-dep-controller") === "1") return;
+    // Nunca deshabilitar los toggles que actuan como prerequisito del mismo contenedor.
+    // Esto evita el bug UX: "apago y ya no puedo volver a prender" cuando el controlador vive dentro del bloque dependiente.
+    if (node instanceof HTMLElement && node.id && controllerIds.includes(node.id)) return;
     node.disabled = shouldDisable;
   });
 
@@ -3026,13 +3100,10 @@ function updatePrerequisites() {
   applyPrereqState("sync-orders", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
   applyPrereqState("alegra-tech", resolvePrereqState({ alegra: true }, globalContext));
 
-  const invoiceState = resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext);
-  const invoiceEnabled = invoiceState.enabled && orderMode === "invoice";
-  applyPrereqState("alegra-invoice", { ...invoiceState, enabled: invoiceEnabled });
-
-  const logisticsState = resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext);
-  const logisticsEnabled = logisticsState.enabled && (orderMode === "invoice" || orderMode === "contact_only");
-  applyPrereqState("alegra-logistics", { ...logisticsState, enabled: logisticsEnabled });
+  // Facturacion/Logistica se pueden configurar siempre (sin bloquear la UI).
+  // Se usan solo cuando Shopify → Alegra = Factura/Contacto, pero no deben depender del toggle de pedidos.
+  applyPrereqState("alegra-invoice", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
+  applyPrereqState("alegra-logistics", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
 }
 
 function updateOrderSyncDependencies() {
@@ -3053,6 +3124,51 @@ function applyOrderToggle(select, toggle, fallbackValue) {
       select.value = next;
     }
   }
+}
+
+function isInvoiceSetupComplete() {
+  if (!(cfgGenerateInvoice instanceof HTMLInputElement) || !cfgGenerateInvoice.checked) {
+    return false;
+  }
+  const resolutionOk = Boolean(cfgResolution && String(cfgResolution.value || "").trim());
+  const warehouseOk = Boolean(cfgWarehouse && String(cfgWarehouse.value || "").trim());
+  if (!resolutionOk || !warehouseOk) return false;
+  if (cfgApplyPayment instanceof HTMLInputElement && cfgApplyPayment.checked) {
+    const bankOk = Boolean(cfgBankAccount && String(cfgBankAccount.value || "").trim());
+    if (!bankOk) return false;
+  }
+  return true;
+}
+
+function focusInvoiceSetupFirstMissing() {
+  const resolutionOk = Boolean(cfgResolution && String(cfgResolution.value || "").trim());
+  if (!resolutionOk && cfgResolution) {
+    focusFieldWithContext(cfgResolution);
+    return;
+  }
+  const warehouseOk = Boolean(cfgWarehouse && String(cfgWarehouse.value || "").trim());
+  if (!warehouseOk && cfgWarehouse) {
+    focusFieldWithContext(cfgWarehouse);
+    return;
+  }
+  if (cfgApplyPayment instanceof HTMLInputElement && cfgApplyPayment.checked) {
+    const bankOk = Boolean(cfgBankAccount && String(cfgBankAccount.value || "").trim());
+    if (!bankOk && cfgBankAccount) {
+      focusFieldWithContext(cfgBankAccount);
+    }
+  }
+}
+
+function ensureShopifyOrdersInvoiceReady() {
+  if (!(syncOrdersShopify instanceof HTMLSelectElement)) return true;
+  if (syncOrdersShopify.value !== "invoice") return true;
+  if (isInvoiceSetupComplete()) return true;
+  showToast(
+    "Para crear facturas en Alegra, completa Facturacion (Resolucion + Bodega, y Cuenta bancaria si aplica).",
+    "is-warn",
+  );
+  focusInvoiceSetupFirstMissing();
+  return false;
 }
 
 function applySetupModeUI(mode) {
@@ -3518,9 +3634,9 @@ function applyProductSettings() {
   if (productsStatusFilter) {
     productsStatusFilter.value = productSettings.filters.statusFilter || "all";
   }
-  if (ordersDateStart) ordersDateStart.value = productSettings.orders.dateStart;
-  if (ordersDateEnd) ordersDateEnd.value = productSettings.orders.dateEnd;
-  if (ordersLimit) ordersLimit.value = productSettings.orders.limit;
+  if (ordersSyncDateStart) ordersSyncDateStart.value = productSettings.orders.dateStart;
+  if (ordersSyncDateEnd) ordersSyncDateEnd.value = productSettings.orders.dateEnd;
+  if (ordersSyncLimitInput) ordersSyncLimitInput.value = productSettings.orders.limit;
   if (ordersSyncNumber) ordersSyncNumber.value = productSettings.orders.orderNumber || "";
   if (opsSearch) opsSearch.value = productSettings.orders.search || "";
   if (ordersDateFilter) ordersDateFilter.value = productSettings.filters.ordersDate || "";
@@ -3550,13 +3666,13 @@ function refreshProductSettingsFromInputs() {
         : true,
     },
     orders: {
-      dateStart: ordersDateStart ? ordersDateStart.value : "",
-      dateEnd: ordersDateEnd ? ordersDateEnd.value : "",
-      limit: ordersLimit ? ordersLimit.value : "",
+      dateStart: ordersSyncDateStart ? ordersSyncDateStart.value : "",
+      dateEnd: ordersSyncDateEnd ? ordersSyncDateEnd.value : "",
+      limit: ordersSyncLimitInput ? ordersSyncLimitInput.value : "",
       search: opsSearch ? opsSearch.value.trim() : "",
       orderNumber: ordersSyncNumber ? ordersSyncNumber.value.trim() : "",
-	    },
-	    filters: {
+		    },
+		    filters: {
 	      publishStatus: "all",
 	      productsDate: productsDateFilter ? productsDateFilter.value : "",
 	      productsSort: productsSort ? productsSort.value : "date_desc",
@@ -3564,10 +3680,10 @@ function refreshProductSettingsFromInputs() {
 	      warehouseIds: getSelectedWarehouseIds(),
       inStockOnly: productsInStockOnly ? productsInStockOnly.checked : false,
       statusFilter: productsStatusFilter ? productsStatusFilter.value : "all",
-      ordersDate: ordersDateFilter ? ordersDateFilter.value : "",
-      ordersDateTouched: Boolean(ordersDateFilter ? ordersDateFilter.value : ""),
-      ordersDays: ordersDaysSelect ? ordersDaysSelect.value : DEFAULT_PRODUCT_SETTINGS.filters.ordersDays,
-      ordersSort: ordersSort ? ordersSort.value : "date_desc",
+	    ordersDate: ordersDateFilter ? ordersDateFilter.value : "",
+	    ordersDateTouched: Boolean(ordersDateFilter ? ordersDateFilter.value : ""),
+	    ordersDays: ordersDaysSelect ? ordersDaysSelect.value : DEFAULT_PRODUCT_SETTINGS.filters.ordersDays,
+	    ordersSort: ordersSort ? ordersSort.value : "date_desc",
     },
   };
   saveProductSettings(productSettings);
@@ -5906,6 +6022,16 @@ async function runOrdersSync() {
 	  const orderNumber = productSettings.orders.orderNumber
 	    ? productSettings.orders.orderNumber.replace(/^#/, "")
 	    : "";
+	  if (ordersBulkSyncAbort) {
+	    try {
+	      ordersBulkSyncAbort.abort();
+	    } catch {
+	      // ignore abort failures
+	    }
+	  }
+	  const controller = new AbortController();
+	  ordersBulkSyncAbort = controller;
+	  setOrdersBulkSyncRunning(true);
 	  const response = await fetch("/api/sync/orders?stream=1", {
 	    method: "POST",
 	    headers: { "Content-Type": "application/json" },
@@ -5919,11 +6045,12 @@ async function runOrdersSync() {
 	      },
 	      stream: true,
 	    }),
+	    signal: controller.signal,
 	  });
-    if (!response.ok || !response.body) {
-      const text = await response.text();
-      throw new Error(text || "No se pudo sincronizar pedidos.");
-    }
+	    if (!response.ok || !response.body) {
+	      const text = await response.text();
+	      throw new Error(text || "No se pudo sincronizar pedidos.");
+	    }
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
@@ -5949,45 +6076,59 @@ async function runOrdersSync() {
           }
           continue;
         }
-        if (payload.type === "progress") {
-          latestTotals = {
-            ...latestTotals,
-            total: payload.total ?? latestTotals.total,
-            processed: payload.processed ?? latestTotals.processed,
-          };
-          const total = Number(latestTotals.total) || 0;
-          const processed = Number(latestTotals.processed) || 0;
+	        if (payload.type === "progress") {
+	          latestTotals = {
+	            ...latestTotals,
+	            total: payload.total ?? latestTotals.total,
+	            processed: payload.processed ?? latestTotals.processed,
+	          };
+	          const total = Number(latestTotals.total) || 0;
+	          const processed = Number(latestTotals.processed) || 0;
           const elapsedMs = Date.now() - syncStartTime;
           const rate = processed > 0 ? elapsedMs / processed : 0;
           const remainingMs = total > 0 && rate > 0 ? rate * Math.max(0, total - processed) : 0;
           const percent = total > 0 ? (processed / total) * 100 : 0;
           const etaText = total > 0 ? formatDuration(remainingMs) : "--:--";
-          updateOrdersProgress(
-            percent,
-            `Pedidos ${Math.round(percent)}% · ETA ${etaText}`
-          );
-          if (ordersSyncStatus) {
-            ordersSyncStatus.textContent = `Procesados ${processed}/${total || "?"}`;
-          }
-          continue;
-        }
-        if (payload.type === "complete") {
-          const count = payload?.count ?? payload?.processed ?? 0;
-          const summary = `Pedidos: ${count}`;
-          setProductsStatus(summary);
-          if (ordersSyncStatus) {
-            ordersSyncStatus.textContent = summary;
-          }
-          finishOrdersProgress("Pedidos 100%");
-          stopProgress("Pedidos 100%");
-          await loadOperations();
-          return;
-        }
-        if (payload.type === "error") {
-          throw new Error(payload.error || "No se pudo sincronizar pedidos.");
-        }
-      }
-    }
+	          updateOrdersProgress(
+	            percent,
+	            `Pedidos ${Math.round(percent)}% · ETA ${etaText}`
+	          );
+	          if (ordersSyncStatus) {
+	            const synced = Number(payload.synced) || 0;
+	            const skipped = Number(payload.skipped) || 0;
+	            const failed = Number(payload.failed) || 0;
+	            ordersSyncStatus.textContent =
+	              `Procesados ${processed}/${total || "?"}` +
+	              ` · Facturados ${synced}` +
+	              ` · Existentes ${skipped}` +
+	              ` · Fallidos ${failed}`;
+	          }
+	          continue;
+	        }
+	        if (payload.type === "complete") {
+	          const total = Number(payload.total ?? payload.processed ?? 0) || 0;
+	          const processed = Number(payload.processed ?? 0) || 0;
+	          const synced = Number(payload.synced ?? 0) || 0;
+	          const skipped = Number(payload.skipped ?? 0) || 0;
+	          const failed = Number(payload.failed ?? 0) || 0;
+	          const summary =
+	            total > 0
+	              ? `Total: ${total} · Procesados: ${processed} · Facturados: ${synced} · Existentes: ${skipped} · Fallidos: ${failed}`
+	              : "Sin pedidos para sincronizar con esos filtros.";
+	          setProductsStatus(summary);
+	          if (ordersSyncStatus) {
+	            ordersSyncStatus.textContent = summary;
+	          }
+	          finishOrdersProgress("Pedidos 100%");
+	          stopProgress("Pedidos 100%");
+	          await loadOperationsView();
+	          return;
+	        }
+	        if (payload.type === "error") {
+	          throw new Error(payload.error || "No se pudo sincronizar pedidos.");
+	        }
+	      }
+	    }
     const total = Number(latestTotals.total) || 0;
     const processed = Number(latestTotals.processed) || 0;
     const summary = total > 0 ? `Pedidos: ${processed}/${total}` : "Pedidos sincronizados.";
@@ -5997,15 +6138,157 @@ async function runOrdersSync() {
     }
     finishOrdersProgress("Pedidos 100%");
     stopProgress("Pedidos 100%");
-    await loadOperations();
-  } catch (error) {
-    const message = error?.message || "No se pudo sincronizar pedidos.";
-    setProductsStatus(message);
-    if (ordersSyncStatus) {
-      ordersSyncStatus.textContent = message;
+		    await loadOperationsView();
+		  } catch (error) {
+	    const message = error?.message || "No se pudo sincronizar pedidos.";
+	    setProductsStatus(message);
+	    if (ordersSyncStatus) {
+	      ordersSyncStatus.textContent = message;
+	    }
+	    stopProgress("Error en pedidos");
+	    finishOrdersProgress("Error en pedidos");
+	  } finally {
+	    ordersBulkSyncAbort = null;
+	    setOrdersBulkSyncRunning(false);
+	}
+}
+
+async function runInvoicesBackfill() {
+  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+  const limit = invoicesBackfillLimit instanceof HTMLInputElement ? Number(invoicesBackfillLimit.value || 0) : 0;
+  const dateStart =
+    invoicesBackfillDateStart instanceof HTMLInputElement ? invoicesBackfillDateStart.value : "";
+  const dateEnd =
+    invoicesBackfillDateEnd instanceof HTMLInputElement ? invoicesBackfillDateEnd.value : "";
+
+  setInvoicesBackfillStatus("Cargando...", "");
+  const stop = (finalLabel) => {
+    if (!invoicesBackfillProgress || !invoicesBackfillProgressBar || !invoicesBackfillProgressLabel) {
+      return;
     }
-    stopProgress("Error en pedidos");
-    finishOrdersProgress("Error en pedidos");
+    invoicesBackfillProgressBar.style.width = "100%";
+    invoicesBackfillProgressLabel.textContent = finalLabel || "Facturas 100%";
+    setTimeout(() => {
+      invoicesBackfillProgress.classList.remove("is-active");
+      invoicesBackfillProgressBar.style.width = "0%";
+    }, 800);
+  };
+  if (invoicesBackfillProgress && invoicesBackfillProgressBar && invoicesBackfillProgressLabel) {
+    invoicesBackfillProgress.classList.add("is-active");
+    invoicesBackfillProgressBar.style.width = "0%";
+    invoicesBackfillProgressLabel.textContent = "Facturas 0% · ETA --:--";
+  }
+
+  if (invoicesBackfillAbort) {
+    try {
+      invoicesBackfillAbort.abort();
+    } catch {
+      // ignore
+    }
+  }
+  const controller = new AbortController();
+  invoicesBackfillAbort = controller;
+  setInvoicesBackfillRunning(true);
+
+  let latestTotals = { total: null, processed: 0, pages: 0 };
+  let startedAt = Date.now();
+
+  try {
+    const response = await fetch("/api/backfill/orders?stream=1", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        shopDomain,
+        source: "alegra",
+        limit: Number.isFinite(limit) && limit > 0 ? limit : undefined,
+        dateStart: dateStart || undefined,
+        dateEnd: dateEnd || undefined,
+        stream: true,
+      }),
+      signal: controller.signal,
+    });
+    if (!response.ok || !response.body) {
+      const text = await response.text();
+      throw new Error(text || "No se pudieron cargar facturas.");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        let payload;
+        try {
+          payload = JSON.parse(trimmed);
+        } catch {
+          continue;
+        }
+        if (payload.type === "start") {
+          startedAt = payload.startedAt || Date.now();
+          if (Number.isFinite(payload.total)) {
+            latestTotals.total = payload.total;
+          }
+          continue;
+        }
+        if (payload.type === "progress") {
+          latestTotals = {
+            ...latestTotals,
+            total: payload.total ?? latestTotals.total,
+            processed: payload.processed ?? latestTotals.processed,
+            pages: payload.pages ?? latestTotals.pages,
+          };
+          const total = Number(latestTotals.total) || 0;
+          const processed = Number(latestTotals.processed) || 0;
+          const percent = total > 0 ? (processed / total) * 100 : 0;
+          const elapsedMs = Date.now() - startedAt;
+          const rate = processed > 0 ? elapsedMs / processed : 0;
+          const remainingMs = total > 0 && rate > 0 ? rate * Math.max(0, total - processed) : 0;
+          const etaText = total > 0 ? formatDuration(remainingMs) : "--:--";
+          if (invoicesBackfillProgress && invoicesBackfillProgressBar && invoicesBackfillProgressLabel) {
+            invoicesBackfillProgress.classList.add("is-active");
+            invoicesBackfillProgressBar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+            invoicesBackfillProgressLabel.textContent = `Facturas ${Math.round(percent)}% · ETA ${etaText}`;
+          }
+          setInvoicesBackfillStatus(`Procesadas ${processed}/${total || "?"} · Paginas ${latestTotals.pages}`, "");
+          continue;
+        }
+        if (payload.type === "complete") {
+          const processed = Number(payload.processed ?? payload.count ?? latestTotals.processed ?? 0) || 0;
+          const pages = Number(payload.pages ?? latestTotals.pages ?? 0) || 0;
+          const summary = processed > 0 ? `Facturas cargadas: ${processed} · Paginas: ${pages}` : "Sin facturas para cargar con esos filtros.";
+          setInvoicesBackfillStatus(summary, "is-ok");
+          stop("Facturas 100%");
+          await loadOperationsView();
+          return;
+        }
+        if (payload.type === "error") {
+          throw new Error(payload.error || "No se pudieron cargar facturas.");
+        }
+      }
+    }
+    const processed = Number(latestTotals.processed) || 0;
+    const summary = processed > 0 ? `Facturas cargadas: ${processed}` : "Facturas cargadas.";
+    setInvoicesBackfillStatus(summary, "is-ok");
+    stop("Facturas 100%");
+    await loadOperationsView();
+  } catch (error) {
+    const message = String(error?.message || "No se pudieron cargar facturas.");
+    if (message.includes("aborted") || message.includes("AbortError")) {
+      setInvoicesBackfillStatus("Detenido.", "is-warn");
+      stop("Facturas detenido");
+    } else {
+      setInvoicesBackfillStatus(message, "is-error");
+      stop("Error en facturas");
+    }
+  } finally {
+    invoicesBackfillAbort = null;
+    setInvoicesBackfillRunning(false);
   }
 }
 
@@ -6145,7 +6428,7 @@ async function loadOperations() {
     if (ordersSort && ordersSort.value) {
       params.set("sort", ordersSort.value);
     }
-    const pageSize = ordersLimit && Number(ordersLimit.value) > 0 ? Number(ordersLimit.value) : 10;
+    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
     params.set("limit", String(pageSize));
     params.set("offset", String(ordersStart));
     const data = await fetchJson(`/api/orders?${params.toString()}`);
@@ -6175,7 +6458,7 @@ function renderOperations(items) {
     if (ordersNextBtn) ordersNextBtn.disabled = true;
     return;
   }
-  const pageSize = ordersLimit && Number(ordersLimit.value) > 0 ? Number(ordersLimit.value) : 10;
+  const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
   const totalPages = Math.max(1, Math.ceil((ordersTotal || 0) / pageSize));
   const currentPage = Math.min(totalPages, Math.floor(ordersStart / pageSize) + 1);
   if (ordersPageLabel) {
@@ -6226,25 +6509,128 @@ function renderOperations(items) {
     .join("");
 
   opsTableBody.querySelectorAll("button[data-invoice]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const orderId = encodeURIComponent(String(button.dataset.invoice || ""));
-      try {
-        await fetchJson(`/api/operations/${orderId}/invoice`, { method: "POST" });
-        await loadLogs();
-        await loadOperations();
-      } catch (error) {
-        showToast(error?.message || "No se pudo facturar.", "is-error");
-      }
-    });
-  });
+	    button.addEventListener("click", async () => {
+	      const orderId = encodeURIComponent(String(button.dataset.invoice || ""));
+	      try {
+	        await fetchJson(`/api/operations/${orderId}/invoice`, { method: "POST" });
+	        await loadLogs();
+	        await loadOperationsView();
+	      } catch (error) {
+	        showToast(error?.message || "No se pudo facturar.", "is-error");
+	      }
+	    });
+	  });
 
-  opsTableBody.querySelectorAll("button[data-einvoice]").forEach((button) => {
+	  opsTableBody.querySelectorAll("button[data-einvoice]").forEach((button) => {
+	    button.addEventListener("click", () => {
+	      const orderId = String(button.dataset.einvoice || "");
+	      if (!orderId) return;
+	      openEinvoiceModal(orderId);
+	    });
+	  });
+	}
+
+async function loadInvoices() {
+  try {
+    const days = ordersDaysSelect ? Number(ordersDaysSelect.value) : 30;
+    const params = new URLSearchParams();
+    const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+    if (shopDomain) params.set("shopDomain", shopDomain);
+    if (Number.isFinite(days) && days > 0) params.set("days", String(days));
+    if (opsSearch && opsSearch.value.trim()) {
+      params.set("query", opsSearch.value.trim());
+    }
+    if (ordersDateFilter && ordersDateFilter.value) {
+      params.set("date", ordersDateFilter.value);
+    }
+    if (ordersSort && ordersSort.value) {
+      params.set("sort", ordersSort.value);
+    }
+    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
+    params.set("limit", String(pageSize));
+    params.set("offset", String(invoicesStart));
+    const data = await fetchJson(`/api/invoices?${params.toString()}`);
+    invoicesList = Array.isArray(data.items) ? data.items : [];
+    invoicesTotal = Number.isFinite(data.total) ? Number(data.total) : invoicesList.length;
+    renderInvoices(invoicesList);
+  } catch {
+    invoicesList = [];
+    invoicesTotal = 0;
+    renderInvoices([]);
+  }
+}
+
+function renderInvoices(items) {
+  if (!invoicesTableBody) return;
+  if (!items.length) {
+    invoicesTableBody.innerHTML = `<tr><td colspan="6" class="empty">Sin facturas para mostrar.</td></tr>`;
+    invoicesTotal = 0;
+    invoicesStart = 0;
+    if (invoicesPageLabel) invoicesPageLabel.textContent = "Pagina 1 de 1";
+    if (invoicesCountLabel) invoicesCountLabel.textContent = "Mostrando 0 de 0";
+    if (invoicesPrevBtn) invoicesPrevBtn.disabled = true;
+    if (invoicesNextBtn) invoicesNextBtn.disabled = true;
+    return;
+  }
+  const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
+  const total = Number(invoicesTotal || 0);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(totalPages, Math.floor(invoicesStart / pageSize) + 1);
+  if (invoicesPageLabel) {
+    invoicesPageLabel.textContent = `Pagina ${currentPage} de ${totalPages} (${total || 0} facturas)`;
+  }
+  if (invoicesPageInput) {
+    invoicesPageInput.max = String(totalPages);
+    invoicesPageInput.value = String(currentPage);
+  }
+  if (invoicesCountLabel) {
+    const startLabel = total === 0 ? 0 : invoicesStart + 1;
+    const endLabel = Math.min(invoicesStart + pageSize, total || 0);
+    invoicesCountLabel.textContent = `Mostrando ${startLabel}-${endLabel} de ${total || 0}`;
+  }
+  if (invoicesPrevBtn) invoicesPrevBtn.disabled = invoicesStart <= 0;
+  if (invoicesNextBtn) invoicesNextBtn.disabled = invoicesStart + pageSize >= (total || 0);
+
+  invoicesTableBody.innerHTML = items
+    .map((item) => {
+      const status = String(item.status || item.alegraStatus || "").toLowerCase();
+      const statusLabel = status ? status : "-";
+      const invoiceId = item.invoiceId || item.alegraInvoiceId || item.id || "";
+      const invoiceNumber = item.invoiceNumber || item.number || invoiceId || "-";
+      const total = Number(item.total || 0);
+      const currency = item.currency || "";
+      const totalLabel = Number.isFinite(total) && total > 0 ? `${formatCurrencyValue(total)} ${currency}`.trim() : "-";
+      const canDownload = Boolean(invoiceId);
+      const actions = canDownload
+        ? `<button class="ghost" data-download-invoice="${String(invoiceId)}">Descargar PDF</button>`
+        : "-";
+      return `
+        <tr>
+          <td>${item.processedAt ? formatDate(item.processedAt) : "-"}</td>
+          <td>${invoiceNumber}</td>
+          <td>${item.customer || "-"}</td>
+          <td>${totalLabel}</td>
+          <td>${statusLabel}</td>
+          <td class="actions">${actions}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  invoicesTableBody.querySelectorAll("button[data-download-invoice]").forEach((button) => {
     button.addEventListener("click", () => {
-      const orderId = String(button.dataset.einvoice || "");
-      if (!orderId) return;
-      openEinvoiceModal(orderId);
+      const invoiceId = String(button.getAttribute("data-download-invoice") || "");
+      if (!invoiceId) return;
+      window.location.href = `/api/invoices/${encodeURIComponent(invoiceId)}/pdf`;
     });
   });
+}
+
+function loadOperationsView() {
+  if (operationsView === "invoices") {
+    return loadInvoices();
+  }
+  return loadOperations();
 }
 
 function normalizeContactsLimit() {
@@ -6868,6 +7254,36 @@ if (aiSave) {
   });
 }
 
+if (aiKey) {
+  let aiTokenTimer = null;
+  let aiTokenInFlight = false;
+  const scheduleAiTokenSave = (delayMs) => {
+    if (!aiKey) return;
+    const value = aiKey.value.trim();
+    if (!value) return;
+    if (aiTokenTimer) clearTimeout(aiTokenTimer);
+    aiTokenTimer = setTimeout(async () => {
+      aiTokenTimer = null;
+      if (aiTokenInFlight) return;
+      const current = aiKey.value.trim();
+      if (!current) return;
+      aiTokenInFlight = true;
+      try {
+        await saveSettings({ includeAi: true });
+        showToast("Token guardado.", "is-ok");
+      } catch (error) {
+        showToast(error?.message || "No se pudo guardar.", "is-error");
+      } finally {
+        aiTokenInFlight = false;
+      }
+    }, Math.max(0, Number(delayMs) || 0));
+  };
+
+  aiKey.addEventListener("input", () => scheduleAiTokenSave(900));
+  aiKey.addEventListener("change", () => scheduleAiTokenSave(250));
+  aiKey.addEventListener("blur", () => scheduleAiTokenSave(0));
+}
+
 if (wizardStart) {
   wizardStart.addEventListener("click", async () => {
     setButtonLoading(wizardStart, true, "Iniciando...");
@@ -6922,6 +7338,9 @@ if (shopifyDomain) {
 
 if (syncOrdersShopifyEnabled) {
   syncOrdersShopifyEnabled.addEventListener("change", () => {
+    if (syncOrdersShopifyEnabled.checked && !ensureShopifyOrdersInvoiceReady()) {
+      syncOrdersShopifyEnabled.checked = false;
+    }
     applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, "db_only");
     updateOrderSyncDependencies();
   });
@@ -6935,6 +7354,10 @@ if (syncOrdersAlegraEnabled) {
 
 if (syncOrdersShopify) {
   syncOrdersShopify.addEventListener("change", () => {
+    if (syncOrdersShopify.value === "invoice" && !ensureShopifyOrdersInvoiceReady()) {
+      const fallback = syncOrdersShopify.dataset.lastValue || "db_only";
+      syncOrdersShopify.value = fallback === "invoice" ? "db_only" : fallback;
+    }
     if (syncOrdersShopifyEnabled) {
       syncOrdersShopifyEnabled.checked = syncOrdersShopify.value !== "off";
       applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, "db_only");
@@ -8274,8 +8697,28 @@ document.addEventListener("click", (event) => {
 });
 if (opsSearchBtn) {
   opsSearchBtn.addEventListener("click", () => {
+    if (operationsView === "invoices") {
+      invoicesStart = 0;
+    } else {
+      ordersStart = 0;
+    }
+    loadOperationsView();
+  });
+}
+
+if (opsViewOrdersBtn) {
+  opsViewOrdersBtn.addEventListener("click", () => {
+    setOperationsView("orders");
     ordersStart = 0;
-    loadOperations();
+    loadOperationsView();
+  });
+}
+
+if (opsViewInvoicesBtn) {
+  opsViewInvoicesBtn.addEventListener("click", () => {
+    setOperationsView("invoices");
+    invoicesStart = 0;
+    loadOperationsView();
   });
 }
 
@@ -8609,95 +9052,180 @@ if (shopifyAutomationEnabled instanceof HTMLInputElement) {
     ordersSyncBtn.addEventListener("click", runOrdersSync);
   }
 
-if (ordersSyncClear) {
-  ordersSyncClear.addEventListener("click", () => {
-    if (ordersDateStart) ordersDateStart.value = "";
-    if (ordersDateEnd) ordersDateEnd.value = "";
-    if (ordersSyncNumber) ordersSyncNumber.value = "";
-    refreshProductSettingsFromInputs();
-  });
-}
+	if (ordersSyncClear) {
+	  ordersSyncClear.addEventListener("click", () => {
+	    if (ordersSyncDateStart) ordersSyncDateStart.value = "";
+	    if (ordersSyncDateEnd) ordersSyncDateEnd.value = "";
+	    if (ordersSyncLimitInput) ordersSyncLimitInput.value = "";
+	    if (ordersSyncNumber) ordersSyncNumber.value = "";
+	    if (ordersSyncStatus) ordersSyncStatus.textContent = "Sin datos";
+	    refreshProductSettingsFromInputs();
+	  });
+	}
 
-if (ordersLimit) {
-  ordersLimit.addEventListener("change", () => {
-    ordersStart = 0;
-    refreshProductSettingsFromInputs();
-    loadOperations();
-  });
-}
+		if (ordersSyncStopBtn) {
+		  ordersSyncStopBtn.addEventListener("click", () => {
+	    if (ordersBulkSyncAbort) {
+	      try {
+	        ordersBulkSyncAbort.abort();
+	      } catch {
+	        // ignore abort failures
+	      }
+	    }
+	    setOrdersBulkSyncRunning(false);
+		  });
+		}
 
-if (ordersDateFilter) {
-  ordersDateFilter.addEventListener("change", () => {
-    ordersStart = 0;
-    refreshProductSettingsFromInputs();
-    loadOperations();
-  });
-}
+		if (invoicesBackfillRun) {
+		  invoicesBackfillRun.addEventListener("click", () => {
+		    runInvoicesBackfill();
+		  });
+		}
 
-if (ordersDaysSelect) {
-  ordersDaysSelect.addEventListener("change", () => {
-    ordersStart = 0;
-    refreshProductSettingsFromInputs();
-    loadOperations();
-  });
-}
+		if (invoicesBackfillClear) {
+		  invoicesBackfillClear.addEventListener("click", () => {
+		    if (invoicesBackfillDateStart instanceof HTMLInputElement) invoicesBackfillDateStart.value = "";
+		    if (invoicesBackfillDateEnd instanceof HTMLInputElement) invoicesBackfillDateEnd.value = "";
+		    if (invoicesBackfillLimit instanceof HTMLInputElement) invoicesBackfillLimit.value = "";
+		    setInvoicesBackfillStatus("Sin datos", "");
+		  });
+		}
 
-if (ordersSort) {
-  ordersSort.addEventListener("change", () => {
-    ordersStart = 0;
-    refreshProductSettingsFromInputs();
-    loadOperations();
-  });
-}
+		if (invoicesBackfillStop) {
+		  invoicesBackfillStop.addEventListener("click", () => {
+		    if (invoicesBackfillAbort) {
+		      try {
+		        invoicesBackfillAbort.abort();
+		      } catch {
+		        // ignore abort failures
+		      }
+		    }
+		    setInvoicesBackfillRunning(false);
+		  });
+		}
 
-if (opsSearch) {
-  let opsSearchTimer;
-  opsSearch.addEventListener("input", () => {
-    if (opsSearchTimer) clearTimeout(opsSearchTimer);
-    opsSearchTimer = setTimeout(() => {
-      ordersStart = 0;
-      refreshProductSettingsFromInputs();
-      loadOperations();
-    }, 400);
-  });
-}
+	if (ordersListLimit) {
+	  ordersListLimit.addEventListener("change", () => {
+	    if (operationsView === "invoices") invoicesStart = 0;
+	    else ordersStart = 0;
+	    refreshProductSettingsFromInputs();
+	    loadOperationsView();
+	  });
+	}
 
-if (ordersPrevBtn) {
-  ordersPrevBtn.addEventListener("click", () => {
-    const pageSize = ordersLimit && Number(ordersLimit.value) > 0 ? Number(ordersLimit.value) : 10;
-    ordersStart = Math.max(0, ordersStart - pageSize);
-    loadOperations();
-  });
-}
+	if (ordersDateFilter) {
+	  ordersDateFilter.addEventListener("change", () => {
+	    if (operationsView === "invoices") invoicesStart = 0;
+	    else ordersStart = 0;
+	    refreshProductSettingsFromInputs();
+	    loadOperationsView();
+	  });
+	}
 
-if (ordersNextBtn) {
-  ordersNextBtn.addEventListener("click", () => {
-    const pageSize = ordersLimit && Number(ordersLimit.value) > 0 ? Number(ordersLimit.value) : 10;
-    const maxStart = ordersTotal ? Math.max(0, (Math.ceil(ordersTotal / pageSize) - 1) * pageSize) : ordersStart + pageSize;
-    ordersStart = Math.min(ordersStart + pageSize, maxStart);
-    loadOperations();
-  });
-}
+	if (ordersDaysSelect) {
+	  ordersDaysSelect.addEventListener("change", () => {
+	    if (operationsView === "invoices") invoicesStart = 0;
+	    else ordersStart = 0;
+	    refreshProductSettingsFromInputs();
+	    loadOperationsView();
+	  });
+	}
 
-if (ordersPageGo) {
-  ordersPageGo.addEventListener("click", () => {
-    const pageSize = ordersLimit && Number(ordersLimit.value) > 0 ? Number(ordersLimit.value) : 10;
-    const totalPages = ordersTotal ? Math.max(1, Math.ceil(ordersTotal / pageSize)) : 1;
-    const target = ordersPageInput ? Number(ordersPageInput.value) : 1;
-    const page = Math.min(Math.max(1, target || 1), totalPages);
-    ordersStart = (page - 1) * pageSize;
-    loadOperations();
-  });
-}
+	if (ordersSort) {
+	  ordersSort.addEventListener("change", () => {
+	    if (operationsView === "invoices") invoicesStart = 0;
+	    else ordersStart = 0;
+	    refreshProductSettingsFromInputs();
+	    loadOperationsView();
+	  });
+	}
 
-if (ordersPageInput) {
-  ordersPageInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" && ordersPageGo) {
-      event.preventDefault();
-      ordersPageGo.click();
-    }
-  });
-}
+	if (opsSearch) {
+	  let opsSearchTimer;
+	  opsSearch.addEventListener("input", () => {
+	    if (opsSearchTimer) clearTimeout(opsSearchTimer);
+	    opsSearchTimer = setTimeout(() => {
+	      if (operationsView === "invoices") invoicesStart = 0;
+	      else ordersStart = 0;
+	      refreshProductSettingsFromInputs();
+	      loadOperationsView();
+	    }, 400);
+	  });
+	}
+
+	if (ordersPrevBtn) {
+	  ordersPrevBtn.addEventListener("click", () => {
+	    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
+	    ordersStart = Math.max(0, ordersStart - pageSize);
+	    loadOperations();
+	  });
+	}
+
+	if (ordersNextBtn) {
+	  ordersNextBtn.addEventListener("click", () => {
+	    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
+	    const maxStart = ordersTotal ? Math.max(0, (Math.ceil(ordersTotal / pageSize) - 1) * pageSize) : ordersStart + pageSize;
+	    ordersStart = Math.min(ordersStart + pageSize, maxStart);
+	    loadOperations();
+	  });
+	}
+
+	if (ordersPageGo) {
+	  ordersPageGo.addEventListener("click", () => {
+	    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
+	    const totalPages = ordersTotal ? Math.max(1, Math.ceil(ordersTotal / pageSize)) : 1;
+	    const target = ordersPageInput ? Number(ordersPageInput.value) : 1;
+	    const page = Math.min(Math.max(1, target || 1), totalPages);
+	    ordersStart = (page - 1) * pageSize;
+	    loadOperations();
+	  });
+	}
+
+	if (ordersPageInput) {
+	  ordersPageInput.addEventListener("keydown", (event) => {
+	    if (event.key === "Enter" && ordersPageGo) {
+	      event.preventDefault();
+	      ordersPageGo.click();
+	    }
+	  });
+	}
+
+	if (invoicesPrevBtn) {
+	  invoicesPrevBtn.addEventListener("click", () => {
+	    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
+	    invoicesStart = Math.max(0, invoicesStart - pageSize);
+	    loadInvoices();
+	  });
+	}
+
+	if (invoicesNextBtn) {
+	  invoicesNextBtn.addEventListener("click", () => {
+	    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
+	    const maxStart = invoicesTotal ? Math.max(0, (Math.ceil(invoicesTotal / pageSize) - 1) * pageSize) : invoicesStart + pageSize;
+	    invoicesStart = Math.min(invoicesStart + pageSize, maxStart);
+	    loadInvoices();
+	  });
+	}
+
+	if (invoicesPageGo) {
+	  invoicesPageGo.addEventListener("click", () => {
+	    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
+	    const totalPages = invoicesTotal ? Math.max(1, Math.ceil(invoicesTotal / pageSize)) : 1;
+	    const target = invoicesPageInput ? Number(invoicesPageInput.value) : 1;
+	    const page = Math.min(Math.max(1, target || 1), totalPages);
+	    invoicesStart = (page - 1) * pageSize;
+	    loadInvoices();
+	  });
+	}
+
+	if (invoicesPageInput) {
+	  invoicesPageInput.addEventListener("keydown", (event) => {
+	    if (event.key === "Enter" && invoicesPageGo) {
+	      event.preventDefault();
+	      invoicesPageGo.click();
+	    }
+	  });
+	}
 
 if (contactsSearchBtn) {
   contactsSearchBtn.addEventListener("click", () => {
@@ -8757,27 +9285,27 @@ if (contactsPageGo) {
   });
 }
 
-if (ordersRefreshBtn) {
-  ordersRefreshBtn.addEventListener("click", () => {
-    ordersStart = 0;
-    loadOperations();
-  });
-}
+	if (ordersRefreshBtn) {
+	  ordersRefreshBtn.addEventListener("click", () => {
+	    if (operationsView === "invoices") invoicesStart = 0;
+	    else ordersStart = 0;
+	    loadOperationsView();
+	  });
+	}
 
-if (ordersClearBtn) {
-  ordersClearBtn.addEventListener("click", () => {
-    if (opsSearch) opsSearch.value = "";
-    if (ordersDateStart) ordersDateStart.value = "";
-    if (ordersDateEnd) ordersDateEnd.value = "";
-    if (ordersLimit) ordersLimit.value = "";
-    if (ordersDateFilter) ordersDateFilter.value = "";
-    if (ordersDaysSelect) ordersDaysSelect.value = "30";
-    if (ordersSort) ordersSort.value = "date_desc";
-    ordersStart = 0;
-    refreshProductSettingsFromInputs();
-    loadOperations();
-  });
-}
+	if (ordersClearBtn) {
+	  ordersClearBtn.addEventListener("click", () => {
+	    if (opsSearch) opsSearch.value = "";
+	    if (ordersDateFilter) ordersDateFilter.value = "";
+	    if (ordersDaysSelect) ordersDaysSelect.value = "30";
+	    if (ordersSort) ordersSort.value = "date_desc";
+	    if (ordersListLimit) ordersListLimit.value = "";
+	    if (operationsView === "invoices") invoicesStart = 0;
+	    else ordersStart = 0;
+	    refreshProductSettingsFromInputs();
+	    loadOperationsView();
+	  });
+	}
 
 	if (productsClearBtn) {
 	  productsClearBtn.addEventListener("click", () => {
@@ -8818,21 +9346,12 @@ if (productsPublishStatusMass && rulesAutoStatus) {
 
 if (productsSyncPublish) {
   productsSyncPublish.addEventListener("change", () => {
-    if (!productsSyncPublish.checked) {
-      if (productsPublishStatusMass) {
-        productsPublishStatusMass.value = "draft";
-      }
-    }
     applyToggleDependencies();
   });
 }
 
 if (rulesAutoPublish && rulesAutoStatus) {
   rulesAutoPublish.addEventListener("change", () => {
-    if (!rulesAutoPublish.checked) {
-      rulesAutoStatus.value = "draft";
-      rulesAutoStatus.dispatchEvent(new Event("change", { bubbles: true }));
-    }
     applyToggleDependencies();
   });
 }
@@ -8875,15 +9394,16 @@ if (rulesAutoPublish && rulesAutoStatus) {
 	  productsSort,
 	  productsLimitInput,
 	  productsInStockOnly,
-  productsStatusFilter,
-  ordersDateStart,
-  ordersDateEnd,
-  ordersLimit,
-  ordersSyncNumber,
-  ordersDateFilter,
-  ordersDaysSelect,
-  ordersSort,
-  opsSearch,
+	  productsStatusFilter,
+	  ordersSyncDateStart,
+	  ordersSyncDateEnd,
+	  ordersSyncLimitInput,
+	  ordersListLimit,
+	  ordersSyncNumber,
+	  ordersDateFilter,
+	  ordersDaysSelect,
+	  ordersSort,
+	  opsSearch,
 ].filter(Boolean);
 productSettingInputs.forEach((input) => {
   input.addEventListener("change", refreshProductSettingsFromInputs);
@@ -8916,7 +9436,8 @@ async function init() {
   await safeLoad(loadUsers());
   await safeLoad(loadLogs());
   await safeLoad(loadMetrics());
-  await safeLoad(loadOperations());
+  setOperationsView("orders");
+  await safeLoad(loadOperationsView());
   if (currentUserRole === "admin") {
     await safeLoad(loadConnections());
     await safeLoad(loadSettings());

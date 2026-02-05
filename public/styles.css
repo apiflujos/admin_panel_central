@@ -1368,6 +1368,12 @@ button {
   gap: 8px;
 }
 
+.panel-actions .ghost.is-active {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-color: rgba(0, 43, 91, 0.22);
+}
+
 .module-body {
   display: grid;
   gap: 8px;
@@ -1584,10 +1590,15 @@ button {
 }
 
 .settings-group-header .provider-logo {
-  width: 48px;
-  height: 48px;
-  padding: 4px;
+  width: 30px;
+  height: 30px;
+  padding: 3px;
   border-radius: 6px;
+}
+
+/* Titulos con logos (Shopify ↔ Alegra): reducir jerarquia visual. */
+.settings-group.provider-group .settings-group-header h4.group-title {
+  font-size: 8.8px;
 }
 
 .settings-group.provider-group[data-group="products"] .settings-group-header {
@@ -1654,17 +1665,18 @@ button {
 }
 
 .settings-group-header::after {
-  content: "▾";
-  font-size: 17px;
+  content: "›";
+  font-size: 20px;
   color: var(--text);
   margin-left: auto;
   display: inline-block;
   transition: transform 160ms ease;
-  opacity: 0.65;
+  opacity: 0.85;
+  transform: rotate(90deg);
 }
 
 .settings-group.is-collapsed .settings-group-header::after {
-  transform: rotate(-90deg);
+  transform: rotate(0deg);
 }
 
 .settings-group-header:hover {
@@ -3071,6 +3083,20 @@ textarea::placeholder {
   font-weight: 800;
   color: #0f172a;
 } 
+
+.mode-title-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mode-title-toggle > span {
+  font-size: 12.8px;
+  font-weight: 800;
+  color: #0f172a;
+}
 
 .mode-grid {
   margin-top: 8px;
