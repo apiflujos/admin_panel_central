@@ -250,6 +250,7 @@ const syncOrdersAlegra = document.getElementById("sync-orders-alegra");
 const syncOrdersShopifyEnabled = document.getElementById("sync-orders-shopify-enabled");
 const syncOrdersAlegraEnabled = document.getElementById("sync-orders-alegra-enabled");
 const syncOrdersShopifyInvoice = document.getElementById("sync-orders-shopify-invoice");
+const syncOrdersAlegraModeField = document.getElementById("sync-orders-alegra-mode-field");
 
 const opsTableBody = document.querySelector("#ops-table tbody");
 const invoicesTableBody = document.querySelector("#invoices-table tbody");
@@ -323,6 +324,8 @@ const invoicesPageGo = document.getElementById("invoices-page-go");
 const invoicesBackfillDateStart = document.getElementById("invoices-backfill-date-start");
 const invoicesBackfillDateEnd = document.getElementById("invoices-backfill-date-end");
 const invoicesBackfillLimit = document.getElementById("invoices-backfill-limit");
+const invoicesBackfillCreateShopify = document.getElementById("invoices-backfill-create-shopify");
+const invoicesBackfillModeField = document.getElementById("invoices-backfill-mode-field");
 const invoicesBackfillMode = document.getElementById("invoices-backfill-mode");
 const invoicesBackfillRun = document.getElementById("invoices-backfill-run");
 const invoicesBackfillStop = document.getElementById("invoices-backfill-stop");
@@ -3214,8 +3217,33 @@ function updatePrerequisites() {
   applyPrereqState("alegra-logistics", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
 }
 
+function updateInvoicesBackfillUi() {
+  const createShopify =
+    invoicesBackfillCreateShopify instanceof HTMLInputElement
+      ? Boolean(invoicesBackfillCreateShopify.checked)
+      : false;
+  if (invoicesBackfillModeField instanceof HTMLElement) {
+    invoicesBackfillModeField.hidden = !createShopify;
+  }
+  if (invoicesBackfillRun instanceof HTMLButtonElement) {
+    invoicesBackfillRun.textContent = createShopify ? "Sincronizar facturas" : "Cargar facturas";
+  }
+}
+
+function updateAlegraOrdersAutoUi() {
+  const enabled =
+    syncOrdersAlegraEnabled instanceof HTMLInputElement
+      ? Boolean(syncOrdersAlegraEnabled.checked)
+      : false;
+  if (syncOrdersAlegraModeField instanceof HTMLElement) {
+    syncOrdersAlegraModeField.hidden = !enabled;
+  }
+}
+
 function updateOrderSyncDependencies() {
   updatePrerequisites();
+  updateInvoicesBackfillUi();
+  updateAlegraOrdersAutoUi();
 }
 
 function applyOrderToggle(select, toggle, fallbackValue) {
@@ -6566,6 +6594,10 @@ async function runOrdersSync() {
 async function runInvoicesBackfill() {
   const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   const limit = invoicesBackfillLimit instanceof HTMLInputElement ? Number(invoicesBackfillLimit.value || 0) : 0;
+  const createShopify =
+    invoicesBackfillCreateShopify instanceof HTMLInputElement
+      ? Boolean(invoicesBackfillCreateShopify.checked)
+      : false;
   const modeRaw = invoicesBackfillMode ? String(invoicesBackfillMode.value || "draft") : "draft";
   const mode = modeRaw === "active" ? "active" : "draft";
   const dateStart =
@@ -6573,7 +6605,7 @@ async function runInvoicesBackfill() {
   const dateEnd =
     invoicesBackfillDateEnd instanceof HTMLInputElement ? invoicesBackfillDateEnd.value : "";
 
-  setInvoicesBackfillStatus("Sincronizando...", "");
+  setInvoicesBackfillStatus(createShopify ? "Sincronizando..." : "Cargando...", "");
   const stop = (finalLabel) => {
     if (!invoicesBackfillProgress || !invoicesBackfillProgressBar || !invoicesBackfillProgressLabel) {
       return;
@@ -6606,24 +6638,38 @@ async function runInvoicesBackfill() {
   let startedAt = Date.now();
 
   try {
-    const response = await fetch("/api/sync/invoices?stream=1", {
+    const response = await fetch(
+      createShopify ? "/api/sync/invoices?stream=1" : "/api/backfill/orders?stream=1",
+      {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         shopDomain,
-        mode,
-        filters: {
-          limit: Number.isFinite(limit) && limit > 0 ? limit : undefined,
-          dateStart: dateStart || undefined,
-          dateEnd: dateEnd || undefined,
-        },
+        ...(createShopify
+          ? {
+              mode,
+              filters: {
+                limit: Number.isFinite(limit) && limit > 0 ? limit : undefined,
+                dateStart: dateStart || undefined,
+                dateEnd: dateEnd || undefined,
+              },
+            }
+          : {
+              source: "alegra",
+              limit: Number.isFinite(limit) && limit > 0 ? limit : undefined,
+              dateStart: dateStart || undefined,
+              dateEnd: dateEnd || undefined,
+            }),
         stream: true,
       }),
       signal: controller.signal,
-    });
+    }
+    );
     if (!response.ok || !response.body) {
       const text = await response.text();
-      throw new Error(text || "No se pudieron sincronizar facturas.");
+      throw new Error(
+        text || (createShopify ? "No se pudieron sincronizar facturas." : "No se pudieron cargar facturas.")
+      );
     }
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -6648,6 +6694,9 @@ async function runInvoicesBackfill() {
           if (Number.isFinite(payload.total)) {
             latestTotals.total = payload.total;
           }
+          if (Number.isFinite(payload.pages)) {
+            latestTotals.pages = payload.pages;
+          }
           continue;
         }
         if (payload.type === "progress") {
@@ -6669,45 +6718,68 @@ async function runInvoicesBackfill() {
             invoicesBackfillProgressBar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
             invoicesBackfillProgressLabel.textContent = `Facturas ${Math.round(percent)}% · ETA ${etaText}`;
           }
-          const created = Number(payload.created ?? 0) || 0;
-          const skipped = Number(payload.skipped ?? 0) || 0;
-          const failed = Number(payload.failed ?? 0) || 0;
-          setInvoicesBackfillStatus(
-            `Procesadas ${processed}/${total || "?"}` +
-              ` · Creadas ${created}` +
-              ` · Existentes ${skipped}` +
-              ` · Fallidas ${failed}`,
-            ""
-          );
+          if (createShopify) {
+            const created = Number(payload.created ?? 0) || 0;
+            const skipped = Number(payload.skipped ?? 0) || 0;
+            const failed = Number(payload.failed ?? 0) || 0;
+            setInvoicesBackfillStatus(
+              `Procesadas ${processed}/${total || "?"}` +
+                ` · Creadas ${created}` +
+                ` · Existentes ${skipped}` +
+                ` · Fallidas ${failed}`,
+              ""
+            );
+          } else {
+            setInvoicesBackfillStatus(
+              `Procesadas ${processed}/${total || "?"} · Paginas ${latestTotals.pages}`,
+              ""
+            );
+          }
           continue;
         }
         if (payload.type === "complete") {
           const total = Number(payload.total ?? latestTotals.total ?? 0) || 0;
-          const processed = Number(payload.processed ?? latestTotals.processed ?? 0) || 0;
-          const created = Number(payload.created ?? 0) || 0;
-          const skipped = Number(payload.skipped ?? 0) || 0;
-          const failed = Number(payload.failed ?? 0) || 0;
-          const summary =
-            total > 0
-              ? `Total: ${total} · Procesadas: ${processed} · Creadas: ${created} · Existentes: ${skipped} · Fallidas: ${failed}`
-              : "Sin facturas para sincronizar con esos filtros.";
-          setInvoicesBackfillStatus(summary, failed ? "is-warn" : "is-ok");
+          const processed = Number(payload.processed ?? payload.count ?? latestTotals.processed ?? 0) || 0;
+          if (createShopify) {
+            const created = Number(payload.created ?? 0) || 0;
+            const skipped = Number(payload.skipped ?? 0) || 0;
+            const failed = Number(payload.failed ?? 0) || 0;
+            const summary =
+              total > 0
+                ? `Total: ${total} · Procesadas: ${processed} · Creadas: ${created} · Existentes: ${skipped} · Fallidas: ${failed}`
+                : "Sin facturas para sincronizar con esos filtros.";
+            setInvoicesBackfillStatus(summary, failed ? "is-warn" : "is-ok");
+          } else {
+            const pages = Number(payload.pages ?? latestTotals.pages ?? 0) || 0;
+            const summary =
+              processed > 0
+                ? `Facturas cargadas: ${processed} · Paginas: ${pages}`
+                : "Sin facturas para cargar con esos filtros.";
+            setInvoicesBackfillStatus(summary, "is-ok");
+          }
           stop("Facturas 100%");
           await loadOperationsView();
           return;
         }
         if (payload.type === "error") {
-          throw new Error(payload.error || "No se pudieron sincronizar facturas.");
+          throw new Error(
+            payload.error ||
+              (createShopify ? "No se pudieron sincronizar facturas." : "No se pudieron cargar facturas.")
+          );
         }
       }
     }
     const processed = Number(latestTotals.processed) || 0;
-    const summary = processed > 0 ? `Facturas procesadas: ${processed}` : "Facturas sincronizadas.";
+    const summary = processed > 0
+      ? (createShopify ? `Facturas procesadas: ${processed}` : `Facturas cargadas: ${processed}`)
+      : (createShopify ? "Facturas sincronizadas." : "Facturas cargadas.");
     setInvoicesBackfillStatus(summary, "is-ok");
     stop("Facturas 100%");
     await loadOperationsView();
   } catch (error) {
-    const message = String(error?.message || "No se pudieron sincronizar facturas.");
+    const message = String(
+      error?.message || (createShopify ? "No se pudieron sincronizar facturas." : "No se pudieron cargar facturas.")
+    );
     if (message.includes("aborted") || message.includes("AbortError")) {
       setInvoicesBackfillStatus("Detenido.", "is-warn");
       stop("Facturas detenido");
@@ -7840,6 +7912,7 @@ if (syncOrdersShopifyEnabled) {
 if (syncOrdersAlegraEnabled) {
   syncOrdersAlegraEnabled.addEventListener("change", () => {
     applyOrderToggle(syncOrdersAlegra, syncOrdersAlegraEnabled, "draft");
+    updateAlegraOrdersAutoUi();
   });
 }
 
@@ -7874,6 +7947,7 @@ if (syncOrdersAlegra) {
       syncOrdersAlegraEnabled.checked = syncOrdersAlegra.value !== "off";
       applyOrderToggle(syncOrdersAlegra, syncOrdersAlegraEnabled, "draft");
     }
+    updateAlegraOrdersAutoUi();
   });
 }
 
@@ -9596,21 +9670,29 @@ if (qaTokenCopy) {
 		  });
 		}
 
-		if (invoicesBackfillRun) {
-		  invoicesBackfillRun.addEventListener("click", () => {
-		    runInvoicesBackfill();
-		  });
-		}
+			if (invoicesBackfillRun) {
+			  invoicesBackfillRun.addEventListener("click", () => {
+			    runInvoicesBackfill();
+			  });
+			}
 
-		if (invoicesBackfillClear) {
-		  invoicesBackfillClear.addEventListener("click", () => {
-		    if (invoicesBackfillDateStart instanceof HTMLInputElement) invoicesBackfillDateStart.value = "";
-		    if (invoicesBackfillDateEnd instanceof HTMLInputElement) invoicesBackfillDateEnd.value = "";
-		    if (invoicesBackfillLimit instanceof HTMLInputElement) invoicesBackfillLimit.value = "";
-		    if (invoicesBackfillMode instanceof HTMLSelectElement) invoicesBackfillMode.value = "draft";
-		    setInvoicesBackfillStatus("Sin datos", "");
-		  });
-		}
+      if (invoicesBackfillCreateShopify instanceof HTMLInputElement) {
+        invoicesBackfillCreateShopify.addEventListener("change", () => {
+          updateInvoicesBackfillUi();
+        });
+      }
+	
+			if (invoicesBackfillClear) {
+			  invoicesBackfillClear.addEventListener("click", () => {
+			    if (invoicesBackfillDateStart instanceof HTMLInputElement) invoicesBackfillDateStart.value = "";
+			    if (invoicesBackfillDateEnd instanceof HTMLInputElement) invoicesBackfillDateEnd.value = "";
+			    if (invoicesBackfillLimit instanceof HTMLInputElement) invoicesBackfillLimit.value = "";
+          if (invoicesBackfillCreateShopify instanceof HTMLInputElement) invoicesBackfillCreateShopify.checked = false;
+			    if (invoicesBackfillMode instanceof HTMLSelectElement) invoicesBackfillMode.value = "draft";
+          updateInvoicesBackfillUi();
+			    setInvoicesBackfillStatus("Sin datos", "");
+			  });
+			}
 
 		if (invoicesBackfillStop) {
 		  invoicesBackfillStop.addEventListener("click", () => {
@@ -9944,14 +10026,16 @@ async function init() {
   initSettingsSubmenu();
   cleanupLegacyConnectionsUi();
   initGroupControls();
-	  initToggleFields();
-	  initToggleDependencies();
-	  initDependencyDisabledToasts();
-	  setupMultiSelectDropdowns();
-	  initTips();
-	  initSetupModeControls();
-	  initShopifyConnectPicker();
-	  updateWizardStartAvailability();
+		  initToggleFields();
+		  initToggleDependencies();
+		  initDependencyDisabledToasts();
+		  setupMultiSelectDropdowns();
+		  updateInvoicesBackfillUi();
+		  updateAlegraOrdersAutoUi();
+		  initTips();
+		  initSetupModeControls();
+		  initShopifyConnectPicker();
+		  updateWizardStartAvailability();
   applyProductSettings();
   await safeLoad(loadCurrentUser());
   await safeLoad(loadCompanyProfile());

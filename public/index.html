@@ -1177,7 +1177,7 @@
 			                        <div class="mode-section" data-readonly-free="1">
 			                          <div class="mode-head">
 			                            <div class="mode-head-left">
-			                              <h4>Sincronizacion masiva (Shopify → Alegra)</h4>
+			                              <h4>Sincronizacion masiva de pedidos (Shopify → Alegra)</h4>
 	                              <span class="tip" data-tip="Trae pedidos de Shopify por fechas o por número, los guarda en la base y, si corresponde, intenta facturarlos en Alegra. Útil para catálogo inicial o re-procesar un rango.">?</span>
 	                            </div>
 	                          </div>
@@ -1213,8 +1213,14 @@
 			                        <div class="mode-section" data-readonly-free="1">
 			                          <div class="mode-head">
 			                            <div class="mode-head-left">
-			                              <h4>Sincronizacion masiva (Alegra → Shopify)</h4>
-	                              <span class="tip" data-tip="Toma facturas de Alegra y crea pedidos en Shopify (Activo) o borradores (Borrador). Tip: si el item de la factura está mapeado (Producto Alegra ↔ Variante Shopify), se usa la variante; si no, se crea una linea personalizada con precio/cantidad.">?</span>
+			                              <h4>Sincronizacion masiva de facturas (Alegra → Shopify)</h4>
+	                              <span class="tip" data-tip="Primero decide si quieres crear pedidos en Shopify o solo cargar facturas a la base (para verlas en el listado). Si activas “Crear pedido”, puedes elegir Borrador o Activo. Tip: si el item de la factura está mapeado (Producto Alegra ↔ Variante Shopify), se usa la variante; si no, se crea una linea personalizada con precio/cantidad.">?</span>
+	                            </div>
+	                          </div>
+	                          <div class="mode-toggle-grid" aria-label="Accion masiva facturas">
+	                            <div class="mode-toggle">
+	                              <label for="invoices-backfill-create-shopify">Crear pedido en Shopify <span class="tip" data-tip="OFF: solo cargamos facturas a la base. ON: creamos pedidos/borradores en Shopify (según “Crear como”).">?</span></label>
+	                              <input type="checkbox" id="invoices-backfill-create-shopify" class="toggle" />
 	                            </div>
 	                          </div>
 	                          <div class="mode-grid">
@@ -1230,7 +1236,7 @@
 	                              <label for="invoices-backfill-limit">Limite (recomendado)</label>
 	                              <input type="number" id="invoices-backfill-limit" min="1" placeholder="200" />
 	                            </div>
-	                            <div class="mode-field">
+	                            <div class="mode-field" id="invoices-backfill-mode-field" hidden>
 	                              <label for="invoices-backfill-mode">Crear como</label>
 	                              <select id="invoices-backfill-mode">
 	                                <option value="draft" selected>Borrador (Draft)</option>
@@ -1239,7 +1245,7 @@
 	                            </div>
 	                          </div>
 	                          <div class="mode-actions">
-	                            <button class="primary" id="invoices-backfill-run" type="button">Sincronizar facturas</button>
+	                            <button class="primary" id="invoices-backfill-run" type="button">Cargar facturas</button>
 	                            <button class="ghost danger" id="invoices-backfill-stop" type="button" hidden>Detener</button>
 	                            <button class="ghost" id="invoices-backfill-clear" type="button">Limpiar</button>
 	                            <span class="kpi-sub" id="invoices-backfill-status">Sin datos</span>
@@ -1284,7 +1290,7 @@
 							                              </label>
 							                              <span class="tip" data-tip="ON: cuando llega un webhook de Alegra para factura, creamos el pedido en Shopify según el modo seleccionado. Recomendado: configurar el webhook como /api/webhooks/alegra?shopDomain=tu-tienda.myshopify.com.">?</span>
 							                            </div>
-							                            <div class="mode-head-right">
+							                            <div class="mode-head-right" id="sync-orders-alegra-mode-field" hidden>
 							                              <label for="sync-orders-alegra">Crear pedido como</label>
 							                              <select id="sync-orders-alegra">
 							                                <option value="off" selected>Apagado</option>
