@@ -1264,11 +1264,11 @@ button {
   background: transparent;
 }
 
-.settings-group.provider-group[data-group="products"] .panel[data-provider]::before {
-  display: none;
-}
-
-.settings-group.provider-group[data-group="contacts"] .panel[data-provider]::before {
+.settings-group.provider-group[data-group="products"] .panel[data-provider]::before,
+.settings-group.provider-group[data-group="contacts"] .panel[data-provider]::before,
+.settings-group.provider-group[data-group="orders"] .panel[data-provider]::before,
+.settings-group.provider-group[data-group="operations"] .panel[data-provider]::before,
+.settings-group.provider-group[data-group="admin"] .panel[data-provider]::before {
   display: none;
 }
 
@@ -1598,53 +1598,31 @@ button {
 
 /* Titulos con logos (Shopify ↔ Alegra): reducir jerarquia visual. */
 .settings-group.provider-group .settings-group-header h4.group-title {
-  font-size: 14.8px;
+  font-size: 18.5px;
 }
 
 .settings-group.provider-group[data-group="products"] .settings-group-header {
-  padding-left: 18px;
+  padding-left: 14px;
 }
 
 .settings-group.provider-group[data-group="contacts"] .settings-group-header {
-  padding-left: 18px;
+  padding-left: 14px;
 }
 
 .settings-group.provider-group[data-group="orders"] .settings-group-header {
-  padding-left: 18px;
+  padding-left: 14px;
 }
 
 .settings-group.provider-group[data-group="operations"] .settings-group-header {
-  padding-left: 18px;
+  padding-left: 14px;
 }
 
 .settings-group.provider-group[data-group="admin"] .settings-group-header {
-  padding-left: 18px;
+  padding-left: 14px;
 }
 
-.settings-group.provider-group[data-group="products"] .settings-group-header::before,
-.settings-group.provider-group[data-group="contacts"] .settings-group-header::before,
-.settings-group.provider-group[data-group="orders"] .settings-group-header::before,
-.settings-group.provider-group[data-group="operations"] .settings-group-header::before,
-.settings-group.provider-group[data-group="admin"] .settings-group-header::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 7px;
-  background: #0f172a;
-}
-
-.settings-group.provider-group[data-group="products"] .settings-group-header::before,
-.settings-group.provider-group[data-group="contacts"] .settings-group-header::before,
-.settings-group.provider-group[data-group="orders"] .settings-group-header::before,
-.settings-group.provider-group[data-group="operations"] .settings-group-header::before,
-.settings-group.provider-group[data-group="admin"] .settings-group-header::before {
-  border-top-left-radius: 16px;
-}
-
-.settings-group.is-collapsed .settings-group-header::before {
-  border-bottom-left-radius: 16px;
+.settings-group.provider-group .settings-group-header::before {
+  display: none;
 }
 
 .settings-group-subtitle {
