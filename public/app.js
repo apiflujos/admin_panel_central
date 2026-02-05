@@ -1370,6 +1370,20 @@ function setupMultiSelectDropdowns() {
   );
 }
 
+function openTransferOriginPicker() {
+  if (!(cfgTransferOriginField instanceof HTMLElement)) return;
+  const details = cfgTransferOriginField.querySelector("details.multi-select");
+  if (!(details instanceof HTMLDetailsElement)) return;
+  details.open = true;
+  requestAnimationFrame(() => {
+    updateMultiSelectDropdownDirection(details);
+    const summary = details.querySelector("summary");
+    if (summary instanceof HTMLElement) {
+      summary.focus();
+    }
+  });
+}
+
 function applyToggleDependencies() {
   const dependents = Array.from(document.querySelectorAll("[data-depends-on]")).filter(
     (element) => element instanceof HTMLElement,
@@ -9039,52 +9053,86 @@ if (cfgInventoryWarehouses) {
     }
 	  });
 	}
-	if (cfgTransferDest) {
-	  cfgTransferDest.addEventListener("change", () => {
-	    cfgTransferDest.dataset.selected = cfgTransferDest.value || "";
-	    updateInvoiceWarehouseFromTransfer();
-	    clearTransferErrors();
-	  });
-	}
-	if (cfgTransferPriority) {
-	  cfgTransferPriority.addEventListener("change", () => {
-	    updateTransferDestinationState();
-	    updateInvoiceWarehouseFromTransfer();
-	    clearTransferErrors();
-	  });
-	}
-	if (cfgTransferStrategy) {
-	  cfgTransferStrategy.addEventListener("change", () => {
-	    updateTransferOriginState();
-	    clearTransferErrors();
-	  });
-	}
-	if (cfgTransferDestMode) {
-	  cfgTransferDestMode.addEventListener("change", () => {
-	    updateTransferDestinationState();
-	    clearTransferErrors();
-	  });
-	}
+		if (cfgTransferDest) {
+		  cfgTransferDest.addEventListener("change", () => {
+		    cfgTransferDest.dataset.selected = cfgTransferDest.value || "";
+		    updateInvoiceWarehouseFromTransfer();
+		    clearTransferErrors();
+		    if (cfgTransferEnabled?.checked && String(cfgTransferDest.value || "").trim()) {
+		      if (cfgTransferStrategy) focusFieldWithContext(cfgTransferStrategy);
+		    }
+		  });
+		}
+		if (cfgTransferPriority) {
+		  cfgTransferPriority.addEventListener("change", () => {
+		    updateTransferDestinationState();
+		    updateInvoiceWarehouseFromTransfer();
+		    clearTransferErrors();
+		    if (cfgTransferEnabled?.checked && String(cfgTransferPriority.value || "").trim()) {
+		      if (cfgTransferStrategy) focusFieldWithContext(cfgTransferStrategy);
+		    }
+		  });
+		}
+		if (cfgTransferStrategy) {
+		  cfgTransferStrategy.addEventListener("change", () => {
+		    updateTransferOriginState();
+		    clearTransferErrors();
+		    const strategy = cfgTransferStrategy.value || "manual";
+		    const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
+		    const requiresOrigins = strategy === "manual" || fallback === "manual";
+		    if (cfgTransferEnabled?.checked && requiresOrigins) {
+		      openTransferOriginPicker();
+		    }
+		  });
+		}
+		if (cfgTransferDestMode) {
+		  cfgTransferDestMode.addEventListener("change", () => {
+		    updateTransferDestinationState();
+		    clearTransferErrors();
+		    if (!cfgTransferEnabled?.checked) return;
+		    const mode = cfgTransferDestMode.value || "fixed";
+		    if (mode === "fixed") {
+		      if (cfgTransferDest) focusFieldWithContext(cfgTransferDest);
+		      return;
+		    }
+		    if (mode === "auto") {
+		      if (cfgTransferPriority) focusFieldWithContext(cfgTransferPriority);
+		      return;
+		    }
+		  });
+		}
 	if (cfgTransferDestRequired) {
 	  cfgTransferDestRequired.addEventListener("change", () => {
 	    clearTransferErrors();
 	  });
 	}
-	if (cfgTransferFallback) {
-	  cfgTransferFallback.addEventListener("change", () => {
-	    updateTransferOriginState();
-	    clearTransferErrors();
-	  });
-}
-	if (cfgTransferEnabled) {
-	  cfgTransferEnabled.addEventListener("change", () => {
-	    updateTransferDestinationState();
-	    updateTransferOriginState();
-	    if (!cfgTransferEnabled.checked) {
-	      clearTransferErrors();
-	    }
-	  });
-}
+		if (cfgTransferFallback) {
+		  cfgTransferFallback.addEventListener("change", () => {
+		    updateTransferOriginState();
+		    clearTransferErrors();
+		    const strategy = cfgTransferStrategy ? cfgTransferStrategy.value || "manual" : "manual";
+		    const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
+		    const requiresOrigins = strategy === "manual" || fallback === "manual";
+		    if (cfgTransferEnabled?.checked && requiresOrigins) {
+		      openTransferOriginPicker();
+		    }
+		  });
+	}
+		if (cfgTransferEnabled) {
+		  cfgTransferEnabled.addEventListener("change", () => {
+		    updateTransferDestinationState();
+		    updateTransferOriginState();
+		    if (!cfgTransferEnabled.checked) {
+		      clearTransferErrors();
+		    } else {
+		      if (cfgTransferDestMode) {
+		        focusFieldWithContext(cfgTransferDestMode);
+		      } else if (cfgTransferDest) {
+		        focusFieldWithContext(cfgTransferDest);
+		      }
+		    }
+		  });
+	}
 if (cfgPriceEnabled) {
   cfgPriceEnabled.addEventListener("change", () => {
     updatePriceListState();
