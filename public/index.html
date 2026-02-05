@@ -910,13 +910,13 @@
 					                              <label for="products-sync-publish">Publicar en Shopify <span class="tip" data-tip="Si lo apagas, solo sincronizamos/actualizamos datos, pero no publicamos en Shopify. Útil si quieres revisar primero y publicar después.">?</span></label>
 				                              <input type="checkbox" id="products-sync-publish" class="toggle" checked />
 				                            </div>
-			                            <div class="mode-toggle">
-			                              <label for="products-publish-status-mass">Estado <span class="tip" data-tip="Borrador = no visible en la tienda. Activo = visible y listo para vender. Solo aplica si “Publicar en Shopify” está activo.">?</span></label>
-			                              <select id="products-publish-status-mass">
-			                                <option value="draft">Borrador</option>
-			                                <option value="active">Activo</option>
-			                              </select>
-			                            </div>
+				                            <div class="mode-toggle">
+				                              <label for="products-publish-status-mass">Estado <span class="tip" data-tip="Borrador = no visible en la tienda. Activo = visible y listo para vender. Solo aplica si “Publicar en Shopify” está activo.">?</span></label>
+				                              <select id="products-publish-status-mass" data-depends-on="products-sync-publish">
+				                                <option value="draft">Borrador</option>
+				                                <option value="active">Activo</option>
+				                              </select>
+				                            </div>
 		                            <div class="mode-toggle">
 		                              <label for="products-sync-include-inventory">Incluir inventario <span class="tip" data-tip="Si está activo, el masivo también actualiza existencias en Shopify usando las bodegas configuradas en “Inventario y bodegas”.">?</span></label>
 		                              <input type="checkbox" id="products-sync-include-inventory" class="toggle" checked />
@@ -955,17 +955,17 @@
 						                              <label for="rules-auto-publish">Publicar en Shopify <span class="tip" data-tip="Enciende/apaga la publicación. Si lo apagas, solo sincronizamos datos, pero no publicamos productos (automático ni manual por SKU).">?</span></label>
 						                              <input type="checkbox" id="rules-auto-publish" class="toggle" />
 						                            </div>
-								                            <div class="mode-toggle">
-								                              <label for="rules-auto-images">Publicar fotos <span class="tip" data-tip="Si está activo, intentamos subir fotos del producto a Shopify. Si una foto falla, el producto puede publicarse igual (solo quedará sin esa foto).">?</span></label>
-								                              <input type="checkbox" id="rules-auto-images" class="toggle" />
-								                            </div>
-					                            <div class="mode-toggle">
-					                              <label for="rules-auto-status">Estado <span class="tip" data-tip="Define el estado de publicación cuando “Publicar en Shopify” está activo: Borrador o Activo.">?</span></label>
-					                              <select id="rules-auto-status">
-					                                <option value="draft">Borrador</option>
-					                                <option value="active">Activo</option>
-					                              </select>
-					        </div>
+									                            <div class="mode-toggle">
+									                              <label for="rules-auto-images">Publicar fotos <span class="tip" data-tip="Si está activo, intentamos subir fotos del producto a Shopify. Si una foto falla, el producto puede publicarse igual (solo quedará sin esa foto).">?</span></label>
+									                              <input type="checkbox" id="rules-auto-images" class="toggle" data-depends-on="rules-auto-publish" />
+									                            </div>
+						                            <div class="mode-toggle">
+						                              <label for="rules-auto-status">Estado <span class="tip" data-tip="Define el estado de publicación cuando “Publicar en Shopify” está activo: Borrador o Activo.">?</span></label>
+						                              <select id="rules-auto-status" data-depends-on="rules-auto-publish">
+						                                <option value="draft">Borrador</option>
+						                                <option value="active">Activo</option>
+						                              </select>
+						        </div>
 	                      </div>
 	                      <p class="field-hint module-warning is-hidden" data-module-warning="shopify-rules"></p>
 	                    </div>
@@ -1402,97 +1402,99 @@
 	            </div>
 	          </div>
 
-		                  <div class="panel admin-only module" data-provider="alegra" data-manager="shopify" data-module="alegra-invoice" id="legacy-invoice-panel" data-help="Se usa cuando Shopify → Alegra = Factura. Define listas de precios y parametros de facturacion.">
-            <div class="panel-header">
-              <h3 data-module-toggle="alegra-invoice" data-title-base="Facturacion">Facturacion</h3>
-              <span class="panel-tag tag-alegra">Alegra</span>
-            </div>
-            <div class="module-body">
-              <div class="settings-grid">
-		                <div class="field field-span">
-		                  <div class="mode-head">
-		                    <div class="mode-head-left">
-		                      <label for="cfg-price-enabled" data-dep-controller="1">Usar</label>
-		                      <input type="checkbox" id="cfg-price-enabled" class="toggle" data-dep-controller="1" />
-		                      <span class="kpi-sub">Listas de precios</span>
-		                    </div>
-		                  </div>
-		                </div>
-                <div class="field field-span">
-                  <p class="field-hint">Opcional. Si queda vacio, se usa el precio base de Alegra.</p>
-                </div>
-                <div class="field">
-	                  <label>Lista para precio base</label>
-	                  <select id="cfg-price-general" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="Usar precio base de Alegra"></select>
+			                  <div class="panel admin-only module" data-provider="alegra" data-manager="shopify" data-module="alegra-invoice" id="legacy-invoice-panel" data-help="Se usa cuando Shopify → Alegra = Factura. Define listas de precios y parametros de facturacion.">
+	            <div class="panel-header">
+	              <h3 data-module-toggle="alegra-invoice" data-title-base="Facturacion">Facturacion</h3>
+	              <span class="panel-tag tag-alegra">Alegra</span>
+	            </div>
+	            <div class="module-body">
+	              <div class="mode-sections">
+	                <div class="mode-section">
+	                  <div class="mode-head">
+	                    <div class="mode-head-left">
+	                      <label class="mode-title-toggle" for="cfg-price-enabled" data-dep-controller="1">
+	                        <input type="checkbox" id="cfg-price-enabled" class="toggle" data-dep-controller="1" />
+	                        <span>Listas de precios (opcional)</span>
+	                      </label>
+	                      <span class="tip" data-tip="Opcional. Si lo apagas o dejas vacío, se usa el precio base de Alegra.">?</span>
+	                    </div>
+	                  </div>
+	                  <div class="mode-grid">
+	                    <div class="field mode-field">
+	                      <label>Lista para precio base</label>
+	                      <select id="cfg-price-general" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="Usar precio base de Alegra"></select>
+	                    </div>
+	                    <div class="field mode-field">
+	                      <label>Lista para descuentos</label>
+	                      <select id="cfg-price-discount" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="No aplicar descuento"></select>
+	                    </div>
+	                    <div class="field mode-field">
+	                      <label>Lista para mayoristas</label>
+	                      <select id="cfg-price-wholesale" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="No aplicar mayorista"></select>
+	                    </div>
+	                    <div class="field mode-field">
+	                      <label>Moneda</label>
+	                      <select id="cfg-price-currency" data-depends-on="cfg-price-enabled">
+	                        <option value="">Auto</option>
+	                        <option value="COP">COP</option>
+	                        <option value="USD">USD</option>
+	                      </select>
+	                    </div>
+	                  </div>
 	                </div>
-	                <div class="field">
-	                  <label>Lista para descuentos</label>
-	                  <select id="cfg-price-discount" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="No aplicar descuento"></select>
+
+	                <div class="mode-section">
+	                  <div class="mode-head">
+	                    <div class="mode-head-left">
+	                      <label class="mode-title-toggle" for="cfg-generate-invoice" data-dep-controller="1">
+	                        <input type="checkbox" id="cfg-generate-invoice" class="toggle" data-dep-controller="1" />
+	                        <span>Facturacion automatica</span>
+	                      </label>
+	                      <span class="tip" data-tip="Estas reglas se usan cuando Pedidos (Shopify → Alegra) está en “Crear factura”.">?</span>
+	                    </div>
+	                  </div>
+	                  <div class="mode-grid">
+	                    <div class="field is-toggle mode-field">
+	                      <label>Habilitar factura electronica</label>
+	                      <input type="checkbox" id="cfg-einvoice-enabled" class="toggle" data-depends-on="cfg-generate-invoice" />
+	                    </div>
+	                    <div class="field mode-field">
+	                      <label>Resolucion DIAN</label>
+	                      <select id="cfg-resolution" data-depends-on="cfg-generate-invoice"></select>
+	                    </div>
+	                    <div class="field mode-field">
+	                      <label>Bodega</label>
+	                      <select id="cfg-warehouse" data-depends-on="cfg-generate-invoice"></select>
+	                    </div>
+	                    <div class="field mode-field">
+	                      <label>Centro de costos</label>
+	                      <select id="cfg-cost-center" data-depends-on="cfg-generate-invoice"></select>
+	                    </div>
+	                    <div class="field mode-field">
+	                      <label>Vendedor</label>
+	                      <select id="cfg-seller" data-depends-on="cfg-generate-invoice"></select>
+	                    </div>
+	                    <div class="field mode-field">
+	                      <label>Metodo de pago</label>
+	                      <select id="cfg-payment-method" data-depends-on="cfg-generate-invoice" data-allow-empty="true" data-empty-label="No aplicar"></select>
+	                    </div>
+	                    <div class="field mode-field">
+	                      <label>Cuenta bancaria</label>
+	                      <select id="cfg-bank-account" data-depends-on="cfg-generate-invoice,cfg-apply-payment" data-allow-empty="true" data-empty-label="No aplicar"></select>
+	                      <p class="field-hint">Si aparecen "Sin datos", crea metodos de pago y cuentas en Alegra.</p>
+	                    </div>
+	                    <div class="field is-toggle mode-field">
+	                      <label>Aplicar pago</label>
+	                      <input type="checkbox" id="cfg-apply-payment" class="toggle" data-depends-on="cfg-generate-invoice" />
+	                    </div>
+	                    <div class="field mode-field">
+	                      <label>Observaciones</label>
+	                      <input type="text" id="cfg-observations" data-depends-on="cfg-generate-invoice" placeholder="Pedido {{order.name}}" />
+	                    </div>
+	                  </div>
+	                  <p class="field-hint" id="cfg-store-message"></p>
 	                </div>
-	                <div class="field">
-	                  <label>Lista para mayoristas</label>
-	                  <select id="cfg-price-wholesale" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="No aplicar mayorista"></select>
-	                </div>
-	                <div class="field">
-	                  <label>Moneda</label>
-	                  <select id="cfg-price-currency" data-depends-on="cfg-price-enabled">
-	                    <option value="">Auto</option>
-	                    <option value="COP">COP</option>
-	                    <option value="USD">USD</option>
-	                  </select>
-	                </div>
-		                <div class="field field-span">
-		                  <div class="mode-head">
-		                    <div class="mode-head-left">
-		                      <label for="cfg-generate-invoice" data-dep-controller="1">Facturar automaticamente</label>
-		                      <input type="checkbox" id="cfg-generate-invoice" class="toggle" data-dep-controller="1" />
-		                      <span class="kpi-sub">Facturacion automatica</span>
-		                    </div>
-		                  </div>
-		                </div>
-	                <div class="field is-toggle">
-	                  <label>Habilitar factura electronica</label>
-		                  <input type="checkbox" id="cfg-einvoice-enabled" class="toggle" data-depends-on="cfg-generate-invoice" />
-		                </div>
-                <div class="field">
-	                  <label>Resolucion DIAN</label>
-	                  <select id="cfg-resolution" data-depends-on="cfg-generate-invoice"></select>
-	                </div>
-	                <div class="field">
-	                  <label>Centro de costos</label>
-	                  <select id="cfg-cost-center" data-depends-on="cfg-generate-invoice"></select>
-	                </div>
-	                <div class="field">
-	                  <label>Bodega</label>
-	                  <select id="cfg-warehouse" data-depends-on="cfg-generate-invoice"></select>
-	                </div>
-	                <div class="field">
-	                  <label>Vendedor</label>
-	                  <select id="cfg-seller" data-depends-on="cfg-generate-invoice"></select>
-	                </div>
-	                <div class="field">
-	                  <label>Metodo de pago</label>
-	                  <select id="cfg-payment-method" data-depends-on="cfg-generate-invoice" data-allow-empty="true" data-empty-label="No aplicar"></select>
-	                </div>
-	                <div class="field">
-	                  <label>Cuenta bancaria</label>
-	                  <select id="cfg-bank-account" data-depends-on="cfg-generate-invoice,cfg-apply-payment" data-allow-empty="true" data-empty-label="No aplicar"></select>
-	                </div>
-                <div class="field field-span">
-                  <p class="field-hint">Si aparecen "Sin datos", crea metodos de pago y cuentas en Alegra.</p>
-                </div>
-	                <div class="field is-toggle">
-	                  <label>Aplicar pago</label>
-		                  <input type="checkbox" id="cfg-apply-payment" class="toggle" data-depends-on="cfg-generate-invoice" />
-		                </div>
-	                <div class="field">
-	                  <label>Observaciones</label>
-	                  <input type="text" id="cfg-observations" data-depends-on="cfg-generate-invoice" placeholder="Pedido {{order.name}}" />
-	                </div>
-                <div class="field field-span">
-                  <p class="field-hint" id="cfg-store-message"></p>
-                </div>
-              </div>
+	              </div>
 	              <p class="field-hint module-warning is-hidden" data-module-warning="alegra-invoice"></p>
 	            </div>
 	                  </div>
