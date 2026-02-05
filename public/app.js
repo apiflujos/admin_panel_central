@@ -331,11 +331,7 @@ const cfgWarehouseSyncSummary = document.getElementById("cfg-warehouse-sync-summ
 const cfgWarehouseSelectAll = document.getElementById("cfg-warehouse-select-all");
 const cfgTransferOriginField = document.getElementById("cfg-transfer-origin-field");
 const cfgWarehouseSyncField = document.getElementById("cfg-warehouse-sync-field");
-const shopifyWebhooksCreate = document.getElementById("shopify-webhooks-create");
-const shopifyWebhooksDelete = document.getElementById("shopify-webhooks-delete");
-const shopifyWebhooksStatusBtn = document.getElementById("shopify-webhooks-status-btn");
 const shopifyWebhooksStatus = document.getElementById("shopify-webhooks-status");
-const shopifyAutomationEnabled = document.getElementById("shopify-automation-enabled");
 
 let shopifyAdminBase = "";
 let currentUserRole = "agent";
@@ -2767,7 +2763,7 @@ function reorderSettingsPanels() {
   const invoicePanel = ordersBody.querySelector('.module[data-module="alegra-invoice"]');
   const logisticsPanel = ordersBody.querySelector('.module[data-module="alegra-logistics"]');
   if (invoicePanel && logisticsPanel) {
-    ordersBody.insertBefore(invoicePanel, logisticsPanel);
+    ordersBody.insertBefore(logisticsPanel, invoicePanel);
   }
 }
 
@@ -2953,7 +2949,7 @@ function getWizardModuleStatus(moduleKey) {
   if (moduleKey === "sync-orders") {
     const needsAutomation = Boolean(syncOrdersShopifyEnabled?.checked);
     if (needsAutomation && !shopifyWebhooksStatus?.classList.contains("is-ok")) {
-      return { complete: false, focusTarget: shopifyAutomationEnabled || shopifyWebhooksStatus };
+      return { complete: false, focusTarget: syncOrdersShopifyEnabled || shopifyWebhooksStatus };
     }
     return { complete: true, focusTarget: null };
   }
@@ -3000,7 +2996,7 @@ async function findNextWizardStep(fromIndex = 0) {
     if (moduleKey === "sync-orders" && syncOrdersShopifyEnabled?.checked) {
       const ok = await loadShopifyWebhooksStatus();
       if (!ok) {
-        return { index, moduleKey, focusTarget: shopifyAutomationEnabled || shopifyWebhooksStatus };
+        return { index, moduleKey, focusTarget: syncOrdersShopifyEnabled || shopifyWebhooksStatus };
       }
     }
 
@@ -3190,9 +3186,58 @@ function focusInvoiceSetupFirstMissing() {
   }
 }
 
+function isTransferSetupComplete() {
+  if (!(cfgTransferEnabled instanceof HTMLInputElement) || !cfgTransferEnabled.checked) {
+    return false;
+  }
+  const destinationOk = Boolean(cfgTransferDest && String(cfgTransferDest.value || "").trim());
+  if (!destinationOk) return false;
+  const strategy = cfgTransferStrategy ? cfgTransferStrategy.value || "manual" : "manual";
+  const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
+  const requiresOrigins = strategy === "manual" || fallback === "manual";
+  if (!requiresOrigins) return true;
+  const originSelectAll = cfgTransferOrigin
+    ? cfgTransferOrigin.querySelector('input[data-select-all="transfer-origin"]')
+    : null;
+  if (originSelectAll instanceof HTMLInputElement && originSelectAll.checked) return true;
+  return getSelectedTransferOriginIds().length > 0;
+}
+
+function focusTransferSetupFirstMissing() {
+  if (cfgTransferEnabled instanceof HTMLInputElement && !cfgTransferEnabled.checked) {
+    focusFieldWithContext(cfgTransferEnabled);
+    return;
+  }
+  if (cfgTransferDest && !String(cfgTransferDest.value || "").trim()) {
+    focusFieldWithContext(cfgTransferDest);
+    return;
+  }
+  const strategy = cfgTransferStrategy ? cfgTransferStrategy.value || "manual" : "manual";
+  const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
+  const requiresOrigins = strategy === "manual" || fallback === "manual";
+  if (!requiresOrigins) return;
+  const originSelectAll = cfgTransferOrigin
+    ? cfgTransferOrigin.querySelector('input[data-select-all="transfer-origin"]')
+    : null;
+  const originsOk =
+    (originSelectAll instanceof HTMLInputElement && originSelectAll.checked) ||
+    getSelectedTransferOriginIds().length > 0;
+  if (originsOk) return;
+  const summary = cfgTransferOriginField ? cfgTransferOriginField.querySelector("summary") : null;
+  focusFieldWithContext(summary || cfgTransferOriginField || cfgTransferOrigin);
+}
+
 function warnIfShopifyOrdersInvoiceNotReady() {
   if (!(syncOrdersShopify instanceof HTMLSelectElement)) return true;
   if (syncOrdersShopify.value !== "invoice") return true;
+  if (!isTransferSetupComplete()) {
+    showToast(
+      "Antes de crear factura, configura Logistica e inventario (Activar traslados + Bodega destino + Bodegas origen).",
+      "is-warn",
+    );
+    focusTransferSetupFirstMissing();
+    return false;
+  }
   if (isInvoiceSetupComplete()) return true;
   showToast(
     "Para crear facturas en Alegra, completa Facturacion (Resolucion + Bodega, y Cuenta bancaria si aplica).",
@@ -3366,7 +3411,7 @@ async function openWizardStep() {
       "alegra-inventory":
         "Configura inventario/bodegas (bodegas fuente y sincronizacion automatica).\nLuego guarda para continuar.",
       "sync-orders":
-        "Elige que hacer con pedidos nuevos (solo registrar / crear contacto / crear factura).\nActiva la automatizacion y verifica el estado.\nLuego guarda para continuar.",
+        "Activa la sincronizacion automatica de pedidos (Shopify → Alegra) y elige la accion (Solo registrar / Crear factura).\nVerifica el estado de Webhooks Shopify.\nLuego guarda para continuar.",
       "alegra-invoice":
         "Opcional si vas a crear facturas: resolucion, bodega, pagos y factura electronica.\nLuego guarda para continuar.",
       "alegra-logistics":
@@ -3514,7 +3559,6 @@ function initModuleControls() {
     if (!autosaveKeys.has(moduleKey)) return false;
     if (!(target instanceof HTMLElement)) return false;
     const id = target.id || "";
-    if (id === "shopify-automation-enabled") return false;
 
     if (moduleKey === "shopify-rules") {
       return Boolean(id && id.startsWith("rules-"));
@@ -4586,10 +4630,12 @@ function applyLegacyStoreConfig(config) {
     syncOrdersShopify.value = normalized;
     if (!syncOrdersShopify.value) syncOrdersShopify.value = defaultShopifyMode;
   }
+  if (syncOrdersShopify?.value === "invoice" && cfgGenerateInvoice instanceof HTMLInputElement) {
+    cfgGenerateInvoice.checked = true;
+  }
   if (syncOrdersAlegra) {
     const raw = String(orderSync.alegraToShopify || "off");
-    const normalized = raw === "active" ? "draft" : raw;
-    syncOrdersAlegra.value = normalized;
+    syncOrdersAlegra.value = raw;
     if (!syncOrdersAlegra.value) syncOrdersAlegra.value = "off";
   }
   if (syncOrdersShopifyEnabled) {
@@ -7374,9 +7420,35 @@ if (shopifyDomain) {
 }
 
 if (syncOrdersShopifyEnabled) {
-  syncOrdersShopifyEnabled.addEventListener("change", () => {
+  syncOrdersShopifyEnabled.addEventListener("change", async () => {
+    if (ordersWebhooksToggleSyncing) return;
+    const previous = ordersWebhooksToggleValue;
+    const next = Boolean(syncOrdersShopifyEnabled.checked);
+    ordersWebhooksToggleValue = next;
+
     applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, "db_only");
     updateOrderSyncDependencies();
+
+    if (ordersWebhooksToggleBusy) {
+      setOrdersWebhooksToggleChecked(previous);
+      applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, "db_only");
+      updateOrderSyncDependencies();
+      showToast("Espera a que termine la accion anterior.", "is-warn");
+      return;
+    }
+
+    ordersWebhooksToggleBusy = true;
+    try {
+      const ok = next ? await createShopifyWebhooks() : await deleteShopifyWebhooks();
+      if (!ok) {
+        setOrdersWebhooksToggleChecked(previous);
+        applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, "db_only");
+        updateOrderSyncDependencies();
+        ordersWebhooksToggleValue = previous;
+      }
+    } finally {
+      ordersWebhooksToggleBusy = false;
+    }
   });
 }
 
@@ -7388,12 +7460,18 @@ if (syncOrdersAlegraEnabled) {
 
 if (syncOrdersShopify) {
   syncOrdersShopify.addEventListener("change", () => {
-    warnIfShopifyOrdersInvoiceNotReady();
+    if (!warnIfShopifyOrdersInvoiceNotReady() && syncOrdersShopify.value === "invoice") {
+      syncOrdersShopify.value = "db_only";
+    }
+    if (syncOrdersShopify.value === "invoice" && cfgGenerateInvoice instanceof HTMLInputElement) {
+      cfgGenerateInvoice.checked = true;
+    }
     if (syncOrdersShopifyEnabled) {
       syncOrdersShopifyEnabled.checked = syncOrdersShopify.value !== "off";
       applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, "db_only");
     }
     updateOrderSyncDependencies();
+    applyToggleDependencies();
   });
 }
 
@@ -7463,21 +7541,18 @@ function setShopifyWebhooksStatus(text, state) {
   }
 }
 
-let shopifyAutomationToggleSyncing = false;
-let shopifyAutomationToggleBusy = false;
-let shopifyAutomationToggleValue =
-  shopifyAutomationEnabled instanceof HTMLInputElement ? Boolean(shopifyAutomationEnabled.checked) : true;
+let ordersWebhooksToggleSyncing = false;
+let ordersWebhooksToggleBusy = false;
+let ordersWebhooksToggleValue =
+  syncOrdersShopifyEnabled instanceof HTMLInputElement ? Boolean(syncOrdersShopifyEnabled.checked) : false;
 
-function setShopifyAutomationToggleState(nextEnabled, options = {}) {
-  if (!(shopifyAutomationEnabled instanceof HTMLInputElement)) return;
+function setOrdersWebhooksToggleChecked(nextEnabled) {
+  if (!(syncOrdersShopifyEnabled instanceof HTMLInputElement)) return;
   const next = Boolean(nextEnabled);
-  shopifyAutomationToggleSyncing = true;
-  shopifyAutomationEnabled.checked = next;
-  shopifyAutomationToggleSyncing = false;
-  shopifyAutomationToggleValue = next;
-  if (options.applyDependencies !== false) {
-    applyToggleDependencies();
-  }
+  ordersWebhooksToggleSyncing = true;
+  syncOrdersShopifyEnabled.checked = next;
+  ordersWebhooksToggleSyncing = false;
+  ordersWebhooksToggleValue = next;
 }
 
 function setContactsSyncStatus(text, state) {
@@ -7505,16 +7580,13 @@ async function loadShopifyWebhooksStatus() {
     const missing = Array.isArray(result?.missing) ? result.missing : [];
     if (!total) {
       setShopifyWebhooksStatus("Sin datos de automatizacion.", "is-error");
-      setShopifyAutomationToggleState(false);
       return false;
     }
     if (!missing.length) {
       setShopifyWebhooksStatus(`Creado y conectado (${connected}/${total})`, "is-ok");
-      setShopifyAutomationToggleState(true);
       return true;
     }
     setShopifyWebhooksStatus(`Faltan ${missing.length} (${connected}/${total})`, "is-error");
-    setShopifyAutomationToggleState(false);
     return false;
   } catch (error) {
     setShopifyWebhooksStatus(error?.message || "No se pudo consultar.", "is-error");
@@ -7528,7 +7600,7 @@ async function createShopifyWebhooks() {
     setShopifyWebhooksStatus("Dominio Shopify requerido.", "is-error");
     return false;
   }
-  setShopifyWebhooksStatus("Activando automatizacion...");
+  setShopifyWebhooksStatus("Activando webhooks...");
   try {
     const result = await fetchJson("/api/shopify/webhooks", {
       method: "POST",
@@ -7539,7 +7611,7 @@ async function createShopifyWebhooks() {
     const okCount = items.filter((item) => item.ok).length;
     const total = items.length || 0;
     const statusText =
-      total > 0 ? `Activados ${okCount}/${total}` : result?.message || "Automatizacion activada.";
+      total > 0 ? `Activados ${okCount}/${total}` : result?.message || "Webhooks activados.";
     setShopifyWebhooksStatus(statusText, okCount === total ? "is-ok" : "is-error");
     await loadShopifyWebhooksStatus();
     advanceWizardStep("sync-orders");
@@ -7556,10 +7628,7 @@ async function deleteShopifyWebhooks() {
     setShopifyWebhooksStatus("Dominio Shopify requerido.", "is-error");
     return false;
   }
-  if (!window.confirm("Desactivar la automatizacion para esta tienda?")) {
-    return false;
-  }
-  setShopifyWebhooksStatus("Desactivando automatizacion...");
+  setShopifyWebhooksStatus("Desactivando webhooks...");
   try {
     const result = await fetchJson("/api/shopify/webhooks/delete", {
       method: "POST",
@@ -7569,7 +7638,7 @@ async function deleteShopifyWebhooks() {
     const deleted = Number(result?.deleted || 0);
     const total = Number(result?.total || 0);
     const statusText =
-      total > 0 ? `Desactivados ${deleted}/${total}` : "Automatizacion desactivada.";
+      total > 0 ? `Desactivados ${deleted}/${total}` : "Webhooks desactivados.";
     setShopifyWebhooksStatus(statusText, deleted === total ? "is-ok" : "is-error");
     await loadShopifyWebhooksStatus();
     return deleted === total;
@@ -8900,28 +8969,6 @@ if (productsSyncStopBtn) {
   });
 }
 
-if (shopifyWebhooksCreate) {
-  shopifyWebhooksCreate.addEventListener("click", () => {
-    if (shopifyAutomationToggleBusy) {
-      showToast("Espera a que termine la operación de automatización.", "is-warn");
-      return;
-    }
-    const previous = shopifyAutomationToggleValue;
-    setShopifyAutomationToggleState(true);
-    shopifyAutomationToggleBusy = true;
-    createShopifyWebhooks()
-      .then((ok) => {
-        if (!ok) setShopifyAutomationToggleState(previous);
-      })
-      .catch(() => {
-        setShopifyAutomationToggleState(previous);
-      })
-      .finally(() => {
-        shopifyAutomationToggleBusy = false;
-      });
-  });
-}
-
 if (qaTokenGenerate) {
   qaTokenGenerate.addEventListener("click", async () => {
     qaTokenGenerate.disabled = true;
@@ -8974,56 +9021,6 @@ if (qaTokenCopy) {
       }
     }
     showToast(copied ? "Clave copiada." : "No se pudo copiar.", copied ? "is-ok" : "is-error");
-  });
-}
-if (shopifyWebhooksDelete) {
-  shopifyWebhooksDelete.addEventListener("click", () => {
-    if (shopifyAutomationToggleBusy) {
-      showToast("Espera a que termine la operación de automatización.", "is-warn");
-      return;
-    }
-    const previous = shopifyAutomationToggleValue;
-    setShopifyAutomationToggleState(false);
-    shopifyAutomationToggleBusy = true;
-    deleteShopifyWebhooks()
-      .then((ok) => {
-        if (!ok) setShopifyAutomationToggleState(previous);
-      })
-      .catch(() => {
-        setShopifyAutomationToggleState(previous);
-      })
-      .finally(() => {
-        shopifyAutomationToggleBusy = false;
-      });
-  });
-}
-if (shopifyWebhooksStatusBtn) {
-  shopifyWebhooksStatusBtn.addEventListener("click", () => {
-    loadShopifyWebhooksStatus().catch(() => null);
-  });
-}
-
-if (shopifyAutomationEnabled instanceof HTMLInputElement) {
-  shopifyAutomationEnabled.addEventListener("change", async () => {
-    if (shopifyAutomationToggleSyncing) return;
-    const previous = shopifyAutomationToggleValue;
-    const next = Boolean(shopifyAutomationEnabled.checked);
-    shopifyAutomationToggleValue = next;
-    applyToggleDependencies();
-
-    if (shopifyAutomationToggleBusy) {
-      setShopifyAutomationToggleState(previous);
-      showToast("Espera a que termine la operación de automatización.", "is-warn");
-      return;
-    }
-
-    shopifyAutomationToggleBusy = true;
-    const ok = next ? await createShopifyWebhooks() : await deleteShopifyWebhooks();
-    shopifyAutomationToggleBusy = false;
-
-    if (!ok) {
-      setShopifyAutomationToggleState(previous);
-    }
   });
 }
 
