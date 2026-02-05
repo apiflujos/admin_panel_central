@@ -242,6 +242,7 @@ const syncOrdersShopify = document.getElementById("sync-orders-shopify");
 const syncOrdersAlegra = document.getElementById("sync-orders-alegra");
 const syncOrdersShopifyEnabled = document.getElementById("sync-orders-shopify-enabled");
 const syncOrdersAlegraEnabled = document.getElementById("sync-orders-alegra-enabled");
+const syncOrdersShopifyInvoice = document.getElementById("sync-orders-shopify-invoice");
 
 const opsTableBody = document.querySelector("#ops-table tbody");
 const invoicesTableBody = document.querySelector("#invoices-table tbody");
@@ -4630,6 +4631,9 @@ function applyLegacyStoreConfig(config) {
     syncOrdersShopify.value = normalized;
     if (!syncOrdersShopify.value) syncOrdersShopify.value = defaultShopifyMode;
   }
+  if (syncOrdersShopifyInvoice instanceof HTMLInputElement && syncOrdersShopify) {
+    syncOrdersShopifyInvoice.checked = syncOrdersShopify.value === "invoice";
+  }
   if (syncOrdersShopify?.value === "invoice" && cfgGenerateInvoice instanceof HTMLInputElement) {
     cfgGenerateInvoice.checked = true;
   }
@@ -4693,6 +4697,9 @@ function clearLegacyStoreConfig() {
   if (syncContactsPriority) syncContactsPriority.value = "document_phone_email";
   if (syncOrdersShopify) {
     syncOrdersShopify.value = "db_only";
+  }
+  if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
+    syncOrdersShopifyInvoice.checked = false;
   }
   if (syncOrdersAlegra) syncOrdersAlegra.value = "off";
   if (syncOrdersShopifyEnabled) {
@@ -7452,6 +7459,23 @@ if (syncOrdersShopifyEnabled) {
   });
 }
 
+if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
+  syncOrdersShopifyInvoice.addEventListener("change", () => {
+    if (!(syncOrdersShopify instanceof HTMLSelectElement)) return;
+    const next = Boolean(syncOrdersShopifyInvoice.checked);
+    if (next) {
+      syncOrdersShopify.value = "invoice";
+      if (cfgGenerateInvoice instanceof HTMLInputElement) cfgGenerateInvoice.checked = true;
+      if (cfgTransferEnabled instanceof HTMLInputElement) cfgTransferEnabled.checked = true;
+      warnIfShopifyOrdersInvoiceNotReady();
+    } else {
+      syncOrdersShopify.value = "db_only";
+    }
+    updateOrderSyncDependencies();
+    applyToggleDependencies();
+  });
+}
+
 if (syncOrdersAlegraEnabled) {
   syncOrdersAlegraEnabled.addEventListener("change", () => {
     applyOrderToggle(syncOrdersAlegra, syncOrdersAlegraEnabled, "draft");
@@ -7461,6 +7485,9 @@ if (syncOrdersAlegraEnabled) {
 if (syncOrdersShopify) {
   syncOrdersShopify.addEventListener("change", () => {
     warnIfShopifyOrdersInvoiceNotReady();
+    if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
+      syncOrdersShopifyInvoice.checked = syncOrdersShopify.value === "invoice";
+    }
     if (syncOrdersShopify.value === "invoice" && cfgGenerateInvoice instanceof HTMLInputElement) {
       cfgGenerateInvoice.checked = true;
     }
