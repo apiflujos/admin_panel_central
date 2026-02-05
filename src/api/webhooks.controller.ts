@@ -41,6 +41,8 @@ export async function handleShopifyWebhook(req: Request, res: Response) {
 
 export async function handleAlegraWebhook(req: Request, res: Response) {
   const signature = req.header("X-Alegra-Signature");
+  const shopDomain =
+    typeof req.query.shopDomain === "string" ? String(req.query.shopDomain).trim() : "";
   const rawBody = req.body || {};
   const eventType =
     rawBody?.event ||
@@ -56,6 +58,7 @@ export async function handleAlegraWebhook(req: Request, res: Response) {
       message: "Invalid Alegra signature",
       request: {
         eventType,
+        shopDomain,
       },
     });
     return res.status(401).json({ error: "invalid_signature" });
@@ -64,14 +67,19 @@ export async function handleAlegraWebhook(req: Request, res: Response) {
     rawBody?.data ||
     rawBody?.message?.data ||
     rawBody?.message?.item
-      ? { data: rawBody?.data || rawBody?.message?.data || rawBody?.message?.item }
+      ? {
+          data: rawBody?.data || rawBody?.message?.data || rawBody?.message?.item,
+          __shopDomain: shopDomain || undefined,
+        }
       : rawBody;
   const normalizedEventType = normalizeAlegraEvent(eventType);
   setImmediate(() => {
     enqueueWebhookEvent({
       source: "alegra",
       eventType: normalizedEventType,
-      payload: normalizedPayload,
+      payload: shopDomain
+        ? { ...(normalizedPayload as Record<string, unknown>), __shopDomain: shopDomain }
+        : normalizedPayload,
       meta: { eventType },
     }).catch(() => null);
   });
@@ -84,6 +92,14 @@ function normalizeAlegraEvent(eventType: string) {
   if (normalized === "new-item") return "item.created";
   if (normalized === "update-item") return "item.updated";
   if (normalized === "inventory-update") return "inventory.updated";
+  if (normalized === "new-invoice" || normalized === "invoice-create" || normalized === "invoice-created") {
+    return "invoice.created";
+  }
+  if (normalized === "update-invoice" || normalized === "invoice-update" || normalized === "invoice-updated") {
+    return "invoice.updated";
+  }
+  if (normalized.includes("invoice") && normalized.includes("new")) return "invoice.created";
+  if (normalized.includes("invoice") && normalized.includes("update")) return "invoice.updated";
   return eventType;
 }
 

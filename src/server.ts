@@ -12,8 +12,28 @@ import { startRetryQueuePoller } from "./jobs/retry-queue";
 
 const app = express();
 
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 app.use(helmet());
-app.use(morgan("combined"));
+const stripQuery = (url: string) => url.split("?")[0] || url;
+app.use(
+  morgan((tokens: any, req: any, res: any) => {
+    const url = stripQuery(String(req.originalUrl || req.url || ""));
+    return [
+      tokens["remote-addr"](req, res),
+      "-",
+      tokens["remote-user"](req, res),
+      `[${tokens.date(req, res, "clf")}]`,
+      `"${tokens.method(req, res)} ${url} HTTP/${tokens["http-version"](req, res)}"`,
+      tokens.status(req, res),
+      tokens.res(req, res, "content-length"),
+      `"${tokens.referrer(req, res)}"`,
+      `"${tokens["user-agent"](req, res)}"`,
+    ].join(" ");
+  })
+);
 app.use(
   express.json({
     limit: "2mb",

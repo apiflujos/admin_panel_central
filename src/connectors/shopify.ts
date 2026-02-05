@@ -32,6 +32,22 @@ export class ShopifyClient {
     this.restBase = `https://${config.shopDomain}/admin/api/${version}`;
   }
 
+  private async requestRest<T>(path: string, options: { method: string; body?: unknown }) {
+    const response = await fetch(`${this.restBase}${path}`, {
+      method: options.method,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": this.config.accessToken,
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    });
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(`Shopify REST error: ${response.status} ${text}`);
+    }
+    return (await response.json()) as T;
+  }
+
   private async request<T>(body: GraphQlRequest) {
     const response = await fetch(this.endpoint, {
       method: "POST",
@@ -55,6 +71,20 @@ export class ShopifyClient {
       throw new Error("Shopify GraphQL missing data");
     }
     return json.data;
+  }
+
+  async createOrderRest(order: Record<string, unknown>) {
+    return this.requestRest<{ order: { id: number; name?: string; order_number?: number } }>(
+      `/orders.json`,
+      { method: "POST", body: { order } }
+    );
+  }
+
+  async createDraftOrderRest(draftOrder: Record<string, unknown>) {
+    return this.requestRest<{ draft_order: { id: number; name?: string; invoice_url?: string } }>(
+      `/draft_orders.json`,
+      { method: "POST", body: { draft_order: draftOrder } }
+    );
   }
 
   async getOrderById(id: string) {

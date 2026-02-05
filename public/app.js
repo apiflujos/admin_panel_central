@@ -323,6 +323,7 @@ const invoicesPageGo = document.getElementById("invoices-page-go");
 const invoicesBackfillDateStart = document.getElementById("invoices-backfill-date-start");
 const invoicesBackfillDateEnd = document.getElementById("invoices-backfill-date-end");
 const invoicesBackfillLimit = document.getElementById("invoices-backfill-limit");
+const invoicesBackfillMode = document.getElementById("invoices-backfill-mode");
 const invoicesBackfillRun = document.getElementById("invoices-backfill-run");
 const invoicesBackfillStop = document.getElementById("invoices-backfill-stop");
 const invoicesBackfillClear = document.getElementById("invoices-backfill-clear");
@@ -6565,12 +6566,14 @@ async function runOrdersSync() {
 async function runInvoicesBackfill() {
   const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   const limit = invoicesBackfillLimit instanceof HTMLInputElement ? Number(invoicesBackfillLimit.value || 0) : 0;
+  const modeRaw = invoicesBackfillMode ? String(invoicesBackfillMode.value || "draft") : "draft";
+  const mode = modeRaw === "active" ? "active" : "draft";
   const dateStart =
     invoicesBackfillDateStart instanceof HTMLInputElement ? invoicesBackfillDateStart.value : "";
   const dateEnd =
     invoicesBackfillDateEnd instanceof HTMLInputElement ? invoicesBackfillDateEnd.value : "";
 
-  setInvoicesBackfillStatus("Cargando...", "");
+  setInvoicesBackfillStatus("Sincronizando...", "");
   const stop = (finalLabel) => {
     if (!invoicesBackfillProgress || !invoicesBackfillProgressBar || !invoicesBackfillProgressLabel) {
       return;
@@ -6603,22 +6606,24 @@ async function runInvoicesBackfill() {
   let startedAt = Date.now();
 
   try {
-    const response = await fetch("/api/backfill/orders?stream=1", {
+    const response = await fetch("/api/sync/invoices?stream=1", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         shopDomain,
-        source: "alegra",
-        limit: Number.isFinite(limit) && limit > 0 ? limit : undefined,
-        dateStart: dateStart || undefined,
-        dateEnd: dateEnd || undefined,
+        mode,
+        filters: {
+          limit: Number.isFinite(limit) && limit > 0 ? limit : undefined,
+          dateStart: dateStart || undefined,
+          dateEnd: dateEnd || undefined,
+        },
         stream: true,
       }),
       signal: controller.signal,
     });
     if (!response.ok || !response.body) {
       const text = await response.text();
-      throw new Error(text || "No se pudieron cargar facturas.");
+      throw new Error(text || "No se pudieron sincronizar facturas.");
     }
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -6664,30 +6669,45 @@ async function runInvoicesBackfill() {
             invoicesBackfillProgressBar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
             invoicesBackfillProgressLabel.textContent = `Facturas ${Math.round(percent)}% · ETA ${etaText}`;
           }
-          setInvoicesBackfillStatus(`Procesadas ${processed}/${total || "?"} · Paginas ${latestTotals.pages}`, "");
+          const created = Number(payload.created ?? 0) || 0;
+          const skipped = Number(payload.skipped ?? 0) || 0;
+          const failed = Number(payload.failed ?? 0) || 0;
+          setInvoicesBackfillStatus(
+            `Procesadas ${processed}/${total || "?"}` +
+              ` · Creadas ${created}` +
+              ` · Existentes ${skipped}` +
+              ` · Fallidas ${failed}`,
+            ""
+          );
           continue;
         }
         if (payload.type === "complete") {
-          const processed = Number(payload.processed ?? payload.count ?? latestTotals.processed ?? 0) || 0;
-          const pages = Number(payload.pages ?? latestTotals.pages ?? 0) || 0;
-          const summary = processed > 0 ? `Facturas cargadas: ${processed} · Paginas: ${pages}` : "Sin facturas para cargar con esos filtros.";
-          setInvoicesBackfillStatus(summary, "is-ok");
+          const total = Number(payload.total ?? latestTotals.total ?? 0) || 0;
+          const processed = Number(payload.processed ?? latestTotals.processed ?? 0) || 0;
+          const created = Number(payload.created ?? 0) || 0;
+          const skipped = Number(payload.skipped ?? 0) || 0;
+          const failed = Number(payload.failed ?? 0) || 0;
+          const summary =
+            total > 0
+              ? `Total: ${total} · Procesadas: ${processed} · Creadas: ${created} · Existentes: ${skipped} · Fallidas: ${failed}`
+              : "Sin facturas para sincronizar con esos filtros.";
+          setInvoicesBackfillStatus(summary, failed ? "is-warn" : "is-ok");
           stop("Facturas 100%");
           await loadOperationsView();
           return;
         }
         if (payload.type === "error") {
-          throw new Error(payload.error || "No se pudieron cargar facturas.");
+          throw new Error(payload.error || "No se pudieron sincronizar facturas.");
         }
       }
     }
     const processed = Number(latestTotals.processed) || 0;
-    const summary = processed > 0 ? `Facturas cargadas: ${processed}` : "Facturas cargadas.";
+    const summary = processed > 0 ? `Facturas procesadas: ${processed}` : "Facturas sincronizadas.";
     setInvoicesBackfillStatus(summary, "is-ok");
     stop("Facturas 100%");
     await loadOperationsView();
   } catch (error) {
-    const message = String(error?.message || "No se pudieron cargar facturas.");
+    const message = String(error?.message || "No se pudieron sincronizar facturas.");
     if (message.includes("aborted") || message.includes("AbortError")) {
       setInvoicesBackfillStatus("Detenido.", "is-warn");
       stop("Facturas detenido");
@@ -9587,6 +9607,7 @@ if (qaTokenCopy) {
 		    if (invoicesBackfillDateStart instanceof HTMLInputElement) invoicesBackfillDateStart.value = "";
 		    if (invoicesBackfillDateEnd instanceof HTMLInputElement) invoicesBackfillDateEnd.value = "";
 		    if (invoicesBackfillLimit instanceof HTMLInputElement) invoicesBackfillLimit.value = "";
+		    if (invoicesBackfillMode instanceof HTMLSelectElement) invoicesBackfillMode.value = "draft";
 		    setInvoicesBackfillStatus("Sin datos", "");
 		  });
 		}

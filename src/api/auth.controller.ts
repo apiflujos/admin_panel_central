@@ -61,6 +61,7 @@ export async function loginHandler(req: Request, res: Response) {
   res.cookie(AUTH_COOKIE_NAME, result.token, {
     httpOnly: true,
     sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: result.maxAgeMs,
   });

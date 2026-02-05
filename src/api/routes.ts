@@ -49,6 +49,7 @@ import { shopifyOAuthCallback, shopifyOAuthStatus, startShopifyOAuth } from "./s
 import { listContactsHandler, syncContactHandler, syncContactsBulkHandler } from "./contacts.controller";
 import { listOrdersHandler, backfillOrdersHandler } from "./orders.controller";
 import { downloadInvoicePdfHandler, listInvoicesHandler } from "./invoices.controller";
+import { syncInvoicesToShopifyHandler } from "./invoices-sync.controller";
 
 export const router = Router();
 
@@ -112,6 +113,7 @@ router.get("/shopify/webhooks/status", requireAdmin, wrap(getShopifyWebhooksStat
 router.post("/sync/products", wrap(syncProductsHandler));
 router.post("/sync/products/stop", wrap(stopProductsSyncHandler));
 router.post("/sync/orders", wrap(syncOrdersHandler));
+router.post("/sync/invoices", wrap(syncInvoicesToShopifyHandler));
 router.post("/backfill/products", wrap(backfillProductsHandler));
 router.post("/backfill/orders", wrap(backfillOrdersHandler));
 router.post("/sync/inventory-adjustments", wrap(syncInventoryAdjustmentsHandler));

@@ -26,14 +26,16 @@ Starter scaffolding for the integration middleware and dashboard API.
 ## Notes
 - Webhook endpoint: `POST /api/webhooks/shopify`
 - Webhook endpoint: `POST /api/webhooks/alegra`
+- Mass sync (Alegra → Shopify): `POST /api/sync/invoices` (crea pedidos/borradores desde facturas Alegra)
 - Shopify client uses GraphQL Admin API (see `src/connectors/shopify.ts`)
 - Health check: `GET /health`
 - Database DDL: `src/db/migrations/001_init.sql`
 
 ## Required env vars for sync
 - `APP_ORG_ID`, `DATABASE_URL`, `CRYPTO_KEY_BASE64`
-- `SHOPIFY_WEBHOOK_SECRET` (required for Shopify webhook validation)
+- `SHOPIFY_WEBHOOK_SECRET` (required for Shopify webhook validation; si no lo pones, se usa `SHOPIFY_API_SECRET`)
 - `ALEGRA_WEBHOOK_SECRET` (optional, for signature validation)
+  - Debug only: `ALLOW_UNVERIFIED_SHOPIFY_WEBHOOKS=true` (acepta webhooks sin firma incluso en production; no recomendado)
 
 ## Credential storage
 - Shopify and Alegra credentials are stored encrypted in `credentials.data_encrypted`.

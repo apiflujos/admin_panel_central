@@ -16,6 +16,8 @@ import {
   getMappingByShopifyInventoryItemId,
   updateMappingMetadata,
 } from "./mapping.service";
+import { resolveStoreConfig } from "./store-config.service";
+import { syncAlegraInvoiceToShopifyFromWebhook } from "./alegra-invoices-to-shopify-orders.service";
 
 type WebhookEvent = {
   source: "shopify" | "alegra";
@@ -213,9 +215,36 @@ export async function processAlegraWebhook(eventType: string, payload: unknown) 
       return handleAlegraItem(payload);
     case "inventory.updated":
       return handleAlegraInventory(payload);
+    case "invoice.created":
+    case "invoice.updated":
+      return handleAlegraInvoice(payload);
     default:
+      if (String(eventType || "").toLowerCase().includes("invoice")) {
+        return handleAlegraInvoice(payload);
+      }
       return { ignored: true, eventType };
   }
+}
+
+async function handleAlegraInvoice(payload: unknown) {
+  const data = (payload || {}) as Record<string, unknown>;
+  const envelope = (data.data as Record<string, unknown> | undefined) || data;
+  const invoiceId = envelope?.id ? String(envelope.id).trim() : "";
+  if (!invoiceId) {
+    return { handled: false, reason: "missing_invoice_id" };
+  }
+  const shopDomain = extractShopDomain(payload);
+  const storeConfig = await resolveStoreConfig(shopDomain || null);
+  const mode = storeConfig.syncOrdersAlegraToShopify;
+  if (mode === "off") {
+    return { handled: false, reason: "sync_off" };
+  }
+  const result = await syncAlegraInvoiceToShopifyFromWebhook({
+    shopDomain: shopDomain || undefined,
+    alegraInvoiceId: invoiceId,
+    mode: mode === "active" ? "active" : "draft",
+  });
+  return { handled: true, type: "invoice", invoiceId, mode, result };
 }
 
 async function handleAlegraItem(payload: unknown) {

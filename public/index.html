@@ -1210,6 +1210,48 @@
 		                          </div>
 		                        </div>
 
+			                        <div class="mode-section" data-readonly-free="1">
+			                          <div class="mode-head">
+			                            <div class="mode-head-left">
+			                              <h4>Sincronizacion masiva (Alegra → Shopify)</h4>
+	                              <span class="tip" data-tip="Toma facturas de Alegra y crea pedidos en Shopify (Activo) o borradores (Borrador). Tip: si el item de la factura está mapeado (Producto Alegra ↔ Variante Shopify), se usa la variante; si no, se crea una linea personalizada con precio/cantidad.">?</span>
+	                            </div>
+	                          </div>
+	                          <div class="mode-grid">
+	                            <div class="mode-field">
+	                              <label for="invoices-backfill-date-start">Fecha inicio</label>
+	                              <input type="date" id="invoices-backfill-date-start" />
+	                            </div>
+	                            <div class="mode-field">
+	                              <label for="invoices-backfill-date-end">Fecha fin</label>
+	                              <input type="date" id="invoices-backfill-date-end" />
+	                            </div>
+	                            <div class="mode-field">
+	                              <label for="invoices-backfill-limit">Limite (recomendado)</label>
+	                              <input type="number" id="invoices-backfill-limit" min="1" placeholder="200" />
+	                            </div>
+	                            <div class="mode-field">
+	                              <label for="invoices-backfill-mode">Crear como</label>
+	                              <select id="invoices-backfill-mode">
+	                                <option value="draft" selected>Borrador (Draft)</option>
+	                                <option value="active">Activo (Order)</option>
+	                              </select>
+	                            </div>
+	                          </div>
+	                          <div class="mode-actions">
+	                            <button class="primary" id="invoices-backfill-run" type="button">Sincronizar facturas</button>
+	                            <button class="ghost danger" id="invoices-backfill-stop" type="button" hidden>Detener</button>
+	                            <button class="ghost" id="invoices-backfill-clear" type="button">Limpiar</button>
+	                            <span class="kpi-sub" id="invoices-backfill-status">Sin datos</span>
+	                          </div>
+		                          <div class="sync-progress" id="invoices-backfill-progress" aria-hidden="true">
+		                            <div class="sync-progress-track">
+		                              <div class="sync-progress-bar" id="invoices-backfill-progress-bar"></div>
+		                            </div>
+		                            <span class="sync-progress-label" id="invoices-backfill-progress-label">Sincronizando 0%</span>
+		                          </div>
+		                        </div>
+
 							                        <div class="mode-section">
 								                          <div class="mode-head">
 								                            <div class="mode-head-left">
@@ -1231,6 +1273,26 @@
 							                            <option value="invoice">Crear factura</option>
 							                            <option value="off">No sincronizar</option>
 							                          </select>
+							                        </div>
+
+							                        <div class="mode-section">
+							                          <div class="mode-head">
+							                            <div class="mode-head-left">
+							                              <label class="mode-title-toggle" for="sync-orders-alegra-enabled" data-dep-controller="1">
+							                                <input type="checkbox" id="sync-orders-alegra-enabled" class="toggle" data-dep-controller="1" />
+							                                <span>Sincronizacion automatica de facturas (Alegra → Shopify)</span>
+							                              </label>
+							                              <span class="tip" data-tip="ON: cuando llega un webhook de Alegra para factura, creamos el pedido en Shopify según el modo seleccionado. Recomendado: configurar el webhook como /api/webhooks/alegra?shopDomain=tu-tienda.myshopify.com.">?</span>
+							                            </div>
+							                            <div class="mode-head-right">
+							                              <label for="sync-orders-alegra">Crear pedido como</label>
+							                              <select id="sync-orders-alegra">
+							                                <option value="off" selected>Apagado</option>
+							                                <option value="draft">Borrador (Draft)</option>
+							                                <option value="active">Activo (Order)</option>
+							                              </select>
+							                            </div>
+							                          </div>
 							                        </div>
 			                      </div>
 		                      <p class="field-hint module-warning is-hidden" data-module-warning="sync-orders"></p>

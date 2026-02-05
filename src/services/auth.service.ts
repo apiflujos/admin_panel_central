@@ -159,13 +159,26 @@ async function ensureDefaultAdmin(pool: ReturnType<typeof getPool>, orgId: numbe
   if (existing.rows.length) {
     return;
   }
-  const passwordHash = hashPassword(process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD);
+  const adminEmail = String(process.env.ADMIN_EMAIL || "").trim();
+  const adminPassword = String(process.env.ADMIN_PASSWORD || "");
+  const isProd = process.env.NODE_ENV === "production";
+  if (isProd && (!adminEmail || !adminPassword)) {
+    throw new Error("Falta ADMIN_EMAIL/ADMIN_PASSWORD para bootstrap de admin en producción.");
+  }
+  const effectiveEmail = adminEmail || DEFAULT_ADMIN_EMAIL;
+  const effectivePassword = adminPassword || DEFAULT_ADMIN_PASSWORD;
+  if (!isProd && (!adminEmail || !adminPassword)) {
+    console.warn(
+      "WARNING: Usando credenciales admin por defecto (dev). Define ADMIN_EMAIL y ADMIN_PASSWORD antes de desplegar."
+    );
+  }
+  const passwordHash = hashPassword(effectivePassword);
   await pool.query(
     `
     INSERT INTO users (organization_id, email, password_hash, role, name)
     VALUES ($1, $2, $3, 'admin', $4)
     `,
-    [orgId, process.env.ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL, passwordHash, "Sebastian"]
+    [orgId, effectiveEmail, passwordHash, "Sebastian"]
   );
 }
 
@@ -189,5 +202,10 @@ export function verifyPassword(password: string, stored: string) {
   const derived = crypto
     .pbkdf2Sync(password, salt, iterations, 64, PASSWORD_DIGEST)
     .toString("hex");
-  return crypto.timingSafeEqual(Buffer.from(derived), Buffer.from(hash));
+  const derivedBuffer = Buffer.from(derived, "utf8");
+  const hashBuffer = Buffer.from(hash, "utf8");
+  if (derivedBuffer.length !== hashBuffer.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(derivedBuffer, hashBuffer);
 }

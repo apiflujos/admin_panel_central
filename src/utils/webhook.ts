@@ -1,11 +1,18 @@
 import crypto from "crypto";
 
 export function verifyShopifyHmac(rawBody: Buffer, signature: string) {
-  const secret = process.env.SHOPIFY_WEBHOOK_SECRET || "";
+  const secret = String(process.env.SHOPIFY_WEBHOOK_SECRET || process.env.SHOPIFY_API_SECRET || "").trim();
   if (!secret) {
-    return true;
+    if (String(process.env.ALLOW_UNVERIFIED_SHOPIFY_WEBHOOKS || "").toLowerCase() === "true") {
+      return true;
+    }
+    return process.env.NODE_ENV !== "production";
   }
   if (!rawBody) {
+    return false;
+  }
+  const normalizedSignature = String(signature || "").trim();
+  if (!normalizedSignature) {
     return false;
   }
   const digest = crypto
@@ -13,8 +20,8 @@ export function verifyShopifyHmac(rawBody: Buffer, signature: string) {
     .update(rawBody)
     .digest("base64");
 
-  const digestBuffer = Buffer.from(digest);
-  const signatureBuffer = Buffer.from(signature);
+  const digestBuffer = Buffer.from(digest, "utf8");
+  const signatureBuffer = Buffer.from(normalizedSignature, "utf8");
   if (digestBuffer.length !== signatureBuffer.length) {
     return false;
   }
@@ -29,12 +36,16 @@ export function verifyAlegraSignature(rawBody: Buffer, signature: string) {
   if (!rawBody) {
     return false;
   }
+  const normalizedSignature = String(signature || "").trim();
+  if (!normalizedSignature) {
+    return false;
+  }
   const digest = crypto
     .createHmac("sha256", secret)
     .update(rawBody)
     .digest("hex");
   const digestBuffer = Buffer.from(digest, "utf8");
-  const signatureBuffer = Buffer.from(signature, "utf8");
+  const signatureBuffer = Buffer.from(normalizedSignature, "utf8");
   if (digestBuffer.length !== signatureBuffer.length) {
     return false;
   }
