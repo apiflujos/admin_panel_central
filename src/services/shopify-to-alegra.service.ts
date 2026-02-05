@@ -454,6 +454,9 @@ export async function syncShopifyOrderToAlegra(
     }
   }
 
+  const adjustmentWarehouseId = resolvedWarehouseId
+    ? String(resolvedWarehouseId)
+    : ctx.alegraWarehouseId;
   const adjustmentKey = orderId ? `inventory-adjust:${orderId}` : undefined;
   let adjustment = null;
   if (adjustmentKey) {
@@ -470,7 +473,7 @@ export async function syncShopifyOrderToAlegra(
       try {
         adjustment = await createInventoryAdjustmentFromOrder(
           payload,
-          ctx.alegraWarehouseId,
+          adjustmentWarehouseId,
           ctx
         );
         await markIdempotencyKey(adjustmentKey, "completed");
@@ -486,7 +489,7 @@ export async function syncShopifyOrderToAlegra(
   } else {
     adjustment = await createInventoryAdjustmentFromOrder(
       payload,
-      ctx.alegraWarehouseId,
+      adjustmentWarehouseId,
       ctx
     );
   }
