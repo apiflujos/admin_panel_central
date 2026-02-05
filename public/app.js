@@ -1325,6 +1325,51 @@ function setDependentEnabled(element, enabled) {
   return wasDisabled !== isDisabledNow;
 }
 
+function updateMultiSelectDropdownDirection(details) {
+  if (!(details instanceof HTMLDetailsElement)) return;
+  if (!details.classList.contains("multi-select")) return;
+  if (!details.open) {
+    details.removeAttribute("data-open-up");
+    return;
+  }
+  const dropdown = details.querySelector(".checkbox-grid");
+  if (!(dropdown instanceof HTMLElement)) return;
+  const detailsRect = details.getBoundingClientRect();
+  const dropdownRect = dropdown.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - detailsRect.bottom;
+  const spaceAbove = detailsRect.top;
+  const needsUp = spaceBelow < dropdownRect.height + 12 && spaceAbove > spaceBelow;
+  details.setAttribute("data-open-up", needsUp ? "1" : "0");
+  if (!needsUp) {
+    details.removeAttribute("data-open-up");
+  }
+}
+
+function setupMultiSelectDropdowns() {
+  document.querySelectorAll("details.multi-select").forEach((node) => {
+    if (!(node instanceof HTMLDetailsElement)) return;
+    node.addEventListener("toggle", () => {
+      if (!node.open) {
+        node.removeAttribute("data-open-up");
+        return;
+      }
+      requestAnimationFrame(() => {
+        updateMultiSelectDropdownDirection(node);
+        node.scrollIntoView({ block: "nearest" });
+      });
+    });
+  });
+  window.addEventListener(
+    "resize",
+    () => {
+      document.querySelectorAll("details.multi-select[open]").forEach((node) => {
+        updateMultiSelectDropdownDirection(node);
+      });
+    },
+    { passive: true },
+  );
+}
+
 function applyToggleDependencies() {
   const dependents = Array.from(document.querySelectorAll("[data-depends-on]")).filter(
     (element) => element instanceof HTMLElement,
@@ -9830,13 +9875,14 @@ async function init() {
   initSettingsSubmenu();
   cleanupLegacyConnectionsUi();
   initGroupControls();
-  initToggleFields();
-  initToggleDependencies();
-  initDependencyDisabledToasts();
-  initTips();
-  initSetupModeControls();
-  initShopifyConnectPicker();
-  updateWizardStartAvailability();
+	  initToggleFields();
+	  initToggleDependencies();
+	  initDependencyDisabledToasts();
+	  setupMultiSelectDropdowns();
+	  initTips();
+	  initSetupModeControls();
+	  initShopifyConnectPicker();
+	  updateWizardStartAvailability();
   applyProductSettings();
   await safeLoad(loadCurrentUser());
   await safeLoad(loadCompanyProfile());

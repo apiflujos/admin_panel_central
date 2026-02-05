@@ -1255,36 +1255,46 @@
                     </div>
                   </div>
 
-	                  <div class="mode-grid" data-depends-on="cfg-transfer-enabled">
+		                  <div class="mode-grid" data-depends-on="cfg-transfer-enabled">
+			                    <div class="field mode-field">
+			                      <label>Tipo de bodega destino <span class="tip" data-tip="Automática: usa Bodega prioritaria (o la primera disponible) como destino. Fija (HUB): usa la bodega seleccionada aquí. Por regla: disponible próximamente.">?</span></label>
+			                      <select id="cfg-transfer-dest-mode" data-depends-on="cfg-transfer-enabled">
+			                        <option value="fixed">Fija (HUB)</option>
+			                        <option value="auto">Automática</option>
+			                        <option value="rule">Por regla</option>
+			                      </select>
+			                    </div>
 		                    <div class="field mode-field">
-		                      <label>Tipo de bodega destino <span class="tip" data-tip="Automática: usa Bodega prioritaria (o la primera disponible) como destino. Fija (HUB): usa la bodega seleccionada aquí. Por regla: disponible próximamente.">?</span></label>
-		                      <select id="cfg-transfer-dest-mode" data-depends-on="cfg-transfer-enabled">
-		                        <option value="fixed">Fija (HUB)</option>
-		                        <option value="auto">Automática</option>
-		                        <option value="rule">Por regla</option>
+		                      <label>Bodega destino (HUB) <span class="tip" data-tip="Bodega destino donde queda el inventario listo para facturar y ajustar stock. Solo aplica cuando el tipo de destino es Fija (HUB).">?</span></label>
+		                      <select id="cfg-transfer-dest" data-depends-on="cfg-transfer-enabled"></select>
+		                    </div>
+			                    <div class="field mode-field">
+			                      <label for="cfg-transfer-dest-required">Destino requerido <span class="tip" data-tip="Si está ON, el sistema no puede crear factura si no hay un destino definido.">?</span></label>
+			                      <input type="checkbox" id="cfg-transfer-dest-required" class="toggle" data-depends-on="cfg-transfer-enabled" checked />
+			                    </div>
+		                    <div class="field mode-field">
+		                      <label>Estrategia principal</label>
+		                      <select id="cfg-transfer-strategy" data-depends-on="cfg-transfer-enabled">
+		                        <option value="manual">Manual (sin estrategia)</option>
+		                        <option value="consolidation">Consolidacion</option>
+		                        <option value="priority">Prioridad</option>
+		                        <option value="max_stock">Mayor existencia</option>
 		                      </select>
 		                    </div>
-	                    <div class="field mode-field">
-	                      <label>Bodega destino (HUB) <span class="tip" data-tip="Bodega destino donde queda el inventario listo para facturar y ajustar stock. Solo aplica cuando el tipo de destino es Fija (HUB).">?</span></label>
-	                      <select id="cfg-transfer-dest" data-depends-on="cfg-transfer-enabled"></select>
-	                    </div>
-		                    <div class="field mode-field">
-		                      <label for="cfg-transfer-dest-required">Destino requerido <span class="tip" data-tip="Si está ON, el sistema no puede crear factura si no hay un destino definido.">?</span></label>
-		                      <input type="checkbox" id="cfg-transfer-dest-required" class="toggle" data-depends-on="cfg-transfer-enabled" checked />
+		                    <div class="field mode-field field-span" id="cfg-transfer-origin-field" data-depends-on="cfg-transfer-enabled">
+		                      <label>Bodegas origen <span class="tip" data-tip="Bodegas de donde puede salir la mercancía. Si eliges estrategia Manual, debes seleccionar al menos 1.">?</span></label>
+		                      <details class="multi-select" data-depends-on="cfg-transfer-enabled">
+		                        <summary>
+		                          <span>Seleccionar bodegas</span>
+		                          <em id="cfg-transfer-origin-summary">Todas</em>
+		                        </summary>
+		                        <div class="checkbox-grid single" id="cfg-transfer-origin"></div>
+		                      </details>
 		                    </div>
-	                    <div class="field mode-field">
-	                      <label>Estrategia principal</label>
-	                      <select id="cfg-transfer-strategy" data-depends-on="cfg-transfer-enabled">
-	                        <option value="manual">Manual (sin estrategia)</option>
-                        <option value="consolidation">Consolidacion</option>
-                        <option value="priority">Prioridad</option>
-                        <option value="max_stock">Mayor existencia</option>
-                      </select>
-                    </div>
-                    <div class="field mode-field">
-                      <label>Estrategia de respaldo</label>
-                      <select id="cfg-transfer-fallback" data-depends-on="cfg-transfer-enabled">
-                        <option value="">Ninguna</option>
+		                    <div class="field mode-field">
+		                      <label>Estrategia de respaldo</label>
+		                      <select id="cfg-transfer-fallback" data-depends-on="cfg-transfer-enabled">
+		                        <option value="">Ninguna</option>
                         <option value="manual">Manual (sin estrategia)</option>
                         <option value="consolidation">Consolidacion</option>
                         <option value="priority">Prioridad</option>
@@ -1310,30 +1320,17 @@
                     </div>
                   </div>
 
-                  <div class="mode-toggle-grid" aria-label="Opciones de traslado" data-depends-on="cfg-transfer-enabled">
-                    <div class="mode-toggle">
-                      <label for="cfg-transfer-split">Permitir dividir pedido <span class="tip" data-tip="Si un pedido tiene items en bodegas distintas, permite crear traslados por partes.">?</span></label>
-                      <input type="checkbox" id="cfg-transfer-split" class="toggle" data-depends-on="cfg-transfer-enabled" />
-                    </div>
-                  </div>
-
-                  <div class="mode-grid" data-depends-on="cfg-transfer-enabled">
-                    <div class="field mode-field" id="cfg-transfer-origin-field" data-depends-on="cfg-transfer-enabled">
-                      <label>Bodegas origen <span class="tip" data-tip="Bodegas de donde puede salir la mercancía. Si eliges estrategia Manual, debes seleccionar al menos 1.">?</span></label>
-                      <details class="multi-select" data-depends-on="cfg-transfer-enabled">
-                        <summary>
-                          <span>Seleccionar bodegas</span>
-                          <em id="cfg-transfer-origin-summary">Todas</em>
-                        </summary>
-                        <div class="checkbox-grid single" id="cfg-transfer-origin"></div>
-                      </details>
-                    </div>
-                  </div>
-                </div>
-              </div>
-		              <p class="field-hint module-warning is-hidden" data-module-warning="alegra-logistics"></p>
-		            </div>
-		          </div>
+	                  <div class="mode-toggle-grid" aria-label="Opciones de traslado" data-depends-on="cfg-transfer-enabled">
+	                    <div class="mode-toggle">
+	                      <label for="cfg-transfer-split">Permitir dividir pedido <span class="tip" data-tip="Si un pedido tiene items en bodegas distintas, permite crear traslados por partes.">?</span></label>
+	                      <input type="checkbox" id="cfg-transfer-split" class="toggle" data-depends-on="cfg-transfer-enabled" />
+	                    </div>
+	                  </div>
+	                </div>
+	              </div>
+			              <p class="field-hint module-warning is-hidden" data-module-warning="alegra-logistics"></p>
+			            </div>
+			          </div>
 
 			                  <div class="panel admin-only module" data-provider="alegra" data-manager="shopify" data-module="alegra-invoice" id="legacy-invoice-panel" data-help="Se usa cuando Shopify → Alegra = Factura. Define listas de precios y parametros de facturacion.">
 	            <div class="panel-header">

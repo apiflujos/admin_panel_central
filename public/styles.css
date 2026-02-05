@@ -2737,7 +2737,12 @@ button {
   border: 1px solid var(--stroke);
   border-radius: 12px;
   box-shadow: var(--shadow);
-  z-index: 10;
+  z-index: 9999;
+}
+
+.multi-select[data-open-up="1"][open] .checkbox-grid {
+  top: auto;
+  bottom: calc(100% + 4px);
 }
 
 .multi-select summary::after {
