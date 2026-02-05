@@ -504,16 +504,16 @@ button {
 
 .primary,
 .ghost {
-  min-height: 34px;
-  padding: 0 14px;
-  border-radius: 8px;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
   border: 1px solid transparent;
   cursor: pointer;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .primary {
@@ -555,8 +555,8 @@ button {
 .primary.is-loading::after,
 .ghost.is-loading::after {
   content: "";
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 999px;
   border: 2px solid currentColor;
   border-right-color: transparent;
@@ -1396,19 +1396,19 @@ button {
 
 .module-footer button {
   width: auto;
-  min-width: 92px;
+  min-width: 69px;
   font-weight: 700;
-  min-height: 30px;
-  padding: 0 10px;
-  font-size: 12px;
+  min-height: 23px;
+  padding: 0 8px;
+  font-size: 11px;
 }
 
 /* Override global button sizing for module footer (debe ser compacto). */
 .module-footer button {
   width: auto;
-  min-height: 30px;
-  padding: 0 10px;
-  font-size: 12px;
+  min-height: 23px;
+  padding: 0 8px;
+  font-size: 11px;
 }
 
 .module-footer .ghost {
@@ -1437,9 +1437,9 @@ button {
 .connection-actions button,
 .products-pagination button,
 .actions button {
-  width: 170px;
-  min-height: 38px;
-  padding: 0 16px;
+  width: 128px;
+  min-height: 29px;
+  padding: 0 12px;
   text-align: center;
 }
 
@@ -1457,7 +1457,7 @@ button {
 
 .module-footer > button {
   width: auto;
-  min-width: 120px;
+  min-width: 90px;
 }
 
 @media (max-width: 720px) {
@@ -1916,8 +1916,8 @@ button {
 
 .toggle {
   appearance: none;
-  width: 44px;
-  height: 22px;
+  width: 33px;
+  height: 17px;
   background: rgba(15, 23, 42, 0.1);
   border-radius: 999px;
   position: relative;
@@ -1931,8 +1931,8 @@ button {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 18px;
-  height: 18px;
+  width: 13px;
+  height: 13px;
   background: #ffffff;
   border-radius: 50%;
   transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
@@ -1945,7 +1945,7 @@ button {
 }
 
 .toggle:checked::after {
-  transform: translateX(22px);
+  transform: translateX(16px);
 }
 
 .toggle:focus-visible {
@@ -3191,19 +3191,19 @@ textarea::placeholder {
 }
 
 .panel.module[data-module="shopify-rules"] input.toggle {
-  width: 38px;
-  height: 20px;
+  width: 29px;
+  height: 15px;
 }
 
 .panel.module[data-module="shopify-rules"] input.toggle::after {
   top: 2px;
   left: 2px;
-  width: 16px;
-  height: 16px;
+  width: 11px;
+  height: 11px;
 }
 
 .panel.module[data-module="shopify-rules"] input.toggle:checked::after {
-  transform: translateX(18px);
+  transform: translateX(14px);
 }
 
 /* Contactos: evitar controles centrados (alinear a la izquierda). */
@@ -3332,6 +3332,36 @@ textarea::placeholder {
 .panel.module input:not([type="checkbox"]),
 .panel.module textarea {
   min-height: 28px;
+}
+
+.panel.module .mode-grid .field select,
+.panel.module .mode-grid .field input:not([type="checkbox"]),
+.panel.module .mode-grid .field textarea,
+.panel.module .mode-grid .field details.multi-select {
+  width: 100%;
+  max-width: 220px;
+}
+
+.panel.module .mode-grid .field.field-span select,
+.panel.module .mode-grid .field.field-span input:not([type="checkbox"]),
+.panel.module .mode-grid .field.field-span textarea,
+.panel.module .mode-grid .field.field-span details.multi-select {
+  max-width: none;
+}
+
+.panel.module select {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .panel.module .mode-grid .field select,
+  .panel.module .mode-grid .field input:not([type="checkbox"]),
+  .panel.module .mode-grid .field textarea,
+  .panel.module .mode-grid .field details.multi-select {
+    max-width: none;
+  }
 }
 
 .field.is-error input,
