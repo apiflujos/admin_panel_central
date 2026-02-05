@@ -1299,6 +1299,9 @@ export async function syncProductsHandler(req: Request, res: Response) {
     const maxItems = Number.isFinite(Number(filters.limit)) ? Number(filters.limit) : null;
     const onlyActive = filters.onlyActive !== false;
     const includeInventory = filters.includeInventory !== false;
+  const requestedWarehouseIds = Array.isArray((filters as any).warehouseIds)
+    ? (filters as any).warehouseIds.map((id: unknown) => String(id || "").trim()).filter(Boolean)
+    : [];
   const shopDomainInput = typeof req.body?.shopDomain === "string" ? String(req.body.shopDomain).trim() : "";
   const safeBatchSize = Math.max(1, Math.min(Number(batchSize) || 5, 10));
   const hasDateFilter = Boolean(filters.dateStart || filters.dateEnd);
@@ -1382,9 +1385,11 @@ export async function syncProductsHandler(req: Request, res: Response) {
     const storeConfig = storeDomain ? await resolveStoreConfig(storeDomain) : await resolveStoreConfig(null);
     const storeConfigFull = storeDomain ? await getStoreConfigForDomain(storeDomain) : null;
     const warehouseIds =
-      storeConfigFull?.rules?.warehouseIds && storeConfigFull.rules.warehouseIds.length
-        ? storeConfigFull.rules.warehouseIds
-        : await loadWarehouseIdsForSync();
+      requestedWarehouseIds.length
+        ? requestedWarehouseIds
+        : storeConfigFull?.rules?.warehouseIds && storeConfigFull.rules.warehouseIds.length
+          ? storeConfigFull.rules.warehouseIds
+          : await loadWarehouseIdsForSync();
     const shopifyClient =
       publishOnSync && shopifyConfig
         ? new ShopifyClient({

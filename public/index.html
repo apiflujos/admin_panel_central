@@ -922,6 +922,18 @@
 		                              <input type="checkbox" id="products-sync-include-inventory" class="toggle" checked />
 		                            </div>
 	                          </div>
+	                          <div class="mode-grid">
+	                            <div class="field mode-field field-span" id="cfg-warehouse-sync-field">
+	                              <label>Bodegas para stock (masivo) <span class="tip" data-tip="Opcional. Si eliges bodegas aquí, el masivo calcula/filtra el stock usando solo esas bodegas. Si dejas “Todas”, usamos las bodegas guardadas en “Inventario y bodegas” (también aplican para automático).">?</span></label>
+	                              <details class="multi-select">
+	                                <summary>
+	                                  <span>Seleccionar bodegas</span>
+	                                  <em id="cfg-warehouse-sync-summary">Todas</em>
+	                                </summary>
+	                                <div class="checkbox-grid single" id="cfg-warehouse-sync"></div>
+	                              </details>
+	                            </div>
+	                          </div>
 	                          <div class="mode-actions">
 	                            <button class="primary" id="products-sync-filtered" type="button">Sincronizar masivo</button>
 		                            <button class="ghost danger" id="products-sync-stop" type="button" hidden>Detener</button>
@@ -1003,7 +1015,7 @@
 			                              </select>
 				                            </div>
 				                            <div class="mode-toggle">
-				                              <label for="cfg-inventory-warehouses">Bodegas para stock</label>
+				                              <label for="cfg-inventory-warehouses">Bodegas para stock (masivo y automático) <span class="tip" data-tip="Estas bodegas se usan para calcular existencias cuando sincronizamos inventario y también para filtrar/calcular stock cuando sincronizamos productos (masivo y automático).">?</span></label>
 				                              <details class="multi-select" data-depends-on="inventory-cron-enabled">
 			                                <summary>
 			                                  <span>Seleccionar bodegas</span>
@@ -1210,6 +1222,29 @@
 		                          </div>
 		                        </div>
 
+							                        <div class="mode-section">
+								                          <div class="mode-head">
+								                            <div class="mode-head-left">
+							                              <label class="mode-title-toggle" for="sync-orders-shopify-enabled" data-dep-controller="1">
+							                                <input type="checkbox" id="sync-orders-shopify-enabled" class="toggle" data-dep-controller="1" />
+							                                <span>Sincronizacion automatica de pedidos</span>
+							                              </label>
+								                              <span class="tip" data-tip="ON: procesa pedidos nuevos en tiempo real (webhooks). OFF: no se detectan pedidos nuevos automaticamente.">?</span>
+							                            </div>
+							                            <div class="mode-head-right" aria-label="Estado webhooks Shopify">
+							                              <label for="sync-orders-shopify-invoice">Crear factura <span class="tip" data-tip="Si está ON, se crea la factura usando Logistica/Traslados + Facturacion. Si está OFF, solo registramos el pedido en la base.">?</span></label>
+							                              <input type="checkbox" id="sync-orders-shopify-invoice" class="toggle" data-depends-on="sync-orders-shopify-enabled" />
+							                              <label>Webhooks</label>
+							                              <span class="kpi-sub" id="shopify-webhooks-status">Sin configurar</span>
+							                            </div>
+							                          </div>
+							                          <select id="sync-orders-shopify" hidden aria-hidden="true" tabindex="-1">
+							                            <option value="db_only">Solo registrar</option>
+							                            <option value="invoice">Crear factura</option>
+							                            <option value="off">No sincronizar</option>
+							                          </select>
+							                        </div>
+
 			                        <div class="mode-section" data-readonly-free="1">
 			                          <div class="mode-head">
 			                            <div class="mode-head-left">
@@ -1257,29 +1292,6 @@
 		                            <span class="sync-progress-label" id="invoices-backfill-progress-label">Sincronizando 0%</span>
 		                          </div>
 		                        </div>
-
-							                        <div class="mode-section">
-								                          <div class="mode-head">
-								                            <div class="mode-head-left">
-							                              <label class="mode-title-toggle" for="sync-orders-shopify-enabled" data-dep-controller="1">
-							                                <input type="checkbox" id="sync-orders-shopify-enabled" class="toggle" data-dep-controller="1" />
-							                                <span>Sincronizacion automatica de pedidos</span>
-							                              </label>
-								                              <span class="tip" data-tip="ON: procesa pedidos nuevos en tiempo real (webhooks). OFF: no se detectan pedidos nuevos automaticamente.">?</span>
-							                            </div>
-							                            <div class="mode-head-right" aria-label="Estado webhooks Shopify">
-							                              <label for="sync-orders-shopify-invoice">Crear factura <span class="tip" data-tip="Si está ON, se crea la factura usando Logistica/Traslados + Facturacion. Si está OFF, solo registramos el pedido en la base.">?</span></label>
-							                              <input type="checkbox" id="sync-orders-shopify-invoice" class="toggle" data-depends-on="sync-orders-shopify-enabled" />
-							                              <label>Webhooks</label>
-							                              <span class="kpi-sub" id="shopify-webhooks-status">Sin configurar</span>
-							                            </div>
-							                          </div>
-							                          <select id="sync-orders-shopify" hidden aria-hidden="true" tabindex="-1">
-							                            <option value="db_only">Solo registrar</option>
-							                            <option value="invoice">Crear factura</option>
-							                            <option value="off">No sincronizar</option>
-							                          </select>
-							                        </div>
 
 							                        <div class="mode-section">
 							                          <div class="mode-head">

@@ -6292,6 +6292,9 @@ async function runProductsSync(mode) {
 	        dateEnd: productSettings.sync.dateEnd || null,
           limit: productSettings.sync.limit ? Number(productSettings.sync.limit) : null,
           query: productSettings.sync.query || null,
+          warehouseIds: Array.isArray(productSettings.sync.warehouseIds)
+            ? productSettings.sync.warehouseIds
+            : [],
           includeInventory: productSettings.sync.includeInventory !== false,
           onlyActive: productSettings.sync.onlyActive !== false,
         },
