@@ -814,14 +814,33 @@ function showToast(message, state, options = {}) {
 }
 
 async function fetchJson(url, options) {
-  const response = await fetch(url, options);
+  let response;
+  try {
+    response = await fetch(url, options);
+  } catch (error) {
+    const message = error?.message || "fetch failed";
+    throw new Error(message);
+  }
   if (response.status === 401) {
     window.location.href = "/login.html";
     throw new Error("unauthorized");
   }
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || "Error de red");
+    let message = text || "Error de red";
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed === "object") {
+        const asAny = parsed;
+        message =
+          (typeof asAny.error === "string" && asAny.error) ||
+          (typeof asAny.message === "string" && asAny.message) ||
+          message;
+      }
+    } catch {
+      // ignore json parse errors
+    }
+    throw new Error(message || "Error de red");
   }
   return response.json();
 }
@@ -3077,6 +3096,9 @@ function applyPrereqState(moduleKey, state) {
   const panel = getModulePanel(moduleKey);
   if (!panel) return;
   setModuleEnabled(panel, state.enabled);
+  if (moduleKey === "alegra-invoice" || moduleKey === "alegra-logistics") {
+    panel.classList.toggle("is-prereq-blocked", Boolean(state.message));
+  }
   setModulePrereqWarning(moduleKey, state.message);
   setModulePrereqButtons(panel, Boolean(state.message));
 }

@@ -1905,6 +1905,19 @@ button {
   opacity: 0.85;
 }
 
+.module.is-prereq-blocked .module-body > :not(.module-warning) {
+  display: none !important;
+}
+
+.module.is-prereq-blocked .module-warning {
+  display: block;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px dashed rgba(15, 23, 42, 0.22);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.02);
+}
+
 .is-dep-disabled {
   opacity: 0.5;
   filter: grayscale(0.18);
