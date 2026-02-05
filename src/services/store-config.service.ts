@@ -156,6 +156,10 @@ export async function getStoreConfigByDomain(shopDomain: string): Promise<StoreC
     typeof ordersAlegraEnabledRaw === "boolean"
       ? ordersAlegraEnabledRaw
       : orderAlegraMode !== "off";
+  const effectiveOrderShopifyMode: ShopifyOrderMode =
+    contactsEnabled || orderShopifyMode === "db_only" || orderShopifyMode === "off"
+      ? orderShopifyMode
+      : "db_only";
   return {
     shopDomain: row.shop_domain,
     transferEnabled: transfers.enabled !== false,
@@ -196,10 +200,8 @@ export async function getStoreConfigByDomain(shopDomain: string): Promise<StoreC
     syncContactsCreateInAlegra: contactsEnabled && contactSync.createInAlegra !== false,
     syncContactsCreateInShopify: contactsEnabled && contactSync.createInShopify !== false,
     contactMatchPriority: normalizeMatchPriority(contactSync.matchPriority),
-    syncOrdersShopifyToAlegra:
-      contactsEnabled && ordersShopifyEnabled ? orderShopifyMode : "off",
-    syncOrdersAlegraToShopify:
-      contactsEnabled && ordersAlegraEnabled ? orderAlegraMode : "off",
+    syncOrdersShopifyToAlegra: ordersShopifyEnabled ? effectiveOrderShopifyMode : "off",
+    syncOrdersAlegraToShopify: ordersAlegraEnabled ? orderAlegraMode : "off",
   };
 }
 

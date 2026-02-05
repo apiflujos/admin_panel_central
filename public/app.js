@@ -381,8 +381,8 @@ const WIZARD_MODULE_ORDER = [
   "shopify-rules",
   "alegra-inventory",
   "sync-orders",
-  "alegra-invoice",
   "alegra-logistics",
+  "alegra-invoice",
 ];
 const DEFAULT_PRODUCT_SETTINGS = {
   publish: {
@@ -7460,11 +7460,12 @@ if (syncOrdersAlegraEnabled) {
 
 if (syncOrdersShopify) {
   syncOrdersShopify.addEventListener("change", () => {
-    if (!warnIfShopifyOrdersInvoiceNotReady() && syncOrdersShopify.value === "invoice") {
-      syncOrdersShopify.value = "db_only";
-    }
+    warnIfShopifyOrdersInvoiceNotReady();
     if (syncOrdersShopify.value === "invoice" && cfgGenerateInvoice instanceof HTMLInputElement) {
       cfgGenerateInvoice.checked = true;
+    }
+    if (syncOrdersShopify.value === "invoice" && cfgTransferEnabled instanceof HTMLInputElement) {
+      cfgTransferEnabled.checked = true;
     }
     if (syncOrdersShopifyEnabled) {
       syncOrdersShopifyEnabled.checked = syncOrdersShopify.value !== "off";
@@ -7956,11 +7957,11 @@ async function saveStoreConfigFromSettings() {
         shopifyEnabled:
           syncOrdersShopifyEnabled instanceof HTMLInputElement
             ? Boolean(syncOrdersShopifyEnabled.checked)
-            : true,
+            : false,
         alegraEnabled:
           syncOrdersAlegraEnabled instanceof HTMLInputElement
             ? Boolean(syncOrdersAlegraEnabled.checked)
-            : true,
+            : false,
         shopifyToAlegra: shopifyOrderMode || "db_only",
         alegraToShopify: alegraOrderMode || "off",
       },

@@ -1598,7 +1598,7 @@ button {
 
 /* Titulos con logos (Shopify ↔ Alegra): reducir jerarquia visual. */
 .settings-group.provider-group .settings-group-header h4.group-title {
-  font-size: 11.4px;
+  font-size: 14.8px;
 }
 
 .settings-group.provider-group[data-group="products"] .settings-group-header {

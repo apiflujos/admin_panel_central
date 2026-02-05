@@ -35,7 +35,7 @@
 	            </span>
 	            <span class="nav-label">Pedidos</span>
 	          </button>
-	          <button class="nav-item" data-target="operations" data-ops-view="invoices" title="Facturas">
+		          <button class="nav-item" data-target="operations" data-ops-view="invoices" title="Facturas" hidden>
 	            <span class="nav-icon" aria-hidden="true">
 	              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
 	                <path d="M7 8h10M7 12h10M7 16h10" />
@@ -354,10 +354,10 @@
 	            <div class="panel-header">
 	              <h3>Gestion de pedidos</h3>
 	              <span class="panel-tag">Pedidos</span>
-	              <div class="panel-actions" aria-label="Vista de operación">
-	                <button class="ghost is-active" id="ops-view-orders" type="button">Pedidos</button>
-	                <button class="ghost" id="ops-view-invoices" type="button">Facturas</button>
-	              </div>
+		              <div class="panel-actions" aria-label="Vista de operación">
+		                <button class="ghost is-active" id="ops-view-orders" type="button">Pedidos</button>
+		                <button class="ghost" id="ops-view-invoices" type="button" hidden>Facturas</button>
+		              </div>
 	            </div>
 	            <div class="toolbar products-toolbar">
 	              <div class="toolbar-store">
@@ -425,7 +425,7 @@
 	              </div>
 	            </div>
 
-	            <div class="ops-view is-hidden" data-ops-view="invoices">
+		            <div class="ops-view is-hidden" data-ops-view="invoices" hidden>
 	              <div class="table-card orders-table">
 	                <table class="table" id="invoices-table">
 	                  <thead>
@@ -867,7 +867,7 @@
                   </h4>
                 </div>
                 <div class="settings-group-body">
-	                  <div class="panel admin-only module" data-provider="bridge" data-manager="alegra" data-module="shopify-rules" data-module-priority="core" id="legacy-publish-panel" data-depends-on="shopify-automation-enabled" data-help="Modulo principal de Productos: define como se publican y actualizan productos en Shopify cuando llegan cambios desde Alegra (automatico: se sincroniza solo) o cuando publicas manual/masivo desde el panel de Productos.">
+	                  <div class="panel admin-only module" data-provider="bridge" data-manager="alegra" data-module="shopify-rules" data-module-priority="core" id="legacy-publish-panel" data-help="Modulo principal de Productos: define como se publican y actualizan productos en Shopify cuando llegan cambios desde Alegra (automatico: se sincroniza solo) o cuando publicas manual/masivo desde el panel de Productos.">
                     <div class="panel-header">
 		                      <h3 data-module-toggle="shopify-rules" data-title-base="Sincronizacion y publicacion de productos">
 		                        Sincronizacion y publicacion de productos
@@ -971,7 +971,7 @@
 	                    </div>
 	                  </div>
 
-			                  <div class="panel admin-only module" data-provider="bridge" data-manager="alegra" data-module="alegra-inventory" id="inventory-rules-panel" data-depends-on="shopify-automation-enabled" data-help="Inventario automatico por tienda: define de que bodegas se toma el stock y si lo mantenemos actualizado en Shopify.">
+			                  <div class="panel admin-only module" data-provider="bridge" data-manager="alegra" data-module="alegra-inventory" id="inventory-rules-panel" data-help="Inventario automatico por tienda: define de que bodegas se toma el stock y si lo mantenemos actualizado en Shopify.">
 		                    <div class="panel-header">
 		                      <h3 data-module-toggle="alegra-inventory" data-title-base="Inventario y bodegas">
 		                        Inventario y bodegas
@@ -1177,15 +1177,25 @@
 		                        <div class="mode-section">
 		                          <div class="mode-head">
 		                            <div class="mode-head-left">
-		                              <label class="mode-title-toggle" for="shopify-automation-enabled" data-dep-controller="1">
-		                                <input type="checkbox" id="shopify-automation-enabled" class="toggle" data-dep-controller="1" checked />
-		                                <span>Automatizacion global</span>
+		                              <label class="mode-title-toggle" for="sync-orders-shopify-enabled" data-dep-controller="1">
+		                                <input type="checkbox" id="sync-orders-shopify-enabled" class="toggle" data-dep-controller="1" />
+		                                <span>Sincronizacion automatica de pedidos (Shopify → Alegra)</span>
 		                              </label>
-		                              <span class="tip" data-tip="Prende o apaga la automatización (webhooks). Si está OFF, productos, inventario y pedidos automáticos quedan deshabilitados visualmente.">?</span>
+		                              <span class="tip" data-tip="ON: procesa pedidos nuevos en tiempo real (webhooks). OFF: no se detectan pedidos nuevos automaticamente.">?</span>
 		                            </div>
 		                          </div>
-		                          <div class="mode-actions" aria-label="Estado de automatizacion">
-		                            <span class="kpi-sub"><strong>Estado:</strong> <span id="shopify-webhooks-status">Sin configurar</span></span>
+		                          <div class="mode-grid" data-depends-on="sync-orders-shopify-enabled">
+		                            <div class="mode-field">
+		                              <label for="sync-orders-shopify">Accion en Alegra <span class="tip" data-tip="Solo registrar: guarda el pedido en la base. Crear factura: activa Logistica/Traslados y Facturacion para generar la factura en Alegra.">?</span></label>
+		                              <select id="sync-orders-shopify" data-depends-on="sync-orders-shopify-enabled">
+		                                <option value="db_only">Solo registrar</option>
+		                                <option value="invoice">Crear factura</option>
+		                                <option value="off">No sincronizar</option>
+		                              </select>
+		                            </div>
+		                          </div>
+		                          <div class="mode-actions" aria-label="Estado webhooks Shopify">
+		                            <span class="kpi-sub"><strong>Webhooks Shopify:</strong> <span id="shopify-webhooks-status">Sin configurar</span></span>
 		                          </div>
 		                        </div>
 		                        <div class="mode-section" data-readonly-free="1">
@@ -1226,84 +1236,6 @@
 	                            <span class="sync-progress-label" id="orders-sync-progress-label">Sincronizando 0%</span>
 	                          </div>
 	                        </div>
-
-	                        <div class="mode-section" data-readonly-free="1">
-	                          <div class="mode-head">
-	                            <div class="mode-head-left">
-	                              <h4>Facturas masivas (Alegra)</h4>
-	                              <span class="tip" data-tip="Carga facturas de Alegra y las guarda en la base para verlas y descargarlas. No crea pedidos en Shopify (solo carga y registra).">?</span>
-	                            </div>
-	                          </div>
-	                          <div class="mode-grid">
-	                            <div class="mode-field">
-	                              <label for="invoices-backfill-date-start">Fecha inicio</label>
-	                              <input type="date" id="invoices-backfill-date-start" />
-	                            </div>
-	                            <div class="mode-field">
-	                              <label for="invoices-backfill-date-end">Fecha fin</label>
-	                              <input type="date" id="invoices-backfill-date-end" />
-	                            </div>
-	                            <div class="mode-field">
-	                              <label for="invoices-backfill-limit">Limite (opcional)</label>
-	                              <input type="number" id="invoices-backfill-limit" min="1" placeholder="200" />
-	                            </div>
-	                          </div>
-	                          <div class="mode-actions">
-	                            <button class="primary" id="invoices-backfill-run" type="button">Cargar facturas</button>
-	                            <button class="ghost danger" id="invoices-backfill-stop" type="button" hidden>Detener</button>
-	                            <button class="ghost" id="invoices-backfill-clear" type="button">Limpiar</button>
-	                            <span class="kpi-sub" id="invoices-backfill-status">Sin datos</span>
-	                          </div>
-	                          <div class="sync-progress" id="invoices-backfill-progress" aria-hidden="true">
-	                            <div class="sync-progress-track">
-	                              <div class="sync-progress-bar" id="invoices-backfill-progress-bar"></div>
-	                            </div>
-	                            <span class="sync-progress-label" id="invoices-backfill-progress-label">Cargando 0%</span>
-	                          </div>
-	                        </div>
-
-				                        <div class="mode-section">
-				                          <div class="mode-head">
-				                            <div class="mode-head-left">
-			                              <label class="mode-title-toggle" for="sync-orders-shopify-enabled" data-dep-controller="1">
-			                                <input type="checkbox" id="sync-orders-shopify-enabled" class="toggle" data-dep-controller="1" />
-			                                <span>Sincronizacion automatica (pedidos nuevos)</span>
-			                              </label>
-				                              <span class="tip" data-tip="Se ejecuta cuando llega un pedido nuevo desde Shopify. Si eliges crear factura, el módulo Facturacion se habilita para definir reglas (Resolucion, Bodega, etc.).">?</span>
-			                            </div>
-			                          </div>
-			                          <div class="mode-grid" data-depends-on="shopify-automation-enabled,sync-orders-shopify-enabled">
-		                            <div class="mode-field">
-			                              <label for="sync-orders-shopify">Accion en Alegra <span class="tip" data-tip="Solo registrar guarda el pedido en la base. Crear factura genera la factura en Alegra usando las reglas de Facturacion.">?</span></label>
-			                              <select id="sync-orders-shopify" data-depends-on="sync-orders-shopify-enabled">
-		                                <option value="db_only">Solo registrar</option>
-	                                <option value="invoice">Crear factura</option>
-	                                <option value="off">No sincronizar</option>
-	                              </select>
-                            </div>
-                          </div>
-                        </div>
-
-				                        <div class="mode-section">
-				                          <div class="mode-head">
-				                            <div class="mode-head-left">
-				                              <label class="mode-title-toggle" for="sync-orders-alegra-enabled" data-dep-controller="1">
-				                                <input type="checkbox" id="sync-orders-alegra-enabled" class="toggle" data-dep-controller="1" />
-				                                <span>Sincronizacion automatica (facturas nuevas)</span>
-				                              </label>
-					                              <span class="tip" data-tip="Se ejecuta cuando llega una factura nueva desde Alegra. Si está activo, crea un pedido borrador en Shopify.">?</span>
-				                            </div>
-				                          </div>
-			                          <div class="mode-grid" data-depends-on="shopify-automation-enabled,sync-orders-alegra-enabled">
-		                            <div class="mode-field">
-			                              <label for="sync-orders-alegra">Como crear pedido en Shopify <span class="tip" data-tip="Por defecto se crea como borrador (recomendado).">?</span></label>
-		                              <select id="sync-orders-alegra" data-depends-on="sync-orders-alegra-enabled">
-		                                <option value="draft">Crear pedido borrador</option>
-	                                <option value="off">No sincronizar</option>
-	                              </select>
-	                            </div>
-	                          </div>
-		                        </div>
 
 		                      </div>
 		                      <p class="field-hint module-warning is-hidden" data-module-warning="sync-orders"></p>
