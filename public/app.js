@@ -4403,16 +4403,7 @@ function applyProductSettings() {
   }
   if (productsSyncPublish) productsSyncPublish.checked = productSettings.sync.publishOnSync !== false;
   if (productsSyncUpdateExisting) {
-    const fromStoreConfig =
-      activeStoreConfig &&
-      activeStoreConfig.rules &&
-      typeof activeStoreConfig.rules.updateInShopify === "boolean"
-        ? activeStoreConfig.rules.updateInShopify
-        : null;
-    productsSyncUpdateExisting.checked =
-      fromStoreConfig !== null
-        ? fromStoreConfig
-        : productSettings.sync.updateExisting !== false;
+    productsSyncUpdateExisting.checked = productSettings.sync.updateExisting !== false;
   }
   if (productsSyncOnlyPublished) {
     productsSyncOnlyPublished.checked = productSettings.sync.onlyPublishedInShopify !== false;

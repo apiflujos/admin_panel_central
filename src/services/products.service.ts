@@ -30,7 +30,7 @@ const parseTimestamp = (value: ProductInput["sourceUpdatedAt"]) => {
   return new Date(parsed);
 };
 
-export async function upsertProduct(input: ProductInput) {
+export async function upsertProduct(input: ProductInput, options?: { mode?: "upsert" | "insert_only" }) {
   const pool = getPool();
   const orgId = getOrgId();
   const shopDomain = normalizeShopDomain(input.shopDomain || "");
@@ -81,6 +81,9 @@ export async function upsertProduct(input: ProductInput) {
   );
 
   if (existing.rows.length) {
+    if (options?.mode === "insert_only") {
+      return { skipped: true, reason: "insert_only" };
+    }
     await pool.query(
       `
       UPDATE products
@@ -144,64 +147,88 @@ export async function upsertProduct(input: ProductInput) {
   ];
 
   if (alegraId) {
-    await pool.query(
-      `
-      INSERT INTO products
-        (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, last_sync_at)
-      VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,NOW())
-      ON CONFLICT (organization_id, shop_domain, alegra_item_id) DO UPDATE SET
-        shopify_product_id = COALESCE(EXCLUDED.shopify_product_id, products.shopify_product_id),
-        name = COALESCE(EXCLUDED.name, products.name),
-        reference = COALESCE(EXCLUDED.reference, products.reference),
-        sku = COALESCE(EXCLUDED.sku, products.sku),
-        status_alegra = COALESCE(EXCLUDED.status_alegra, products.status_alegra),
-        status_shopify = COALESCE(EXCLUDED.status_shopify, products.status_shopify),
-        inventory_quantity = COALESCE(EXCLUDED.inventory_quantity, products.inventory_quantity),
-        warehouse_ids = COALESCE(EXCLUDED.warehouse_ids, products.warehouse_ids),
-        source_updated_at = COALESCE(EXCLUDED.source_updated_at, products.source_updated_at),
-        source = COALESCE(EXCLUDED.source, products.source),
-        sync_status = CASE
-          WHEN COALESCE(EXCLUDED.alegra_item_id, products.alegra_item_id) IS NOT NULL
-           AND COALESCE(EXCLUDED.shopify_product_id, products.shopify_product_id) IS NOT NULL
-          THEN 'synced'
-          ELSE 'pending'
-        END,
-        last_sync_at = NOW(),
-        updated_at = NOW()
-      `,
-      insertValues
-    );
+    if (options?.mode === "insert_only") {
+      await pool.query(
+        `
+        INSERT INTO products
+          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, last_sync_at)
+        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,NOW())
+        ON CONFLICT (organization_id, shop_domain, alegra_item_id) DO NOTHING
+        `,
+        insertValues
+      );
+    } else {
+      await pool.query(
+        `
+        INSERT INTO products
+          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, last_sync_at)
+        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,NOW())
+        ON CONFLICT (organization_id, shop_domain, alegra_item_id) DO UPDATE SET
+          shopify_product_id = COALESCE(EXCLUDED.shopify_product_id, products.shopify_product_id),
+          name = COALESCE(EXCLUDED.name, products.name),
+          reference = COALESCE(EXCLUDED.reference, products.reference),
+          sku = COALESCE(EXCLUDED.sku, products.sku),
+          status_alegra = COALESCE(EXCLUDED.status_alegra, products.status_alegra),
+          status_shopify = COALESCE(EXCLUDED.status_shopify, products.status_shopify),
+          inventory_quantity = COALESCE(EXCLUDED.inventory_quantity, products.inventory_quantity),
+          warehouse_ids = COALESCE(EXCLUDED.warehouse_ids, products.warehouse_ids),
+          source_updated_at = COALESCE(EXCLUDED.source_updated_at, products.source_updated_at),
+          source = COALESCE(EXCLUDED.source, products.source),
+          sync_status = CASE
+            WHEN COALESCE(EXCLUDED.alegra_item_id, products.alegra_item_id) IS NOT NULL
+             AND COALESCE(EXCLUDED.shopify_product_id, products.shopify_product_id) IS NOT NULL
+            THEN 'synced'
+            ELSE 'pending'
+          END,
+          last_sync_at = NOW(),
+          updated_at = NOW()
+        `,
+        insertValues
+      );
+    }
     return { upserted: true };
   }
 
   if (shopifyId) {
-    await pool.query(
-      `
-      INSERT INTO products
-        (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, last_sync_at)
-      VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,NOW())
-      ON CONFLICT (organization_id, shop_domain, shopify_product_id) DO UPDATE SET
-        alegra_item_id = COALESCE(EXCLUDED.alegra_item_id, products.alegra_item_id),
-        name = COALESCE(EXCLUDED.name, products.name),
-        reference = COALESCE(EXCLUDED.reference, products.reference),
-        sku = COALESCE(EXCLUDED.sku, products.sku),
-        status_alegra = COALESCE(EXCLUDED.status_alegra, products.status_alegra),
-        status_shopify = COALESCE(EXCLUDED.status_shopify, products.status_shopify),
-        inventory_quantity = COALESCE(EXCLUDED.inventory_quantity, products.inventory_quantity),
-        warehouse_ids = COALESCE(EXCLUDED.warehouse_ids, products.warehouse_ids),
-        source_updated_at = COALESCE(EXCLUDED.source_updated_at, products.source_updated_at),
-        source = COALESCE(EXCLUDED.source, products.source),
-        sync_status = CASE
-          WHEN COALESCE(EXCLUDED.alegra_item_id, products.alegra_item_id) IS NOT NULL
-           AND COALESCE(EXCLUDED.shopify_product_id, products.shopify_product_id) IS NOT NULL
-          THEN 'synced'
-          ELSE 'pending'
-        END,
-        last_sync_at = NOW(),
-        updated_at = NOW()
-      `,
-      insertValues
-    );
+    if (options?.mode === "insert_only") {
+      await pool.query(
+        `
+        INSERT INTO products
+          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, last_sync_at)
+        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,NOW())
+        ON CONFLICT (organization_id, shop_domain, shopify_product_id) DO NOTHING
+        `,
+        insertValues
+      );
+    } else {
+      await pool.query(
+        `
+        INSERT INTO products
+          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, last_sync_at)
+        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,NOW())
+        ON CONFLICT (organization_id, shop_domain, shopify_product_id) DO UPDATE SET
+          alegra_item_id = COALESCE(EXCLUDED.alegra_item_id, products.alegra_item_id),
+          name = COALESCE(EXCLUDED.name, products.name),
+          reference = COALESCE(EXCLUDED.reference, products.reference),
+          sku = COALESCE(EXCLUDED.sku, products.sku),
+          status_alegra = COALESCE(EXCLUDED.status_alegra, products.status_alegra),
+          status_shopify = COALESCE(EXCLUDED.status_shopify, products.status_shopify),
+          inventory_quantity = COALESCE(EXCLUDED.inventory_quantity, products.inventory_quantity),
+          warehouse_ids = COALESCE(EXCLUDED.warehouse_ids, products.warehouse_ids),
+          source_updated_at = COALESCE(EXCLUDED.source_updated_at, products.source_updated_at),
+          source = COALESCE(EXCLUDED.source, products.source),
+          sync_status = CASE
+            WHEN COALESCE(EXCLUDED.alegra_item_id, products.alegra_item_id) IS NOT NULL
+             AND COALESCE(EXCLUDED.shopify_product_id, products.shopify_product_id) IS NOT NULL
+            THEN 'synced'
+            ELSE 'pending'
+          END,
+          last_sync_at = NOW(),
+          updated_at = NOW()
+        `,
+        insertValues
+      );
+    }
     return { upserted: true };
   }
 

@@ -249,7 +249,11 @@ const normalizeText = (value: unknown) => {
   return text ? text : null;
 };
 
-const persistProductsFromAlegra = async (items: AlegraItem[], shopDomainInput = "") => {
+const persistProductsFromAlegra = async (
+  items: AlegraItem[],
+  shopDomainInput = "",
+  options?: { updateExisting?: boolean }
+) => {
   if (!Array.isArray(items) || items.length === 0) return;
   const normalize = (value: string) => value.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
   let shopDomain = "";
@@ -271,18 +275,21 @@ const persistProductsFromAlegra = async (items: AlegraItem[], shopDomainInput = 
             .map((warehouse) => String(warehouse?.id || ""))
             .filter(Boolean)
         : [];
-      await upsertProduct({
-        shopDomain,
-        alegraId: item.id,
-        name: item.name || null,
-        reference: normalizeText(item.reference || item.code || item.barcode),
-        sku: resolveItemSku(item),
-        statusAlegra: item.status || null,
-        inventoryQuantity: typeof inventoryQuantity === "number" ? inventoryQuantity : null,
-        warehouseIds: warehouseIds.length ? warehouseIds : null,
-        sourceUpdatedAt: sourceUpdatedAt ? new Date(sourceUpdatedAt) : null,
-        source: "alegra",
-      });
+      await upsertProduct(
+        {
+          shopDomain,
+          alegraId: item.id,
+          name: item.name || null,
+          reference: normalizeText(item.reference || item.code || item.barcode),
+          sku: resolveItemSku(item),
+          statusAlegra: item.status || null,
+          inventoryQuantity: typeof inventoryQuantity === "number" ? inventoryQuantity : null,
+          warehouseIds: warehouseIds.length ? warehouseIds : null,
+          sourceUpdatedAt: sourceUpdatedAt ? new Date(sourceUpdatedAt) : null,
+          source: "alegra",
+        },
+        { mode: options?.updateExisting === false ? "insert_only" : "upsert" }
+      );
     })
   );
 };
@@ -1441,11 +1448,14 @@ export async function syncProductsHandler(req: Request, res: Response) {
       : storeDomainInput
         ? await getStoreConfigForDomain(storeDomainInput)
         : null;
-    const updateExistingRequested = parseBooleanLike(
+    const updateExisting = parseBooleanLike(
       (settings as Record<string, unknown>).updateExisting,
-      storeConfigFull?.rules?.updateInShopify !== false
+      true
     );
-    const updateExisting = Boolean(publishOnSync) && Boolean(updateExistingRequested);
+    const updateExistingInShopify =
+      Boolean(publishOnSync) &&
+      Boolean(updateExisting) &&
+      storeConfigFull?.rules?.updateInShopify !== false;
     const storeConfig = storeDomain ? await resolveStoreConfig(storeDomain) : await resolveStoreConfig(null);
     const withShopifyRetry = async <T,>(
       fn: () => Promise<T>,
@@ -1587,7 +1597,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
               continue;
             }
             if (status.exists) {
-              if (!updateExisting || !shopifyClient) {
+              if (!updateExistingInShopify || !shopifyClient) {
                 skipped += 1;
                 if (parentId) processedParents.add(parentId);
                 continue;
@@ -1966,7 +1976,9 @@ export async function syncProductsHandler(req: Request, res: Response) {
           entry.item = incomingVariants.length ? mergeItemVariants(hydrated, incomingVariants) : hydrated;
         });
         await upsertAlegraItemsCache(cacheItems);
-        await persistProductsFromAlegra(cacheItems, storeDomain || shopDomainInput || "");
+        await persistProductsFromAlegra(cacheItems, storeDomain || shopDomainInput || "", {
+          updateExisting,
+        });
         const batchNumber = Math.floor(start / batchLimit) + 1;
         const totalBatches = total ? Math.ceil(total / batchLimit) : null;
         const rangeStart = start + 1;
