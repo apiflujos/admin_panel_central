@@ -2856,11 +2856,6 @@ function formatDuration(ms) {
 
 function updateProductsProgress(percent, labelText) {
   const normalized = Math.min(100, Math.max(0, percent));
-  if (productsProgress && productsProgressBar && productsProgressLabel) {
-    productsProgress.classList.add("is-active");
-    productsProgressBar.style.width = `${normalized}%`;
-    productsProgressLabel.textContent = labelText;
-  }
   if (productsSyncProgress && productsSyncProgressBar && productsSyncProgressLabel) {
     productsSyncProgress.classList.add("is-active");
     productsSyncProgressBar.style.width = `${normalized}%`;
@@ -2870,14 +2865,6 @@ function updateProductsProgress(percent, labelText) {
 
 function finishProductsProgress(labelText) {
   const finalText = labelText || "Productos 100%";
-  if (productsProgress && productsProgressBar && productsProgressLabel) {
-    productsProgressBar.style.width = "100%";
-    productsProgressLabel.textContent = finalText;
-    setTimeout(() => {
-      productsProgress.classList.remove("is-active");
-      productsProgressBar.style.width = "0%";
-    }, 800);
-  }
   if (productsSyncProgress && productsSyncProgressBar && productsSyncProgressLabel) {
     productsSyncProgressBar.style.width = "100%";
     productsSyncProgressLabel.textContent = finalText;
@@ -6881,14 +6868,12 @@ async function runProductsSync(mode) {
   if (!activeStore) {
     setProductsBulkSyncRunning(false);
     showToast("Primero crea o selecciona una tienda activa en Nueva conexion.", "is-warn");
-    setProductsStatus("Sin tienda activa. Crea/selecciona una tienda para sincronizar.");
     if (productsSyncStatus) productsSyncStatus.textContent = "Sin tienda activa";
     return;
   }
   if (!storeConnections.shopifyConnected || !storeConnections.alegraConnected) {
     setProductsBulkSyncRunning(false);
     showToast("Conecta Shopify y Alegra para ejecutar la sincronizacion masiva.", "is-warn");
-    setProductsStatus("Faltan conexiones: conecta Shopify y Alegra para sincronizar.");
     if (productsSyncStatus) productsSyncStatus.textContent = "Faltan conexiones";
     return;
   }
@@ -6897,7 +6882,6 @@ async function runProductsSync(mode) {
       "El checkbox de publicar esta activo. ¿Seguro que quieres publicar estos productos en Shopify?"
     );
     if (!confirmPublish) {
-      setProductsStatus("Sincronizacion cancelada.");
       if (productsSyncStatus) {
         productsSyncStatus.textContent = "Cancelado por el usuario";
       }
@@ -6910,7 +6894,6 @@ async function runProductsSync(mode) {
     Boolean(productSettings.sync.dateEnd) ||
     Boolean(productSettings.sync.query);
   const resolvedMode = hasFilters ? mode : "full";
-  setProductsStatus(`Sincronizando productos (${resolvedMode})...`);
   if (productsSyncStatus) {
     productsSyncStatus.textContent = "Sincronizando...";
   }
@@ -7045,7 +7028,6 @@ async function runProductsSync(mode) {
               : payload?.message
                 ? payload.message
                 : "Sin productos para sincronizar con esos filtros.";
-          setProductsStatus(summary);
           if (productsSyncStatus) {
             productsSyncStatus.textContent = summary;
           }
@@ -7056,7 +7038,6 @@ async function runProductsSync(mode) {
 	        }
 	        if (payload.type === "canceled") {
           const summary = "Sincronizacion detenida por el usuario.";
-          setProductsStatus(summary);
           if (productsSyncStatus) {
             productsSyncStatus.textContent = summary;
           }
@@ -7083,7 +7064,6 @@ async function runProductsSync(mode) {
       total > 0
         ? `Total: ${total} · Revisados: ${scanned} · Procesados: ${processed} · Actualizados: ${updated} · Publicados: ${published} · Existentes: ${skipped} · No publicados: ${skippedUnpublished} · Reintentos: ${rateLimitRetries} · Fallidos: ${failed}`
         : "Sin productos para sincronizar con esos filtros.";
-    setProductsStatus(summary);
     if (productsSyncStatus) {
       productsSyncStatus.textContent = summary;
     }
@@ -7092,7 +7072,6 @@ async function runProductsSync(mode) {
 	    activeProductsSyncId = "";
 	  } catch (error) {
 	    const message = error?.message || "No se pudo sincronizar productos.";
-	    setProductsStatus(message);
     if (productsSyncStatus) {
       productsSyncStatus.textContent = message;
     }
@@ -11263,14 +11242,12 @@ if (productsSyncStopBtn) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ syncId: activeProductsSyncId || null }),
       });
-      setProductsStatus("Cancelando sincronizacion...");
       if (productsSyncStatus) {
         productsSyncStatus.textContent = "Cancelando...";
       }
     } catch (error) {
       productsSyncStopBtn.disabled = false;
       const message = error?.message || "No se pudo detener la sincronizacion.";
-      setProductsStatus(message);
       if (productsSyncStatus) {
         productsSyncStatus.textContent = message;
       }
