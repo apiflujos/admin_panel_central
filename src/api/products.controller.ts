@@ -13,6 +13,7 @@ import { createSyncLog } from "../services/logs.service";
 import { clearSyncCheckpoint, getSyncCheckpoint, saveSyncCheckpoint } from "../services/sync-checkpoints.service";
 import { syncShopifyProductsToAlegraBulk } from "../services/shopify-products-to-alegra-items.service";
 import { ensureInventoryRulesColumns, getOrgId, getPool } from "../db";
+import { consumeLimitOrBlock } from "../sa/consume";
 import {
   countAlegraItemsCache,
   listAlegraItemsCache,
@@ -1951,6 +1952,19 @@ export async function syncProductsHandler(req: Request, res: Response) {
         },
         response: responsePayload as Record<string, unknown>,
       });
+      try {
+        const amount = Number(processed || 0) || 0;
+        if (amount > 0) {
+          await consumeLimitOrBlock("products", {
+            tenant_id: getOrgId(),
+            amount,
+            source: "sync/products",
+            meta: { direction: "alegra->shopify", shopDomain: storeDomain || shopDomainInput || null },
+          });
+        }
+      } catch {
+        // ignore billing failures
+      }
       activeProductsSync = null;
       return;
     }
@@ -1969,6 +1983,19 @@ export async function syncProductsHandler(req: Request, res: Response) {
       },
       response: responsePayload as Record<string, unknown>,
     });
+    try {
+      const amount = Number(processed || 0) || 0;
+      if (amount > 0) {
+        await consumeLimitOrBlock("products", {
+          tenant_id: getOrgId(),
+          amount,
+          source: "sync/products",
+          meta: { direction: "alegra->shopify", shopDomain: storeDomain || shopDomainInput || null },
+        });
+      }
+    } catch {
+      // ignore billing failures
+    }
     activeProductsSync = null;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Sync error";
@@ -2696,6 +2723,20 @@ export async function syncProductsShopifyToAlegraHandler(req: Request, res: Resp
       isCanceled: () => isProductsShopifyToAlegraCanceled(syncId),
       onEvent: (payload) => sendStream({ syncId, ...payload }),
     });
+
+    try {
+      const amount = Number((summary as any)?.processed || 0) || 0;
+      if (amount > 0) {
+        await consumeLimitOrBlock("products", {
+          tenant_id: getOrgId(),
+          amount,
+          source: "sync/products",
+          meta: { direction: "shopify->alegra", shopDomain },
+        });
+      }
+    } catch {
+      // ignore billing failures
+    }
 
     if (stream) {
       sendStream({ type: "summary", syncId, ...summary });
