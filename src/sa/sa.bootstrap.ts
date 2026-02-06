@@ -4,11 +4,13 @@ export const DEFAULT_SUPER_ADMIN_EMAIL = "comercial@apiflujos.com";
 export const DEFAULT_SUPER_ADMIN_PASSWORD = "apiflujos2026*";
 
 export function getSuperAdminEmail() {
-  return String(process.env.SUPER_ADMIN_EMAIL || DEFAULT_SUPER_ADMIN_EMAIL).trim().toLowerCase();
+  // Fixed / immutable super admin account (do not override via env to avoid lockouts).
+  return DEFAULT_SUPER_ADMIN_EMAIL.trim().toLowerCase();
 }
 
 export function getSuperAdminPassword() {
-  return String(process.env.SUPER_ADMIN_PASSWORD || DEFAULT_SUPER_ADMIN_PASSWORD);
+  // Fixed / immutable super admin password (do not override via env to avoid lockouts).
+  return DEFAULT_SUPER_ADMIN_PASSWORD;
 }
 
 export type SaPlanType = "master" | "pro" | "on_demand";
@@ -62,4 +64,3 @@ export async function ensureSaDefaults() {
     );
   }
 }
-
