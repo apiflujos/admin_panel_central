@@ -14,7 +14,9 @@ export async function listMetrics(req: Request, res: Response) {
   try {
     const raw = typeof req.query.range === "string" ? req.query.range : "";
     const range = isMetricsRange(raw) ? (raw as MetricsRange) : undefined;
-    const result = await getMetrics({ range });
+    const shopDomain =
+      typeof req.query.shopDomain === "string" ? String(req.query.shopDomain).trim() : "";
+    const result = await getMetrics({ range, shopDomain: shopDomain || undefined });
     res.status(200).json(result);
     await safeCreateLog({
       entity: "metrics_list",

@@ -134,6 +134,7 @@ const assistantClose = document.getElementById("assistant-close");
 const metricsRange = document.getElementById("metrics-range");
 const metricsShopifyStatus = document.getElementById("metrics-shopify-status");
 const metricsAlegraStatus = document.getElementById("metrics-alegra-status");
+const metricsInsights = document.getElementById("metrics-insights");
 const weeklyGrowthLabel = document.getElementById("chart-weekly-label");
 const chartAlegra = document.getElementById("chart-alegra");
 const alegraGrowthLabel = document.getElementById("chart-alegra-label");
@@ -7197,6 +7198,8 @@ async function loadMetrics() {
   try {
     const range = metricsRange ? String(metricsRange.value || "month") : "month";
     const params = new URLSearchParams();
+    const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+    if (shopDomain) params.set("shopDomain", shopDomain);
     if (range) params.set("range", range);
     params.set("t", String(Date.now()));
     const query = params.toString() ? `?${params.toString()}` : "";
@@ -7285,6 +7288,25 @@ async function loadMetrics() {
     renderTopCustomersTable(data.topCustomers || []);
     renderInventoryAlerts(data.lowStock || [], data.inactiveProducts || []);
     updatePanelVisibility(data);
+    if (metricsInsights) {
+      const parts = [];
+      const lastWebhookAt = data.lastWebhookAt ? formatDate(data.lastWebhookAt) : null;
+      if (lastWebhookAt) parts.push(`Último webhook: ${lastWebhookAt}`);
+      if (Number.isFinite(data.failedSyncs24h)) parts.push(`Fallas 24h: ${data.failedSyncs24h}`);
+      if (Number.isFinite(data.pendingDbRange)) parts.push(`Pendientes: ${data.pendingDbRange}`);
+      if (Number.isFinite(data.retryPending)) parts.push(`Cola: ${data.retryPending}`);
+      if (Number.isFinite(data.effectivenessRate)) parts.push(`Efectividad: ${data.effectivenessRate}%`);
+      if (parts.length) {
+        metricsInsights.textContent = parts.join(" · ");
+        metricsInsights.style.display = "";
+      } else if (data.error) {
+        metricsInsights.textContent = `Sin métricas externas: ${String(data.error)}`;
+        metricsInsights.style.display = "";
+      } else {
+        metricsInsights.textContent = "";
+        metricsInsights.style.display = "none";
+      }
+    }
   } catch {
     if (kpiSalesToday) kpiSalesToday.textContent = "0";
     if (kpiSalesTodaySub) kpiSalesTodaySub.textContent = "Vs periodo anterior --";
@@ -7299,6 +7321,10 @@ async function loadMetrics() {
     renderTopCustomersTable([]);
     renderInventoryAlerts([], []);
     updatePanelVisibility({});
+    if (metricsInsights) {
+      metricsInsights.textContent = "";
+      metricsInsights.style.display = "none";
+    }
   }
 }
 

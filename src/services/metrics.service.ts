@@ -5,15 +5,93 @@ import type { ShopifyOrder } from "../connectors/shopify";
 type MetricItem = Record<string, unknown>;
 export type MetricsRange = "day" | "week" | "month";
 
-export async function getMetrics(options: { range?: MetricsRange; days?: number } = {}) {
-  try {
-    const ctx = await buildSyncContext();
-    const range = normalizeRange(options.range);
-    const { current, previous } = resolveCalendarRanges(range);
-    const rangeDays = diffDays(current.from, current.to);
-    const today = formatDateKey(new Date());
-    const yesterday = formatDateKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
+export async function getMetrics(
+  options: { range?: MetricsRange; days?: number; shopDomain?: string } = {}
+) {
+  const range = normalizeRange(options.range);
+  const { current, previous } = resolveCalendarRanges(range);
+  const rangeDays = diffDays(current.from, current.to);
+  const today = formatDateKey(new Date());
+  const yesterday = formatDateKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
 
+  const fallback = {
+    range,
+    rangeLabel: current.label,
+    rangeDays,
+    sales: "0",
+    orders: 0,
+    customers: 0,
+    pending: "0",
+    salesRange: "0",
+    salesRangePrev: "0",
+    salesRangeDelta: "0",
+    salesRangeTrend: "up",
+    salesRangePct: null as number | null,
+    billingRange: "0",
+    billingRangePrev: "0",
+    billingRangeDelta: "0",
+    billingRangeTrend: "up",
+    billingRangePct: null as number | null,
+    paymentsByMethod: [] as Array<Record<string, unknown>>,
+    weeklyRevenue: [] as Array<Record<string, unknown>>,
+    weeklyRevenuePrev: [] as Array<Record<string, unknown>>,
+    billingSeries: [] as Array<Record<string, unknown>>,
+    billingSeriesPrev: [] as Array<Record<string, unknown>>,
+    topProductsUnits: [] as Array<Record<string, unknown>>,
+    topProductsRevenue: [] as Array<Record<string, unknown>>,
+    topCities: [] as Array<Record<string, unknown>>,
+    topCustomers: [] as Array<Record<string, unknown>>,
+    lowStock: [] as Array<Record<string, unknown>>,
+    inactiveProducts: [] as Array<Record<string, unknown>>,
+    issues: [] as Array<Record<string, unknown>>,
+    effectivenessRate: null as number | null,
+    effectivenessTotal: 0,
+    failedSyncs24h: 0,
+    lastWebhookAt: null as string | null,
+    retryPending: 0,
+    retryDue: 0,
+    ordersDbRange: 0,
+    invoicedDbRange: 0,
+    pendingDbRange: 0,
+    source: "db_only" as "db_only" | "external",
+  };
+
+  const [logInsightsResult, effectivenessResult, issuesResult, dbResult] =
+    await Promise.allSettled([
+      getLogInsights(),
+      getOrderEffectiveness(current.from, current.to),
+      listIssues(current.from, current.to),
+      getDbOrderSummary(current.from, current.to, options.shopDomain),
+    ]);
+  if (logInsightsResult.status === "fulfilled") {
+    fallback.failedSyncs24h = logInsightsResult.value.failedSyncs24h;
+    fallback.lastWebhookAt = logInsightsResult.value.lastWebhookAt;
+  }
+  if (effectivenessResult.status === "fulfilled") {
+    fallback.effectivenessRate = effectivenessResult.value.rate;
+    fallback.effectivenessTotal = effectivenessResult.value.total;
+  }
+  if (issuesResult.status === "fulfilled") {
+    fallback.issues = issuesResult.value;
+  }
+  if (dbResult.status === "fulfilled") {
+    fallback.retryPending = dbResult.value.retryPending;
+    fallback.retryDue = dbResult.value.retryDue;
+    fallback.ordersDbRange = dbResult.value.orders;
+    fallback.invoicedDbRange = dbResult.value.invoiced;
+    fallback.pendingDbRange = dbResult.value.pending;
+    if (dbResult.value.salesRange) {
+      fallback.salesRange = formatCurrency(dbResult.value.salesRange);
+      fallback.sales = fallback.salesRange;
+    }
+    if (dbResult.value.billingRange) {
+      fallback.billingRange = formatCurrency(dbResult.value.billingRange);
+      fallback.pending = formatCurrency(dbResult.value.pendingBalance);
+    }
+  }
+
+  try {
+    const ctx = await buildSyncContext(options.shopDomain);
     const pageSize = 30;
     const maxPages = Math.max(1, Number(process.env.METRICS_MAX_PAGES || 10));
     const metricsTimeoutMs = Math.max(1000, Number(process.env.METRICS_TIMEOUT_MS || 8000));
@@ -60,13 +138,17 @@ export async function getMetrics(options: { range?: MetricsRange; days?: number 
     const salesRangePrevValue = sumShopifyOrders(shopifyOrdersPrev);
     const salesRangeDeltaValue = salesRangeValue - salesRangePrevValue;
     const salesRangePct =
-      salesRangePrevValue > 0 ? Math.round((salesRangeDeltaValue / salesRangePrevValue) * 100) : null;
+      salesRangePrevValue > 0
+        ? Math.round((salesRangeDeltaValue / salesRangePrevValue) * 100)
+        : null;
     const billingRangeValue = sumInvoices(invoicesInRange);
     const invoicesPrev = filterByRange(invoices, previous.from, previous.to);
     const billingRangePrevValue = sumInvoices(invoicesPrev);
     const billingRangeDeltaValue = billingRangeValue - billingRangePrevValue;
     const billingRangePct =
-      billingRangePrevValue > 0 ? Math.round((billingRangeDeltaValue / billingRangePrevValue) * 100) : null;
+      billingRangePrevValue > 0
+        ? Math.round((billingRangeDeltaValue / billingRangePrevValue) * 100)
+        : null;
     const weeklyRevenue = buildDailyShopifySeriesRange(shopifyOrders, current.from, current.to);
     const weeklyRevenuePrev = buildDailyShopifySeriesRange(
       shopifyOrdersPrev,
@@ -86,16 +168,12 @@ export async function getMetrics(options: { range?: MetricsRange; days?: number 
       invoiceSeries,
       buildDateListRange(current.from, current.to)
     );
-    const { failedSyncs24h, lastWebhookAt } = await getLogInsights();
-    const effectiveness = await getOrderEffectiveness(current.from, current.to);
     const aggregations = buildShopifyAggregations(shopifyOrders);
     const inventoryAlerts = await buildInventoryAlerts(ctx);
-    const issues = await listIssues(current.from, current.to);
 
     return {
-      range,
-      rangeLabel: current.label,
-      rangeDays,
+      ...fallback,
+      source: "external" as const,
       sales: formatCurrency(salesToday),
       orders: ordersToday,
       customers: newCustomers,
@@ -125,10 +203,6 @@ export async function getMetrics(options: { range?: MetricsRange; days?: number 
       salesTodayDelta: formatCurrency(Math.abs(salesTodayDelta)),
       salesTodayTrend: salesTodayDelta >= 0 ? "up" : "down",
       salesTodayPct: salesTodayPct !== null ? Math.round(salesTodayPct) : null,
-      effectivenessRate: effectiveness.rate,
-      effectivenessTotal: effectiveness.total,
-      failedSyncs24h,
-      lastWebhookAt,
       paymentsByMethod,
       weeklyRevenue,
       weeklyRevenuePrev,
@@ -141,20 +215,88 @@ export async function getMetrics(options: { range?: MetricsRange; days?: number 
       topCustomers: aggregations.topCustomers,
       lowStock: inventoryAlerts.lowStock,
       inactiveProducts: inventoryAlerts.inactive,
-      issues,
       topProducts: [],
       latestOrders: [],
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "No disponible";
-    return {
-      sales: "Sin datos",
-      orders: "Sin datos",
-      customers: "Sin datos",
-      pending: "Sin datos",
-      error: message,
-    };
+    return { ...fallback, error: message };
   }
+}
+
+async function getDbOrderSummary(from: Date, to: Date, shopDomain?: string) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const domain = String(shopDomain || "").trim().toLowerCase();
+  const result = await pool.query<{
+    orders: string;
+    invoiced: string;
+    pending: string;
+    sales: string | null;
+    billing: string | null;
+    pending_balance: string | null;
+  }>(
+    `
+    SELECT
+      COUNT(*) FILTER (WHERE source = 'shopify') AS orders,
+      COUNT(*) FILTER (WHERE alegra_invoice_id IS NOT NULL OR invoice_number IS NOT NULL) AS invoiced,
+      COUNT(*) FILTER (
+        WHERE source = 'shopify'
+          AND COALESCE(alegra_status, '') <> 'facturado'
+      ) AS pending,
+      COALESCE(SUM(total) FILTER (WHERE source = 'shopify'), 0) AS sales,
+      COALESCE(SUM(total) FILTER (WHERE alegra_invoice_id IS NOT NULL OR invoice_number IS NOT NULL), 0) AS billing,
+      COALESCE(SUM(total) FILTER (
+        WHERE source = 'shopify'
+          AND COALESCE(alegra_status, '') <> 'facturado'
+      ), 0) AS pending_balance
+    FROM orders
+    WHERE organization_id = $1
+      AND created_at >= $2
+      AND created_at <= $3
+      AND ($4 = '' OR shop_domain = $4)
+    `,
+    [orgId, from.toISOString(), to.toISOString(), domain]
+  );
+  const row = result.rows[0] || {
+    orders: "0",
+    invoiced: "0",
+    pending: "0",
+    sales: "0",
+    billing: "0",
+    pending_balance: "0",
+  };
+  const retryPendingRes = await pool.query<{ total: string }>(
+    `
+    SELECT COUNT(*) AS total
+    FROM retry_queue q
+    JOIN sync_logs l ON l.id = q.sync_log_id
+    WHERE l.organization_id = $1
+      AND q.status = 'pending'
+    `,
+    [orgId]
+  );
+  const retryDueRes = await pool.query<{ total: string }>(
+    `
+    SELECT COUNT(*) AS total
+    FROM retry_queue q
+    JOIN sync_logs l ON l.id = q.sync_log_id
+    WHERE l.organization_id = $1
+      AND q.status = 'pending'
+      AND q.next_run_at <= NOW()
+    `,
+    [orgId]
+  );
+  return {
+    orders: Number(row.orders || 0),
+    invoiced: Number(row.invoiced || 0),
+    pending: Number(row.pending || 0),
+    salesRange: Number(row.sales || 0),
+    billingRange: Number(row.billing || 0),
+    pendingBalance: Number(row.pending_balance || 0),
+    retryPending: retryPendingRes.rows.length ? Number(retryPendingRes.rows[0].total || 0) : 0,
+    retryDue: retryDueRes.rows.length ? Number(retryDueRes.rows[0].total || 0) : 0,
+  };
 }
 
 function sumByDate(items: Array<MetricItem>, date: string) {
