@@ -22,6 +22,12 @@ import {
   marketingSyncOrdersHandler,
   marketingUpsertCampaignSpendHandler,
 } from "./marketing.controller";
+import {
+  marketingPixelConfigHandler,
+  marketingPixelRotateKeyHandler,
+  marketingWebhooksCreateHandler,
+  marketingWebhooksStatusHandler,
+} from "./marketing-config.controller";
 import { shopifyMarketingWebhookHandler } from "./marketing-webhooks.controller";
 import { marketingCollectHandler, marketingPixelScriptHandler } from "./marketing-pixel.controller";
 import { getInventoryAdjustmentsCheckpoint } from "./checkpoints.controller";
@@ -75,6 +81,7 @@ import { downloadInvoicePdfHandler, listInvoicesHandler } from "./invoices.contr
 import { syncInvoicesToShopifyHandler } from "./invoices-sync.controller";
 import { marketingGraphqlHttpHandler } from "../marketing/graphql/marketing-graphql";
 import { billingSummaryHandler } from "./billing.controller";
+import { syncStoreProductsHandler } from "./store-sync.controller";
 import {
   saAssignPlanHandler,
   saListModulesHandler,
@@ -121,6 +128,12 @@ router.get("/auth/shopify/status", requireAdmin, wrap(shopifyOAuthStatus));
 router.post("/auth/token", requireAdmin, wrap(createAuthTokenHandler));
 
 router.get("/billing/summary", wrap(billingSummaryHandler));
+
+// Marketing config (authed)
+router.get("/marketing/pixel/config", requireAdmin, wrap(marketingPixelConfigHandler));
+router.post("/marketing/pixel/key/rotate", requireAdmin, wrap(marketingPixelRotateKeyHandler));
+router.get("/marketing/webhooks/status", requireAdmin, wrap(marketingWebhooksStatusHandler));
+router.post("/marketing/webhooks/create", requireAdmin, wrap(marketingWebhooksCreateHandler));
 
 // Super Admin (global)
 router.get("/sa/tenants", requireSuperAdmin, wrap(saListTenantsHandler));
@@ -185,6 +198,7 @@ router.post("/sync/invoices", wrap(syncInvoicesToShopifyHandler));
 router.post("/backfill/products", wrap(backfillProductsHandler));
 router.post("/backfill/orders", wrap(backfillOrdersHandler));
 router.post("/sync/inventory-adjustments", wrap(syncInventoryAdjustmentsHandler));
+router.post("/sync/stores/products", requireAdmin, wrap(syncStoreProductsHandler));
 router.post("/sync/contacts", wrap(syncContactHandler));
 router.post("/sync/contacts/bulk", wrap(syncContactsBulkHandler));
 router.get("/contacts", wrap(listContactsHandler));

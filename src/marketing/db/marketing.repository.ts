@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { getOrgId, getPool } from "../../db";
 
 const normalizeShopDomain = (value: unknown) =>
@@ -65,3 +66,70 @@ export async function setSyncCursor(shopDomain: string, entity: string, cursor: 
   );
 }
 
+export async function getOrCreatePixelKey(shopDomain: string) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const domain = normalizeShopDomain(shopDomain);
+  if (!domain) throw new Error("shopDomain requerido");
+  await ensureMarketingShop(domain);
+
+  const current = await pool.query<{ pixel_key: string | null }>(
+    `
+    SELECT pixel_key
+    FROM marketing.shops
+    WHERE organization_id = $1 AND shop_domain = $2
+    LIMIT 1
+    `,
+    [orgId, domain]
+  );
+  const existing = String(current.rows[0]?.pixel_key || "").trim();
+  if (existing) {
+    return { shopDomain: domain, pixelKey: existing };
+  }
+
+  const generated = crypto.randomBytes(24).toString("base64url");
+  await pool.query(
+    `
+    UPDATE marketing.shops
+    SET pixel_key = $3, updated_at = NOW()
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, domain, generated]
+  );
+  return { shopDomain: domain, pixelKey: generated };
+}
+
+export async function rotatePixelKey(shopDomain: string) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const domain = normalizeShopDomain(shopDomain);
+  if (!domain) throw new Error("shopDomain requerido");
+  await ensureMarketingShop(domain);
+  const generated = crypto.randomBytes(24).toString("base64url");
+  await pool.query(
+    `
+    UPDATE marketing.shops
+    SET pixel_key = $3, updated_at = NOW()
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, domain, generated]
+  );
+  return { shopDomain: domain, pixelKey: generated };
+}
+
+export async function resolveShopDomainByPixelKey(pixelKey: string) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const key = String(pixelKey || "").trim();
+  if (!key) return "";
+  const res = await pool.query<{ shop_domain: string }>(
+    `
+    SELECT shop_domain
+    FROM marketing.shops
+    WHERE organization_id = $1 AND pixel_key = $2
+    LIMIT 1
+    `,
+    [orgId, key]
+  );
+  return res.rows[0]?.shop_domain || "";
+}

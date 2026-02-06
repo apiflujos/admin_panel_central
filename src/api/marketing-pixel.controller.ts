@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { getOrgId, getPool } from "../db";
 import { inferChannel, parseUtmFromUrl } from "../marketing/shopify/shopify-admin-api";
+import { resolveShopDomainByPixelKey } from "../marketing/db/marketing.repository";
 
 const normalizeShopDomain = (value: unknown) =>
   String(value || "")
@@ -9,15 +10,26 @@ const normalizeShopDomain = (value: unknown) =>
     .replace(/\/.*$/, "")
     .toLowerCase();
 
-function allowPixel(req: Request) {
-  const required = String(process.env.MARKETING_PIXEL_KEY || "").trim();
-  if (!required) return process.env.NODE_ENV !== "production";
+async function resolvePixelAccess(req: Request) {
   const provided = typeof req.query.key === "string" ? String(req.query.key) : "";
-  return provided && provided === required;
+  const key = String(provided || "").trim();
+  if (!key) {
+    return { ok: process.env.NODE_ENV !== "production", scope: "none", shopDomain: "" };
+  }
+  const envKey = String(process.env.MARKETING_PIXEL_KEY || "").trim();
+  if (envKey && key === envKey) {
+    return { ok: true, scope: "env", shopDomain: "" };
+  }
+  const shopDomain = await resolveShopDomainByPixelKey(key);
+  if (shopDomain) {
+    return { ok: true, scope: "db", shopDomain };
+  }
+  return { ok: false, scope: "none", shopDomain: "" };
 }
 
 export async function marketingPixelScriptHandler(req: Request, res: Response) {
-  if (!allowPixel(req)) {
+  const access = await resolvePixelAccess(req);
+  if (!access.ok) {
     res.status(401).type("text/plain").send("unauthorized");
     return;
   }
@@ -67,7 +79,8 @@ export async function marketingPixelScriptHandler(req: Request, res: Response) {
 }
 
 export async function marketingCollectHandler(req: Request, res: Response) {
-  if (!allowPixel(req)) {
+  const access = await resolvePixelAccess(req);
+  if (!access.ok) {
     res.status(401).json({ error: "unauthorized" });
     return;
   }
@@ -76,6 +89,10 @@ export async function marketingCollectHandler(req: Request, res: Response) {
   const body = (req.body || {}) as Record<string, unknown>;
 
   const shopDomain = normalizeShopDomain(body.shopDomain);
+  if (access.scope === "db" && access.shopDomain && shopDomain && shopDomain !== access.shopDomain) {
+    res.status(401).json({ error: "unauthorized" });
+    return;
+  }
   const eventType = String(body.eventType || "").trim();
   const occurredAt = typeof body.occurredAt === "string" ? body.occurredAt : new Date().toISOString();
   const landingSite = typeof body.landingSite === "string" ? body.landingSite : "";

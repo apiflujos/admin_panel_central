@@ -310,7 +310,7 @@ export async function getAiCredential() {
   return ai as { apiKey: string };
 }
 
-async function getAlegraClient(accountId?: number) {
+export async function getAlegraClient(accountId?: number) {
   const pool = getPool();
   const orgId = getOrgId();
   if (accountId) {

@@ -151,7 +151,12 @@ const saPaneServices = document.getElementById("sa-pane-services");
 const saPanePlans = document.getElementById("sa-pane-plans");
 const saPlanKey = document.getElementById("sa-plan-key");
 const saAssignPlan = document.getElementById("sa-assign-plan");
-const saPlanSnapshot = document.getElementById("sa-plan-snapshot");
+const saSnapshotTenantId = document.getElementById("sa-snapshot-tenant-id");
+const saSnapshotPlanKey = document.getElementById("sa-snapshot-plan-key");
+const saSnapshotPlanType = document.getElementById("sa-snapshot-plan-type");
+const saSnapshotMonthlyPrice = document.getElementById("sa-snapshot-monthly-price");
+const saSnapshotUpdatedAt = document.getElementById("sa-snapshot-updated-at");
+const saSnapshotServicesBody = document.querySelector("#sa-snapshot-services-table tbody");
 const saModulesBody = document.querySelector("#sa-modules-table tbody");
 const saServicesBody = document.querySelector("#sa-services-table tbody");
 const saServiceKey = document.getElementById("sa-service-key");
@@ -178,6 +183,17 @@ const mkFunnelBody = document.querySelector("#mk-funnel-table tbody");
 const mkRevenueSeries = document.getElementById("mk-revenue-series");
 const mkByChannel = document.getElementById("mk-by-channel");
 const mkTopCampaignsBody = document.querySelector("#mk-top-campaigns tbody");
+const mkCfgPixelKey = document.getElementById("mk-cfg-pixel-key");
+const mkCfgCopyKey = document.getElementById("mk-cfg-copy-key");
+const mkCfgRotateKey = document.getElementById("mk-cfg-rotate-key");
+const mkCfgStatus = document.getElementById("mk-cfg-status");
+const mkCfgScript = document.getElementById("mk-cfg-script");
+const mkCfgCopyScript = document.getElementById("mk-cfg-copy-script");
+const mkCfgTest = document.getElementById("mk-cfg-test");
+const mkCfgWebhookUrl = document.getElementById("mk-cfg-webhook-url");
+const mkCfgCopyWebhook = document.getElementById("mk-cfg-copy-webhook");
+const mkCfgCreateWebhooks = document.getElementById("mk-cfg-create-webhooks");
+const mkCfgWebhooksStatus = document.getElementById("mk-cfg-webhooks-status");
 const chartAlegra = document.getElementById("chart-alegra");
 const alegraGrowthLabel = document.getElementById("chart-alegra-label");
 const assistantMessages = document.getElementById("assistant-messages");
@@ -207,6 +223,20 @@ const storeDelete = document.getElementById("store-delete");
 const ordersStoreSelect = document.getElementById("orders-store-select");
 const productsStoreSelect = document.getElementById("products-store-select");
 const contactsStoreSelect = document.getElementById("contacts-store-select");
+const storeSyncSourceSelect = document.getElementById("store-sync-source");
+const storeSyncTargetSelect = document.getElementById("store-sync-target");
+const storeSyncAlegraAccountSelect = document.getElementById("store-sync-alegra-account");
+const storeSyncPriceListSelect = document.getElementById("store-sync-price-list");
+const storeSyncStatusSelect = document.getElementById("store-sync-status");
+const storeSyncPriceFallbackSelect = document.getElementById("store-sync-price-fallback");
+const storeSyncOnlyActive = document.getElementById("store-sync-only-active");
+const storeSyncIncludeDescriptions = document.getElementById("store-sync-include-descriptions");
+const storeSyncIncludeImages = document.getElementById("store-sync-include-images");
+const storeSyncIncludeProductType = document.getElementById("store-sync-include-product-type");
+const storeSyncIncludeTags = document.getElementById("store-sync-include-tags");
+const storeSyncRun = document.getElementById("store-sync-run");
+const storeSyncClear = document.getElementById("store-sync-clear");
+const storeSyncStatusLabel = document.getElementById("store-sync-status-label");
 const shopifyDomain = document.getElementById("shopify-domain");
 const shopifyToken = document.getElementById("shopify-token");
 const shopifyTokenField = document.getElementById("shopify-token-field");
@@ -4719,6 +4749,7 @@ async function loadConnections(options = {}) {
     maybeShowCryptoWarning(data);
     renderConnections(data);
     renderAlegraAccountOptions(data.alegraAccounts || []);
+    renderStoreSyncAlegraAccounts(data.alegraAccounts || []);
     const stores = Array.isArray(data.stores) ? data.stores : [];
     storesCache = stores;
     updateSettingsSubmenuAvailability();
@@ -4845,6 +4876,7 @@ function renderStoreActiveSelect(stores, options = {}) {
     storeActiveField.style.display = "none";
     storeActiveSelect.innerHTML = "";
     renderStoreActiveList([]);
+    renderStoreSyncSelects([]);
     if (storeActiveNameLabel) {
       storeActiveNameLabel.textContent = "-";
     }
@@ -4881,6 +4913,7 @@ function renderStoreActiveSelect(stores, options = {}) {
   updateStoreModuleTitles();
   renderStoreActiveList(stores);
   renderStoreContextSelects(stores);
+  renderStoreSyncSelects(stores);
   setShopifyWebhooksStatus("Sin configurar");
   const activePane =
     document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
@@ -4917,6 +4950,101 @@ function renderStoreContextSelects(stores) {
       select.value = activeStoreDomain;
     }
   });
+}
+
+function renderStoreSyncSelects(stores) {
+  if (!storeSyncSourceSelect || !storeSyncTargetSelect) return;
+  const list = Array.isArray(stores) ? stores : [];
+  const options = list
+    .map((store) => `<option value="${store.shopDomain}">${store.storeName || store.shopDomain}</option>`)
+    .join("");
+  storeSyncSourceSelect.innerHTML = options;
+  storeSyncTargetSelect.innerHTML = options;
+  const disabled = list.length <= 1;
+  storeSyncSourceSelect.disabled = disabled;
+  storeSyncTargetSelect.disabled = disabled;
+  const defaultSource = activeStoreDomain || list[0]?.shopDomain || "";
+  if (defaultSource) storeSyncSourceSelect.value = defaultSource;
+  if (!storeSyncTargetSelect.value || storeSyncTargetSelect.value === defaultSource) {
+    const fallback = list.find((store) => store.shopDomain !== defaultSource)?.shopDomain || defaultSource;
+    storeSyncTargetSelect.value = fallback;
+  }
+  ensureStoreSyncDistinct();
+}
+
+function ensureStoreSyncDistinct() {
+  if (!storeSyncSourceSelect || !storeSyncTargetSelect) return;
+  const source = storeSyncSourceSelect.value;
+  const target = storeSyncTargetSelect.value;
+  if (!source || source !== target) return;
+  const options = Array.from(storeSyncTargetSelect.options || []);
+  const fallback = options.find((option) => option.value && option.value !== source);
+  if (fallback) {
+    storeSyncTargetSelect.value = fallback.value;
+  }
+}
+
+function renderStoreSyncAlegraAccounts(accounts) {
+  if (!storeSyncAlegraAccountSelect) return;
+  const list = Array.isArray(accounts) ? accounts : [];
+  const options = [
+    `<option value="">Seleccionar...</option>`,
+    ...list.map((account) => {
+      const label = `${account.email} (${account.environment || "prod"})${
+        account.needsReconnect ? " · reconectar" : ""
+      }`;
+      return `<option value="${account.id}" data-needs-reconnect="${account.needsReconnect ? "1" : "0"}">${label}</option>`;
+    }),
+  ];
+  storeSyncAlegraAccountSelect.innerHTML = options.join("");
+  if (storeSyncPriceListSelect instanceof HTMLSelectElement) {
+    storeSyncPriceListSelect.innerHTML = "";
+    const option = document.createElement("option");
+    option.disabled = true;
+    option.selected = true;
+    option.textContent = "Selecciona cuenta Alegra";
+    storeSyncPriceListSelect.appendChild(option);
+  }
+}
+
+async function loadStoreSyncPriceLists(accountId) {
+  if (!(storeSyncPriceListSelect instanceof HTMLSelectElement)) return;
+  const params = new URLSearchParams();
+  if (accountId) params.set("accountId", String(accountId));
+  const query = params.toString() ? `?${params.toString()}` : "";
+  try {
+    const data = await fetchJson(`/api/alegra/price-lists${query}`);
+    const items = Array.isArray(data.items) ? data.items : [];
+    storeSyncPriceListSelect.innerHTML = "";
+    const allowEmpty = storeSyncPriceListSelect.dataset.allowEmpty === "true";
+    if (allowEmpty) {
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = storeSyncPriceListSelect.dataset.emptyLabel || "Seleccionar...";
+      storeSyncPriceListSelect.appendChild(option);
+    }
+    if (!items.length) {
+      const option = document.createElement("option");
+      option.disabled = true;
+      option.selected = !allowEmpty;
+      option.textContent = "Sin datos";
+      storeSyncPriceListSelect.appendChild(option);
+      return;
+    }
+    items.forEach((item) => {
+      const option = document.createElement("option");
+      option.value = String(item.id || item._id || "");
+      option.textContent = item.name || `ID ${option.value}`;
+      storeSyncPriceListSelect.appendChild(option);
+    });
+  } catch (error) {
+    storeSyncPriceListSelect.innerHTML = "";
+    const option = document.createElement("option");
+    option.disabled = true;
+    option.selected = true;
+    option.textContent = "Error al cargar";
+    storeSyncPriceListSelect.appendChild(option);
+  }
 }
 
 function renderAlegraAccountOptions(accounts) {
@@ -7281,6 +7409,91 @@ async function runProductsShopifyBulkSync() {
   }
 }
 
+async function runStoreProductsSync() {
+  const source = normalizeShopDomain(storeSyncSourceSelect?.value || "");
+  const target = normalizeShopDomain(storeSyncTargetSelect?.value || "");
+  const alegraAccountId =
+    storeSyncAlegraAccountSelect instanceof HTMLSelectElement
+      ? Number(storeSyncAlegraAccountSelect.value || 0)
+      : 0;
+  const priceListId =
+    storeSyncPriceListSelect instanceof HTMLSelectElement ? storeSyncPriceListSelect.value : "";
+  if (!source || !target) {
+    if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Selecciona tiendas origen y destino.";
+    return;
+  }
+  if (source === target) {
+    if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Origen y destino deben ser diferentes.";
+    return;
+  }
+  if (!Number.isFinite(alegraAccountId) || alegraAccountId <= 0) {
+    if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Selecciona una cuenta Alegra.";
+    return;
+  }
+  if (!priceListId || !String(priceListId).trim()) {
+    if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Selecciona una lista de precios.";
+    return;
+  }
+
+  const statusValue =
+    storeSyncStatusSelect instanceof HTMLSelectElement ? storeSyncStatusSelect.value : "draft";
+  const priceFallback =
+    storeSyncPriceFallbackSelect instanceof HTMLSelectElement
+      ? storeSyncPriceFallbackSelect.value
+      : "shopify";
+  const onlyActive =
+    storeSyncOnlyActive instanceof HTMLInputElement ? Boolean(storeSyncOnlyActive.checked) : true;
+  const includeDescriptions =
+    storeSyncIncludeDescriptions instanceof HTMLInputElement
+      ? Boolean(storeSyncIncludeDescriptions.checked)
+      : true;
+  const includeImages =
+    storeSyncIncludeImages instanceof HTMLInputElement ? Boolean(storeSyncIncludeImages.checked) : true;
+  const includeProductType =
+    storeSyncIncludeProductType instanceof HTMLInputElement
+      ? Boolean(storeSyncIncludeProductType.checked)
+      : true;
+  const includeTags =
+    storeSyncIncludeTags instanceof HTMLInputElement ? Boolean(storeSyncIncludeTags.checked) : true;
+
+  if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Sincronizando...";
+  try {
+    const result = await fetchJson("/api/sync/stores/products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider: "shopify",
+        sourceShopDomain: source,
+        targetShopDomain: target,
+        settings: {
+          alegraAccountId,
+          priceListId,
+          priceFallback,
+          status: statusValue === "active" ? "active" : "draft",
+          onlyActive,
+          includeDescriptions,
+          includeImages,
+          includeProductType,
+          includeTags,
+        },
+      }),
+    });
+    const total = Number(result?.total) || 0;
+    const created = Number(result?.created) || 0;
+    const skipped = Number(result?.skipped) || 0;
+    const failed = Number(result?.failed) || 0;
+    if (storeSyncStatusLabel) {
+      storeSyncStatusLabel.textContent =
+        total > 0
+          ? `Total ${total} · Creados ${created} · Omitidos ${skipped} · Fallidos ${failed}`
+          : "Sin productos para sincronizar.";
+    }
+  } catch (error) {
+    const message = error?.message || "No se pudo sincronizar productos entre tiendas.";
+    if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = message;
+  }
+}
+
 	async function runOrdersSync() {
 	  refreshProductSettingsFromInputs();
 	  if (ordersSyncStatus) {
@@ -7796,23 +8009,32 @@ async function loadSaModules() {
 }
 
 async function loadSaSnapshot() {
-  if (!(saPlanSnapshot instanceof HTMLElement)) return;
+  if (
+    !(saSnapshotTenantId instanceof HTMLInputElement) ||
+    !(saSnapshotPlanKey instanceof HTMLInputElement) ||
+    !(saSnapshotPlanType instanceof HTMLInputElement) ||
+    !(saSnapshotMonthlyPrice instanceof HTMLInputElement) ||
+    !(saSnapshotUpdatedAt instanceof HTMLInputElement) ||
+    !(saSnapshotServicesBody instanceof HTMLElement)
+  ) {
+    return;
+  }
   const tenantId = getSaTenantId();
   if (!tenantId) {
-    saPlanSnapshot.textContent = "Selecciona un tenant.";
+    renderSaSnapshot(null, "Selecciona un tenant.");
     return;
   }
   try {
     const data = await fetchJson(`/api/sa/tenant/plan?tenantId=${tenantId}&t=${Date.now()}`);
     if (data && data.snapshot) {
-      saPlanSnapshot.textContent = JSON.stringify(data.snapshot, null, 2);
+      renderSaSnapshot(data.snapshot, "");
       return;
     }
   } catch (error) {
-    saPlanSnapshot.textContent = error?.message || "No se pudo cargar snapshot.";
+    renderSaSnapshot(null, error?.message || "No se pudo cargar snapshot.");
     return;
   }
-  saPlanSnapshot.textContent = "Sin datos";
+  renderSaSnapshot(null, "Sin datos");
 }
 
 async function loadSaServices() {
@@ -7912,6 +8134,67 @@ function setMarketingStatus(message, className) {
   marketingStatus.textContent = message || "Sin datos";
   marketingStatus.classList.remove("is-ok", "is-warn", "is-error");
   if (className) marketingStatus.classList.add(className);
+}
+
+function renderSaSnapshot(snapshot, message) {
+  if (
+    !(saSnapshotTenantId instanceof HTMLInputElement) ||
+    !(saSnapshotPlanKey instanceof HTMLInputElement) ||
+    !(saSnapshotPlanType instanceof HTMLInputElement) ||
+    !(saSnapshotMonthlyPrice instanceof HTMLInputElement) ||
+    !(saSnapshotUpdatedAt instanceof HTMLInputElement) ||
+    !(saSnapshotServicesBody instanceof HTMLElement)
+  ) {
+    return;
+  }
+
+  if (!snapshot) {
+    saSnapshotTenantId.value = "";
+    saSnapshotPlanKey.value = "";
+    saSnapshotPlanType.value = "";
+    saSnapshotMonthlyPrice.value = "";
+    saSnapshotUpdatedAt.value = "";
+    saSnapshotServicesBody.innerHTML = `<tr><td colspan="5" class="empty">${escapeHtml(message || "Sin datos")}</td></tr>`;
+    return;
+  }
+
+  const tenantId = snapshot.tenantId ?? snapshot.tenant_id ?? "";
+  const planKey = snapshot.planKey ?? snapshot.plan_key ?? "";
+  const planType = snapshot.planType ?? snapshot.plan_type ?? "";
+  const monthlyPrice = snapshot.monthlyPrice ?? snapshot.monthly_price ?? "";
+  const updatedAt = snapshot.updatedAt ?? snapshot.updated_at ?? "";
+
+  saSnapshotTenantId.value = String(tenantId ?? "");
+  saSnapshotPlanKey.value = String(planKey ?? "");
+  saSnapshotPlanType.value = String(planType ?? "");
+  saSnapshotMonthlyPrice.value = String(monthlyPrice ?? "");
+  saSnapshotUpdatedAt.value = String(updatedAt ?? "");
+
+  const servicesRaw = snapshot.services || {};
+  const servicesList = Object.values(servicesRaw || {}).filter(Boolean);
+  if (!servicesList.length) {
+    saSnapshotServicesBody.innerHTML = `<tr><td colspan="5" class="empty">Sin servicios</td></tr>`;
+    return;
+  }
+
+  saSnapshotServicesBody.innerHTML = servicesList
+    .map((svc) => {
+      const key = escapeHtml(svc.serviceKey || "");
+      const periodType = String(svc.periodType || "monthly") === "total" ? "Total" : "Mensual";
+      const isUnlimited = svc.isUnlimited === true;
+      const maxValue = svc.maxValue === null || svc.maxValue === undefined ? "" : String(svc.maxValue);
+      const unitPrice = svc.unitPrice === null || svc.unitPrice === undefined ? "0" : String(svc.unitPrice);
+      return `
+        <tr>
+          <td>${key || "-"}</td>
+          <td>${periodType}</td>
+          <td><input type="checkbox" class="toggle" ${isUnlimited ? "checked" : ""} disabled /></td>
+          <td><input type="number" value="${escapeHtml(maxValue)}" disabled /></td>
+          <td><input type="number" value="${escapeHtml(unitPrice)}" disabled /></td>
+        </tr>
+      `;
+    })
+    .join("");
 }
 
 function ensureMarketingDefaults() {
@@ -10311,8 +10594,8 @@ if (saAssignPlan) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tenantId, planKey }),
       });
-      if (saPlanSnapshot) {
-        saPlanSnapshot.textContent = JSON.stringify(payload.snapshot || payload, null, 2);
+      if (payload && payload.snapshot) {
+        renderSaSnapshot(payload.snapshot, "");
       }
       showToast("Plan asignado.", "is-ok");
       loadBillingTopbar().catch(() => null);
@@ -11125,6 +11408,67 @@ if (productsPageInput) {
 
 if (productsSyncFilteredBtn) {
   productsSyncFilteredBtn.addEventListener("click", () => runProductsSync("filtered"));
+}
+
+if (storeSyncAlegraAccountSelect) {
+  storeSyncAlegraAccountSelect.addEventListener("change", () => {
+    const nextId = storeSyncAlegraAccountSelect.value || "";
+    if (!nextId) {
+      if (storeSyncPriceListSelect instanceof HTMLSelectElement) {
+        storeSyncPriceListSelect.innerHTML = "";
+        const option = document.createElement("option");
+        option.disabled = true;
+        option.selected = true;
+        option.textContent = "Selecciona cuenta Alegra";
+        storeSyncPriceListSelect.appendChild(option);
+      }
+      return;
+    }
+    loadStoreSyncPriceLists(nextId);
+  });
+}
+
+if (storeSyncSourceSelect) {
+  storeSyncSourceSelect.addEventListener("change", () => {
+    ensureStoreSyncDistinct();
+  });
+}
+
+if (storeSyncTargetSelect) {
+  storeSyncTargetSelect.addEventListener("change", () => {
+    ensureStoreSyncDistinct();
+  });
+}
+
+if (storeSyncRun) {
+  storeSyncRun.addEventListener("click", () => {
+    runStoreProductsSync();
+  });
+}
+
+if (storeSyncClear) {
+  storeSyncClear.addEventListener("click", () => {
+    if (storeSyncStatusSelect instanceof HTMLSelectElement) storeSyncStatusSelect.value = "draft";
+    if (storeSyncPriceFallbackSelect instanceof HTMLSelectElement)
+      storeSyncPriceFallbackSelect.value = "shopify";
+    if (storeSyncAlegraAccountSelect instanceof HTMLSelectElement)
+      storeSyncAlegraAccountSelect.value = "";
+    if (storeSyncPriceListSelect instanceof HTMLSelectElement) {
+      storeSyncPriceListSelect.innerHTML = "";
+      const option = document.createElement("option");
+      option.disabled = true;
+      option.selected = true;
+      option.textContent = "Selecciona cuenta Alegra";
+      storeSyncPriceListSelect.appendChild(option);
+    }
+    if (storeSyncOnlyActive instanceof HTMLInputElement) storeSyncOnlyActive.checked = true;
+    if (storeSyncIncludeDescriptions instanceof HTMLInputElement) storeSyncIncludeDescriptions.checked = true;
+    if (storeSyncIncludeImages instanceof HTMLInputElement) storeSyncIncludeImages.checked = true;
+    if (storeSyncIncludeProductType instanceof HTMLInputElement) storeSyncIncludeProductType.checked = true;
+    if (storeSyncIncludeTags instanceof HTMLInputElement) storeSyncIncludeTags.checked = true;
+    ensureStoreSyncDistinct();
+    if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Sin datos";
+  });
 }
 
 if (productsSyncIncludeInventory) {

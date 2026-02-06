@@ -438,7 +438,44 @@
                 </div>
                 <button class="primary" id="sa-assign-plan" type="button">Asignar</button>
               </div>
-              <pre class="modal-errors" id="sa-plan-snapshot">Selecciona un tenant y carga.</pre>
+              <div class="mode-grid" id="sa-snapshot-grid" aria-label="Snapshot del plan">
+                <div class="mode-field">
+                  <label for="sa-snapshot-tenant-id">Tenant ID</label>
+                  <input id="sa-snapshot-tenant-id" disabled />
+                </div>
+                <div class="mode-field">
+                  <label for="sa-snapshot-plan-key">Plan key</label>
+                  <input id="sa-snapshot-plan-key" disabled />
+                </div>
+                <div class="mode-field">
+                  <label for="sa-snapshot-plan-type">Plan type</label>
+                  <input id="sa-snapshot-plan-type" disabled />
+                </div>
+                <div class="mode-field">
+                  <label for="sa-snapshot-monthly-price">Precio mensual</label>
+                  <input id="sa-snapshot-monthly-price" disabled />
+                </div>
+                <div class="mode-field">
+                  <label for="sa-snapshot-updated-at">Actualizado</label>
+                  <input id="sa-snapshot-updated-at" disabled />
+                </div>
+              </div>
+              <div class="table-card">
+                <table class="table" id="sa-snapshot-services-table">
+                  <thead>
+                    <tr>
+                      <th>Servicio</th>
+                      <th>Periodo</th>
+                      <th>Ilimitado</th>
+                      <th>Max</th>
+                      <th>Precio unitario</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td colspan="5" class="empty">Selecciona un tenant y carga.</td></tr>
+                  </tbody>
+                </table>
+              </div>
 
               <div class="panel" id="sa-tenant-modules-panel">
                 <div class="panel-header">
@@ -1794,6 +1831,69 @@
 		                    </div>
 		                  </div>
 
+		                  <div class="panel admin-only module" data-provider="shopify" data-manager="shopify" data-module="marketing-config" data-module-priority="core" data-help="Configura el Pixel (para sessions / funnel / UTM) y los Webhooks de Marketing. Shopify NO entrega sesiones/UTM de tráfico desde la Admin API; por eso este módulo instala el Pixel y registra eventos para métricas.">
+                        <div class="panel-header">
+                          <h3 data-module-toggle="marketing-config" data-title-base="Marketing (Pixel + Webhooks)">Marketing (Pixel + Webhooks)</h3>
+                          <div class="panel-meta">
+                            <span class="panel-tag tag-core">Core</span>
+                            <span class="panel-tag">Shopify</span>
+                          </div>
+                        </div>
+                        <div class="module-body">
+                          <div class="mode-sections">
+                            <div class="mode-section" data-readonly-free="1">
+                              <div class="mode-head">
+                                <div class="mode-head-left">
+                                  <h4>Pixel (sessions / add-to-cart / UTM)</h4>
+                                  <span class="tip" data-tip="Paso 1: genera la Key (por tienda).&#10;Paso 2: pega el script en Shopify → Online Store → Themes → Edit code → layout/theme.liquid (antes de </body>).&#10;Paso 3: espera 1-2 minutos y vuelve a cargar Marketing.">?</span>
+                                </div>
+                              </div>
+                              <div class="mode-grid">
+                                <div class="mode-field field-span">
+                                  <label>Pixel Key (por tienda)</label>
+                                  <div class="field-actions inline">
+                                    <input type="text" id="mk-cfg-pixel-key" readonly placeholder="Cargando..." />
+                                    <button class="ghost" id="mk-cfg-copy-key" type="button">Copiar</button>
+                                    <button class="ghost" id="mk-cfg-rotate-key" type="button" title="Genera una nueva key (invalidará la anterior)">Rotar</button>
+                                  </div>
+                                  <p class="field-hint" id="mk-cfg-status">Sin datos</p>
+                                </div>
+                                <div class="mode-field field-span">
+                                  <label>Script para Shopify (theme.liquid)</label>
+                                  <div class="field-actions inline">
+                                    <input type="text" id="mk-cfg-script" readonly placeholder="Cargando..." />
+                                    <button class="ghost" id="mk-cfg-copy-script" type="button">Copiar script</button>
+                                    <button class="ghost" id="mk-cfg-test" type="button" title="Envía un evento de prueba (no afecta métricas)">Probar</button>
+                                  </div>
+                                  <p class="field-hint">Nota: esto habilita sessions/funnel. Las ventas/UTM de pedidos salen de Shopify (sync/webhooks).</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div class="mode-section" data-readonly-free="1">
+                              <div class="mode-head">
+                                <div class="mode-head-left">
+                                  <h4>Webhooks de Marketing (orders / checkouts / customers)</h4>
+                                  <span class="tip" data-tip="Crea webhooks en Shopify apuntando a este endpoint para capturar eventos de pedidos y checkout en tiempo real.">?</span>
+                                </div>
+                              </div>
+                              <div class="mode-grid">
+                                <div class="mode-field field-span">
+                                  <label>Callback URL</label>
+                                  <div class="field-actions inline">
+                                    <input type="text" id="mk-cfg-webhook-url" readonly placeholder="Cargando..." />
+                                    <button class="ghost" id="mk-cfg-copy-webhook" type="button">Copiar URL</button>
+                                    <button class="primary" id="mk-cfg-create-webhooks" type="button">Crear webhooks</button>
+                                  </div>
+                                  <p class="field-hint" id="mk-cfg-webhooks-status">Sin datos</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <p class="field-hint module-warning is-hidden" data-module-warning="marketing-config"></p>
+                        </div>
+                      </div>
+
 				                  <div class="panel admin-only module" data-provider="alegra" data-manager="shopify" data-module="alegra-logistics" id="inventory-transfer-panel" data-help="Configura el traslado de inventario que se ejecuta automaticamente antes de facturar pedidos (Shopify → Alegra).">
             <div class="panel-header">
 	              <h3 data-module-toggle="alegra-logistics" data-title-base="Logística (Alegra) para facturar pedidos">Logística (Alegra) para facturar pedidos</h3>
@@ -2021,12 +2121,102 @@
 	            </div>
 	                  </div>
                 </div>
+	            </div>
+	          </div>
+	        </div>
+
+          <div class="settings-group provider-group" data-group="store-sync">
+            <div class="settings-group-header" data-group-toggle="store-sync">
+              <h4 class="group-title">Sincronizacion tiendas Shopify</h4>
+            </div>
+            <div class="settings-group-body">
+              <div class="panel admin-only module" data-provider="shopify" data-manager="shopify" data-module="store-sync-products" data-help="Copia productos entre tiendas Shopify dentro de tu organizacion. Ideal para clonar catalogos o mover productos de una tienda a otra.">
+                <div class="panel-header">
+                  <h3 data-module-toggle="store-sync-products" data-title-base="Productos Shopify → Shopify">
+                    Productos Shopify → Shopify
+                    <span class="tip" data-tip="Copia productos de una tienda Shopify origen a una tienda Shopify destino. Puedes elegir si copiar descripcion, fotos, etiquetas y tipo/categoria.">?</span>
+                  </h3>
+                  <div class="panel-meta">
+                    <span class="panel-tag tag-bridge">Shopify → Shopify</span>
+                  </div>
+                </div>
+                <div class="module-body">
+                  <div class="mode-sections">
+                    <div class="mode-section">
+                      <div class="mode-head">
+                        <div class="mode-head-left">
+                          <h4>Origen, destino y reglas</h4>
+                        </div>
+                      </div>
+                      <div class="mode-grid">
+                        <div class="mode-field">
+                          <label for="store-sync-source">Tienda origen</label>
+                          <select id="store-sync-source"></select>
+                        </div>
+                        <div class="mode-field">
+                          <label for="store-sync-target">Tienda destino</label>
+                          <select id="store-sync-target"></select>
+                        </div>
+                        <div class="mode-field">
+                          <label for="store-sync-alegra-account">Cuenta Alegra</label>
+                          <select id="store-sync-alegra-account"></select>
+                        </div>
+                        <div class="mode-field">
+                          <label for="store-sync-price-list">Lista de precios Alegra</label>
+                          <select id="store-sync-price-list" data-allow-empty="true" data-empty-label="Seleccionar..."></select>
+                        </div>
+                        <div class="mode-field">
+                          <label for="store-sync-status">Estado destino</label>
+                          <select id="store-sync-status">
+                            <option value="draft" selected>Borrador</option>
+                            <option value="active">Activo</option>
+                          </select>
+                        </div>
+                        <div class="mode-field">
+                          <label for="store-sync-price-fallback">Si no hay precio en lista</label>
+                          <select id="store-sync-price-fallback">
+                            <option value="shopify" selected>Tomar precio original</option>
+                            <option value="none">No poner precio</option>
+                            <option value="skip">No sincronizar</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="mode-toggle-grid" aria-label="Opciones de copia">
+                        <div class="mode-toggle">
+                          <label for="store-sync-only-active">Solo activos en origen <span class="tip" data-tip="Si está ON, solo copia productos activos de la tienda origen.">?</span></label>
+                          <input type="checkbox" id="store-sync-only-active" class="toggle" checked />
+                        </div>
+                        <div class="mode-toggle">
+                          <label for="store-sync-include-descriptions">Copiar descripciones <span class="tip" data-tip="Incluye la descripción HTML del producto.">?</span></label>
+                          <input type="checkbox" id="store-sync-include-descriptions" class="toggle" checked />
+                        </div>
+                        <div class="mode-toggle">
+                          <label for="store-sync-include-images">Copiar fotos <span class="tip" data-tip="Copia las fotos principales del producto (hasta 15 por producto).">?</span></label>
+                          <input type="checkbox" id="store-sync-include-images" class="toggle" checked />
+                        </div>
+                        <div class="mode-toggle">
+                          <label for="store-sync-include-product-type">Copiar tipo/categoría <span class="tip" data-tip="Copia el tipo de producto (categoría interna).">?</span></label>
+                          <input type="checkbox" id="store-sync-include-product-type" class="toggle" checked />
+                        </div>
+                        <div class="mode-toggle">
+                          <label for="store-sync-include-tags">Copiar etiquetas <span class="tip" data-tip="Copia las etiquetas (tags) del producto.">?</span></label>
+                          <input type="checkbox" id="store-sync-include-tags" class="toggle" checked />
+                        </div>
+                      </div>
+                      <div class="mode-actions">
+                        <button class="primary" id="store-sync-run" type="button">Sincronizar productos</button>
+                        <button class="ghost" id="store-sync-clear" type="button">Limpiar</button>
+                        <span class="kpi-sub" id="store-sync-status-label">Sin datos</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+	        </div>
 
-        </section>
+	        </section>
       </main>
     </div>
 
@@ -2221,6 +2411,6 @@
       </div>
     </div>
 
-	    <script src="app.js?v=20260206p12" type="module"></script>
+	    <script src="app.js?v=20260206p14" type="module"></script>
 	  </body>
 	</html>

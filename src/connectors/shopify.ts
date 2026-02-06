@@ -294,6 +294,45 @@ export class ShopifyClient {
     );
   }
 
+  async createProduct(input: {
+    title: string;
+    status?: "ACTIVE" | "DRAFT" | "ARCHIVED";
+    descriptionHtml?: string;
+    vendor?: string;
+    productType?: string;
+    tags?: string[];
+    options?: string[];
+    variants?: Array<{
+      price?: string;
+      sku?: string;
+      barcode?: string;
+      options?: string[];
+    }>;
+  }) {
+    const response = await this.request<{ productCreate: ShopifyProductCreateResult }>(
+      <GraphQlRequest>{
+        query: PRODUCT_CREATE_MUTATION,
+        variables: {
+          input: {
+            title: input.title,
+            status: input.status,
+            descriptionHtml: input.descriptionHtml,
+            vendor: input.vendor,
+            productType: input.productType,
+            tags: input.tags,
+            options: input.options,
+            variants: input.variants,
+          },
+        },
+      }
+    );
+    const errors = response.productCreate?.userErrors || [];
+    if (errors.length) {
+      throw new Error(`Shopify productCreate: ${JSON.stringify(errors)}`);
+    }
+    return response.productCreate;
+  }
+
   private resolveNumericId(id: string) {
     const text = String(id || "");
     const match = text.match(/(\d+)(?:\D*)$/);
@@ -543,6 +582,22 @@ export type ShopifyProduct = {
   title: string;
   status: string;
   updatedAt?: string | null;
+  descriptionHtml?: string | null;
+  productType?: string | null;
+  vendor?: string | null;
+  tags?: string[] | null;
+  options?: Array<{
+    name: string;
+    values: string[];
+  }> | null;
+  images?: {
+    edges: Array<{
+      node: {
+        url?: string | null;
+        altText?: string | null;
+      };
+    }>;
+  } | null;
   variants: {
     edges: Array<{
       node: {
@@ -553,6 +608,7 @@ export type ShopifyProduct = {
         price: string;
         inventoryQuantity?: number | null;
         inventoryItem?: { id: string } | null;
+        selectedOptions?: Array<{ name: string; value: string }> | null;
       };
     }>;
   };
@@ -781,9 +837,31 @@ const PRODUCT_BY_ID_QUERY = `
       id
       title
       status
+      descriptionHtml
+      productType
+      vendor
+      tags
+      options {
+        name
+        values
+      }
+      images(first: 20) {
+        edges {
+          node { url altText }
+        }
+      }
       variants(first: 100) {
         edges {
-          node { id title sku barcode price inventoryQuantity inventoryItem { id } }
+          node {
+            id
+            title
+            sku
+            barcode
+            price
+            inventoryQuantity
+            inventoryItem { id }
+            selectedOptions { name value }
+          }
         }
       }
     }
@@ -799,9 +877,31 @@ const PRODUCTS_UPDATED_SINCE_QUERY = `
           title
           status
           updatedAt
+          descriptionHtml
+          productType
+          vendor
+          tags
+          options {
+            name
+            values
+          }
+          images(first: 20) {
+            edges {
+              node { url altText }
+            }
+          }
           variants(first: 100) {
             edges {
-              node { id title sku barcode price inventoryQuantity inventoryItem { id } }
+              node {
+                id
+                title
+                sku
+                barcode
+                price
+                inventoryQuantity
+                inventoryItem { id }
+                selectedOptions { name value }
+              }
             }
           }
         }
@@ -820,9 +920,31 @@ const PRODUCTS_PAGED_QUERY = `
           title
           status
           updatedAt
+          descriptionHtml
+          productType
+          vendor
+          tags
+          options {
+            name
+            values
+          }
+          images(first: 20) {
+            edges {
+              node { url altText }
+            }
+          }
           variants(first: 100) {
             edges {
-              node { id title sku barcode price inventoryQuantity inventoryItem { id } }
+              node {
+                id
+                title
+                sku
+                barcode
+                price
+                inventoryQuantity
+                inventoryItem { id }
+                selectedOptions { name value }
+              }
             }
           }
         }

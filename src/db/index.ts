@@ -198,10 +198,12 @@ async function performRepair(poolInstance: Pool) {
           shopify_store_id INTEGER REFERENCES shopify_stores(id),
           currency TEXT NOT NULL DEFAULT 'COP',
           timezone TEXT NOT NULL DEFAULT 'UTC',
+          pixel_key TEXT,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           UNIQUE (organization_id, shop_domain)
         );`,
+        "CREATE UNIQUE INDEX IF NOT EXISTS marketing_shops_org_pixel_key_uidx ON marketing.shops (organization_id, pixel_key) WHERE pixel_key IS NOT NULL;",
         `CREATE TABLE IF NOT EXISTS marketing.customers (
           id BIGSERIAL PRIMARY KEY,
           organization_id INTEGER NOT NULL REFERENCES organizations(id),
