@@ -672,17 +672,6 @@
 
               <div class="panel">
                 <div class="panel-header">
-                  <h3>Top productos</h3>
-                  <div class="panel-meta">
-                    <span class="panel-source">Pedidos pagados</span>
-                    <span class="panel-tag">Revenue</span>
-                  </div>
-                </div>
-                <div class="chart-placeholder" id="mk-top-products"></div>
-              </div>
-
-              <div class="panel">
-                <div class="panel-header">
                   <h3>Top campañas (UTM)</h3>
                   <div class="panel-meta">
                     <span class="panel-source">UTM Campaign</span>
@@ -705,19 +694,6 @@
                       </tr>
                     </tbody>
                   </table>
-                </div>
-              </div>
-
-              <div class="panel">
-                <div class="panel-header">
-                  <h3>Recomendaciones</h3>
-                  <div class="panel-meta">
-                    <span class="panel-source">Analista automático</span>
-                    <span class="panel-tag">Acciones</span>
-                  </div>
-                </div>
-                <div class="table-card">
-                  <div class="empty" id="mk-insights">Sin datos</div>
                 </div>
               </div>
             </div>
@@ -1756,6 +1732,13 @@
 	                              <label for="invoices-backfill-create-shopify">Crear pedido en Shopify <span class="tip" data-tip="OFF: solo cargamos facturas a la base. ON: creamos pedidos/borradores en Shopify (según “Crear como”).">?</span></label>
 	                              <input type="checkbox" id="invoices-backfill-create-shopify" class="toggle" />
 	                            </div>
+	                            <div class="mode-toggle" id="invoices-backfill-mode-field" hidden>
+	                              <label for="invoices-backfill-mode">Crear como <span class="tip" data-tip="Borrador (Draft): se crea como borrador, no queda visible para clientes.&#10;Activo (Order): se crea como pedido activo en Shopify.&#10;Solo aplica si “Crear pedido en Shopify” está ON.">?</span></label>
+	                              <select id="invoices-backfill-mode">
+	                                <option value="draft" selected>Borrador (Draft)</option>
+	                                <option value="active">Activo (Order)</option>
+	                              </select>
+	                            </div>
 	                          </div>
 	                          <div class="mode-grid">
 	                            <div class="mode-field">
@@ -1769,13 +1752,6 @@
 	                            <div class="mode-field">
 	                              <label for="invoices-backfill-limit">Limite (recomendado)</label>
 	                              <input type="number" id="invoices-backfill-limit" min="1" placeholder="200" />
-	                            </div>
-	                            <div class="mode-field" id="invoices-backfill-mode-field" hidden>
-	                              <label for="invoices-backfill-mode">Crear como</label>
-	                              <select id="invoices-backfill-mode">
-	                                <option value="draft" selected>Borrador (Draft)</option>
-	                                <option value="active">Activo (Order)</option>
-	                              </select>
 	                            </div>
 	                          </div>
 	                          <div class="mode-actions">

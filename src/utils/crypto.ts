@@ -49,6 +49,16 @@ export function decryptString(payload: string) {
     if (message.includes("CRYPTO_KEY_BASE64")) {
       throw error;
     }
+    const normalized = message.toLowerCase();
+    if (
+      normalized.includes("unable to authenticate") ||
+      normalized.includes("unsupported state") ||
+      normalized.includes("authentication tag")
+    ) {
+      throw new Error(
+        "No se pudo leer credenciales guardadas. Puede que CRYPTO_KEY_BASE64 haya cambiado. Fija CRYPTO_KEY_BASE64 en el servidor y reconecta la tienda."
+      );
+    }
     throw new Error(
       "No se pudo leer credenciales guardadas (probablemente son antiguas). Vuelve a conectar la tienda."
     );

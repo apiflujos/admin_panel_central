@@ -177,9 +177,7 @@ const mkKpiAov = document.getElementById("mk-kpi-aov");
 const mkFunnelBody = document.querySelector("#mk-funnel-table tbody");
 const mkRevenueSeries = document.getElementById("mk-revenue-series");
 const mkByChannel = document.getElementById("mk-by-channel");
-const mkTopProducts = document.getElementById("mk-top-products");
 const mkTopCampaignsBody = document.querySelector("#mk-top-campaigns tbody");
-const mkInsights = document.getElementById("mk-insights");
 const chartAlegra = document.getElementById("chart-alegra");
 const alegraGrowthLabel = document.getElementById("chart-alegra-label");
 const assistantMessages = document.getElementById("assistant-messages");
@@ -6996,16 +6994,29 @@ async function runProductsSync(mode) {
           const remainingMs = total > 0 && rate > 0 ? rate * Math.max(0, total - scanned) : 0;
           const percent = total > 0 ? (scanned / total) * 100 : 0;
           const etaText = total > 0 ? formatDuration(remainingMs) : "--:--";
-          updateProductsProgress(
-            percent,
-            `Productos ${Math.round(percent)}% · ETA ${etaText}`
-          );
-          if (productsSyncStatus) {
-            productsSyncStatus.textContent = `Revisados ${scanned}/${total || "?"} · Procesados ${latestTotals.processed} · Actualizados ${latestTotals.updated || 0} · Publicados ${latestTotals.published} · Existentes ${latestTotals.skipped} · No publicados ${latestTotals.skippedUnpublished || 0} · Reintentos ${latestTotals.rateLimitRetries}`;
-          }
-          continue;
-        }
-        if (payload.type === "complete") {
+	          updateProductsProgress(
+	            percent,
+	            `Productos ${Math.round(percent)}% · ETA ${etaText}`
+	          );
+	          if (productsSyncStatus) {
+	            const publishOnSync = productSettings?.sync?.publishOnSync !== false;
+	            if (!publishOnSync) {
+	              productsSyncStatus.textContent =
+	                `Revisados ${scanned}/${total || "?"} · Base de datos: sincronizando... · Shopify: OFF`;
+	            } else {
+	              productsSyncStatus.textContent =
+	                `Revisados ${scanned}/${total || "?"}` +
+	                ` · Procesados ${latestTotals.processed}` +
+	                ` · Shopify actualizados ${latestTotals.updated || 0}` +
+	                ` · Shopify publicados ${latestTotals.published}` +
+	                ` · Existentes ${latestTotals.skipped}` +
+	                ` · No publicados ${latestTotals.skippedUnpublished || 0}` +
+	                ` · Reintentos ${latestTotals.rateLimitRetries}`;
+	            }
+	          }
+	          continue;
+	        }
+	        if (payload.type === "complete") {
           const parents = payload.parentCount ?? 0;
           const variants = payload.variantCount ?? 0;
           const total = payload.total ?? payload.scanned ?? payload.processed ?? 0;
@@ -7016,17 +7027,18 @@ async function runProductsSync(mode) {
           const skipped = payload.skipped ?? 0;
           const failed = payload.failed ?? 0;
           const rateLimitRetries = payload.rateLimitRetries ?? 0;
-          const publishOnSync = payload.publishOnSync !== false;
-          const updateExisting = payload.updateExisting !== false;
-          const publishStatus = payload.publishStatus || "draft";
-          const onlyPublished = payload.onlyPublishedInShopify !== false;
-          const skippedUnpublished = payload.skippedUnpublished ?? 0;
-          const summary =
-            total > 0
-              ? `Total: ${total} · Revisados: ${scanned} · Procesados: ${processed} · Actualizados: ${updated} · Publicados: ${published} · Existentes: ${skipped} · No publicados: ${skippedUnpublished} · Reintentos: ${rateLimitRetries} · Fallidos: ${failed} · Padres: ${parents} · Variantes: ${variants} · Publicar: ${publishOnSync ? "Si" : "No"} · Actualizar: ${updateExisting ? "Si" : "No"} · Solo publicados: ${onlyPublished ? "Si" : "No"} · Estado: ${publishStatus}`
-              : payload?.message
-                ? payload.message
-                : "Sin productos para sincronizar con esos filtros.";
+	          const publishOnSync = payload.publishOnSync !== false;
+	          const updateExisting = payload.updateExisting !== false;
+	          const publishStatus = payload.publishStatus || "draft";
+	          const skippedUnpublished = payload.skippedUnpublished ?? 0;
+	          const summary =
+	            total > 0
+	              ? !publishOnSync
+	                ? `Total: ${total} · Revisados: ${scanned} · Base de datos: OK · Fallidos: ${failed} · Padres: ${parents} · Variantes: ${variants} · Actualizar existentes: ${updateExisting ? "Si" : "No"} · Shopify: OFF`
+	                : `Total: ${total} · Revisados: ${scanned} · Procesados: ${processed} · Shopify actualizados: ${updated} · Shopify publicados: ${published} · Existentes: ${skipped} · No publicados: ${skippedUnpublished} · Reintentos: ${rateLimitRetries} · Fallidos: ${failed} · Padres: ${parents} · Variantes: ${variants} · Publicar: ${publishOnSync ? "Si" : "No"} · Estado: ${publishStatus} · Actualizar existentes: ${updateExisting ? "Si" : "No"}`
+	              : payload?.message
+	                ? payload.message
+	                : "Sin productos para sincronizar con esos filtros.";
           if (productsSyncStatus) {
             productsSyncStatus.textContent = summary;
           }
@@ -7056,16 +7068,19 @@ async function runProductsSync(mode) {
     const updated = Number(latestTotals.updated) || 0;
     const published = Number(latestTotals.published) || 0;
     const skipped = Number(latestTotals.skipped) || 0;
-    const skippedUnpublished = Number(latestTotals.skippedUnpublished) || 0;
-    const failed = Number(latestTotals.failed) || 0;
-    const rateLimitRetries = Number(latestTotals.rateLimitRetries) || 0;
-    const summary =
-      total > 0
-        ? `Total: ${total} · Revisados: ${scanned} · Procesados: ${processed} · Actualizados: ${updated} · Publicados: ${published} · Existentes: ${skipped} · No publicados: ${skippedUnpublished} · Reintentos: ${rateLimitRetries} · Fallidos: ${failed}`
-        : "Sin productos para sincronizar con esos filtros.";
-    if (productsSyncStatus) {
-      productsSyncStatus.textContent = summary;
-    }
+	    const skippedUnpublished = Number(latestTotals.skippedUnpublished) || 0;
+	    const failed = Number(latestTotals.failed) || 0;
+	    const rateLimitRetries = Number(latestTotals.rateLimitRetries) || 0;
+	    const publishOnSync = productSettings?.sync?.publishOnSync !== false;
+	    const summary =
+	      total > 0
+	        ? !publishOnSync
+	          ? `Total: ${total} · Revisados: ${scanned} · Base de datos: OK · Fallidos: ${failed}`
+	          : `Total: ${total} · Revisados: ${scanned} · Procesados: ${processed} · Shopify actualizados: ${updated} · Shopify publicados: ${published} · Existentes: ${skipped} · No publicados: ${skippedUnpublished} · Reintentos: ${rateLimitRetries} · Fallidos: ${failed}`
+	        : "Sin productos para sincronizar con esos filtros.";
+	    if (productsSyncStatus) {
+	      productsSyncStatus.textContent = summary;
+	    }
 	    finishProductsProgress("Productos 100%");
 	    stopProgress("Productos 100%");
 	    activeProductsSyncId = "";
@@ -7268,7 +7283,6 @@ async function runProductsShopifyBulkSync() {
 
 	async function runOrdersSync() {
 	  refreshProductSettingsFromInputs();
-	  setProductsStatus("Sincronizando pedidos...");
 	  if (ordersSyncStatus) {
 	    ordersSyncStatus.textContent = "Sincronizando...";
   }
@@ -7377,7 +7391,6 @@ async function runProductsShopifyBulkSync() {
 	            total > 0
 	              ? `Total: ${total} · Procesados: ${processed} · Facturados: ${synced} · Existentes: ${skipped} · Fallidos: ${failed}`
 	              : "Sin pedidos para sincronizar con esos filtros.";
-	          setProductsStatus(summary);
 	          if (ordersSyncStatus) {
 	            ordersSyncStatus.textContent = summary;
 	          }
@@ -7394,7 +7407,6 @@ async function runProductsShopifyBulkSync() {
     const total = Number(latestTotals.total) || 0;
     const processed = Number(latestTotals.processed) || 0;
     const summary = total > 0 ? `Pedidos: ${processed}/${total}` : "Pedidos sincronizados.";
-    setProductsStatus(summary);
     if (ordersSyncStatus) {
       ordersSyncStatus.textContent = summary;
     }
@@ -7403,7 +7415,6 @@ async function runProductsShopifyBulkSync() {
 		    await loadOperationsView();
 		  } catch (error) {
 	    const message = error?.message || "No se pudo sincronizar pedidos.";
-	    setProductsStatus(message);
 	    if (ordersSyncStatus) {
 	      ordersSyncStatus.textContent = message;
 	    }
@@ -7979,13 +7990,6 @@ function renderMarketingDashboard(data) {
     valueFormatter: (value) => formatCurrencyValue(Number(value || 0)),
   });
 
-  const topProducts = Array.isArray(data?.topProducts) ? data.topProducts : [];
-  renderBarChart(mkTopProducts, topProducts, {
-    labelKey: "name",
-    valueKey: "amount",
-    valueFormatter: (value) => formatCurrencyValue(Number(value || 0)),
-  });
-
   if (mkTopCampaignsBody) {
     const campaigns = Array.isArray(data?.topCampaigns) ? data.topCampaigns : [];
     if (!campaigns.length) {
@@ -8009,44 +8013,23 @@ function renderMarketingDashboard(data) {
   }
 }
 
-function renderMarketingInsights(payload) {
-  if (!(mkInsights instanceof HTMLElement)) return;
-  const list = Array.isArray(payload?.insights) ? payload.insights : [];
-  if (!list.length) {
-    mkInsights.textContent = "Sin datos";
-    mkInsights.classList.add("empty");
-    return;
-  }
-  mkInsights.classList.remove("empty");
-  mkInsights.innerHTML = `
-    <div class="insights-list">
-      ${list
-        .slice(0, 12)
-        .map((insight) => {
-          const title = escapeHtml(insight.title || "Insight");
-          const rationale = escapeHtml(insight.rationale || "");
-          const actions = Array.isArray(insight.actions) ? insight.actions : [];
-          return `
-            <div class="insight-item">
-              <div class="insight-head">
-                <strong>${title}</strong>
-                <span class="panel-tag">${escapeHtml(insight.severity || "info")}</span>
-              </div>
-              ${rationale ? `<div class="field-hint">${rationale}</div>` : ""}
-              ${
-                actions.length
-                  ? `<ul class="insight-actions">${actions
-                      .slice(0, 5)
-                      .map((a) => `<li>${escapeHtml(a)}</li>`)
-                      .join("")}</ul>`
-                  : ""
-              }
-            </div>
-          `;
-        })
-        .join("")}
-    </div>
-  `;
+function isMarketingDashboardEmpty(data) {
+  const kpis = data?.kpis || {};
+  const revenue = Number(kpis.revenue || 0);
+  const series = Array.isArray(data?.series) ? data.series : [];
+  const byChannel = Array.isArray(data?.byChannel) ? data.byChannel : [];
+  const topCampaigns = Array.isArray(data?.topCampaigns) ? data.topCampaigns : [];
+  const funnel = kpis?.funnel || {};
+  const sessions = Number(funnel.sessions || 0);
+  const paidOrders = Number(funnel.paidOrders || 0);
+  const hasAny =
+    revenue > 0 ||
+    series.length > 0 ||
+    byChannel.length > 0 ||
+    topCampaigns.length > 0 ||
+    sessions > 0 ||
+    paidOrders > 0;
+  return !hasAny;
 }
 
 async function loadMarketing() {
@@ -8073,18 +8056,17 @@ async function loadMarketing() {
 
     const data = await fetchJson(`/api/marketing/dashboard?${params.toString()}`);
     renderMarketingDashboard(data);
-    setMarketingStatus("OK", "is-ok");
-
-    try {
-      const insights = await fetchJson(`/api/marketing/insights?${params.toString()}`);
-      renderMarketingInsights(insights);
-    } catch {
-      renderMarketingInsights({ insights: [] });
+    if (isMarketingDashboardEmpty(data)) {
+      setMarketingStatus(
+        "Sin datos en este rango. Usa “Sincronizar pedidos” y luego “Recalcular métricas”. Para UTM/Sessions/Funnel: instala el Pixel y configura webhooks.",
+        "is-warn"
+      );
+    } else {
+      setMarketingStatus("OK", "is-ok");
     }
   } catch (error) {
     setMarketingStatus(error?.message || "No se pudo cargar marketing.", "is-error");
     renderMarketingDashboard({});
-    renderMarketingInsights({ insights: [] });
   } finally {
     marketingLoading = false;
   }
@@ -8556,7 +8538,7 @@ function formatCurrencyValue(value) {
 function renderLineChart(container, items, prevItems = []) {
   if (!container) return;
   if (!Array.isArray(items) || !items.length) {
-    container.innerHTML = "";
+    container.innerHTML = `<div class="empty">Sin datos</div>`;
     return;
   }
   const sliceItems = container.classList.contains("chart-compact")
@@ -8626,7 +8608,7 @@ function renderLineChart(container, items, prevItems = []) {
 function renderBarChart(container, items, options = {}) {
   if (!container) return;
   if (!Array.isArray(items) || !items.length) {
-    container.innerHTML = "";
+    container.innerHTML = `<div class="empty">Sin datos</div>`;
     return;
   }
   const labelKey = options.labelKey || "name";
