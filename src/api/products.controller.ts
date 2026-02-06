@@ -1832,7 +1832,19 @@ export async function syncProductsHandler(req: Request, res: Response) {
 
       if (queueItems.length) {
         const cacheCandidates = queueItems.map((entry) => entry.item);
-        const cacheItems = includeInventory ? await hydrateItems(cacheCandidates) : cacheCandidates;
+        // Importante: el payload para Shopify debe usar el item "hidratado"
+        // (con itemVariants + inventory completos). Antes se hidrataba solo para cache/DB,
+        // pero se publicaba usando la versión parcial del listado, causando padres sin variantes.
+        const shouldHydrate = Boolean(includeInventory) || Boolean(publishOnSync);
+        const cacheItems = shouldHydrate ? await hydrateItems(cacheCandidates) : cacheCandidates;
+        const hydratedById = new Map(cacheItems.map((item) => [String(item.id || ""), item] as const));
+        queueItems.forEach((entry) => {
+          const id = String(entry.item?.id || "");
+          const hydrated = hydratedById.get(id);
+          if (hydrated) {
+            entry.item = hydrated;
+          }
+        });
         await upsertAlegraItemsCache(cacheItems);
         await persistProductsFromAlegra(cacheItems, storeDomain || shopDomainInput || "");
         const batchNumber = Math.floor(start / batchLimit) + 1;
