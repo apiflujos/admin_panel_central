@@ -366,6 +366,7 @@ const productsSyncLimitInput = document.getElementById("products-sync-limit");
 const productsSyncQuery = document.getElementById("products-sync-query");
 const productsSyncOnlyActive = document.getElementById("products-sync-only-active");
 const productsSyncPublish = document.getElementById("products-sync-publish");
+const productsSyncUpdateExisting = document.getElementById("products-sync-update-existing");
 const productsSyncOnlyPublished = document.getElementById("products-sync-only-published");
 const productsSyncIncludeInventory = document.getElementById("products-sync-include-inventory");
 const productsSyncFilteredBtn = document.getElementById("products-sync-filtered");
@@ -515,6 +516,7 @@ const DEFAULT_PRODUCT_SETTINGS = {
       onlyPublishedInShopify: true,
       includeInventory: true,
       onlyActive: true,
+      updateExisting: true,
     },
   orders: {
     dateStart: "",
@@ -4400,6 +4402,18 @@ function applyProductSettings() {
     productsSyncOnlyActive.checked = productSettings.sync.onlyActive !== false;
   }
   if (productsSyncPublish) productsSyncPublish.checked = productSettings.sync.publishOnSync !== false;
+  if (productsSyncUpdateExisting) {
+    const fromStoreConfig =
+      activeStoreConfig &&
+      activeStoreConfig.rules &&
+      typeof activeStoreConfig.rules.updateInShopify === "boolean"
+        ? activeStoreConfig.rules.updateInShopify
+        : null;
+    productsSyncUpdateExisting.checked =
+      fromStoreConfig !== null
+        ? fromStoreConfig
+        : productSettings.sync.updateExisting !== false;
+  }
   if (productsSyncOnlyPublished) {
     productsSyncOnlyPublished.checked = productSettings.sync.onlyPublishedInShopify !== false;
   }
@@ -4440,6 +4454,7 @@ function refreshProductSettingsFromInputs() {
       warehouseIds: getSelectedSyncWarehouseIds(),
       onlyActive: productsSyncOnlyActive ? productsSyncOnlyActive.checked : true,
       publishOnSync: productsSyncPublish ? productsSyncPublish.checked : true,
+      updateExisting: productsSyncUpdateExisting ? productsSyncUpdateExisting.checked : true,
       onlyPublishedInShopify: productsSyncOnlyPublished
         ? productsSyncOnlyPublished.checked
         : true,
@@ -5303,6 +5318,9 @@ function applyRuleSettings(settings, options = {}) {
   if (rulesAutoUpdateShopify instanceof HTMLInputElement) {
     rulesAutoUpdateShopify.checked = settings.updateInShopify !== false;
   }
+  if (productsSyncUpdateExisting instanceof HTMLInputElement) {
+    productsSyncUpdateExisting.checked = settings.updateInShopify !== false;
+  }
   if (rulesAutoPublish) rulesAutoPublish.checked = Boolean(settings.autoPublishOnWebhook);
   if (rulesAutoImages) {
     rulesAutoImages.checked = settings.includeImages !== false;
@@ -5621,6 +5639,7 @@ async function loadLegacyStoreConfig() {
   } finally {
     updatePrerequisites();
     applyToggleDependencies();
+    applyProductSettings();
   }
 }
 
@@ -6913,6 +6932,7 @@ async function runProductsSync(mode) {
     total: null,
     scanned: 0,
     processed: 0,
+    updated: 0,
     published: 0,
     skipped: 0,
     skippedUnpublished: 0,
@@ -6946,6 +6966,7 @@ async function runProductsSync(mode) {
           includeImages: productSettings.publish.includeImages,
           vendor: productSettings.publish.vendor,
           publishOnSync: productSettings.sync.publishOnSync !== false,
+          updateExisting: productSettings.sync.updateExisting !== false,
           onlyPublishedInShopify: productSettings.sync.onlyPublishedInShopify !== false,
         },
         stream: true,
@@ -6988,6 +7009,7 @@ async function runProductsSync(mode) {
             total: payload.total ?? latestTotals.total,
             scanned: payload.scanned ?? latestTotals.scanned,
             processed: payload.processed ?? latestTotals.processed,
+            updated: payload.updated ?? latestTotals.updated,
             published: payload.published ?? latestTotals.published,
             skipped: payload.skipped ?? latestTotals.skipped,
             skippedUnpublished: payload.skippedUnpublished ?? latestTotals.skippedUnpublished,
@@ -7006,7 +7028,7 @@ async function runProductsSync(mode) {
             `Productos ${Math.round(percent)}% · ETA ${etaText}`
           );
           if (productsSyncStatus) {
-            productsSyncStatus.textContent = `Revisados ${scanned}/${total || "?"} · Procesados ${latestTotals.processed} · Publicados ${latestTotals.published} · Existentes ${latestTotals.skipped} · No publicados ${latestTotals.skippedUnpublished || 0} · Reintentos ${latestTotals.rateLimitRetries}`;
+            productsSyncStatus.textContent = `Revisados ${scanned}/${total || "?"} · Procesados ${latestTotals.processed} · Actualizados ${latestTotals.updated || 0} · Publicados ${latestTotals.published} · Existentes ${latestTotals.skipped} · No publicados ${latestTotals.skippedUnpublished || 0} · Reintentos ${latestTotals.rateLimitRetries}`;
           }
           continue;
         }
@@ -7016,6 +7038,7 @@ async function runProductsSync(mode) {
           const total = payload.total ?? payload.scanned ?? payload.processed ?? 0;
           const scanned = payload.scanned ?? 0;
           const processed = payload.processed ?? 0;
+          const updated = payload.updated ?? 0;
           const published = payload.published ?? 0;
           const skipped = payload.skipped ?? 0;
           const failed = payload.failed ?? 0;
@@ -7026,7 +7049,7 @@ async function runProductsSync(mode) {
           const skippedUnpublished = payload.skippedUnpublished ?? 0;
           const summary =
             total > 0
-              ? `Total: ${total} · Revisados: ${scanned} · Procesados: ${processed} · Publicados: ${published} · Existentes: ${skipped} · No publicados: ${skippedUnpublished} · Reintentos: ${rateLimitRetries} · Fallidos: ${failed} · Padres: ${parents} · Variantes: ${variants} · Publicar: ${publishOnSync ? "Si" : "No"} · Solo publicados: ${onlyPublished ? "Si" : "No"} · Estado: ${publishStatus}`
+              ? `Total: ${total} · Revisados: ${scanned} · Procesados: ${processed} · Actualizados: ${updated} · Publicados: ${published} · Existentes: ${skipped} · No publicados: ${skippedUnpublished} · Reintentos: ${rateLimitRetries} · Fallidos: ${failed} · Padres: ${parents} · Variantes: ${variants} · Publicar: ${publishOnSync ? "Si" : "No"} · Solo publicados: ${onlyPublished ? "Si" : "No"} · Estado: ${publishStatus}`
               : payload?.message
                 ? payload.message
                 : "Sin productos para sincronizar con esos filtros.";
@@ -7058,6 +7081,7 @@ async function runProductsSync(mode) {
     const total = Number(latestTotals.total) || 0;
     const scanned = Number(latestTotals.scanned) || 0;
     const processed = Number(latestTotals.processed) || 0;
+    const updated = Number(latestTotals.updated) || 0;
     const published = Number(latestTotals.published) || 0;
     const skipped = Number(latestTotals.skipped) || 0;
     const skippedUnpublished = Number(latestTotals.skippedUnpublished) || 0;
@@ -7065,7 +7089,7 @@ async function runProductsSync(mode) {
     const rateLimitRetries = Number(latestTotals.rateLimitRetries) || 0;
     const summary =
       total > 0
-        ? `Total: ${total} · Revisados: ${scanned} · Procesados: ${processed} · Publicados: ${published} · Existentes: ${skipped} · No publicados: ${skippedUnpublished} · Reintentos: ${rateLimitRetries} · Fallidos: ${failed}`
+        ? `Total: ${total} · Revisados: ${scanned} · Procesados: ${processed} · Actualizados: ${updated} · Publicados: ${published} · Existentes: ${skipped} · No publicados: ${skippedUnpublished} · Reintentos: ${rateLimitRetries} · Fallidos: ${failed}`
         : "Sin productos para sincronizar con esos filtros.";
     setProductsStatus(summary);
     if (productsSyncStatus) {
@@ -11718,6 +11742,48 @@ if (productsSyncPublish) {
   });
 }
 
+async function saveUpdateExistingRuleFromMassProducts() {
+  if (!(productsSyncUpdateExisting instanceof HTMLInputElement)) return;
+  const domain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+  if (!domain) return;
+  if (!activeStoreConfig || normalizeShopDomain(activeStoreConfig.shopDomain || "") !== domain) {
+    // Best-effort: ensure we have the latest config loaded.
+    await loadLegacyStoreConfig();
+  }
+  if (!activeStoreConfig || normalizeShopDomain(activeStoreConfig.shopDomain || "") !== domain) {
+    return;
+  }
+  const nextValue = Boolean(productsSyncUpdateExisting.checked);
+  const payload = {
+    transfers: activeStoreConfig.transfers || {},
+    priceLists: activeStoreConfig.priceLists || {},
+    rules: { ...(activeStoreConfig.rules || {}), updateInShopify: nextValue },
+    invoice: activeStoreConfig.invoice || {},
+    sync: activeStoreConfig.sync || {},
+  };
+  await fetchJson(`/api/store-configs/${encodeURIComponent(domain)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  activeStoreConfig = { ...activeStoreConfig, rules: payload.rules };
+  if (storeRuleOverrides) {
+    storeRuleOverrides = { ...storeRuleOverrides, updateInShopify: nextValue };
+  }
+  if (rulesAutoUpdateShopify instanceof HTMLInputElement) {
+    rulesAutoUpdateShopify.checked = nextValue;
+  }
+}
+
+if (productsSyncUpdateExisting) {
+  productsSyncUpdateExisting.addEventListener("change", () => {
+    // Persist per-store (DB), not just localStorage.
+    saveUpdateExistingRuleFromMassProducts().catch((error) => {
+      showToast(error?.message || "No se pudo guardar “Actualizar existentes”.", "is-error");
+    });
+  });
+}
+
 if (rulesAutoPublish && rulesAutoStatus) {
   rulesAutoPublish.addEventListener("change", () => {
     applyToggleDependencies();
@@ -11734,6 +11800,7 @@ if (rulesAutoPublish && rulesAutoStatus) {
       if (productsSyncQuery) productsSyncQuery.value = "";
       if (productsSyncOnlyActive) productsSyncOnlyActive.checked = true;
       if (productsSyncPublish) productsSyncPublish.checked = true;
+      if (productsSyncUpdateExisting) productsSyncUpdateExisting.checked = true;
       if (productsSyncOnlyPublished) productsSyncOnlyPublished.checked = true;
       if (productsSyncIncludeInventory) productsSyncIncludeInventory.checked = true;
       updateSyncWarehouseState();
@@ -11756,6 +11823,7 @@ if (rulesAutoPublish && rulesAutoStatus) {
 		  productsSyncQuery,
 		  productsSyncOnlyActive,
 	  productsSyncPublish,
+	  productsSyncUpdateExisting,
 	  productsSyncOnlyPublished,
 	  productsSyncIncludeInventory,
 	  productsDateFilter,

@@ -1369,6 +1369,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
   let processed = 0;
   let scanned = 0;
   let published = 0;
+  let updated = 0;
   let skipped = 0;
   let skippedUnpublished = 0;
   let failed = 0;
@@ -1421,6 +1422,46 @@ export async function syncProductsHandler(req: Request, res: Response) {
     const storeDomain = normalizedShopDomain || shopifyConfig?.shopDomain || "";
     const storeConfig = storeDomain ? await resolveStoreConfig(storeDomain) : await resolveStoreConfig(null);
     const storeConfigFull = storeDomain ? await getStoreConfigForDomain(storeDomain) : null;
+    const parseBooleanLike = (value: unknown, fallback: boolean) => {
+      if (typeof value === "boolean") return value;
+      const lowered = String(value ?? "").trim().toLowerCase();
+      if (!lowered) return fallback;
+      if (lowered === "1" || lowered === "true" || lowered === "yes" || lowered === "on") return true;
+      if (lowered === "0" || lowered === "false" || lowered === "no" || lowered === "off") return false;
+      return fallback;
+    };
+    const updateExisting = parseBooleanLike(
+      (settings as Record<string, unknown>).updateExisting,
+      storeConfigFull?.rules?.updateInShopify !== false
+    );
+    const withShopifyRetry = async <T,>(
+      fn: () => Promise<T>,
+      options: { label: string; retries?: number } = { label: "shopify_call" }
+    ) => {
+      const retries =
+        typeof options.retries === "number" && Number.isFinite(options.retries)
+          ? Math.max(0, options.retries)
+          : 2;
+      let attempt = 0;
+      while (true) {
+        try {
+          return await fn();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error || "");
+          const retryable =
+            message.includes("429") ||
+            message.toLowerCase().includes("throttled") ||
+            message.toLowerCase().includes("rate limit");
+          if (!retryable || attempt >= retries) {
+            throw error;
+          }
+          const waitMs = 1200 * Math.pow(2, attempt);
+          logEvent(`Shopify rate limit (${options.label}), reintento en ${Math.round(waitMs / 1000)}s...`);
+          await sleep(waitMs);
+          attempt += 1;
+        }
+      }
+    };
     const warehouseIds =
       requestedWarehouseIds.length
         ? requestedWarehouseIds
@@ -1437,7 +1478,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
         : null;
     const identifierCache = new Map<
       string,
-      { exists: boolean; productId?: string; status?: string | null }
+      { exists: boolean; productId?: string; variantId?: string; inventoryItemId?: string; status?: string | null }
     >();
     const resolveExistingVariant = async (identifier: string) => {
       const normalized = normalizeIdentifier(identifier);
@@ -1451,6 +1492,8 @@ export async function syncProductsHandler(req: Request, res: Response) {
       const result = {
         exists,
         productId: node?.product?.id ? String(node.product.id) : undefined,
+        variantId: node?.id ? String(node.id) : undefined,
+        inventoryItemId: node?.inventoryItem?.id ? String(node.inventoryItem.id) : undefined,
         status: node?.product?.status ?? null,
       };
       identifierCache.set(normalized, result);
@@ -1463,7 +1506,13 @@ export async function syncProductsHandler(req: Request, res: Response) {
         const result = await resolveExistingVariant(identifier);
         if (result.exists) {
           const status = String(result.status || "").toLowerCase();
-          return { exists: true, published: status === "active" };
+          return {
+            exists: true,
+            published: status === "active",
+            productId: result.productId,
+            variantId: result.variantId,
+            inventoryItemId: result.inventoryItemId,
+          };
         }
       }
       return { exists: false, published: false };
@@ -1525,7 +1574,58 @@ export async function syncProductsHandler(req: Request, res: Response) {
               continue;
             }
             if (status.exists) {
-              skipped += 1;
+              if (!updateExisting || !shopifyClient) {
+                skipped += 1;
+                if (parentId) processedParents.add(parentId);
+                continue;
+              }
+              const desiredPayload = buildShopifyPayload(
+                current.item,
+                {
+                  status: settings.status || "draft",
+                  includeImages: false,
+                  vendor: settings.vendor || "",
+                },
+                warehouseIds,
+                includeInventory,
+                {
+                  generalId: storeConfig?.priceListGeneralId,
+                  discountId: storeConfig?.priceListDiscountId,
+                  wholesaleId: storeConfig?.priceListWholesaleId,
+                  currency: storeConfig?.currency,
+                }
+              );
+              const desiredVariants = Array.isArray((desiredPayload as any)?.product?.variants)
+                ? ((desiredPayload as any).product.variants as Array<{ sku?: string; price?: string }>)
+                : [];
+              const updatedVariantIds = new Set<string>();
+              let updatedAny = false;
+              for (const desired of desiredVariants) {
+                const sku = String(desired?.sku || "").trim();
+                const price = String(desired?.price || "0").trim() || "0";
+                if (!sku) continue;
+                const match = await resolveExistingVariant(sku);
+                const variantId = (match as any)?.variantId ? String((match as any).variantId) : "";
+                if (!match.exists || !variantId || updatedVariantIds.has(variantId)) continue;
+                updatedVariantIds.add(variantId);
+                await withShopifyRetry(() => shopifyClient.updateVariantPrice(variantId, price), {
+                  label: "updateVariantPrice",
+                  retries: 2,
+                });
+                updatedAny = true;
+              }
+              const desiredStatus = String(settings.status || "draft").toLowerCase();
+              if (status.productId && (desiredStatus === "active" || desiredStatus === "draft")) {
+                await withShopifyRetry(
+                  () => shopifyClient.updateProductStatus(String(status.productId), desiredStatus === "active"),
+                  { label: "updateProductStatus", retries: 1 }
+                );
+              }
+              if (updatedAny) {
+                updated += 1;
+              } else {
+                skipped += 1;
+              }
               if (parentId) processedParents.add(parentId);
               continue;
             }
@@ -1883,6 +1983,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
           type: "progress",
           processed,
           scanned,
+          updated,
           published,
           skipped,
           skippedUnpublished,
@@ -1929,6 +2030,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
       ok: true,
       scanned,
       processed,
+      updated,
       published,
       skipped,
       skippedUnpublished,

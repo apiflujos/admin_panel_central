@@ -1294,6 +1294,10 @@
 				                              <input type="checkbox" id="products-sync-publish" class="toggle" checked />
 				                            </div>
 				                            <div class="mode-toggle">
+				                              <label for="products-sync-update-existing">Actualizar existentes en Shopify <span class="tip" data-tip="ON: si el producto ya existe en Shopify (por SKU/Barcode), actualiza precio (y estado si aplica). OFF: los cuenta como “Existentes” y no los cambia.">?</span></label>
+				                              <input type="checkbox" id="products-sync-update-existing" class="toggle" data-depends-on="products-sync-publish" checked />
+				                            </div>
+				                            <div class="mode-toggle">
 				                              <label for="products-publish-status-mass">Estado <span class="tip" data-tip="Borrador = no visible en la tienda. Activo = visible y listo para vender. Solo aplica si “Publicar en Shopify” está activo.">?</span></label>
 				                              <select id="products-publish-status-mass" data-depends-on="products-sync-publish">
 				                                <option value="draft">Borrador</option>
