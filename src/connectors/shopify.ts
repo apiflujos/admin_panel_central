@@ -549,7 +549,9 @@ export type ShopifyProduct = {
         id: string;
         title: string;
         sku?: string | null;
+        barcode?: string | null;
         price: string;
+        inventoryQuantity?: number | null;
         inventoryItem?: { id: string } | null;
       };
     }>;
@@ -781,7 +783,7 @@ const PRODUCT_BY_ID_QUERY = `
       status
       variants(first: 100) {
         edges {
-          node { id title sku price inventoryItem { id } }
+          node { id title sku barcode price inventoryQuantity inventoryItem { id } }
         }
       }
     }
@@ -799,7 +801,7 @@ const PRODUCTS_UPDATED_SINCE_QUERY = `
           updatedAt
           variants(first: 100) {
             edges {
-              node { id title sku price inventoryItem { id } }
+              node { id title sku barcode price inventoryQuantity inventoryItem { id } }
             }
           }
         }
@@ -820,7 +822,7 @@ const PRODUCTS_PAGED_QUERY = `
           updatedAt
           variants(first: 100) {
             edges {
-              node { id title sku price inventoryItem { id } }
+              node { id title sku barcode price inventoryQuantity inventoryItem { id } }
             }
           }
         }

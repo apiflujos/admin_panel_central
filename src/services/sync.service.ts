@@ -18,6 +18,7 @@ import {
 } from "./mapping.service";
 import { resolveStoreConfig } from "./store-config.service";
 import { syncAlegraInvoiceToShopifyFromWebhook } from "./alegra-invoices-to-shopify-orders.service";
+import { syncShopifyProductToAlegraFromWebhook } from "./shopify-products-to-alegra-items.service";
 
 type WebhookEvent = {
   source: "shopify" | "alegra";
@@ -69,6 +70,7 @@ export async function processShopifyWebhook(eventType: string, payload: unknown)
       return handleShopifyRefund(payload);
     case "inventory_levels/update":
       return handleShopifyInventory(payload);
+    case "products/create":
     case "products/update":
       return handleShopifyProduct(payload);
     default:
@@ -205,7 +207,8 @@ async function handleShopifyProduct(payload: unknown) {
     }
   }
 
-  return { handled: true, type: "product", productId };
+  const syncToAlegra = await syncShopifyProductToAlegraFromWebhook(payload);
+  return { handled: true, type: "product", productId, syncToAlegra };
 }
 
 export async function processAlegraWebhook(eventType: string, payload: unknown) {

@@ -278,6 +278,8 @@ const opsTableBody = document.querySelector("#ops-table tbody");
 const invoicesTableBody = document.querySelector("#invoices-table tbody");
 const opsViewOrdersBtn = document.getElementById("ops-view-orders");
 const opsViewInvoicesBtn = document.getElementById("ops-view-invoices");
+const opsTitle = document.getElementById("ops-title");
+const opsTag = document.getElementById("ops-tag");
 const opsViews = Array.from(document.querySelectorAll(".ops-view[data-ops-view]"));
 const opsSearch = document.getElementById("ops-search");
 const opsSearchBtn = document.getElementById("ops-search-btn");
@@ -356,6 +358,30 @@ const invoicesBackfillStatus = document.getElementById("invoices-backfill-status
 const invoicesBackfillProgress = document.getElementById("invoices-backfill-progress");
 const invoicesBackfillProgressBar = document.getElementById("invoices-backfill-progress-bar");
 const invoicesBackfillProgressLabel = document.getElementById("invoices-backfill-progress-label");
+
+const productsShopifyBulkDateStart = document.getElementById("products-shopify-bulk-date-start");
+const productsShopifyBulkDateEnd = document.getElementById("products-shopify-bulk-date-end");
+const productsShopifyBulkLimit = document.getElementById("products-shopify-bulk-limit");
+const productsShopifyBulkCreate = document.getElementById("products-shopify-bulk-create");
+const productsShopifyBulkUpdate = document.getElementById("products-shopify-bulk-update");
+const productsShopifyBulkIncludeInventory = document.getElementById("products-shopify-bulk-include-inventory");
+const productsShopifyBulkMatch = document.getElementById("products-shopify-bulk-match");
+const productsShopifyBulkWarehouse = document.getElementById("products-shopify-bulk-warehouse");
+const productsShopifyBulkRun = document.getElementById("products-shopify-bulk-run");
+const productsShopifyBulkStop = document.getElementById("products-shopify-bulk-stop");
+const productsShopifyBulkClear = document.getElementById("products-shopify-bulk-clear");
+const productsShopifyBulkStatus = document.getElementById("products-shopify-bulk-status");
+const productsShopifyBulkProgress = document.getElementById("products-shopify-bulk-progress");
+const productsShopifyBulkProgressBar = document.getElementById("products-shopify-bulk-progress-bar");
+const productsShopifyBulkProgressLabel = document.getElementById("products-shopify-bulk-progress-label");
+
+const cfgProductsShopifyToAlegraEnabled = document.getElementById("cfg-products-shopify-to-alegra-enabled");
+const cfgProductsShopifyToAlegraCreate = document.getElementById("cfg-products-shopify-to-alegra-create");
+const cfgProductsShopifyToAlegraUpdate = document.getElementById("cfg-products-shopify-to-alegra-update");
+const cfgProductsShopifyToAlegraIncludeInventory = document.getElementById("cfg-products-shopify-to-alegra-include-inventory");
+const cfgProductsShopifyToAlegraMatch = document.getElementById("cfg-products-shopify-to-alegra-match");
+const cfgProductsShopifyToAlegraWarehouse = document.getElementById("cfg-products-shopify-to-alegra-warehouse");
+
 const rulesAutoEnabled = document.getElementById("rules-auto-enabled");
 const rulesAutoPublish = document.getElementById("rules-auto-publish");
 const rulesAutoStatus = document.getElementById("rules-auto-status");
@@ -495,6 +521,9 @@ let activePhotosSyncId = "";
 let photosParsedRows = [];
 let invoicesBackfillAbort = null;
 let invoicesBackfillRunning = false;
+let productsShopifyBulkAbort = null;
+let productsShopifyBulkRunning = false;
+let activeProductsShopifyBulkSyncId = "";
 let operationsView = "orders";
 
 function setOrdersBulkSyncRunning(running) {
@@ -515,6 +544,23 @@ function setInvoicesBackfillRunning(running) {
   }
 }
 
+function setProductsShopifyBulkRunning(running) {
+  const isRunning = Boolean(running);
+  productsShopifyBulkRunning = isRunning;
+  if (productsShopifyBulkRun instanceof HTMLButtonElement) {
+    productsShopifyBulkRun.hidden = isRunning;
+    productsShopifyBulkRun.disabled = isRunning;
+  }
+  if (productsShopifyBulkStop instanceof HTMLButtonElement) {
+    productsShopifyBulkStop.hidden = !isRunning;
+    productsShopifyBulkStop.disabled = !isRunning;
+  }
+  if (productsShopifyBulkClear instanceof HTMLButtonElement) {
+    productsShopifyBulkClear.hidden = isRunning;
+    productsShopifyBulkClear.disabled = isRunning;
+  }
+}
+
 function setInvoicesBackfillStatus(text, state) {
   if (!invoicesBackfillStatus) return;
   invoicesBackfillStatus.textContent = text || "";
@@ -522,14 +568,32 @@ function setInvoicesBackfillStatus(text, state) {
   if (state) invoicesBackfillStatus.classList.add(state);
 }
 
+function setProductsShopifyBulkStatus(text, state) {
+  if (!productsShopifyBulkStatus) return;
+  productsShopifyBulkStatus.textContent = text || "";
+  productsShopifyBulkStatus.classList.remove("is-error", "is-ok", "is-warn");
+  if (state) productsShopifyBulkStatus.classList.add(state);
+}
+
+function updateProductsShopifyBulkProgress(percent, label) {
+  if (!productsShopifyBulkProgress || !productsShopifyBulkProgressBar || !productsShopifyBulkProgressLabel) return;
+  const clamped = Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : 0;
+  productsShopifyBulkProgress.classList.add("is-active");
+  productsShopifyBulkProgressBar.style.width = `${clamped}%`;
+  productsShopifyBulkProgressLabel.textContent = label || `Productos ${Math.round(clamped)}%`;
+}
+
 function setOperationsView(next) {
   const view = next === "invoices" ? "invoices" : "orders";
   operationsView = view;
   if (opsViewOrdersBtn) opsViewOrdersBtn.classList.toggle("is-active", view === "orders");
   if (opsViewInvoicesBtn) opsViewInvoicesBtn.classList.toggle("is-active", view === "invoices");
+  if (opsTitle) opsTitle.textContent = view === "invoices" ? "Gestion de facturas" : "Gestion de pedidos";
+  if (opsTag) opsTag.textContent = view === "invoices" ? "Facturas" : "Pedidos";
   opsViews.forEach((node) => {
     const key = node.getAttribute("data-ops-view");
     node.classList.toggle("is-hidden", key !== view);
+    if (node instanceof HTMLElement) node.hidden = key !== view;
   });
 }
 
@@ -592,7 +656,17 @@ function showSection(target) {
 
 function activateNav(target) {
   navItems.forEach((button) => {
-    button.classList.toggle("is-active", button.getAttribute("data-target") === target);
+    const buttonTarget = button.getAttribute("data-target") || "";
+    if (buttonTarget !== target) {
+      button.classList.remove("is-active");
+      return;
+    }
+    if (target === "operations") {
+      const view = button.getAttribute("data-ops-view") || "orders";
+      button.classList.toggle("is-active", view === operationsView);
+      return;
+    }
+    button.classList.add("is-active");
   });
   showSection(target);
 }
@@ -734,14 +808,14 @@ function loadSidebarState() {
 
 navItems.forEach((item) => {
   item.addEventListener("click", () => {
-    activateNav(item.getAttribute("data-target"));
+    const target = item.getAttribute("data-target") || "";
     const opsView = item.getAttribute("data-ops-view") || "";
-    if (item.getAttribute("data-target") === "operations" && (opsView === "orders" || opsView === "invoices")) {
+    if (target === "operations" && (opsView === "orders" || opsView === "invoices")) {
       setOperationsView(opsView);
       if (opsView === "invoices") invoicesStart = 0;
       else ordersStart = 0;
-      loadOperationsView().catch(() => null);
     }
+    activateNav(target);
     const moduleKey = item.getAttribute("data-module");
     const groups = (item.getAttribute("data-groups") || "")
       .split(",")
@@ -5207,14 +5281,16 @@ function applyLegacyStoreConfig(config) {
     applyInvoiceSettings(invoice);
     storeInvoiceOverrides = invoice;
   }
-  const sync =
-    config && typeof config === "object" && config.sync && typeof config.sync === "object"
-      ? config.sync
-      : {};
-  const contactSync =
-    sync.contacts && typeof sync.contacts === "object" ? sync.contacts : {};
-  const orderSync =
-    sync.orders && typeof sync.orders === "object" ? sync.orders : {};
+	const sync =
+	  config && typeof config === "object" && config.sync && typeof config.sync === "object"
+	    ? config.sync
+	    : {};
+	const contactSync =
+	  sync.contacts && typeof sync.contacts === "object" ? sync.contacts : {};
+	const orderSync =
+	  sync.orders && typeof sync.orders === "object" ? sync.orders : {};
+  const productSync =
+    sync.products && typeof sync.products === "object" ? sync.products : {};
   const matchPriority = Array.isArray(contactSync.matchPriority)
     ? contactSync.matchPriority.map((item) => String(item).toLowerCase())
     : typeof contactSync.matchPriority === "string"
@@ -5273,20 +5349,44 @@ function applyLegacyStoreConfig(config) {
     syncOrdersShopifyEnabled.checked = Boolean(enabled);
     applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, defaultShopifyMode);
   }
-  if (syncOrdersAlegraEnabled) {
-    const enabledRaw = orderSync.alegraEnabled;
-    const enabled =
-      typeof enabledRaw === "boolean"
-        ? enabledRaw
+	if (syncOrdersAlegraEnabled) {
+	  const enabledRaw = orderSync.alegraEnabled;
+	  const enabled =
+	    typeof enabledRaw === "boolean"
+	      ? enabledRaw
         : syncOrdersAlegra
           ? syncOrdersAlegra.value !== "off"
           : true;
     syncOrdersAlegraEnabled.checked = Boolean(enabled);
     applyOrderToggle(syncOrdersAlegra, syncOrdersAlegraEnabled, "draft");
+	  }
+  if (cfgProductsShopifyToAlegraEnabled instanceof HTMLInputElement) {
+    cfgProductsShopifyToAlegraEnabled.checked = Boolean(productSync.shopifyEnabled);
   }
-  renderTransferOriginFilters();
-  updateTransferOriginState();
-  updateOrderSyncDependencies();
+  if (cfgProductsShopifyToAlegraCreate instanceof HTMLInputElement) {
+    cfgProductsShopifyToAlegraCreate.checked = Boolean(productSync.createInAlegra);
+  }
+  if (cfgProductsShopifyToAlegraUpdate instanceof HTMLInputElement) {
+    const raw = productSync.updateInAlegra;
+    cfgProductsShopifyToAlegraUpdate.checked = typeof raw === "boolean" ? raw : true;
+  }
+  if (cfgProductsShopifyToAlegraIncludeInventory instanceof HTMLInputElement) {
+    cfgProductsShopifyToAlegraIncludeInventory.checked = Boolean(productSync.includeInventory);
+  }
+  if (cfgProductsShopifyToAlegraMatch instanceof HTMLSelectElement) {
+    const value = String(productSync.matchPriority || "sku_barcode");
+    cfgProductsShopifyToAlegraMatch.value = value === "barcode_sku" ? "barcode_sku" : "sku_barcode";
+  }
+  if (cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement) {
+    const value = String(productSync.warehouseId || "").trim();
+    cfgProductsShopifyToAlegraWarehouse.dataset.selected = value;
+    if (cfgProductsShopifyToAlegraWarehouse.options.length) {
+      cfgProductsShopifyToAlegraWarehouse.value = value;
+    }
+  }
+	renderTransferOriginFilters();
+	updateTransferOriginState();
+	updateOrderSyncDependencies();
 }
 
 	function clearLegacyStoreConfig() {
@@ -5332,6 +5432,25 @@ function applyLegacyStoreConfig(config) {
   if (syncOrdersAlegraEnabled) {
     syncOrdersAlegraEnabled.checked = false;
     applyOrderToggle(syncOrdersAlegra, syncOrdersAlegraEnabled, "draft");
+  }
+  if (cfgProductsShopifyToAlegraEnabled instanceof HTMLInputElement) {
+    cfgProductsShopifyToAlegraEnabled.checked = false;
+  }
+  if (cfgProductsShopifyToAlegraCreate instanceof HTMLInputElement) {
+    cfgProductsShopifyToAlegraCreate.checked = false;
+  }
+  if (cfgProductsShopifyToAlegraUpdate instanceof HTMLInputElement) {
+    cfgProductsShopifyToAlegraUpdate.checked = true;
+  }
+  if (cfgProductsShopifyToAlegraIncludeInventory instanceof HTMLInputElement) {
+    cfgProductsShopifyToAlegraIncludeInventory.checked = false;
+  }
+  if (cfgProductsShopifyToAlegraMatch instanceof HTMLSelectElement) {
+    cfgProductsShopifyToAlegraMatch.value = "sku_barcode";
+  }
+  if (cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement) {
+    cfgProductsShopifyToAlegraWarehouse.dataset.selected = "";
+    if (cfgProductsShopifyToAlegraWarehouse.options.length) cfgProductsShopifyToAlegraWarehouse.value = "";
   }
   renderTransferOriginFilters();
   updateTransferOriginState();
@@ -6830,13 +6949,186 @@ async function runProductsSync(mode) {
 	  } finally {
 	    setProductsBulkSyncRunning(false);
 	  }
-	}
+		}
 
-async function runOrdersSync() {
-  refreshProductSettingsFromInputs();
-  setProductsStatus("Sincronizando pedidos...");
-  if (ordersSyncStatus) {
-    ordersSyncStatus.textContent = "Sincronizando...";
+async function runProductsShopifyBulkSync() {
+  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+  if (!shopDomain) {
+    setProductsShopifyBulkStatus("Selecciona una tienda.", "is-warn");
+    return;
+  }
+  const dateStart =
+    productsShopifyBulkDateStart instanceof HTMLInputElement ? productsShopifyBulkDateStart.value : "";
+  const dateEnd =
+    productsShopifyBulkDateEnd instanceof HTMLInputElement ? productsShopifyBulkDateEnd.value : "";
+  const limitRaw =
+    productsShopifyBulkLimit instanceof HTMLInputElement ? Number(productsShopifyBulkLimit.value) : 0;
+  const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : null;
+
+  const createInAlegra =
+    productsShopifyBulkCreate instanceof HTMLInputElement ? Boolean(productsShopifyBulkCreate.checked) : false;
+  const updateInAlegra =
+    productsShopifyBulkUpdate instanceof HTMLInputElement ? Boolean(productsShopifyBulkUpdate.checked) : true;
+  const includeInventory =
+    productsShopifyBulkIncludeInventory instanceof HTMLInputElement
+      ? Boolean(productsShopifyBulkIncludeInventory.checked)
+      : false;
+  const matchPriority =
+    productsShopifyBulkMatch instanceof HTMLSelectElement ? productsShopifyBulkMatch.value : "sku_barcode";
+  const warehouseId =
+    productsShopifyBulkWarehouse instanceof HTMLSelectElement ? productsShopifyBulkWarehouse.value : "";
+
+  setProductsShopifyBulkStatus("Sincronizando...", "");
+  updateProductsShopifyBulkProgress(0, "Productos 0% · ETA --:--");
+  let startedAt = Date.now();
+  let totals = {
+    totalVariants: null,
+    processed: 0,
+    created: 0,
+    updated: 0,
+    skipped: 0,
+    failed: 0,
+  };
+
+  if (productsShopifyBulkAbort) {
+    try {
+      productsShopifyBulkAbort.abort();
+    } catch {
+      // ignore
+    }
+  }
+  const controller = new AbortController();
+  productsShopifyBulkAbort = controller;
+  setProductsShopifyBulkRunning(true);
+  activeProductsShopifyBulkSyncId = "";
+
+  try {
+    const response = await fetch("/api/sync/products/shopify-to-alegra?stream=1", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        shopDomain,
+        filters: { dateStart: dateStart || undefined, dateEnd: dateEnd || undefined, limit },
+        settings: {
+          createInAlegra,
+          updateInAlegra,
+          includeInventory,
+          matchPriority,
+          warehouseId: includeInventory ? warehouseId || undefined : undefined,
+        },
+        stream: true,
+      }),
+      signal: controller.signal,
+    });
+    if (!response.ok || !response.body) {
+      const text = await response.text();
+      throw new Error(text || "No se pudo sincronizar productos (Shopify → Alegra).");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        let payload;
+        try {
+          payload = JSON.parse(trimmed);
+        } catch {
+          continue;
+        }
+        if (payload.syncId && !activeProductsShopifyBulkSyncId) {
+          activeProductsShopifyBulkSyncId = String(payload.syncId || "");
+        }
+        if (payload.type === "start") {
+          startedAt = Date.now();
+          if (Number.isFinite(payload.totalVariants)) totals.totalVariants = payload.totalVariants;
+          continue;
+        }
+        if (payload.type === "progress") {
+          totals = {
+            ...totals,
+            totalVariants: payload.totalVariants ?? totals.totalVariants,
+            processed: payload.processed ?? totals.processed,
+            created: payload.created ?? totals.created,
+            updated: payload.updated ?? totals.updated,
+            skipped: payload.skipped ?? totals.skipped,
+            failed: payload.failed ?? totals.failed,
+          };
+        }
+        if (payload.type === "variant" && payload.result && payload.ok) {
+          const action = payload.result.action || "";
+          if (action === "created") totals.created += 1;
+          else if (action === "updated") totals.updated += 1;
+          else totals.skipped += 1;
+          totals.processed = Number(payload.processed || totals.processed);
+        }
+        if (payload.type === "variant" && payload.ok === false) {
+          totals.failed += 1;
+          totals.processed = Number(payload.processed || totals.processed);
+        }
+        if (payload.type === "canceled") {
+          setProductsShopifyBulkStatus("Sincronizacion detenida.", "is-warn");
+          updateProductsShopifyBulkProgress(100, "Productos detenido");
+          continue;
+        }
+        if (payload.type === "error") {
+          throw new Error(payload.error || "No se pudo sincronizar.");
+        }
+
+        const total = Number(totals.totalVariants) || 0;
+        const processed = Number(totals.processed) || 0;
+        const percent = total > 0 ? (processed / total) * 100 : 0;
+        const elapsedMs = Date.now() - startedAt;
+        const rate = processed > 0 ? elapsedMs / processed : 0;
+        const remainingMs = total > 0 && rate > 0 ? rate * Math.max(0, total - processed) : 0;
+        const etaText = total > 0 ? formatDuration(remainingMs) : "--:--";
+        updateProductsShopifyBulkProgress(percent, `Productos ${Math.round(percent)}% · ETA ${etaText}`);
+        setProductsShopifyBulkStatus(
+          `Procesadas ${processed}/${total || "?"}` +
+            ` · Creadas ${totals.created}` +
+            ` · Actualizadas ${totals.updated}` +
+            ` · Existentes ${totals.skipped}` +
+            ` · Fallidas ${totals.failed}`,
+          ""
+        );
+      }
+    }
+    const total = Number(totals.totalVariants) || 0;
+    const processed = Number(totals.processed) || 0;
+    setProductsShopifyBulkStatus(
+      total > 0
+        ? `Total ${total} · Creadas ${totals.created} · Actualizadas ${totals.updated} · Existentes ${totals.skipped} · Fallidas ${totals.failed}`
+        : "Sin datos para sincronizar.",
+      totals.failed ? "is-warn" : "is-ok"
+    );
+    updateProductsShopifyBulkProgress(100, "Productos 100%");
+  } catch (error) {
+    const message = String(error?.message || "No se pudo sincronizar.");
+    if (message.includes("aborted") || message.includes("AbortError")) {
+      setProductsShopifyBulkStatus("Detenido.", "is-warn");
+      updateProductsShopifyBulkProgress(100, "Productos detenido");
+    } else {
+      setProductsShopifyBulkStatus(message, "is-error");
+      updateProductsShopifyBulkProgress(100, "Error en productos");
+    }
+  } finally {
+    productsShopifyBulkAbort = null;
+    activeProductsShopifyBulkSyncId = "";
+    setProductsShopifyBulkRunning(false);
+  }
+}
+
+	async function runOrdersSync() {
+	  refreshProductSettingsFromInputs();
+	  setProductsStatus("Sincronizando pedidos...");
+	  if (ordersSyncStatus) {
+	    ordersSyncStatus.textContent = "Sincronizando...";
   }
   const stopProgress = startSyncProgress("Pedidos");
   updateOrdersProgress(0, "Pedidos 0% · ETA --:--");
@@ -8834,32 +9126,58 @@ async function saveStoreConfigFromSettings() {
       webhookItemsEnabled: rulesAutoEnabled ? rulesAutoEnabled.checked !== false : true,
       warehouseIds: getSelectedInventoryWarehouseIds(),
     },
-    sync: {
-      contacts: {
-        enabled: contactsEnabled,
-        fromShopify: syncContactsShopify ? syncContactsShopify.checked !== false : true,
-        fromAlegra: syncContactsAlegra ? syncContactsAlegra.checked !== false : true,
-        createInAlegra: syncContactsCreateAlegra ? syncContactsCreateAlegra.checked !== false : true,
-        createInShopify: syncContactsCreateShopify ? syncContactsCreateShopify.checked !== false : true,
-        matchPriority,
-      },
-      orders: {
-        shopifyEnabled:
-          syncOrdersShopifyEnabled instanceof HTMLInputElement
-            ? Boolean(syncOrdersShopifyEnabled.checked)
-            : false,
-        alegraEnabled:
-          syncOrdersAlegraEnabled instanceof HTMLInputElement
-            ? Boolean(syncOrdersAlegraEnabled.checked)
-            : false,
-        shopifyToAlegra: shopifyOrderMode || "db_only",
-        alegraToShopify: alegraOrderMode || "off",
-      },
-    },
-  };
-  await fetchJson(`/api/store-configs/${encodeURIComponent(domain)}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
+	    sync: {
+	      contacts: {
+	        enabled: contactsEnabled,
+	        fromShopify: syncContactsShopify ? syncContactsShopify.checked !== false : true,
+	        fromAlegra: syncContactsAlegra ? syncContactsAlegra.checked !== false : true,
+	        createInAlegra: syncContactsCreateAlegra ? syncContactsCreateAlegra.checked !== false : true,
+	        createInShopify: syncContactsCreateShopify ? syncContactsCreateShopify.checked !== false : true,
+	        matchPriority,
+	      },
+	      orders: {
+	        shopifyEnabled:
+	          syncOrdersShopifyEnabled instanceof HTMLInputElement
+	            ? Boolean(syncOrdersShopifyEnabled.checked)
+	            : false,
+	        alegraEnabled:
+	          syncOrdersAlegraEnabled instanceof HTMLInputElement
+	            ? Boolean(syncOrdersAlegraEnabled.checked)
+	            : false,
+	        shopifyToAlegra: shopifyOrderMode || "db_only",
+	        alegraToShopify: alegraOrderMode || "off",
+	      },
+        products: {
+          shopifyEnabled:
+            cfgProductsShopifyToAlegraEnabled instanceof HTMLInputElement
+              ? Boolean(cfgProductsShopifyToAlegraEnabled.checked)
+              : false,
+          createInAlegra:
+            cfgProductsShopifyToAlegraCreate instanceof HTMLInputElement
+              ? Boolean(cfgProductsShopifyToAlegraCreate.checked)
+              : false,
+          updateInAlegra:
+            cfgProductsShopifyToAlegraUpdate instanceof HTMLInputElement
+              ? Boolean(cfgProductsShopifyToAlegraUpdate.checked)
+              : true,
+          includeInventory:
+            cfgProductsShopifyToAlegraIncludeInventory instanceof HTMLInputElement
+              ? Boolean(cfgProductsShopifyToAlegraIncludeInventory.checked)
+              : false,
+          matchPriority:
+            cfgProductsShopifyToAlegraMatch instanceof HTMLSelectElement
+              ? cfgProductsShopifyToAlegraMatch.value || "sku_barcode"
+              : "sku_barcode",
+          warehouseId:
+            cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
+              ? cfgProductsShopifyToAlegraWarehouse.value || ""
+              : "",
+        },
+	    },
+	  };
+	  await fetchJson(`/api/store-configs/${encodeURIComponent(domain)}`, {
+	    method: "PUT",
+	    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 }
@@ -10174,23 +10492,72 @@ if (qaTokenCopy) {
 			  });
 			}
 
-		if (invoicesBackfillStop) {
-		  invoicesBackfillStop.addEventListener("click", () => {
-		    if (invoicesBackfillAbort) {
-		      try {
-		        invoicesBackfillAbort.abort();
+			if (invoicesBackfillStop) {
+			  invoicesBackfillStop.addEventListener("click", () => {
+			    if (invoicesBackfillAbort) {
+			      try {
+			        invoicesBackfillAbort.abort();
 		      } catch {
 		        // ignore abort failures
 		      }
 		    }
-		    setInvoicesBackfillRunning(false);
-		  });
-		}
+			    setInvoicesBackfillRunning(false);
+			  });
+			}
 
-	if (ordersListLimit) {
-	  ordersListLimit.addEventListener("change", () => {
-	    if (operationsView === "invoices") invoicesStart = 0;
-	    else ordersStart = 0;
+      if (productsShopifyBulkRun) {
+        productsShopifyBulkRun.addEventListener("click", () => {
+          runProductsShopifyBulkSync();
+        });
+      }
+
+      if (productsShopifyBulkStop) {
+        productsShopifyBulkStop.addEventListener("click", async () => {
+          const syncId = String(activeProductsShopifyBulkSyncId || "").trim();
+          if (syncId) {
+            try {
+              await fetchJson("/api/sync/products/shopify-to-alegra/stop", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ syncId }),
+              });
+            } catch {
+              // ignore
+            }
+          }
+          if (productsShopifyBulkAbort) {
+            try {
+              productsShopifyBulkAbort.abort();
+            } catch {
+              // ignore
+            }
+          }
+          setProductsShopifyBulkRunning(false);
+        });
+      }
+
+      if (productsShopifyBulkClear) {
+        productsShopifyBulkClear.addEventListener("click", () => {
+          if (productsShopifyBulkDateStart instanceof HTMLInputElement) productsShopifyBulkDateStart.value = "";
+          if (productsShopifyBulkDateEnd instanceof HTMLInputElement) productsShopifyBulkDateEnd.value = "";
+          if (productsShopifyBulkLimit instanceof HTMLInputElement) productsShopifyBulkLimit.value = "";
+          if (productsShopifyBulkCreate instanceof HTMLInputElement) productsShopifyBulkCreate.checked = false;
+          if (productsShopifyBulkUpdate instanceof HTMLInputElement) productsShopifyBulkUpdate.checked = true;
+          if (productsShopifyBulkIncludeInventory instanceof HTMLInputElement) productsShopifyBulkIncludeInventory.checked = false;
+          if (productsShopifyBulkMatch instanceof HTMLSelectElement) productsShopifyBulkMatch.value = "sku_barcode";
+          if (productsShopifyBulkWarehouse instanceof HTMLSelectElement) productsShopifyBulkWarehouse.value = "";
+          setProductsShopifyBulkStatus("Sin datos", "");
+          if (productsShopifyBulkProgress) productsShopifyBulkProgress.classList.remove("is-active");
+          if (productsShopifyBulkProgressBar) productsShopifyBulkProgressBar.style.width = "0%";
+          if (productsShopifyBulkProgressLabel) productsShopifyBulkProgressLabel.textContent = "Sincronizando 0%";
+          applyToggleDependencies();
+        });
+      }
+
+		if (ordersListLimit) {
+		  ordersListLimit.addEventListener("change", () => {
+		    if (operationsView === "invoices") invoicesStart = 0;
+		    else ordersStart = 0;
 	    refreshProductSettingsFromInputs();
 	    loadOperationsView();
 	  });
@@ -10529,18 +10896,24 @@ async function init() {
     await safeLoad(loadSettings());
     await safeLoad(loadResolutions());
   }
-  await Promise.all([
-    currentUserRole === "admin"
-      ? safeLoad(loadCatalog(cfgCostCenter, "cost-centers"))
-      : Promise.resolve(null),
-    currentUserRole === "admin"
-      ? safeLoad(loadCatalog(cfgWarehouse, "warehouses"))
-      : Promise.resolve(null),
-    currentUserRole === "admin"
-      ? safeLoad(loadCatalog(cfgTransferDest, "warehouses"))
-      : Promise.resolve(null),
-    currentUserRole === "admin"
-      ? safeLoad(loadCatalog(cfgTransferPriority, "warehouses"))
+	  await Promise.all([
+	    currentUserRole === "admin"
+	      ? safeLoad(loadCatalog(cfgCostCenter, "cost-centers"))
+	      : Promise.resolve(null),
+	    currentUserRole === "admin"
+	      ? safeLoad(loadCatalog(cfgWarehouse, "warehouses"))
+	      : Promise.resolve(null),
+      currentUserRole === "admin" && productsShopifyBulkWarehouse instanceof HTMLSelectElement
+        ? safeLoad(loadCatalog(productsShopifyBulkWarehouse, "warehouses"))
+        : Promise.resolve(null),
+      currentUserRole === "admin" && cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
+        ? safeLoad(loadCatalog(cfgProductsShopifyToAlegraWarehouse, "warehouses"))
+        : Promise.resolve(null),
+	    currentUserRole === "admin"
+	      ? safeLoad(loadCatalog(cfgTransferDest, "warehouses"))
+	      : Promise.resolve(null),
+	    currentUserRole === "admin"
+	      ? safeLoad(loadCatalog(cfgTransferPriority, "warehouses"))
       : Promise.resolve(null),
     currentUserRole === "admin"
       ? safeLoad(loadCatalog(cfgSeller, "sellers"))

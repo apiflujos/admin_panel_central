@@ -104,6 +104,11 @@ const normalizeAlegraOrderMode = (value: unknown) => {
   return "off";
 };
 
+const normalizeProductMatchPriority = (value: unknown, fallback: "sku_barcode" | "barcode_sku") => {
+  if (value === "barcode_sku" || value === "sku_barcode") return value;
+  return fallback;
+};
+
 export async function listStoreConfigs() {
   const pool = getPool();
   const orgId = getOrgId();
@@ -161,6 +166,7 @@ export async function listStoreConfigs() {
     const sync = (config.sync as Record<string, unknown>) || {};
     const contactSync = (sync.contacts as Record<string, unknown>) || {};
     const orderSync = (sync.orders as Record<string, unknown>) || {};
+    const productSync = (sync.products as Record<string, unknown>) || {};
     return {
       shopDomain: row.shop_domain,
       alegraAccountId: row.alegra_account_id || undefined,
@@ -315,22 +321,30 @@ export async function listStoreConfigs() {
 	          ["document", "phone", "email"]
 	        ),
 	      },
-	      orders: {
-	        shopifyEnabled: normalizeBoolean(
-	          (orderSync as Record<string, unknown>).shopifyEnabled,
-	          normalizeShopifyOrderMode(orderSync.shopifyToAlegra) !== "off"
-	        ),
-	        alegraEnabled: normalizeBoolean(
-	          (orderSync as Record<string, unknown>).alegraEnabled,
-	          normalizeAlegraOrderMode(orderSync.alegraToShopify) !== "off"
-	        ),
-	        shopifyToAlegra: normalizeShopifyOrderMode(orderSync.shopifyToAlegra),
-	        alegraToShopify: normalizeAlegraOrderMode(orderSync.alegraToShopify),
-	      },
-	    },
-	  };
-  });
-}
+		      orders: {
+		        shopifyEnabled: normalizeBoolean(
+		          (orderSync as Record<string, unknown>).shopifyEnabled,
+		          normalizeShopifyOrderMode(orderSync.shopifyToAlegra) !== "off"
+		        ),
+		        alegraEnabled: normalizeBoolean(
+		          (orderSync as Record<string, unknown>).alegraEnabled,
+		          normalizeAlegraOrderMode(orderSync.alegraToShopify) !== "off"
+		        ),
+		        shopifyToAlegra: normalizeShopifyOrderMode(orderSync.shopifyToAlegra),
+		        alegraToShopify: normalizeAlegraOrderMode(orderSync.alegraToShopify),
+		      },
+          products: {
+            shopifyEnabled: normalizeBoolean(productSync.shopifyEnabled, false),
+            createInAlegra: normalizeBoolean(productSync.createInAlegra, false),
+            updateInAlegra: normalizeBoolean(productSync.updateInAlegra, true),
+            includeInventory: normalizeBoolean(productSync.includeInventory, false),
+            warehouseId: normalizeText(productSync.warehouseId, ""),
+            matchPriority: normalizeProductMatchPriority(productSync.matchPriority, "sku_barcode"),
+          },
+		    },
+		  };
+	  });
+	}
 
 export async function getStoreConfigForDomain(shopDomain: string) {
   const pool = getPool();
@@ -384,6 +398,7 @@ export async function getStoreConfigForDomain(shopDomain: string) {
   const sync = (config.sync as Record<string, unknown>) || {};
   const contactSync = (sync.contacts as Record<string, unknown>) || {};
   const orderSync = (sync.orders as Record<string, unknown>) || {};
+  const productSync = (sync.products as Record<string, unknown>) || {};
   return {
     shopDomain: row.shop_domain,
 	    transfers: {
@@ -535,6 +550,14 @@ export async function getStoreConfigForDomain(shopDomain: string) {
       orders: {
         shopifyToAlegra: normalizeShopifyOrderMode(orderSync.shopifyToAlegra),
         alegraToShopify: normalizeAlegraOrderMode(orderSync.alegraToShopify),
+      },
+      products: {
+        shopifyEnabled: normalizeBoolean(productSync.shopifyEnabled, false),
+        createInAlegra: normalizeBoolean(productSync.createInAlegra, false),
+        updateInAlegra: normalizeBoolean(productSync.updateInAlegra, true),
+        includeInventory: normalizeBoolean(productSync.includeInventory, false),
+        warehouseId: normalizeText(productSync.warehouseId, ""),
+        matchPriority: normalizeProductMatchPriority(productSync.matchPriority, "sku_barcode"),
       },
     },
   };

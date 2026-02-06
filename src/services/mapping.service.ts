@@ -41,6 +41,33 @@ function buildKey(key: MappingKey) {
   return `${key.entity}:${key.alegraId || ""}:${key.shopifyId || ""}`;
 }
 
+function extractNumericShopifyId(value: string) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/^\d+$/.test(raw)) return raw;
+  const match = raw.match(/^gid:\/\/shopify\/[^/]+\/(\d+)$/);
+  return match ? match[1] : "";
+}
+
+function resolveShopifyGidType(entity: string) {
+  if (entity === "item") return "ProductVariant";
+  if (entity === "order") return "Order";
+  if (entity === "product") return "Product";
+  return "";
+}
+
+function buildShopifyIdCandidates(entity: string, shopifyId: string) {
+  const raw = String(shopifyId || "").trim();
+  if (!raw) return [];
+  const candidates = new Set<string>();
+  candidates.add(raw);
+  const numeric = extractNumericShopifyId(raw);
+  if (numeric) candidates.add(numeric);
+  const type = resolveShopifyGidType(entity);
+  if (type && numeric) candidates.add(`gid://shopify/${type}/${numeric}`);
+  return Array.from(candidates);
+}
+
 export async function getMappingByAlegraId(entity: string, alegraId: string) {
   const pool = getPool();
   const orgId = getOrgId();
@@ -62,14 +89,16 @@ export async function getMappingByAlegraId(entity: string, alegraId: string) {
 export async function getMappingByShopifyId(entity: string, shopifyId: string) {
   const pool = getPool();
   const orgId = getOrgId();
+  const candidates = buildShopifyIdCandidates(entity, shopifyId);
+  if (!candidates.length) return undefined;
   const result = await pool.query<MappingRow>(
     `
     SELECT id, entity, alegra_id, shopify_id, parent_id, metadata_json
     FROM sync_mappings
-    WHERE organization_id = $1 AND entity = $2 AND shopify_id = $3
+    WHERE organization_id = $1 AND entity = $2 AND shopify_id = ANY($3::text[])
     LIMIT 1
     `,
-    [orgId, entity, shopifyId]
+    [orgId, entity, candidates]
   );
   if (!result.rows.length) {
     return undefined;

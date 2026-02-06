@@ -15,11 +15,37 @@ export class AlegraClient {
     return this.request(`/items/${itemId}`);
   }
 
+  async getItemWithParams(itemId: string, params: Record<string, unknown>) {
+    const query = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      const normalized =
+        typeof value === "boolean" ? (value ? "true" : "false") : String(value);
+      if (normalized.trim() === "") return;
+      query.set(key, normalized);
+    });
+    const suffix = query.toString();
+    return this.request(`/items/${itemId}${suffix ? `?${suffix}` : ""}`);
+  }
+
   async listItemsUpdatedSince(queryOrDate: string) {
     const query = queryOrDate.includes("=")
       ? queryOrDate
       : `updated_at_start=${encodeURIComponent(queryOrDate)}`;
     return this.request(`/items?${query}`);
+  }
+
+  async searchItems(params: Record<string, unknown>) {
+    const query = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      const normalized =
+        typeof value === "boolean" ? (value ? "true" : "false") : String(value);
+      if (normalized.trim() === "") return;
+      query.set(key, normalized);
+    });
+    const suffix = query.toString();
+    return this.request(`/items${suffix ? `?${suffix}` : ""}`);
   }
 
   async findContactByEmail(email: string) {
@@ -48,6 +74,14 @@ export class AlegraClient {
 
   async createInventoryTransfer(payload: Record<string, unknown>) {
     return this.request(`/inventory-transfers`, { method: "POST", body: payload });
+  }
+
+  async createItem(payload: Record<string, unknown>) {
+    return this.request(`/items`, { method: "POST", body: payload });
+  }
+
+  async updateItem(id: string, payload: Record<string, unknown>) {
+    return this.request(`/items/${id}`, { method: "PUT", body: payload });
   }
 
   async listInvoiceResolutions() {

@@ -11,6 +11,7 @@ import { syncShopifyOrderToAlegra } from "../services/shopify-to-alegra.service"
 import type { ShopifyOrder } from "../connectors/shopify";
 import { createSyncLog } from "../services/logs.service";
 import { clearSyncCheckpoint, getSyncCheckpoint, saveSyncCheckpoint } from "../services/sync-checkpoints.service";
+import { syncShopifyProductsToAlegraBulk } from "../services/shopify-products-to-alegra-items.service";
 import { ensureInventoryRulesColumns, getOrgId, getPool } from "../db";
 import {
   countAlegraItemsCache,
@@ -121,6 +122,7 @@ async function fetchAlegra(path: string, query?: URLSearchParams, shopDomain?: s
 
 let activeProductsSync: { id: string; canceled: boolean; startedAt: number } | null = null;
 let activeProductImagesSync: { id: string; canceled: boolean; startedAt: number } | null = null;
+let activeProductsShopifyToAlegraSync: { id: string; canceled: boolean; startedAt: number } | null = null;
 
 const createSyncId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -129,6 +131,9 @@ const isSyncCanceled = (syncId: string) =>
 
 const isProductImagesSyncCanceled = (syncId: string) =>
   Boolean(activeProductImagesSync?.id === syncId && activeProductImagesSync.canceled);
+
+const isProductsShopifyToAlegraCanceled = (syncId: string) =>
+  Boolean(activeProductsShopifyToAlegraSync?.id === syncId && activeProductsShopifyToAlegraSync.canceled);
 
 async function fetchAlegraWithRetry(
   path: string,
@@ -2606,6 +2611,114 @@ export async function stopProductsSyncHandler(req: Request, res: Response) {
   }
   activeProductsSync.canceled = true;
   res.status(200).json({ ok: true, canceled: true, syncId: activeProductsSync.id });
+}
+
+export async function syncProductsShopifyToAlegraHandler(req: Request, res: Response) {
+  const shopDomain =
+    typeof req.body?.shopDomain === "string"
+      ? String(req.body.shopDomain).trim()
+      : typeof req.query.shopDomain === "string"
+        ? String(req.query.shopDomain).trim()
+        : "";
+  if (!shopDomain) {
+    res.status(400).json({ error: "shopDomain requerido" });
+    return;
+  }
+
+  const filters = (req.body?.filters as Record<string, unknown>) || {};
+  const settings = (req.body?.settings as Record<string, unknown>) || {};
+  const dateStart = typeof filters.dateStart === "string" ? filters.dateStart : "";
+  const dateEnd = typeof filters.dateEnd === "string" ? filters.dateEnd : "";
+  const limitRaw = Number(filters.limit);
+  const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : undefined;
+
+  const createInAlegra = settings.createInAlegra === true;
+  const updateInAlegra = settings.updateInAlegra !== false;
+  const includeInventory = settings.includeInventory === true;
+  const warehouseId = typeof settings.warehouseId === "string" ? settings.warehouseId.trim() : "";
+  const matchPriorityKey = typeof settings.matchPriority === "string" ? settings.matchPriority : "sku_barcode";
+  const matchPriority: Array<"sku" | "barcode"> =
+    matchPriorityKey === "barcode_sku" ? ["barcode", "sku"] : ["sku", "barcode"];
+
+  const stream =
+    req.query.stream === "1" ||
+    req.query.stream === "true" ||
+    req.body?.stream === true;
+  let streamOpen = stream;
+  const sendStream = (payload: Record<string, unknown>) => {
+    if (!streamOpen || res.writableEnded || res.destroyed) return;
+    try {
+      res.write(`${JSON.stringify(payload)}\n`);
+    } catch {
+      streamOpen = false;
+    }
+  };
+
+  const startedAt = Date.now();
+  const syncId = createSyncId();
+  try {
+    activeProductsShopifyToAlegraSync = { id: syncId, canceled: false, startedAt };
+    if (stream) {
+      res.status(200);
+      res.setHeader("Content-Type", "application/x-ndjson");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders?.();
+      res.on("close", () => {
+        streamOpen = false;
+      });
+    }
+
+    const summary = await syncShopifyProductsToAlegraBulk({
+      shopDomain,
+      dateStart,
+      dateEnd,
+      limit,
+      config: {
+        enabled: true,
+        createInAlegra,
+        updateInAlegra,
+        includeInventory,
+        warehouseId: warehouseId || undefined,
+        matchPriority,
+      },
+      isCanceled: () => isProductsShopifyToAlegraCanceled(syncId),
+      onEvent: (payload) => sendStream({ syncId, ...payload }),
+    });
+
+    if (stream) {
+      sendStream({ type: "summary", syncId, ...summary });
+      res.end();
+    } else {
+      res.status(200).json({ syncId, ...summary });
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "sync error";
+    if (stream) {
+      sendStream({ type: "error", syncId, error: message });
+      res.end();
+    } else {
+      res.status(400).json({ error: message });
+    }
+  } finally {
+    if (activeProductsShopifyToAlegraSync?.id === syncId) {
+      activeProductsShopifyToAlegraSync = null;
+    }
+  }
+}
+
+export async function stopProductsShopifyToAlegraSyncHandler(req: Request, res: Response) {
+  const requestedId = String(req.body?.syncId || "").trim();
+  if (!activeProductsShopifyToAlegraSync) {
+    res.status(200).json({ ok: false, canceled: false, reason: "no_active_sync" });
+    return;
+  }
+  if (requestedId && activeProductsShopifyToAlegraSync.id !== requestedId) {
+    res.status(200).json({ ok: false, canceled: false, reason: "sync_id_mismatch" });
+    return;
+  }
+  activeProductsShopifyToAlegraSync.canceled = true;
+  res.status(200).json({ ok: true, canceled: true, syncId: activeProductsShopifyToAlegraSync.id });
 }
 
 export async function stopProductImagesSyncHandler(req: Request, res: Response) {

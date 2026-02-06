@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
-    <link rel="stylesheet" href="styles.css?v=20260206p06" />
+    <link rel="stylesheet" href="styles.css?v=20260206p07" />
   </head>
   <body>
     <div class="app-shell">
@@ -35,15 +35,15 @@
 	            </span>
 	            <span class="nav-label">Pedidos</span>
 	          </button>
-		          <button class="nav-item" data-target="operations" data-ops-view="invoices" title="Facturas" hidden>
-	            <span class="nav-icon" aria-hidden="true">
-	              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-	                <path d="M7 8h10M7 12h10M7 16h10" />
-	                <path d="M6 4h12a2 2 0 0 1 2 2v14l-2-1-2 1-2-1-2 1-2-1-2 1-2-1-2 1V6a2 2 0 0 1 2-2z" />
-	              </svg>
-	            </span>
-	            <span class="nav-label">Facturas</span>
-	          </button>
+			          <button class="nav-item" data-target="operations" data-ops-view="invoices" title="Facturas">
+		            <span class="nav-icon" aria-hidden="true">
+		              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+		                <path d="M7 8h10M7 12h10M7 16h10" />
+		                <path d="M6 4h12a2 2 0 0 1 2 2v14l-2-1-2 1-2-1-2 1-2-1-2 1-2-1-2 1V6a2 2 0 0 1 2-2z" />
+		              </svg>
+		            </span>
+		            <span class="nav-label">Facturas</span>
+		          </button>
           <button class="nav-item" data-target="contacts" title="Contactos">
             <span class="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
@@ -350,16 +350,12 @@
           </div>
         </section>
 
-	        <section class="section" id="operations">
-	          <div class="panel">
-	            <div class="panel-header">
-	              <h3>Gestion de pedidos</h3>
-	              <span class="panel-tag">Pedidos</span>
-		              <div class="panel-actions" aria-label="Vista de operación">
-		                <button class="ghost is-active" id="ops-view-orders" type="button">Pedidos</button>
-		                <button class="ghost" id="ops-view-invoices" type="button" hidden>Facturas</button>
-		              </div>
-	            </div>
+		        <section class="section" id="operations">
+		          <div class="panel">
+		            <div class="panel-header">
+		              <h3 id="ops-title">Gestion de pedidos</h3>
+		              <span class="panel-tag" id="ops-tag">Pedidos</span>
+		            </div>
 	            <div class="toolbar products-toolbar">
 	              <div class="toolbar-store">
 	                <label for="orders-store-select">Tienda</label>
@@ -426,9 +422,9 @@
 	              </div>
 	            </div>
 
-		            <div class="ops-view is-hidden" data-ops-view="invoices" hidden>
-	              <div class="table-card orders-table">
-	                <table class="table" id="invoices-table">
+			            <div class="ops-view is-hidden" data-ops-view="invoices">
+		              <div class="table-card orders-table">
+		                <table class="table" id="invoices-table">
 	                  <thead>
 	                    <tr>
 	                      <th>Fecha</th>
@@ -979,14 +975,128 @@
 						                              </select>
 						        </div>
 	                      </div>
-	                      <p class="field-hint module-warning is-hidden" data-module-warning="shopify-rules"></p>
-	                    </div>
-	                  </div>
+		                      <p class="field-hint module-warning is-hidden" data-module-warning="shopify-rules"></p>
+		                    </div>
+		                  </div>
 
-			                  <div class="panel admin-only module" data-provider="bridge" data-manager="alegra" data-module="alegra-inventory" id="inventory-rules-panel" data-help="Inventario automatico por tienda: define de que bodegas se toma el stock y si lo mantenemos actualizado en Shopify.">
+		                  <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="shopify-products-to-alegra" data-module-priority="core" id="shopify-products-to-alegra-panel" data-help="Bidireccionalidad de Productos (Shopify → Alegra): crea/actualiza ítems en Alegra desde productos y variantes de Shopify. Masivo = catálogo inicial o re-procesar un rango por fechas. Automático = se ejecuta con webhooks de Shopify (products/create y products/update).">
 		                    <div class="panel-header">
-		                      <h3 data-module-toggle="alegra-inventory" data-title-base="Inventario y bodegas">
-		                        Inventario y bodegas
+		                      <h3 data-module-toggle="shopify-products-to-alegra" data-title-base="Productos en Alegra">
+		                        Productos en Alegra
+		                        <span class="tip" data-tip="Sincroniza productos/variantes desde Shopify hacia Alegra. Tip: prueba primero con “Crear en Alegra” apagado para validar match por SKU/Barcode.">?</span>
+		                      </h3>
+		                      <div class="panel-meta">
+		                        <span class="panel-tag tag-core">Core</span>
+		                        <span class="panel-tag tag-bridge">Shopify → Alegra</span>
+		                      </div>
+		                    </div>
+		                    <div class="module-body">
+		                      <div class="mode-sections">
+		                        <div class="mode-section" data-readonly-free="1">
+		                          <div class="mode-head">
+		                            <div class="mode-head-left">
+		                              <h4>Sincronizacion masiva</h4>
+		                              <span class="tip" data-tip="Trae productos de Shopify por fechas y sincroniza cada variante como un ítem en Alegra. Si no hay match por SKU/Barcode, puedes permitir crear. Si incluyes inventario, se ajusta el stock en la bodega seleccionada.">?</span>
+		                            </div>
+		                          </div>
+		                          <div class="mode-grid">
+		                            <div class="mode-field">
+		                              <label for="products-shopify-bulk-date-start">Fecha inicio</label>
+		                              <input type="date" id="products-shopify-bulk-date-start" />
+		                            </div>
+		                            <div class="mode-field">
+		                              <label for="products-shopify-bulk-date-end">Fecha fin</label>
+		                              <input type="date" id="products-shopify-bulk-date-end" />
+		                            </div>
+		                            <div class="mode-field">
+		                              <label for="products-shopify-bulk-limit">Limite (opcional)</label>
+		                              <input type="number" id="products-shopify-bulk-limit" min="1" placeholder="200" />
+		                            </div>
+		                          </div>
+		                          <div class="mode-toggle-grid" aria-label="Opciones masivo productos Shopify → Alegra">
+		                            <div class="mode-toggle">
+		                              <label for="products-shopify-bulk-create">Crear en Alegra <span class="tip" data-tip="Si está OFF, solo actualizamos existentes (por mapping o match). Si está ON, creamos ítems en Alegra cuando no existe.">?</span></label>
+		                              <input type="checkbox" id="products-shopify-bulk-create" class="toggle" />
+		                            </div>
+		                            <div class="mode-toggle">
+		                              <label for="products-shopify-bulk-update">Actualizar en Alegra <span class="tip" data-tip="Si está OFF, no actualizamos; solo intentamos mapear/matchear. Recomendado: ON.">?</span></label>
+		                              <input type="checkbox" id="products-shopify-bulk-update" class="toggle" checked />
+		                            </div>
+		                            <div class="mode-toggle">
+		                              <label for="products-shopify-bulk-include-inventory">Incluir inventario <span class="tip" data-tip="Si está ON, ajustamos el stock en Alegra para la bodega seleccionada usando el inventario total de Shopify.">?</span></label>
+		                              <input type="checkbox" id="products-shopify-bulk-include-inventory" class="toggle" />
+		                            </div>
+		                            <div class="mode-toggle">
+		                              <label for="products-shopify-bulk-match">Prioridad de identificación <span class="tip" data-tip="Antes de crear, buscamos el ítem en Alegra con esta prioridad. Si encontramos match, actualizamos (evita duplicados).">?</span></label>
+		                              <select id="products-shopify-bulk-match">
+		                                <option value="sku_barcode" selected>SKU → Barcode</option>
+		                                <option value="barcode_sku">Barcode → SKU</option>
+		                              </select>
+		                            </div>
+		                            <div class="mode-toggle">
+		                              <label for="products-shopify-bulk-warehouse">Bodega destino (stock) <span class="tip" data-tip="Solo aplica si “Incluir inventario” está ON. Si lo dejas vacío, no ajustamos stock en Alegra.">?</span></label>
+		                              <select id="products-shopify-bulk-warehouse" data-allow-empty="true" data-empty-label="No aplicar" data-depends-on="products-shopify-bulk-include-inventory"></select>
+		                            </div>
+		                          </div>
+		                          <div class="mode-actions">
+		                            <button class="primary" id="products-shopify-bulk-run" type="button">Sincronizar masivo</button>
+		                            <button class="ghost danger" id="products-shopify-bulk-stop" type="button" hidden>Detener</button>
+		                            <button class="ghost" id="products-shopify-bulk-clear" type="button">Limpiar</button>
+		                            <span class="kpi-sub" id="products-shopify-bulk-status">Sin datos</span>
+		                          </div>
+		                          <div class="sync-progress" id="products-shopify-bulk-progress" aria-hidden="true">
+		                            <div class="sync-progress-track">
+		                              <div class="sync-progress-bar" id="products-shopify-bulk-progress-bar"></div>
+		                            </div>
+		                            <span class="sync-progress-label" id="products-shopify-bulk-progress-label">Sincronizando 0%</span>
+		                          </div>
+		                        </div>
+
+		                        <div class="mode-section">
+		                          <div class="mode-head">
+		                            <div class="mode-head-left">
+		                              <label class="mode-title-toggle" for="cfg-products-shopify-to-alegra-enabled" data-dep-controller="1">
+		                                <input type="checkbox" id="cfg-products-shopify-to-alegra-enabled" class="toggle" data-dep-controller="1" />
+		                                <span>Sincronizacion automatica</span>
+		                              </label>
+		                              <span class="tip" data-tip="ON: cuando llega un webhook de Shopify (products/create o products/update), actualizamos/creamos el ítem en Alegra según las opciones.">?</span>
+		                            </div>
+		                          </div>
+		                          <div class="mode-toggle-grid" aria-label="Opciones automatico productos Shopify → Alegra" data-depends-on="cfg-products-shopify-to-alegra-enabled">
+		                            <div class="mode-toggle">
+		                              <label for="cfg-products-shopify-to-alegra-create">Crear en Alegra</label>
+		                              <input type="checkbox" id="cfg-products-shopify-to-alegra-create" class="toggle" data-depends-on="cfg-products-shopify-to-alegra-enabled" />
+		                            </div>
+		                            <div class="mode-toggle">
+		                              <label for="cfg-products-shopify-to-alegra-update">Actualizar en Alegra</label>
+		                              <input type="checkbox" id="cfg-products-shopify-to-alegra-update" class="toggle" data-depends-on="cfg-products-shopify-to-alegra-enabled" checked />
+		                            </div>
+		                            <div class="mode-toggle">
+		                              <label for="cfg-products-shopify-to-alegra-include-inventory">Incluir inventario</label>
+		                              <input type="checkbox" id="cfg-products-shopify-to-alegra-include-inventory" class="toggle" data-depends-on="cfg-products-shopify-to-alegra-enabled" />
+		                            </div>
+		                            <div class="mode-toggle">
+		                              <label for="cfg-products-shopify-to-alegra-match">Prioridad de identificación</label>
+		                              <select id="cfg-products-shopify-to-alegra-match" data-depends-on="cfg-products-shopify-to-alegra-enabled">
+		                                <option value="sku_barcode" selected>SKU → Barcode</option>
+		                                <option value="barcode_sku">Barcode → SKU</option>
+		                              </select>
+		                            </div>
+		                            <div class="mode-toggle">
+		                              <label for="cfg-products-shopify-to-alegra-warehouse">Bodega destino (stock)</label>
+		                              <select id="cfg-products-shopify-to-alegra-warehouse" data-allow-empty="true" data-empty-label="No aplicar" data-depends-on="cfg-products-shopify-to-alegra-include-inventory"></select>
+		                            </div>
+		                          </div>
+		                        </div>
+		                      </div>
+		                      <p class="field-hint module-warning is-hidden" data-module-warning="shopify-products-to-alegra"></p>
+		                    </div>
+		                  </div>
+
+				                  <div class="panel admin-only module" data-provider="bridge" data-manager="alegra" data-module="alegra-inventory" id="inventory-rules-panel" data-help="Inventario automatico por tienda: define de que bodegas se toma el stock y si lo mantenemos actualizado en Shopify.">
+			                    <div class="panel-header">
+			                      <h3 data-module-toggle="alegra-inventory" data-title-base="Inventario y bodegas">
+			                        Inventario y bodegas
 		                        <span class="tip" data-tip="Esto mantiene el stock al día: corre solo cada cierto tiempo y actualiza Shopify usando las bodegas que elijas.">?</span>
 		                      </h3>
 		                      <div class="panel-meta">
@@ -1753,6 +1863,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260206p02" type="module"></script>
+    <script src="app.js?v=20260206p03" type="module"></script>
   </body>
 </html>

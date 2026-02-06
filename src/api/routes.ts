@@ -36,6 +36,8 @@ import {
   publishShopifyHandler,
   syncInventoryAdjustmentsHandler,
   stopProductsSyncHandler,
+  syncProductsShopifyToAlegraHandler,
+  stopProductsShopifyToAlegraSyncHandler,
   syncProductImagesHandler,
   stopProductImagesSyncHandler,
   syncOrdersHandler,
@@ -112,10 +114,12 @@ router.post("/shopify/lookup-batch", wrap(lookupShopifyHandler));
 router.post("/shopify/webhooks", requireAdmin, wrap(createShopifyWebhooksHandler));
 router.post("/shopify/webhooks/delete", requireAdmin, wrap(deleteShopifyWebhooksHandler));
 router.get("/shopify/webhooks/status", requireAdmin, wrap(getShopifyWebhooksStatusHandler));
-router.post("/sync/products", wrap(syncProductsHandler));
-router.post("/sync/products/stop", wrap(stopProductsSyncHandler));
-router.post("/sync/product-images", wrap(syncProductImagesHandler));
-router.post("/sync/product-images/stop", wrap(stopProductImagesSyncHandler));
+	router.post("/sync/products", wrap(syncProductsHandler));
+	router.post("/sync/products/stop", wrap(stopProductsSyncHandler));
+	router.post("/sync/products/shopify-to-alegra", wrap(syncProductsShopifyToAlegraHandler));
+	router.post("/sync/products/shopify-to-alegra/stop", wrap(stopProductsShopifyToAlegraSyncHandler));
+	router.post("/sync/product-images", wrap(syncProductImagesHandler));
+	router.post("/sync/product-images/stop", wrap(stopProductImagesSyncHandler));
 router.post("/sync/orders", wrap(syncOrdersHandler));
 router.post("/sync/invoices", wrap(syncInvoicesToShopifyHandler));
 router.post("/backfill/products", wrap(backfillProductsHandler));
