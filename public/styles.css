@@ -667,6 +667,16 @@ button {
   color: var(--muted);
 }
 
+.metrics-download-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.metrics-download-row select {
+  min-width: 220px;
+}
+
 .metrics-status {
   display: flex;
   gap: 8px;
@@ -3851,6 +3861,12 @@ textarea::placeholder {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+}
+
+.modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .modal pre {

@@ -5,6 +5,7 @@ import { assistantExecuteHandler, assistantQueryHandler } from "./assistant.cont
 import { listLogs, retryFailed } from "./logs.controller";
 import { listAlegraCatalog, getSettings, listResolutions, testConnections, updateSettings } from "./settings.controller";
 import { listMetrics } from "./metrics.controller";
+import { downloadCommerceReportCsvHandler } from "./reports.controller";
 import { getInventoryAdjustmentsCheckpoint } from "./checkpoints.controller";
 import { createConnection, listConnections, removeConnection } from "./connections.controller";
 import { listStoreConfigsHandler, saveStoreConfigHandler } from "./store-configs.controller";
@@ -105,7 +106,8 @@ router.put("/settings", requireAdmin, wrap(updateSettings));
 router.get("/settings", requireAdmin, wrap(getSettings));
 router.get("/settings/resolutions", wrap(listResolutions));
 router.get("/alegra/:catalog", wrap(listAlegraCatalog));
-router.get("/metrics", wrap(listMetrics));
+	router.get("/metrics", wrap(listMetrics));
+	router.get("/reports/commerce.csv", wrap(downloadCommerceReportCsvHandler));
 router.get("/checkpoints/inventory-adjustments", wrap(getInventoryAdjustmentsCheckpoint));
 router.post("/assistant/query", wrap(assistantQueryHandler));
 router.post("/assistant/execute", wrap(assistantExecuteHandler));

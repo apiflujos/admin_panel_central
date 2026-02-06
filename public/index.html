@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
-    <link rel="stylesheet" href="styles.css?v=20260206p07" />
+    <link rel="stylesheet" href="styles.css?v=20260206p08" />
   </head>
   <body>
     <div class="app-shell">
@@ -138,21 +138,34 @@
                   <p class="metrics-sub">Ventas, pedidos y actividad de sincronizacion en un solo lugar.</p>
                   <p class="metrics-sub" id="metrics-insights"></p>
                 </div>
-                <div class="metrics-controls">
-                  <div class="metrics-control">
-                    <label for="metrics-range">Rango</label>
-                    <select id="metrics-range">
-                      <option value="day">Hoy</option>
-                      <option value="week">Semana</option>
-                      <option value="month" selected>Mes</option>
-                    </select>
-                  </div>
-                  <div class="metrics-status">
-                    <span class="status-pill" id="metrics-shopify-status">Shopify</span>
-                    <span class="status-pill" id="metrics-alegra-status">Alegra</span>
-                  </div>
-                </div>
-              </div>
+	                <div class="metrics-controls">
+	                  <div class="metrics-control">
+	                    <label for="metrics-range">Rango</label>
+	                    <select id="metrics-range">
+	                      <option value="day">Hoy</option>
+	                      <option value="week">Semana</option>
+	                      <option value="month" selected>Mes</option>
+	                    </select>
+	                  </div>
+	                  <div class="metrics-control metrics-downloads">
+	                    <label for="metrics-report">Reportes (CSV)</label>
+	                    <div class="metrics-download-row">
+	                      <select id="metrics-report">
+	                        <option value="orders" selected>Ventas (Pedidos Shopify)</option>
+	                        <option value="invoices">Facturación (Facturas Alegra)</option>
+	                        <option value="top_products_revenue">Top ventas por producto</option>
+	                        <option value="repeat_customers">Clientes recurrentes</option>
+	                        <option value="dead_stock">Stock muerto</option>
+	                      </select>
+	                      <button class="ghost" id="metrics-report-download" type="button">Descargar</button>
+	                    </div>
+	                  </div>
+	                  <div class="metrics-status">
+	                    <span class="status-pill" id="metrics-shopify-status">Shopify</span>
+	                    <span class="status-pill" id="metrics-alegra-status">Alegra</span>
+	                  </div>
+	                </div>
+	              </div>
 
               <div class="section-title">Panel de Victorias</div>
               <div class="kpi-grid metrics-kpi-grid victories-kpis">
@@ -222,27 +235,28 @@
                   </div>
                   <div class="chart-placeholder" id="wins-top-cities"></div>
                 </div>
-                <div class="panel" id="panel-top-customers">
-                  <div class="panel-header">
-                    <h3>Top 10 Clientes VIP</h3>
-                    <div class="panel-meta">
-                      <span class="panel-source">Fuente: Shopify</span>
-                      <span class="panel-tag">Ticket promedio</span>
-                    </div>
-                  </div>
-                  <div class="table-card">
-                    <table class="table" id="wins-top-customers">
-                      <thead>
-                        <tr>
-                          <th>Cliente</th>
-                          <th>Ticket Promedio</th>
-                          <th>Total</th>
-                        </tr>
-                      </thead>
-                      <tbody></tbody>
-                    </table>
-                  </div>
-                </div>
+	                <div class="panel" id="panel-top-customers">
+	                  <div class="panel-header">
+	                    <h3>Top 10 Clientes Recurrentes</h3>
+	                    <div class="panel-meta">
+	                      <span class="panel-source">Fuente: Shopify</span>
+	                      <span class="panel-tag">Pedidos</span>
+	                    </div>
+	                  </div>
+	                  <div class="table-card">
+	                    <table class="table" id="wins-top-customers">
+	                      <thead>
+	                        <tr>
+	                          <th>Cliente</th>
+	                          <th>Pedidos</th>
+	                          <th>Ticket Promedio</th>
+	                          <th>Total</th>
+	                        </tr>
+	                      </thead>
+	                      <tbody></tbody>
+	                    </table>
+	                  </div>
+	                </div>
                 <div class="panel" id="panel-payment-methods">
                   <div class="panel-header">
                     <h3>Participacion por Metodos de Pago</h3>
@@ -267,33 +281,33 @@
                   </div>
                   <div class="panel-split">
                     <div class="table-card" id="card-low-stock">
-                      <h4 class="panel-subtitle">Proximos a agotarse</h4>
-                      <table class="table" id="alert-low-stock">
-                        <thead>
-                          <tr>
-                            <th>Producto</th>
-                            <th>Stock</th>
-                            <th>Ventas 7d</th>
-                          </tr>
-                        </thead>
-                        <tbody></tbody>
-                      </table>
-                    </div>
-                    <div class="table-card" id="card-inactive-products">
-                      <h4 class="panel-subtitle">Productos inactivos</h4>
-                      <table class="table" id="alert-inactive-products">
-                        <thead>
-                          <tr>
-                            <th>Producto</th>
-                            <th>Stock</th>
-                            <th>Ventas 7d</th>
-                          </tr>
-                        </thead>
-                        <tbody></tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
+	                      <h4 class="panel-subtitle">Próximos a agotarse</h4>
+	                      <table class="table" id="alert-low-stock">
+	                        <thead>
+	                          <tr>
+	                            <th>Producto</th>
+	                            <th>Stock</th>
+	                            <th>Ventas 30d</th>
+	                          </tr>
+	                        </thead>
+	                        <tbody></tbody>
+	                      </table>
+	                    </div>
+	                    <div class="table-card" id="card-inactive-products">
+	                      <h4 class="panel-subtitle">Stock muerto (sin ventas 30d)</h4>
+	                      <table class="table" id="alert-inactive-products">
+	                        <thead>
+	                          <tr>
+	                            <th>Producto</th>
+	                            <th>Stock</th>
+	                            <th>Ventas 30d</th>
+	                          </tr>
+	                        </thead>
+	                        <tbody></tbody>
+	                      </table>
+	                    </div>
+	                  </div>
+	                </div>
               </div>
             </div>
           </div>
@@ -1443,7 +1457,7 @@
 				                  <div class="panel admin-only module" data-provider="alegra" data-manager="shopify" data-module="alegra-logistics" id="inventory-transfer-panel" data-help="Configura el traslado de inventario que se ejecuta automaticamente antes de facturar pedidos (Shopify → Alegra).">
             <div class="panel-header">
 	              <h3 data-module-toggle="alegra-logistics" data-title-base="Logística (Alegra) para facturar pedidos">Logística (Alegra) para facturar pedidos</h3>
-              <span class="panel-tag tag-alegra">Alegra</span>
+
             </div>
             <div class="module-body">
               <div class="mode-sections">
@@ -1538,7 +1552,7 @@
 			                  <div class="panel admin-only module" data-provider="alegra" data-manager="shopify" data-module="alegra-invoice" id="legacy-invoice-panel" data-help="Se usa cuando Shopify → Alegra = Factura. Define listas de precios y parametros de facturacion.">
 	            <div class="panel-header">
 	              <h3 data-module-toggle="alegra-invoice" data-title-base="Facturación en Alegra (para pedidos)">Facturación en Alegra (para pedidos)</h3>
-	              <span class="panel-tag tag-alegra">Alegra</span>
+
 	            </div>
 	            <div class="module-body">
 	              <div class="mode-sections">
@@ -1799,24 +1813,27 @@
       </div>
     </div>
 
-    <div class="modal" id="photos-modal" aria-hidden="true">
-      <div class="modal-content">
-        <div class="modal-header">
-          <div>
-            <h4>Cargador masivo de fotos</h4>
-            <p class="kpi-sub">Sube URLs de imágenes por SKU o código de barras (CSV desde Excel).</p>
-          </div>
-          <button id="photos-close" type="button">Cerrar</button>
-        </div>
-        <div class="settings-grid modal-form">
-          <div class="field">
-            <label>Archivo CSV</label>
-            <input type="file" id="photos-file" accept=".csv,text/csv" />
-            <p class="field-hint">
-              Columnas recomendadas: <code>sku</code> o <code>barcode</code> y <code>images</code> (URLs separadas por <code>|</code>).
-              También aceptamos <code>image_1</code>, <code>image_2</code>...
-            </p>
-          </div>
+	    <div class="modal" id="photos-modal" aria-hidden="true">
+	      <div class="modal-content">
+	        <div class="modal-header">
+	          <div>
+	            <h4>Cargador masivo de fotos</h4>
+	            <p class="kpi-sub">Sube URLs de imágenes por SKU o código de barras (CSV desde Excel).</p>
+	          </div>
+	          <div class="modal-actions">
+	            <button class="ghost" id="photos-template" type="button">Descargar plantilla</button>
+	            <button id="photos-close" type="button">Cerrar</button>
+	          </div>
+	        </div>
+	        <div class="settings-grid modal-form">
+	          <div class="field">
+	            <label>Archivo CSV</label>
+	            <input type="file" id="photos-file" accept=".csv,text/csv" />
+	            <p class="field-hint">
+	              Columnas recomendadas: <code>sku</code> o <code>barcode</code> y <code>images</code> (URLs separadas por <code>|</code>).
+	              También aceptamos <code>image_1</code>, <code>image_2</code>...
+	            </p>
+	          </div>
           <div class="field">
             <label for="photos-match-by">Match por</label>
             <select id="photos-match-by">
@@ -1839,28 +1856,21 @@
             <label for="photos-publish-enabled">Cambiar estado del producto <span class="tip" data-tip="ON: al terminar de subir fotos, forzamos el estado del producto (Borrador/Activo). OFF: no tocamos el estado.">?</span></label>
             <input type="checkbox" id="photos-publish-enabled" class="toggle" />
           </div>
-          <div class="field" id="photos-publish-status-field" hidden>
-            <label for="photos-publish-status">Estado</label>
-            <select id="photos-publish-status">
-              <option value="draft" selected>Borrador</option>
-              <option value="active">Activo</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="photos-dry-run">Simular (no subir) <span class="tip" data-tip="ON: solo validamos el archivo y buscamos productos en Shopify, pero no subimos fotos.">?</span></label>
-            <input type="checkbox" id="photos-dry-run" class="toggle" />
-          </div>
-          <div class="field">
-            <label for="photos-limit">Límite (opcional)</label>
-            <input type="number" id="photos-limit" min="1" placeholder="200" />
-          </div>
-        </div>
-        <div class="toolbar">
-          <button class="primary" id="photos-run" type="button">Ejecutar</button>
-          <button class="ghost danger" id="photos-stop" type="button" hidden>Detener</button>
-          <button class="ghost" id="photos-clear" type="button">Limpiar</button>
-          <span class="kpi-sub" id="photos-status">Sin datos</span>
-        </div>
+	          <div class="field" id="photos-publish-status-field" hidden>
+	            <label for="photos-publish-status">Estado</label>
+	            <select id="photos-publish-status">
+	              <option value="draft" selected>Borrador</option>
+	              <option value="active">Activo</option>
+	            </select>
+	          </div>
+	        </div>
+	        <div class="toolbar">
+	          <button class="primary" id="photos-run" type="button">Ejecutar</button>
+	          <button class="ghost danger" id="photos-stop" type="button" hidden>Detener</button>
+	          <button class="ghost" id="photos-clear" type="button">Limpiar</button>
+	          <button class="ghost" id="photos-download-errors" type="button">Descargar errores</button>
+	          <span class="kpi-sub" id="photos-status">Sin datos</span>
+	        </div>
         <div class="sync-progress" id="photos-progress" aria-hidden="true">
           <div class="sync-progress-track">
             <div class="sync-progress-bar" id="photos-progress-bar"></div>
@@ -1871,6 +1881,6 @@
       </div>
     </div>
 
-	    <script src="app.js?v=20260206p04" type="module"></script>
+	    <script src="app.js?v=20260206p07" type="module"></script>
 	  </body>
 	</html>

@@ -11,6 +11,8 @@ export async function getMetrics(
   const range = normalizeRange(options.range);
   const { current, previous } = resolveCalendarRanges(range);
   const rangeDays = diffDays(current.from, current.to);
+  const rangeFrom = formatDateKey(current.from);
+  const rangeTo = formatDateKey(current.to);
   const today = formatDateKey(new Date());
   const yesterday = formatDateKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
 
@@ -18,6 +20,8 @@ export async function getMetrics(
     range,
     rangeLabel: current.label,
     rangeDays,
+    rangeFrom,
+    rangeTo,
     sales: "0",
     orders: 0,
     customers: 0,
@@ -53,15 +57,19 @@ export async function getMetrics(
     ordersDbRange: 0,
     invoicedDbRange: 0,
     pendingDbRange: 0,
+    repeatCustomers: [] as Array<Record<string, unknown>>,
+    repeatRate: null as number | null,
     source: "db_only" as "db_only" | "external",
   };
 
-  const [logInsightsResult, effectivenessResult, issuesResult, dbResult] =
+  const [logInsightsResult, effectivenessResult, issuesResult, dbResult, dbCommerceResult, dbCommercePrevResult] =
     await Promise.allSettled([
       getLogInsights(),
       getOrderEffectiveness(current.from, current.to),
       listIssues(current.from, current.to),
       getDbOrderSummary(current.from, current.to, options.shopDomain),
+      getDbCommerceMetrics(current.from, current.to, options.shopDomain),
+      getDbCommerceMetrics(previous.from, previous.to, options.shopDomain),
     ]);
   if (logInsightsResult.status === "fulfilled") {
     fallback.failedSyncs24h = logInsightsResult.value.failedSyncs24h;
@@ -88,6 +96,19 @@ export async function getMetrics(
       fallback.billingRange = formatCurrency(dbResult.value.billingRange);
       fallback.pending = formatCurrency(dbResult.value.pendingBalance);
     }
+  }
+  if (dbCommerceResult.status === "fulfilled") {
+    fallback.weeklyRevenue = dbCommerceResult.value.salesSeries;
+    fallback.billingSeries = dbCommerceResult.value.billingSeries;
+    fallback.topProductsUnits = dbCommerceResult.value.topProductsUnits;
+    fallback.topProductsRevenue = dbCommerceResult.value.topProductsRevenue;
+    fallback.topCustomers = dbCommerceResult.value.topCustomers;
+    fallback.repeatCustomers = dbCommerceResult.value.repeatCustomers;
+    fallback.repeatRate = dbCommerceResult.value.repeatRate;
+  }
+  if (dbCommercePrevResult.status === "fulfilled") {
+    fallback.weeklyRevenuePrev = dbCommercePrevResult.value.salesSeries;
+    fallback.billingSeriesPrev = dbCommercePrevResult.value.billingSeries;
   }
 
   try {
@@ -213,6 +234,8 @@ export async function getMetrics(
       topProductsRevenue: aggregations.topProductsRevenue,
       topCities: aggregations.topCities,
       topCustomers: aggregations.topCustomers,
+      repeatCustomers: aggregations.repeatCustomers,
+      repeatRate: aggregations.repeatRate,
       lowStock: inventoryAlerts.lowStock,
       inactiveProducts: inventoryAlerts.inactive,
       topProducts: [],
@@ -222,6 +245,158 @@ export async function getMetrics(
     const message = error instanceof Error ? error.message : "No disponible";
     return { ...fallback, error: message };
   }
+}
+
+type DbOrderMetricRow = {
+  processed_at: string | null;
+  created_at: string;
+  total: string | number | null;
+  currency: string | null;
+  customer_email: string | null;
+  customer_name: string | null;
+  products_summary: string | null;
+  alegra_invoice_id: string | null;
+  invoice_number: string | null;
+};
+
+function parseProductsSummary(summary: string) {
+  const text = String(summary || "").trim();
+  if (!text || text === "-") return [];
+  return text
+    .split(/\s*,\s*/g)
+    .map((chunk) => {
+      const trimmed = chunk.trim();
+      const match = trimmed.match(/^(\d+)\s*x\s*(.+)$/i);
+      if (!match) return null;
+      const qty = Number(match[1] || 0);
+      const name = String(match[2] || "").trim();
+      if (!Number.isFinite(qty) || qty <= 0 || !name) return null;
+      return { qty, name };
+    })
+    .filter(Boolean) as Array<{ qty: number; name: string }>;
+}
+
+async function getDbCommerceMetrics(from: Date, to: Date, shopDomain?: string) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const domain = String(shopDomain || "").trim().toLowerCase();
+  const result = await pool.query<DbOrderMetricRow>(
+    `
+    SELECT
+      processed_at,
+      created_at,
+      total,
+      currency,
+      customer_email,
+      customer_name,
+      products_summary,
+      alegra_invoice_id,
+      invoice_number
+    FROM orders
+    WHERE organization_id = $1
+      AND source = 'shopify'
+      AND COALESCE(processed_at, created_at) >= $2
+      AND COALESCE(processed_at, created_at) <= $3
+      AND ($4 = '' OR shop_domain = $4)
+    ORDER BY COALESCE(processed_at, created_at) DESC
+    `,
+    [orgId, from.toISOString(), to.toISOString(), domain]
+  );
+
+  const salesByDay = new Map<string, number>();
+  const billingByDay = new Map<string, number>();
+  const products = new Map<string, { name: string; units: number; amount: number }>();
+  const customers = new Map<string, { name: string; email: string | null; total: number; count: number }>();
+
+  for (const row of result.rows) {
+    const date = String(row.processed_at || row.created_at || "").slice(0, 10);
+    const total = Number(row.total || 0);
+    if (date) {
+      salesByDay.set(date, (salesByDay.get(date) || 0) + (Number.isFinite(total) ? total : 0));
+      const invoiced = Boolean(row.alegra_invoice_id || row.invoice_number);
+      if (invoiced) {
+        billingByDay.set(date, (billingByDay.get(date) || 0) + (Number.isFinite(total) ? total : 0));
+      }
+    }
+
+    const email = row.customer_email ? String(row.customer_email).trim().toLowerCase() : "";
+    const name = row.customer_name ? String(row.customer_name).trim() : "";
+    const customerKey = email || name || "cliente";
+    const current = customers.get(customerKey) || {
+      name: name || (email ? email : "Cliente"),
+      email: email || null,
+      total: 0,
+      count: 0,
+    };
+    current.total += Number.isFinite(total) ? total : 0;
+    current.count += 1;
+    customers.set(customerKey, current);
+
+    const items = parseProductsSummary(String(row.products_summary || ""));
+    if (!items.length) continue;
+    const unitsTotal = items.reduce((acc, item) => acc + Number(item.qty || 0), 0);
+    if (!unitsTotal) continue;
+    for (const item of items) {
+      const existing = products.get(item.name) || { name: item.name, units: 0, amount: 0 };
+      existing.units += item.qty;
+      const portion = Number.isFinite(total) ? total * (item.qty / unitsTotal) : 0;
+      existing.amount += portion;
+      products.set(item.name, existing);
+    }
+  }
+
+  const salesSeries = Array.from(salesByDay.entries())
+    .map(([date, amount]) => ({ date, amount }))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const billingSeries = Array.from(billingByDay.entries())
+    .map(([date, amount]) => ({ date, amount }))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+
+  const topProductsUnits = Array.from(products.values())
+    .sort((a, b) => b.units - a.units)
+    .slice(0, 10);
+  const topProductsRevenue = Array.from(products.values())
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 10);
+
+  const topCustomers = Array.from(customers.values())
+    .map((item) => ({
+      name: item.name,
+      email: item.email,
+      total: item.total,
+      avgTicket: item.count ? item.total / item.count : 0,
+      count: item.count,
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10);
+
+  const repeatCustomers = Array.from(customers.values())
+    .filter((item) => item.count >= 2)
+    .map((item) => ({
+      name: item.name,
+      email: item.email,
+      total: item.total,
+      avgTicket: item.count ? item.total / item.count : 0,
+      count: item.count,
+    }))
+    .sort((a, b) => b.count - a.count || b.total - a.total)
+    .slice(0, 10);
+
+  const totalOrders = result.rows.length;
+  const repeatOrders = Array.from(customers.values())
+    .filter((item) => item.count >= 2)
+    .reduce((acc, item) => acc + item.count, 0);
+  const repeatRate = totalOrders ? Math.round((repeatOrders / totalOrders) * 100) : null;
+
+  return {
+    salesSeries,
+    billingSeries,
+    topProductsUnits,
+    topProductsRevenue,
+    topCustomers,
+    repeatCustomers,
+    repeatRate,
+  };
 }
 
 async function getDbOrderSummary(from: Date, to: Date, shopDomain?: string) {
@@ -758,12 +933,20 @@ function buildShopifyAggregations(orders: ShopifyOrder[]) {
       name: item.name,
       total: item.total,
       avgTicket: item.count ? item.total / item.count : 0,
+      count: item.count,
       email: item.email || null,
     }))
     .sort((a, b) => b.total - a.total)
     .slice(0, 10);
 
-  return { topProductsUnits, topProductsRevenue, topCities, topCustomers };
+  const repeatCustomers = topCustomers.filter((item) => Number(item.count || 0) >= 2);
+  const totalOrders = orders.length;
+  const repeatOrders = Array.from(customers.values())
+    .filter((item) => item.count >= 2)
+    .reduce((acc, item) => acc + item.count, 0);
+  const repeatRate = totalOrders ? Math.round((repeatOrders / totalOrders) * 100) : null;
+
+  return { topProductsUnits, topProductsRevenue, topCities, topCustomers, repeatCustomers, repeatRate };
 }
 
 async function buildInventoryAlerts(ctx: Awaited<ReturnType<typeof buildSyncContext>>) {
@@ -789,9 +972,10 @@ async function buildInventoryAlerts(ctx: Awaited<ReturnType<typeof buildSyncCont
   );
 
   const salesBySku = new Map<string, number>();
-  const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const weekOrders = await listShopifyOrdersInRange(ctx, weekStart, new Date());
-  weekOrders.forEach((order) => {
+  const windowDays = Math.max(7, Number(process.env.METRICS_INVENTORY_SALES_DAYS || 30));
+  const windowStart = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
+  const windowOrders = await listShopifyOrdersInRange(ctx, windowStart, new Date());
+  windowOrders.forEach((order) => {
     order.lineItems?.edges?.forEach((edge) => {
       const sku = edge.node.variant?.sku || "";
       if (!sku) return;
@@ -799,8 +983,8 @@ async function buildInventoryAlerts(ctx: Awaited<ReturnType<typeof buildSyncCont
     });
   });
 
-  const lowStock: Array<{ name: string; stock: number; sold: number }> = [];
-  const inactive: Array<{ name: string; stock: number }> = [];
+  const lowStock: Array<{ name: string; stock: number; sold: number; windowDays: number }> = [];
+  const inactive: Array<{ name: string; stock: number; sold: number; windowDays: number }> = [];
 
   items.forEach((item) => {
     const name = String(item.name || item.reference || item.id || "Producto");
@@ -809,11 +993,11 @@ async function buildInventoryAlerts(ctx: Awaited<ReturnType<typeof buildSyncCont
     const identifiers = collectItemIdentifiers(item);
     const sold = identifiers.reduce((acc, id) => acc + (salesBySku.get(id) || 0), 0);
     if (stock <= 5 && sold > 0) {
-      lowStock.push({ name, stock, sold });
+      lowStock.push({ name, stock, sold, windowDays });
       return;
     }
     if (sold === 0) {
-      inactive.push({ name, stock });
+      inactive.push({ name, stock, sold: 0, windowDays });
     }
   });
 

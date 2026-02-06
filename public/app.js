@@ -77,6 +77,7 @@ const einvoiceZip = document.getElementById("einvoice-zip");
 const productsPhotosBulkOpen = document.getElementById("products-photos-bulk-open");
 const photosModal = document.getElementById("photos-modal");
 const photosClose = document.getElementById("photos-close");
+const photosTemplate = document.getElementById("photos-template");
 const photosFile = document.getElementById("photos-file");
 const photosMatchBy = document.getElementById("photos-match-by");
 const photosAttachVariant = document.getElementById("photos-attach-variant");
@@ -84,11 +85,10 @@ const photosMode = document.getElementById("photos-mode");
 const photosPublishEnabled = document.getElementById("photos-publish-enabled");
 const photosPublishStatusField = document.getElementById("photos-publish-status-field");
 const photosPublishStatus = document.getElementById("photos-publish-status");
-const photosDryRun = document.getElementById("photos-dry-run");
-const photosLimit = document.getElementById("photos-limit");
 const photosRun = document.getElementById("photos-run");
 const photosStop = document.getElementById("photos-stop");
 const photosClear = document.getElementById("photos-clear");
+const photosDownloadErrors = document.getElementById("photos-download-errors");
 const photosStatus = document.getElementById("photos-status");
 const photosProgress = document.getElementById("photos-progress");
 const photosProgressBar = document.getElementById("photos-progress-bar");
@@ -135,6 +135,8 @@ const metricsRange = document.getElementById("metrics-range");
 const metricsShopifyStatus = document.getElementById("metrics-shopify-status");
 const metricsAlegraStatus = document.getElementById("metrics-alegra-status");
 const metricsInsights = document.getElementById("metrics-insights");
+const metricsReport = document.getElementById("metrics-report");
+const metricsReportDownload = document.getElementById("metrics-report-download");
 const weeklyGrowthLabel = document.getElementById("chart-weekly-label");
 const chartAlegra = document.getElementById("chart-alegra");
 const alegraGrowthLabel = document.getElementById("chart-alegra-label");
@@ -523,6 +525,7 @@ let ordersBulkSyncRunning = false;
 let photosBulkAbort = null;
 let activePhotosSyncId = "";
 let photosParsedRows = [];
+let photosErrorLog = [];
 let invoicesBackfillAbort = null;
 let invoicesBackfillRunning = false;
 let productsShopifyBulkAbort = null;
@@ -875,6 +878,7 @@ function openPhotosModal() {
   if (!photosModal) return;
   photosModal.classList.add("is-open");
   photosModal.setAttribute("aria-hidden", "false");
+  photosErrorLog = [];
   if (photosErrors) photosErrors.textContent = "Sin errores.";
   if (photosStatus) photosStatus.textContent = "Sin datos";
   updatePhotosPublishUi();
@@ -886,6 +890,28 @@ function closePhotosModal() {
   if (!photosModal) return;
   photosModal.classList.remove("is-open");
   photosModal.setAttribute("aria-hidden", "true");
+}
+
+function downloadTextFile(filename, contents, mime = "text/plain;charset=utf-8") {
+  const safeName = filename && String(filename).trim() ? String(filename).trim() : "archivo.txt";
+  const blob = new Blob([contents], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = safeName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function buildPhotosTemplateCsv() {
+  const lines = [
+    "sku,barcode,images,alt",
+    'ABC123,,https://cdn.tu-dominio.com/img1.jpg|https://cdn.tu-dominio.com/img2.jpg,""',
+    ',7701234567890,https://cdn.tu-dominio.com/img3.jpg,""',
+  ];
+  return `${lines.join("\r\n")}\r\n`;
 }
 
 if (modalClose) {
@@ -906,6 +932,16 @@ if (photosModal) {
   photosModal.addEventListener("click", (event) => {
     if (event.target === photosModal) {
       closePhotosModal();
+    }
+  });
+}
+
+if (photosTemplate) {
+  photosTemplate.addEventListener("click", () => {
+    try {
+      downloadTextFile("plantilla_fotos_shopify.csv", buildPhotosTemplateCsv(), "text/csv;charset=utf-8");
+    } catch (error) {
+      showToast(error?.message || "No se pudo descargar la plantilla.", "is-error");
     }
   });
 }
@@ -1082,8 +1118,7 @@ async function parsePhotosFileToRows() {
   }
   const rows = [];
   const parseErrors = [];
-  const limitValue = photosLimit instanceof HTMLInputElement ? Number(photosLimit.value) : NaN;
-  const maxRows = Number.isFinite(limitValue) && limitValue > 0 ? Math.min(500, Math.floor(limitValue)) : 500;
+  const maxRows = 500;
   for (let lineIndex = 1; lineIndex < lines.length; lineIndex += 1) {
     if (rows.length >= maxRows) break;
     const values = parseCsvLine(lines[lineIndex], delimiter);
@@ -1113,6 +1148,7 @@ async function parsePhotosFileToRows() {
   if (photosErrors) {
     photosErrors.textContent = parseErrors.length ? parseErrors.slice(0, 60).join("\n") : "Sin errores.";
   }
+  photosErrorLog = parseErrors.slice(0);
   return rows;
 }
 
@@ -1152,9 +1188,8 @@ async function runPhotosBulkUpload() {
     photosPublishEnabled instanceof HTMLInputElement ? photosPublishEnabled.checked === true : false;
   const publishStatus =
     photosPublishStatus instanceof HTMLSelectElement ? String(photosPublishStatus.value || "draft") : "draft";
-  const dryRun = photosDryRun instanceof HTMLInputElement ? photosDryRun.checked === true : false;
 
-  if (mode === "replace" && !dryRun) {
+  if (mode === "replace") {
     const ok = window.confirm(
       "Modo Reemplazar elimina fotos existentes del producto antes de subir las nuevas. ¿Seguro?"
     );
@@ -1164,7 +1199,7 @@ async function runPhotosBulkUpload() {
       return;
     }
   }
-  if (publishEnabled && !dryRun) {
+  if (publishEnabled) {
     const ok = window.confirm(
       `Cambiar estado del producto está activo. ¿Seguro que quieres forzar estado = ${publishStatus}?`
     );
@@ -1188,7 +1223,7 @@ async function runPhotosBulkUpload() {
   };
 
   try {
-    if (photosStatus) photosStatus.textContent = dryRun ? "Simulando..." : "Subiendo fotos...";
+    if (photosStatus) photosStatus.textContent = "Subiendo fotos...";
     const response = await fetch("/api/sync/product-images?stream=1", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1199,7 +1234,6 @@ async function runPhotosBulkUpload() {
         mode,
         publishEnabled,
         publishStatus,
-        dryRun,
         rows: photosParsedRows,
         stream: true,
       }),
@@ -1246,12 +1280,13 @@ async function runPhotosBulkUpload() {
           const percent = total > 0 ? (processed / total) * 100 : 0;
           updatePhotosProgress(percent, `Procesando ${Math.round(percent)}%`);
           if (photosStatus) {
-            photosStatus.textContent = `Procesados ${processed}/${total || "?"} · Encontrados ${latest.matched} · ${dryRun ? "Validados" : "Imágenes"} ${latest.imagesUploaded} · Saltados ${latest.skipped} · Fallidos ${latest.failed}`;
+            photosStatus.textContent = `Procesados ${processed}/${total || "?"} · Encontrados ${latest.matched} · Imágenes ${latest.imagesUploaded} · Saltados ${latest.skipped} · Fallidos ${latest.failed}`;
           }
           continue;
         }
         if (payload.type === "row_error") {
           const message = payload.message || "Error";
+          photosErrorLog.push(message);
           if (photosErrors) {
             const existing = String(photosErrors.textContent || "").trim();
             const next = existing && existing !== "Sin errores." ? `${existing}\n${message}` : message;
@@ -7611,17 +7646,20 @@ async function loadMetrics() {
       valueFormatter: (value) => formatCurrencyValue(Number(value || 0)),
     });
     renderTopRevenueTable(data.topProductsRevenue || []);
-    renderTopCustomersTable(data.topCustomers || []);
+    renderTopCustomersTable(data.repeatCustomers || data.topCustomers || []);
     renderInventoryAlerts(data.lowStock || [], data.inactiveProducts || []);
     updatePanelVisibility(data);
     if (metricsInsights) {
       const parts = [];
+      if (Number.isFinite(data.repeatRate)) parts.push(`Clientes recurrentes: ${data.repeatRate}%`);
+      if (Number.isFinite(data.pendingDbRange)) parts.push(`Pendientes por facturar: ${data.pendingDbRange}`);
+      if (Number.isFinite(data.ordersDbRange) && Number.isFinite(data.invoicedDbRange)) {
+        const orders = Number(data.ordersDbRange) || 0;
+        const invoiced = Number(data.invoicedDbRange) || 0;
+        if (orders > 0) parts.push(`Facturados: ${Math.round((invoiced / orders) * 100)}%`);
+      }
       const lastWebhookAt = data.lastWebhookAt ? formatDate(data.lastWebhookAt) : null;
       if (lastWebhookAt) parts.push(`Último webhook: ${lastWebhookAt}`);
-      if (Number.isFinite(data.failedSyncs24h)) parts.push(`Fallas 24h: ${data.failedSyncs24h}`);
-      if (Number.isFinite(data.pendingDbRange)) parts.push(`Pendientes: ${data.pendingDbRange}`);
-      if (Number.isFinite(data.retryPending)) parts.push(`Cola: ${data.retryPending}`);
-      if (Number.isFinite(data.effectivenessRate)) parts.push(`Efectividad: ${data.effectivenessRate}%`);
       if (parts.length) {
         metricsInsights.textContent = parts.join(" · ");
         metricsInsights.style.display = "";
@@ -7652,6 +7690,17 @@ async function loadMetrics() {
       metricsInsights.style.display = "none";
     }
   }
+}
+
+function downloadMetricsReport() {
+  const range = metricsRange ? String(metricsRange.value || "month") : "month";
+  const type = metricsReport instanceof HTMLSelectElement ? String(metricsReport.value || "orders") : "orders";
+  const params = new URLSearchParams();
+  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+  if (shopDomain) params.set("shopDomain", shopDomain);
+  if (range) params.set("range", range);
+  if (type) params.set("type", type);
+  window.location.href = `/api/reports/commerce.csv?${params.toString()}`;
 }
 
 async function loadOperations() {
@@ -8106,6 +8155,7 @@ function renderTopCustomersTable(items) {
       (item) => `
       <tr>
         <td>${item.name || item.email || "-"}</td>
+        <td>${Number(item.count || 0) || 0}</td>
         <td>${formatCurrencyValue(Number(item.avgTicket || 0))}</td>
         <td>${formatCurrencyValue(Number(item.total || 0))}</td>
       </tr>
@@ -8144,7 +8194,7 @@ function renderInventoryAlerts(lowStock, inactive) {
           <tr>
             <td>${item.name || "-"}</td>
             <td>${item.stock ?? "-"}</td>
-            <td>0</td>
+            <td>${item.sold ?? 0}</td>
           </tr>
         `
         )
@@ -8162,7 +8212,9 @@ function updatePanelVisibility(data) {
   const hasTopProducts = Array.isArray(data.topProductsUnits) && data.topProductsUnits.length > 0;
   const hasTopRevenue = Array.isArray(data.topProductsRevenue) && data.topProductsRevenue.length > 0;
   const hasTopCities = Array.isArray(data.topCities) && data.topCities.length > 0;
-  const hasTopCustomers = Array.isArray(data.topCustomers) && data.topCustomers.length > 0;
+  const hasTopCustomers =
+    (Array.isArray(data.repeatCustomers) && data.repeatCustomers.length > 0) ||
+    (Array.isArray(data.topCustomers) && data.topCustomers.length > 0);
   const hasPaymentMethods = Array.isArray(data.paymentsByMethod) && data.paymentsByMethod.length > 0;
   const hasLowStock = Array.isArray(data.lowStock) && data.lowStock.length > 0;
   const hasInactive = Array.isArray(data.inactiveProducts) && data.inactiveProducts.length > 0;
@@ -9656,6 +9708,15 @@ if (metricsRange) {
     loadMetrics().catch(() => null);
   });
 }
+if (metricsReportDownload) {
+  metricsReportDownload.addEventListener("click", () => {
+    try {
+      downloadMetricsReport();
+    } catch (error) {
+      showToast(error?.message || "No se pudo descargar el reporte.", "is-error");
+    }
+  });
+}
 if (assistantInput) {
   assistantInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.ctrlKey) {
@@ -10346,19 +10407,35 @@ if (photosStop) {
 if (photosClear) {
   photosClear.addEventListener("click", () => {
     if (photosFile instanceof HTMLInputElement) photosFile.value = "";
-    if (photosLimit instanceof HTMLInputElement) photosLimit.value = "";
-    if (photosDryRun instanceof HTMLInputElement) photosDryRun.checked = false;
     if (photosPublishEnabled instanceof HTMLInputElement) photosPublishEnabled.checked = false;
     if (photosMode instanceof HTMLSelectElement) photosMode.value = "append";
     if (photosMatchBy instanceof HTMLSelectElement) photosMatchBy.value = "sku";
     if (photosAttachVariant instanceof HTMLInputElement) photosAttachVariant.checked = true;
     if (photosPublishStatus instanceof HTMLSelectElement) photosPublishStatus.value = "draft";
     photosParsedRows = [];
+    photosErrorLog = [];
     activePhotosSyncId = "";
     if (photosErrors) photosErrors.textContent = "Sin errores.";
     if (photosStatus) photosStatus.textContent = "Sin datos";
     updatePhotosPublishUi();
     updatePhotosProgress(0, "Procesando 0%");
+  });
+}
+
+if (photosDownloadErrors) {
+  photosDownloadErrors.addEventListener("click", () => {
+    const content =
+      Array.isArray(photosErrorLog) && photosErrorLog.length
+        ? photosErrorLog.join("\r\n")
+        : photosErrors
+          ? String(photosErrors.textContent || "").trim()
+          : "";
+    const finalContent = content && content !== "Sin errores." ? content : "";
+    if (!finalContent) {
+      showToast("No hay errores para descargar.", "is-warn");
+      return;
+    }
+    downloadTextFile("errores_cargador_fotos.txt", `${finalContent}\r\n`);
   });
 }
 
