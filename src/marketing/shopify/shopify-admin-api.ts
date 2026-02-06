@@ -125,11 +125,39 @@ export class ShopifyAdminApi {
             createdAt: string;
             processedAt?: string | null;
             displayFinancialStatus?: string | null;
-            landingSite?: string | null;
-            referringSite?: string | null;
             sourceName?: string | null;
             tags: string[];
-            discountCodes?: Array<{ code: string }>;
+            discountCode?: string | null;
+            // Note: Shopify GraphQL versions differ: some return [String], others a String.
+            discountCodes?: Array<string> | string | null;
+            registeredSourceUrl?: string | null;
+            customerJourneySummary?: {
+              ready: boolean;
+              lastVisit?: {
+                landingPage?: string | null;
+                referrerUrl?: string | null;
+                source?: string | null;
+                utmParameters?: {
+                  source?: string | null;
+                  medium?: string | null;
+                  campaign?: string | null;
+                  content?: string | null;
+                  term?: string | null;
+                } | null;
+              } | null;
+              firstVisit?: {
+                landingPage?: string | null;
+                referrerUrl?: string | null;
+                source?: string | null;
+                utmParameters?: {
+                  source?: string | null;
+                  medium?: string | null;
+                  campaign?: string | null;
+                  content?: string | null;
+                  term?: string | null;
+                } | null;
+              } | null;
+            } | null;
             totalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
             customer?: { id: string; email?: string | null } | null;
             lineItems: {
@@ -158,11 +186,26 @@ export class ShopifyAdminApi {
               createdAt
               processedAt
               displayFinancialStatus
-              landingSite
-              referringSite
               sourceName
               tags
-              discountCodes { code }
+              discountCode
+              discountCodes
+              registeredSourceUrl
+              customerJourneySummary {
+                ready
+                firstVisit {
+                  landingPage
+                  referrerUrl
+                  source
+                  utmParameters { source medium campaign content term }
+                }
+                lastVisit {
+                  landingPage
+                  referrerUrl
+                  source
+                  utmParameters { source medium campaign content term }
+                }
+              }
               totalPriceSet { shopMoney { amount currencyCode } }
               customer { id email }
               lineItems(first: 50) {
@@ -241,4 +284,3 @@ export function parseUtmFromUrl(rawUrl: string) {
     };
   }
 }
-

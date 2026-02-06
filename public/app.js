@@ -7598,7 +7598,11 @@ function ensureMarketingDefaults() {
 }
 
 function getMarketingQuery() {
-  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+  const preferredDomain =
+    marketingStoreSelect instanceof HTMLSelectElement
+      ? marketingStoreSelect.value
+      : "";
+  const shopDomain = normalizeShopDomain(preferredDomain || shopifyDomain?.value || activeStoreDomain || "");
   const from = marketingFrom instanceof HTMLInputElement ? String(marketingFrom.value || "") : "";
   const to = marketingTo instanceof HTMLInputElement ? String(marketingTo.value || "") : "";
   return { shopDomain, from, to };

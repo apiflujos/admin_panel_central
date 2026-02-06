@@ -50,8 +50,10 @@ export async function syncMarketingOrders(shopDomain: string, options: SyncOptio
       const currency = node.totalPriceSet?.shopMoney?.currencyCode || null;
       const customerGid = node.customer?.id || null;
       const email = node.customer?.email || null;
-      const landingSite = node.landingSite || "";
-      const referrer = node.referringSite || "";
+      const journey = (node as any)?.customerJourneySummary || null;
+      const lastVisit = journey?.lastVisit || null;
+      const landingSite = String(lastVisit?.landingPage || (node as any)?.registeredSourceUrl || "").trim();
+      const referrer = String(lastVisit?.referrerUrl || "").trim();
       const utm = parseUtmFromUrl(landingSite);
       const channel = inferChannel({
         utmSource: utm.utm_source,
@@ -95,9 +97,12 @@ export async function syncMarketingOrders(shopDomain: string, options: SyncOptio
           );
         }
       }
-      const discountCodes = Array.isArray(node.discountCodes)
-        ? node.discountCodes.map((d) => String(d.code || "")).filter(Boolean)
-        : [];
+      const discountCodes = (() => {
+        const value: unknown = (node as any)?.discountCodes ?? (node as any)?.discountCode ?? null;
+        if (Array.isArray(value)) return value.map((v) => String(v || "")).filter(Boolean);
+        if (typeof value === "string") return value ? [value] : [];
+        return [];
+      })();
       const tags = Array.isArray(node.tags) ? node.tags.map((t) => String(t || "")).filter(Boolean) : [];
 
       await pool.query(
