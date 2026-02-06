@@ -734,6 +734,16 @@ export async function ensureUsersTables(poolInstance: Pool) {
       .then(() =>
         poolInstance.query(
           `
+          ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+          ALTER TABLE users
+            ADD CONSTRAINT users_role_check
+            CHECK (role IN ('admin','agent','super_admin'));
+          `
+        )
+      )
+      .then(() =>
+        poolInstance.query(
+          `
           CREATE INDEX IF NOT EXISTS users_super_admin_email_idx
           ON users (lower(email))
           WHERE is_super_admin = true
