@@ -25,7 +25,7 @@ import {
 import { shopifyMarketingWebhookHandler } from "./marketing-webhooks.controller";
 import { marketingCollectHandler, marketingPixelScriptHandler } from "./marketing-pixel.controller";
 import { getInventoryAdjustmentsCheckpoint } from "./checkpoints.controller";
-import { createConnection, listConnections, removeConnection } from "./connections.controller";
+import { createConnection, listConnections, removeConnection, removeConnectionByDomain } from "./connections.controller";
 import { listStoreConfigsHandler, saveStoreConfigHandler } from "./store-configs.controller";
 import {
   createUserHandler,
@@ -155,6 +155,7 @@ router.get("/alegra/inventory-adjustments", wrap(listInventoryAdjustmentsHandler
 router.get("/alegra/image", wrap(proxyAlegraImageHandler));
 router.get("/connections", requireAdmin, wrap(listConnections));
 router.post("/connections", requireAdmin, wrap(createConnection));
+router.delete("/connections/domain/:shopDomain", requireAdmin, wrap(removeConnectionByDomain));
 router.delete("/connections/:id", requireAdmin, wrap(removeConnection));
 router.get("/store-configs", requireAdmin, wrap(listStoreConfigsHandler));
 router.put("/store-configs/:shopDomain", requireAdmin, wrap(saveStoreConfigHandler));

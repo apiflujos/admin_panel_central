@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { createSyncLog } from "../services/logs.service";
 import {
   deleteStoreConnection,
+  deleteStoreConnectionByDomain,
   listStoreConnections,
   upsertStoreConnection,
 } from "../services/store-connections.service";
@@ -81,6 +82,37 @@ export async function removeConnection(req: Request, res: Response) {
       status: "success",
       message: "Conexion eliminada",
       request: { id, purgeData },
+    });
+  } catch (error) {
+    const message = getErrorMessage(error);
+    res.status(400).json({ error: message });
+    await createSyncLog({
+      entity: "connections_delete",
+      direction: "shopify->alegra",
+      status: "fail",
+      message,
+    });
+  }
+}
+
+export async function removeConnectionByDomain(req: Request, res: Response) {
+  try {
+    const shopDomain = String(req.params.shopDomain || "").trim();
+    if (!shopDomain) {
+      res.status(400).json({ error: "Dominio invalido" });
+      return;
+    }
+    const purgeDataRaw = String(req.query?.purgeData || req.query?.purge || "").trim().toLowerCase();
+    const purgeData = purgeDataRaw === "1" || purgeDataRaw === "true" || purgeDataRaw === "yes";
+    const result = await deleteStoreConnectionByDomain(shopDomain, { purgeData });
+    const list = await listStoreConnections();
+    res.status(200).json({ ...list, ...result });
+    await createSyncLog({
+      entity: "connections_delete",
+      direction: "shopify->alegra",
+      status: "success",
+      message: result.deleted ? "Conexion eliminada" : "Conexion no encontrada",
+      request: { shopDomain, purgeData },
     });
   } catch (error) {
     const message = getErrorMessage(error);

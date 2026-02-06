@@ -734,10 +734,18 @@ export async function ensureUsersTables(poolInstance: Pool) {
       .then(() =>
         poolInstance.query(
           `
+          -- Normalize legacy/invalid roles before enforcing constraints.
+          UPDATE users
+          SET role = 'super_admin'
+          WHERE role = 'superadmin';
+          UPDATE users
+          SET role = 'agent'
+          WHERE role IS NULL OR role NOT IN ('admin','agent','super_admin','superadmin');
+
           ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
           ALTER TABLE users
             ADD CONSTRAINT users_role_check
-            CHECK (role IN ('admin','agent','super_admin'));
+            CHECK (role IN ('admin','agent','super_admin','superadmin'));
           `
         )
       )

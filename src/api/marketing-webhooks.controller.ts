@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { verifyShopifyHmac } from "../utils/webhook";
 import { ingestShopifyMarketingWebhook } from "../marketing/webhooks/shopify-marketing-webhooks.service";
+import { shopifyStoreExists } from "../services/store-connections.service";
 
 function header(req: Request, name: string) {
   const raw = req.headers[name.toLowerCase()];
@@ -25,6 +26,11 @@ export async function shopifyMarketingWebhookHandler(req: Request, res: Response
     header(req, "x-request-id") ||
     "";
 
+  if (shopDomain && !(await shopifyStoreExists(shopDomain))) {
+    res.status(410).json({ status: "gone" });
+    return;
+  }
+
   try {
     const result = await ingestShopifyMarketingWebhook(
       { topic, shopDomain, webhookId: webhookId || `${Date.now()}` },
@@ -36,4 +42,3 @@ export async function shopifyMarketingWebhookHandler(req: Request, res: Response
     res.status(400).json({ error: error instanceof Error ? error.message : "webhook_error" });
   }
 }
-

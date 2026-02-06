@@ -14,12 +14,19 @@ type UserRecord = {
   organization_id: number;
   email: string;
   password_hash: string;
-  role: "admin" | "agent" | "super_admin";
+  role: "admin" | "agent" | "super_admin" | "superadmin";
   is_super_admin: boolean;
   name: string | null;
   phone: string | null;
   photo_base64: string | null;
 };
+
+function normalizeUserRole(role: unknown): "admin" | "agent" | "super_admin" {
+  const raw = String(role || "").trim().toLowerCase();
+  if (raw === "admin") return "admin";
+  if (raw === "super_admin" || raw === "superadmin") return "super_admin";
+  return "agent";
+}
 
 export async function authenticateUser(email: string, password: string, remember = false) {
   const pool = getPool();
@@ -46,7 +53,10 @@ export async function authenticateUser(email: string, password: string, remember
   if (!result.rows.length) {
     return null;
   }
-  const user = result.rows[0];
+  const row = result.rows[0];
+  const user = { ...row, role: normalizeUserRole(row.role) } as Omit<UserRecord, "role"> & {
+    role: "admin" | "agent" | "super_admin";
+  };
   if (!verifyPassword(password, user.password_hash)) {
     return null;
   }
@@ -113,7 +123,10 @@ export async function getSessionUser(token: string | undefined | null) {
   if (!result.rows.length) {
     return null;
   }
-  const session = result.rows[0];
+  const rawSession = result.rows[0];
+  const session = { ...rawSession, role: normalizeUserRole(rawSession.role) } as typeof rawSession & {
+    role: "admin" | "agent" | "super_admin";
+  };
   if (session.expires_at.getTime() < Date.now()) {
     await clearSession(token);
     return null;

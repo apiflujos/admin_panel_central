@@ -21,7 +21,8 @@ const normalizeShopDomain = (value: string) =>
   value
     .trim()
     .replace(/^https?:\/\//, "")
-    .replace(/\/.*$/, "");
+    .replace(/\/.*$/, "")
+    .toLowerCase();
 
 const isCryptoKeyMisconfigured = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error || "");
@@ -375,6 +376,151 @@ type DeleteStoreConnectionOptions = {
   purgeData?: boolean;
 };
 
+export async function shopifyStoreExists(shopDomain: string) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  await ensureOrganization(pool, orgId);
+  const normalized = normalizeShopDomain(shopDomain || "");
+  if (!normalized) return false;
+  const res = await pool.query<{ ok: number }>(
+    `
+    SELECT 1 as ok
+    FROM shopify_stores
+    WHERE organization_id = $1 AND shop_domain = $2
+    LIMIT 1
+    `,
+    [orgId, normalized]
+  );
+  return res.rows.length > 0;
+}
+
+export async function deleteStoreConnectionByDomain(shopDomain: string, options: DeleteStoreConnectionOptions = {}) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  await ensureOrganization(pool, orgId);
+  const normalized = normalizeShopDomain(shopDomain || "");
+  if (!normalized) {
+    throw new Error("Dominio Shopify requerido");
+  }
+  const store = await pool.query<{ id: number }>(
+    `
+    SELECT id
+    FROM shopify_stores
+    WHERE organization_id = $1 AND shop_domain = $2
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId, normalized]
+  );
+  const storeId = store.rows[0]?.id;
+  if (!storeId) {
+    return { deleted: false as const };
+  }
+  await deleteStoreConnection(storeId, options);
+  return { deleted: true as const, storeId };
+}
+
+async function purgeMarketingStoreData(pool: ReturnType<typeof getPool>, orgId: number, shopDomain: string) {
+  await pool.query(
+    `
+    DELETE FROM marketing.alerts
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM marketing.alert_rules
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM marketing.order_items
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM marketing.attribution_events
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM marketing.daily_metrics
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM marketing.campaign_spend
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM marketing.campaigns
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM marketing.traffic_sources
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM marketing.orders
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM marketing.products
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM marketing.customers
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM marketing.webhook_receipts
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM marketing.sync_state
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+  await pool.query(
+    `
+    DELETE FROM marketing.shops
+    WHERE organization_id = $1 AND shop_domain = $2
+    `,
+    [orgId, shopDomain]
+  );
+}
+
 async function purgeStoreData(pool: ReturnType<typeof getPool>, orgId: number, shopDomain: string) {
   await pool.query(
     `
@@ -441,6 +587,9 @@ export async function deleteStoreConnection(storeId: number, options: DeleteStor
 
   await pool.query("BEGIN");
   try {
+    // Always purge marketing rows for this shop (prevents stale dashboards and webhook noise).
+    await purgeMarketingStoreData(pool, orgId, shopDomain);
+
     if (options.purgeData) {
       await purgeStoreData(pool, orgId, shopDomain);
     } else {

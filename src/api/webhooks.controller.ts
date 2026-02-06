@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { createSyncLog } from "../services/logs.service";
+import { shopifyStoreExists } from "../services/store-connections.service";
 import { verifyAlegraSignature, verifyShopifyHmac } from "../utils/webhook";
 import { enqueueWebhookEvent } from "../services/sync.service";
 
@@ -8,6 +9,11 @@ export async function handleShopifyWebhook(req: Request, res: Response) {
   const topic = req.header("X-Shopify-Topic") || "unknown";
   const shopDomain = req.header("X-Shopify-Shop-Domain") || "";
   const webhookId = req.header("X-Shopify-Webhook-Id") || "";
+
+  // Ignore webhooks from stores that are not connected (prevents log noise after removing a shop).
+  if (shopDomain && !(await shopifyStoreExists(shopDomain))) {
+    return res.status(410).json({ status: "gone" });
+  }
 
   if (!verifyShopifyHmac(req.rawBody as Buffer, signature || "")) {
     await safeCreateWebhookLog({
@@ -49,6 +55,10 @@ export async function handleAlegraWebhook(req: Request, res: Response) {
     rawBody?.subject ||
     req.header("X-Alegra-Event") ||
     "unknown";
+
+  if (shopDomain && !(await shopifyStoreExists(shopDomain))) {
+    return res.status(410).json({ status: "gone" });
+  }
 
   if (!verifyAlegraSignature(req.rawBody as Buffer, signature || "")) {
     await safeCreateWebhookLog({

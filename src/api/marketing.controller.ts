@@ -45,13 +45,13 @@ export async function marketingSyncOrdersHandler(req: Request, res: Response) {
 export async function marketingRecomputeMetricsHandler(req: Request, res: Response) {
   const schema = z.object({
     shopDomain: z.string().min(3),
-    from: DateKey.optional(),
-    to: DateKey.optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
   });
   try {
     const body = schema.parse(req.body || {});
-    const to = body.to || todayKeyUtc();
-    const from = body.from || addDaysUtc(to, -30);
+    const to = body.to && DateKey.safeParse(body.to).success ? body.to : todayKeyUtc();
+    const from = body.from && DateKey.safeParse(body.from).success ? body.from : addDaysUtc(to, -30);
     const result = await recomputeDailyMarketingMetrics({
       shopDomain: body.shopDomain,
       from,

@@ -6,7 +6,8 @@ const normalizeShopDomain = (value: string) =>
   value
     .trim()
     .replace(/^https?:\/\//, "")
-    .replace(/\/.*$/, "");
+    .replace(/\/.*$/, "")
+    .toLowerCase();
 
 export async function createOAuthState(
   shopDomain: string,
