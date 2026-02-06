@@ -3109,15 +3109,23 @@ textarea::placeholder {
 }
 
 #products-sync-grid {
-  grid-template-columns: repeat(auto-fill, minmax(190px, 250px));
+  grid-template-columns:
+    minmax(160px, 220px)
+    minmax(160px, 220px)
+    minmax(120px, 160px)
+    minmax(200px, 220px);
 }
 
-@media (min-width: 980px) {
+#cfg-warehouse-sync-field {
+  justify-self: end;
+}
+
+@media (max-width: 720px) {
   #products-sync-grid {
-    grid-template-columns: 220px 220px 160px 240px;
+    grid-template-columns: 1fr;
   }
   #cfg-warehouse-sync-field {
-    justify-self: end;
+    justify-self: stretch;
   }
 }
 
