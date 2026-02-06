@@ -7660,7 +7660,7 @@ async function loadBillingTopbar() {
     const planLabel = String(data.planType || data.planKey || "").trim();
     if (billingMonthUsage) billingMonthUsage.textContent = `Consumo: ${usageCount}`;
     if (billingMonthTotal) billingMonthTotal.textContent = `Cobro: ${formatCurrencyValue(billedTotal)}`;
-    if (billingPlanPill) billingPlanPill.textContent = `Plan: ${planLabel || "--"}`;
+    if (billingPlanPill) billingPlanPill.textContent = planLabel || "--";
     setBillingTopbarVisible(true);
   } catch {
     setBillingTopbarVisible(false);
