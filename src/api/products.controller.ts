@@ -1841,9 +1841,9 @@ export async function syncProductsHandler(req: Request, res: Response) {
         queueItems.forEach((entry) => {
           const id = String(entry.item?.id || "");
           const hydrated = hydratedById.get(id);
-          if (hydrated) {
-            entry.item = hydrated;
-          }
+          if (!hydrated) return;
+          const incomingVariants = Array.isArray(entry.item.itemVariants) ? entry.item.itemVariants : [];
+          entry.item = incomingVariants.length ? mergeItemVariants(hydrated, incomingVariants) : hydrated;
         });
         await upsertAlegraItemsCache(cacheItems);
         await persistProductsFromAlegra(cacheItems, storeDomain || shopDomainInput || "");
