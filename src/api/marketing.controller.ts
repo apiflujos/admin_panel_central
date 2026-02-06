@@ -15,6 +15,15 @@ const normalizeShopDomain = (value: unknown) =>
 
 const DateKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
+function todayKeyUtc() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addDaysUtc(dateKey: string, days: number) {
+  const base = new Date(`${dateKey}T00:00:00.000Z`);
+  return new Date(base.getTime() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 export async function marketingSyncOrdersHandler(req: Request, res: Response) {
   const schema = z.object({
     shopDomain: z.string().min(3),
@@ -36,15 +45,17 @@ export async function marketingSyncOrdersHandler(req: Request, res: Response) {
 export async function marketingRecomputeMetricsHandler(req: Request, res: Response) {
   const schema = z.object({
     shopDomain: z.string().min(3),
-    from: DateKey,
-    to: DateKey,
+    from: DateKey.optional(),
+    to: DateKey.optional(),
   });
   try {
     const body = schema.parse(req.body || {});
+    const to = body.to || todayKeyUtc();
+    const from = body.from || addDaysUtc(to, -30);
     const result = await recomputeDailyMarketingMetrics({
       shopDomain: body.shopDomain,
-      from: body.from,
-      to: body.to,
+      from,
+      to,
     });
     res.status(200).json(result);
   } catch (error) {
@@ -55,8 +66,11 @@ export async function marketingRecomputeMetricsHandler(req: Request, res: Respon
 export async function marketingDashboardHandler(req: Request, res: Response) {
   try {
     const shopDomain = normalizeShopDomain(req.query.shopDomain);
-    const from = String(req.query.from || "");
-    const to = String(req.query.to || "");
+    const to = typeof req.query.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.to) ? req.query.to : todayKeyUtc();
+    const from =
+      typeof req.query.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.from)
+        ? req.query.from
+        : addDaysUtc(to, -30);
     if (!shopDomain) {
       res.status(400).json({ error: "shopDomain requerido" });
       return;
@@ -71,8 +85,11 @@ export async function marketingDashboardHandler(req: Request, res: Response) {
 export async function marketingInsightsHandler(req: Request, res: Response) {
   try {
     const shopDomain = normalizeShopDomain(req.query.shopDomain);
-    const from = String(req.query.from || "");
-    const to = String(req.query.to || "");
+    const to = typeof req.query.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.to) ? req.query.to : todayKeyUtc();
+    const from =
+      typeof req.query.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.from)
+        ? req.query.from
+        : addDaysUtc(to, -30);
     if (!shopDomain) {
       res.status(400).json({ error: "shopDomain requerido" });
       return;

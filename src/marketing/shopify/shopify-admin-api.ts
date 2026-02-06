@@ -127,9 +127,6 @@ export class ShopifyAdminApi {
             displayFinancialStatus?: string | null;
             sourceName?: string | null;
             tags: string[];
-            discountCode?: string | null;
-            // Note: Shopify GraphQL versions differ: some return [String], others a String.
-            discountCodes?: Array<string> | string | null;
             registeredSourceUrl?: string | null;
             customerJourneySummary?: {
               ready: boolean;
@@ -188,8 +185,6 @@ export class ShopifyAdminApi {
               displayFinancialStatus
               sourceName
               tags
-              discountCode
-              discountCodes
               registeredSourceUrl
               customerJourneySummary {
                 ready
@@ -206,6 +201,73 @@ export class ShopifyAdminApi {
                   utmParameters { source medium campaign content term }
                 }
               }
+              totalPriceSet { shopMoney { amount currencyCode } }
+              customer { id email }
+              lineItems(first: 50) {
+                edges {
+                  node {
+                    product { id title }
+                    title
+                    quantity
+                    originalUnitPriceSet { shopMoney { amount } }
+                    discountedUnitPriceSet { shopMoney { amount } }
+                  }
+                }
+              }
+            }
+          }
+          pageInfo { hasNextPage endCursor }
+        }
+      }
+      `,
+      { query: input.query, cursor: input.cursor }
+    );
+    return data.orders;
+  }
+
+  // Minimal query fallback for stores where some fields are not available.
+  async gqlOrdersPagedMinimal(input: { query: string; cursor: string | null }) {
+    const data = await this.requestGraphql<{
+      orders: {
+        edges: Array<{
+          cursor: string;
+          node: {
+            id: string;
+            createdAt: string;
+            processedAt?: string | null;
+            displayFinancialStatus?: string | null;
+            sourceName?: string | null;
+            tags: string[];
+            totalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
+            customer?: { id: string; email?: string | null } | null;
+            lineItems: {
+              edges: Array<{
+                node: {
+                  quantity: number;
+                  title: string;
+                  product?: { id: string; title: string } | null;
+                  discountedUnitPriceSet?: { shopMoney: { amount: string } } | null;
+                  originalUnitPriceSet?: { shopMoney: { amount: string } } | null;
+                };
+              }>;
+            };
+          };
+        }>;
+        pageInfo: { hasNextPage: boolean; endCursor?: string | null };
+      };
+    }>(
+      `
+      query MarketingOrdersMinimal($query: String!, $cursor: String) {
+        orders(first: 250, after: $cursor, query: $query) {
+          edges {
+            cursor
+            node {
+              id
+              createdAt
+              processedAt
+              displayFinancialStatus
+              sourceName
+              tags
               totalPriceSet { shopMoney { amount currencyCode } }
               customer { id email }
               lineItems(first: 50) {

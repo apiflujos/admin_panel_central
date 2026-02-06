@@ -36,9 +36,17 @@ export async function syncMarketingOrders(shopDomain: string, options: SyncOptio
   let latestDate = since;
   const seenTraffic = new Set<string>();
   const seenCampaigns = new Set<string>();
+  let usedMinimal = false;
 
   while (hasNext && processed < maxOrders) {
-    const page = await client.gqlOrdersPaged({ query, cursor });
+    let page: Awaited<ReturnType<typeof client.gqlOrdersPaged>>;
+    try {
+      page = await client.gqlOrdersPaged({ query, cursor });
+    } catch (error) {
+      // Fallback: some Shopify stores / API versions may not support journey/source fields.
+      usedMinimal = true;
+      page = (await client.gqlOrdersPagedMinimal({ query, cursor })) as any;
+    }
     for (const edge of page.edges || []) {
       const node = edge.node;
       const orderGid = String(node.id || "");
@@ -97,12 +105,6 @@ export async function syncMarketingOrders(shopDomain: string, options: SyncOptio
           );
         }
       }
-      const discountCodes = (() => {
-        const value: unknown = (node as any)?.discountCodes ?? (node as any)?.discountCode ?? null;
-        if (Array.isArray(value)) return value.map((v) => String(v || "")).filter(Boolean);
-        if (typeof value === "string") return value ? [value] : [];
-        return [];
-      })();
       const tags = Array.isArray(node.tags) ? node.tags.map((t) => String(t || "")).filter(Boolean) : [];
 
       await pool.query(
@@ -143,7 +145,7 @@ export async function syncMarketingOrders(shopDomain: string, options: SyncOptio
           currency,
           customerGid,
           email,
-          discountCodes.length ? discountCodes : null,
+          null,
           tags.length ? tags : null,
           landingSite || null,
           referrer || null,
@@ -192,5 +194,5 @@ export async function syncMarketingOrders(shopDomain: string, options: SyncOptio
   }
 
   await setSyncCursor(domain, "orders_since", latestDate);
-  return { shopDomain: domain, since, processed, latestDate, maxOrders };
+  return { shopDomain: domain, since, processed, latestDate, maxOrders, usedMinimal };
 }
