@@ -56,6 +56,8 @@ export async function loginHandler(req: Request, res: Response) {
   const email = String(req.body?.email || "").trim();
   const password = String(req.body?.password || "");
   const remember = Boolean(req.body?.remember);
+  const normalizedEmail = email.trim().toLowerCase();
+  const isSuperAdminAttempt = normalizedEmail === getSuperAdminEmail();
   try {
     const result = await authenticateUser(email, password, remember);
     if (!result) {
@@ -88,13 +90,22 @@ export async function loginHandler(req: Request, res: Response) {
     const lower = rawMessage.toLowerCase();
     const code =
       lower.includes("database_url is required") || lower.includes("database_url") ? "AUTH_DB_MISSING" : //
+      lower.includes("permission denied") ? "AUTH_DB_PERMS" : //
+      lower.includes("connect econnrefused") || lower.includes("econnrefused") ? "AUTH_DB_REFUSED" : //
+      lower.includes("getaddrinfo enotfound") || lower.includes("enotfound") ? "AUTH_DB_DNS" : //
       lower.includes("password authentication failed") ? "AUTH_DB_AUTH" : //
       lower.includes("no pg_hba.conf entry") ? "AUTH_DB_HBA" : //
       lower.includes("self signed certificate") || lower.includes("certificate") ? "AUTH_DB_SSL" : //
       lower.includes("does not exist") && (lower.includes("relation") || lower.includes("column")) ? "AUTH_DB_SCHEMA" : //
       "AUTH_LOGIN_FAILED";
 
-    const message = process.env.NODE_ENV === "production" ? `No se pudo iniciar sesion. (${code})` : rawMessage || code;
+    const isProd = process.env.NODE_ENV === "production";
+    const message =
+      isProd && !isSuperAdminAttempt
+        ? `No se pudo iniciar sesion. (${code})`
+        : rawMessage
+          ? rawMessage
+          : `No se pudo iniciar sesion. (${code})`;
     res.status(500).send(message);
   }
 }

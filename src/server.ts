@@ -68,7 +68,27 @@ app.get("/health/db", async (_req, res) => {
   try {
     const pool = getPool();
     await pool.query("SELECT 1 as ok");
-    res.status(200).json({ status: "ok" });
+    const info = await pool.query<{
+      organizations: string | null;
+      users: string | null;
+      user_sessions: string | null;
+    }>(
+      `
+      SELECT
+        to_regclass('public.organizations') as organizations,
+        to_regclass('public.users') as users,
+        to_regclass('public.user_sessions') as user_sessions
+      `
+    );
+    const row = info.rows[0] || { organizations: null, users: null, user_sessions: null };
+    res.status(200).json({
+      status: "ok",
+      tables: {
+        organizations: Boolean(row.organizations),
+        users: Boolean(row.users),
+        user_sessions: Boolean(row.user_sessions),
+      },
+    });
   } catch (error) {
     console.error("[health] db check failed:", error);
     const message = error instanceof Error ? error.message : "unknown_error";
