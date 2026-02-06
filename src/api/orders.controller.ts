@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { listOrders, upsertOrder } from "../services/orders.service";
 import { listOrderInvoiceOverrides, validateEinvoiceData } from "../services/order-invoice-overrides.service";
 import { ensureInvoiceSettingsColumns, getOrgId, getPool } from "../db";
+import { consumeLimitOrBlock } from "../sa/consume";
 import { getAlegraCredential, getShopifyCredential } from "../services/settings.service";
 import { AlegraClient } from "../connectors/alegra";
 import { ShopifyClient, ShopifyOrder } from "../connectors/shopify";
@@ -290,6 +291,21 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
         if (invoices.length < batchLimit) break;
       }
       results.alegra = { processed, pages };
+    }
+
+    try {
+      const amount =
+        Number((results.shopify as any)?.processed || 0) + Number((results.alegra as any)?.processed || 0);
+      if (amount > 0) {
+        await consumeLimitOrBlock("orders", {
+          tenant_id: getOrgId(),
+          amount,
+          source: "backfill/orders",
+          meta: { source, dateStart: dateStart || null, dateEnd: dateEnd || null, days: days || null, limit },
+        });
+      }
+    } catch {
+      // ignore billing failures
     }
 
     if (stream) {

@@ -1,5 +1,7 @@
 import type { Request, Response } from "express";
 import { createSyncLog } from "../services/logs.service";
+import { getOrgId } from "../db";
+import { consumeLimitOrBlock } from "../sa/consume";
 import {
   syncAlegraInvoicesToShopifyOrders,
   type InvoiceToShopifyMode,
@@ -63,6 +65,21 @@ export async function syncInvoicesToShopifyHandler(req: Request, res: Response) 
         }
       },
     });
+
+    try {
+      const orgId = getOrgId();
+      const amount = Number(result.processed || 0) || 0;
+      if (amount > 0) {
+        await consumeLimitOrBlock("invoices", {
+          tenant_id: orgId,
+          amount,
+          source: "sync/invoices",
+          meta: { shopDomain: shopDomain || null, mode, filters },
+        });
+      }
+    } catch {
+      // ignore billing failures
+    }
 
     if (stream) {
       streamOpen = false;
