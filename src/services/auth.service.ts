@@ -202,18 +202,34 @@ async function ensureSuperAdmin(pool: ReturnType<typeof getPool>) {
   const orgId = 1;
   await ensureOrganization(pool, orgId);
 
-  const existing = await pool.query<{ id: number }>(
+  const existing = await pool.query<{ id: number; is_super_admin: boolean }>(
     `
-    SELECT id
+    SELECT id, is_super_admin
     FROM users
-    WHERE is_super_admin = true AND lower(email) = lower($1)
+    WHERE organization_id = $1 AND lower(email) = lower($2)
     LIMIT 1
     `,
-    [email]
+    [orgId, email]
   );
-  if (existing.rows.length) return;
-
   const passwordHash = hashPassword(password);
+  if (existing.rows.length) {
+    const row = existing.rows[0];
+    if (row && row.id) {
+      await pool.query(
+        `
+        UPDATE users
+        SET password_hash = $1,
+            role = 'super_admin',
+            is_super_admin = true,
+            name = COALESCE(NULLIF(name,''), 'Super Admin')
+        WHERE id = $2
+        `,
+        [passwordHash, row.id]
+      );
+      return;
+    }
+  }
+
   await pool.query(
     `
     INSERT INTO users (organization_id, email, password_hash, role, is_super_admin, name)

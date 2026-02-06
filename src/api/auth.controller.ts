@@ -7,6 +7,7 @@ import {
   getSessionUser,
   updatePassword,
 } from "../services/auth.service";
+import { getSuperAdminEmail } from "../sa/sa.bootstrap";
 
 function getCookie(req: Request, name: string) {
   const header = req.headers.cookie || "";
@@ -138,7 +139,7 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
 
 export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
   const user = (req as { user?: { role?: string; email?: string; is_super_admin?: boolean } }).user as any;
-  const requiredEmail = String(process.env.SUPER_ADMIN_EMAIL || "comercial@apiflujos.com").trim().toLowerCase();
+  const requiredEmail = getSuperAdminEmail();
   const email = String(user?.email || "").trim().toLowerCase();
   const ok = Boolean(user) && user.role === "super_admin" && Boolean(user.is_super_admin) && email === requiredEmail;
   if (!ok) {
@@ -160,7 +161,7 @@ export async function createAuthTokenHandler(req: Request, res: Response) {
     res.status(401).json({ error: "unauthorized" });
     return;
   }
-  if (user.role !== "admin") {
+  if (user.role !== "admin" && user.role !== "super_admin") {
     res.status(403).json({ error: "forbidden" });
     return;
   }
