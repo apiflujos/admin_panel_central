@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
-    <link rel="stylesheet" href="styles.css?v=20260206p08" />
+    <link rel="stylesheet" href="styles.css?v=20260206p09" />
   </head>
   <body>
     <div class="app-shell">
@@ -25,6 +25,15 @@
               </svg>
             </span>
             <span class="nav-label">Metricas</span>
+          </button>
+          <button class="nav-item" data-target="marketing" title="Marketing">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M3 11l18-5-5 18-3-8-8-3z" />
+                <path d="M13 16l4-4" />
+              </svg>
+            </span>
+            <span class="nav-label">Marketing</span>
           </button>
 	          <button class="nav-item" data-target="operations" data-ops-view="orders" title="Pedidos">
 	            <span class="nav-icon" aria-hidden="true">
@@ -361,6 +370,159 @@
               </div>
             </div>
             <p class="field-hint" id="profile-message"></p>
+          </div>
+        </section>
+
+        <section class="section" id="marketing">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Marketing &amp; Analytics</h3>
+              <span class="panel-tag">Shopify</span>
+            </div>
+            <div class="toolbar products-toolbar">
+              <div class="toolbar-store">
+                <label for="marketing-store-select">Tienda</label>
+                <select id="marketing-store-select"></select>
+              </div>
+              <input type="date" id="marketing-from" aria-label="Fecha inicio" />
+              <input type="date" id="marketing-to" aria-label="Fecha fin" />
+              <button class="primary" id="marketing-refresh" type="button">Cargar dashboard</button>
+              <button class="ghost" id="marketing-sync" type="button" title="Backfill de pedidos desde Shopify">Sincronizar pedidos</button>
+              <button class="ghost" id="marketing-recompute" type="button" title="Recalcular métricas diarias">Recalcular métricas</button>
+            </div>
+            <p class="field-hint" id="marketing-status">Sin datos</p>
+
+            <div class="kpi-grid metrics-kpi-grid">
+              <div class="kpi-card">
+                <p>Revenue</p>
+                <span class="kpi-source">Fuente: Shopify</span>
+                <h2 id="mk-kpi-revenue">--</h2>
+                <span class="kpi-sub">Rango seleccionado</span>
+              </div>
+              <div class="kpi-card">
+                <p>Spend</p>
+                <span class="kpi-source">Fuente: Campaign spend</span>
+                <h2 id="mk-kpi-spend">--</h2>
+                <span class="kpi-sub">Importado / cargado</span>
+              </div>
+              <div class="kpi-card">
+                <p>ROAS</p>
+                <span class="kpi-source">Revenue / Spend</span>
+                <h2 id="mk-kpi-roas">--</h2>
+                <span class="kpi-sub">Por rango</span>
+              </div>
+              <div class="kpi-card">
+                <p>AOV</p>
+                <span class="kpi-source">Revenue / Paid orders</span>
+                <h2 id="mk-kpi-aov">--</h2>
+                <span class="kpi-sub">Ticket promedio</span>
+              </div>
+            </div>
+
+            <div class="metrics-victories">
+              <div class="panel">
+                <div class="panel-header">
+                  <h3>Funnel (Sessions → Cart → Checkout → Paid)</h3>
+                  <div class="panel-meta">
+                    <span class="panel-source">Pixel + Webhooks</span>
+                    <span class="panel-tag">Conversión</span>
+                  </div>
+                </div>
+                <div class="table-card">
+                  <table class="table" id="mk-funnel-table">
+                    <thead>
+                      <tr>
+                        <th>Sessions</th>
+                        <th>Add to cart</th>
+                        <th>Checkout</th>
+                        <th>Paid</th>
+                        <th>Session→Cart</th>
+                        <th>Cart→Checkout</th>
+                        <th>Checkout→Paid</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colspan="7" class="empty">Sin datos</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
+                  <h3>Revenue diario</h3>
+                  <div class="panel-meta">
+                    <span class="panel-source">marketing.daily_metrics</span>
+                    <span class="panel-tag">Serie</span>
+                  </div>
+                </div>
+                <div class="chart-placeholder" id="mk-revenue-series"></div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
+                  <h3>Revenue por canal</h3>
+                  <div class="panel-meta">
+                    <span class="panel-source">UTM + referrer</span>
+                    <span class="panel-tag">Top</span>
+                  </div>
+                </div>
+                <div class="chart-placeholder" id="mk-by-channel"></div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
+                  <h3>Top productos</h3>
+                  <div class="panel-meta">
+                    <span class="panel-source">Pedidos pagados</span>
+                    <span class="panel-tag">Revenue</span>
+                  </div>
+                </div>
+                <div class="chart-placeholder" id="mk-top-products"></div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
+                  <h3>Top campañas (UTM)</h3>
+                  <div class="panel-meta">
+                    <span class="panel-source">UTM Campaign</span>
+                    <span class="panel-tag">ROAS</span>
+                  </div>
+                </div>
+                <div class="table-card">
+                  <table class="table" id="mk-top-campaigns">
+                    <thead>
+                      <tr>
+                        <th>Campaña</th>
+                        <th>Revenue</th>
+                        <th>Paid</th>
+                        <th>ROAS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colspan="4" class="empty">Sin datos</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-header">
+                  <h3>Recomendaciones</h3>
+                  <div class="panel-meta">
+                    <span class="panel-source">Analista automático</span>
+                    <span class="panel-tag">Acciones</span>
+                  </div>
+                </div>
+                <div class="table-card">
+                  <div class="empty" id="mk-insights">Sin datos</div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -1881,6 +2043,6 @@
       </div>
     </div>
 
-	    <script src="app.js?v=20260206p07" type="module"></script>
+	    <script src="app.js?v=20260206p09" type="module"></script>
 	  </body>
 	</html>

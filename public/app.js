@@ -138,6 +138,24 @@ const metricsInsights = document.getElementById("metrics-insights");
 const metricsReport = document.getElementById("metrics-report");
 const metricsReportDownload = document.getElementById("metrics-report-download");
 const weeklyGrowthLabel = document.getElementById("chart-weekly-label");
+
+const marketingStoreSelect = document.getElementById("marketing-store-select");
+const marketingFrom = document.getElementById("marketing-from");
+const marketingTo = document.getElementById("marketing-to");
+const marketingRefresh = document.getElementById("marketing-refresh");
+const marketingSync = document.getElementById("marketing-sync");
+const marketingRecompute = document.getElementById("marketing-recompute");
+const marketingStatus = document.getElementById("marketing-status");
+const mkKpiRevenue = document.getElementById("mk-kpi-revenue");
+const mkKpiSpend = document.getElementById("mk-kpi-spend");
+const mkKpiRoas = document.getElementById("mk-kpi-roas");
+const mkKpiAov = document.getElementById("mk-kpi-aov");
+const mkFunnelBody = document.querySelector("#mk-funnel-table tbody");
+const mkRevenueSeries = document.getElementById("mk-revenue-series");
+const mkByChannel = document.getElementById("mk-by-channel");
+const mkTopProducts = document.getElementById("mk-top-products");
+const mkTopCampaignsBody = document.querySelector("#mk-top-campaigns tbody");
+const mkInsights = document.getElementById("mk-insights");
 const chartAlegra = document.getElementById("chart-alegra");
 const alegraGrowthLabel = document.getElementById("chart-alegra-label");
 const assistantMessages = document.getElementById("assistant-messages");
@@ -646,6 +664,9 @@ function showSection(target) {
   });
   if (target === "operations") {
     loadOperationsView().catch(() => null);
+  }
+  if (target === "marketing") {
+    loadMarketing().catch(() => null);
   }
   if (target === "products") {
     ensureProductsLoaded();
@@ -4835,7 +4856,7 @@ function renderStoreActiveSelect(stores, options = {}) {
 }
 
 function renderStoreContextSelects(stores) {
-  const selects = [ordersStoreSelect, productsStoreSelect, contactsStoreSelect].filter(Boolean);
+  const selects = [ordersStoreSelect, productsStoreSelect, contactsStoreSelect, marketingStoreSelect].filter(Boolean);
   if (!selects.length) return;
   const list = Array.isArray(stores) ? stores : [];
   const options = list
@@ -7555,6 +7576,198 @@ function ensureProductsLoaded() {
   loadProducts();
 }
 
+let marketingLoading = false;
+
+function setMarketingStatus(message, className) {
+  if (!(marketingStatus instanceof HTMLElement)) return;
+  marketingStatus.textContent = message || "Sin datos";
+  marketingStatus.classList.remove("is-ok", "is-warn", "is-error");
+  if (className) marketingStatus.classList.add(className);
+}
+
+function ensureMarketingDefaults() {
+  const fromEl = marketingFrom instanceof HTMLInputElement ? marketingFrom : null;
+  const toEl = marketingTo instanceof HTMLInputElement ? marketingTo : null;
+  if (!fromEl || !toEl) return;
+  if (fromEl.value && toEl.value) return;
+  const today = new Date();
+  const to = today.toISOString().slice(0, 10);
+  const from = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  if (!toEl.value) toEl.value = to;
+  if (!fromEl.value) fromEl.value = from;
+}
+
+function getMarketingQuery() {
+  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+  const from = marketingFrom instanceof HTMLInputElement ? String(marketingFrom.value || "") : "";
+  const to = marketingTo instanceof HTMLInputElement ? String(marketingTo.value || "") : "";
+  return { shopDomain, from, to };
+}
+
+function pct(value) {
+  if (value === null || value === undefined) return null;
+  const num = Number(value);
+  if (!Number.isFinite(num)) return null;
+  return Math.round(num * 1000) / 10; // 1 decimal
+}
+
+function renderMarketingDashboard(data) {
+  const kpis = data?.kpis || {};
+  if (mkKpiRevenue) mkKpiRevenue.textContent = formatCurrencyValue(Number(kpis.revenue || 0));
+  if (mkKpiSpend) mkKpiSpend.textContent = formatCurrencyValue(Number(kpis.spend || 0));
+  if (mkKpiRoas) {
+    mkKpiRoas.textContent = kpis.roas === null || kpis.roas === undefined ? "--" : String(Math.round(Number(kpis.roas || 0) * 10) / 10);
+  }
+  if (mkKpiAov) {
+    mkKpiAov.textContent = kpis.aov === null || kpis.aov === undefined ? "--" : formatCurrencyValue(Number(kpis.aov || 0));
+  }
+
+  const funnel = kpis?.funnel || {};
+  if (mkFunnelBody) {
+    const sessions = Number(funnel.sessions || 0);
+    const addToCart = Number(funnel.addToCart || 0);
+    const checkouts = Number(funnel.checkouts || 0);
+    const paidOrders = Number(funnel.paidOrders || 0);
+    const s2c = pct(funnel.convSessionToCart);
+    const c2co = pct(funnel.convCartToCheckout);
+    const co2p = pct(funnel.convCheckoutToPaid);
+    mkFunnelBody.innerHTML = `
+      <tr>
+        <td>${sessions}</td>
+        <td>${addToCart}</td>
+        <td>${checkouts}</td>
+        <td>${paidOrders}</td>
+        <td>${s2c === null ? "--" : `${s2c}%`}</td>
+        <td>${c2co === null ? "--" : `${c2co}%`}</td>
+        <td>${co2p === null ? "--" : `${co2p}%`}</td>
+      </tr>
+    `;
+  }
+
+  const series = Array.isArray(data?.series) ? data.series : [];
+  renderLineChart(
+    mkRevenueSeries,
+    series.map((point) => ({ date: point.date, amount: Number(point.revenue || 0) }))
+  );
+
+  const byChannel = Array.isArray(data?.byChannel) ? data.byChannel : [];
+  renderBarChart(mkByChannel, byChannel, {
+    labelKey: "channel",
+    valueKey: "revenue",
+    valueFormatter: (value) => formatCurrencyValue(Number(value || 0)),
+  });
+
+  const topProducts = Array.isArray(data?.topProducts) ? data.topProducts : [];
+  renderBarChart(mkTopProducts, topProducts, {
+    labelKey: "name",
+    valueKey: "amount",
+    valueFormatter: (value) => formatCurrencyValue(Number(value || 0)),
+  });
+
+  if (mkTopCampaignsBody) {
+    const campaigns = Array.isArray(data?.topCampaigns) ? data.topCampaigns : [];
+    if (!campaigns.length) {
+      mkTopCampaignsBody.innerHTML = `<tr><td colspan="4" class="empty">Sin datos</td></tr>`;
+    } else {
+      mkTopCampaignsBody.innerHTML = campaigns
+        .slice(0, 25)
+        .map((row) => {
+          const roas = row.roas === null || row.roas === undefined ? null : Number(row.roas);
+          return `
+            <tr>
+              <td>${escapeHtml(row.utmCampaign || "-")}</td>
+              <td>${formatCurrencyValue(Number(row.revenue || 0))}</td>
+              <td>${Number(row.paidOrders || 0)}</td>
+              <td>${roas === null || !Number.isFinite(roas) ? "--" : (Math.round(roas * 10) / 10).toFixed(1)}</td>
+            </tr>
+          `;
+        })
+        .join("");
+    }
+  }
+}
+
+function renderMarketingInsights(payload) {
+  if (!(mkInsights instanceof HTMLElement)) return;
+  const list = Array.isArray(payload?.insights) ? payload.insights : [];
+  if (!list.length) {
+    mkInsights.textContent = "Sin datos";
+    mkInsights.classList.add("empty");
+    return;
+  }
+  mkInsights.classList.remove("empty");
+  mkInsights.innerHTML = `
+    <div class="insights-list">
+      ${list
+        .slice(0, 12)
+        .map((insight) => {
+          const title = escapeHtml(insight.title || "Insight");
+          const rationale = escapeHtml(insight.rationale || "");
+          const actions = Array.isArray(insight.actions) ? insight.actions : [];
+          return `
+            <div class="insight-item">
+              <div class="insight-head">
+                <strong>${title}</strong>
+                <span class="panel-tag">${escapeHtml(insight.severity || "info")}</span>
+              </div>
+              ${rationale ? `<div class="field-hint">${rationale}</div>` : ""}
+              ${
+                actions.length
+                  ? `<ul class="insight-actions">${actions
+                      .slice(0, 5)
+                      .map((a) => `<li>${escapeHtml(a)}</li>`)
+                      .join("")}</ul>`
+                  : ""
+              }
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
+async function loadMarketing() {
+  if (marketingLoading) return;
+  marketingLoading = true;
+  try {
+    ensureMarketingDefaults();
+    const { shopDomain, from, to } = getMarketingQuery();
+    if (!shopDomain) {
+      setMarketingStatus("Selecciona una tienda en Configuracion → Tiendas.", "is-warn");
+      return;
+    }
+    if (!from || !to) {
+      setMarketingStatus("Selecciona un rango de fechas válido.", "is-warn");
+      return;
+    }
+
+    setMarketingStatus("Cargando dashboard de marketing...", "");
+    const params = new URLSearchParams();
+    params.set("shopDomain", shopDomain);
+    params.set("from", from);
+    params.set("to", to);
+    params.set("t", String(Date.now()));
+
+    const data = await fetchJson(`/api/marketing/dashboard?${params.toString()}`);
+    renderMarketingDashboard(data);
+    setMarketingStatus("OK", "is-ok");
+
+    try {
+      const insights = await fetchJson(`/api/marketing/insights?${params.toString()}`);
+      renderMarketingInsights(insights);
+    } catch {
+      renderMarketingInsights({ insights: [] });
+    }
+  } catch (error) {
+    setMarketingStatus(error?.message || "No se pudo cargar marketing.", "is-error");
+    renderMarketingDashboard({});
+    renderMarketingInsights({ insights: [] });
+  } finally {
+    marketingLoading = false;
+  }
+}
+
 async function loadMetrics() {
   try {
     const range = metricsRange ? String(metricsRange.value || "month") : "month";
@@ -9717,6 +9930,59 @@ if (metricsReportDownload) {
     }
   });
 }
+if (marketingRefresh) {
+  marketingRefresh.addEventListener("click", () => {
+    loadMarketing().catch(() => null);
+  });
+}
+if (marketingSync) {
+  marketingSync.addEventListener("click", async () => {
+    try {
+      ensureMarketingDefaults();
+      const { shopDomain, from } = getMarketingQuery();
+      if (!shopDomain) {
+        showToast("Selecciona una tienda primero.", "is-warn");
+        return;
+      }
+      setButtonLoading(marketingSync, true, "Sincronizando...");
+      await fetchJson("/api/marketing/sync/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopDomain, sinceDate: from, maxOrders: 1500 }),
+      });
+      showToast("Sync de marketing completado.", "is-ok");
+      loadMarketing().catch(() => null);
+    } catch (error) {
+      showToast(error?.message || "No se pudo sincronizar marketing.", "is-error");
+    } finally {
+      setButtonLoading(marketingSync, false);
+    }
+  });
+}
+if (marketingRecompute) {
+  marketingRecompute.addEventListener("click", async () => {
+    try {
+      ensureMarketingDefaults();
+      const { shopDomain, from, to } = getMarketingQuery();
+      if (!shopDomain) {
+        showToast("Selecciona una tienda primero.", "is-warn");
+        return;
+      }
+      setButtonLoading(marketingRecompute, true, "Recalculando...");
+      await fetchJson("/api/marketing/metrics/recompute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopDomain, from, to }),
+      });
+      showToast("Métricas recomputadas.", "is-ok");
+      loadMarketing().catch(() => null);
+    } catch (error) {
+      showToast(error?.message || "No se pudieron recomputar las métricas.", "is-error");
+    } finally {
+      setButtonLoading(marketingRecompute, false);
+    }
+  });
+}
 if (assistantInput) {
   assistantInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.ctrlKey) {
@@ -9849,6 +10115,7 @@ if (alegraAccountSelect) {
   bindStoreContextSelect(ordersStoreSelect);
   bindStoreContextSelect(productsStoreSelect);
   bindStoreContextSelect(contactsStoreSelect);
+  bindStoreContextSelect(marketingStoreSelect);
 
 	if (connectShopify) {
 	  connectShopify.addEventListener("click", async () => {

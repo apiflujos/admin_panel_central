@@ -4308,3 +4308,30 @@ textarea::placeholder {
   font-size: 12px !important;
   min-width: 92px !important;
 }
+
+/* Marketing insights */
+.insights-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.insight-item {
+  padding: 12px;
+  border: 1px solid var(--stroke);
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.insight-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.insight-actions {
+  margin: 10px 0 0 18px;
+  color: var(--muted);
+}
