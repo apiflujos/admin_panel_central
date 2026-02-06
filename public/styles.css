@@ -3108,6 +3108,19 @@ textarea::placeholder {
   justify-content: flex-start;
 }
 
+#products-sync-grid {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 250px));
+}
+
+@media (min-width: 980px) {
+  #products-sync-grid {
+    grid-template-columns: 220px 220px 160px 240px;
+  }
+  #cfg-warehouse-sync-field {
+    justify-self: end;
+  }
+}
+
 .mode-toggle-grid {
   margin-top: 10px;
   display: grid;
