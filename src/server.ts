@@ -13,6 +13,7 @@ import { startMarketingJobs } from "./jobs/marketing";
 import { startBillingReportCron } from "./jobs/billing-report";
 import { ensureSaDefaults } from "./sa/sa.bootstrap";
 import { requirePageSuperAdmin } from "./api/page-auth";
+import { getPool } from "./db";
 
 const app = express();
 
@@ -61,6 +62,22 @@ app.use(
 // Endpoint de salud para Render
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
+});
+
+app.get("/health/db", async (_req, res) => {
+  try {
+    const pool = getPool();
+    await pool.query("SELECT 1 as ok");
+    res.status(200).json({ status: "ok" });
+  } catch (error) {
+    console.error("[health] db check failed:", error);
+    const message = error instanceof Error ? error.message : "unknown_error";
+    const safe =
+      process.env.NODE_ENV === "production"
+        ? "db_unavailable"
+        : message;
+    res.status(500).json({ status: "error", error: safe });
+  }
 });
 
 app.get("/auth", startShopifyOAuth);

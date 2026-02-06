@@ -84,12 +84,17 @@ export async function loginHandler(req: Request, res: Response) {
     });
   } catch (error) {
     console.error("[auth] login failed:", error);
-    const message =
-      process.env.NODE_ENV === "production"
-        ? "No se pudo iniciar sesion."
-        : error instanceof Error
-          ? error.message
-          : "No se pudo iniciar sesion.";
+    const rawMessage = error instanceof Error ? error.message : "";
+    const lower = rawMessage.toLowerCase();
+    const code =
+      lower.includes("database_url is required") || lower.includes("database_url") ? "AUTH_DB_MISSING" : //
+      lower.includes("password authentication failed") ? "AUTH_DB_AUTH" : //
+      lower.includes("no pg_hba.conf entry") ? "AUTH_DB_HBA" : //
+      lower.includes("self signed certificate") || lower.includes("certificate") ? "AUTH_DB_SSL" : //
+      lower.includes("does not exist") && (lower.includes("relation") || lower.includes("column")) ? "AUTH_DB_SCHEMA" : //
+      "AUTH_LOGIN_FAILED";
+
+    const message = process.env.NODE_ENV === "production" ? `No se pudo iniciar sesion. (${code})` : rawMessage || code;
     res.status(500).send(message);
   }
 }
