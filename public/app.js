@@ -7044,12 +7044,13 @@ async function runProductsSync(mode) {
           const failed = payload.failed ?? 0;
           const rateLimitRetries = payload.rateLimitRetries ?? 0;
           const publishOnSync = payload.publishOnSync !== false;
+          const updateExisting = payload.updateExisting !== false;
           const publishStatus = payload.publishStatus || "draft";
           const onlyPublished = payload.onlyPublishedInShopify !== false;
           const skippedUnpublished = payload.skippedUnpublished ?? 0;
           const summary =
             total > 0
-              ? `Total: ${total} · Revisados: ${scanned} · Procesados: ${processed} · Actualizados: ${updated} · Publicados: ${published} · Existentes: ${skipped} · No publicados: ${skippedUnpublished} · Reintentos: ${rateLimitRetries} · Fallidos: ${failed} · Padres: ${parents} · Variantes: ${variants} · Publicar: ${publishOnSync ? "Si" : "No"} · Solo publicados: ${onlyPublished ? "Si" : "No"} · Estado: ${publishStatus}`
+              ? `Total: ${total} · Revisados: ${scanned} · Procesados: ${processed} · Actualizados: ${updated} · Publicados: ${published} · Existentes: ${skipped} · No publicados: ${skippedUnpublished} · Reintentos: ${rateLimitRetries} · Fallidos: ${failed} · Padres: ${parents} · Variantes: ${variants} · Publicar: ${publishOnSync ? "Si" : "No"} · Actualizar: ${updateExisting ? "Si" : "No"} · Solo publicados: ${onlyPublished ? "Si" : "No"} · Estado: ${publishStatus}`
               : payload?.message
                 ? payload.message
                 : "Sin productos para sincronizar con esos filtros.";

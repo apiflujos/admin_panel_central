@@ -1419,7 +1419,6 @@ export async function syncProductsHandler(req: Request, res: Response) {
       value.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
     const normalizedShopDomain = shopDomainInput ? normalizeDomain(shopDomainInput) : "";
     const storeDomainInput = normalizedShopDomain;
-    const storeConfigFull = storeDomainInput ? await getStoreConfigForDomain(storeDomainInput) : null;
     const parseBooleanLike = (value: unknown, fallback: boolean) => {
       if (typeof value === "boolean") return value;
       const lowered = String(value ?? "").trim().toLowerCase();
@@ -1428,17 +1427,25 @@ export async function syncProductsHandler(req: Request, res: Response) {
       if (lowered === "0" || lowered === "false" || lowered === "no" || lowered === "off") return false;
       return fallback;
     };
+    let shopifyConfig: ShopifyConfig | null = null;
+    let storeDomain = storeDomainInput;
+    if (publishOnSync) {
+      shopifyConfig = await getShopifyConfig(storeDomainInput || undefined);
+      storeDomain = storeDomainInput || shopifyConfig?.shopDomain || "";
+      if (!storeDomain || !shopifyConfig?.accessToken) {
+        throw new Error("Shopify no conectado. Configura la conexión o indica shopDomain antes de publicar.");
+      }
+    }
+    const storeConfigFull = storeDomain
+      ? await getStoreConfigForDomain(storeDomain)
+      : storeDomainInput
+        ? await getStoreConfigForDomain(storeDomainInput)
+        : null;
     const updateExistingRequested = parseBooleanLike(
       (settings as Record<string, unknown>).updateExisting,
       storeConfigFull?.rules?.updateInShopify !== false
     );
     const updateExisting = Boolean(publishOnSync) && Boolean(updateExistingRequested);
-    const needsShopify = Boolean(publishOnSync);
-    if (needsShopify && !storeDomainInput) {
-      throw new Error("shopDomain requerido para sincronizar con Shopify.");
-    }
-    const shopifyConfig = needsShopify ? await getShopifyConfig(storeDomainInput) : null;
-    const storeDomain = storeDomainInput || shopifyConfig?.shopDomain || "";
     const storeConfig = storeDomain ? await resolveStoreConfig(storeDomain) : await resolveStoreConfig(null);
     const withShopifyRetry = async <T,>(
       fn: () => Promise<T>,
@@ -2027,13 +2034,20 @@ export async function syncProductsHandler(req: Request, res: Response) {
       `Sincronizacion completada: ${scanned} items revisados, ${processed} procesados, ${rateLimitRetries} reintentos por tasa, ${failed} errores.`
     );
     let inventoryAdjustmentsResult: unknown = null;
-    try {
-      inventoryAdjustmentsResult = await syncInventoryAdjustments(new URLSearchParams(), {
-        shopDomain: storeDomain || shopDomainInput || undefined,
-      });
-    } catch (error) {
+    if (publishOnSync && includeInventory) {
+      try {
+        inventoryAdjustmentsResult = await syncInventoryAdjustments(new URLSearchParams(), {
+          shopDomain: storeDomain || shopDomainInput || undefined,
+        });
+      } catch (error) {
+        inventoryAdjustmentsResult = {
+          error: error instanceof Error ? error.message : "Inventory adjustments sync failed",
+        };
+      }
+    } else {
       inventoryAdjustmentsResult = {
-        error: error instanceof Error ? error.message : "Inventory adjustments sync failed",
+        skipped: true,
+        reason: publishOnSync ? "include_inventory_off" : "publish_off",
       };
     }
     if (usesCheckpoint) {

@@ -1290,11 +1290,11 @@
 		                              <input type="checkbox" id="products-sync-only-active" class="toggle" checked />
 		                            </div>
 				                            <div class="mode-toggle">
-				                              <label for="products-sync-publish">Publicar en Shopify <span class="tip" data-tip="ON: crea productos nuevos en Shopify.&#10;OFF: solo guardamos/actualizamos el catálogo en la base de datos (no toca Shopify).&#10;Tip: usa OFF para cargar catálogo y validar antes de publicar.">?</span></label>
+				                              <label for="products-sync-publish">Publicar en Shopify <span class="tip" data-tip="ON: crea productos nuevos en Shopify.&#10;Si “Actualizar existentes en Shopify” está ON, también actualiza productos ya existentes (por SKU/Barcode).&#10;OFF: solo guardamos/actualizamos el catálogo en la base de datos (no crea ni actualiza nada en Shopify).&#10;Tip: usa OFF para cargar catálogo y validar antes de publicar.">?</span></label>
 				                              <input type="checkbox" id="products-sync-publish" class="toggle" checked />
 				                            </div>
 				                            <div class="mode-toggle">
-				                              <label for="products-sync-update-existing">Actualizar existentes en Shopify <span class="tip" data-tip="Solo aplica si “Publicar en Shopify” está ON.&#10;ON: si el producto ya existe en Shopify (por SKU/Barcode), actualiza precio (y estado si aplica).&#10;OFF: los cuenta como “Existentes” y no los modifica en Shopify.&#10;Nota: en ambos casos igual se guarda/actualiza en la base de datos.">?</span></label>
+				                              <label for="products-sync-update-existing">Actualizar existentes en Shopify <span class="tip" data-tip="Solo aplica si “Publicar en Shopify” está ON.&#10;ON: si el producto ya existe en Shopify (por SKU/Barcode), actualiza precio de variantes y estado (draft/active).&#10;OFF: los cuenta como “Existentes” y no los modifica en Shopify.&#10;Nota: en ambos casos igual se guarda/actualiza el catálogo en la base de datos.">?</span></label>
 				                              <input type="checkbox" id="products-sync-update-existing" class="toggle" data-depends-on="products-sync-publish" data-disabled-message="Activa “Publicar en Shopify” para habilitar actualizaciones en Shopify. (La base de datos se actualiza siempre)." checked />
 				                            </div>
 				                            <div class="mode-toggle">
@@ -1305,7 +1305,7 @@
 				                              </select>
 				                            </div>
 		                            <div class="mode-toggle">
-		                              <label for="products-sync-include-inventory">Incluir inventario <span class="tip" data-tip="Si está activo, el masivo también actualiza existencias en Shopify usando las bodegas configuradas en “Inventario y bodegas”.">?</span></label>
+		                              <label for="products-sync-include-inventory">Incluir inventario <span class="tip" data-tip="ON: trae inventario desde Alegra (y lo guarda en la base de datos).&#10;Si además “Publicar en Shopify” está ON, también sincroniza existencias en Shopify usando las bodegas configuradas en “Inventario y bodegas”.">?</span></label>
 		                              <input type="checkbox" id="products-sync-include-inventory" class="toggle" checked />
 		                            </div>
 	                          </div>
