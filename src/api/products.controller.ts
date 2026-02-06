@@ -2636,6 +2636,17 @@ export async function syncProductsShopifyToAlegraHandler(req: Request, res: Resp
   const updateInAlegra = settings.updateInAlegra !== false;
   const includeInventory = settings.includeInventory === true;
   const warehouseId = typeof settings.warehouseId === "string" ? settings.warehouseId.trim() : "";
+  if (includeInventory) {
+    if (!warehouseId) {
+      res.status(400).json({ error: "Bodega destino requerida para incluir inventario." });
+      return;
+    }
+    const numeric = Number(warehouseId);
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      res.status(400).json({ error: "Bodega destino invalida para inventario." });
+      return;
+    }
+  }
   const matchPriorityKey = typeof settings.matchPriority === "string" ? settings.matchPriority : "sku_barcode";
   const matchPriority: Array<"sku" | "barcode"> =
     matchPriorityKey === "barcode_sku" ? ["barcode", "sku"] : ["sku", "barcode"];

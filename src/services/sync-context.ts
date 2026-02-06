@@ -25,6 +25,8 @@ type SyncContext = {
   shopifyLocationId?: string;
   webhookItemsEnabled: boolean;
   syncEnabled: boolean;
+  createInShopify: boolean;
+  updateInShopify: boolean;
   publishOnStock: boolean;
   onlyActiveItems: boolean;
   autoPublishOnWebhook: boolean;
@@ -41,6 +43,8 @@ type SyncContext = {
 type InventoryRules = {
   webhookItemsEnabled?: boolean;
   syncEnabled?: boolean;
+  createInShopify?: boolean;
+  updateInShopify?: boolean;
   publishOnStock: boolean;
   includeImages?: boolean;
   onlyActiveItems?: boolean;
@@ -91,6 +95,8 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
     shopifyLocationId: shopifySettings.locationId,
     webhookItemsEnabled: (rules as InventoryRules).webhookItemsEnabled !== false,
     syncEnabled: rules.syncEnabled !== false,
+    createInShopify: (rules as InventoryRules).createInShopify !== false,
+    updateInShopify: (rules as InventoryRules).updateInShopify !== false,
     publishOnStock: rules.publishOnStock,
     includeImages: (rules as InventoryRules).includeImages !== false,
     onlyActiveItems: Boolean(rules.onlyActiveItems),

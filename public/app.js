@@ -308,6 +308,8 @@ const productsStatus = document.getElementById("products-status");
 const productsPublishStatusMass = document.getElementById("products-publish-status-mass");
 const rulesOnlyActive = document.getElementById("rules-only-active");
 const rulesSyncEnabled = document.getElementById("rules-sync-enabled");
+const rulesAutoCreateShopify = document.getElementById("rules-auto-create-shopify");
+const rulesAutoUpdateShopify = document.getElementById("rules-auto-update-shopify");
 const productsDateStart = document.getElementById("products-date-start");
 const productsDateEnd = document.getElementById("products-date-end");
 const productsSyncLimitInput = document.getElementById("products-sync-limit");
@@ -416,6 +418,8 @@ let inventoryRules = {
   inventoryAdjustmentsEnabled: true,
   inventoryAdjustmentsIntervalMinutes: 5,
   inventoryAdjustmentsAutoPublish: true,
+  createInShopify: true,
+  updateInShopify: true,
   onlyActiveItems: false,
   includeImages: true,
   syncEnabled: true,
@@ -4050,7 +4054,7 @@ async function handleModuleSave(moduleKey, options = {}) {
   if (!moduleKey) return;
   const { silentValidation = false, showStatus = true } = options || {};
   const panel = getModulePanel(moduleKey);
-  const saveActions = {
+	  const saveActions = {
     ai: async () => {
       await saveSettings({ includeAi: true });
     },
@@ -4068,16 +4072,19 @@ async function handleModuleSave(moduleKey, options = {}) {
     "alegra-logistics": async () => {
       await saveStoreConfigFromSettings();
     },
-    "shopify-rules": async () => {
-      await saveStoreConfigFromSettings();
-    },
-    "sync-contacts": async () => {
-      await saveStoreConfigFromSettings();
-    },
-    "sync-orders": async () => {
-      await saveStoreConfigFromSettings();
-    },
-  };
+	    "shopify-rules": async () => {
+	      await saveStoreConfigFromSettings();
+	    },
+      "shopify-products-to-alegra": async () => {
+        await saveStoreConfigFromSettings();
+      },
+	    "sync-contacts": async () => {
+	      await saveStoreConfigFromSettings();
+	    },
+	    "sync-orders": async () => {
+	      await saveStoreConfigFromSettings();
+	    },
+	  };
   const action = saveActions[moduleKey];
   if (!action) return;
   try {
@@ -4093,45 +4100,48 @@ async function handleModuleSave(moduleKey, options = {}) {
       throw new Error("Completa los campos obligatorios.");
     }
     await action();
-    if (
-      showStatus &&
-      (moduleKey === "alegra-invoice" ||
-        moduleKey === "alegra-inventory" ||
-        moduleKey === "alegra-logistics" ||
-        moduleKey === "shopify-rules" ||
-        moduleKey === "sync-contacts" ||
-        moduleKey === "sync-orders")
-    ) {
+	    if (
+	      showStatus &&
+	      (moduleKey === "alegra-invoice" ||
+	        moduleKey === "alegra-inventory" ||
+	        moduleKey === "alegra-logistics" ||
+	        moduleKey === "shopify-rules" ||
+          moduleKey === "shopify-products-to-alegra" ||
+	        moduleKey === "sync-contacts" ||
+	        moduleKey === "sync-orders")
+	    ) {
       if (hadWarning) setStoreConfigStatus("Guardado con recomendaciones pendientes.", "is-warn");
       else setStoreConfigStatus("Configuracion guardada.", "is-ok");
     }
     setModuleSaved(panel, true);
     advanceWizardStep(moduleKey);
   } catch (error) {
-    if (
-      showStatus &&
-      (moduleKey === "alegra-invoice" ||
-        moduleKey === "alegra-inventory" ||
-        moduleKey === "alegra-logistics" ||
-        moduleKey === "shopify-rules" ||
-        moduleKey === "sync-contacts" ||
-        moduleKey === "sync-orders")
-    ) {
-      setStoreConfigStatus(error?.message || "No se pudo guardar.", "is-error");
-    }
+	    if (
+	      showStatus &&
+	      (moduleKey === "alegra-invoice" ||
+	        moduleKey === "alegra-inventory" ||
+	        moduleKey === "alegra-logistics" ||
+	        moduleKey === "shopify-rules" ||
+          moduleKey === "shopify-products-to-alegra" ||
+	        moduleKey === "sync-contacts" ||
+	        moduleKey === "sync-orders")
+	    ) {
+	      setStoreConfigStatus(error?.message || "No se pudo guardar.", "is-error");
+	    }
     throw error;
   }
 }
 
-function initModuleControls() {
-  const autosaveKeys = new Set([
-    "shopify-rules",
-    "alegra-inventory",
-    "sync-contacts",
-    "sync-orders",
-    "alegra-logistics",
-    "alegra-invoice",
-  ]);
+	function initModuleControls() {
+	  const autosaveKeys = new Set([
+	    "shopify-rules",
+      "shopify-products-to-alegra",
+	    "alegra-inventory",
+	    "sync-contacts",
+	    "sync-orders",
+	    "alegra-logistics",
+	    "alegra-invoice",
+	  ]);
   const autosaveTimers = new Map();
   const autosaveInFlight = new Set();
 
@@ -4140,15 +4150,18 @@ function initModuleControls() {
     if (!(target instanceof HTMLElement)) return false;
     const id = target.id || "";
 
-    if (moduleKey === "shopify-rules") {
-      return Boolean(id && id.startsWith("rules-"));
-    }
-    if (moduleKey === "alegra-inventory") {
-      if (target.closest("#cfg-inventory-warehouses")) return true;
-      if (id === "rules-sync-enabled") return true;
-      if (id && id.startsWith("inventory-")) return true;
-      return false;
-    }
+	    if (moduleKey === "shopify-rules") {
+	      return Boolean(id && id.startsWith("rules-"));
+	    }
+      if (moduleKey === "shopify-products-to-alegra") {
+        return Boolean(id && id.startsWith("cfg-products-shopify-to-alegra-"));
+      }
+	    if (moduleKey === "alegra-inventory") {
+	      if (target.closest("#cfg-inventory-warehouses")) return true;
+	      if (id === "rules-sync-enabled") return true;
+	      if (id && id.startsWith("inventory-")) return true;
+	      return false;
+	    }
     if (moduleKey === "sync-contacts") {
       if (!id || !id.startsWith("sync-contacts-")) return false;
       return !id.startsWith("sync-contacts-bulk-");
@@ -5170,6 +5183,12 @@ function applyRuleSettings(settings, options = {}) {
   if (rulesAutoEnabled) {
     rulesAutoEnabled.checked = settings.webhookItemsEnabled !== false;
   }
+  if (rulesAutoCreateShopify instanceof HTMLInputElement) {
+    rulesAutoCreateShopify.checked = settings.createInShopify !== false;
+  }
+  if (rulesAutoUpdateShopify instanceof HTMLInputElement) {
+    rulesAutoUpdateShopify.checked = settings.updateInShopify !== false;
+  }
   if (rulesAutoPublish) rulesAutoPublish.checked = Boolean(settings.autoPublishOnWebhook);
   if (rulesAutoImages) {
     rulesAutoImages.checked = settings.includeImages !== false;
@@ -5193,6 +5212,8 @@ function applyRuleSettings(settings, options = {}) {
     publishOnStock: settings.publishOnStock !== false,
     autoPublishOnWebhook: Boolean(settings.autoPublishOnWebhook),
     autoPublishStatus: settings.autoPublishStatus === "active" ? "active" : "draft",
+    createInShopify: settings.createInShopify !== false,
+    updateInShopify: settings.updateInShopify !== false,
     onlyActiveItems: Boolean(settings.onlyActiveItems),
     includeImages: settings.includeImages !== false,
     syncEnabled: settings.syncEnabled !== false,
@@ -5433,6 +5454,8 @@ function applyLegacyStoreConfig(config) {
     syncOrdersAlegraEnabled.checked = false;
     applyOrderToggle(syncOrdersAlegra, syncOrdersAlegraEnabled, "draft");
   }
+  if (rulesAutoCreateShopify instanceof HTMLInputElement) rulesAutoCreateShopify.checked = true;
+  if (rulesAutoUpdateShopify instanceof HTMLInputElement) rulesAutoUpdateShopify.checked = true;
   if (cfgProductsShopifyToAlegraEnabled instanceof HTMLInputElement) {
     cfgProductsShopifyToAlegraEnabled.checked = false;
   }
@@ -6977,6 +7000,17 @@ async function runProductsShopifyBulkSync() {
     productsShopifyBulkMatch instanceof HTMLSelectElement ? productsShopifyBulkMatch.value : "sku_barcode";
   const warehouseId =
     productsShopifyBulkWarehouse instanceof HTMLSelectElement ? productsShopifyBulkWarehouse.value : "";
+
+  if (includeInventory) {
+    if (!warehouseId || !String(warehouseId).trim()) {
+      markFieldError(productsShopifyBulkWarehouse, "Selecciona una bodega destino para inventario.");
+      setProductsShopifyBulkStatus("Bodega destino requerida para inventario.", "is-error");
+      return;
+    }
+    clearFieldError(productsShopifyBulkWarehouse);
+  } else {
+    clearFieldError(productsShopifyBulkWarehouse);
+  }
 
   setProductsShopifyBulkStatus("Sincronizando...", "");
   updateProductsShopifyBulkProgress(0, "Productos 0% · ETA --:--");
@@ -9046,6 +9080,18 @@ async function saveStoreConfigFromSettings() {
   if (!domain) {
     throw new Error("Dominio Shopify requerido.");
   }
+  if (cfgProductsShopifyToAlegraIncludeInventory instanceof HTMLInputElement) {
+    const includeInventory = Boolean(cfgProductsShopifyToAlegraIncludeInventory.checked);
+    const warehouseId =
+      cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
+        ? String(cfgProductsShopifyToAlegraWarehouse.value || "").trim()
+        : "";
+    if (includeInventory && !warehouseId) {
+      markFieldError(cfgProductsShopifyToAlegraWarehouse, "Selecciona una bodega destino para inventario.");
+      throw new Error("Bodega destino requerida para incluir inventario (Shopify → Alegra).");
+    }
+    clearFieldError(cfgProductsShopifyToAlegraWarehouse);
+  }
   const shopifyOrderMode = syncOrdersShopify ? syncOrdersShopify.value : "";
   const alegraOrderMode = syncOrdersAlegra ? syncOrdersAlegra.value : "";
   const contactsEnabled =
@@ -9115,17 +9161,25 @@ async function saveStoreConfigFromSettings() {
 	        cfgObservationsExtra instanceof HTMLInputElement ? cfgObservationsExtra.value.trim() : "",
 	      einvoiceEnabled: cfgEinvoiceEnabled ? cfgEinvoiceEnabled.checked : false,
 	    },
-    rules: {
-      publishOnStock: cfgInventoryPublishStock ? cfgInventoryPublishStock.checked : true,
-      onlyActiveItems: rulesOnlyActive ? rulesOnlyActive.checked : false,
-      autoPublishOnWebhook: rulesAutoPublish ? rulesAutoPublish.checked : false,
-      autoPublishStatus:
-        rulesAutoStatus && rulesAutoStatus.value === "active" ? "active" : "draft",
-      includeImages: rulesAutoImages ? rulesAutoImages.checked !== false : true,
-      syncEnabled: rulesSyncEnabled ? rulesSyncEnabled.checked : true,
-      webhookItemsEnabled: rulesAutoEnabled ? rulesAutoEnabled.checked !== false : true,
-      warehouseIds: getSelectedInventoryWarehouseIds(),
-    },
+	    rules: {
+	      publishOnStock: cfgInventoryPublishStock ? cfgInventoryPublishStock.checked : true,
+	      onlyActiveItems: rulesOnlyActive ? rulesOnlyActive.checked : false,
+	      autoPublishOnWebhook: rulesAutoPublish ? rulesAutoPublish.checked : false,
+	      autoPublishStatus:
+	        rulesAutoStatus && rulesAutoStatus.value === "active" ? "active" : "draft",
+        createInShopify:
+          rulesAutoCreateShopify instanceof HTMLInputElement
+            ? rulesAutoCreateShopify.checked !== false
+            : true,
+        updateInShopify:
+          rulesAutoUpdateShopify instanceof HTMLInputElement
+            ? rulesAutoUpdateShopify.checked !== false
+            : true,
+	      includeImages: rulesAutoImages ? rulesAutoImages.checked !== false : true,
+	      syncEnabled: rulesSyncEnabled ? rulesSyncEnabled.checked : true,
+	      webhookItemsEnabled: rulesAutoEnabled ? rulesAutoEnabled.checked !== false : true,
+	      warehouseIds: getSelectedInventoryWarehouseIds(),
+	    },
 	    sync: {
 	      contacts: {
 	        enabled: contactsEnabled,

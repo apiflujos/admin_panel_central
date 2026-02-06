@@ -217,6 +217,14 @@ export async function listStoreConfigs() {
           rules.publishOnStock,
           defaults.rules?.publishOnStock ?? true
         ),
+        createInShopify: normalizeBoolean(
+          (rules as Record<string, unknown>).createInShopify,
+          true
+        ),
+        updateInShopify: normalizeBoolean(
+          (rules as Record<string, unknown>).updateInShopify,
+          true
+        ),
         includeImages: normalizeBoolean(
           (rules as Record<string, unknown>).includeImages,
           true
@@ -442,18 +450,26 @@ export async function getStoreConfigForDomain(shopDomain: string) {
         "",
       currency: (priceLists.currency as string | undefined) || row.currency || "",
     },
-    rules: {
-      syncEnabled: normalizeBoolean((rules as Record<string, unknown>).syncEnabled, true),
-      publishOnStock: normalizeBoolean(
-        rules.publishOnStock,
-        defaults.rules?.publishOnStock ?? true
-      ),
-      includeImages: normalizeBoolean(
-        (rules as Record<string, unknown>).includeImages,
-        true
-      ),
-      onlyActiveItems: normalizeBoolean(
-        (rules as Record<string, unknown>).onlyActiveItems,
+      rules: {
+        syncEnabled: normalizeBoolean((rules as Record<string, unknown>).syncEnabled, true),
+        publishOnStock: normalizeBoolean(
+          rules.publishOnStock,
+          defaults.rules?.publishOnStock ?? true
+        ),
+        createInShopify: normalizeBoolean(
+          (rules as Record<string, unknown>).createInShopify,
+          true
+        ),
+        updateInShopify: normalizeBoolean(
+          (rules as Record<string, unknown>).updateInShopify,
+          true
+        ),
+        includeImages: normalizeBoolean(
+          (rules as Record<string, unknown>).includeImages,
+          true
+        ),
+        onlyActiveItems: normalizeBoolean(
+          (rules as Record<string, unknown>).onlyActiveItems,
         Boolean((defaults.rules as Record<string, unknown>)?.onlyActiveItems)
       ),
       webhookItemsEnabled: normalizeBoolean(
