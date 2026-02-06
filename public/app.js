@@ -193,8 +193,7 @@ const userName = document.getElementById("user-name");
 const userRole = document.getElementById("user-role");
 const topbarBilling = document.getElementById("topbar-billing");
 const billingPlanPill = document.getElementById("billing-plan-pill");
-const billingMonthUsage = document.getElementById("billing-month-usage");
-const billingMonthTotal = document.getElementById("billing-month-total");
+const billingMonthMetrics = document.getElementById("billing-month-metrics");
 const userMenu = document.getElementById("topbar-user-menu");
 const userMenuToggle = document.getElementById("topbar-user-toggle");
 const companyLogo = document.getElementById("company-logo");
@@ -6791,7 +6790,7 @@ async function loadProducts() {
       ? productSettings.filters.warehouseIds
       : [];
     if (warehouseIds.length) params.set("warehouseIds", warehouseIds.join(","));
-    const payload = await fetchJson(`/api/products?${params.toString()}`);
+    const payload = await fetchJson(`/api/alegra/items?${params.toString()}`);
     const { items, total } = extractAlegraItems(payload);
     productsList = items.map(normalizeProduct);
     productsRows = buildProductRows(productsList);
@@ -7651,8 +7650,9 @@ async function loadBillingTopbar() {
     const billedEvents = Number(data.billedEvents || 0) || 0;
     const billedTotal = Number(data.billedTotal || 0) || 0;
     const planLabel = String(data.planName || data.planKey || "").trim();
-    if (billingMonthUsage) billingMonthUsage.textContent = `Consumo: ${billedEvents}`;
-    if (billingMonthTotal) billingMonthTotal.textContent = `Cobro: ${formatCurrencyValue(billedTotal)}`;
+    if (billingMonthMetrics) {
+      billingMonthMetrics.textContent = `Consumo: ${billedEvents} · Cobro: ${formatCurrencyValue(billedTotal)}`;
+    }
     if (billingPlanPill) billingPlanPill.textContent = planLabel || "--";
     setBillingTopbarVisible(true);
   } catch {

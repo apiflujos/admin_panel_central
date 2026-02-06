@@ -742,7 +742,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
       .filter(Boolean);
     const rawQueryValue = typeof req.query.query === "string" ? req.query.query : "";
     const identifierQuery = extractIdentifier(rawQueryValue);
-    const source = String(req.query.source || "cache").toLowerCase();
+    const source = String(req.query.source || "auto").toLowerCase();
     const query = new URLSearchParams();
     Object.entries(req.query).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
@@ -756,10 +756,11 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
     if (!query.has("fields")) {
       query.set(
         "fields",
-        "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code,created_at,createdAt"
+        "variantAttributes,itemVariants,inventory,images,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code,created_at,createdAt"
       );
     }
     if (!query.has("metadata")) query.set("metadata", "true");
+    const requestedFields = String(query.get("fields") || "");
     const scanLimit = Number(query.get("limit") || "30");
     const maxPages = 6;
     let page = 0;
@@ -811,12 +812,22 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
           cachedStart += scanLimit;
           cachedPage += 1;
         }
-        res.status(200).json({
-          metadata: { total: cachedTotalResult, filtered: shouldFilter, source: "cache" },
-          data: cachedItems.slice(0, scanLimit),
-        });
-        void persistProductsFromAlegra(cachedItems, shopDomain || "").catch(() => null);
-        return;
+        const sliced = cachedItems.slice(0, scanLimit);
+        const wantsImages = requestedFields.includes("images");
+        const cacheHasImagesKey =
+          sliced.length > 0 &&
+          sliced.some((item) => item && typeof item === "object" && Object.prototype.hasOwnProperty.call(item, "images"));
+
+        // If this is a legacy cache (items stored without `images`) and the caller expects images,
+        // fall back to Alegra so the cache can be refreshed with full fields.
+        if (!(wantsImages && !cacheOnly && cachedTotal > 0 && !cacheHasImagesKey)) {
+          res.status(200).json({
+            metadata: { total: cachedTotalResult, filtered: shouldFilter, source: "cache" },
+            data: sliced,
+          });
+          void persistProductsFromAlegra(cachedItems, shopDomain || "").catch(() => null);
+          return;
+        }
       }
     }
 
@@ -837,7 +848,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
       const detailQuery = new URLSearchParams();
       detailQuery.set(
         "fields",
-        "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code,created_at,createdAt"
+        "variantAttributes,itemVariants,inventory,images,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code,created_at,createdAt"
       );
       detailQuery.set("mode", "advanced");
       return Promise.all(
@@ -913,7 +924,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
       const detailQuery = new URLSearchParams();
       detailQuery.set(
         "fields",
-        "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code,created_at,createdAt"
+        "variantAttributes,itemVariants,inventory,images,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code,created_at,createdAt"
       );
       detailQuery.set("mode", "advanced");
       resolvedItems = await Promise.all(
@@ -945,7 +956,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         const detailQuery = new URLSearchParams();
         detailQuery.set(
           "fields",
-          "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId,idItemParent"
+          "variantAttributes,itemVariants,inventory,images,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code,created_at,createdAt"
         );
         detailQuery.set("mode", "advanced");
         const hydrated = await Promise.all(
@@ -984,6 +995,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
       (payload as any).metadata.total = total;
     }
     (payload as any).metadata.filtered = inStockOnly || warehouseFilterIds.length > 0;
+    void upsertAlegraItemsCache(resolvedItems).catch(() => null);
     void persistProductsFromAlegra(resolvedItems, shopDomain || "").catch(() => null);
     res.status(200).json(payload);
   } catch (error) {
@@ -1191,7 +1203,10 @@ export async function publishShopifyHandler(req: Request, res: Response) {
     if (!item && alegraId) {
       const query = new URLSearchParams();
       query.set("mode", "advanced");
-      query.set("fields", "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId");
+      query.set(
+        "fields",
+        "variantAttributes,itemVariants,inventory,images,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code"
+      );
       const response = await fetchAlegra(`/items/${alegraId}`, query, storeDomain || undefined);
       if (!response.ok) {
         throw new Error(`Alegra HTTP ${response.status}`);
@@ -1720,7 +1735,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
       const detailQuery = new URLSearchParams();
       detailQuery.set(
         "fields",
-        "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code"
+        "variantAttributes,itemVariants,inventory,images,variantParent_id,variantParentId,idItemParent,customFields,barcode,reference,code"
       );
       detailQuery.set("mode", "advanced");
       const detailResponses = await Promise.all(
@@ -1845,7 +1860,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
       query.set("mode", "advanced");
       query.set(
         "fields",
-        "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId,customFields,barcode,reference,code"
+        "variantAttributes,itemVariants,inventory,images,variantParent_id,variantParentId,customFields,barcode,reference,code"
       );
       if (effectiveMode === "filtered") {
         if (filters.dateStart) query.set("updated_at_start", filters.dateStart);
@@ -2429,7 +2444,7 @@ export async function backfillProductsHandler(req: Request, res: Response) {
           query.set("mode", "advanced");
           query.set(
             "fields",
-            "variantAttributes,itemVariants,inventory,variantParent_id,variantParentId,idItemParent,customFields,status,barcode,reference,code,created_at,createdAt,updated_at,updatedAt"
+            "variantAttributes,itemVariants,inventory,images,variantParent_id,variantParentId,idItemParent,customFields,status,barcode,reference,code,created_at,createdAt,updated_at,updatedAt"
           );
           if (dateStart) {
             query.set("updated_at_start", dateStart);

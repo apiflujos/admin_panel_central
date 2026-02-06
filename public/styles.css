@@ -426,6 +426,7 @@ body {
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .topbar h1 {
@@ -466,21 +467,34 @@ body {
 }
 
 .topbar-user-meta span {
-  display: block;
+  display: inline-flex;
   text-align: left;
+}
+
+.topbar-user-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
 }
 
 #user-name {
   font-weight: 600;
   color: #0f172a;
   font-size: 0.9rem;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 #user-role {
-  font-size: 0.7rem;
-  color: #64748b;
+  font-size: 0.68rem;
+  color: #0b2445;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 43, 91, 0.12);
 }
 
 .topbar-user-menu {
@@ -4398,6 +4412,12 @@ textarea::placeholder {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+.topbar-billing .status-pill {
+  font-size: 10px;
+  padding: 6px 10px;
 }
 
 .sidebar-footer {
