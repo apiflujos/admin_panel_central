@@ -2289,6 +2289,7 @@ function applyRoleAccess(role) {
   currentUserRole = role || "agent";
   currentUserIsSuperAdmin = currentUserRole === "super_admin";
   const settingsNav = document.querySelector('.nav-item[data-target="settings"]');
+  const logsNav = document.querySelector('.nav-item[data-target="logs"]');
   const adminOnlyPanels = document.querySelectorAll(".admin-only");
   const isAdminLike = currentUserRole === "admin" || currentUserRole === "super_admin";
   if (!isAdminLike) {
@@ -2305,6 +2306,18 @@ function applyRoleAccess(role) {
     adminOnlyPanels.forEach((panel) => {
       panel.style.display = "";
     });
+  }
+
+  const logsSection = document.getElementById("logs");
+  if (currentUserIsSuperAdmin) {
+    if (logsNav) logsNav.style.display = "";
+    if (logsSection) logsSection.style.display = "";
+  } else {
+    if (logsNav) logsNav.style.display = "none";
+    if (logsSection) logsSection.style.display = "none";
+    if (logsSection && logsSection.classList.contains("is-active")) {
+      activateNav("dashboard");
+    }
   }
 
   if (navSuperadmin instanceof HTMLElement) {

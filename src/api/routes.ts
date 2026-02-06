@@ -133,8 +133,8 @@ router.post("/users", requireAdmin, wrap(createUserHandler));
 router.put("/users/:userId", requireAdmin, wrap(updateUserHandler));
 router.delete("/users/:userId", requireAdmin, wrap(deleteUserHandler));
 
-router.get("/logs", wrap(listLogs));
-router.post("/logs/retry", wrap(retryFailed));
+router.get("/logs", requireSuperAdmin, wrap(listLogs));
+router.post("/logs/retry", requireSuperAdmin, wrap(retryFailed));
 
 router.get("/alegra/items", wrap(listAlegraItemsHandler));
 router.get("/products", wrap(listProductsHandler));
