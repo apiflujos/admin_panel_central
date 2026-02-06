@@ -10,6 +10,9 @@ import { startOrdersSyncPoller } from "./jobs/orders-sync";
 import { startProductsSyncPoller } from "./jobs/products-sync";
 import { startRetryQueuePoller } from "./jobs/retry-queue";
 import { startMarketingJobs } from "./jobs/marketing";
+import { startBillingReportCron } from "./jobs/billing-report";
+import { ensureSaDefaults } from "./sa/sa.bootstrap";
+import { requirePageSuperAdmin } from "./api/page-auth";
 
 const app = express();
 
@@ -66,6 +69,10 @@ app.get("/dashboard", (_req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
 
+app.get("/__sa", requirePageSuperAdmin, (_req, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
+});
+
 app.use("/api", router);
 app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error("Unhandled error:", err);
@@ -84,9 +91,11 @@ app.listen(port, host, () => {
   console.log("-------------------------------------------");
   console.log(`Server listening on http://${host}:${port}`);
   console.log("-------------------------------------------");
+  ensureSaDefaults().catch((error) => console.error("[sa] bootstrap failed", error));
   startInventoryAdjustmentsPoller();
   startOrdersSyncPoller();
   startProductsSyncPoller();
   startRetryQueuePoller();
   startMarketingJobs();
+  startBillingReportCron();
 });

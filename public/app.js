@@ -138,6 +138,21 @@ const metricsInsights = document.getElementById("metrics-insights");
 const metricsReport = document.getElementById("metrics-report");
 const metricsReportDownload = document.getElementById("metrics-report-download");
 const weeklyGrowthLabel = document.getElementById("chart-weekly-label");
+const navSuperadmin = document.getElementById("nav-superadmin");
+const saTab = document.getElementById("sa-tab");
+const saTenant = document.getElementById("sa-tenant");
+const saPeriod = document.getElementById("sa-period");
+const saLoad = document.getElementById("sa-load");
+const saReset = document.getElementById("sa-reset");
+const saStatus = document.getElementById("sa-status");
+const saUsageBody = document.querySelector("#sa-usage-table tbody");
+const saPaneUsage = document.getElementById("sa-pane-usage");
+const saPanePlans = document.getElementById("sa-pane-plans");
+const saPaneModules = document.getElementById("sa-pane-modules");
+const saPlanKey = document.getElementById("sa-plan-key");
+const saAssignPlan = document.getElementById("sa-assign-plan");
+const saPlanSnapshot = document.getElementById("sa-plan-snapshot");
+const saModulesBody = document.querySelector("#sa-modules-table tbody");
 
 const marketingStoreSelect = document.getElementById("marketing-store-select");
 const marketingFrom = document.getElementById("marketing-from");
@@ -167,6 +182,9 @@ const assistantAttachments = document.getElementById("assistant-attachments");
 const userAvatar = document.getElementById("user-avatar");
 const userName = document.getElementById("user-name");
 const userRole = document.getElementById("user-role");
+const topbarBilling = document.getElementById("topbar-billing");
+const billingMonthUsage = document.getElementById("billing-month-usage");
+const billingMonthTotal = document.getElementById("billing-month-total");
 const userMenu = document.getElementById("topbar-user-menu");
 const userMenuToggle = document.getElementById("topbar-user-toggle");
 const companyLogo = document.getElementById("company-logo");
@@ -417,6 +435,7 @@ const shopifyWebhooksStatus = document.getElementById("shopify-webhooks-status")
 
 let shopifyAdminBase = "";
 let currentUserRole = "agent";
+let currentUserIsSuperAdmin = false;
 let currentUserId = null;
 let activeStoreDomain = "";
 let activeStoreName = "";
@@ -664,6 +683,9 @@ function showSection(target) {
   });
   if (target === "operations") {
     loadOperationsView().catch(() => null);
+  }
+  if (target === "superadmin") {
+    loadSuperAdmin().catch(() => null);
   }
   if (target === "marketing") {
     loadMarketing().catch(() => null);
@@ -2264,9 +2286,11 @@ function applyShopifyOAuthAvailability() {
 
 function applyRoleAccess(role) {
   currentUserRole = role || "agent";
+  currentUserIsSuperAdmin = currentUserRole === "super_admin";
   const settingsNav = document.querySelector('.nav-item[data-target="settings"]');
   const adminOnlyPanels = document.querySelectorAll(".admin-only");
-  if (currentUserRole !== "admin") {
+  const isAdminLike = currentUserRole === "admin" || currentUserRole === "super_admin";
+  if (!isAdminLike) {
     if (settingsNav) settingsNav.style.display = "none";
     adminOnlyPanels.forEach((panel) => {
       panel.style.display = "none";
@@ -2281,6 +2305,11 @@ function applyRoleAccess(role) {
       panel.style.display = "";
     });
   }
+
+  if (navSuperadmin instanceof HTMLElement) {
+    navSuperadmin.style.display = currentUserIsSuperAdmin ? "" : "none";
+  }
+  loadBillingTopbar().catch(() => null);
 }
 
 async function loadCurrentUser() {
@@ -2288,7 +2317,8 @@ async function loadCurrentUser() {
     const data = await fetchJson("/api/profile");
     const user = data.user || {};
     currentUserId = user.id || null;
-    const roleLabel = user.role === "admin" ? "Admin" : "Agente";
+    currentUserIsSuperAdmin = Boolean(user.isSuperAdmin);
+    const roleLabel = user.role === "super_admin" ? "Super Admin" : (user.role === "admin" ? "Admin" : "Agente");
     if (userName) userName.textContent = user.name || user.email || "Usuario";
     if (userRole) userRole.textContent = roleLabel;
     if (userAvatar) {
@@ -7577,6 +7607,159 @@ function ensureProductsLoaded() {
 }
 
 let marketingLoading = false;
+let superAdminLoaded = false;
+
+function utcMonthKey(date = new Date()) {
+  return date.toISOString().slice(0, 7);
+}
+
+function setBillingTopbarVisible(visible) {
+  if (!(topbarBilling instanceof HTMLElement)) return;
+  topbarBilling.style.display = visible ? "" : "none";
+}
+
+async function loadBillingTopbar() {
+  if (currentUserRole !== "admin" && currentUserRole !== "super_admin") {
+    setBillingTopbarVisible(false);
+    return;
+  }
+  try {
+    const period = utcMonthKey();
+    const data = await fetchJson(`/api/billing/summary?period=${encodeURIComponent(period)}&t=${Date.now()}`);
+    const services = Array.isArray(data.services) ? data.services : [];
+    const usageCount = services.reduce((acc, s) => acc + (Number(s.usage) || 0), 0);
+    const billedTotal = Number(data.billedTotal || 0);
+    if (billingMonthUsage) billingMonthUsage.textContent = `Consumo: ${usageCount}`;
+    if (billingMonthTotal) billingMonthTotal.textContent = `Cobro: ${formatCurrencyValue(billedTotal)}`;
+    setBillingTopbarVisible(true);
+  } catch {
+    setBillingTopbarVisible(false);
+  }
+}
+
+function setSaStatus(message, className) {
+  if (!(saStatus instanceof HTMLElement)) return;
+  saStatus.textContent = message || "Sin datos";
+  saStatus.classList.remove("is-ok", "is-warn", "is-error");
+  if (className) saStatus.classList.add(className);
+}
+
+function setSaPane(paneKey) {
+  const key = String(paneKey || "usage");
+  if (saPaneUsage) saPaneUsage.style.display = key === "usage" ? "" : "none";
+  if (saPanePlans) saPanePlans.style.display = key === "plans" ? "" : "none";
+  if (saPaneModules) saPaneModules.style.display = key === "modules" ? "" : "none";
+}
+
+function ensureSaDefaultsUi() {
+  if (saPeriod instanceof HTMLInputElement) {
+    if (!saPeriod.value) saPeriod.value = utcMonthKey();
+  }
+}
+
+function getSaTenantId() {
+  if (!(saTenant instanceof HTMLSelectElement)) return 0;
+  return Number(saTenant.value || 0);
+}
+
+function getSaPeriodKey() {
+  if (!(saPeriod instanceof HTMLInputElement)) return "";
+  return String(saPeriod.value || "").slice(0, 7);
+}
+
+async function loadSaTenants() {
+  if (!(saTenant instanceof HTMLSelectElement)) return;
+  const data = await fetchJson(`/api/sa/tenants?t=${Date.now()}`);
+  const items = Array.isArray(data.items) ? data.items : [];
+  saTenant.innerHTML = items
+    .map((t) => `<option value="${t.id}">${escapeHtml(t.name || `Tenant ${t.id}`)} (#${t.id})</option>`)
+    .join("");
+  if (!saTenant.value && items[0]?.id) saTenant.value = String(items[0].id);
+}
+
+async function loadSaPlans() {
+  if (!(saPlanKey instanceof HTMLSelectElement)) return;
+  const data = await fetchJson(`/api/sa/plans?t=${Date.now()}`);
+  const items = Array.isArray(data.items) ? data.items : [];
+  saPlanKey.innerHTML = items
+    .filter((p) => p && p.active !== false)
+    .map((p) => `<option value="${escapeHtml(p.key)}">${escapeHtml(p.name || p.key)}</option>`)
+    .join("");
+  if (!saPlanKey.value && items[0]?.key) saPlanKey.value = String(items[0].key);
+}
+
+async function loadSaUsage() {
+  if (!saUsageBody) return;
+  const tenantId = getSaTenantId();
+  const period = getSaPeriodKey();
+  if (!tenantId || !period) {
+    saUsageBody.innerHTML = `<tr><td colspan="4" class="empty">Selecciona tenant y mes.</td></tr>`;
+    return;
+  }
+  try {
+    setSaStatus("Cargando...", "");
+    const data = await fetchJson(`/api/sa/usage?tenantId=${tenantId}&period=${encodeURIComponent(period)}&t=${Date.now()}`);
+    const services = Array.isArray(data.services) ? data.services : [];
+    if (!services.length) {
+      saUsageBody.innerHTML = `<tr><td colspan="4" class="empty">Sin datos</td></tr>`;
+    } else {
+      saUsageBody.innerHTML = services
+        .map(
+          (row) => `
+          <tr>
+            <td>${escapeHtml(row.serviceKey || "-")}</td>
+            <td>${Number(row.usage || 0)}</td>
+            <td>${Number(row.billedQty || 0)}</td>
+            <td>${formatCurrencyValue(Number(row.billedTotal || 0))}</td>
+          </tr>
+        `
+        )
+        .join("");
+    }
+    setSaStatus("OK", "is-ok");
+  } catch (error) {
+    setSaStatus(error?.message || "No se pudo cargar.", "is-error");
+    saUsageBody.innerHTML = `<tr><td colspan="4" class="empty">Error</td></tr>`;
+  }
+}
+
+async function loadSaModules() {
+  if (!saModulesBody) return;
+  const data = await fetchJson(`/api/sa/modules?t=${Date.now()}`);
+  const items = Array.isArray(data.items) ? data.items : [];
+  if (!items.length) {
+    saModulesBody.innerHTML = `<tr><td colspan="2" class="empty">Sin datos</td></tr>`;
+    return;
+  }
+  saModulesBody.innerHTML = items
+    .map((m) => {
+      const key = escapeHtml(m.key || "");
+      const name = escapeHtml(m.name || m.key || "-");
+      return `
+        <tr>
+          <td>${name}</td>
+          <td><input type="checkbox" data-sa-module="${key}" class="toggle" checked /></td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+async function loadSuperAdmin() {
+  if (!currentUserIsSuperAdmin) {
+    setSaStatus("Sin permisos.", "is-warn");
+    return;
+  }
+  ensureSaDefaultsUi();
+  if (saTab instanceof HTMLSelectElement) {
+    setSaPane(saTab.value);
+  }
+  if (!superAdminLoaded) {
+    superAdminLoaded = true;
+    await Promise.allSettled([loadSaTenants(), loadSaPlans(), loadSaModules()]);
+  }
+  await loadSaUsage();
+}
 
 function setMarketingStatus(message, className) {
   if (!(marketingStatus instanceof HTMLElement)) return;
@@ -9934,6 +10117,89 @@ if (metricsReportDownload) {
     }
   });
 }
+if (saTab instanceof HTMLSelectElement) {
+  saTab.addEventListener("change", () => {
+    setSaPane(saTab.value);
+  });
+}
+if (saLoad) {
+  saLoad.addEventListener("click", () => {
+    loadSuperAdmin().catch(() => null);
+  });
+}
+if (saReset) {
+  saReset.addEventListener("click", async () => {
+    try {
+      const tenantId = getSaTenantId();
+      const periodKey = getSaPeriodKey();
+      if (!tenantId || !periodKey) {
+        showToast("Selecciona tenant y mes.", "is-warn");
+        return;
+      }
+      setButtonLoading(saReset, true, "Reseteando...");
+      await fetchJson("/api/sa/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenantId, periodKey }),
+      });
+      showToast("Contadores reseteados.", "is-ok");
+      loadSaUsage().catch(() => null);
+      loadBillingTopbar().catch(() => null);
+    } catch (error) {
+      showToast(error?.message || "No se pudo resetear.", "is-error");
+    } finally {
+      setButtonLoading(saReset, false);
+    }
+  });
+}
+if (saAssignPlan) {
+  saAssignPlan.addEventListener("click", async () => {
+    try {
+      const tenantId = getSaTenantId();
+      const planKey = saPlanKey instanceof HTMLSelectElement ? String(saPlanKey.value || "") : "";
+      if (!tenantId || !planKey) {
+        showToast("Selecciona tenant y plan.", "is-warn");
+        return;
+      }
+      setButtonLoading(saAssignPlan, true, "Asignando...");
+      const payload = await fetchJson("/api/sa/plans/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenantId, planKey }),
+      });
+      if (saPlanSnapshot) {
+        saPlanSnapshot.textContent = JSON.stringify(payload.snapshot || payload, null, 2);
+      }
+      showToast("Plan asignado.", "is-ok");
+      loadBillingTopbar().catch(() => null);
+    } catch (error) {
+      showToast(error?.message || "No se pudo asignar plan.", "is-error");
+    } finally {
+      setButtonLoading(saAssignPlan, false);
+    }
+  });
+}
+if (saModulesBody instanceof HTMLElement) {
+  saModulesBody.addEventListener("change", async (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) return;
+    const input = target.closest("[data-sa-module]");
+    if (!(input instanceof HTMLInputElement)) return;
+    try {
+      const moduleKey = input.getAttribute("data-sa-module") || "";
+      const tenantId = getSaTenantId();
+      if (!tenantId || !moduleKey) return;
+      await fetchJson("/api/sa/modules/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenantId, moduleKey, enabled: Boolean(input.checked) }),
+      });
+      showToast("Módulo actualizado.", "is-ok");
+    } catch (error) {
+      showToast(error?.message || "No se pudo actualizar módulo.", "is-error");
+    }
+  });
+}
 if (marketingRefresh) {
   marketingRefresh.addEventListener("click", () => {
     loadMarketing().catch(() => null);
@@ -11293,52 +11559,55 @@ async function init() {
   await safeLoad(loadMetrics());
   setOperationsView("orders");
   await safeLoad(loadOperationsView());
-  if (currentUserRole === "admin") {
+  if (currentUserRole === "admin" || currentUserRole === "super_admin") {
     await safeLoad(loadConnections());
     await safeLoad(loadSettings());
     await safeLoad(loadResolutions());
   }
 	  await Promise.all([
-	    currentUserRole === "admin"
+	    (currentUserRole === "admin" || currentUserRole === "super_admin")
 	      ? safeLoad(loadCatalog(cfgCostCenter, "cost-centers"))
 	      : Promise.resolve(null),
-	    currentUserRole === "admin"
+	    (currentUserRole === "admin" || currentUserRole === "super_admin")
 	      ? safeLoad(loadCatalog(cfgWarehouse, "warehouses"))
 	      : Promise.resolve(null),
-      currentUserRole === "admin" && productsShopifyBulkWarehouse instanceof HTMLSelectElement
+      (currentUserRole === "admin" || currentUserRole === "super_admin") && productsShopifyBulkWarehouse instanceof HTMLSelectElement
         ? safeLoad(loadCatalog(productsShopifyBulkWarehouse, "warehouses"))
         : Promise.resolve(null),
-      currentUserRole === "admin" && cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
+      (currentUserRole === "admin" || currentUserRole === "super_admin") && cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
         ? safeLoad(loadCatalog(cfgProductsShopifyToAlegraWarehouse, "warehouses"))
         : Promise.resolve(null),
-	    currentUserRole === "admin"
+	    (currentUserRole === "admin" || currentUserRole === "super_admin")
 	      ? safeLoad(loadCatalog(cfgTransferDest, "warehouses"))
 	      : Promise.resolve(null),
-	    currentUserRole === "admin"
+	    (currentUserRole === "admin" || currentUserRole === "super_admin")
 	      ? safeLoad(loadCatalog(cfgTransferPriority, "warehouses"))
       : Promise.resolve(null),
-    currentUserRole === "admin"
+    (currentUserRole === "admin" || currentUserRole === "super_admin")
       ? safeLoad(loadCatalog(cfgSeller, "sellers"))
       : Promise.resolve(null),
-    currentUserRole === "admin"
+    (currentUserRole === "admin" || currentUserRole === "super_admin")
       ? safeLoad(loadCatalog(cfgPaymentMethod, "payment-methods"))
       : Promise.resolve(null),
-    currentUserRole === "admin"
+    (currentUserRole === "admin" || currentUserRole === "super_admin")
       ? safeLoad(loadCatalog(cfgBankAccount, "bank-accounts"))
       : Promise.resolve(null),
-    currentUserRole === "admin"
+    (currentUserRole === "admin" || currentUserRole === "super_admin")
       ? safeLoad(loadCatalog(cfgPriceGeneral, "price-lists"))
       : Promise.resolve(null),
-    currentUserRole === "admin"
+    (currentUserRole === "admin" || currentUserRole === "super_admin")
       ? safeLoad(loadCatalog(cfgPriceDiscount, "price-lists"))
       : Promise.resolve(null),
-    currentUserRole === "admin"
+    (currentUserRole === "admin" || currentUserRole === "super_admin")
       ? safeLoad(loadCatalog(cfgPriceWholesale, "price-lists"))
       : Promise.resolve(null),
   ]);
   initModuleControls();
   initHelpPanels();
   openWizardStep();
+  if (window.location && window.location.pathname === "/__sa") {
+    activateNav("superadmin");
+  }
 }
 
 init();

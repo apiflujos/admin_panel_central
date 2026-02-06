@@ -1,6 +1,15 @@
 import { Router } from "express";
 import { handleAlegraWebhook, handleShopifyWebhook } from "./webhooks.controller";
-import { authMe, authMiddleware, changePasswordHandler, createAuthTokenHandler, loginHandler, logoutHandler, requireAdmin } from "./auth.controller";
+import {
+  authMe,
+  authMiddleware,
+  changePasswordHandler,
+  createAuthTokenHandler,
+  loginHandler,
+  logoutHandler,
+  requireAdmin,
+  requireSuperAdmin,
+} from "./auth.controller";
 import { assistantExecuteHandler, assistantQueryHandler } from "./assistant.controller";
 import { listLogs, retryFailed } from "./logs.controller";
 import { listAlegraCatalog, getSettings, listResolutions, testConnections, updateSettings } from "./settings.controller";
@@ -65,6 +74,16 @@ import { listOrdersHandler, backfillOrdersHandler } from "./orders.controller";
 import { downloadInvoicePdfHandler, listInvoicesHandler } from "./invoices.controller";
 import { syncInvoicesToShopifyHandler } from "./invoices-sync.controller";
 import { marketingGraphqlHttpHandler } from "../marketing/graphql/marketing-graphql";
+import { billingSummaryHandler } from "./billing.controller";
+import {
+  saAssignPlanHandler,
+  saListModulesHandler,
+  saListPlansHandler,
+  saListTenantsHandler,
+  saResetCountersHandler,
+  saSetTenantModuleHandler,
+  saTenantSummaryHandler,
+} from "./superadmin.controller";
 
 export const router = Router();
 
@@ -94,6 +113,17 @@ router.post("/auth/password", wrap(changePasswordHandler));
 router.get("/auth/me", wrap(authMe));
 router.get("/auth/shopify/status", requireAdmin, wrap(shopifyOAuthStatus));
 router.post("/auth/token", requireAdmin, wrap(createAuthTokenHandler));
+
+router.get("/billing/summary", wrap(billingSummaryHandler));
+
+// Super Admin (global)
+router.get("/sa/tenants", requireSuperAdmin, wrap(saListTenantsHandler));
+router.get("/sa/plans", requireSuperAdmin, wrap(saListPlansHandler));
+router.get("/sa/modules", requireSuperAdmin, wrap(saListModulesHandler));
+router.post("/sa/modules/toggle", requireSuperAdmin, wrap(saSetTenantModuleHandler));
+router.post("/sa/plans/assign", requireSuperAdmin, wrap(saAssignPlanHandler));
+router.get("/sa/usage", requireSuperAdmin, wrap(saTenantSummaryHandler));
+router.post("/sa/reset", requireSuperAdmin, wrap(saResetCountersHandler));
 router.get("/profile", wrap(getProfileHandler));
 router.put("/profile", wrap(updateProfileHandler));
 router.get("/company", wrap(getCompanyHandler));

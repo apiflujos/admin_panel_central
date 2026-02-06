@@ -4335,3 +4335,9 @@ textarea::placeholder {
   margin: 10px 0 0 18px;
   color: var(--muted);
 }
+
+.topbar-billing {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}

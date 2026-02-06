@@ -40,8 +40,10 @@ export async function authMe(req: Request, res: Response) {
     ok: true,
     user: {
       id: user.id,
+      organizationId: (user as any).organization_id,
       email: user.email,
       role: user.role,
+      isSuperAdmin: Boolean((user as any).is_super_admin),
       name: user.name,
       phone: user.phone,
       photoBase64: user.photo_base64,
@@ -69,8 +71,10 @@ export async function loginHandler(req: Request, res: Response) {
     ok: true,
     user: {
       id: result.user.id,
+      organizationId: (result.user as any).organization_id,
       email: result.user.email,
       role: result.user.role,
+      isSuperAdmin: Boolean((result.user as any).is_super_admin),
       name: result.user.name,
       phone: result.user.phone,
       photoBase64: result.user.photo_base64,
@@ -125,7 +129,19 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const user = (req as { user?: { role?: string } }).user;
-  if (!user || user.role !== "admin") {
+  if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+    res.status(403).json({ error: "forbidden" });
+    return;
+  }
+  next();
+}
+
+export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
+  const user = (req as { user?: { role?: string; email?: string; is_super_admin?: boolean } }).user as any;
+  const requiredEmail = String(process.env.SUPER_ADMIN_EMAIL || "comercial@apiflujos.com").trim().toLowerCase();
+  const email = String(user?.email || "").trim().toLowerCase();
+  const ok = Boolean(user) && user.role === "super_admin" && Boolean(user.is_super_admin) && email === requiredEmail;
+  if (!ok) {
     res.status(403).json({ error: "forbidden" });
     return;
   }

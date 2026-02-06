@@ -44,7 +44,9 @@ async function performRepair(poolInstance: Pool) {
         "CREATE TABLE IF NOT EXISTS idempotency_keys (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), key TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'processing', last_error TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (organization_id, key));",
         "CREATE TABLE IF NOT EXISTS order_invoice_overrides (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), order_id TEXT NOT NULL, einvoice_requested BOOLEAN NOT NULL DEFAULT false, id_type TEXT, id_number TEXT, fiscal_name TEXT, email TEXT, phone TEXT, address TEXT, city TEXT, state TEXT, country TEXT, zip TEXT, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (organization_id, order_id));",
         "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), email TEXT NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'agent', name TEXT, phone TEXT, photo_base64 TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_super_admin BOOLEAN NOT NULL DEFAULT false;",
         "CREATE UNIQUE INDEX IF NOT EXISTS users_org_email_idx ON users (organization_id, email);",
+        "CREATE INDEX IF NOT EXISTS users_super_admin_email_idx ON users (lower(email)) WHERE is_super_admin = true;",
         "CREATE TABLE IF NOT EXISTS user_sessions (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), token TEXT NOT NULL, expires_at TIMESTAMPTZ NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW());",
         "CREATE UNIQUE INDEX IF NOT EXISTS user_sessions_token_idx ON user_sessions (token);",
         "CREATE TABLE IF NOT EXISTS company_profiles (id SERIAL PRIMARY KEY, organization_id INTEGER NOT NULL REFERENCES organizations(id), name TEXT, phone TEXT, address TEXT, logo_base64 TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());",
@@ -410,6 +412,103 @@ async function performRepair(poolInstance: Pool) {
         "CREATE INDEX IF NOT EXISTS marketing_events_org_shop_time_idx ON marketing.attribution_events (organization_id, shop_domain, occurred_at DESC);",
         "CREATE INDEX IF NOT EXISTS marketing_daily_org_shop_date_idx ON marketing.daily_metrics (organization_id, shop_domain, date DESC);",
         "CREATE INDEX IF NOT EXISTS marketing_spend_org_shop_date_idx ON marketing.campaign_spend (organization_id, shop_domain, date DESC);",
+
+        // --- Super Admin / Billing module (schema: sa) ---
+        "CREATE SCHEMA IF NOT EXISTS sa;",
+        `CREATE TABLE IF NOT EXISTS sa.limit_definitions (
+          key TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          period_type TEXT NOT NULL DEFAULT 'monthly',
+          active BOOLEAN NOT NULL DEFAULT true,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );`,
+        `CREATE TABLE IF NOT EXISTS sa.module_definitions (
+          key TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          active BOOLEAN NOT NULL DEFAULT true,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );`,
+        `CREATE TABLE IF NOT EXISTS sa.tenant_modules (
+          id BIGSERIAL PRIMARY KEY,
+          tenant_id INTEGER NOT NULL REFERENCES organizations(id),
+          module_key TEXT NOT NULL REFERENCES sa.module_definitions(key),
+          enabled BOOLEAN NOT NULL DEFAULT true,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (tenant_id, module_key)
+        );`,
+        `CREATE TABLE IF NOT EXISTS sa.plan_definitions (
+          id BIGSERIAL PRIMARY KEY,
+          key TEXT NOT NULL,
+          name TEXT NOT NULL,
+          plan_type TEXT NOT NULL,
+          monthly_price NUMERIC NOT NULL DEFAULT 0,
+          active BOOLEAN NOT NULL DEFAULT true,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (key)
+        );`,
+        `CREATE TABLE IF NOT EXISTS sa.plan_service_limits (
+          id BIGSERIAL PRIMARY KEY,
+          plan_id BIGINT NOT NULL REFERENCES sa.plan_definitions(id),
+          service_key TEXT NOT NULL REFERENCES sa.limit_definitions(key),
+          is_unlimited BOOLEAN NOT NULL DEFAULT false,
+          max_value NUMERIC,
+          unit_price NUMERIC NOT NULL DEFAULT 0,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (plan_id, service_key)
+        );`,
+        `CREATE TABLE IF NOT EXISTS sa.tenant_plans (
+          id BIGSERIAL PRIMARY KEY,
+          tenant_id INTEGER NOT NULL REFERENCES organizations(id),
+          plan_id BIGINT NOT NULL REFERENCES sa.plan_definitions(id),
+          snapshot_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+          assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (tenant_id)
+        );`,
+        `CREATE TABLE IF NOT EXISTS sa.usage_events (
+          id BIGSERIAL PRIMARY KEY,
+          tenant_id INTEGER NOT NULL REFERENCES organizations(id),
+          service_key TEXT NOT NULL REFERENCES sa.limit_definitions(key),
+          amount NUMERIC NOT NULL DEFAULT 1,
+          period_key TEXT NOT NULL,
+          source TEXT,
+          meta JSONB NOT NULL DEFAULT '{}'::jsonb,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );`,
+        `CREATE TABLE IF NOT EXISTS sa.usage_counters (
+          id BIGSERIAL PRIMARY KEY,
+          tenant_id INTEGER NOT NULL REFERENCES organizations(id),
+          service_key TEXT NOT NULL REFERENCES sa.limit_definitions(key),
+          period_key TEXT NOT NULL,
+          total NUMERIC NOT NULL DEFAULT 0,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (tenant_id, service_key, period_key)
+        );`,
+        `CREATE TABLE IF NOT EXISTS sa.billing_events (
+          id BIGSERIAL PRIMARY KEY,
+          tenant_id INTEGER NOT NULL REFERENCES organizations(id),
+          service_key TEXT NOT NULL REFERENCES sa.limit_definitions(key),
+          quantity NUMERIC NOT NULL DEFAULT 0,
+          unit_price NUMERIC NOT NULL DEFAULT 0,
+          total NUMERIC NOT NULL DEFAULT 0,
+          period_key TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );`,
+        `CREATE TABLE IF NOT EXISTS sa.billing_counters (
+          id BIGSERIAL PRIMARY KEY,
+          tenant_id INTEGER NOT NULL REFERENCES organizations(id),
+          service_key TEXT NOT NULL REFERENCES sa.limit_definitions(key),
+          period_key TEXT NOT NULL,
+          quantity NUMERIC NOT NULL DEFAULT 0,
+          total NUMERIC NOT NULL DEFAULT 0,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (tenant_id, service_key, period_key)
+        );`,
+        "CREATE INDEX IF NOT EXISTS sa_usage_events_tenant_period_idx ON sa.usage_events (tenant_id, period_key, created_at DESC);",
+        "CREATE INDEX IF NOT EXISTS sa_billing_events_tenant_period_idx ON sa.billing_events (tenant_id, period_key, created_at DESC);",
       ];
       for (const query of queries) {
         try {
@@ -604,6 +703,7 @@ export async function ensureUsersTables(poolInstance: Pool) {
           email TEXT NOT NULL,
           password_hash TEXT NOT NULL,
           role TEXT NOT NULL DEFAULT 'agent',
+          is_super_admin BOOLEAN NOT NULL DEFAULT false,
           name TEXT,
           phone TEXT,
           photo_base64 TEXT,
@@ -615,6 +715,15 @@ export async function ensureUsersTables(poolInstance: Pool) {
         poolInstance.query(
           `
           CREATE UNIQUE INDEX IF NOT EXISTS users_org_email_idx ON users (organization_id, email)
+          `
+        )
+      )
+      .then(() =>
+        poolInstance.query(
+          `
+          CREATE INDEX IF NOT EXISTS users_super_admin_email_idx
+          ON users (lower(email))
+          WHERE is_super_admin = true
           `
         )
       )

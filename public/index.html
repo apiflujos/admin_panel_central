@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
-    <link rel="stylesheet" href="styles.css?v=20260206p09" />
+    <link rel="stylesheet" href="styles.css?v=20260206p10" />
   </head>
   <body>
     <div class="app-shell">
@@ -25,6 +25,15 @@
               </svg>
             </span>
             <span class="nav-label">Metricas</span>
+          </button>
+          <button class="nav-item" data-target="superadmin" title="Super Admin" id="nav-superadmin" style="display:none">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M12 3l7 4v6c0 5-3 8-7 8s-7-3-7-8V7l7-4z" />
+                <path d="M9 12l2 2 4-4" />
+              </svg>
+            </span>
+            <span class="nav-label">Super Admin</span>
           </button>
           <button class="nav-item" data-target="marketing" title="Marketing">
             <span class="nav-icon" aria-hidden="true">
@@ -110,6 +119,10 @@
             </div>
           </div>
           <div class="topbar-actions">
+            <div class="topbar-billing" id="topbar-billing" style="display:none">
+              <span class="status-pill" id="billing-month-usage">Consumo: --</span>
+              <span class="status-pill" id="billing-month-total">Cobro: --</span>
+            </div>
             <div class="topbar-user" id="topbar-user">
               <button class="ghost topbar-user-trigger" id="topbar-user-toggle" type="button">
                 <img id="user-avatar" src="/assets/avatar.png" alt="Usuario" />
@@ -370,6 +383,93 @@
               </div>
             </div>
             <p class="field-hint" id="profile-message"></p>
+          </div>
+        </section>
+
+        <section class="section" id="superadmin">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Super Admin</h3>
+              <span class="panel-tag">Global</span>
+            </div>
+            <div class="toolbar products-toolbar">
+              <select id="sa-tab">
+                <option value="usage" selected>Consumos</option>
+                <option value="plans">Planes</option>
+                <option value="modules">Módulos</option>
+              </select>
+              <div class="toolbar-store">
+                <label for="sa-tenant">Tenant</label>
+                <select id="sa-tenant"></select>
+              </div>
+              <input type="month" id="sa-period" />
+              <button class="primary" id="sa-load" type="button">Cargar</button>
+              <button class="ghost danger" id="sa-reset" type="button" title="Resetea contadores del mes (no borra histórico)">Resetear contadores</button>
+            </div>
+            <p class="field-hint" id="sa-status">Sin datos</p>
+
+            <div class="panel" id="sa-pane-usage">
+              <div class="panel-header">
+                <h3>Consumo del mes</h3>
+                <div class="panel-meta">
+                  <span class="panel-source">usage_counters / billing_counters</span>
+                  <span class="panel-tag">Mensual</span>
+                </div>
+              </div>
+              <div class="table-card">
+                <table class="table" id="sa-usage-table">
+                  <thead>
+                    <tr>
+                      <th>Servicio</th>
+                      <th>Consumo</th>
+                      <th>Cobrado (qty)</th>
+                      <th>Cobrado (total)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td colspan="4" class="empty">Sin datos</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="panel" id="sa-pane-plans" style="display:none">
+              <div class="panel-header">
+                <h3>Asignar plan</h3>
+                <div class="panel-meta">
+                  <span class="panel-source">tenant_plans</span>
+                  <span class="panel-tag">Master / Pro / On Demand</span>
+                </div>
+              </div>
+              <div class="toolbar products-toolbar">
+                <select id="sa-plan-key"></select>
+                <button class="primary" id="sa-assign-plan" type="button">Asignar</button>
+              </div>
+              <pre class="modal-errors" id="sa-plan-snapshot">Sin datos</pre>
+            </div>
+
+            <div class="panel" id="sa-pane-modules" style="display:none">
+              <div class="panel-header">
+                <h3>Módulos</h3>
+                <div class="panel-meta">
+                  <span class="panel-source">tenant_modules</span>
+                  <span class="panel-tag">Toggle</span>
+                </div>
+              </div>
+              <div class="table-card">
+                <table class="table" id="sa-modules-table">
+                  <thead>
+                    <tr>
+                      <th>Módulo</th>
+                      <th>Activo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td colspan="2" class="empty">Sin datos</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -2043,6 +2143,6 @@
       </div>
     </div>
 
-	    <script src="app.js?v=20260206p09" type="module"></script>
+	    <script src="app.js?v=20260206p10" type="module"></script>
 	  </body>
 	</html>

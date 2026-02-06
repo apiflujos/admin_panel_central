@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { ensureOrganization, ensureUsersTables, getOrgId, getPool } from "../db";
+import { getSuperAdminEmail, getSuperAdminPassword } from "../sa/sa.bootstrap";
 
 export const AUTH_COOKIE_NAME = "os_session";
 
@@ -10,9 +11,11 @@ const PASSWORD_DIGEST = "sha512";
 
 type UserRecord = {
   id: number;
+  organization_id: number;
   email: string;
   password_hash: string;
-  role: "admin" | "agent";
+  role: "admin" | "agent" | "super_admin";
+  is_super_admin: boolean;
   name: string | null;
   phone: string | null;
   photo_base64: string | null;
@@ -23,21 +26,32 @@ export async function authenticateUser(email: string, password: string, remember
   const orgId = getOrgId();
   await ensureOrganization(pool, orgId);
   await ensureUsersTables(pool);
+  await ensureSuperAdmin(pool);
   await ensureDefaultAdmin(pool, orgId);
+
+  const normalizedEmail = email.trim();
+  const isSuperAdminLogin = normalizedEmail.toLowerCase() === getSuperAdminEmail();
+
   const result = await pool.query<UserRecord>(
     `
-    SELECT id, email, password_hash, role, name, phone, photo_base64
+    SELECT id, organization_id, email, password_hash, role, is_super_admin, name, phone, photo_base64
     FROM users
-    WHERE organization_id = $1 AND lower(email) = lower($2)
+    WHERE lower(email) = lower($1)
+      AND ($2::boolean = true OR organization_id = $3)
+    ORDER BY is_super_admin DESC, id ASC
     LIMIT 1
     `,
-    [orgId, email.trim()]
+    [normalizedEmail, isSuperAdminLogin, orgId]
   );
   if (!result.rows.length) {
     return null;
   }
   const user = result.rows[0];
   if (!verifyPassword(password, user.password_hash)) {
+    return null;
+  }
+  // Super admin must match both flags (email + is_super_admin).
+  if (isSuperAdminLogin && !user.is_super_admin) {
     return null;
   }
   const token = crypto.randomBytes(24).toString("hex");
@@ -88,7 +102,7 @@ export async function getSessionUser(token: string | undefined | null) {
     UserRecord & { expires_at: Date }
   >(
     `
-    SELECT u.id, u.email, u.password_hash, u.role, u.name, u.phone, u.photo_base64, s.expires_at
+    SELECT u.id, u.organization_id, u.email, u.password_hash, u.role, u.is_super_admin, u.name, u.phone, u.photo_base64, s.expires_at
     FROM user_sessions s
     JOIN users u ON u.id = s.user_id
     WHERE s.token = $1
@@ -179,6 +193,33 @@ async function ensureDefaultAdmin(pool: ReturnType<typeof getPool>, orgId: numbe
     VALUES ($1, $2, $3, 'admin', $4)
     `,
     [orgId, effectiveEmail, passwordHash, "Sebastian"]
+  );
+}
+
+async function ensureSuperAdmin(pool: ReturnType<typeof getPool>) {
+  const email = getSuperAdminEmail();
+  const password = getSuperAdminPassword();
+  const orgId = 1;
+  await ensureOrganization(pool, orgId);
+
+  const existing = await pool.query<{ id: number }>(
+    `
+    SELECT id
+    FROM users
+    WHERE is_super_admin = true AND lower(email) = lower($1)
+    LIMIT 1
+    `,
+    [email]
+  );
+  if (existing.rows.length) return;
+
+  const passwordHash = hashPassword(password);
+  await pool.query(
+    `
+    INSERT INTO users (organization_id, email, password_hash, role, is_super_admin, name)
+    VALUES ($1, $2, $3, 'super_admin', true, 'Super Admin')
+    `,
+    [orgId, email, passwordHash]
   );
 }
 

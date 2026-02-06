@@ -56,8 +56,10 @@ export async function getProfileHandler(req: Request, res: Response) {
     res.status(200).json({
       user: {
         id: user.id,
+        organizationId: (user as any).organization_id,
         email: user.email,
         role: user.role,
+        isSuperAdmin: Boolean((user as any).is_super_admin),
         name: user.name,
         phone: user.phone,
         photoBase64: user.photo_base64,
