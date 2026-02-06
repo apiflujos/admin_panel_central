@@ -39,7 +39,7 @@ const normalizeDomain = (value: string) =>
     .replace(/\/.*$/, "")
     .toLowerCase();
 
-const parsePriceValue = (value?: string | number | null) => {
+const parsePriceValue = (value?: unknown) => {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   if (typeof value === "string") {
     const trimmed = value.trim();
@@ -50,13 +50,20 @@ const parsePriceValue = (value?: string | number | null) => {
   return null;
 };
 
-const normalizePriceListId = (value?: string | number | null) =>
-  value === undefined || value === null ? "" : String(value).trim();
+const normalizePriceListId = (value?: unknown) => {
+  if (value === undefined || value === null) return "";
+  if (typeof value === "string" || typeof value === "number") return String(value).trim();
+  return "";
+};
 
-const resolvePriceListId = (price: Record<string, unknown>) =>
-  normalizePriceListId((price as { priceListId?: unknown }).priceListId) ||
-  normalizePriceListId((price as { priceList?: { id?: unknown } }).priceList?.id) ||
-  normalizePriceListId((price as { id?: unknown }).id);
+const resolvePriceListId = (price: Record<string, unknown>) => {
+  const raw = price as { priceListId?: unknown; priceList?: { id?: unknown }; id?: unknown };
+  return (
+    normalizePriceListId(raw.priceListId) ||
+    normalizePriceListId(raw.priceList?.id) ||
+    normalizePriceListId(raw.id)
+  );
+};
 
 const resolveAlegraItemPrice = (item: Record<string, unknown>, listId?: string) => {
   if (!item) return null;
@@ -125,7 +132,7 @@ async function buildProductCreateInput(
   const includeDescriptions = settings.includeDescriptions !== false;
   const includeProductType = settings.includeProductType !== false;
   const includeTags = settings.includeTags !== false;
-  const status = settings.status === "active" ? "ACTIVE" : "DRAFT";
+  const status: "ACTIVE" | "DRAFT" = settings.status === "active" ? "ACTIVE" : "DRAFT";
   const priceListId = settings.priceListId;
   const priceFallback = settings.priceFallback || "shopify";
 
@@ -221,6 +228,7 @@ export async function syncShopifyProductsBetweenStores(
     throw new Error("La tienda origen y destino deben ser diferentes.");
   }
 
+  const settings: ShopifyStoreProductsSyncSettings = params.settings || {};
   const sourceConnection = await getShopifyConnectionByDomain(sourceDomain);
   const targetConnection = await getShopifyConnectionByDomain(targetDomain);
   const alegraAccountId = Number(settings.alegraAccountId || 0);
@@ -241,7 +249,6 @@ export async function syncShopifyProductsBetweenStores(
   });
   const alegraClient = await getAlegraClient(alegraAccountId);
 
-  const settings: ShopifyStoreProductsSyncSettings = params.settings || {};
   const onlyActive = settings.onlyActive !== false;
   const query = onlyActive ? "status:active" : "status:any";
   const products = await sourceClient.listAllProductsByQuery(query);
