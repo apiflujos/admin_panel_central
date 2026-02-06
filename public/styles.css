@@ -98,6 +98,8 @@ body {
   display: grid;
   grid-template-columns: 220px 1fr;
   min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -107,6 +109,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  align-self: start;
+  overflow: hidden;
 }
 
 .sidebar-header {
@@ -166,6 +173,9 @@ body {
   flex-direction: column;
   gap: 8px;
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .nav-item {
@@ -382,6 +392,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .topbar {
