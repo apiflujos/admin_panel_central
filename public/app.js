@@ -10475,7 +10475,7 @@ if (marketingSync) {
   marketingSync.addEventListener("click", async () => {
     try {
       ensureMarketingDefaults();
-      const { shopDomain, from } = getMarketingQuery();
+      const { shopDomain, from, to } = getMarketingQuery();
       if (!shopDomain) {
         showToast("Selecciona una tienda primero.", "is-warn");
         return;
@@ -10486,6 +10486,17 @@ if (marketingSync) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ shopDomain, sinceDate: from, maxOrders: 1500 }),
       });
+      try {
+        if (from && to) {
+          await fetchJson("/api/marketing/metrics/recompute", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ shopDomain, from, to }),
+          });
+        }
+      } catch {
+        // If recompute fails, still allow dashboard load (user can click recompute manually).
+      }
       showToast("Sync de marketing completado.", "is-ok");
       loadMarketing().catch(() => null);
     } catch (error) {

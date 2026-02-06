@@ -238,6 +238,7 @@ export class ShopifyAdminApi {
             displayFinancialStatus?: string | null;
             sourceName?: string | null;
             tags: string[];
+            registeredSourceUrl?: string | null;
             totalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
             customer?: { id: string; email?: string | null } | null;
             lineItems: {
@@ -268,6 +269,7 @@ export class ShopifyAdminApi {
               displayFinancialStatus
               sourceName
               tags
+              registeredSourceUrl
               totalPriceSet { shopMoney { amount currencyCode } }
               customer { id email }
               lineItems(first: 50) {
@@ -326,7 +328,9 @@ export function parseUtmFromUrl(rawUrl: string) {
     };
   }
   try {
-    const url = new URL(text);
+    // Shopify often sends relative URLs (e.g. "/?utm_source=...").
+    // Use a dummy base so URL parsing still works for relative paths.
+    const url = new URL(text, "https://utm.local");
     const get = (key: string) => {
       const value = url.searchParams.get(key);
       return value ? value.trim() : null;

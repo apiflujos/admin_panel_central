@@ -60,9 +60,33 @@ export async function syncMarketingOrders(shopDomain: string, options: SyncOptio
       const email = node.customer?.email || null;
       const journey = (node as any)?.customerJourneySummary || null;
       const lastVisit = journey?.lastVisit || null;
-      const landingSite = String(lastVisit?.landingPage || (node as any)?.registeredSourceUrl || "").trim();
-      const referrer = String(lastVisit?.referrerUrl || "").trim();
-      const utm = parseUtmFromUrl(landingSite);
+      const firstVisit = journey?.firstVisit || null;
+      const landingSite = String(
+        lastVisit?.landingPage ||
+          firstVisit?.landingPage ||
+          (node as any)?.registeredSourceUrl ||
+          ""
+      ).trim();
+      const referrer = String(lastVisit?.referrerUrl || firstVisit?.referrerUrl || "").trim();
+
+      const fromParams = (visit: any) => {
+        const params = visit?.utmParameters || null;
+        if (!params) return null;
+        const pick = (value: unknown) => {
+          const trimmed = String(value ?? "").trim();
+          return trimmed ? trimmed : null;
+        };
+        const utm_source = pick(params.source);
+        const utm_medium = pick(params.medium);
+        const utm_campaign = pick(params.campaign);
+        const utm_content = pick(params.content);
+        if (!utm_source && !utm_medium && !utm_campaign && !utm_content) return null;
+        return { utm_source, utm_medium, utm_campaign, utm_content };
+      };
+      const utm =
+        fromParams(lastVisit) ||
+        fromParams(firstVisit) ||
+        parseUtmFromUrl(landingSite);
       const channel = inferChannel({
         utmSource: utm.utm_source,
         utmMedium: utm.utm_medium,
