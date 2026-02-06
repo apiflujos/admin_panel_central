@@ -9,6 +9,8 @@ import { ShopifyClient, ShopifyOrder } from "../connectors/shopify";
 import { getAlegraBaseUrl } from "../utils/alegra-env";
 import { getMappingByAlegraId, getMappingByShopifyId } from "../services/mapping.service";
 import { resolveShopifyApiVersion } from "../utils/shopify";
+import { getShopifyConnectionByDomain } from "../services/store-connections.service";
+import { resolveStoreConfig } from "../services/store-config.service";
 
 const resolveInvoiceNumber = (invoice: Record<string, unknown> | null) => {
   const template = invoice?.numberTemplate as Record<string, unknown> | undefined;
