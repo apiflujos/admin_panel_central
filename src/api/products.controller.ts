@@ -1418,10 +1418,8 @@ export async function syncProductsHandler(req: Request, res: Response) {
     const normalizeDomain = (value: string) =>
       value.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
     const normalizedShopDomain = shopDomainInput ? normalizeDomain(shopDomainInput) : "";
-    const shopifyConfig = publishOnSync ? await getShopifyConfig(normalizedShopDomain) : null;
-    const storeDomain = normalizedShopDomain || shopifyConfig?.shopDomain || "";
-    const storeConfig = storeDomain ? await resolveStoreConfig(storeDomain) : await resolveStoreConfig(null);
-    const storeConfigFull = storeDomain ? await getStoreConfigForDomain(storeDomain) : null;
+    const storeDomainInput = normalizedShopDomain;
+    const storeConfigFull = storeDomainInput ? await getStoreConfigForDomain(storeDomainInput) : null;
     const parseBooleanLike = (value: unknown, fallback: boolean) => {
       if (typeof value === "boolean") return value;
       const lowered = String(value ?? "").trim().toLowerCase();
@@ -1430,10 +1428,18 @@ export async function syncProductsHandler(req: Request, res: Response) {
       if (lowered === "0" || lowered === "false" || lowered === "no" || lowered === "off") return false;
       return fallback;
     };
-    const updateExisting = parseBooleanLike(
+    const updateExistingRequested = parseBooleanLike(
       (settings as Record<string, unknown>).updateExisting,
       storeConfigFull?.rules?.updateInShopify !== false
     );
+    const updateExisting = Boolean(publishOnSync) && Boolean(updateExistingRequested);
+    const needsShopify = Boolean(publishOnSync);
+    if (needsShopify && !storeDomainInput) {
+      throw new Error("shopDomain requerido para sincronizar con Shopify.");
+    }
+    const shopifyConfig = needsShopify ? await getShopifyConfig(storeDomainInput) : null;
+    const storeDomain = storeDomainInput || shopifyConfig?.shopDomain || "";
+    const storeConfig = storeDomain ? await resolveStoreConfig(storeDomain) : await resolveStoreConfig(null);
     const withShopifyRetry = async <T,>(
       fn: () => Promise<T>,
       options: { label: string; retries?: number } = { label: "shopify_call" }
@@ -1615,7 +1621,8 @@ export async function syncProductsHandler(req: Request, res: Response) {
                 updatedAny = true;
               }
               const desiredStatus = String(settings.status || "draft").toLowerCase();
-              if (status.productId && (desiredStatus === "active" || desiredStatus === "draft")) {
+              // Status updates are tied to "Publicar en Shopify".
+              if (publishOnSync && status.productId && (desiredStatus === "active" || desiredStatus === "draft")) {
                 await withShopifyRetry(
                   () => shopifyClient.updateProductStatus(String(status.productId), desiredStatus === "active"),
                   { label: "updateProductStatus", retries: 1 }
@@ -1626,6 +1633,12 @@ export async function syncProductsHandler(req: Request, res: Response) {
               } else {
                 skipped += 1;
               }
+              if (parentId) processedParents.add(parentId);
+              continue;
+            }
+            if (!publishOnSync) {
+              // No tocar Shopify (ni crear) si "Publicar en Shopify" está OFF.
+              skipped += 1;
               if (parentId) processedParents.add(parentId);
               continue;
             }
@@ -2040,6 +2053,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
       parentCount,
       variantCount,
       publishOnSync,
+      updateExisting,
       publishStatus: settings.status || "draft",
       onlyPublishedInShopify,
       syncId,
