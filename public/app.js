@@ -199,6 +199,7 @@ const userMenu = document.getElementById("topbar-user-menu");
 const userMenuToggle = document.getElementById("topbar-user-toggle");
 const companyLogo = document.getElementById("company-logo");
 const sidebarLogout = document.getElementById("sidebar-logout");
+const sidebarToggleIcon = document.getElementById("sidebar-toggle-icon");
 
 const storeNameInput = document.getElementById("store-name");
 const storeActiveField = document.getElementById("store-active-field");
@@ -848,6 +849,9 @@ function setSidebarCollapsed(collapsed) {
   if (sidebarToggle) {
     sidebarToggle.setAttribute("aria-label", collapsed ? "Abrir menú" : "Cerrar menú");
     sidebarToggle.setAttribute("title", collapsed ? "Abrir menú" : "Cerrar menú");
+  }
+  if (sidebarToggleIcon instanceof SVGPathElement) {
+    sidebarToggleIcon.setAttribute("d", collapsed ? "M9 18l6-6-6-6" : "M15 18l-6-6 6-6");
   }
   try {
     localStorage.setItem("apiflujos-sidebar-collapsed", collapsed ? "1" : "0");
@@ -8989,6 +8993,9 @@ async function sendAssistantMessage() {
 }
 
 async function loadCatalog(select, endpoint) {
+  if (!(select instanceof HTMLSelectElement)) {
+    return;
+  }
   try {
     const params = new URLSearchParams();
     const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
@@ -9043,7 +9050,11 @@ async function loadCatalog(select, endpoint) {
     option.selected = !allowEmpty;
     option.textContent = "Error al cargar";
     select.appendChild(option);
-    console.error(error);
+    // Si Alegra no está conectado (403), evitamos llenar la consola.
+    const msg = String(error?.message || "");
+    if (!msg.includes("Alegra API error: 403")) {
+      console.error(error);
+    }
   }
 }
 
@@ -11796,7 +11807,9 @@ async function init() {
   await safeLoad(loadCurrentUser());
   await safeLoad(loadCompanyProfile());
   await safeLoad(loadUsers());
-  await safeLoad(loadLogs());
+  if (currentUserIsSuperAdmin) {
+    await safeLoad(loadLogs());
+  }
   await safeLoad(loadMetrics());
   setOperationsView("orders");
   await safeLoad(loadOperationsView());
@@ -11806,40 +11819,40 @@ async function init() {
     await safeLoad(loadResolutions());
   }
 	  await Promise.all([
-	    (currentUserRole === "admin" || currentUserRole === "super_admin")
+	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
 	      ? safeLoad(loadCatalog(cfgCostCenter, "cost-centers"))
 	      : Promise.resolve(null),
-	    (currentUserRole === "admin" || currentUserRole === "super_admin")
+	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
 	      ? safeLoad(loadCatalog(cfgWarehouse, "warehouses"))
 	      : Promise.resolve(null),
-      (currentUserRole === "admin" || currentUserRole === "super_admin") && productsShopifyBulkWarehouse instanceof HTMLSelectElement
+      (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken && productsShopifyBulkWarehouse instanceof HTMLSelectElement
         ? safeLoad(loadCatalog(productsShopifyBulkWarehouse, "warehouses"))
         : Promise.resolve(null),
-      (currentUserRole === "admin" || currentUserRole === "super_admin") && cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
+      (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken && cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
         ? safeLoad(loadCatalog(cfgProductsShopifyToAlegraWarehouse, "warehouses"))
         : Promise.resolve(null),
-	    (currentUserRole === "admin" || currentUserRole === "super_admin")
+	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
 	      ? safeLoad(loadCatalog(cfgTransferDest, "warehouses"))
 	      : Promise.resolve(null),
-	    (currentUserRole === "admin" || currentUserRole === "super_admin")
+	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
 	      ? safeLoad(loadCatalog(cfgTransferPriority, "warehouses"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin")
+    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
       ? safeLoad(loadCatalog(cfgSeller, "sellers"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin")
+    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
       ? safeLoad(loadCatalog(cfgPaymentMethod, "payment-methods"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin")
+    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
       ? safeLoad(loadCatalog(cfgBankAccount, "bank-accounts"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin")
+    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
       ? safeLoad(loadCatalog(cfgPriceGeneral, "price-lists"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin")
+    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
       ? safeLoad(loadCatalog(cfgPriceDiscount, "price-lists"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin")
+    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
       ? safeLoad(loadCatalog(cfgPriceWholesale, "price-lists"))
       : Promise.resolve(null),
   ]);
