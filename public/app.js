@@ -146,13 +146,22 @@ const saLoad = document.getElementById("sa-load");
 const saReset = document.getElementById("sa-reset");
 const saStatus = document.getElementById("sa-status");
 const saUsageBody = document.querySelector("#sa-usage-table tbody");
-const saPaneUsage = document.getElementById("sa-pane-usage");
+const saPaneTenant = document.getElementById("sa-pane-tenant");
+const saPaneServices = document.getElementById("sa-pane-services");
 const saPanePlans = document.getElementById("sa-pane-plans");
-const saPaneModules = document.getElementById("sa-pane-modules");
 const saPlanKey = document.getElementById("sa-plan-key");
 const saAssignPlan = document.getElementById("sa-assign-plan");
 const saPlanSnapshot = document.getElementById("sa-plan-snapshot");
 const saModulesBody = document.querySelector("#sa-modules-table tbody");
+const saServicesBody = document.querySelector("#sa-services-table tbody");
+const saServiceKey = document.getElementById("sa-service-key");
+const saServiceName = document.getElementById("sa-service-name");
+const saServicePeriod = document.getElementById("sa-service-period");
+const saServiceActive = document.getElementById("sa-service-active");
+const saServiceSave = document.getElementById("sa-service-save");
+const saPlanLimitsKey = document.getElementById("sa-plan-limits-key");
+const saPlanLimitsLoad = document.getElementById("sa-plan-limits-load");
+const saPlanLimitsBody = document.querySelector("#sa-plan-limits-table tbody");
 
 const marketingStoreSelect = document.getElementById("marketing-store-select");
 const marketingFrom = document.getElementById("marketing-from");
@@ -183,6 +192,7 @@ const userAvatar = document.getElementById("user-avatar");
 const userName = document.getElementById("user-name");
 const userRole = document.getElementById("user-role");
 const topbarBilling = document.getElementById("topbar-billing");
+const billingPlanPill = document.getElementById("billing-plan-pill");
 const billingMonthUsage = document.getElementById("billing-month-usage");
 const billingMonthTotal = document.getElementById("billing-month-total");
 const userMenu = document.getElementById("topbar-user-menu");
@@ -836,8 +846,8 @@ function setSidebarCollapsed(collapsed) {
   if (!appShell) return;
   appShell.classList.toggle("is-collapsed", Boolean(collapsed));
   if (sidebarToggle) {
-    sidebarToggle.setAttribute("aria-label", collapsed ? "Expandir menu" : "Colapsar menu");
-    sidebarToggle.setAttribute("title", collapsed ? "Expandir menu" : "Colapsar menu");
+    sidebarToggle.setAttribute("aria-label", collapsed ? "Abrir menú" : "Cerrar menú");
+    sidebarToggle.setAttribute("title", collapsed ? "Abrir menú" : "Cerrar menú");
   }
   try {
     localStorage.setItem("apiflujos-sidebar-collapsed", collapsed ? "1" : "0");
@@ -7643,8 +7653,10 @@ async function loadBillingTopbar() {
     const services = Array.isArray(data.services) ? data.services : [];
     const usageCount = services.reduce((acc, s) => acc + (Number(s.usage) || 0), 0);
     const billedTotal = Number(data.billedTotal || 0);
+    const planLabel = String(data.planType || data.planKey || "").trim();
     if (billingMonthUsage) billingMonthUsage.textContent = `Consumo: ${usageCount}`;
     if (billingMonthTotal) billingMonthTotal.textContent = `Cobro: ${formatCurrencyValue(billedTotal)}`;
+    if (billingPlanPill) billingPlanPill.textContent = `Plan: ${planLabel || "--"}`;
     setBillingTopbarVisible(true);
   } catch {
     setBillingTopbarVisible(false);
@@ -7659,10 +7671,10 @@ function setSaStatus(message, className) {
 }
 
 function setSaPane(paneKey) {
-  const key = String(paneKey || "usage");
-  if (saPaneUsage) saPaneUsage.style.display = key === "usage" ? "" : "none";
+  const key = String(paneKey || "tenant");
+  if (saPaneTenant) saPaneTenant.style.display = key === "tenant" ? "" : "none";
+  if (saPaneServices) saPaneServices.style.display = key === "services" ? "" : "none";
   if (saPanePlans) saPanePlans.style.display = key === "plans" ? "" : "none";
-  if (saPaneModules) saPaneModules.style.display = key === "modules" ? "" : "none";
 }
 
 function ensureSaDefaultsUi() {
@@ -7692,14 +7704,23 @@ async function loadSaTenants() {
 }
 
 async function loadSaPlans() {
-  if (!(saPlanKey instanceof HTMLSelectElement)) return;
+  const assignSelect = saPlanKey instanceof HTMLSelectElement ? saPlanKey : null;
+  const limitsSelect = saPlanLimitsKey instanceof HTMLSelectElement ? saPlanLimitsKey : null;
+  if (!assignSelect && !limitsSelect) return;
   const data = await fetchJson(`/api/sa/plans?t=${Date.now()}`);
   const items = Array.isArray(data.items) ? data.items : [];
-  saPlanKey.innerHTML = items
+  const html = items
     .filter((p) => p && p.active !== false)
     .map((p) => `<option value="${escapeHtml(p.key)}">${escapeHtml(p.name || p.key)}</option>`)
     .join("");
-  if (!saPlanKey.value && items[0]?.key) saPlanKey.value = String(items[0].key);
+  if (assignSelect) {
+    assignSelect.innerHTML = html;
+    if (!assignSelect.value && items[0]?.key) assignSelect.value = String(items[0].key);
+  }
+  if (limitsSelect) {
+    limitsSelect.innerHTML = html;
+    if (!limitsSelect.value && items[0]?.key) limitsSelect.value = String(items[0].key);
+  }
 }
 
 async function loadSaUsage() {
@@ -7739,7 +7760,12 @@ async function loadSaUsage() {
 
 async function loadSaModules() {
   if (!saModulesBody) return;
-  const data = await fetchJson(`/api/sa/modules?t=${Date.now()}`);
+  const tenantId = getSaTenantId();
+  if (!tenantId) {
+    saModulesBody.innerHTML = `<tr><td colspan="2" class="empty">Selecciona un tenant.</td></tr>`;
+    return;
+  }
+  const data = await fetchJson(`/api/sa/tenant/modules?tenantId=${tenantId}&t=${Date.now()}`);
   const items = Array.isArray(data.items) ? data.items : [];
   if (!items.length) {
     saModulesBody.innerHTML = `<tr><td colspan="2" class="empty">Sin datos</td></tr>`;
@@ -7749,10 +7775,97 @@ async function loadSaModules() {
     .map((m) => {
       const key = escapeHtml(m.key || "");
       const name = escapeHtml(m.name || m.key || "-");
+      const enabled = Boolean(m.enabled);
+      const disabled = Boolean(m.active === false);
       return `
         <tr>
           <td>${name}</td>
-          <td><input type="checkbox" data-sa-module="${key}" class="toggle" checked /></td>
+          <td><input type="checkbox" data-sa-module="${key}" class="toggle" ${enabled ? "checked" : ""} ${disabled ? "disabled" : ""} /></td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+async function loadSaSnapshot() {
+  if (!(saPlanSnapshot instanceof HTMLElement)) return;
+  const tenantId = getSaTenantId();
+  if (!tenantId) {
+    saPlanSnapshot.textContent = "Selecciona un tenant.";
+    return;
+  }
+  try {
+    const data = await fetchJson(`/api/sa/tenant/plan?tenantId=${tenantId}&t=${Date.now()}`);
+    if (data && data.snapshot) {
+      saPlanSnapshot.textContent = JSON.stringify(data.snapshot, null, 2);
+      return;
+    }
+  } catch (error) {
+    saPlanSnapshot.textContent = error?.message || "No se pudo cargar snapshot.";
+    return;
+  }
+  saPlanSnapshot.textContent = "Sin datos";
+}
+
+async function loadSaServices() {
+  if (!saServicesBody) return;
+  const data = await fetchJson(`/api/sa/services?t=${Date.now()}`);
+  const items = Array.isArray(data.items) ? data.items : [];
+  if (!items.length) {
+    saServicesBody.innerHTML = `<tr><td colspan="4" class="empty">Sin datos</td></tr>`;
+    return;
+  }
+  saServicesBody.innerHTML = items
+    .map((s) => {
+      const key = escapeHtml(s.key || "-");
+      const name = escapeHtml(s.name || s.key || "-");
+      const periodLabel = s.periodType === "total" ? "Total" : "Mensual";
+      const activeLabel = s.active === false ? "No" : "Sí";
+      return `
+        <tr>
+          <td>${key}</td>
+          <td>${name}</td>
+          <td>${periodLabel}</td>
+          <td>${activeLabel}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+async function loadSaPlanLimits() {
+  if (!saPlanLimitsBody) return;
+  const planKey = saPlanLimitsKey instanceof HTMLSelectElement ? String(saPlanLimitsKey.value || "") : "";
+  if (!planKey) {
+    saPlanLimitsBody.innerHTML = `<tr><td colspan="5" class="empty">Selecciona un plan.</td></tr>`;
+    return;
+  }
+  const data = await fetchJson(`/api/sa/plan/limits?planKey=${encodeURIComponent(planKey)}&t=${Date.now()}`);
+  const items = Array.isArray(data.items) ? data.items : [];
+  if (!items.length) {
+    saPlanLimitsBody.innerHTML = `<tr><td colspan="5" class="empty">Sin datos</td></tr>`;
+    return;
+  }
+  saPlanLimitsBody.innerHTML = items
+    .map((row) => {
+      const serviceKey = escapeHtml(row.serviceKey || "");
+      const serviceName = escapeHtml(row.serviceName || row.serviceKey || "-");
+      const isUnlimited = row.isUnlimited === true;
+      const maxValue = row.maxValue === null || row.maxValue === undefined ? "" : String(row.maxValue);
+      const unitPrice = row.unitPrice === null || row.unitPrice === undefined ? "0" : String(row.unitPrice);
+      const disabled = row.active === false;
+      return `
+        <tr>
+          <td>
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <span>${serviceName}</span>
+              <span class="muted">${serviceKey}</span>
+            </div>
+          </td>
+          <td><input type="checkbox" class="toggle" data-sa-limit-unlimited="1" data-sa-service="${serviceKey}" ${isUnlimited ? "checked" : ""} ${disabled ? "disabled" : ""} /></td>
+          <td><input type="number" min="0" step="1" data-sa-limit-max="1" data-sa-service="${serviceKey}" value="${escapeHtml(maxValue)}" ${disabled ? "disabled" : ""} /></td>
+          <td><input type="number" min="0" step="0.01" data-sa-limit-price="1" data-sa-service="${serviceKey}" value="${escapeHtml(unitPrice)}" ${disabled ? "disabled" : ""} /></td>
+          <td><button class="ghost" type="button" data-sa-limit-save="${serviceKey}" ${disabled ? "disabled" : ""}>Guardar</button></td>
         </tr>
       `;
     })
@@ -7770,9 +7883,20 @@ async function loadSuperAdmin() {
   }
   if (!superAdminLoaded) {
     superAdminLoaded = true;
-    await Promise.allSettled([loadSaTenants(), loadSaPlans(), loadSaModules()]);
+    await Promise.allSettled([loadSaTenants(), loadSaPlans(), loadSaServices()]);
   }
-  await loadSaUsage();
+  const tabKey = saTab instanceof HTMLSelectElement ? saTab.value : "tenant";
+  if (tabKey === "services") {
+    await loadSaServices();
+    setSaStatus("OK", "is-ok");
+    return;
+  }
+  if (tabKey === "plans") {
+    await loadSaPlanLimits();
+    setSaStatus("OK", "is-ok");
+    return;
+  }
+  await Promise.allSettled([loadSaSnapshot(), loadSaModules(), loadSaUsage()]);
 }
 
 function setMarketingStatus(message, className) {
@@ -10143,10 +10267,21 @@ if (sidebarLogout) {
 if (saTab instanceof HTMLSelectElement) {
   saTab.addEventListener("change", () => {
     setSaPane(saTab.value);
+    loadSuperAdmin().catch(() => null);
   });
 }
 if (saLoad) {
   saLoad.addEventListener("click", () => {
+    loadSuperAdmin().catch(() => null);
+  });
+}
+if (saTenant instanceof HTMLSelectElement) {
+  saTenant.addEventListener("change", () => {
+    loadSuperAdmin().catch(() => null);
+  });
+}
+if (saPeriod instanceof HTMLInputElement) {
+  saPeriod.addEventListener("change", () => {
     loadSuperAdmin().catch(() => null);
   });
 }
@@ -10195,6 +10330,7 @@ if (saAssignPlan) {
       }
       showToast("Plan asignado.", "is-ok");
       loadBillingTopbar().catch(() => null);
+      loadSaSnapshot().catch(() => null);
     } catch (error) {
       showToast(error?.message || "No se pudo asignar plan.", "is-error");
     } finally {
@@ -10220,6 +10356,88 @@ if (saModulesBody instanceof HTMLElement) {
       showToast("Módulo actualizado.", "is-ok");
     } catch (error) {
       showToast(error?.message || "No se pudo actualizar módulo.", "is-error");
+    }
+  });
+}
+
+if (saServiceSave) {
+  saServiceSave.addEventListener("click", async () => {
+    try {
+      const key = saServiceKey instanceof HTMLInputElement ? String(saServiceKey.value || "").trim() : "";
+      const name = saServiceName instanceof HTMLInputElement ? String(saServiceName.value || "").trim() : "";
+      const periodType = saServicePeriod instanceof HTMLSelectElement ? String(saServicePeriod.value || "monthly") : "monthly";
+      const active = saServiceActive instanceof HTMLInputElement ? Boolean(saServiceActive.checked) : true;
+      if (!key || !name) {
+        showToast("Key y nombre requeridos.", "is-warn");
+        return;
+      }
+      setButtonLoading(saServiceSave, true, "Guardando...");
+      await fetchJson("/api/sa/services", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, name, periodType, active }),
+      });
+      showToast("Servicio guardado.", "is-ok");
+      if (saServiceKey instanceof HTMLInputElement) saServiceKey.value = "";
+      if (saServiceName instanceof HTMLInputElement) saServiceName.value = "";
+      await Promise.allSettled([loadSaServices(), loadSaPlans()]);
+    } catch (error) {
+      showToast(error?.message || "No se pudo guardar servicio.", "is-error");
+    } finally {
+      setButtonLoading(saServiceSave, false);
+    }
+  });
+}
+
+if (saPlanLimitsLoad) {
+  saPlanLimitsLoad.addEventListener("click", () => {
+    loadSaPlanLimits().catch(() => null);
+  });
+}
+
+if (saPlanLimitsBody instanceof HTMLElement) {
+  saPlanLimitsBody.addEventListener("click", async (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) return;
+    const button = target.closest("[data-sa-limit-save]");
+    if (!(button instanceof HTMLButtonElement)) return;
+    try {
+      const planKey = saPlanLimitsKey instanceof HTMLSelectElement ? String(saPlanLimitsKey.value || "") : "";
+      const serviceKey = button.getAttribute("data-sa-limit-save") || "";
+      if (!planKey || !serviceKey) return;
+      const unlimitedInput = saPlanLimitsBody.querySelector(
+        `input[data-sa-limit-unlimited][data-sa-service="${CSS.escape(serviceKey)}"]`
+      );
+      const maxInput = saPlanLimitsBody.querySelector(
+        `input[data-sa-limit-max][data-sa-service="${CSS.escape(serviceKey)}"]`
+      );
+      const priceInput = saPlanLimitsBody.querySelector(
+        `input[data-sa-limit-price][data-sa-service="${CSS.escape(serviceKey)}"]`
+      );
+      const isUnlimited = unlimitedInput instanceof HTMLInputElement ? Boolean(unlimitedInput.checked) : false;
+      const rawMax = maxInput instanceof HTMLInputElement ? String(maxInput.value || "").trim() : "";
+      const maxValue = rawMax ? Number(rawMax) : null;
+      const rawPrice = priceInput instanceof HTMLInputElement ? String(priceInput.value || "").trim() : "0";
+      const unitPrice = rawPrice ? Number(rawPrice) : 0;
+      setButtonLoading(button, true, "Guardando...");
+      await fetchJson("/api/sa/plan/limits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planKey,
+          serviceKey,
+          isUnlimited,
+          maxValue: Number.isFinite(maxValue) ? maxValue : null,
+          unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
+        }),
+      });
+      showToast("Límite actualizado.", "is-ok");
+    } catch (error) {
+      showToast(error?.message || "No se pudo guardar límite.", "is-error");
+    } finally {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      const button = target ? target.closest("[data-sa-limit-save]") : null;
+      if (button instanceof HTMLButtonElement) setButtonLoading(button, false);
     }
   });
 }

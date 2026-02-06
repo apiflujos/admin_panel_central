@@ -79,10 +79,16 @@ import {
   saAssignPlanHandler,
   saListModulesHandler,
   saListPlansHandler,
+  saListServicesHandler,
+  saGetPlanLimitsHandler,
+  saGetTenantPlanSnapshotHandler,
+  saListTenantModulesHandler,
   saListTenantsHandler,
   saResetCountersHandler,
   saSetTenantModuleHandler,
   saTenantSummaryHandler,
+  saUpsertPlanLimitHandler,
+  saUpsertServiceHandler,
 } from "./superadmin.controller";
 
 export const router = Router();
@@ -120,6 +126,12 @@ router.get("/billing/summary", wrap(billingSummaryHandler));
 router.get("/sa/tenants", requireSuperAdmin, wrap(saListTenantsHandler));
 router.get("/sa/plans", requireSuperAdmin, wrap(saListPlansHandler));
 router.get("/sa/modules", requireSuperAdmin, wrap(saListModulesHandler));
+router.get("/sa/tenant/modules", requireSuperAdmin, wrap(saListTenantModulesHandler));
+router.get("/sa/services", requireSuperAdmin, wrap(saListServicesHandler));
+router.post("/sa/services", requireSuperAdmin, wrap(saUpsertServiceHandler));
+router.get("/sa/tenant/plan", requireSuperAdmin, wrap(saGetTenantPlanSnapshotHandler));
+router.get("/sa/plan/limits", requireSuperAdmin, wrap(saGetPlanLimitsHandler));
+router.post("/sa/plan/limits", requireSuperAdmin, wrap(saUpsertPlanLimitHandler));
 router.post("/sa/modules/toggle", requireSuperAdmin, wrap(saSetTenantModuleHandler));
 router.post("/sa/plans/assign", requireSuperAdmin, wrap(saAssignPlanHandler));
 router.get("/sa/usage", requireSuperAdmin, wrap(saTenantSummaryHandler));

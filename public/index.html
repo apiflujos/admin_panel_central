@@ -11,11 +11,16 @@
     <div class="app-shell">
       <aside class="sidebar">
         <div class="sidebar-header">
-	          <button class="ghost sidebar-toggle" id="sidebar-toggle" aria-label="Colapsar menu" title="Colapsar menu">
-	            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-	              <path d="M15 18l-6-6 6-6" />
-	            </svg>
-	          </button>
+          <button class="ghost sidebar-toggle" id="sidebar-toggle" aria-label="Abrir/cerrar menu" title="Menú">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M4 7h16" />
+                <path d="M4 12h16" />
+                <path d="M4 17h16" />
+              </svg>
+            </span>
+            <span class="sidebar-toggle-label">Menú</span>
+          </button>
         </div>
         <nav class="nav">
           <button class="nav-item is-active" data-target="dashboard" title="Metricas">
@@ -25,24 +30,6 @@
               </svg>
             </span>
             <span class="nav-label">Metricas</span>
-          </button>
-          <button class="nav-item" data-target="superadmin" title="Super Admin" id="nav-superadmin" style="display:none">
-            <span class="nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                <path d="M12 3l7 4v6c0 5-3 8-7 8s-7-3-7-8V7l7-4z" />
-                <path d="M9 12l2 2 4-4" />
-              </svg>
-            </span>
-            <span class="nav-label">Super Admin</span>
-          </button>
-          <button class="nav-item" data-target="marketing" title="Marketing">
-            <span class="nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                <path d="M3 11l18-5-5 18-3-8-8-3z" />
-                <path d="M13 16l4-4" />
-              </svg>
-            </span>
-            <span class="nav-label">Marketing</span>
           </button>
 	          <button class="nav-item" data-target="operations" data-ops-view="orders" title="Pedidos">
 	            <span class="nav-icon" aria-hidden="true">
@@ -80,14 +67,14 @@
             </span>
             <span class="nav-label">Productos</span>
           </button>
-          <button class="nav-item" data-target="logs" title="Logs de API">
+          <button class="nav-item" data-target="marketing" title="Marketing">
             <span class="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                <path d="M5 4h10l4 4v12H5z" />
-                <path d="M8 12h8M8 16h8M8 8h4" />
+                <path d="M3 11l18-5-5 18-3-8-8-3z" />
+                <path d="M13 16l4-4" />
               </svg>
             </span>
-            <span class="nav-label">Logs de API</span>
+            <span class="nav-label">Marketing</span>
           </button>
 	          <button class="nav-item" data-target="settings" title="Configuracion">
 	            <span class="nav-icon" aria-hidden="true">
@@ -103,9 +90,31 @@
 		            <button class="nav-subitem" type="button" data-settings-pane-link="stores" title="Tiendas">Tiendas</button>
 		            <button class="nav-subitem" type="button" data-settings-pane-link="integrations" title="Integraciones">Integraciones</button>
 		          </div>
+
+          <div class="nav-spacer" aria-hidden="true"></div>
+
+          <button class="nav-item" data-target="superadmin" title="Super Admin" id="nav-superadmin" style="display:none">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M12 3l7 4v6c0 5-3 8-7 8s-7-3-7-8V7l7-4z" />
+                <path d="M9 12l2 2 4-4" />
+              </svg>
+            </span>
+            <span class="nav-label">Super Admin</span>
+          </button>
+
+          <button class="nav-item" data-target="logs" title="Logs de API">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M5 4h10l4 4v12H5z" />
+                <path d="M8 12h8M8 16h8M8 8h4" />
+              </svg>
+            </span>
+            <span class="nav-label">Logs de API</span>
+          </button>
 	        </nav>
 	        <div class="sidebar-footer">
-            <button class="ghost sidebar-exit" id="sidebar-logout" type="button" title="Salir">
+            <button class="nav-item nav-logout" id="sidebar-logout" type="button" title="Salir">
               <span class="nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -121,19 +130,18 @@
       <main class="content">
         <header class="topbar">
           <div class="topbar-left">
-            <h1>Metricas Olivia Shoes</h1>
-            <p class="subtitle">Visibilidad operativa en tiempo real.</p>
-          </div>
-          <div class="topbar-center">
             <div class="topbar-brand apiflujos-brand">
               <img id="company-logo" src="/assets/logo.png" alt="ApiFlujos" />
             </div>
           </div>
-          <div class="topbar-actions">
+          <div class="topbar-center">
             <div class="topbar-billing" id="topbar-billing" style="display:none">
+              <span class="status-pill" id="billing-plan-pill">Plan: --</span>
               <span class="status-pill" id="billing-month-usage">Consumo: --</span>
               <span class="status-pill" id="billing-month-total">Cobro: --</span>
             </div>
+          </div>
+          <div class="topbar-actions">
             <div class="topbar-user" id="topbar-user">
               <button class="ghost topbar-user-trigger" id="topbar-user-toggle" type="button">
                 <img id="user-avatar" src="/assets/avatar.png" alt="Usuario" />
@@ -401,13 +409,13 @@
           <div class="panel">
             <div class="panel-header">
               <h3>Super Admin</h3>
-              <span class="panel-tag">Global</span>
+              <span class="panel-tag">Cobro y medición</span>
             </div>
             <div class="toolbar products-toolbar">
               <select id="sa-tab">
-                <option value="usage" selected>Consumos</option>
+                <option value="tenant" selected>Tenant</option>
+                <option value="services">Servicios</option>
                 <option value="plans">Planes</option>
-                <option value="modules">Módulos</option>
               </select>
               <div class="toolbar-store">
                 <label for="sa-tenant">Tenant</label>
@@ -419,7 +427,46 @@
             </div>
             <p class="field-hint" id="sa-status">Sin datos</p>
 
-            <div class="panel" id="sa-pane-usage">
+            <div class="panel" id="sa-pane-tenant">
+              <div class="panel-header">
+                <h3>Plan, módulos y consumo</h3>
+                <div class="panel-meta">
+                  <span class="panel-source">tenant_plans · tenant_modules · usage_counters · billing_counters</span>
+                  <span class="panel-tag">Por tenant</span>
+                </div>
+              </div>
+
+              <div class="toolbar products-toolbar">
+                <div class="toolbar-store">
+                  <label for="sa-plan-key">Asignar plan</label>
+                  <select id="sa-plan-key"></select>
+                </div>
+                <button class="primary" id="sa-assign-plan" type="button">Asignar</button>
+              </div>
+              <pre class="modal-errors" id="sa-plan-snapshot">Selecciona un tenant y carga.</pre>
+
+              <div class="panel" id="sa-tenant-modules-panel">
+                <div class="panel-header">
+                  <h3>Módulos del tenant</h3>
+                  <div class="panel-meta">
+                    <span class="panel-source">tenant_modules</span>
+                  </div>
+                </div>
+                <div class="table-card">
+                  <table class="table" id="sa-modules-table">
+                    <thead>
+                      <tr>
+                        <th>Módulo</th>
+                        <th>Habilitado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td colspan="2" class="empty">Sin datos</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
               <div class="panel-header">
                 <h3>Consumo del mes</h3>
                 <div class="panel-meta">
@@ -444,39 +491,84 @@
               </div>
             </div>
 
-            <div class="panel" id="sa-pane-plans" style="display:none">
+            <div class="panel" id="sa-pane-services" style="display:none">
               <div class="panel-header">
-                <h3>Asignar plan</h3>
+                <h3>Servicios medibles</h3>
                 <div class="panel-meta">
-                  <span class="panel-source">tenant_plans</span>
-                  <span class="panel-tag">Master / Pro / On Demand</span>
-                </div>
-              </div>
-              <div class="toolbar products-toolbar">
-                <select id="sa-plan-key"></select>
-                <button class="primary" id="sa-assign-plan" type="button">Asignar</button>
-              </div>
-              <pre class="modal-errors" id="sa-plan-snapshot">Sin datos</pre>
-            </div>
-
-            <div class="panel" id="sa-pane-modules" style="display:none">
-              <div class="panel-header">
-                <h3>Módulos</h3>
-                <div class="panel-meta">
-                  <span class="panel-source">tenant_modules</span>
-                  <span class="panel-tag">Toggle</span>
+                  <span class="panel-source">limit_definitions</span>
+                  <span class="panel-tag">Catálogo</span>
                 </div>
               </div>
               <div class="table-card">
-                <table class="table" id="sa-modules-table">
+                <table class="table" id="sa-services-table">
                   <thead>
                     <tr>
-                      <th>Módulo</th>
+                      <th>Key</th>
+                      <th>Nombre</th>
+                      <th>Periodo</th>
                       <th>Activo</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr><td colspan="2" class="empty">Sin datos</td></tr>
+                    <tr><td colspan="4" class="empty">Sin datos</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="toolbar products-toolbar">
+                <div class="toolbar-store">
+                  <label for="sa-service-key">Key</label>
+                  <input id="sa-service-key" placeholder="orders" />
+                </div>
+                <div class="toolbar-store">
+                  <label for="sa-service-name">Nombre</label>
+                  <input id="sa-service-name" placeholder="Pedidos" />
+                </div>
+                <div class="toolbar-store">
+                  <label for="sa-service-period">Periodo</label>
+                  <select id="sa-service-period">
+                    <option value="monthly" selected>Mensual</option>
+                    <option value="total">Total</option>
+                  </select>
+                </div>
+                <label class="toggle-row">
+                  <input type="checkbox" id="sa-service-active" class="toggle" checked />
+                  <span>Activo</span>
+                </label>
+                <button class="primary" id="sa-service-save" type="button">Guardar</button>
+              </div>
+              <p class="field-hint">Ejemplos: <b>orders</b>, <b>invoices</b>, <b>products</b>, <b>api_calls</b>. Key solo letras/números/underscore.</p>
+            </div>
+
+            <div class="panel" id="sa-pane-plans" style="display:none">
+              <div class="panel-header">
+                <h3>Planes y cobro por servicio</h3>
+                <div class="panel-meta">
+                  <span class="panel-source">plan_definitions · plan_service_limits</span>
+                  <span class="panel-tag">Configuración</span>
+                </div>
+              </div>
+              <div class="toolbar products-toolbar">
+                <div class="toolbar-store">
+                  <label for="sa-plan-limits-key">Plan</label>
+                  <select id="sa-plan-limits-key"></select>
+                </div>
+                <button class="ghost" id="sa-plan-limits-load" type="button">Cargar</button>
+              </div>
+              <p class="field-hint">Pro: cobra excedentes. On Demand: cobra cada evento. Master: ilimitado sin cobro.</p>
+              <div class="table-card">
+                <table class="table" id="sa-plan-limits-table">
+                  <thead>
+                    <tr>
+                      <th>Servicio</th>
+                      <th>Ilimitado</th>
+                      <th>Límite</th>
+                      <th>Precio unitario</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td colspan="5" class="empty">Sin datos</td></tr>
                   </tbody>
                 </table>
               </div>
