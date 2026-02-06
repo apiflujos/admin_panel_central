@@ -7652,13 +7652,11 @@ async function loadBillingTopbar() {
     return;
   }
   try {
-    const period = utcMonthKey();
-    const data = await fetchJson(`/api/billing/summary?period=${encodeURIComponent(period)}&t=${Date.now()}`);
-    const services = Array.isArray(data.services) ? data.services : [];
-    const usageCount = services.reduce((acc, s) => acc + (Number(s.usage) || 0), 0);
-    const billedTotal = Number(data.billedTotal || 0);
-    const planLabel = String(data.planType || data.planKey || "").trim();
-    if (billingMonthUsage) billingMonthUsage.textContent = `Consumo: ${usageCount}`;
+    const data = await fetchJson(`/api/billing/summary?t=${Date.now()}`);
+    const billedEvents = Number(data.billedEvents || 0) || 0;
+    const billedTotal = Number(data.billedTotal || 0) || 0;
+    const planLabel = String(data.planName || data.planKey || "").trim();
+    if (billingMonthUsage) billingMonthUsage.textContent = `Consumo: ${billedEvents}`;
     if (billingMonthTotal) billingMonthTotal.textContent = `Cobro: ${formatCurrencyValue(billedTotal)}`;
     if (billingPlanPill) billingPlanPill.textContent = planLabel || "--";
     setBillingTopbarVisible(true);

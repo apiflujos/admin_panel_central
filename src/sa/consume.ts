@@ -1,5 +1,6 @@
 import { getPool } from "../db";
 import { ensureServiceDefinition, getServiceDefinition, getTenantPlanSnapshot } from "./sa.repository";
+import { monthKeyBogota } from "./sa.time";
 
 export type ConsumeInput = {
   tenant_id: number;
@@ -20,10 +21,6 @@ export type ConsumeResult = {
   charged_total: number;
 };
 
-function utcMonthKey(date = new Date()) {
-  return date.toISOString().slice(0, 7);
-}
-
 function clampAmount(value: unknown) {
   const num = Number(value ?? 1);
   if (!Number.isFinite(num) || num <= 0) return 1;
@@ -43,7 +40,7 @@ export async function consumeLimitOrBlock(serviceKey: string, input: ConsumeInpu
   await ensureServiceDefinition(key);
   const svc = await getServiceDefinition(key);
   const periodType = svc?.periodType === "total" ? "total" : "monthly";
-  const periodKey = periodType === "total" ? "total" : utcMonthKey();
+  const periodKey = periodType === "total" ? "total" : monthKeyBogota();
 
   const snapshot = await getTenantPlanSnapshot(tenantId);
   const planSvc = snapshot.services[key] || null;
@@ -90,12 +87,16 @@ export async function consumeLimitOrBlock(serviceKey: string, input: ConsumeInpu
     );
 
     // Billing logic
-    let chargedQuantity = 0;
+    let eventQuantity = 0;
+    let chargedQuantity = 0; // for counters (billable consumption)
     let chargedTotal = 0;
 
     if (planType === "on_demand") {
-      chargedQuantity = amount;
-      chargedTotal = chargedQuantity * unitPrice;
+      eventQuantity = amount;
+      if (unitPrice > 0) {
+        chargedQuantity = amount;
+        chargedTotal = chargedQuantity * unitPrice;
+      }
     }
 
     if (planType === "pro" && maxValue !== null && Number.isFinite(maxValue) && maxValue >= 0) {
@@ -103,30 +104,35 @@ export async function consumeLimitOrBlock(serviceKey: string, input: ConsumeInpu
       const nextOver = Math.max(0, nextTotal - maxValue);
       const incremental = Math.max(0, nextOver - prevOver);
       if (incremental > 0) {
-        chargedQuantity = incremental;
-        chargedTotal = chargedQuantity * unitPrice;
+        eventQuantity = incremental;
+        if (unitPrice > 0) {
+          chargedQuantity = incremental;
+          chargedTotal = chargedQuantity * unitPrice;
+        }
       }
     }
 
-    if (chargedQuantity > 0 || (planType === "on_demand" && amount > 0)) {
+    if (eventQuantity > 0) {
       await client.query(
         `
         INSERT INTO sa.billing_events (tenant_id, service_key, quantity, unit_price, total, period_key, created_at)
         VALUES ($1,$2,$3,$4,$5,$6,NOW())
         `,
-        [tenantId, key, chargedQuantity, unitPrice, chargedTotal, periodKey]
+        [tenantId, key, eventQuantity, unitPrice, chargedTotal, periodKey]
       );
-      await client.query(
-        `
-        INSERT INTO sa.billing_counters (tenant_id, service_key, period_key, quantity, total, updated_at)
-        VALUES ($1,$2,$3,$4,$5,NOW())
-        ON CONFLICT (tenant_id, service_key, period_key)
-        DO UPDATE SET quantity = sa.billing_counters.quantity + EXCLUDED.quantity,
-                      total = sa.billing_counters.total + EXCLUDED.total,
-                      updated_at = NOW()
-        `,
-        [tenantId, key, periodKey, chargedQuantity, chargedTotal]
-      );
+      if (chargedQuantity > 0 || chargedTotal > 0) {
+        await client.query(
+          `
+          INSERT INTO sa.billing_counters (tenant_id, service_key, period_key, quantity, total, updated_at)
+          VALUES ($1,$2,$3,$4,$5,NOW())
+          ON CONFLICT (tenant_id, service_key, period_key)
+          DO UPDATE SET quantity = sa.billing_counters.quantity + EXCLUDED.quantity,
+                        total = sa.billing_counters.total + EXCLUDED.total,
+                        updated_at = NOW()
+          `,
+          [tenantId, key, periodKey, chargedQuantity, chargedTotal]
+        );
+      }
     }
 
     await client.query("COMMIT");
@@ -152,4 +158,3 @@ export async function consumeLimitOrBlock(serviceKey: string, input: ConsumeInpu
     client.release();
   }
 }
-

@@ -1,15 +1,12 @@
 import { getPool } from "../db";
 import { ensureModuleDefinition } from "./sa.repository";
-
-export function monthKeyUtc(date = new Date()) {
-  return date.toISOString().slice(0, 7);
-}
+import { monthKeyBogota } from "./sa.time";
 
 export async function getTenantMonthlySummary(tenantId: number, periodKey?: string) {
   const pool = getPool();
   const tenant = Number(tenantId);
   if (!Number.isInteger(tenant) || tenant <= 0) throw new Error("tenant_id inválido");
-  const period = periodKey && /^\d{4}-\d{2}$/.test(periodKey) ? periodKey : monthKeyUtc();
+  const period = periodKey && /^\d{4}-\d{2}$/.test(periodKey) ? periodKey : monthKeyBogota();
 
   const usage = await pool.query<{
     service_key: string;
@@ -60,6 +57,7 @@ export async function getTenantMonthlySummary(tenantId: number, periodKey?: stri
     tenantId: tenant,
     periodKey: period,
     services,
+    billedEvents: services.reduce((acc, s) => acc + (Number(s.billedQty) || 0), 0),
     billedTotal: services.reduce((acc, s) => acc + (Number(s.billedTotal) || 0), 0),
   };
 }
@@ -106,4 +104,3 @@ export async function setTenantModule(tenantId: number, moduleKey: string, enabl
   );
   return { ok: true, tenantId: tenant, moduleKey: key, enabled: Boolean(enabled) };
 }
-
