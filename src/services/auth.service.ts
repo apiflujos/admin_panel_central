@@ -177,7 +177,8 @@ async function ensureDefaultAdmin(pool: ReturnType<typeof getPool>, orgId: numbe
   const adminPassword = String(process.env.ADMIN_PASSWORD || "");
   const isProd = process.env.NODE_ENV === "production";
   if (isProd && (!adminEmail || !adminPassword)) {
-    throw new Error("Falta ADMIN_EMAIL/ADMIN_PASSWORD para bootstrap de admin en producción.");
+    console.warn("WARNING: Falta ADMIN_EMAIL/ADMIN_PASSWORD para bootstrap de admin en producción. Se omite creación de admin.");
+    return;
   }
   const effectiveEmail = adminEmail || DEFAULT_ADMIN_EMAIL;
   const effectivePassword = adminPassword || DEFAULT_ADMIN_PASSWORD;

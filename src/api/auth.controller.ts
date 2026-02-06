@@ -56,31 +56,42 @@ export async function loginHandler(req: Request, res: Response) {
   const email = String(req.body?.email || "").trim();
   const password = String(req.body?.password || "");
   const remember = Boolean(req.body?.remember);
-  const result = await authenticateUser(email, password, remember);
-  if (!result) {
-    res.status(401).json({ error: "Credenciales invalidas" });
-    return;
+  try {
+    const result = await authenticateUser(email, password, remember);
+    if (!result) {
+      res.status(401).json({ error: "Credenciales invalidas" });
+      return;
+    }
+    res.cookie(AUTH_COOKIE_NAME, result.token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: result.maxAgeMs,
+    });
+    res.json({
+      ok: true,
+      user: {
+        id: result.user.id,
+        organizationId: (result.user as any).organization_id,
+        email: result.user.email,
+        role: result.user.role,
+        isSuperAdmin: Boolean((result.user as any).is_super_admin),
+        name: result.user.name,
+        phone: result.user.phone,
+        photoBase64: result.user.photo_base64,
+      },
+    });
+  } catch (error) {
+    console.error("[auth] login failed:", error);
+    const message =
+      process.env.NODE_ENV === "production"
+        ? "No se pudo iniciar sesion."
+        : error instanceof Error
+          ? error.message
+          : "No se pudo iniciar sesion.";
+    res.status(500).send(message);
   }
-  res.cookie(AUTH_COOKIE_NAME, result.token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: result.maxAgeMs,
-  });
-  res.json({
-    ok: true,
-    user: {
-      id: result.user.id,
-      organizationId: (result.user as any).organization_id,
-      email: result.user.email,
-      role: result.user.role,
-      isSuperAdmin: Boolean((result.user as any).is_super_admin),
-      name: result.user.name,
-      phone: result.user.phone,
-      photoBase64: result.user.photo_base64,
-    },
-  });
 }
 
 export async function logoutHandler(req: Request, res: Response) {

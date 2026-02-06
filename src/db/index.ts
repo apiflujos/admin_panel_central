@@ -714,6 +714,19 @@ export async function ensureUsersTables(poolInstance: Pool) {
       .then(() =>
         poolInstance.query(
           `
+          ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'agent',
+            ADD COLUMN IF NOT EXISTS is_super_admin BOOLEAN NOT NULL DEFAULT false,
+            ADD COLUMN IF NOT EXISTS name TEXT,
+            ADD COLUMN IF NOT EXISTS phone TEXT,
+            ADD COLUMN IF NOT EXISTS photo_base64 TEXT,
+            ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          `
+        )
+      )
+      .then(() =>
+        poolInstance.query(
+          `
           CREATE UNIQUE INDEX IF NOT EXISTS users_org_email_idx ON users (organization_id, email)
           `
         )
@@ -738,6 +751,15 @@ export async function ensureUsersTables(poolInstance: Pool) {
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW()
           )
+          `
+        )
+      )
+      .then(() =>
+        poolInstance.query(
+          `
+          ALTER TABLE user_sessions
+            ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW()
           `
         )
       )
