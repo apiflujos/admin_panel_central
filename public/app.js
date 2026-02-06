@@ -188,6 +188,7 @@ const billingMonthTotal = document.getElementById("billing-month-total");
 const userMenu = document.getElementById("topbar-user-menu");
 const userMenuToggle = document.getElementById("topbar-user-toggle");
 const companyLogo = document.getElementById("company-logo");
+const sidebarLogout = document.getElementById("sidebar-logout");
 
 const storeNameInput = document.getElementById("store-name");
 const storeActiveField = document.getElementById("store-active-field");
@@ -10115,6 +10116,15 @@ if (metricsReportDownload) {
     } catch (error) {
       showToast(error?.message || "No se pudo descargar el reporte.", "is-error");
     }
+  });
+}
+if (sidebarLogout) {
+  sidebarLogout.addEventListener("click", () => {
+    fetch("/api/auth/logout", { method: "POST" })
+      .catch(() => null)
+      .finally(() => {
+        window.location.href = "/login.html";
+      });
   });
 }
 if (saTab instanceof HTMLSelectElement) {

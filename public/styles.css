@@ -4341,3 +4341,18 @@ textarea::placeholder {
   gap: 8px;
   align-items: center;
 }
+
+.sidebar-footer {
+  padding: 12px 12px 14px;
+  border-top: 1px solid var(--stroke);
+}
+
+.sidebar-exit {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-start;
+  padding: 10px 12px;
+  border-radius: 14px;
+}

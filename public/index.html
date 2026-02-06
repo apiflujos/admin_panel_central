@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
-    <link rel="stylesheet" href="styles.css?v=20260206p10" />
+    <link rel="stylesheet" href="styles.css?v=20260206p11" />
   </head>
   <body>
     <div class="app-shell">
@@ -104,7 +104,18 @@
 		            <button class="nav-subitem" type="button" data-settings-pane-link="integrations" title="Integraciones">Integraciones</button>
 		          </div>
 	        </nav>
-	        <div class="sidebar-footer"></div>
+	        <div class="sidebar-footer">
+            <button class="ghost sidebar-exit" id="sidebar-logout" type="button" title="Salir">
+              <span class="nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10 17l5-5-5-5" />
+                  <path d="M15 12H3" />
+                  <path d="M21 3v18" />
+                </svg>
+              </span>
+              <span class="nav-label">Salir</span>
+            </button>
+          </div>
 	      </aside>
 
       <main class="content">
@@ -2143,6 +2154,6 @@
       </div>
     </div>
 
-	    <script src="app.js?v=20260206p10" type="module"></script>
+	    <script src="app.js?v=20260206p11" type="module"></script>
 	  </body>
 	</html>
