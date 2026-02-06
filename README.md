@@ -31,6 +31,20 @@ Starter scaffolding for the integration middleware and dashboard API.
 - Health check: `GET /health`
 - Database DDL: `src/db/migrations/001_init.sql`
 
+## Marketing & Analytics (Enterprise)
+- Shopify webhooks (HMAC): `POST /api/marketing/webhooks/shopify`
+  - Topics soportados: `orders/create`, `orders/paid`, `checkouts/create`, `checkouts/update`, `customers/create`
+- Pixel (key-gated):
+  - Script: `GET /api/marketing/pixel.js?key=...` (instalar en `theme.liquid` antes de `</body>`)
+  - Collector: `POST /api/marketing/collect?key=...`
+- Sync/backfill (admin):
+  - `POST /api/marketing/sync/orders` body: `{ "shopDomain": "tu-tienda.myshopify.com", "sinceDate": "YYYY-MM-DD", "maxOrders": 1500 }`
+  - `POST /api/marketing/metrics/recompute` body: `{ "shopDomain": "...", "from": "YYYY-MM-DD", "to": "YYYY-MM-DD" }`
+- Dashboard/insights (authed):
+  - `GET /api/marketing/dashboard?shopDomain=...&from=YYYY-MM-DD&to=YYYY-MM-DD`
+  - `GET /api/marketing/insights?shopDomain=...&from=YYYY-MM-DD&to=YYYY-MM-DD`
+- GraphQL interno (authed): `POST /api/marketing/graphql` query: `executiveDashboard(shopDomain, from, to)`
+
 ## Required env vars for sync
 - `APP_ORG_ID`, `DATABASE_URL`, `CRYPTO_KEY_BASE64`
 - `SHOPIFY_WEBHOOK_SECRET` (required for Shopify webhook validation; si no lo pones, se usa `SHOPIFY_API_SECRET`)

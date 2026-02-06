@@ -9,6 +9,7 @@ import { startInventoryAdjustmentsPoller } from "./jobs/inventory-adjustments";
 import { startOrdersSyncPoller } from "./jobs/orders-sync";
 import { startProductsSyncPoller } from "./jobs/products-sync";
 import { startRetryQueuePoller } from "./jobs/retry-queue";
+import { startMarketingJobs } from "./jobs/marketing";
 
 const app = express();
 
@@ -87,4 +88,5 @@ app.listen(port, host, () => {
   startOrdersSyncPoller();
   startProductsSyncPoller();
   startRetryQueuePoller();
+  startMarketingJobs();
 });

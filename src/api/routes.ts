@@ -6,6 +6,15 @@ import { listLogs, retryFailed } from "./logs.controller";
 import { listAlegraCatalog, getSettings, listResolutions, testConnections, updateSettings } from "./settings.controller";
 import { listMetrics } from "./metrics.controller";
 import { downloadCommerceReportCsvHandler } from "./reports.controller";
+import {
+  marketingDashboardHandler,
+  marketingInsightsHandler,
+  marketingRecomputeMetricsHandler,
+  marketingSyncOrdersHandler,
+  marketingUpsertCampaignSpendHandler,
+} from "./marketing.controller";
+import { shopifyMarketingWebhookHandler } from "./marketing-webhooks.controller";
+import { marketingCollectHandler, marketingPixelScriptHandler } from "./marketing-pixel.controller";
 import { getInventoryAdjustmentsCheckpoint } from "./checkpoints.controller";
 import { createConnection, listConnections, removeConnection } from "./connections.controller";
 import { listStoreConfigsHandler, saveStoreConfigHandler } from "./store-configs.controller";
@@ -55,6 +64,7 @@ import { listContactsHandler, syncContactHandler, syncContactsBulkHandler } from
 import { listOrdersHandler, backfillOrdersHandler } from "./orders.controller";
 import { downloadInvoicePdfHandler, listInvoicesHandler } from "./invoices.controller";
 import { syncInvoicesToShopifyHandler } from "./invoices-sync.controller";
+import { marketingGraphqlHttpHandler } from "../marketing/graphql/marketing-graphql";
 
 export const router = Router();
 
@@ -66,6 +76,11 @@ const wrap =
 
 router.post("/webhooks/shopify", wrap(handleShopifyWebhook));
 router.post("/webhooks/alegra", wrap(handleAlegraWebhook));
+
+// Marketing (public, key-gated or HMAC-verified)
+router.post("/marketing/webhooks/shopify", wrap(shopifyMarketingWebhookHandler));
+router.get("/marketing/pixel.js", wrap(marketingPixelScriptHandler));
+router.post("/marketing/collect", wrap(marketingCollectHandler));
 
 router.post("/auth/login", wrap(loginHandler));
 router.get("/auth/shopify", wrap(startShopifyOAuth));
@@ -106,8 +121,8 @@ router.put("/settings", requireAdmin, wrap(updateSettings));
 router.get("/settings", requireAdmin, wrap(getSettings));
 router.get("/settings/resolutions", wrap(listResolutions));
 router.get("/alegra/:catalog", wrap(listAlegraCatalog));
-	router.get("/metrics", wrap(listMetrics));
-	router.get("/reports/commerce.csv", wrap(downloadCommerceReportCsvHandler));
+router.get("/metrics", wrap(listMetrics));
+router.get("/reports/commerce.csv", wrap(downloadCommerceReportCsvHandler));
 router.get("/checkpoints/inventory-adjustments", wrap(getInventoryAdjustmentsCheckpoint));
 router.post("/assistant/query", wrap(assistantQueryHandler));
 router.post("/assistant/execute", wrap(assistantExecuteHandler));
@@ -116,12 +131,12 @@ router.post("/shopify/lookup-batch", wrap(lookupShopifyHandler));
 router.post("/shopify/webhooks", requireAdmin, wrap(createShopifyWebhooksHandler));
 router.post("/shopify/webhooks/delete", requireAdmin, wrap(deleteShopifyWebhooksHandler));
 router.get("/shopify/webhooks/status", requireAdmin, wrap(getShopifyWebhooksStatusHandler));
-	router.post("/sync/products", wrap(syncProductsHandler));
-	router.post("/sync/products/stop", wrap(stopProductsSyncHandler));
-	router.post("/sync/products/shopify-to-alegra", wrap(syncProductsShopifyToAlegraHandler));
-	router.post("/sync/products/shopify-to-alegra/stop", wrap(stopProductsShopifyToAlegraSyncHandler));
-	router.post("/sync/product-images", wrap(syncProductImagesHandler));
-	router.post("/sync/product-images/stop", wrap(stopProductImagesSyncHandler));
+router.post("/sync/products", wrap(syncProductsHandler));
+router.post("/sync/products/stop", wrap(stopProductsSyncHandler));
+router.post("/sync/products/shopify-to-alegra", wrap(syncProductsShopifyToAlegraHandler));
+router.post("/sync/products/shopify-to-alegra/stop", wrap(stopProductsShopifyToAlegraSyncHandler));
+router.post("/sync/product-images", wrap(syncProductImagesHandler));
+router.post("/sync/product-images/stop", wrap(stopProductImagesSyncHandler));
 router.post("/sync/orders", wrap(syncOrdersHandler));
 router.post("/sync/invoices", wrap(syncInvoicesToShopifyHandler));
 router.post("/backfill/products", wrap(backfillProductsHandler));
@@ -141,3 +156,11 @@ router.get("/operations/:orderId/einvoice", wrap(getEinvoiceOverrideHandler));
 router.put("/operations/:orderId/einvoice", wrap(saveEinvoiceOverrideHandler));
 router.post("/operations/:orderId/payment", wrap(emitPaymentHandler));
 router.post("/operations/:orderId/cancel", wrap(voidInvoiceHandler));
+
+// Marketing (authed)
+router.post("/marketing/sync/orders", requireAdmin, wrap(marketingSyncOrdersHandler));
+router.post("/marketing/metrics/recompute", requireAdmin, wrap(marketingRecomputeMetricsHandler));
+router.post("/marketing/spend", requireAdmin, wrap(marketingUpsertCampaignSpendHandler));
+router.get("/marketing/dashboard", wrap(marketingDashboardHandler));
+router.get("/marketing/insights", wrap(marketingInsightsHandler));
+router.all("/marketing/graphql", wrap(marketingGraphqlHttpHandler));
