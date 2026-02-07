@@ -8,9 +8,14 @@ const normalizeShopDomain = (value: unknown) =>
     .replace(/\/.*$/, "")
     .toLowerCase();
 
-function asDateKey(value: string) {
+function asDateKey(value: unknown) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
   const raw = String(value || "").slice(0, 10);
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const parsed = new Date(String(value || ""));
+  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
   return "";
 }
 
@@ -218,7 +223,7 @@ export async function recomputeDailyMarketingMetrics(input: {
   };
 
   eventsAgg.rows.forEach((r) => {
-    const date = String(r.date).slice(0, 10);
+    const date = asDateKey(r.date);
     const channel = String(r.channel || "unknown");
     const campaign = r.utm_campaign ? String(r.utm_campaign) : null;
     const key = `${date}|${channel}|${campaign || ""}`;
@@ -229,7 +234,7 @@ export async function recomputeDailyMarketingMetrics(input: {
   });
 
   paidAgg.rows.forEach((r) => {
-    const date = String(r.date).slice(0, 10);
+    const date = asDateKey(r.date);
     const channel = String(r.channel || "unknown");
     const campaign = r.utm_campaign ? String(r.utm_campaign) : null;
     const key = `${date}|${channel}|${campaign || ""}`;
