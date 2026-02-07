@@ -105,6 +105,8 @@ const qaTokenGenerate = document.getElementById("qa-token-generate");
 const qaTokenCopy = document.getElementById("qa-token-copy");
 const qaTokenValue = document.getElementById("qa-token-value");
 const qaTokenHint = document.getElementById("qa-token-hint");
+const qaTokenScope = document.getElementById("qa-token-scope");
+const qaTokenTtl = document.getElementById("qa-token-ttl");
 
 const kpiSalesToday = document.getElementById("kpi-sales-today");
 const kpiSalesTodaySub = document.getElementById("kpi-sales-today-sub");
@@ -11588,10 +11590,16 @@ if (qaTokenGenerate) {
       qaTokenHint.textContent = "Generando clave...";
     }
     try {
+      const ttlMinutes =
+        qaTokenTtl instanceof HTMLSelectElement ? Number(qaTokenTtl.value || 30) : 30;
+      const scopes =
+        qaTokenScope instanceof HTMLSelectElement
+          ? [String(qaTokenScope.value || "platform_all")]
+          : ["platform_all"];
       const result = await fetchJson("/api/auth/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ttlMinutes: 30 }),
+        body: JSON.stringify({ ttlMinutes, scopes }),
       });
       if (qaTokenValue) {
         qaTokenValue.value = result?.token || "";

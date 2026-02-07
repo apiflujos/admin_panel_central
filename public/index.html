@@ -1168,6 +1168,79 @@
 	          </div>
 	        </div>
 
+          <div class="settings-group provider-group" data-group="marketing">
+            <div class="settings-group-header" data-group-toggle="marketing">
+              <h4 class="group-title">
+                <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
+                Marketing
+              </h4>
+            </div>
+            <div class="settings-group-body">
+              <div class="panel admin-only module" data-provider="shopify" data-manager="shopify" data-module="marketing-config" data-module-priority="core" data-help="Configura el Pixel (para sessions / funnel / UTM) y los Webhooks de Marketing. Shopify NO entrega sesiones/UTM de tráfico desde la Admin API; por eso este módulo instala el Pixel y registra eventos para métricas.">
+                <div class="panel-header">
+                  <h3 data-module-toggle="marketing-config" data-title-base="Marketing (Pixel + Webhooks)">Marketing (Pixel + Webhooks)</h3>
+                  <div class="panel-meta">
+                    <span class="panel-tag tag-core">Core</span>
+                    <span class="panel-tag">Shopify</span>
+                  </div>
+                </div>
+                <div class="module-body">
+                  <div class="mode-sections">
+                    <div class="mode-section" data-readonly-free="1">
+                      <div class="mode-head">
+                        <div class="mode-head-left">
+                          <h4>Pixel (sessions / add-to-cart / UTM)</h4>
+                          <span class="tip" data-tip="Paso 1: genera la Key (por tienda).&#10;Paso 2: pega el script en Shopify → Online Store → Themes → Edit code → layout/theme.liquid (antes de </body>).&#10;Paso 3: espera 1-2 minutos y vuelve a cargar Marketing.">?</span>
+                        </div>
+                      </div>
+                      <div class="mode-grid">
+                        <div class="mode-field field-span">
+                          <label>Pixel Key (por tienda)</label>
+                          <div class="field-actions inline">
+                            <input type="text" id="mk-cfg-pixel-key" readonly placeholder="Cargando..." />
+                            <button class="ghost" id="mk-cfg-copy-key" type="button">Copiar</button>
+                            <button class="ghost" id="mk-cfg-rotate-key" type="button" title="Genera una nueva key (invalidará la anterior)">Rotar</button>
+                          </div>
+                          <p class="field-hint" id="mk-cfg-status">Sin datos</p>
+                        </div>
+                        <div class="mode-field field-span">
+                          <label>Script para Shopify (theme.liquid)</label>
+                          <div class="field-actions inline">
+                            <input type="text" id="mk-cfg-script" readonly placeholder="Cargando..." />
+                            <button class="ghost" id="mk-cfg-copy-script" type="button">Copiar script</button>
+                            <button class="ghost" id="mk-cfg-test" type="button" title="Envía un evento de prueba (no afecta métricas)">Probar</button>
+                          </div>
+                          <p class="field-hint">Nota: esto habilita sessions/funnel. Las ventas/UTM de pedidos salen de Shopify (sync/webhooks).</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="mode-section" data-readonly-free="1">
+                      <div class="mode-head">
+                        <div class="mode-head-left">
+                          <h4>Webhooks de Marketing (orders / checkouts / customers)</h4>
+                          <span class="tip" data-tip="Crea webhooks en Shopify apuntando a este endpoint para capturar eventos de pedidos y checkout en tiempo real.">?</span>
+                        </div>
+                      </div>
+                      <div class="mode-grid">
+                        <div class="mode-field field-span">
+                          <label>Callback URL</label>
+                          <div class="field-actions inline">
+                            <input type="text" id="mk-cfg-webhook-url" readonly placeholder="Cargando..." />
+                            <button class="ghost" id="mk-cfg-copy-webhook" type="button">Copiar URL</button>
+                            <button class="primary" id="mk-cfg-create-webhooks" type="button">Crear webhooks</button>
+                          </div>
+                          <p class="field-hint" id="mk-cfg-webhooks-status">Sin datos</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="field-hint module-warning is-hidden" data-module-warning="marketing-config"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="panel admin-only module" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas. Cada tarjeta corresponde a una tienda (multi-tienda).">
             <div class="panel-header">
               <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
@@ -1193,7 +1266,24 @@
 	                <span class="panel-tag tag-bridge">Integraciones</span>
 	              </div>
 	              <div class="module-body">
-	                <div class="settings-grid">
+                <div class="settings-grid">
+                  <div class="field">
+                    <label>Scopes</label>
+                    <select id="qa-token-scope" disabled>
+                      <option value="platform_all" selected>Plataforma completa</option>
+                    </select>
+                    <p class="field-hint">Token con acceso completo a la plataforma.</p>
+                  </div>
+                  <div class="field">
+                    <label>Caducidad</label>
+                    <select id="qa-token-ttl">
+                      <option value="5">5 minutos</option>
+                      <option value="15">15 minutos</option>
+                      <option value="30" selected>30 minutos</option>
+                      <option value="60">60 minutos</option>
+                      <option value="120">120 minutos</option>
+                    </select>
+                  </div>
 	                  <div class="field span-2">
 	                    <label>Clave temporal</label>
 	                    <div class="field-actions inline">
@@ -2155,78 +2245,6 @@
             </div>
           </div>
 
-          <div class="settings-group provider-group" data-group="marketing">
-            <div class="settings-group-header" data-group-toggle="marketing">
-              <h4 class="group-title">
-                <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
-                Marketing
-              </h4>
-            </div>
-            <div class="settings-group-body">
-              <div class="panel admin-only module" data-provider="shopify" data-manager="shopify" data-module="marketing-config" data-module-priority="core" data-help="Configura el Pixel (para sessions / funnel / UTM) y los Webhooks de Marketing. Shopify NO entrega sesiones/UTM de tráfico desde la Admin API; por eso este módulo instala el Pixel y registra eventos para métricas.">
-                <div class="panel-header">
-                  <h3 data-module-toggle="marketing-config" data-title-base="Marketing (Pixel + Webhooks)">Marketing (Pixel + Webhooks)</h3>
-                  <div class="panel-meta">
-                    <span class="panel-tag tag-core">Core</span>
-                    <span class="panel-tag">Shopify</span>
-                  </div>
-                </div>
-                <div class="module-body">
-                  <div class="mode-sections">
-                    <div class="mode-section" data-readonly-free="1">
-                      <div class="mode-head">
-                        <div class="mode-head-left">
-                          <h4>Pixel (sessions / add-to-cart / UTM)</h4>
-                          <span class="tip" data-tip="Paso 1: genera la Key (por tienda).&#10;Paso 2: pega el script en Shopify → Online Store → Themes → Edit code → layout/theme.liquid (antes de </body>).&#10;Paso 3: espera 1-2 minutos y vuelve a cargar Marketing.">?</span>
-                        </div>
-                      </div>
-                      <div class="mode-grid">
-                        <div class="mode-field field-span">
-                          <label>Pixel Key (por tienda)</label>
-                          <div class="field-actions inline">
-                            <input type="text" id="mk-cfg-pixel-key" readonly placeholder="Cargando..." />
-                            <button class="ghost" id="mk-cfg-copy-key" type="button">Copiar</button>
-                            <button class="ghost" id="mk-cfg-rotate-key" type="button" title="Genera una nueva key (invalidará la anterior)">Rotar</button>
-                          </div>
-                          <p class="field-hint" id="mk-cfg-status">Sin datos</p>
-                        </div>
-                        <div class="mode-field field-span">
-                          <label>Script para Shopify (theme.liquid)</label>
-                          <div class="field-actions inline">
-                            <input type="text" id="mk-cfg-script" readonly placeholder="Cargando..." />
-                            <button class="ghost" id="mk-cfg-copy-script" type="button">Copiar script</button>
-                            <button class="ghost" id="mk-cfg-test" type="button" title="Envía un evento de prueba (no afecta métricas)">Probar</button>
-                          </div>
-                          <p class="field-hint">Nota: esto habilita sessions/funnel. Las ventas/UTM de pedidos salen de Shopify (sync/webhooks).</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="mode-section" data-readonly-free="1">
-                      <div class="mode-head">
-                        <div class="mode-head-left">
-                          <h4>Webhooks de Marketing (orders / checkouts / customers)</h4>
-                          <span class="tip" data-tip="Crea webhooks en Shopify apuntando a este endpoint para capturar eventos de pedidos y checkout en tiempo real.">?</span>
-                        </div>
-                      </div>
-                      <div class="mode-grid">
-                        <div class="mode-field field-span">
-                          <label>Callback URL</label>
-                          <div class="field-actions inline">
-                            <input type="text" id="mk-cfg-webhook-url" readonly placeholder="Cargando..." />
-                            <button class="ghost" id="mk-cfg-copy-webhook" type="button">Copiar URL</button>
-                            <button class="primary" id="mk-cfg-create-webhooks" type="button">Crear webhooks</button>
-                          </div>
-                          <p class="field-hint" id="mk-cfg-webhooks-status">Sin datos</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <p class="field-hint module-warning is-hidden" data-module-warning="marketing-config"></p>
-                </div>
-              </div>
-            </div>
-          </div>
 	        </div>
 
 	        </section>
@@ -2424,6 +2442,6 @@
       </div>
     </div>
 
-	    <script src="app.js?v=20260206p16" type="module"></script>
+	    <script src="app.js?v=20260206p18" type="module"></script>
 	  </body>
 	</html>

@@ -195,11 +195,16 @@ export async function createAuthTokenHandler(req: Request, res: Response) {
   const rawMinutes = Number(req.body?.ttlMinutes);
   const ttlMinutes = Number.isFinite(rawMinutes) ? rawMinutes : 30;
   const clamped = Math.min(120, Math.max(5, Math.round(ttlMinutes)));
+  const scopes =
+    Array.isArray(req.body?.scopes) && req.body.scopes.length
+      ? req.body.scopes.map((scope: unknown) => String(scope || "").trim()).filter(Boolean)
+      : ["platform_all"];
   const result = await createTempToken(user.id, clamped);
   res.json({
     ok: true,
     token: result.token,
     expiresAt: result.expiresAt,
     ttlMinutes: clamped,
+    scopes,
   });
 }
