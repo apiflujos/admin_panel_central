@@ -9,6 +9,11 @@ const normalizeShopDomain = (value: unknown) =>
     .replace(/\/.*$/, "")
     .toLowerCase();
 
+const normalizeTimestamp = (value: unknown) => {
+  const raw = String(value || "").trim();
+  return /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw : null;
+};
+
 type ShopifyWebhookHeaders = {
   topic: string;
   shopDomain: string;
@@ -77,8 +82,8 @@ async function upsertCustomerFromWebhook(orgId: number, shopDomain: string, payl
   const firstName = body.first_name ? String(body.first_name) : null;
   const lastName = body.last_name ? String(body.last_name) : null;
   const phone = body.phone ? String(body.phone) : null;
-  const createdAt = body.created_at ? String(body.created_at) : null;
-  const updatedAt = body.updated_at ? String(body.updated_at) : null;
+  const createdAt = normalizeTimestamp(body.created_at);
+  const updatedAt = normalizeTimestamp(body.updated_at);
 
   await pool.query(
     `
@@ -104,8 +109,8 @@ async function ingestCheckoutEvent(orgId: number, shopDomain: string, topic: str
     unknown
   >;
   const token = body.token ? String(body.token) : "";
-  const createdAt = body.created_at ? String(body.created_at) : "";
-  const updatedAt = body.updated_at ? String(body.updated_at) : "";
+  const createdAt = normalizeTimestamp(body.created_at);
+  const updatedAt = normalizeTimestamp(body.updated_at);
   const occurredAt = updatedAt || createdAt || new Date().toISOString();
   const email = body.email ? String(body.email).trim().toLowerCase() : null;
   const landingSite = body.landing_site ? String(body.landing_site) : "";
@@ -150,8 +155,8 @@ async function upsertOrderFromWebhook(orgId: number, shopDomain: string, topic: 
   const id = body.id ? String(body.id) : "";
   if (!id) return;
   const orderGid = `gid://shopify/Order/${id}`;
-  const createdAt = body.created_at ? String(body.created_at) : null;
-  const processedAt = body.processed_at ? String(body.processed_at) : null;
+  const createdAt = normalizeTimestamp(body.created_at);
+  const processedAt = normalizeTimestamp(body.processed_at);
   const financialStatus = body.financial_status ? String(body.financial_status) : null;
   const totalAmount = body.total_price ? Number(body.total_price) : null;
   const currency = body.currency ? String(body.currency) : null;

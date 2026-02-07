@@ -49,6 +49,18 @@ export async function recomputeDailyMarketingMetrics(input: {
       created_at
     )::date
   `;
+  const safeSpendDateSql = `
+    CASE
+      WHEN date::text ~ '^\\d{4}-\\d{2}-\\d{2}' THEN date::date
+      ELSE NULL
+    END
+  `;
+  const safeEventDateSql = `
+    CASE
+      WHEN occurred_at::text ~ '^\\d{4}-\\d{2}-\\d{2}' THEN occurred_at::date
+      ELSE NULL
+    END
+  `;
 
   // Clear existing metrics for range (idempotent recompute).
   await pool.query(
@@ -70,7 +82,7 @@ export async function recomputeDailyMarketingMetrics(input: {
   }>(
     `
     SELECT
-      occurred_at::date AS date,
+      ${safeEventDateSql} AS date,
       COALESCE(NULLIF(inferred_channel,''), 'unknown') AS channel,
       NULLIF(utm_campaign,'') AS utm_campaign,
       COUNT(*) FILTER (WHERE event_type = 'session')::text AS sessions,
@@ -79,9 +91,9 @@ export async function recomputeDailyMarketingMetrics(input: {
     FROM marketing.attribution_events
     WHERE organization_id = $1
       AND shop_domain = $2
-      AND occurred_at::date >= $3::date
-      AND occurred_at::date <= $4::date
-    GROUP BY occurred_at::date, channel, utm_campaign
+      AND ${safeEventDateSql} >= $3::date
+      AND ${safeEventDateSql} <= $4::date
+    GROUP BY ${safeEventDateSql}, channel, utm_campaign
     `,
     [orgId, shopDomain, fromKey, toKey]
   );
@@ -121,10 +133,13 @@ export async function recomputeDailyMarketingMetrics(input: {
     amount: string;
   }>(
     `
-    SELECT date::text AS date, utm_campaign, COALESCE(SUM(amount),0)::text AS amount
+    SELECT ${safeSpendDateSql}::text AS date, utm_campaign, COALESCE(SUM(amount),0)::text AS amount
     FROM marketing.campaign_spend
-    WHERE organization_id = $1 AND shop_domain = $2 AND date >= $3::date AND date <= $4::date
-    GROUP BY date, utm_campaign
+    WHERE organization_id = $1
+      AND shop_domain = $2
+      AND ${safeSpendDateSql} >= $3::date
+      AND ${safeSpendDateSql} <= $4::date
+    GROUP BY ${safeSpendDateSql}, utm_campaign
     `,
     [orgId, shopDomain, fromKey, toKey]
   );

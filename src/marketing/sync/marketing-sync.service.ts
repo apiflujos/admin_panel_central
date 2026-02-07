@@ -17,6 +17,11 @@ function safeDateKey(input: unknown) {
   return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : "";
 }
 
+function normalizeTimestamp(input: unknown) {
+  const raw = String(input || "").trim();
+  return /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw : null;
+}
+
 export async function syncMarketingOrders(shopDomain: string, options: SyncOptions = {}) {
   const pool = getPool();
   const { organizationId, shopDomain: domain } = await ensureMarketingShop(shopDomain);
@@ -51,8 +56,8 @@ export async function syncMarketingOrders(shopDomain: string, options: SyncOptio
       const node = edge.node;
       const orderGid = String(node.id || "");
       if (!orderGid) continue;
-      const createdAt = node.createdAt || null;
-      const processedAt = node.processedAt || null;
+      const createdAt = normalizeTimestamp(node.createdAt);
+      const processedAt = normalizeTimestamp(node.processedAt);
       const financial = node.displayFinancialStatus || null;
       const amount = Number(node.totalPriceSet?.shopMoney?.amount || 0);
       const currency = node.totalPriceSet?.shopMoney?.currencyCode || null;
