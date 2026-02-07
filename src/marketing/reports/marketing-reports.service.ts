@@ -38,6 +38,12 @@ export async function getMarketingExecutiveDashboard(input: {
       created_at
     )::date
   `;
+  const safeSpendDateSql = `
+    CASE
+      WHEN date::text ~ '^\\d{4}-\\d{2}-\\d{2}' THEN date::date
+      ELSE NULL
+    END
+  `;
 
   const summary = await pool.query<{
     revenue: string;
@@ -85,7 +91,10 @@ export async function getMarketingExecutiveDashboard(input: {
     `
     SELECT COALESCE(SUM(amount),0)::text AS spend
     FROM marketing.campaign_spend
-    WHERE organization_id = $1 AND shop_domain = $2 AND date >= $3::date AND date <= $4::date
+    WHERE organization_id = $1
+      AND shop_domain = $2
+      AND ${safeSpendDateSql} >= $3::date
+      AND ${safeSpendDateSql} <= $4::date
     `,
     [orgId, shopDomain, from, to]
   );
@@ -189,7 +198,8 @@ export async function getMarketingExecutiveDashboard(input: {
       FROM marketing.campaign_spend
       WHERE organization_id = $1
         AND shop_domain = $2
-        AND date >= $3::date AND date <= $4::date
+        AND ${safeSpendDateSql} >= $3::date
+        AND ${safeSpendDateSql} <= $4::date
       GROUP BY utm_campaign
     )
     SELECT
