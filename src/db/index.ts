@@ -203,6 +203,7 @@ async function performRepair(poolInstance: Pool) {
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           UNIQUE (organization_id, shop_domain)
         );`,
+        "ALTER TABLE marketing.shops ADD COLUMN IF NOT EXISTS pixel_key TEXT;",
         "CREATE UNIQUE INDEX IF NOT EXISTS marketing_shops_org_pixel_key_uidx ON marketing.shops (organization_id, pixel_key) WHERE pixel_key IS NOT NULL;",
         `CREATE TABLE IF NOT EXISTS marketing.customers (
           id BIGSERIAL PRIMARY KEY,
