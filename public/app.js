@@ -11601,8 +11601,16 @@ if (qaTokenGenerate) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ttlMinutes, scopes }),
       });
+      const rawToken = String(result?.token || "").trim();
+      const isValidToken = /^[a-f0-9]{48}$/i.test(rawToken);
+      if (!isValidToken) {
+        if (qaTokenValue) qaTokenValue.value = "";
+        if (qaTokenHint) qaTokenHint.textContent = "Token invalido. Intenta generar de nuevo.";
+        showToast("Token invalido. Intenta generar de nuevo.", "is-error");
+        return;
+      }
       if (qaTokenValue) {
-        qaTokenValue.value = result?.token || "";
+        qaTokenValue.value = rawToken;
       }
       if (qaTokenHint) {
         const expiresAt = result?.expiresAt ? new Date(result.expiresAt) : null;
