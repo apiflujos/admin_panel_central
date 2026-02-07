@@ -1260,37 +1260,38 @@
 	            <h4 class="group-title">Integraciones</h4>
 	          </div>
 	          <div class="settings-group-body">
-	            <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera una clave temporal para integraciones y pruebas (API) sin consola.">
+	            <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera un token para integraciones y pruebas (API) sin consola.">
 	              <div class="panel-header">
-	                <h3 data-module-toggle="qa-token">Clave temporal de integracion</h3>
+	                <h3 data-module-toggle="qa-token">Token de integracion</h3>
 	                <span class="panel-tag tag-bridge">Integraciones</span>
 	              </div>
 	              <div class="module-body">
-                <div class="settings-grid">
-                  <div class="field">
-                    <label>Scopes</label>
-                    <select id="qa-token-scope" disabled>
-                      <option value="platform_all" selected>Plataforma completa</option>
-                    </select>
-                    <p class="field-hint">Token con acceso completo a la plataforma.</p>
-                  </div>
-                  <div class="field">
-                    <label>Caducidad</label>
-                    <select id="qa-token-ttl">
-                      <option value="5">5 minutos</option>
-                      <option value="15">15 minutos</option>
-                      <option value="30" selected>30 minutos</option>
-                      <option value="60">60 minutos</option>
-                      <option value="120">120 minutos</option>
-                    </select>
-                  </div>
+	                <div class="settings-grid">
+	                  <div class="field">
+	                    <label>Scopes</label>
+	                    <select id="qa-token-scope" disabled>
+	                      <option value="general" selected>General</option>
+	                    </select>
+	                    <p class="field-hint">Token con acceso general a la plataforma.</p>
+	                  </div>
+	                  <div class="field">
+	                    <label>Caducidad</label>
+	                    <select id="qa-token-ttl">
+	                      <option value="0">Nunca</option>
+	                      <option value="5">5 minutos</option>
+	                      <option value="15">15 minutos</option>
+	                      <option value="30" selected>30 minutos</option>
+	                      <option value="60">60 minutos</option>
+	                      <option value="120">120 minutos</option>
+	                    </select>
+	                  </div>
 	                  <div class="field span-2">
-	                    <label>Clave temporal</label>
+	                    <label>Token</label>
 	                    <div class="field-actions inline">
-	                      <input type="text" id="qa-token-value" readonly placeholder="Genera una clave temporal" />
+	                      <input type="text" id="qa-token-value" readonly placeholder="Genera un token" />
 	                      <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
 	                    </div>
-	                    <p class="field-hint" id="qa-token-hint">Vence en 30 minutos.</p>
+	                    <p class="field-hint" id="qa-token-hint">Caduca segun la opcion seleccionada.</p>
 	                  </div>
 	                </div>
 	                <div class="toolbar is-actions">
@@ -2442,6 +2443,6 @@
       </div>
     </div>
 
-	    <script src="app.js?v=20260206p18" type="module"></script>
+	    <script src="app.js?v=20260206p19" type="module"></script>
 	  </body>
 	</html>

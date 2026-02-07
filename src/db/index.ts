@@ -786,6 +786,14 @@ export async function ensureUsersTables(poolInstance: Pool) {
       .then(() =>
         poolInstance.query(
           `
+          ALTER TABLE user_sessions
+            ALTER COLUMN expires_at DROP NOT NULL
+          `
+        )
+      )
+      .then(() =>
+        poolInstance.query(
+          `
           CREATE UNIQUE INDEX IF NOT EXISTS user_sessions_token_idx ON user_sessions (token)
           `
         )

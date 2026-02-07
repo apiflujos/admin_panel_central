@@ -11594,8 +11594,8 @@ if (qaTokenGenerate) {
         qaTokenTtl instanceof HTMLSelectElement ? Number(qaTokenTtl.value || 30) : 30;
       const scopes =
         qaTokenScope instanceof HTMLSelectElement
-          ? [String(qaTokenScope.value || "platform_all")]
-          : ["platform_all"];
+          ? [String(qaTokenScope.value || "general")]
+          : ["general"];
       const result = await fetchJson("/api/auth/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -11608,7 +11608,7 @@ if (qaTokenGenerate) {
         const expiresAt = result?.expiresAt ? new Date(result.expiresAt) : null;
         qaTokenHint.textContent = expiresAt
           ? `Vence: ${expiresAt.toLocaleString()}`
-          : "Clave generada.";
+          : "No expira.";
       }
     } catch (error) {
       if (qaTokenHint) {

@@ -77,11 +77,11 @@ export async function authenticateUser(email: string, password: string, remember
   return { token, user, maxAgeMs };
 }
 
-export async function createTempToken(userId: number, ttlMinutes = 30) {
+export async function createTempToken(userId: number, ttlMinutes: number | null = 30) {
   const pool = getPool();
   await ensureUsersTables(pool);
   const token = crypto.randomBytes(24).toString("hex");
-  const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+  const expiresAt = ttlMinutes === null ? null : new Date(Date.now() + ttlMinutes * 60 * 1000);
   await pool.query(
     `
     INSERT INTO user_sessions (user_id, token, expires_at)
@@ -109,7 +109,7 @@ export async function getSessionUser(token: string | undefined | null) {
   const pool = getPool();
   await ensureUsersTables(pool);
   const result = await pool.query<
-    UserRecord & { expires_at: Date }
+    UserRecord & { expires_at: Date | null }
   >(
     `
     SELECT u.id, u.organization_id, u.email, u.password_hash, u.role, u.is_super_admin, u.name, u.phone, u.photo_base64, s.expires_at
@@ -127,7 +127,7 @@ export async function getSessionUser(token: string | undefined | null) {
   const session = { ...rawSession, role: normalizeUserRole(rawSession.role) } as typeof rawSession & {
     role: "admin" | "agent" | "super_admin";
   };
-  if (session.expires_at.getTime() < Date.now()) {
+  if (session.expires_at && session.expires_at.getTime() < Date.now()) {
     await clearSession(token);
     return null;
   }
