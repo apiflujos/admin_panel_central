@@ -195,7 +195,9 @@ const mkCfgTest = document.getElementById("mk-cfg-test");
 const mkCfgWebhookUrl = document.getElementById("mk-cfg-webhook-url");
 const mkCfgCopyWebhook = document.getElementById("mk-cfg-copy-webhook");
 const mkCfgCreateWebhooks = document.getElementById("mk-cfg-create-webhooks");
+const mkCfgDeleteWebhooks = document.getElementById("mk-cfg-delete-webhooks");
 const mkCfgWebhooksStatus = document.getElementById("mk-cfg-webhooks-status");
+const mkCfgStoreSelect = document.getElementById("mk-cfg-store-select");
 const chartAlegra = document.getElementById("chart-alegra");
 const alegraGrowthLabel = document.getElementById("chart-alegra-label");
 const assistantMessages = document.getElementById("assistant-messages");
@@ -4757,6 +4759,10 @@ async function loadConnections(options = {}) {
     updateSettingsSubmenuAvailability();
     renderCopyConfigOptions(stores);
     renderStoreActiveSelect(stores, options);
+    renderMarketingConfigStoreSelects(stores);
+    if (mkCfgPixelKey) {
+      loadMarketingConfig();
+    }
     updatePrerequisites();
     initSetupMode(stores.length);
     updateWizardStartAvailability();
@@ -4916,6 +4922,7 @@ function renderStoreActiveSelect(stores, options = {}) {
   renderStoreActiveList(stores);
   renderStoreContextSelects(stores);
   renderStoreSyncSelects(stores);
+  renderMarketingConfigStoreSelects(stores);
   setShopifyWebhooksStatus("Sin configurar");
   const activePane =
     document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
@@ -4954,6 +4961,150 @@ function renderStoreContextSelects(stores) {
   });
 }
 
+function getMarketingConfigShopDomain() {
+  if (mkCfgStoreSelect instanceof HTMLSelectElement && mkCfgStoreSelect.value) {
+    return normalizeShopDomain(mkCfgStoreSelect.value);
+  }
+  return normalizeShopDomain(activeStoreDomain || "");
+}
+
+function setMarketingConfigStatus(message, className) {
+  if (!mkCfgStatus) return;
+  mkCfgStatus.textContent = message || "Sin datos";
+  mkCfgStatus.classList.remove("is-ok", "is-warn", "is-error");
+  if (className) mkCfgStatus.classList.add(className);
+}
+
+function setMarketingWebhooksStatus(message, className) {
+  if (!mkCfgWebhooksStatus) return;
+  mkCfgWebhooksStatus.textContent = message || "Sin datos";
+  mkCfgWebhooksStatus.classList.remove("is-ok", "is-warn", "is-error");
+  if (className) mkCfgWebhooksStatus.classList.add(className);
+}
+
+async function loadMarketingConfig() {
+  const shopDomain = getMarketingConfigShopDomain();
+  if (!shopDomain) {
+    setMarketingConfigStatus("Selecciona una tienda.", "is-warn");
+    return;
+  }
+  try {
+    setMarketingConfigStatus("Cargando...", "");
+    const data = await fetchJson(`/api/marketing/pixel/config?shopDomain=${encodeURIComponent(shopDomain)}`);
+    if (mkCfgPixelKey) mkCfgPixelKey.value = data.pixelKey || "";
+    if (mkCfgScript) mkCfgScript.value = data.pixelScriptTag || data.pixelScriptUrl || "";
+    if (mkCfgWebhookUrl) mkCfgWebhookUrl.value = data.webhookUrl || "";
+    setMarketingConfigStatus("Listo.", "is-ok");
+    await loadMarketingWebhooksStatus();
+  } catch (error) {
+    setMarketingConfigStatus(error?.message || "No se pudo cargar.", "is-error");
+  }
+}
+
+async function loadMarketingWebhooksStatus() {
+  const shopDomain = getMarketingConfigShopDomain();
+  if (!shopDomain) {
+    setMarketingWebhooksStatus("Selecciona una tienda.", "is-warn");
+    return;
+  }
+  try {
+    const data = await fetchJson(`/api/marketing/webhooks/status?shopDomain=${encodeURIComponent(shopDomain)}`);
+    if (data?.ok) {
+      setMarketingWebhooksStatus(`OK · ${data.connected}/${data.total} conectados`, "is-ok");
+    } else {
+      const missing = Array.isArray(data?.missing) ? data.missing.length : 0;
+      setMarketingWebhooksStatus(`Faltan ${missing} webhooks`, "is-warn");
+    }
+  } catch (error) {
+    setMarketingWebhooksStatus(error?.message || "No se pudo consultar.", "is-error");
+  }
+}
+
+async function rotateMarketingPixelKey() {
+  const shopDomain = getMarketingConfigShopDomain();
+  if (!shopDomain) {
+    setMarketingConfigStatus("Selecciona una tienda.", "is-warn");
+    return;
+  }
+  try {
+    setMarketingConfigStatus("Rotando...", "");
+    const result = await fetchJson("/api/marketing/pixel/key/rotate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shopDomain }),
+    });
+    if (mkCfgPixelKey) mkCfgPixelKey.value = result.pixelKey || "";
+    if (mkCfgScript) mkCfgScript.value = result.pixelScriptTag || result.pixelScriptUrl || "";
+    if (mkCfgWebhookUrl) mkCfgWebhookUrl.value = result.webhookUrl || "";
+    setMarketingConfigStatus("Key rotada.", "is-ok");
+  } catch (error) {
+    setMarketingConfigStatus(error?.message || "No se pudo rotar.", "is-error");
+  }
+}
+
+async function testMarketingPixel() {
+  const shopDomain = getMarketingConfigShopDomain();
+  const key = mkCfgPixelKey ? String(mkCfgPixelKey.value || "").trim() : "";
+  if (!shopDomain || !key) {
+    setMarketingConfigStatus("Selecciona tienda y genera Pixel Key.", "is-warn");
+    return;
+  }
+  try {
+    setMarketingConfigStatus("Enviando prueba...", "");
+    await fetchJson(`/api/marketing/collect?key=${encodeURIComponent(key)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventType: "session",
+        shopDomain,
+        landingSite: window.location.href,
+        referrer: document.referrer || "",
+        occurredAt: new Date().toISOString(),
+      }),
+    });
+    setMarketingConfigStatus("Evento de prueba enviado.", "is-ok");
+  } catch (error) {
+    setMarketingConfigStatus(error?.message || "No se pudo probar.", "is-error");
+  }
+}
+
+async function createMarketingWebhooks() {
+  const shopDomain = getMarketingConfigShopDomain();
+  if (!shopDomain) {
+    setMarketingWebhooksStatus("Selecciona una tienda.", "is-warn");
+    return;
+  }
+  try {
+    setMarketingWebhooksStatus("Creando webhooks...", "");
+    await fetchJson("/api/marketing/webhooks/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shopDomain }),
+    });
+    await loadMarketingWebhooksStatus();
+  } catch (error) {
+    setMarketingWebhooksStatus(error?.message || "No se pudo crear.", "is-error");
+  }
+}
+
+async function deleteMarketingWebhooks() {
+  const shopDomain = getMarketingConfigShopDomain();
+  if (!shopDomain) {
+    setMarketingWebhooksStatus("Selecciona una tienda.", "is-warn");
+    return;
+  }
+  try {
+    setMarketingWebhooksStatus("Eliminando webhooks...", "");
+    await fetchJson("/api/marketing/webhooks/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shopDomain }),
+    });
+    await loadMarketingWebhooksStatus();
+  } catch (error) {
+    setMarketingWebhooksStatus(error?.message || "No se pudo eliminar.", "is-error");
+  }
+}
 function renderStoreSyncSelects(stores) {
   if (!storeSyncSourceSelect || !storeSyncTargetSelect) return;
   const list = Array.isArray(stores) ? stores : [];
@@ -5007,6 +5158,23 @@ function renderStoreSyncAlegraAccounts(accounts) {
     option.textContent = "Selecciona cuenta Alegra";
     storeSyncPriceListSelect.appendChild(option);
   }
+}
+
+function renderMarketingConfigStoreSelects(stores) {
+  if (!(mkCfgStoreSelect instanceof HTMLSelectElement)) return;
+  const list = Array.isArray(stores) ? stores : [];
+  if (!list.length) {
+    mkCfgStoreSelect.innerHTML = `<option value="">Sin tiendas</option>`;
+    mkCfgStoreSelect.disabled = true;
+    return;
+  }
+  const options = list
+    .map((store) => `<option value="${store.shopDomain}">${store.storeName || store.shopDomain}</option>`)
+    .join("");
+  mkCfgStoreSelect.innerHTML = options;
+  mkCfgStoreSelect.disabled = list.length <= 1;
+  const defaultDomain = activeStoreDomain || list[0]?.shopDomain || "";
+  if (defaultDomain) mkCfgStoreSelect.value = defaultDomain;
 }
 
 async function loadStoreSyncPriceLists(accountId) {
@@ -11652,6 +11820,107 @@ if (qaTokenCopy) {
   });
 }
 
+if (mkCfgStoreSelect) {
+  mkCfgStoreSelect.addEventListener("change", () => {
+    loadMarketingConfig();
+  });
+}
+
+if (mkCfgRotateKey) {
+  mkCfgRotateKey.addEventListener("click", () => {
+    rotateMarketingPixelKey();
+  });
+}
+
+if (mkCfgTest) {
+  mkCfgTest.addEventListener("click", () => {
+    testMarketingPixel();
+  });
+}
+
+if (mkCfgCopyKey) {
+  mkCfgCopyKey.addEventListener("click", async () => {
+    if (!mkCfgPixelKey || !mkCfgPixelKey.value) {
+      showToast("No hay key para copiar.", "is-warn");
+      return;
+    }
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(mkCfgPixelKey.value);
+      copied = true;
+    } catch {
+      try {
+        mkCfgPixelKey.select();
+        copied = document.execCommand("copy");
+      } catch {
+        copied = false;
+      }
+    }
+    showToast(copied ? "Key copiada." : "No se pudo copiar.", copied ? "is-ok" : "is-error");
+  });
+}
+
+if (mkCfgCopyScript) {
+  mkCfgCopyScript.addEventListener("click", async () => {
+    if (!mkCfgScript || !mkCfgScript.value) {
+      showToast("No hay script para copiar.", "is-warn");
+      return;
+    }
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(mkCfgScript.value);
+      copied = true;
+    } catch {
+      try {
+        mkCfgScript.select();
+        copied = document.execCommand("copy");
+      } catch {
+        copied = false;
+      }
+    }
+    showToast(copied ? "Script copiado." : "No se pudo copiar.", copied ? "is-ok" : "is-error");
+  });
+}
+
+if (mkCfgCopyWebhook) {
+  mkCfgCopyWebhook.addEventListener("click", async () => {
+    if (!mkCfgWebhookUrl || !mkCfgWebhookUrl.value) {
+      showToast("No hay URL para copiar.", "is-warn");
+      return;
+    }
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(mkCfgWebhookUrl.value);
+      copied = true;
+    } catch {
+      try {
+        mkCfgWebhookUrl.select();
+        copied = document.execCommand("copy");
+      } catch {
+        copied = false;
+      }
+    }
+    showToast(copied ? "URL copiada." : "No se pudo copiar.", copied ? "is-ok" : "is-error");
+  });
+}
+
+if (mkCfgCreateWebhooks) {
+  mkCfgCreateWebhooks.addEventListener("click", () => {
+    createMarketingWebhooks();
+  });
+}
+
+if (mkCfgDeleteWebhooks) {
+  mkCfgDeleteWebhooks.addEventListener("click", () => {
+    deleteMarketingWebhooks();
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (mkCfgPixelKey) {
+    loadMarketingConfig();
+  }
+});
   if (syncContactsBulkRun) {
     syncContactsBulkRun.addEventListener("click", () => {
       runBulkContactSync();

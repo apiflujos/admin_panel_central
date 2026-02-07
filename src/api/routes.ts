@@ -26,6 +26,7 @@ import {
   marketingPixelConfigHandler,
   marketingPixelRotateKeyHandler,
   marketingWebhooksCreateHandler,
+  marketingWebhooksDeleteHandler,
   marketingWebhooksStatusHandler,
 } from "./marketing-config.controller";
 import { shopifyMarketingWebhookHandler } from "./marketing-webhooks.controller";
@@ -134,6 +135,7 @@ router.get("/marketing/pixel/config", requireAdmin, wrap(marketingPixelConfigHan
 router.post("/marketing/pixel/key/rotate", requireAdmin, wrap(marketingPixelRotateKeyHandler));
 router.get("/marketing/webhooks/status", requireAdmin, wrap(marketingWebhooksStatusHandler));
 router.post("/marketing/webhooks/create", requireAdmin, wrap(marketingWebhooksCreateHandler));
+router.post("/marketing/webhooks/delete", requireAdmin, wrap(marketingWebhooksDeleteHandler));
 
 // Super Admin (global)
 router.get("/sa/tenants", requireSuperAdmin, wrap(saListTenantsHandler));

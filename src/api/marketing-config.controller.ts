@@ -160,3 +160,47 @@ export async function marketingWebhooksCreateHandler(req: Request, res: Response
   }
 }
 
+export async function marketingWebhooksDeleteHandler(req: Request, res: Response) {
+  try {
+    const shopDomain = normalizeShopDomain(req.body?.shopDomain);
+    if (!shopDomain) {
+      res.status(400).json({ error: "shopDomain requerido" });
+      return;
+    }
+    const connection = await getShopifyConnectionByDomain(shopDomain);
+    const baseUrl = resolveBaseUrl(req);
+    const expectedCallback = normalizeUrl(`${baseUrl}/api/marketing/webhooks/shopify`);
+    const client = new ShopifyClient({
+      shopDomain: connection.shopDomain,
+      accessToken: connection.accessToken,
+    });
+    const data = await client.listWebhookSubscriptions(50);
+    const edges = data.webhookSubscriptions?.edges || [];
+    const toDelete = edges.filter((edge: any) => {
+      const node = edge.node;
+      const endpointUrl = node.endpoint?.callbackUrl || "";
+      return endpointUrl && normalizeUrl(endpointUrl) === expectedCallback;
+    });
+    const results = await Promise.all(
+      toDelete.map(async (edge: any) => {
+        try {
+          const id = edge.node?.id;
+          const topic = edge.node?.topic;
+          const response = await client.deleteWebhookSubscription(id);
+          const errors = response.webhookSubscriptionDelete?.userErrors || [];
+          return { id, topic, ok: errors.length === 0, errors };
+        } catch (error) {
+          return { id: edge.node?.id, topic: edge.node?.topic, ok: false, errors: [{ message: (error as any)?.message || "error" }] };
+        }
+      })
+    );
+    res.status(200).json({
+      ok: results.every((item) => item.ok),
+      deleted: results.length,
+      items: results,
+      callbackUrl: `${baseUrl}/api/marketing/webhooks/shopify`,
+    });
+  } catch (error) {
+    res.status(400).json({ error: (error as { message?: string })?.message || "error" });
+  }
+}

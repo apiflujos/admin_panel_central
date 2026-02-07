@@ -1195,6 +1195,10 @@
                       </div>
                       <div class="mode-grid">
                         <div class="mode-field field-span">
+                          <label>Tienda</label>
+                          <select id="mk-cfg-store-select"></select>
+                        </div>
+                        <div class="mode-field field-span">
                           <label>Pixel Key (por tienda)</label>
                           <div class="field-actions inline">
                             <input type="text" id="mk-cfg-pixel-key" readonly placeholder="Cargando..." />
@@ -1229,6 +1233,7 @@
                             <input type="text" id="mk-cfg-webhook-url" readonly placeholder="Cargando..." />
                             <button class="ghost" id="mk-cfg-copy-webhook" type="button">Copiar URL</button>
                             <button class="primary" id="mk-cfg-create-webhooks" type="button">Crear webhooks</button>
+                            <button class="ghost danger" id="mk-cfg-delete-webhooks" type="button">Eliminar webhooks</button>
                           </div>
                           <p class="field-hint" id="mk-cfg-webhooks-status">Sin datos</p>
                         </div>
@@ -2443,6 +2448,6 @@
       </div>
     </div>
 
-	    <script src="app.js?v=20260206p20" type="module"></script>
+	    <script src="app.js?v=20260206p21" type="module"></script>
 	  </body>
 	</html>
