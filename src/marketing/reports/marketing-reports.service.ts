@@ -25,6 +25,20 @@ export async function getMarketingExecutiveDashboard(input: {
   if (!shopDomain) throw new Error("shopDomain requerido");
   if (!from || !to) throw new Error("from/to inválidos");
 
+  const safeOrderDateSql = `
+    COALESCE(
+      CASE
+        WHEN processed_at_shopify::text ~ '^\\d{4}-\\d{2}-\\d{2}' THEN processed_at_shopify::timestamptz
+        ELSE NULL
+      END,
+      CASE
+        WHEN created_at_shopify::text ~ '^\\d{4}-\\d{2}-\\d{2}' THEN created_at_shopify::timestamptz
+        ELSE NULL
+      END,
+      created_at
+    )::date
+  `;
+
   const summary = await pool.query<{
     revenue: string;
     paid_orders: string;
@@ -83,8 +97,8 @@ export async function getMarketingExecutiveDashboard(input: {
     FROM marketing.orders
     WHERE organization_id = $1
       AND shop_domain = $2
-      AND COALESCE(processed_at_shopify, created_at_shopify, created_at)::date >= $3::date
-      AND COALESCE(processed_at_shopify, created_at_shopify, created_at)::date <= $4::date
+      AND ${safeOrderDateSql} >= $3::date
+      AND ${safeOrderDateSql} <= $4::date
       AND LOWER(COALESCE(financial_status,'')) IN ('paid','partially_paid','authorized')
     `,
     [orgId, shopDomain, from, to]
@@ -138,8 +152,12 @@ export async function getMarketingExecutiveDashboard(input: {
      AND o.shopify_order_gid = oi.shopify_order_gid
     WHERE oi.organization_id = $1
       AND oi.shop_domain = $2
-      AND COALESCE(o.processed_at_shopify, o.created_at_shopify, o.created_at)::date >= $3::date
-      AND COALESCE(o.processed_at_shopify, o.created_at_shopify, o.created_at)::date <= $4::date
+      AND ${safeOrderDateSql.replace(/processed_at_shopify/g, "o.processed_at_shopify")
+        .replace(/created_at_shopify/g, "o.created_at_shopify")
+        .replace(/\bcreated_at\b/g, "o.created_at")} >= $3::date
+      AND ${safeOrderDateSql.replace(/processed_at_shopify/g, "o.processed_at_shopify")
+        .replace(/created_at_shopify/g, "o.created_at_shopify")
+        .replace(/\bcreated_at\b/g, "o.created_at")} <= $4::date
       AND LOWER(COALESCE(o.financial_status,'')) IN ('paid','partially_paid','authorized')
     GROUP BY product_title
     ORDER BY SUM(COALESCE(oi.line_amount,0)) DESC

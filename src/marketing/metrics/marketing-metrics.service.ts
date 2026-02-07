@@ -36,6 +36,20 @@ export async function recomputeDailyMarketingMetrics(input: {
   const fromDate = new Date(`${fromKey}T00:00:00.000Z`);
   const toDate = new Date(`${toKey}T00:00:00.000Z`);
 
+  const safeOrderDateSql = `
+    COALESCE(
+      CASE
+        WHEN processed_at_shopify::text ~ '^\\d{4}-\\d{2}-\\d{2}' THEN processed_at_shopify::timestamptz
+        ELSE NULL
+      END,
+      CASE
+        WHEN created_at_shopify::text ~ '^\\d{4}-\\d{2}-\\d{2}' THEN created_at_shopify::timestamptz
+        ELSE NULL
+      END,
+      created_at
+    )::date
+  `;
+
   // Clear existing metrics for range (idempotent recompute).
   await pool.query(
     `
@@ -83,7 +97,7 @@ export async function recomputeDailyMarketingMetrics(input: {
   }>(
     `
     SELECT
-      COALESCE(processed_at_shopify, created_at_shopify, created_at)::date AS date,
+      ${safeOrderDateSql} AS date,
       COALESCE(NULLIF(inferred_channel,''), 'unknown') AS channel,
       NULLIF(utm_campaign,'') AS utm_campaign,
       COUNT(*)::text AS paid_orders,
@@ -92,8 +106,8 @@ export async function recomputeDailyMarketingMetrics(input: {
     FROM marketing.orders
     WHERE organization_id = $1
       AND shop_domain = $2
-      AND COALESCE(processed_at_shopify, created_at_shopify, created_at)::date >= $3::date
-      AND COALESCE(processed_at_shopify, created_at_shopify, created_at)::date <= $4::date
+      AND ${safeOrderDateSql} >= $3::date
+      AND ${safeOrderDateSql} <= $4::date
       AND LOWER(COALESCE(financial_status,'')) IN ('paid','partially_paid','authorized')
     GROUP BY date, channel, utm_campaign
     `,
@@ -125,7 +139,7 @@ export async function recomputeDailyMarketingMetrics(input: {
     `
     WITH paid AS (
       SELECT
-        COALESCE(processed_at_shopify, created_at_shopify, created_at)::date AS date,
+        ${safeOrderDateSql} AS date,
         NULLIF(customer_email,'') AS email
       FROM marketing.orders
       WHERE organization_id = $1
