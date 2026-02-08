@@ -838,12 +838,14 @@ updateContactsActionVisibility();
 function updateSettingsSubmenuAvailability() {
   if (!settingsSubmenu) return;
   const hasStores = Boolean(storesCache && storesCache.length);
+  const isAdminLike = currentUserRole === "admin" || currentUserRole === "super_admin" || currentUserIsSuperAdmin;
   settingsSubmenu.querySelectorAll("[data-settings-pane-link]").forEach((button) => {
     const key = button.getAttribute("data-settings-pane-link") || "";
     if (key !== "stores") return;
-    button.toggleAttribute("disabled", !hasStores);
-    button.classList.toggle("is-disabled", !hasStores);
-    if (!hasStores && button.classList.contains("is-active")) {
+    const shouldDisable = !hasStores && !isAdminLike;
+    button.toggleAttribute("disabled", shouldDisable);
+    button.classList.toggle("is-disabled", shouldDisable);
+    if (shouldDisable && button.classList.contains("is-active")) {
       setSettingsPane("connections");
     }
   });
