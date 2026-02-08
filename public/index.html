@@ -85,6 +85,7 @@
 	          </button>
 		          <div class="nav-submenu" id="settings-submenu" aria-label="Submenu configuracion">
 		            <button class="nav-subitem is-active" type="button" data-settings-pane-link="connections" title="Conexiones">Conexiones</button>
+		            <button class="nav-subitem" type="button" data-settings-pane-link="marketing" title="Marketing">Marketing</button>
 		            <button class="nav-subitem" type="button" data-settings-pane-link="stores" title="Tiendas">Tiendas</button>
 		            <button class="nav-subitem" type="button" data-settings-pane-link="integrations" title="Integraciones">Integraciones</button>
 		          </div>
@@ -1167,295 +1168,252 @@
                     </div>
                   </div>
 
-                  <div class="connections-group" data-group="marketing-ads">
-                    <div class="connections-group-header">
-                      <div class="group-title">
-                        <span class="group-kicker">Marketing Ads</span>
-                        <h4>Google · Meta · TikTok</h4>
-                      </div>
+                  <div class="panel admin-only module" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas. Cada tarjeta corresponde a una tienda (multi-tienda).">
+                    <div class="panel-header">
+                      <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
+                      <span class="panel-tag tag-bridge">Conexiones</span>
                     </div>
-                    <div class="connections-group-body">
-                      <div class="connection-block ads-host-block">
-                        <div class="connection-block-header">
-                          <div>
-                            <div class="provider-title">
-                              <h4>Base URL (OAuth)</h4>
-                            </div>
-                            <p class="kpi-sub">Dominio publico del backend para callbacks.</p>
-                          </div>
-                          <div class="connection-block-actions">
-                            <button class="primary" id="ads-app-save" type="button">Guardar credenciales</button>
-                          </div>
-                        </div>
-                        <div class="settings-grid connection-fields">
-                          <div class="field span-2">
-                            <label>Base URL (APP_HOST) <span class="tip" data-tip="Ej: https://tu-app.onrender.com">?</span></label>
-                            <input type="text" id="ads-app-host" placeholder="https://tu-app.onrender.com" />
-                          </div>
-                        </div>
-                      </div>
-                      <div class="ads-platform-grid">
-                        <div class="connection-block ads-platform">
-                          <div class="connection-block-header">
-                            <div class="provider-title">
-                              <img class="provider-logo" src="/brands/googleads.png?v=20260201s" alt="Google Ads" />
-                              <h4>Google Ads</h4>
-                            </div>
-                            <span class="status-pill is-off" id="google-ads-connection-pill">Sin conectar</span>
-                          </div>
-                          <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
-                          <div class="settings-grid connection-fields">
-                            <div class="field span-2">
-                              <label>Client ID</label>
-                              <input type="text" id="google-ads-client-id" placeholder="xxxx.apps.googleusercontent.com" />
-                            </div>
-                            <div class="field span-2">
-                              <label>Client Secret</label>
-                              <input type="password" id="google-ads-client-secret" placeholder="********" autocomplete="new-password" />
-                            </div>
-                            <div class="field span-2">
-                              <label>Developer Token</label>
-                              <input type="password" id="google-ads-developer-token" placeholder="********" autocomplete="new-password" />
-                            </div>
-                            <div class="field span-2">
-                              <label>Customer ID <span class="tip" data-tip="Formato 123-456-7890.">?</span></label>
-                              <input type="text" id="google-ads-customer-id" placeholder="123-456-7890" />
-                            </div>
-                          </div>
-                          <div class="connection-block-actions">
-                            <button class="primary" id="connect-google-ads" type="button">Conectar Google</button>
-                          </div>
-                        </div>
-
-                        <div class="connection-block ads-platform">
-                          <div class="connection-block-header">
-                            <div class="provider-title">
-                              <img class="provider-logo" src="/brands/meta.png?v=20260201s" alt="Meta Ads" />
-                              <h4>Meta Ads</h4>
-                            </div>
-                            <span class="status-pill is-off" id="meta-ads-connection-pill">Sin conectar</span>
-                          </div>
-                          <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
-                          <div class="settings-grid connection-fields">
-                            <div class="field span-2">
-                              <label>App ID</label>
-                              <input type="text" id="meta-ads-app-id" placeholder="1234567890" />
-                            </div>
-                            <div class="field span-2">
-                              <label>App Secret</label>
-                              <input type="password" id="meta-ads-app-secret" placeholder="********" autocomplete="new-password" />
-                            </div>
-                            <div class="field span-2">
-                              <label>Ad Account ID <span class="tip" data-tip="Solo numeros.">?</span></label>
-                              <input type="text" id="meta-ads-account-id" placeholder="1234567890" />
-                            </div>
-                          </div>
-                          <div class="connection-block-actions">
-                            <button class="primary" id="connect-meta-ads" type="button">Conectar Meta</button>
-                          </div>
-                        </div>
-
-                        <div class="connection-block ads-platform">
-                          <div class="connection-block-header">
-                            <div class="provider-title">
-                              <img class="provider-logo" src="/brands/tiktok.png?v=20260201s" alt="TikTok Ads" />
-                              <h4>TikTok Ads</h4>
-                            </div>
-                            <span class="status-pill is-off" id="tiktok-ads-connection-pill">Sin conectar</span>
-                          </div>
-                          <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
-                          <div class="settings-grid connection-fields">
-                            <div class="field span-2">
-                              <label>App ID</label>
-                              <input type="text" id="tiktok-ads-app-id" placeholder="1234567890" />
-                            </div>
-                            <div class="field span-2">
-                              <label>App Secret</label>
-                              <input type="password" id="tiktok-ads-app-secret" placeholder="********" autocomplete="new-password" />
-                            </div>
-                            <div class="field span-2">
-                              <label>Advertiser ID</label>
-                              <input type="text" id="tiktok-ads-advertiser-id" placeholder="1234567890" />
-                            </div>
-                          </div>
-                          <div class="connection-block-actions">
-                            <button class="primary" id="connect-tiktok-ads" type="button">Conectar TikTok</button>
-                          </div>
-                        </div>
-                      </div>
-                  </div>
-
-                  <div class="connections-group" data-group="ai">
-                    <div class="connections-group-header">
-                      <div class="group-title">
-                        <span class="group-kicker">Asistencia</span>
-                        <h4>IA</h4>
-                      </div>
-                    </div>
-                    <div class="connections-group-body">
-                      <div class="connection-block">
-                        <div class="connection-block-header">
-                          <div>
-                            <div class="provider-title">
-                              <img class="provider-logo" src="/brands/openai.png?v=20260201s" alt="OpenAI" />
-                              <h4>IA</h4>
-                            </div>
-                            <p class="kpi-sub">Clave del proveedor de IA</p>
-                          </div>
-                        </div>
-                        <div class="settings-grid connection-fields">
-                          <div class="field span-2">
-                            <label>Token de IA <span class="tip" data-tip="Clave del proveedor de IA (por ejemplo OpenAI). Se usa para el asistente y soporte.">?</span></label>
-                            <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
-                          </div>
-                        </div>
+                    <div class="module-body">
+                      <div class="connections-grid" id="connections-grid">
+                        <div class="connection-card empty">Sin conexiones.</div>
                       </div>
                     </div>
                   </div>
-	              </div>
-	            </div>
-	          </div>
-	        </div>
 
-          <div class="settings-group provider-group" data-group="marketing">
-            <div class="settings-group-header" data-group-toggle="marketing">
-              <h4 class="group-title">
-                <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
-                Marketing
-              </h4>
-            </div>
-            <div class="settings-group-body">
-              <div class="panel admin-only module" data-provider="shopify" data-manager="shopify" data-module="marketing-config" data-module-priority="core" data-help="Configura el Pixel (para sessions / funnel / UTM) y los Webhooks de Marketing. Shopify NO entrega sesiones/UTM de tráfico desde la Admin API; por eso este módulo instala el Pixel y registra eventos para métricas.">
-                <div class="panel-header">
-                  <h3 data-module-toggle="marketing-config" data-title-base="Marketing (Pixel + Webhooks)">Marketing (Pixel + Webhooks)</h3>
-                  <div class="panel-meta">
-                    <span class="panel-tag tag-core">Core</span>
-                    <span class="panel-tag">Shopify</span>
-                  </div>
-                </div>
-                <div class="module-body">
-                  <div class="mode-sections">
-                    <div class="mode-section" data-readonly-free="1">
-                      <div class="mode-head">
-                        <div class="mode-head-left">
-                          <h4>Pixel (sessions / add-to-cart / UTM)</h4>
-                          <span class="tip" data-tip="Paso 1: genera la Key (por tienda).&#10;Paso 2: pega el script en Shopify → Online Store → Themes → Edit code → layout/theme.liquid (antes de </body>).&#10;Paso 3: espera 1-2 minutos y vuelve a cargar Marketing.">?</span>
-                        </div>
-                      </div>
-                      <div class="mode-grid">
-                        <div class="mode-field field-span">
-                          <label>Tienda</label>
-                          <select id="mk-cfg-store-select"></select>
-                        </div>
-                        <div class="mode-field field-span">
-                          <label>Pixel Key (por tienda)</label>
-                          <div class="field-actions inline">
-                            <input type="text" id="mk-cfg-pixel-key" readonly placeholder="Cargando..." />
-                            <button class="ghost" id="mk-cfg-copy-key" type="button">Copiar</button>
-                            <button class="ghost" id="mk-cfg-rotate-key" type="button" title="Genera una nueva key (invalidará la anterior)">Rotar</button>
-                          </div>
-                          <p class="field-hint" id="mk-cfg-status">Sin datos</p>
-                        </div>
-                        <div class="mode-field field-span">
-                          <label>Script para Shopify (theme.liquid)</label>
-                          <div class="field-actions inline">
-                            <input type="text" id="mk-cfg-script" readonly placeholder="Cargando..." />
-                            <button class="ghost" id="mk-cfg-copy-script" type="button">Copiar script</button>
-                            <button class="ghost" id="mk-cfg-test" type="button" title="Envía un evento de prueba (no afecta métricas)">Probar</button>
-                          </div>
-                          <p class="field-hint">Nota: esto habilita sessions/funnel. Las ventas/UTM de pedidos salen de Shopify (sync/webhooks).</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="mode-section" data-readonly-free="1">
-                      <div class="mode-head">
-                        <div class="mode-head-left">
-                          <h4>Webhooks de Marketing (orders / checkouts / customers)</h4>
-                          <span class="tip" data-tip="Crea webhooks en Shopify apuntando a este endpoint para capturar eventos de pedidos y checkout en tiempo real.">?</span>
-                        </div>
-                      </div>
-                      <div class="mode-grid">
-                        <div class="mode-field field-span">
-                          <label>Callback URL</label>
-                          <div class="field-actions inline">
-                            <input type="text" id="mk-cfg-webhook-url" readonly placeholder="Cargando..." />
-                            <button class="ghost" id="mk-cfg-copy-webhook" type="button">Copiar URL</button>
-                            <button class="primary" id="mk-cfg-create-webhooks" type="button">Crear webhooks</button>
-                            <button class="ghost danger" id="mk-cfg-delete-webhooks" type="button">Eliminar webhooks</button>
-                          </div>
-                          <p class="field-hint" id="mk-cfg-webhooks-status">Sin datos</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <p class="field-hint module-warning is-hidden" data-module-warning="marketing-config"></p>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div class="panel admin-only module" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas. Cada tarjeta corresponde a una tienda (multi-tienda).">
-            <div class="panel-header">
-              <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
-              <span class="panel-tag tag-bridge">Conexiones</span>
-            </div>
-            <div class="module-body">
-              <div class="connections-grid" id="connections-grid">
-                <div class="connection-card empty">Sin conexiones.</div>
-              </div>
-            </div>
-          </div>
-	      </div>
+		      <div class="settings-pane" data-settings-pane="marketing">
+		        <div class="settings-group provider-group" data-group="marketing">
+		          <div class="settings-group-header" data-group-toggle="marketing">
+		            <h4 class="group-title">
+		              <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
+		              Marketing
+		            </h4>
+		          </div>
+		          <div class="settings-group-body">
+		            <div class="panel admin-only module" data-provider="shopify" data-manager="shopify" data-module="marketing-config" data-module-priority="core" data-help="Configura el Pixel (para sessions / funnel / UTM) y los Webhooks de Marketing. Shopify NO entrega sesiones/UTM de tráfico desde la Admin API; por eso este módulo instala el Pixel y registra eventos para métricas.">
+		              <div class="panel-header">
+		                <h3 data-module-toggle="marketing-config" data-title-base="Marketing (Pixel + Webhooks)">Marketing (Pixel + Webhooks)</h3>
+		                <div class="panel-meta">
+		                  <span class="panel-tag tag-core">Core</span>
+		                  <span class="panel-tag">Shopify</span>
+		                </div>
+		              </div>
+		              <div class="module-body">
+		                <div class="mode-sections">
+		                  <div class="mode-section" data-readonly-free="1">
+		                    <div class="mode-head">
+		                      <div class="mode-head-left">
+		                        <h4>Pixel (sessions / add-to-cart / UTM)</h4>
+		                        <span class="tip" data-tip="Paso 1: genera la Key (por tienda).&#10;Paso 2: pega el script en Shopify → Online Store → Themes → Edit code → layout/theme.liquid (antes de </body>).&#10;Paso 3: espera 1-2 minutos y vuelve a cargar Marketing.">?</span>
+		                      </div>
+		                    </div>
+		                    <div class="mode-grid">
+		                      <div class="mode-field field-span">
+		                        <label>Tienda</label>
+		                        <select id="mk-cfg-store-select"></select>
+		                      </div>
+		                      <div class="mode-field field-span">
+		                        <label>Pixel Key (por tienda)</label>
+		                        <div class="field-actions inline">
+		                          <input type="text" id="mk-cfg-pixel-key" readonly placeholder="Cargando..." />
+		                          <button class="ghost" id="mk-cfg-copy-key" type="button">Copiar</button>
+		                          <button class="ghost" id="mk-cfg-rotate-key" type="button" title="Genera una nueva key (invalidará la anterior)">Rotar</button>
+		                        </div>
+		                        <p class="field-hint" id="mk-cfg-status">Sin datos</p>
+		                      </div>
+		                      <div class="mode-field field-span">
+		                        <label>Script para Shopify (theme.liquid)</label>
+		                        <div class="field-actions inline">
+		                          <input type="text" id="mk-cfg-script" readonly placeholder="Cargando..." />
+		                          <button class="ghost" id="mk-cfg-copy-script" type="button">Copiar script</button>
+		                          <button class="ghost" id="mk-cfg-test" type="button" title="Envía un evento de prueba (no afecta métricas)">Probar</button>
+		                        </div>
+		                        <p class="field-hint">Nota: esto habilita sessions/funnel. Las ventas/UTM de pedidos salen de Shopify (sync/webhooks).</p>
+		                      </div>
+		                    </div>
+		                  </div>
 
-	      <div class="settings-pane" data-settings-pane="integrations">
-	        <div class="settings-group provider-group" data-group="integrations">
-	          <div class="settings-group-header" data-group-toggle="integrations">
-	            <h4 class="group-title">Integraciones</h4>
-	          </div>
-	          <div class="settings-group-body">
-	            <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera un token para integraciones y pruebas (API) sin consola.">
-	              <div class="panel-header">
-	                <h3 data-module-toggle="qa-token">Token de integracion</h3>
-	                <span class="panel-tag tag-bridge">Integraciones</span>
-	              </div>
-	              <div class="module-body">
-	                <div class="settings-grid">
-	                  <div class="field">
-	                    <label>Scopes</label>
-	                    <select id="qa-token-scope" disabled>
-	                      <option value="general" selected>General</option>
-	                    </select>
-	                    <p class="field-hint">Token con acceso general a la plataforma.</p>
-	                  </div>
-	                  <div class="field">
-	                    <label>Caducidad</label>
-	                    <select id="qa-token-ttl">
-	                      <option value="0">Nunca</option>
-	                      <option value="5">5 minutos</option>
-	                      <option value="15">15 minutos</option>
-	                      <option value="30" selected>30 minutos</option>
-	                      <option value="60">60 minutos</option>
-	                      <option value="120">120 minutos</option>
-	                    </select>
-	                  </div>
-	                  <div class="field span-2">
-	                    <label>Token</label>
-	                    <div class="field-actions inline">
-	                      <input type="text" id="qa-token-value" readonly placeholder="Genera un token" />
-	                      <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
-	                    </div>
-	                    <p class="field-hint" id="qa-token-hint">Caduca segun la opcion seleccionada.</p>
-	                  </div>
-	                </div>
-	                <div class="toolbar is-actions">
-	                  <button class="primary" id="qa-token-generate" type="button">Generar clave</button>
-	                </div>
-	              </div>
-	            </div>
-	          </div>
-	        </div>
-	      </div>
+		                  <div class="mode-section" data-readonly-free="1">
+		                    <div class="mode-head">
+		                      <div class="mode-head-left">
+		                        <h4>Webhooks de Marketing (orders / checkouts / customers)</h4>
+		                        <span class="tip" data-tip="Crea webhooks en Shopify apuntando a este endpoint para capturar eventos de pedidos y checkout en tiempo real.">?</span>
+		                      </div>
+		                    </div>
+		                    <div class="mode-grid">
+		                      <div class="mode-field field-span">
+		                        <label>Callback URL</label>
+		                        <div class="field-actions inline">
+		                          <input type="text" id="mk-cfg-webhook-url" readonly placeholder="Cargando..." />
+		                          <button class="ghost" id="mk-cfg-copy-webhook" type="button">Copiar URL</button>
+		                          <button class="primary" id="mk-cfg-create-webhooks" type="button">Crear webhooks</button>
+		                          <button class="ghost danger" id="mk-cfg-delete-webhooks" type="button">Eliminar webhooks</button>
+		                        </div>
+		                        <p class="field-hint" id="mk-cfg-webhooks-status">Sin datos</p>
+		                      </div>
+		                    </div>
+		                  </div>
+		                </div>
+		                <p class="field-hint module-warning is-hidden" data-module-warning="marketing-config"></p>
+		              </div>
+		            </div>
+		          </div>
+		        </div>
+
+		        <div class="connections-groups">
+		          <div class="connections-group" data-group="marketing-ads">
+		            <div class="connections-group-header">
+		              <div class="group-title">
+		                <span class="group-kicker">Marketing Ads</span>
+		                <h4>Google · Meta · TikTok</h4>
+		              </div>
+		            </div>
+		            <div class="connections-group-body">
+		              <div class="connection-block ads-host-block">
+		                <div class="connection-block-header">
+		                  <div>
+		                    <div class="provider-title">
+		                      <h4>Base URL (OAuth)</h4>
+		                    </div>
+		                    <p class="kpi-sub">Dominio publico del backend para callbacks.</p>
+		                  </div>
+		                  <div class="connection-block-actions">
+		                    <button class="primary" id="ads-app-save" type="button">Guardar credenciales</button>
+		                  </div>
+		                </div>
+		                <div class="settings-grid connection-fields">
+		                  <div class="field span-2">
+		                    <label>Base URL (APP_HOST) <span class="tip" data-tip="Ej: https://tu-app.onrender.com">?</span></label>
+		                    <input type="text" id="ads-app-host" placeholder="https://tu-app.onrender.com" />
+		                  </div>
+		                </div>
+		              </div>
+		              <div class="ads-platform-grid">
+		                <div class="connection-block ads-platform">
+		                  <div class="connection-block-header">
+		                    <div class="provider-title">
+		                      <img class="provider-logo" src="/brands/googleads.png?v=20260201s" alt="Google Ads" />
+		                      <h4>Google Ads</h4>
+		                    </div>
+		                    <span class="status-pill is-off" id="google-ads-connection-pill">Sin conectar</span>
+		                  </div>
+		                  <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
+		                  <div class="settings-grid connection-fields">
+		                    <div class="field span-2">
+		                      <label>Client ID</label>
+		                      <input type="text" id="google-ads-client-id" placeholder="xxxx.apps.googleusercontent.com" />
+		                    </div>
+		                    <div class="field span-2">
+		                      <label>Client Secret</label>
+		                      <input type="password" id="google-ads-client-secret" placeholder="********" autocomplete="new-password" />
+		                    </div>
+		                    <div class="field span-2">
+		                      <label>Developer Token</label>
+		                      <input type="password" id="google-ads-developer-token" placeholder="********" autocomplete="new-password" />
+		                    </div>
+		                    <div class="field span-2">
+		                      <label>Customer ID <span class="tip" data-tip="Formato 123-456-7890.">?</span></label>
+		                      <input type="text" id="google-ads-customer-id" placeholder="123-456-7890" />
+		                    </div>
+		                  </div>
+		                  <div class="connection-block-actions">
+		                    <button class="primary" id="connect-google-ads" type="button">Conectar Google</button>
+		                  </div>
+		                </div>
+
+		                <div class="connection-block ads-platform">
+		                  <div class="connection-block-header">
+		                    <div class="provider-title">
+		                      <img class="provider-logo" src="/brands/meta.png?v=20260201s" alt="Meta Ads" />
+		                      <h4>Meta Ads</h4>
+		                    </div>
+		                    <span class="status-pill is-off" id="meta-ads-connection-pill">Sin conectar</span>
+		                  </div>
+		                  <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
+		                  <div class="settings-grid connection-fields">
+		                    <div class="field span-2">
+		                      <label>App ID</label>
+		                      <input type="text" id="meta-ads-app-id" placeholder="1234567890" />
+		                    </div>
+		                    <div class="field span-2">
+		                      <label>App Secret</label>
+		                      <input type="password" id="meta-ads-app-secret" placeholder="********" autocomplete="new-password" />
+		                    </div>
+		                    <div class="field span-2">
+		                      <label>Ad Account ID <span class="tip" data-tip="Solo numeros.">?</span></label>
+		                      <input type="text" id="meta-ads-account-id" placeholder="1234567890" />
+		                    </div>
+		                  </div>
+		                  <div class="connection-block-actions">
+		                    <button class="primary" id="connect-meta-ads" type="button">Conectar Meta</button>
+		                  </div>
+		                </div>
+
+		                <div class="connection-block ads-platform">
+		                  <div class="connection-block-header">
+		                    <div class="provider-title">
+		                      <img class="provider-logo" src="/brands/tiktok.png?v=20260201s" alt="TikTok Ads" />
+		                      <h4>TikTok Ads</h4>
+		                    </div>
+		                    <span class="status-pill is-off" id="tiktok-ads-connection-pill">Sin conectar</span>
+		                  </div>
+		                  <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
+		                  <div class="settings-grid connection-fields">
+		                    <div class="field span-2">
+		                      <label>App ID</label>
+		                      <input type="text" id="tiktok-ads-app-id" placeholder="1234567890" />
+		                    </div>
+		                    <div class="field span-2">
+		                      <label>App Secret</label>
+		                      <input type="password" id="tiktok-ads-app-secret" placeholder="********" autocomplete="new-password" />
+		                    </div>
+		                    <div class="field span-2">
+		                      <label>Advertiser ID</label>
+		                      <input type="text" id="tiktok-ads-advertiser-id" placeholder="1234567890" />
+		                    </div>
+		                  </div>
+		                  <div class="connection-block-actions">
+		                    <button class="primary" id="connect-tiktok-ads" type="button">Conectar TikTok</button>
+		                  </div>
+		                </div>
+		              </div>
+		            </div>
+		          </div>
+
+		          <div class="connections-group" data-group="ai">
+		            <div class="connections-group-header">
+		              <div class="group-title">
+		                <span class="group-kicker">Asistencia</span>
+		                <h4>IA</h4>
+		              </div>
+		            </div>
+		            <div class="connections-group-body">
+		              <div class="connection-block">
+		                <div class="connection-block-header">
+		                  <div>
+		                    <div class="provider-title">
+		                      <img class="provider-logo" src="/brands/openai.png?v=20260201s" alt="OpenAI" />
+		                      <h4>IA</h4>
+		                    </div>
+		                    <p class="kpi-sub">Clave del proveedor de IA</p>
+		                  </div>
+		                </div>
+		                <div class="settings-grid connection-fields">
+		                  <div class="field span-2">
+		                    <label>Token de IA <span class="tip" data-tip="Clave del proveedor de IA (por ejemplo OpenAI). Se usa para el asistente y soporte.">?</span></label>
+		                    <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
+		                  </div>
+		                </div>
+		              </div>
+		            </div>
+		          </div>
+		        </div>
+		      </div>
 
 				        <div class="settings-pane" data-settings-pane="stores">
 				          <div class="panel admin-only" id="stores-switcher-panel" data-help="Tiendas conectadas: elige la tienda activa. Todo lo de abajo (productos, pedidos, contactos, etc.) se guarda por tienda activa.">
@@ -1479,7 +1437,7 @@
 				                <select id="store-active-select" class="is-hidden" aria-hidden="true" tabindex="-1"></select>
 				              </div>
 				            </div>
-				          </div>
+					          </div>
 
 			              <div class="settings-group store-group" data-group="store">
 			                <div class="settings-group-header" data-group-toggle="store" data-help="Configuracion de la tienda activa: todo lo de abajo aplica solo a la tienda seleccionada arriba.">
@@ -2402,6 +2360,55 @@
 
 	        </div>
 
+	      <div class="settings-pane" data-settings-pane="integrations">
+	        <div class="settings-group provider-group" data-group="integrations">
+	          <div class="settings-group-header" data-group-toggle="integrations">
+	            <h4 class="group-title">Integraciones</h4>
+	          </div>
+	          <div class="settings-group-body">
+	            <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera un token para integraciones y pruebas (API) sin consola.">
+	              <div class="panel-header">
+	                <h3 data-module-toggle="qa-token">Token de integracion</h3>
+	                <span class="panel-tag tag-bridge">Integraciones</span>
+	              </div>
+	              <div class="module-body">
+	                <div class="settings-grid">
+	                  <div class="field">
+	                    <label>Scopes</label>
+	                    <select id="qa-token-scope" disabled>
+	                      <option value="general" selected>General</option>
+	                    </select>
+	                    <p class="field-hint">Token con acceso general a la plataforma.</p>
+	                  </div>
+	                  <div class="field">
+	                    <label>Caducidad</label>
+	                    <select id="qa-token-ttl">
+	                      <option value="0">Nunca</option>
+	                      <option value="5">5 minutos</option>
+	                      <option value="15">15 minutos</option>
+	                      <option value="30" selected>30 minutos</option>
+	                      <option value="60">60 minutos</option>
+	                      <option value="120">120 minutos</option>
+	                    </select>
+	                  </div>
+	                  <div class="field span-2">
+	                    <label>Token</label>
+	                    <div class="field-actions inline">
+	                      <input type="text" id="qa-token-value" readonly placeholder="Genera un token" />
+	                      <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
+	                    </div>
+	                    <p class="field-hint" id="qa-token-hint">Caduca segun la opcion seleccionada.</p>
+	                  </div>
+	                </div>
+	                <div class="toolbar is-actions">
+	                  <button class="primary" id="qa-token-generate" type="button">Generar clave</button>
+	                </div>
+	              </div>
+	            </div>
+	          </div>
+	        </div>
+	      </div>
+
 	        </section>
       </main>
     </div>
@@ -2597,6 +2604,6 @@
       </div>
     </div>
 
-	    <script src="app.js?v=20260208p3" type="module"></script>
+	    <script src="app.js?v=20260208p5" type="module"></script>
 	  </body>
 	</html>
