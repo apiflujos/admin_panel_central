@@ -4819,10 +4819,12 @@ async function loadConnections(options = {}) {
     updateGoogleAdsStatus(data);
     updateMetaAdsStatus(data);
     updateTikTokAdsStatus(data);
+    clearAdsConnectInputs();
     initSetupMode(stores.length);
     updateWizardStartAvailability();
     syncSettingsPane();
     await maybeApplyPendingStoreConfigCopy();
+    maybeJumpToConnectionsSummary();
   } catch {
     renderConnections({ stores: [] });
     renderAlegraAccountOptions([]);
@@ -4830,6 +4832,7 @@ async function loadConnections(options = {}) {
     updateGoogleAdsStatus({ googleAds: { connected: false, needsReconnect: false } });
     updateMetaAdsStatus({ metaAds: { connected: false, needsReconnect: false } });
     updateTikTokAdsStatus({ tiktokAds: { connected: false, needsReconnect: false } });
+    clearAdsConnectInputs();
     activeStoreDomain = "";
     activeStoreName = "";
     storesCache = [];
@@ -4955,6 +4958,26 @@ function updateTikTokAdsStatus(payload) {
   if (tiktokAdsAdvertiserId && tt.advertiserId && !tiktokAdsAdvertiserId.value) {
     tiktokAdsAdvertiserId.value = tt.advertiserId;
   }
+}
+
+function clearAdsConnectInputs() {
+  if (googleAdsCustomerId) googleAdsCustomerId.value = "";
+  if (metaAdsAccountId) metaAdsAccountId.value = "";
+  if (tiktokAdsAdvertiserId) tiktokAdsAdvertiserId.value = "";
+}
+
+function maybeJumpToConnectionsSummary() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("connections") !== "1") return;
+  setSettingsPane("connections", { persist: false });
+  const summary = document.querySelector('[data-module="connections-summary"]');
+  if (summary && summary.scrollIntoView) {
+    summary.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  params.delete("connections");
+  const next = params.toString();
+  const nextUrl = next ? `${window.location.pathname}?${next}` : window.location.pathname;
+  window.history.replaceState({}, "", nextUrl);
 }
 
 function setConnectionsSetupOpen(open) {
