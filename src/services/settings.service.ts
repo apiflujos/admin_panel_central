@@ -19,6 +19,22 @@ type SettingsPayload = {
   ai?: {
     apiKey?: string;
   };
+  adsApps?: {
+    appHost?: string;
+    googleAds?: {
+      clientId?: string;
+      clientSecret?: string;
+      developerToken?: string;
+    };
+    metaAds?: {
+      appId?: string;
+      appSecret?: string;
+    };
+    tiktokAds?: {
+      appId?: string;
+      appSecret?: string;
+    };
+  };
   rules?: {
     publishOnStock?: boolean;
     onlyActiveItems?: boolean;
@@ -117,6 +133,41 @@ export async function saveSettings(payload: SettingsPayload) {
       await upsertCredential(pool, orgId, "ai", data);
     }
   }
+  if (payload.adsApps) {
+    const appHost = payload.adsApps.appHost?.trim() || "";
+    if (appHost) {
+      const data = encryptString(JSON.stringify({ appHost }));
+      await upsertCredential(pool, orgId, "app_host", data);
+    }
+    if (payload.adsApps.googleAds) {
+      const clientId = payload.adsApps.googleAds.clientId?.trim() || "";
+      const clientSecret = payload.adsApps.googleAds.clientSecret?.trim() || "";
+      const developerToken = payload.adsApps.googleAds.developerToken?.trim() || "";
+      if (!clientId || !clientSecret || !developerToken) {
+        throw new Error("Google Ads requiere Client ID, Client Secret y Developer Token.");
+      }
+      const data = encryptString(JSON.stringify({ clientId, clientSecret, developerToken }));
+      await upsertCredential(pool, orgId, "google_ads_app", data);
+    }
+    if (payload.adsApps.metaAds) {
+      const appId = payload.adsApps.metaAds.appId?.trim() || "";
+      const appSecret = payload.adsApps.metaAds.appSecret?.trim() || "";
+      if (!appId || !appSecret) {
+        throw new Error("Meta Ads requiere App ID y App Secret.");
+      }
+      const data = encryptString(JSON.stringify({ appId, appSecret }));
+      await upsertCredential(pool, orgId, "meta_ads_app", data);
+    }
+    if (payload.adsApps.tiktokAds) {
+      const appId = payload.adsApps.tiktokAds.appId?.trim() || "";
+      const appSecret = payload.adsApps.tiktokAds.appSecret?.trim() || "";
+      if (!appId || !appSecret) {
+        throw new Error("TikTok Ads requiere App ID y App Secret.");
+      }
+      const data = encryptString(JSON.stringify({ appId, appSecret }));
+      await upsertCredential(pool, orgId, "tiktok_ads_app", data);
+    }
+  }
 
   if (payload.rules) {
     await upsertRules(pool, orgId, payload.rules);
@@ -146,6 +197,7 @@ export async function getSettings() {
   const invoice = await readInvoiceSettings(pool, orgId);
   const taxRules = await readTaxRules(pool, orgId);
   const paymentMappings = await readPaymentMappings(pool, orgId);
+  const adsApps = await readAdsAppsSummary(pool, orgId);
 
   return {
     shopify,
@@ -155,10 +207,38 @@ export async function getSettings() {
       : ai.needsReconnect
         ? { hasApiKey: false, needsReconnect: true }
         : null,
+    adsApps,
     rules,
     invoice,
     taxRules,
     paymentMappings,
+  };
+}
+
+async function readAdsAppsSummary(pool: ReturnType<typeof getPool>, orgId: number) {
+  const appHost = await readCredentialSafe(pool, orgId, "app_host");
+  const google = await readCredentialSafe(pool, orgId, "google_ads_app");
+  const meta = await readCredentialSafe(pool, orgId, "meta_ads_app");
+  const tiktok = await readCredentialSafe(pool, orgId, "tiktok_ads_app");
+
+  return {
+    appHost: appHost.data ? String((appHost.data as { appHost?: string }).appHost || "") : "",
+    googleAds: {
+      hasClientId: Boolean((google.data as { clientId?: string } | null)?.clientId),
+      hasClientSecret: Boolean((google.data as { clientSecret?: string } | null)?.clientSecret),
+      hasDeveloperToken: Boolean((google.data as { developerToken?: string } | null)?.developerToken),
+      needsReconnect: google.needsReconnect,
+    },
+    metaAds: {
+      hasAppId: Boolean((meta.data as { appId?: string } | null)?.appId),
+      hasAppSecret: Boolean((meta.data as { appSecret?: string } | null)?.appSecret),
+      needsReconnect: meta.needsReconnect,
+    },
+    tiktokAds: {
+      hasAppId: Boolean((tiktok.data as { appId?: string } | null)?.appId),
+      hasAppSecret: Boolean((tiktok.data as { appSecret?: string } | null)?.appSecret),
+      needsReconnect: tiktok.needsReconnect,
+    },
   };
 }
 

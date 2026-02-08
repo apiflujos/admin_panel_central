@@ -23,6 +23,7 @@ const summarizeSettingsPayload = (payload: Record<string, unknown>) => ({
   hasShopify: Boolean((payload.shopify as Record<string, unknown> | undefined)?.accessToken),
   hasAlegra: Boolean((payload.alegra as Record<string, unknown> | undefined)?.apiKey),
   hasAi: Boolean((payload.ai as Record<string, unknown> | undefined)?.apiKey),
+  hasAdsApps: Boolean(payload.adsApps),
   hasRules: Boolean(payload.rules),
   hasInvoice: Boolean(payload.invoice),
   hasTaxRules: Boolean(payload.taxRules),

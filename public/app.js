@@ -266,6 +266,24 @@ const connectShopify = document.getElementById("connect-shopify");
 const connectAlegra = document.getElementById("connect-alegra");
 const shopifyConnectionPill = document.getElementById("shopify-connection-pill");
 const alegraConnectionPill = document.getElementById("alegra-connection-pill");
+const googleAdsCustomerId = document.getElementById("google-ads-customer-id");
+const connectGoogleAds = document.getElementById("connect-google-ads");
+const googleAdsConnectionPill = document.getElementById("google-ads-connection-pill");
+const metaAdsAccountId = document.getElementById("meta-ads-account-id");
+const connectMetaAds = document.getElementById("connect-meta-ads");
+const metaAdsConnectionPill = document.getElementById("meta-ads-connection-pill");
+const tiktokAdsAdvertiserId = document.getElementById("tiktok-ads-advertiser-id");
+const connectTikTokAds = document.getElementById("connect-tiktok-ads");
+const tiktokAdsConnectionPill = document.getElementById("tiktok-ads-connection-pill");
+const adsAppHost = document.getElementById("ads-app-host");
+const googleAdsClientId = document.getElementById("google-ads-client-id");
+const googleAdsClientSecret = document.getElementById("google-ads-client-secret");
+const googleAdsDeveloperToken = document.getElementById("google-ads-developer-token");
+const metaAdsAppId = document.getElementById("meta-ads-app-id");
+const metaAdsAppSecret = document.getElementById("meta-ads-app-secret");
+const tiktokAdsAppId = document.getElementById("tiktok-ads-app-id");
+const tiktokAdsAppSecret = document.getElementById("tiktok-ads-app-secret");
+const adsAppSave = document.getElementById("ads-app-save");
 const aiKey = document.getElementById("ai-key");
 const aiSave = document.getElementById("ai-save");
 const passwordCurrent = document.getElementById("password-current");
@@ -4547,6 +4565,40 @@ async function loadSettings(options = {}) {
       aiKey.placeholder = "sk-********";
     }
   }
+  if (data.adsApps) {
+    if (adsAppHost) {
+      adsAppHost.placeholder = data.adsApps.appHost || "https://tu-app.onrender.com";
+      adsAppHost.value = data.adsApps.appHost || "";
+    }
+    if (googleAdsClientId) {
+      googleAdsClientId.placeholder = data.adsApps.googleAds?.hasClientId ? "Guardado" : "xxxx.apps.googleusercontent.com";
+      googleAdsClientId.value = "";
+    }
+    if (googleAdsClientSecret) {
+      googleAdsClientSecret.placeholder = data.adsApps.googleAds?.hasClientSecret ? "Guardado" : "********";
+      googleAdsClientSecret.value = "";
+    }
+    if (googleAdsDeveloperToken) {
+      googleAdsDeveloperToken.placeholder = data.adsApps.googleAds?.hasDeveloperToken ? "Guardado" : "********";
+      googleAdsDeveloperToken.value = "";
+    }
+    if (metaAdsAppId) {
+      metaAdsAppId.placeholder = data.adsApps.metaAds?.hasAppId ? "Guardado" : "1234567890";
+      metaAdsAppId.value = "";
+    }
+    if (metaAdsAppSecret) {
+      metaAdsAppSecret.placeholder = data.adsApps.metaAds?.hasAppSecret ? "Guardado" : "********";
+      metaAdsAppSecret.value = "";
+    }
+    if (tiktokAdsAppId) {
+      tiktokAdsAppId.placeholder = data.adsApps.tiktokAds?.hasAppId ? "Guardado" : "1234567890";
+      tiktokAdsAppId.value = "";
+    }
+    if (tiktokAdsAppSecret) {
+      tiktokAdsAppSecret.placeholder = data.adsApps.tiktokAds?.hasAppSecret ? "Guardado" : "********";
+      tiktokAdsAppSecret.value = "";
+    }
+  }
 	  if (data.invoice) {
 	    globalInvoiceSettings = {
 	      generateInvoice: Boolean(data.invoice.generateInvoice),
@@ -4764,6 +4816,9 @@ async function loadConnections(options = {}) {
       loadMarketingConfig();
     }
     updatePrerequisites();
+    updateGoogleAdsStatus(data);
+    updateMetaAdsStatus(data);
+    updateTikTokAdsStatus(data);
     initSetupMode(stores.length);
     updateWizardStartAvailability();
     syncSettingsPane();
@@ -4772,6 +4827,9 @@ async function loadConnections(options = {}) {
     renderConnections({ stores: [] });
     renderAlegraAccountOptions([]);
     renderCopyConfigOptions([]);
+    updateGoogleAdsStatus({ googleAds: { connected: false, needsReconnect: false } });
+    updateMetaAdsStatus({ metaAds: { connected: false, needsReconnect: false } });
+    updateTikTokAdsStatus({ tiktokAds: { connected: false, needsReconnect: false } });
     activeStoreDomain = "";
     activeStoreName = "";
     storesCache = [];
@@ -4861,6 +4919,42 @@ function updateConnectionPills() {
   const alegraLabel = store?.alegraNeedsReconnect ? "Reconectar" : (alegraOk ? "Conectado" : "Pendiente");
   applyConnectionPill(shopifyConnectionPill, shopifyOk && !store?.shopifyNeedsReconnect, shopifyLabel);
   applyConnectionPill(alegraConnectionPill, alegraOk && !store?.alegraNeedsReconnect, alegraLabel);
+}
+
+function updateGoogleAdsStatus(payload) {
+  if (!googleAdsConnectionPill && !googleAdsCustomerId) return;
+  const google = payload?.googleAds || {};
+  const connected = Boolean(google.connected);
+  const needsReconnect = Boolean(google.needsReconnect);
+  const label = needsReconnect ? "Reconectar" : (connected ? "Conectado" : "Sin conectar");
+  applyConnectionPill(googleAdsConnectionPill, connected && !needsReconnect, label);
+  if (googleAdsCustomerId && google.customerId && !googleAdsCustomerId.value) {
+    googleAdsCustomerId.value = google.customerId;
+  }
+}
+
+function updateMetaAdsStatus(payload) {
+  if (!metaAdsConnectionPill && !metaAdsAccountId) return;
+  const meta = payload?.metaAds || {};
+  const connected = Boolean(meta.connected);
+  const needsReconnect = Boolean(meta.needsReconnect);
+  const label = needsReconnect ? "Reconectar" : (connected ? "Conectado" : "Sin conectar");
+  applyConnectionPill(metaAdsConnectionPill, connected && !needsReconnect, label);
+  if (metaAdsAccountId && meta.adAccountId && !metaAdsAccountId.value) {
+    metaAdsAccountId.value = meta.adAccountId;
+  }
+}
+
+function updateTikTokAdsStatus(payload) {
+  if (!tiktokAdsConnectionPill && !tiktokAdsAdvertiserId) return;
+  const tt = payload?.tiktokAds || {};
+  const connected = Boolean(tt.connected);
+  const needsReconnect = Boolean(tt.needsReconnect);
+  const label = needsReconnect ? "Reconectar" : (connected ? "Conectado" : "Sin conectar");
+  applyConnectionPill(tiktokAdsConnectionPill, connected && !needsReconnect, label);
+  if (tiktokAdsAdvertiserId && tt.advertiserId && !tiktokAdsAdvertiserId.value) {
+    tiktokAdsAdvertiserId.value = tt.advertiserId;
+  }
 }
 
 function setConnectionsSetupOpen(open) {
@@ -5920,6 +6014,7 @@ function renderConnections(settings) {
   if (!connectionsGrid) return;
   connectionsGrid.innerHTML = "";
   const stores = Array.isArray(settings.stores) ? settings.stores : [];
+  const googleAds = settings?.googleAds || {};
   const activeDomain = normalizeShopDomain(activeStoreDomain || storeActiveSelect?.value || "");
   const list = stores
     .slice()
@@ -5947,6 +6042,21 @@ function renderConnections(settings) {
       const alegraLabel = store.alegraEmail
         ? `${store.alegraEmail} (${store.alegraEnvironment || "prod"})`
         : "Sin Alegra asignado";
+      const googleAdsLabel = googleAds.connected
+        ? `Google Ads ${googleAds.customerId ? `(${googleAds.customerId})` : ""}`.trim()
+        : googleAds.needsReconnect
+          ? "Reconectar Google Ads"
+          : "Google Ads sin conectar";
+      const metaAdsLabel = settings?.metaAds?.connected
+        ? `Meta Ads ${settings?.metaAds?.adAccountId ? `(${settings.metaAds.adAccountId})` : ""}`.trim()
+        : settings?.metaAds?.needsReconnect
+          ? "Reconectar Meta Ads"
+          : "Meta Ads sin conectar";
+      const tiktokAdsLabel = settings?.tiktokAds?.connected
+        ? `TikTok Ads ${settings?.tiktokAds?.advertiserId ? `(${settings.tiktokAds.advertiserId})` : ""}`.trim()
+        : settings?.tiktokAds?.needsReconnect
+          ? "Reconectar TikTok Ads"
+          : "TikTok Ads sin conectar";
       const overallConnected = shopifyConnected && alegraConnected;
       const overallLabel = overallConnected
         ? "Conectado"
@@ -5969,6 +6079,12 @@ function renderConnections(settings) {
             <div class="connection-tile">
               <div class="connection-tile-label">Alegra</div>
               <div class="connection-tile-value">${alegraLabel}</div>
+            </div>
+            <div class="connection-tile">
+              <div class="connection-tile-label">Ads</div>
+              <div class="connection-tile-value">${googleAdsLabel}</div>
+              <div class="connection-tile-value">${metaAdsLabel}</div>
+              <div class="connection-tile-value">${tiktokAdsLabel}</div>
             </div>
           </div>
           <div class="connection-footer">
@@ -9538,6 +9654,20 @@ if (aiSave) {
   });
 }
 
+if (adsAppSave) {
+  adsAppSave.addEventListener("click", async () => {
+    setButtonLoading(adsAppSave, true, "Guardando...");
+    try {
+      await saveSettings({ includeAdsApps: true });
+      showToast("Configuracion Ads guardada.", "is-ok");
+    } catch (error) {
+      showToast(error?.message || "No se pudo guardar.", "is-error");
+    } finally {
+      setButtonLoading(adsAppSave, false);
+    }
+  });
+}
+
 if (aiKey) {
   let aiTokenTimer = null;
   let aiTokenInFlight = false;
@@ -10269,6 +10399,7 @@ async function saveSettings(options = {}) {
   const includeRules = options.includeRules === true;
   const includeInvoice = options.includeInvoice === true;
   const includeAi = options.includeAi === true;
+  const includeAdsApps = options.includeAdsApps === true;
   const payload = {};
   const aiValue = aiKey ? aiKey.value.trim() : "";
   if (includeAi) {
@@ -10327,6 +10458,49 @@ async function saveSettings(options = {}) {
       environment: alegraEnvSelect ? alegraEnvSelect.value : "prod",
     };
   }
+  if (includeAdsApps) {
+    const appHostValue = adsAppHost ? adsAppHost.value.trim() : "";
+    const googleClientIdValue = googleAdsClientId ? googleAdsClientId.value.trim() : "";
+    const googleClientSecretValue = googleAdsClientSecret ? googleAdsClientSecret.value.trim() : "";
+    const googleDeveloperTokenValue = googleAdsDeveloperToken ? googleAdsDeveloperToken.value.trim() : "";
+    const metaAppIdValue = metaAdsAppId ? metaAdsAppId.value.trim() : "";
+    const metaAppSecretValue = metaAdsAppSecret ? metaAdsAppSecret.value.trim() : "";
+    const tiktokAppIdValue = tiktokAdsAppId ? tiktokAdsAppId.value.trim() : "";
+    const tiktokAppSecretValue = tiktokAdsAppSecret ? tiktokAdsAppSecret.value.trim() : "";
+
+    payload.adsApps = {};
+    if (appHostValue) {
+      payload.adsApps.appHost = appHostValue;
+    }
+    if (googleClientIdValue || googleClientSecretValue || googleDeveloperTokenValue) {
+      if (!googleClientIdValue || !googleClientSecretValue || !googleDeveloperTokenValue) {
+        throw new Error("Google Ads: completa Client ID, Client Secret y Developer Token.");
+      }
+      payload.adsApps.googleAds = {
+        clientId: googleClientIdValue,
+        clientSecret: googleClientSecretValue,
+        developerToken: googleDeveloperTokenValue,
+      };
+    }
+    if (metaAppIdValue || metaAppSecretValue) {
+      if (!metaAppIdValue || !metaAppSecretValue) {
+        throw new Error("Meta Ads: completa App ID y App Secret.");
+      }
+      payload.adsApps.metaAds = {
+        appId: metaAppIdValue,
+        appSecret: metaAppSecretValue,
+      };
+    }
+    if (tiktokAppIdValue || tiktokAppSecretValue) {
+      if (!tiktokAppIdValue || !tiktokAppSecretValue) {
+        throw new Error("TikTok Ads: completa App ID y App Secret.");
+      }
+      payload.adsApps.tiktokAds = {
+        appId: tiktokAppIdValue,
+        appSecret: tiktokAppSecretValue,
+      };
+    }
+  }
   if (!Object.keys(payload).length) {
     return;
   }
@@ -10337,6 +10511,12 @@ async function saveSettings(options = {}) {
   });
   if (aiKey) {
     aiKey.value = "";
+  }
+  if (includeAdsApps) {
+    if (googleAdsClientSecret) googleAdsClientSecret.value = "";
+    if (googleAdsDeveloperToken) googleAdsDeveloperToken.value = "";
+    if (metaAdsAppSecret) metaAdsAppSecret.value = "";
+    if (tiktokAdsAppSecret) tiktokAdsAppSecret.value = "";
   }
   await loadSettings({ preserveUi: true });
   await loadResolutions();
@@ -10588,6 +10768,45 @@ async function startShopifyOAuthFlow() {
     savePendingConfigCopy(copyFrom, normalizedInput);
   }
   window.location.href = `/api/auth/shopify?${params.toString()}`;
+}
+
+async function startGoogleAdsOAuthFlow() {
+  const customerId = googleAdsCustomerId ? googleAdsCustomerId.value.trim() : "";
+  if (!customerId) {
+    throw new Error("Customer ID de Google Ads requerido.");
+  }
+  const shopDomain = normalizeShopDomain(activeStoreDomain || storeActiveSelect?.value || shopifyDomain?.value || "");
+  if (!shopDomain) {
+    throw new Error("Selecciona una tienda antes de conectar Google Ads.");
+  }
+  const params = new URLSearchParams({ customerId, shopDomain });
+  window.location.href = `/api/auth/google-ads/start?${params.toString()}`;
+}
+
+async function startMetaAdsOAuthFlow() {
+  const adAccountId = metaAdsAccountId ? metaAdsAccountId.value.trim() : "";
+  if (!adAccountId) {
+    throw new Error("Ad Account ID de Meta Ads requerido.");
+  }
+  const shopDomain = normalizeShopDomain(activeStoreDomain || storeActiveSelect?.value || shopifyDomain?.value || "");
+  if (!shopDomain) {
+    throw new Error("Selecciona una tienda antes de conectar Meta Ads.");
+  }
+  const params = new URLSearchParams({ adAccountId, shopDomain });
+  window.location.href = `/api/auth/meta-ads/start?${params.toString()}`;
+}
+
+async function startTikTokAdsOAuthFlow() {
+  const advertiserId = tiktokAdsAdvertiserId ? tiktokAdsAdvertiserId.value.trim() : "";
+  if (!advertiserId) {
+    throw new Error("Advertiser ID de TikTok Ads requerido.");
+  }
+  const shopDomain = normalizeShopDomain(activeStoreDomain || storeActiveSelect?.value || shopifyDomain?.value || "");
+  if (!shopDomain) {
+    throw new Error("Selecciona una tienda antes de conectar TikTok Ads.");
+  }
+  const params = new URLSearchParams({ advertiserId, shopDomain });
+  window.location.href = `/api/auth/tiktok-ads/start?${params.toString()}`;
 }
 
 async function connectStore(kind) {
@@ -11103,6 +11322,42 @@ if (connectAlegra) {
       .finally(() => {
         setButtonLoading(connectAlegra, false);
       });
+  });
+}
+if (connectGoogleAds) {
+  connectGoogleAds.addEventListener("click", async () => {
+    try {
+      setButtonLoading(connectGoogleAds, true, "Conectando...");
+      await startGoogleAdsOAuthFlow();
+    } catch (error) {
+      showToast(error?.message || "No se pudo conectar Google Ads.", "is-error");
+    } finally {
+      setButtonLoading(connectGoogleAds, false);
+    }
+  });
+}
+if (connectMetaAds) {
+  connectMetaAds.addEventListener("click", async () => {
+    try {
+      setButtonLoading(connectMetaAds, true, "Conectando...");
+      await startMetaAdsOAuthFlow();
+    } catch (error) {
+      showToast(error?.message || "No se pudo conectar Meta Ads.", "is-error");
+    } finally {
+      setButtonLoading(connectMetaAds, false);
+    }
+  });
+}
+if (connectTikTokAds) {
+  connectTikTokAds.addEventListener("click", async () => {
+    try {
+      setButtonLoading(connectTikTokAds, true, "Conectando...");
+      await startTikTokAdsOAuthFlow();
+    } catch (error) {
+      showToast(error?.message || "No se pudo conectar TikTok Ads.", "is-error");
+    } finally {
+      setButtonLoading(connectTikTokAds, false);
+    }
   });
 }
 if (connectionsGrid) {

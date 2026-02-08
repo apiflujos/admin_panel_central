@@ -17,6 +17,10 @@ type ShopifyStoreInput = {
   alegra?: AlegraAccountInput;
 };
 
+const GOOGLE_ADS_PROVIDER = "google_ads";
+const META_ADS_PROVIDER = "meta_ads";
+const TIKTOK_ADS_PROVIDER = "tiktok_ads";
+
 const normalizeShopDomain = (value: string) =>
   value
     .trim()
@@ -295,13 +299,308 @@ export async function listStoreConnections() {
           return true;
         }
       })(),
-    }));
+  }));
+
+  const googleAds = await readGoogleAdsSummary(pool, orgId).catch((error: unknown) => {
+    if (isCryptoKeyMisconfigured(error)) {
+      securityMisconfigured = true;
+    }
+    return { connected: false, needsReconnect: true, customerId: "" };
+  });
+  const metaAds = await readMetaAdsSummary(pool, orgId).catch((error: unknown) => {
+    if (isCryptoKeyMisconfigured(error)) {
+      securityMisconfigured = true;
+    }
+    return { connected: false, needsReconnect: true, adAccountId: "" };
+  });
+  const tiktokAds = await readTikTokAdsSummary(pool, orgId).catch((error: unknown) => {
+    if (isCryptoKeyMisconfigured(error)) {
+      securityMisconfigured = true;
+    }
+    return { connected: false, needsReconnect: true, advertiserId: "" };
+  });
 
   return {
     securityMisconfigured,
     stores: mappedStores,
     alegraAccounts: mappedAlegraAccounts,
+    googleAds,
+    metaAds,
+    tiktokAds,
   };
+}
+
+export async function upsertGoogleAdsCredentials(input: {
+  refreshToken: string;
+  accessToken: string;
+  expiresAt: string;
+  customerId: string;
+  shopDomain: string;
+  loginCustomerId?: string | null;
+}) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  await ensureOrganization(pool, orgId);
+  const payload = {
+    refreshToken: String(input.refreshToken || "").trim(),
+    accessToken: String(input.accessToken || "").trim(),
+    expiresAt: String(input.expiresAt || "").trim(),
+    customerId: String(input.customerId || "").trim(),
+    shopDomain: String(input.shopDomain || "").trim(),
+    loginCustomerId: input.loginCustomerId ? String(input.loginCustomerId).trim() : "",
+  };
+  if (!payload.refreshToken) {
+    throw new Error("Google Ads refresh token requerido");
+  }
+  if (!payload.customerId) {
+    throw new Error("Google Ads customerId requerido");
+  }
+  if (!payload.shopDomain) {
+    throw new Error("Google Ads shopDomain requerido");
+  }
+  const encrypted = encryptString(JSON.stringify(payload));
+  await pool.query(
+    `
+    INSERT INTO credentials (organization_id, provider, data_encrypted)
+    VALUES ($1, $2, $3)
+    `,
+    [orgId, GOOGLE_ADS_PROVIDER, encrypted]
+  );
+  return payload;
+}
+
+export async function readGoogleAdsCredentials(pool: ReturnType<typeof getPool>, orgId: number) {
+  const res = await pool.query<{ data_encrypted: string }>(
+    `
+    SELECT data_encrypted
+    FROM credentials
+    WHERE organization_id = $1 AND provider = $2
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId, GOOGLE_ADS_PROVIDER]
+  );
+  if (!res.rows.length) return null;
+  const decrypted = decryptString(res.rows[0].data_encrypted);
+  return JSON.parse(decrypted) as {
+    refreshToken?: string;
+    accessToken?: string;
+    expiresAt?: string;
+    customerId?: string;
+    shopDomain?: string;
+    loginCustomerId?: string;
+  };
+}
+
+async function readGoogleAdsSummary(pool: ReturnType<typeof getPool>, orgId: number) {
+  const res = await pool.query<{ data_encrypted: string }>(
+    `
+    SELECT data_encrypted
+    FROM credentials
+    WHERE organization_id = $1 AND provider = $2
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId, GOOGLE_ADS_PROVIDER]
+  );
+  if (!res.rows.length) {
+    return { connected: false, needsReconnect: false, customerId: "" };
+  }
+  try {
+    const decrypted = decryptString(res.rows[0].data_encrypted);
+    const payload = JSON.parse(decrypted) as { refreshToken?: string; customerId?: string; shopDomain?: string };
+    const connected = Boolean(String(payload?.refreshToken || "").trim());
+    return {
+      connected,
+      needsReconnect: !connected,
+      customerId: String(payload?.customerId || "").trim(),
+      shopDomain: String(payload?.shopDomain || "").trim(),
+    };
+  } catch (error) {
+    if (isCryptoKeyMisconfigured(error)) {
+      throw error;
+    }
+    return { connected: false, needsReconnect: true, customerId: "" };
+  }
+}
+
+export async function upsertMetaAdsCredentials(input: {
+  accessToken: string;
+  expiresAt: string;
+  adAccountId: string;
+  shopDomain: string;
+}) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  await ensureOrganization(pool, orgId);
+  const payload = {
+    accessToken: String(input.accessToken || "").trim(),
+    expiresAt: String(input.expiresAt || "").trim(),
+    adAccountId: String(input.adAccountId || "").trim(),
+    shopDomain: String(input.shopDomain || "").trim(),
+  };
+  if (!payload.accessToken) {
+    throw new Error("Meta Ads access token requerido");
+  }
+  if (!payload.adAccountId) {
+    throw new Error("Meta Ads adAccountId requerido");
+  }
+  if (!payload.shopDomain) {
+    throw new Error("Meta Ads shopDomain requerido");
+  }
+  const encrypted = encryptString(JSON.stringify(payload));
+  await pool.query(
+    `
+    INSERT INTO credentials (organization_id, provider, data_encrypted)
+    VALUES ($1, $2, $3)
+    `,
+    [orgId, META_ADS_PROVIDER, encrypted]
+  );
+  return payload;
+}
+
+export async function readMetaAdsCredentials(pool: ReturnType<typeof getPool>, orgId: number) {
+  const res = await pool.query<{ data_encrypted: string }>(
+    `
+    SELECT data_encrypted
+    FROM credentials
+    WHERE organization_id = $1 AND provider = $2
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId, META_ADS_PROVIDER]
+  );
+  if (!res.rows.length) return null;
+  const decrypted = decryptString(res.rows[0].data_encrypted);
+  return JSON.parse(decrypted) as {
+    accessToken?: string;
+    expiresAt?: string;
+    adAccountId?: string;
+    shopDomain?: string;
+  };
+}
+
+async function readMetaAdsSummary(pool: ReturnType<typeof getPool>, orgId: number) {
+  const res = await pool.query<{ data_encrypted: string }>(
+    `
+    SELECT data_encrypted
+    FROM credentials
+    WHERE organization_id = $1 AND provider = $2
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId, META_ADS_PROVIDER]
+  );
+  if (!res.rows.length) {
+    return { connected: false, needsReconnect: false, adAccountId: "" };
+  }
+  try {
+    const decrypted = decryptString(res.rows[0].data_encrypted);
+    const payload = JSON.parse(decrypted) as { accessToken?: string; adAccountId?: string; shopDomain?: string };
+    const connected = Boolean(String(payload?.accessToken || "").trim());
+    return {
+      connected,
+      needsReconnect: !connected,
+      adAccountId: String(payload?.adAccountId || "").trim(),
+      shopDomain: String(payload?.shopDomain || "").trim(),
+    };
+  } catch (error) {
+    if (isCryptoKeyMisconfigured(error)) {
+      throw error;
+    }
+    return { connected: false, needsReconnect: true, adAccountId: "" };
+  }
+}
+
+export async function upsertTikTokAdsCredentials(input: {
+  accessToken: string;
+  advertiserId: string;
+  shopDomain: string;
+  refreshToken?: string | null;
+  expiresAt?: string | null;
+}) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  await ensureOrganization(pool, orgId);
+  const payload = {
+    accessToken: String(input.accessToken || "").trim(),
+    advertiserId: String(input.advertiserId || "").trim(),
+    shopDomain: String(input.shopDomain || "").trim(),
+    refreshToken: input.refreshToken ? String(input.refreshToken).trim() : "",
+    expiresAt: input.expiresAt ? String(input.expiresAt).trim() : "",
+  };
+  if (!payload.accessToken) {
+    throw new Error("TikTok Ads access token requerido");
+  }
+  if (!payload.advertiserId) {
+    throw new Error("TikTok Ads advertiserId requerido");
+  }
+  if (!payload.shopDomain) {
+    throw new Error("TikTok Ads shopDomain requerido");
+  }
+  const encrypted = encryptString(JSON.stringify(payload));
+  await pool.query(
+    `
+    INSERT INTO credentials (organization_id, provider, data_encrypted)
+    VALUES ($1, $2, $3)
+    `,
+    [orgId, TIKTOK_ADS_PROVIDER, encrypted]
+  );
+  return payload;
+}
+
+export async function readTikTokAdsCredentials(pool: ReturnType<typeof getPool>, orgId: number) {
+  const res = await pool.query<{ data_encrypted: string }>(
+    `
+    SELECT data_encrypted
+    FROM credentials
+    WHERE organization_id = $1 AND provider = $2
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId, TIKTOK_ADS_PROVIDER]
+  );
+  if (!res.rows.length) return null;
+  const decrypted = decryptString(res.rows[0].data_encrypted);
+  return JSON.parse(decrypted) as {
+    accessToken?: string;
+    advertiserId?: string;
+    shopDomain?: string;
+    refreshToken?: string;
+    expiresAt?: string;
+  };
+}
+
+async function readTikTokAdsSummary(pool: ReturnType<typeof getPool>, orgId: number) {
+  const res = await pool.query<{ data_encrypted: string }>(
+    `
+    SELECT data_encrypted
+    FROM credentials
+    WHERE organization_id = $1 AND provider = $2
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId, TIKTOK_ADS_PROVIDER]
+  );
+  if (!res.rows.length) {
+    return { connected: false, needsReconnect: false, advertiserId: "" };
+  }
+  try {
+    const decrypted = decryptString(res.rows[0].data_encrypted);
+    const payload = JSON.parse(decrypted) as { accessToken?: string; advertiserId?: string; shopDomain?: string };
+    const connected = Boolean(String(payload?.accessToken || "").trim());
+    return {
+      connected,
+      needsReconnect: !connected,
+      advertiserId: String(payload?.advertiserId || "").trim(),
+      shopDomain: String(payload?.shopDomain || "").trim(),
+    };
+  } catch (error) {
+    if (isCryptoKeyMisconfigured(error)) {
+      throw error;
+    }
+    return { connected: false, needsReconnect: true, advertiserId: "" };
+  }
 }
 
 export async function upsertStoreConnection(input: ShopifyStoreInput) {

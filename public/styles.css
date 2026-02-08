@@ -1851,6 +1851,95 @@ button {
   gap: 10px;
 }
 
+.connections-groups {
+  display: grid;
+  gap: 14px;
+}
+
+.connections-group {
+  border: 1px solid var(--stroke);
+  border-radius: 16px;
+  background: #f8fafc;
+  padding: 12px;
+  box-shadow: var(--shadow);
+}
+
+.connections-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.connections-group-header .group-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.connections-group-header h4 {
+  margin: 0;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.group-kicker {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.connections-group-body {
+  display: grid;
+  gap: 10px;
+}
+
+.connections-group-tiles {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.connection-block.is-compact {
+  gap: 10px;
+  padding: 12px;
+}
+
+.connection-block.is-compact button {
+  width: 100%;
+}
+
+.provider-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.provider-badge.is-google {
+  background: radial-gradient(circle at top, #fef3c7, #fde68a);
+  color: #92400e;
+}
+
+.provider-badge.is-meta {
+  background: radial-gradient(circle at top, #dbeafe, #bfdbfe);
+  color: #1d4ed8;
+}
+
+.provider-badge.is-tiktok {
+  background: radial-gradient(circle at top, #fce7f3, #fbcfe8);
+  color: #9d174d;
+}
+
 .connection-block {
   border: 1px solid var(--stroke);
   border-radius: 12px;
@@ -1915,6 +2004,18 @@ button {
 
 .connections-compact .connection-block:last-child {
   grid-column: 1 / -1;
+}
+
+@media (max-width: 980px) {
+  .connections-group-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .connections-group-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .settings-divider {

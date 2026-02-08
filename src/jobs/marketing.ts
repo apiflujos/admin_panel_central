@@ -5,6 +5,9 @@ import { startCron } from "../marketing/infra/cron";
 import { syncMarketingOrders } from "../marketing/sync/marketing-sync.service";
 import { recomputeDailyMarketingMetrics } from "../marketing/metrics/marketing-metrics.service";
 import { evaluateMarketingAlerts } from "../marketing/alerts/marketing-alerts.service";
+import { syncGoogleAdsSpend } from "../marketing/ads/google-ads.service";
+import { syncMetaAdsSpend } from "../marketing/ads/meta-ads.service";
+import { syncTikTokAdsSpend } from "../marketing/ads/tiktok-ads.service";
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
@@ -69,6 +72,7 @@ export function startMarketingJobs() {
   const syncSpec = String(process.env.MARKETING_CRON_SYNC || "0 2 * * *"); // 02:00 daily
   const metricsSpec = String(process.env.MARKETING_CRON_METRICS || "30 2 * * *"); // 02:30 daily
   const alertsSpec = String(process.env.MARKETING_CRON_ALERTS || "0 3 * * *"); // 03:00 daily
+  const adsSpec = String(process.env.MARKETING_CRON_ADS || "15 2 * * *"); // 02:15 daily
 
   startCron(syncSpec, async () => {
     const shops = await listShopDomains();
@@ -110,6 +114,17 @@ export function startMarketingJobs() {
     }
   }).start();
 
-  console.log("[marketing] jobs scheduled", { hasRedis, syncSpec, metricsSpec, alertsSpec });
-}
+  startCron(adsSpec, async () => {
+    const to = todayKey();
+    const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    try {
+      await syncGoogleAdsSpend({ from, to });
+      await syncMetaAdsSpend({ from, to });
+      await syncTikTokAdsSpend({ from, to });
+    } catch (error) {
+      console.log("[marketing] ads sync failed", (error as Error)?.message || error);
+    }
+  }).start();
 
+  console.log("[marketing] jobs scheduled", { hasRedis, syncSpec, metricsSpec, alertsSpec, adsSpec });
+}
