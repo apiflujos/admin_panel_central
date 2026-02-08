@@ -1901,6 +1901,24 @@ button {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.ads-platform-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ads-host-block {
+  background: #f1f5f9;
+}
+
+.ads-platform .connection-block-actions {
+  justify-content: flex-start;
+}
+
+.ads-platform .settings-grid.connection-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .connection-block.is-compact {
   gap: 10px;
   padding: 12px;
@@ -2010,10 +2028,16 @@ button {
   .connections-group-tiles {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .ads-platform-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
   .connections-group-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ads-platform-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -1175,103 +1175,114 @@
                       </div>
                     </div>
                     <div class="connections-group-body">
-                      <div class="connection-block">
+                      <div class="connection-block ads-host-block">
                         <div class="connection-block-header">
                           <div>
                             <div class="provider-title">
-                              <span class="provider-badge is-google">G</span>
-                              <span class="provider-badge is-meta">M</span>
-                              <span class="provider-badge is-tiktok">T</span>
-                              <h4>Configuracion Apps Ads</h4>
+                              <h4>Base URL (OAuth)</h4>
                             </div>
-                            <p class="kpi-sub">Guarda App ID/Secret y Base URL para OAuth.</p>
+                            <p class="kpi-sub">Dominio publico del backend para callbacks.</p>
                           </div>
                           <div class="connection-block-actions">
-                            <button class="primary" id="ads-app-save" type="button">Guardar</button>
+                            <button class="primary" id="ads-app-save" type="button">Guardar credenciales</button>
                           </div>
                         </div>
                         <div class="settings-grid connection-fields">
                           <div class="field span-2">
-                            <label>Base URL (APP_HOST) <span class="tip" data-tip="Dominio publico del backend (ej: https://tu-app.onrender.com).">?</span></label>
+                            <label>Base URL (APP_HOST) <span class="tip" data-tip="Ej: https://tu-app.onrender.com">?</span></label>
                             <input type="text" id="ads-app-host" placeholder="https://tu-app.onrender.com" />
                           </div>
-                          <div class="field span-2">
-                            <label>Google Ads Client ID</label>
-                            <input type="text" id="google-ads-client-id" placeholder="xxxx.apps.googleusercontent.com" />
+                        </div>
+                      </div>
+                      <div class="ads-platform-grid">
+                        <div class="connection-block ads-platform">
+                          <div class="connection-block-header">
+                            <div class="provider-title">
+                              <img class="provider-logo" src="/brands/googleads.png?v=20260201s" alt="Google Ads" />
+                              <h4>Google Ads</h4>
+                            </div>
+                            <span class="status-pill is-off" id="google-ads-connection-pill">Sin conectar</span>
                           </div>
-                          <div class="field span-2">
-                            <label>Google Ads Client Secret</label>
-                            <input type="password" id="google-ads-client-secret" placeholder="********" autocomplete="new-password" />
+                          <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
+                          <div class="settings-grid connection-fields">
+                            <div class="field span-2">
+                              <label>Client ID</label>
+                              <input type="text" id="google-ads-client-id" placeholder="xxxx.apps.googleusercontent.com" />
+                            </div>
+                            <div class="field span-2">
+                              <label>Client Secret</label>
+                              <input type="password" id="google-ads-client-secret" placeholder="********" autocomplete="new-password" />
+                            </div>
+                            <div class="field span-2">
+                              <label>Developer Token</label>
+                              <input type="password" id="google-ads-developer-token" placeholder="********" autocomplete="new-password" />
+                            </div>
+                            <div class="field span-2">
+                              <label>Customer ID <span class="tip" data-tip="Formato 123-456-7890.">?</span></label>
+                              <input type="text" id="google-ads-customer-id" placeholder="123-456-7890" />
+                            </div>
                           </div>
-                          <div class="field span-2">
-                            <label>Google Ads Developer Token</label>
-                            <input type="password" id="google-ads-developer-token" placeholder="********" autocomplete="new-password" />
+                          <div class="connection-block-actions">
+                            <button class="primary" id="connect-google-ads" type="button">Conectar Google</button>
                           </div>
-                          <div class="field span-2">
-                            <label>Meta App ID</label>
-                            <input type="text" id="meta-ads-app-id" placeholder="1234567890" />
+                        </div>
+
+                        <div class="connection-block ads-platform">
+                          <div class="connection-block-header">
+                            <div class="provider-title">
+                              <img class="provider-logo" src="/brands/meta.png?v=20260201s" alt="Meta Ads" />
+                              <h4>Meta Ads</h4>
+                            </div>
+                            <span class="status-pill is-off" id="meta-ads-connection-pill">Sin conectar</span>
                           </div>
-                          <div class="field span-2">
-                            <label>Meta App Secret</label>
-                            <input type="password" id="meta-ads-app-secret" placeholder="********" autocomplete="new-password" />
+                          <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
+                          <div class="settings-grid connection-fields">
+                            <div class="field span-2">
+                              <label>App ID</label>
+                              <input type="text" id="meta-ads-app-id" placeholder="1234567890" />
+                            </div>
+                            <div class="field span-2">
+                              <label>App Secret</label>
+                              <input type="password" id="meta-ads-app-secret" placeholder="********" autocomplete="new-password" />
+                            </div>
+                            <div class="field span-2">
+                              <label>Ad Account ID <span class="tip" data-tip="Solo numeros.">?</span></label>
+                              <input type="text" id="meta-ads-account-id" placeholder="1234567890" />
+                            </div>
                           </div>
-                          <div class="field span-2">
-                            <label>TikTok App ID</label>
-                            <input type="text" id="tiktok-ads-app-id" placeholder="1234567890" />
+                          <div class="connection-block-actions">
+                            <button class="primary" id="connect-meta-ads" type="button">Conectar Meta</button>
                           </div>
-                          <div class="field span-2">
-                            <label>TikTok App Secret</label>
-                            <input type="password" id="tiktok-ads-app-secret" placeholder="********" autocomplete="new-password" />
+                        </div>
+
+                        <div class="connection-block ads-platform">
+                          <div class="connection-block-header">
+                            <div class="provider-title">
+                              <img class="provider-logo" src="/brands/tiktok.png?v=20260201s" alt="TikTok Ads" />
+                              <h4>TikTok Ads</h4>
+                            </div>
+                            <span class="status-pill is-off" id="tiktok-ads-connection-pill">Sin conectar</span>
+                          </div>
+                          <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
+                          <div class="settings-grid connection-fields">
+                            <div class="field span-2">
+                              <label>App ID</label>
+                              <input type="text" id="tiktok-ads-app-id" placeholder="1234567890" />
+                            </div>
+                            <div class="field span-2">
+                              <label>App Secret</label>
+                              <input type="password" id="tiktok-ads-app-secret" placeholder="********" autocomplete="new-password" />
+                            </div>
+                            <div class="field span-2">
+                              <label>Advertiser ID</label>
+                              <input type="text" id="tiktok-ads-advertiser-id" placeholder="1234567890" />
+                            </div>
+                          </div>
+                          <div class="connection-block-actions">
+                            <button class="primary" id="connect-tiktok-ads" type="button">Conectar TikTok</button>
                           </div>
                         </div>
                       </div>
-                      <div class="connections-group-tiles">
-                      <div class="connection-block is-compact">
-                        <div class="connection-block-header">
-                          <div class="provider-title">
-                            <span class="provider-badge is-google">G</span>
-                            <h4>Google Ads</h4>
-                          </div>
-                          <span class="status-pill is-off" id="google-ads-connection-pill">Sin conectar</span>
-                        </div>
-                        <p class="kpi-sub">Importa gasto y campañas por dia.</p>
-                        <div class="field">
-                          <label>Customer ID <span class="tip" data-tip="ID de cuenta Google Ads (formato 123-456-7890).">?</span></label>
-                          <input type="text" id="google-ads-customer-id" placeholder="123-456-7890" />
-                        </div>
-                        <button class="primary" id="connect-google-ads" type="button">Conectar Google</button>
-                      </div>
-                      <div class="connection-block is-compact">
-                        <div class="connection-block-header">
-                          <div class="provider-title">
-                            <span class="provider-badge is-meta">M</span>
-                            <h4>Meta Ads</h4>
-                          </div>
-                          <span class="status-pill is-off" id="meta-ads-connection-pill">Sin conectar</span>
-                        </div>
-                        <p class="kpi-sub">Sincroniza campañas y gasto diario.</p>
-                        <div class="field">
-                          <label>Ad Account ID <span class="tip" data-tip="ID de cuenta Meta Ads (solo numeros).">?</span></label>
-                          <input type="text" id="meta-ads-account-id" placeholder="1234567890" />
-                        </div>
-                        <button class="primary" id="connect-meta-ads" type="button">Conectar Meta</button>
-                      </div>
-                      <div class="connection-block is-compact">
-                        <div class="connection-block-header">
-                          <div class="provider-title">
-                            <span class="provider-badge is-tiktok">T</span>
-                            <h4>TikTok Ads</h4>
-                          </div>
-                          <span class="status-pill is-off" id="tiktok-ads-connection-pill">Sin conectar</span>
-                        </div>
-                        <p class="kpi-sub">Trae campañas y gasto diario.</p>
-                        <div class="field">
-                          <label>Advertiser ID <span class="tip" data-tip="ID de anunciante TikTok Ads.">?</span></label>
-                          <input type="text" id="tiktok-ads-advertiser-id" placeholder="1234567890" />
-                        </div>
-                        <button class="primary" id="connect-tiktok-ads" type="button">Conectar TikTok</button>
-                      </div>
-                    </div>
                   </div>
 
                   <div class="connections-group" data-group="ai">
