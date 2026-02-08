@@ -2370,13 +2370,19 @@ function applyShopifyOAuthAvailability() {
   }
 }
 
-function applyRoleAccess(role) {
-  currentUserRole = role || "agent";
-  currentUserIsSuperAdmin = currentUserRole === "super_admin";
+function resolveUserRole(role, isSuperAdminFlag) {
+  if (role) return role;
+  if (isSuperAdminFlag) return "super_admin";
+  return "agent";
+}
+
+function applyRoleAccess(role, isSuperAdminFlag) {
+  currentUserRole = resolveUserRole(role, isSuperAdminFlag);
+  currentUserIsSuperAdmin = currentUserRole === "super_admin" || Boolean(isSuperAdminFlag);
   const settingsNav = document.querySelector('.nav-item[data-target="settings"]');
   const logsNav = document.querySelector('.nav-item[data-target="logs"]');
   const adminOnlyPanels = document.querySelectorAll(".admin-only");
-  const isAdminLike = currentUserRole === "admin" || currentUserRole === "super_admin";
+  const isAdminLike = currentUserRole === "admin" || currentUserRole === "super_admin" || currentUserIsSuperAdmin;
   if (!isAdminLike) {
     if (settingsNav) settingsNav.style.display = "none";
     adminOnlyPanels.forEach((panel) => {
@@ -2426,7 +2432,7 @@ async function loadCurrentUser() {
     if (profileName) profileName.value = user.name || "";
     if (profileEmail) profileEmail.value = user.email || "";
     if (profilePhone) profilePhone.value = user.phone || "";
-    applyRoleAccess(user.role);
+    applyRoleAccess(user.role, user.isSuperAdmin);
   } catch {
     try {
       const auth = await fetchJson("/api/auth/me");
@@ -2442,9 +2448,9 @@ async function loadCurrentUser() {
       if (profileName) profileName.value = user.name || "";
       if (profileEmail) profileEmail.value = user.email || "";
       if (profilePhone) profilePhone.value = user.phone || "";
-      applyRoleAccess(user.role);
+      applyRoleAccess(user.role, user.isSuperAdmin);
     } catch {
-      applyRoleAccess("agent");
+      applyRoleAccess("agent", false);
     }
   }
 }
