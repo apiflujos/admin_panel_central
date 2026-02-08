@@ -2417,6 +2417,7 @@ function applyRoleAccess(role, isSuperAdminFlag) {
     navSuperadmin.style.display = currentUserIsSuperAdmin ? "" : "none";
   }
   loadBillingTopbar().catch(() => null);
+  updateSettingsSubmenuAvailability();
 }
 
 async function loadCurrentUser() {
