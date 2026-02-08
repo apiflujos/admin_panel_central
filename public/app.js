@@ -764,6 +764,7 @@ function showSection(target) {
   }
   if (target === "settings") {
     syncSettingsPane();
+    ensureSettingsVisibility();
   }
 }
 
@@ -866,6 +867,7 @@ function ensureSettingsPaneForElement(element, options = {}) {
 function initSettingsSubmenu() {
   if (!settingsSubmenu) {
     syncSettingsPane();
+    ensureSettingsVisibility();
     return;
   }
   settingsSubmenu.addEventListener("click", (event) => {
@@ -878,9 +880,27 @@ function initSettingsSubmenu() {
     if (button.hasAttribute("disabled")) return;
     activateNav("settings");
     setSettingsPane(key);
+    ensureSettingsVisibility();
   });
   updateSettingsSubmenuAvailability();
   syncSettingsPane();
+  ensureSettingsVisibility();
+}
+
+function ensureSettingsVisibility() {
+  const settingsSection = document.getElementById("settings");
+  if (!settingsSection) return;
+  if (!settingsSection.classList.contains("is-active")) return;
+  const isAdminLike = currentUserRole === "admin" || currentUserRole === "super_admin";
+  if (isAdminLike) {
+    settingsSection.querySelectorAll(".admin-only").forEach((panel) => {
+      panel.style.display = "";
+    });
+  }
+  const hasActivePane = Boolean(settingsSection.querySelector(".settings-pane.is-active"));
+  if (!hasActivePane) {
+    setSettingsPane("connections", { persist: false });
+  }
 }
 
 function cleanupLegacyConnectionsUi() {
