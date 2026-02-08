@@ -813,6 +813,10 @@ function saveSettingsPane(value) {
 function setSettingsPane(paneKey, options = {}) {
   const { persist = true } = options || {};
   const next = resolveSettingsPaneKey(paneKey);
+  const settingsSection = document.getElementById("settings");
+  if (settingsSection && !settingsSection.classList.contains("is-active")) {
+    activateNav("settings");
+  }
   document.querySelectorAll("[data-settings-pane]").forEach((pane) => {
     pane.classList.toggle("is-active", pane.getAttribute("data-settings-pane") === next);
   });
