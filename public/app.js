@@ -2408,7 +2408,24 @@ async function loadCurrentUser() {
     if (profilePhone) profilePhone.value = user.phone || "";
     applyRoleAccess(user.role);
   } catch {
-    applyRoleAccess("agent");
+    try {
+      const auth = await fetchJson("/api/auth/me");
+      const user = auth.user || {};
+      currentUserId = user.id || null;
+      currentUserIsSuperAdmin = Boolean(user.isSuperAdmin);
+      const roleLabel = user.role === "super_admin" ? "Super Admin" : (user.role === "admin" ? "Admin" : "Agente");
+      if (userName) userName.textContent = user.name || user.email || "Usuario";
+      if (userRole) userRole.textContent = roleLabel;
+      if (userAvatar) {
+        userAvatar.src = user.photoBase64 || "/assets/avatar.png";
+      }
+      if (profileName) profileName.value = user.name || "";
+      if (profileEmail) profileEmail.value = user.email || "";
+      if (profilePhone) profilePhone.value = user.phone || "";
+      applyRoleAccess(user.role);
+    } catch {
+      applyRoleAccess("agent");
+    }
   }
 }
 
