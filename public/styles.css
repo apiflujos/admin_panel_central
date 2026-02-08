@@ -1577,6 +1577,11 @@ button {
   display: block;
 }
 
+/* Fallback: ensure settings panes are visible even if JS fails to toggle. */
+#settings.is-active .settings-pane {
+  display: block;
+}
+
 @media (max-width: 720px) {
   .settings-subnav {
     width: 100%;
