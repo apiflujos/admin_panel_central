@@ -786,11 +786,7 @@ function activateNav(target) {
 }
 
 function resolveSettingsPaneKey(value) {
-  const normalized = value === "stores" ? "stores" : (value === "integrations" ? "integrations" : "connections");
-  if (normalized === "stores" && (!storesCache || storesCache.length === 0)) {
-    return "connections";
-  }
-  return normalized;
+  return value === "stores" ? "stores" : (value === "integrations" ? "integrations" : "connections");
 }
 
 function getStoredSettingsPane() {
