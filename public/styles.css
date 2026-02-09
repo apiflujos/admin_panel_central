@@ -2662,6 +2662,67 @@ button {
   min-height: 0;
 }
 
+.connection-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.connection-store-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+
+.connection-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.connection-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(15, 23, 42, 0.04);
+  color: var(--text);
+}
+
+.connection-pill .connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #94a3b8;
+  display: inline-block;
+}
+
+.connection-pill.is-ok {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.08);
+  color: #0f172a;
+}
+
+.connection-pill.is-ok .connection-dot {
+  background: #10b981;
+}
+
+.connection-pill.is-off {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+  color: #7f1d1d;
+}
+
+.connection-pill.is-off .connection-dot {
+  background: #ef4444;
+}
+
 .connection-card.is-active {
   border-color: rgba(15, 23, 42, 0.28);
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.1);

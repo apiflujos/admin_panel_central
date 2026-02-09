@@ -6072,62 +6072,35 @@ function renderConnections(settings) {
       const alegraNeedsReconnect = Boolean(store.alegraNeedsReconnect);
       const shopifyConnected = Boolean(store.shopifyConnected ?? store.status === "Conectado") && !shopifyNeedsReconnect;
       const alegraConnected = Boolean(store.alegraConnected ?? store.alegraAccountId) && !alegraNeedsReconnect;
-      const shopifyLabel = store.shopDomain || "Shopify sin dominio";
       const storeLabel = store.storeName || store.shopDomain || "Tienda";
-      const alegraLabel = store.alegraEmail
-        ? `${store.alegraEmail} (${store.alegraEnvironment || "prod"})`
-        : "Sin Alegra asignado";
-      const googleAdsLabel = googleAds.connected
-        ? `Google Ads ${googleAds.customerId ? `(${googleAds.customerId})` : ""}`.trim()
-        : googleAds.needsReconnect
-          ? "Reconectar Google Ads"
-          : "Google Ads sin conectar";
-      const metaAdsLabel = settings?.metaAds?.connected
-        ? `Meta Ads ${settings?.metaAds?.adAccountId ? `(${settings.metaAds.adAccountId})` : ""}`.trim()
-        : settings?.metaAds?.needsReconnect
-          ? "Reconectar Meta Ads"
-          : "Meta Ads sin conectar";
-      const tiktokAdsLabel = settings?.tiktokAds?.connected
-        ? `TikTok Ads ${settings?.tiktokAds?.advertiserId ? `(${settings.tiktokAds.advertiserId})` : ""}`.trim()
-        : settings?.tiktokAds?.needsReconnect
-          ? "Reconectar TikTok Ads"
-          : "TikTok Ads sin conectar";
-      const overallConnected = shopifyConnected && alegraConnected;
-      const overallLabel = overallConnected
-        ? "Conectado"
-        : shopifyNeedsReconnect
-          ? "Reconectar Shopify"
-          : alegraNeedsReconnect
-            ? "Reconectar Alegra"
-            : "Pendiente";
+      const platforms = [
+        { key: "shopify", label: "Shopify", ok: shopifyConnected, fail: shopifyNeedsReconnect },
+        { key: "alegra", label: "Alegra", ok: alegraConnected, fail: alegraNeedsReconnect },
+        { key: "google", label: "Google Ads", ok: Boolean(googleAds.connected), fail: Boolean(googleAds.needsReconnect) },
+        { key: "meta", label: "Meta Ads", ok: Boolean(settings?.metaAds?.connected), fail: Boolean(settings?.metaAds?.needsReconnect) },
+        { key: "tiktok", label: "TikTok Ads", ok: Boolean(settings?.tiktokAds?.connected), fail: Boolean(settings?.tiktokAds?.needsReconnect) },
+      ].filter((item) => item.ok || item.fail);
       return `
         <div class="connection-card${isActive ? " is-active" : ""}">
-          <div class="connection-tiles" aria-label="Resumen de conexiones">
-            <div class="connection-tile">
-              <div class="connection-tile-label">Tienda</div>
-              <div class="connection-tile-value">${storeLabel}</div>
+          <div class="connection-head">
+            <div class="connection-summary-text">
+              <h4 class="connection-store-title">${storeLabel}</h4>
             </div>
-            <div class="connection-tile">
-              <div class="connection-tile-label">Shopify</div>
-              <div class="connection-tile-value">${shopifyLabel}</div>
-            </div>
-            <div class="connection-tile">
-              <div class="connection-tile-label">Alegra</div>
-              <div class="connection-tile-value">${alegraLabel}</div>
-            </div>
-            <div class="connection-tile">
-              <div class="connection-tile-label">Ads</div>
-              <div class="connection-tile-value">${googleAdsLabel}</div>
-              <div class="connection-tile-value">${metaAdsLabel}</div>
-              <div class="connection-tile-value">${tiktokAdsLabel}</div>
+            <div class="connection-summary-meta">
+              ${isActive ? `<span class="status-pill is-ok">Activa</span>` : ""}
             </div>
           </div>
-          <div class="connection-footer">
-            <div class="connection-footer-pills">
-              ${isActive ? `<span class="status-pill is-ok">Activa</span>` : ""}
-              <span class="status-pill ${overallConnected ? "is-ok" : "is-off"}">${overallLabel}</span>
-            </div>
-            <button class="ghost danger" data-connection-remove="${store.id}">Eliminar tienda</button>
+          <div class="connection-pill-row" aria-label="Plataformas conectadas">
+            ${platforms
+              .map(
+                (tile) => `
+              <span class="connection-pill ${tile.ok ? "is-ok" : "is-off"}">
+                <span class="connection-dot"></span>
+                ${tile.label}
+              </span>
+            `
+              )
+              .join("")}
           </div>
         </div>
       `;
