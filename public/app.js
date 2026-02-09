@@ -888,7 +888,7 @@ function attachSettingsPaneListener() {
     activateNav("settings");
     setSettingsPane(key);
     ensureSettingsVisibility();
-  });
+  }, { capture: true });
 }
 
 function initSettingsSubmenu() {
