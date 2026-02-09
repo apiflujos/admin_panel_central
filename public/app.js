@@ -837,6 +837,10 @@ function setSettingsPane(paneKey, options = {}) {
 }
 
 function syncSettingsPane() {
+  const settingsSection = document.getElementById("settings");
+  if (!settingsSection || !settingsSection.classList.contains("is-active")) {
+    return;
+  }
   const stored = getStoredSettingsPane();
   setSettingsPane(stored || "connections", { persist: false });
 }
