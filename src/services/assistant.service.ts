@@ -1067,7 +1067,8 @@ async function handleAssistantWithAi(
   }
   const reply = replyText || "Listo.";
   if (action && ACTION_TYPES.has(action.type)) {
-    if (role !== "admin" && (action.type === "get_settings" || action.type === "update_invoice_settings" || action.type === "update_rules")) {
+    const isAdminLike = role === "admin" || role === "agent";
+    if (!isAdminLike && (action.type === "get_settings" || action.type === "update_invoice_settings" || action.type === "update_rules")) {
       return { reply: withIntro("No tienes permisos para acceder a configuraciones.") };
     }
     const confirmed = /confirmar|confirmo|confirmada|confirmado/i.test(message);

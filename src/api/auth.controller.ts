@@ -155,9 +155,13 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   next();
 }
 
+function isAdminLike(role?: string) {
+  return role === "admin" || role === "agent" || role === "super_admin";
+}
+
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const user = (req as { user?: { role?: string } }).user;
-  if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+  if (!user || !isAdminLike(user.role)) {
     res.status(403).json({ error: "forbidden" });
     return;
   }
@@ -188,7 +192,7 @@ export async function createAuthTokenHandler(req: Request, res: Response) {
     res.status(401).json({ error: "unauthorized" });
     return;
   }
-  if (user.role !== "admin" && user.role !== "super_admin") {
+  if (!isAdminLike(user.role)) {
     res.status(403).json({ error: "forbidden" });
     return;
   }

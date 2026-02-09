@@ -255,6 +255,7 @@ const setupModePicker = document.getElementById("setup-mode-picker");
 const settingsSubmenu = document.getElementById("settings-submenu");
 let settingsPaneListenerAttached = false;
 const settingsPaneButtonsBound = new WeakSet();
+let currentSettingsPane = "";
 const copyConfigField = document.getElementById("copy-config-field");
 const copyConfigSelect = document.getElementById("copy-config-select");
 const DEFAULT_WIZARD_HINT = wizardHint ? wizardHint.textContent : "";
@@ -818,9 +819,38 @@ function saveSettingsPane(value) {
   }
 }
 
+function shouldForceConnectionsPane() {
+  if (!Array.isArray(storesCache) || storesCache.length === 0) return true;
+  const state = getWizardState();
+  if (!isWizardStateActive(state)) return false;
+  const stepKey = state ? WIZARD_MODULE_ORDER[state.step] || "" : "";
+  if (stepKey === "connect-shopify") {
+    return !isShopifyConnectedForDomain(getWizardTargetDomain());
+  }
+  if (stepKey === "connect-alegra") {
+    return !isAlegraConnectedForDomain(getWizardTargetDomain());
+  }
+  return false;
+}
+
+function requestSettingsPane(key, options = {}) {
+  const { persist = true, force = false } = options || {};
+  const next = resolveSettingsPaneKey(key);
+  if (next === "connections" && !force && !shouldForceConnectionsPane()) {
+    const stored = getStoredSettingsPane();
+    const desired = currentSettingsPane || stored;
+    if (desired && desired !== "connections") {
+      setSettingsPane(desired, { persist: false });
+      return;
+    }
+  }
+  setSettingsPane(next, { persist });
+}
+
 function setSettingsPane(paneKey, options = {}) {
   const { persist = true } = options || {};
   const next = resolveSettingsPaneKey(paneKey);
+  currentSettingsPane = next;
   const settingsSection = document.getElementById("settings");
   if (settingsSection && !settingsSection.classList.contains("is-active")) {
     activateNav("settings");
@@ -844,8 +874,10 @@ function syncSettingsPane() {
   if (!settingsSection || !settingsSection.classList.contains("is-active")) {
     return;
   }
+  const forced = shouldForceConnectionsPane();
   const stored = getStoredSettingsPane();
-  setSettingsPane(stored || "connections", { persist: false });
+  const desired = forced ? "connections" : (currentSettingsPane || stored || "connections");
+  setSettingsPane(desired, { persist: false });
 }
 
 // Ensure initial state for contacts action buttons (if settings pane is visible).
@@ -888,7 +920,7 @@ function attachSettingsPaneListener() {
     if (key !== "stores" && key !== "connections") return;
     if (button.hasAttribute("disabled")) return;
     activateNav("settings");
-    setSettingsPane(key);
+    requestSettingsPane(key);
     ensureSettingsVisibility();
   };
   document.addEventListener("click", handleClick, { capture: true });
@@ -906,7 +938,7 @@ function bindSettingsPaneButtons() {
         event.preventDefault();
       }
       activateNav("settings");
-      setSettingsPane(key);
+      requestSettingsPane(key);
       ensureSettingsVisibility();
     };
     if (!settingsPaneButtonsBound.has(button)) {
@@ -936,7 +968,7 @@ function ensureSettingsVisibility() {
   const settingsSection = document.getElementById("settings");
   if (!settingsSection) return;
   if (!settingsSection.classList.contains("is-active")) return;
-  const isAdminLike = currentUserRole === "admin" || currentUserRole === "super_admin";
+  const isAdminLike = isAdminLikeRole(currentUserRole, currentUserIsSuperAdmin);
   if (isAdminLike) {
     settingsSection.querySelectorAll(".admin-only").forEach((panel) => {
       panel.style.display = "";
@@ -944,7 +976,10 @@ function ensureSettingsVisibility() {
   }
   const hasActivePane = Boolean(settingsSection.querySelector(".settings-pane.is-active"));
   if (!hasActivePane) {
-    setSettingsPane("connections", { persist: false });
+    const forced = shouldForceConnectionsPane();
+    const stored = getStoredSettingsPane();
+    const desired = forced ? "connections" : (currentSettingsPane || stored || "connections");
+    setSettingsPane(desired, { persist: false });
   }
 }
 
@@ -2345,7 +2380,7 @@ function initSetupModeControls() {
     setSetupMode(mode, { persist: true, stopWizard: true });
     const isManual = mode === "manual";
     setConnectionsSetupOpen(true);
-    setSettingsPane("connections", { persist: false });
+    requestSettingsPane("connections", { persist: false, force: true });
     closeCoach({ persistDismiss: false });
     if (isManual) {
       const focusTarget =
@@ -2421,13 +2456,17 @@ function resolveUserRole(role, isSuperAdminFlag) {
   return "agent";
 }
 
+function isAdminLikeRole(role, isSuperAdminFlag) {
+  return role === "admin" || role === "agent" || role === "super_admin" || Boolean(isSuperAdminFlag);
+}
+
 function applyRoleAccess(role, isSuperAdminFlag) {
   currentUserRole = resolveUserRole(role, isSuperAdminFlag);
   currentUserIsSuperAdmin = currentUserRole === "super_admin" || Boolean(isSuperAdminFlag);
   const settingsNav = document.querySelector('.nav-item[data-target="settings"]');
   const logsNav = document.querySelector('.nav-item[data-target="logs"]');
   const adminOnlyPanels = document.querySelectorAll(".admin-only");
-  const isAdminLike = currentUserRole === "admin" || currentUserRole === "super_admin" || currentUserIsSuperAdmin;
+  const isAdminLike = isAdminLikeRole(currentUserRole, currentUserIsSuperAdmin);
   if (!isAdminLike) {
     if (settingsNav) settingsNav.style.display = "none";
     adminOnlyPanels.forEach((panel) => {
@@ -2612,7 +2651,7 @@ function renderUsers(items) {
         <td>${user.phone || "-"}</td>
         <td>
           ${
-            currentUserRole === "admin"
+            isAdminLikeRole(currentUserRole, currentUserIsSuperAdmin)
               ? `<button class="ghost" data-user-delete="${user.id}">Eliminar</button>`
               : "-"
           }
@@ -2640,7 +2679,7 @@ function renderUsers(items) {
 }
 
 async function loadUsers() {
-  if (currentUserRole !== "admin") return;
+  if (!isAdminLikeRole(currentUserRole, currentUserIsSuperAdmin)) return;
   try {
     const data = await fetchJson("/api/users");
     renderUsers(data.items || []);
@@ -4163,7 +4202,13 @@ async function openWizardStep() {
   });
 
   if (next.moduleKey === "connect-shopify" || next.moduleKey === "connect-alegra") {
-    setSettingsPane("connections", { persist: false });
+    const targetDomain = getWizardTargetDomain();
+    const needsConnections =
+      (next.moduleKey === "connect-shopify" && !isShopifyConnectedForDomain(targetDomain)) ||
+      (next.moduleKey === "connect-alegra" && !isAlegraConnectedForDomain(targetDomain));
+    if (needsConnections) {
+      requestSettingsPane("connections", { persist: false, force: true });
+    }
     ensureConnectionsSetupOpen();
     const target = next.focusTarget || getWizardModuleStatus(next.moduleKey).focusTarget;
     if (target) {
@@ -5082,7 +5127,7 @@ function clearAdsConnectInputs() {
 function maybeJumpToConnectionsSummary() {
   const params = new URLSearchParams(window.location.search);
   if (params.get("connections") !== "1") return;
-  setSettingsPane("connections", { persist: false });
+  requestSettingsPane("connections", { persist: false, force: true });
   const summary = document.querySelector('[data-module="connections-summary"]');
   if (summary && summary.scrollIntoView) {
     summary.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -8304,7 +8349,7 @@ function setBillingTopbarVisible(visible) {
 }
 
 async function loadBillingTopbar() {
-  if (currentUserRole !== "admin" && currentUserRole !== "super_admin") {
+  if (!isAdminLikeRole(currentUserRole, currentUserIsSuperAdmin)) {
     setBillingTopbarVisible(false);
     return;
   }
@@ -9910,7 +9955,7 @@ if (manualOpen) {
   manualOpen.addEventListener("click", () => {
     setSetupMode("manual", { persist: true, stopWizard: true });
     setConnectionsSetupOpen(true);
-    setSettingsPane("connections", { persist: false });
+    requestSettingsPane("connections", { persist: false, force: true });
     closeCoach({ persistDismiss: false });
     const target = storeNameInput || shopifyDomain;
     if (target) focusFieldWithContext(target);
@@ -10905,7 +10950,7 @@ async function connectShopifyWithToken(params) {
   showToast("Shopify conectado.", "is-ok");
   clearConnectionForm();
   setConnectionsSetupOpen(true);
-  setSettingsPane("connections", { persist: false });
+  requestSettingsPane("connections", { persist: false, force: true });
   await loadConnections();
   updateConnectionPills();
   return response;
@@ -11055,7 +11100,7 @@ async function connectStore(kind) {
   }
   clearConnectionForm();
   setConnectionsSetupOpen(true);
-  setSettingsPane("connections", { persist: false });
+  requestSettingsPane("connections", { persist: false, force: true });
   await loadConnections();
   try {
     await loadSettings({ preserveUi: true });
@@ -12845,46 +12890,47 @@ async function init() {
   await safeLoad(loadMetrics());
   setOperationsView("orders");
   await safeLoad(loadOperationsView());
-  if (currentUserRole === "admin" || currentUserRole === "super_admin") {
+  const isAdminLikeUser = isAdminLikeRole(currentUserRole, currentUserIsSuperAdmin);
+  if (isAdminLikeUser) {
     await safeLoad(loadConnections());
     await safeLoad(loadSettings());
     await safeLoad(loadResolutions());
   }
 	  await Promise.all([
-	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+	    isAdminLikeUser && alegraHasToken
 	      ? safeLoad(loadCatalog(cfgCostCenter, "cost-centers"))
 	      : Promise.resolve(null),
-	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+	    isAdminLikeUser && alegraHasToken
 	      ? safeLoad(loadCatalog(cfgWarehouse, "warehouses"))
 	      : Promise.resolve(null),
-      (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken && productsShopifyBulkWarehouse instanceof HTMLSelectElement
+      isAdminLikeUser && alegraHasToken && productsShopifyBulkWarehouse instanceof HTMLSelectElement
         ? safeLoad(loadCatalog(productsShopifyBulkWarehouse, "warehouses"))
         : Promise.resolve(null),
-      (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken && cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
+      isAdminLikeUser && alegraHasToken && cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
         ? safeLoad(loadCatalog(cfgProductsShopifyToAlegraWarehouse, "warehouses"))
         : Promise.resolve(null),
-	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+	    isAdminLikeUser && alegraHasToken
 	      ? safeLoad(loadCatalog(cfgTransferDest, "warehouses"))
 	      : Promise.resolve(null),
-	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+	    isAdminLikeUser && alegraHasToken
 	      ? safeLoad(loadCatalog(cfgTransferPriority, "warehouses"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+    isAdminLikeUser && alegraHasToken
       ? safeLoad(loadCatalog(cfgSeller, "sellers"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+    isAdminLikeUser && alegraHasToken
       ? safeLoad(loadCatalog(cfgPaymentMethod, "payment-methods"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+    isAdminLikeUser && alegraHasToken
       ? safeLoad(loadCatalog(cfgBankAccount, "bank-accounts"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+    isAdminLikeUser && alegraHasToken
       ? safeLoad(loadCatalog(cfgPriceGeneral, "price-lists"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+    isAdminLikeUser && alegraHasToken
       ? safeLoad(loadCatalog(cfgPriceDiscount, "price-lists"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+    isAdminLikeUser && alegraHasToken
       ? safeLoad(loadCatalog(cfgPriceWholesale, "price-lists"))
       : Promise.resolve(null),
   ]);

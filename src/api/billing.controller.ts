@@ -9,7 +9,7 @@ const PeriodKey = z.string().regex(/^\d{4}-\d{2}$/);
 export async function billingSummaryHandler(req: Request, res: Response) {
   try {
     const user = (req as any).user as { organization_id?: number; role?: string } | undefined;
-    if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+    if (!user || (user.role !== "admin" && user.role !== "agent" && user.role !== "super_admin")) {
       res.status(403).json({ error: "forbidden" });
       return;
     }
