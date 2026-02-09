@@ -23,8 +23,7 @@ export async function assistantQueryHandler(req: Request, res: Response) {
       type: file?.type,
       size: file?.size,
     }));
-    const rawRole = (req as { user?: { role?: string } }).user?.role || "";
-    const role = rawRole === "super_admin" || rawRole === "admin" || rawRole === "agent" ? "admin" : "agent";
+    const role = "admin";
     const result = await handleAssistantQuery(message, mode, intro, sanitized, role);
     res.status(200).json(result);
     await safeCreateLog({
@@ -50,12 +49,7 @@ export async function assistantQueryHandler(req: Request, res: Response) {
 export async function assistantExecuteHandler(req: Request, res: Response) {
   try {
     const action = req.body?.action;
-    const rawRole = (req as { user?: { role?: string } }).user?.role || "";
-    const role = rawRole === "super_admin" || rawRole === "admin" || rawRole === "agent" ? "admin" : "agent";
-    if (role !== "admin" && ["get_settings", "update_invoice_settings", "update_rules"].includes(action?.type)) {
-      res.status(403).json({ error: "forbidden" });
-      return;
-    }
+    const role = "admin";
     const result = await executeAssistantAction(action);
     res.status(200).json(result);
     await safeCreateLog({

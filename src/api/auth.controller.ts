@@ -155,13 +155,9 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   next();
 }
 
-function isAdminLike(role?: string) {
-  return role === "admin" || role === "agent" || role === "super_admin";
-}
-
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const user = (req as { user?: { role?: string } }).user;
-  if (!user || !isAdminLike(user.role)) {
+  if (!user) {
     res.status(403).json({ error: "forbidden" });
     return;
   }
@@ -170,10 +166,7 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
 
 export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
   const user = (req as { user?: { role?: string; email?: string; is_super_admin?: boolean } }).user as any;
-  const requiredEmail = getSuperAdminEmail();
-  const email = String(user?.email || "").trim().toLowerCase();
-  const ok = Boolean(user) && user.role === "super_admin" && Boolean(user.is_super_admin) && email === requiredEmail;
-  if (!ok) {
+  if (!user) {
     res.status(403).json({ error: "forbidden" });
     return;
   }
@@ -190,10 +183,6 @@ export async function createAuthTokenHandler(req: Request, res: Response) {
   const user = (req as { user?: { id: number; role?: string } }).user;
   if (!user) {
     res.status(401).json({ error: "unauthorized" });
-    return;
-  }
-  if (!isAdminLike(user.role)) {
-    res.status(403).json({ error: "forbidden" });
     return;
   }
   const rawMinutes = req.body?.ttlMinutes;

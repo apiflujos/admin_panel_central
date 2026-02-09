@@ -1067,10 +1067,7 @@ async function handleAssistantWithAi(
   }
   const reply = replyText || "Listo.";
   if (action && ACTION_TYPES.has(action.type)) {
-    const isAdminLike = role === "admin" || role === "agent";
-    if (!isAdminLike && (action.type === "get_settings" || action.type === "update_invoice_settings" || action.type === "update_rules")) {
-      return { reply: withIntro("No tienes permisos para acceder a configuraciones.") };
-    }
+    // Permissions disabled: allow all actions for authenticated users.
     const confirmed = /confirmar|confirmo|confirmada|confirmado/i.test(message);
     if (WRITE_ACTIONS.has(action.type) && !confirmed) {
       return { reply: withIntro("Para ejecutar esa accion necesito confirmacion. Responde con: confirmar.") };

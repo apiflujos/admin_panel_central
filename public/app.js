@@ -837,17 +837,11 @@ updateContactsActionVisibility();
 
 function updateSettingsSubmenuAvailability() {
   if (!settingsSubmenu) return;
-  const hasStores = Boolean(storesCache && storesCache.length);
-  const isAdminLike = currentUserRole === "admin" || currentUserRole === "super_admin" || currentUserIsSuperAdmin;
   settingsSubmenu.querySelectorAll("[data-settings-pane-link]").forEach((button) => {
     const key = button.getAttribute("data-settings-pane-link") || "";
     if (key !== "stores") return;
-    const shouldDisable = !hasStores && !isAdminLike;
-    button.toggleAttribute("disabled", shouldDisable);
-    button.classList.toggle("is-disabled", shouldDisable);
-    if (shouldDisable && button.classList.contains("is-active")) {
-      setSettingsPane("connections");
-    }
+    button.removeAttribute("disabled");
+    button.classList.remove("is-disabled");
   });
 }
 
@@ -893,12 +887,9 @@ function ensureSettingsVisibility() {
   const settingsSection = document.getElementById("settings");
   if (!settingsSection) return;
   if (!settingsSection.classList.contains("is-active")) return;
-  const isAdminLike = currentUserRole === "admin" || currentUserRole === "super_admin";
-  if (isAdminLike) {
-    settingsSection.querySelectorAll(".admin-only").forEach((panel) => {
-      panel.style.display = "";
-    });
-  }
+  settingsSection.querySelectorAll(".admin-only").forEach((panel) => {
+    panel.style.display = "";
+  });
   const hasActivePane = Boolean(settingsSection.querySelector(".settings-pane.is-active"));
   if (!hasActivePane) {
     setSettingsPane("connections", { persist: false });
@@ -2380,41 +2371,21 @@ function resolveUserRole(role, isSuperAdminFlag) {
 
 function applyRoleAccess(role, isSuperAdminFlag) {
   currentUserRole = resolveUserRole(role, isSuperAdminFlag);
-  currentUserIsSuperAdmin = currentUserRole === "super_admin" || Boolean(isSuperAdminFlag);
+  currentUserIsSuperAdmin = true;
   const settingsNav = document.querySelector('.nav-item[data-target="settings"]');
   const logsNav = document.querySelector('.nav-item[data-target="logs"]');
   const adminOnlyPanels = document.querySelectorAll(".admin-only");
-  const isAdminLike = currentUserRole === "admin" || currentUserRole === "super_admin" || currentUserIsSuperAdmin;
-  if (!isAdminLike) {
-    if (settingsNav) settingsNav.style.display = "none";
-    adminOnlyPanels.forEach((panel) => {
-      panel.style.display = "none";
-    });
-    const settingsSection = document.getElementById("settings");
-    if (settingsSection && settingsSection.classList.contains("is-active")) {
-      activateNav("dashboard");
-    }
-  } else {
-    if (settingsNav) settingsNav.style.display = "";
-    adminOnlyPanels.forEach((panel) => {
-      panel.style.display = "";
-    });
-  }
+  if (settingsNav) settingsNav.style.display = "";
+  adminOnlyPanels.forEach((panel) => {
+    panel.style.display = "";
+  });
 
   const logsSection = document.getElementById("logs");
-  if (currentUserIsSuperAdmin) {
-    if (logsNav) logsNav.style.display = "";
-    if (logsSection) logsSection.style.display = "";
-  } else {
-    if (logsNav) logsNav.style.display = "none";
-    if (logsSection) logsSection.style.display = "none";
-    if (logsSection && logsSection.classList.contains("is-active")) {
-      activateNav("dashboard");
-    }
-  }
+  if (logsNav) logsNav.style.display = "";
+  if (logsSection) logsSection.style.display = "";
 
   if (navSuperadmin instanceof HTMLElement) {
-    navSuperadmin.style.display = currentUserIsSuperAdmin ? "" : "none";
+    navSuperadmin.style.display = "";
   }
   loadBillingTopbar().catch(() => null);
   updateSettingsSubmenuAvailability();
@@ -2568,11 +2539,7 @@ function renderUsers(items) {
         <td>${user.role === "admin" ? "Admin" : "Agente"}</td>
         <td>${user.phone || "-"}</td>
         <td>
-          ${
-            currentUserRole === "admin"
-              ? `<button class="ghost" data-user-delete="${user.id}">Eliminar</button>`
-              : "-"
-          }
+          <button class="ghost" data-user-delete="${user.id}">Eliminar</button>
         </td>
       </tr>
     `
@@ -2597,7 +2564,6 @@ function renderUsers(items) {
 }
 
 async function loadUsers() {
-  if (currentUserRole !== "admin") return;
   try {
     const data = await fetchJson("/api/users");
     renderUsers(data.items || []);
@@ -8220,10 +8186,6 @@ function setBillingTopbarVisible(visible) {
 }
 
 async function loadBillingTopbar() {
-  if (currentUserRole !== "admin" && currentUserRole !== "super_admin") {
-    setBillingTopbarVisible(false);
-    return;
-  }
   try {
     const data = await fetchJson(`/api/billing/summary?t=${Date.now()}`);
     const billedEvents = Number(data.billedEvents || 0) || 0;
@@ -12788,52 +12750,48 @@ async function init() {
   await safeLoad(loadCurrentUser());
   await safeLoad(loadCompanyProfile());
   await safeLoad(loadUsers());
-  if (currentUserIsSuperAdmin) {
-    await safeLoad(loadLogs());
-  }
+  await safeLoad(loadLogs());
   await safeLoad(loadMetrics());
   setOperationsView("orders");
   await safeLoad(loadOperationsView());
-  if (currentUserRole === "admin" || currentUserRole === "super_admin") {
-    await safeLoad(loadConnections());
-    await safeLoad(loadSettings());
-    await safeLoad(loadResolutions());
-  }
+  await safeLoad(loadConnections());
+  await safeLoad(loadSettings());
+  await safeLoad(loadResolutions());
 	  await Promise.all([
-	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+	    alegraHasToken
 	      ? safeLoad(loadCatalog(cfgCostCenter, "cost-centers"))
 	      : Promise.resolve(null),
-	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+	    alegraHasToken
 	      ? safeLoad(loadCatalog(cfgWarehouse, "warehouses"))
 	      : Promise.resolve(null),
-      (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken && productsShopifyBulkWarehouse instanceof HTMLSelectElement
+      alegraHasToken && productsShopifyBulkWarehouse instanceof HTMLSelectElement
         ? safeLoad(loadCatalog(productsShopifyBulkWarehouse, "warehouses"))
         : Promise.resolve(null),
-      (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken && cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
+      alegraHasToken && cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
         ? safeLoad(loadCatalog(cfgProductsShopifyToAlegraWarehouse, "warehouses"))
         : Promise.resolve(null),
-	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+	    alegraHasToken
 	      ? safeLoad(loadCatalog(cfgTransferDest, "warehouses"))
 	      : Promise.resolve(null),
-	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+	    alegraHasToken
 	      ? safeLoad(loadCatalog(cfgTransferPriority, "warehouses"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+    alegraHasToken
       ? safeLoad(loadCatalog(cfgSeller, "sellers"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+    alegraHasToken
       ? safeLoad(loadCatalog(cfgPaymentMethod, "payment-methods"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+    alegraHasToken
       ? safeLoad(loadCatalog(cfgBankAccount, "bank-accounts"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+    alegraHasToken
       ? safeLoad(loadCatalog(cfgPriceGeneral, "price-lists"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+    alegraHasToken
       ? safeLoad(loadCatalog(cfgPriceDiscount, "price-lists"))
       : Promise.resolve(null),
-    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
+    alegraHasToken
       ? safeLoad(loadCatalog(cfgPriceWholesale, "price-lists"))
       : Promise.resolve(null),
   ]);
