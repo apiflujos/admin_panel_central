@@ -7941,24 +7941,25 @@ async function runStoreProductsSync() {
 	          }
 	          continue;
 	        }
-	        if (payload.type === "complete") {
-	          const total = Number(payload.total ?? payload.processed ?? 0) || 0;
-	          const processed = Number(payload.processed ?? 0) || 0;
-	          const synced = Number(payload.synced ?? 0) || 0;
-	          const skipped = Number(payload.skipped ?? 0) || 0;
-	          const failed = Number(payload.failed ?? 0) || 0;
-	          const summary =
-	            total > 0
-	              ? `Total: ${total} · Procesados: ${processed} · Facturados: ${synced} · Existentes: ${skipped} · Fallidos: ${failed}`
-	              : "Sin pedidos para sincronizar con esos filtros.";
-	          if (ordersSyncStatus) {
-	            ordersSyncStatus.textContent = summary;
-	          }
-	          finishOrdersProgress("Pedidos 100%");
-	          stopProgress("Pedidos 100%");
-	          await loadOperationsView();
-	          return;
-	        }
+        if (payload.type === "complete") {
+          const total = Number(payload.total ?? payload.processed ?? 0) || 0;
+          const processed = Number(payload.processed ?? 0) || 0;
+          const synced = Number(payload.synced ?? 0) || 0;
+          const skipped = Number(payload.skipped ?? 0) || 0;
+          const failed = Number(payload.failed ?? 0) || 0;
+          const summary =
+            total > 0
+              ? `Total: ${total} · Procesados: ${processed} · Facturados: ${synced} · Existentes: ${skipped} · Fallidos: ${failed}`
+              : "Sin pedidos para sincronizar con esos filtros.";
+          if (ordersSyncStatus) {
+            ordersSyncStatus.textContent = summary;
+          }
+          finishOrdersProgress("Pedidos 100%");
+          stopProgress("Pedidos 100%");
+          await loadOperationsView();
+          autoSyncMarketingFromOrders("orders-sync-complete");
+          return;
+        }
 	        if (payload.type === "error") {
 	          throw new Error(payload.error || "No se pudo sincronizar pedidos.");
 	        }
@@ -7973,6 +7974,7 @@ async function runStoreProductsSync() {
     finishOrdersProgress("Pedidos 100%");
     stopProgress("Pedidos 100%");
 		    await loadOperationsView();
+        autoSyncMarketingFromOrders("orders-sync-final");
 		  } catch (error) {
 	    const message = error?.message || "No se pudo sincronizar pedidos.";
 	    if (ordersSyncStatus) {
@@ -8200,6 +8202,7 @@ function ensureProductsLoaded() {
 }
 
 let marketingLoading = false;
+const marketingAutoSyncAttempts = new Set();
 let superAdminLoaded = false;
 
 function utcMonthKey(date = new Date()) {
@@ -8567,6 +8570,30 @@ function getMarketingQuery() {
   return { shopDomain, from, to };
 }
 
+async function autoSyncMarketingFromOrders(sourceLabel) {
+  try {
+    ensureMarketingDefaults();
+    const { shopDomain, from, to } = getMarketingQuery();
+    if (!shopDomain || !from || !to) return;
+    const attemptKey = `${shopDomain}:${from}:${to}:${sourceLabel}`;
+    if (marketingAutoSyncAttempts.has(attemptKey)) return;
+    marketingAutoSyncAttempts.add(attemptKey);
+    await fetchJson("/api/marketing/sync/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shopDomain, sinceDate: from, maxOrders: 1500 }),
+    });
+    await fetchJson("/api/marketing/metrics/recompute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shopDomain, from, to }),
+    });
+    loadMarketing().catch(() => null);
+  } catch {
+    // ignore auto sync failures to avoid blocking UX
+  }
+}
+
 function pct(value) {
   if (value === null || value === undefined) return null;
   const num = Number(value);
@@ -8688,9 +8715,10 @@ async function loadMarketing() {
     renderMarketingDashboard(data);
     if (isMarketingDashboardEmpty(data)) {
       setMarketingStatus(
-        "Sin datos en este rango. Usa “Sincronizar pedidos” y luego “Recalcular métricas”. Para UTM/Sessions/Funnel: instala el Pixel y configura webhooks.",
+        "Sin datos en este rango. Se sincroniza automáticamente desde pedidos; para UTM/Sessions/Funnel instala el Pixel y configura webhooks.",
         "is-warn"
       );
+      autoSyncMarketingFromOrders("dashboard-empty");
     } else {
       setMarketingStatus("OK", "is-ok");
     }
@@ -11163,65 +11191,6 @@ if (saPlanLimitsBody instanceof HTMLElement) {
 if (marketingRefresh) {
   marketingRefresh.addEventListener("click", () => {
     loadMarketing().catch(() => null);
-  });
-}
-if (marketingSync) {
-  marketingSync.addEventListener("click", async () => {
-    try {
-      ensureMarketingDefaults();
-      const { shopDomain, from, to } = getMarketingQuery();
-      if (!shopDomain) {
-        showToast("Selecciona una tienda primero.", "is-warn");
-        return;
-      }
-      setButtonLoading(marketingSync, true, "Sincronizando...");
-      await fetchJson("/api/marketing/sync/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shopDomain, sinceDate: from, maxOrders: 1500 }),
-      });
-      try {
-        if (from && to) {
-          await fetchJson("/api/marketing/metrics/recompute", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ shopDomain, from, to }),
-          });
-        }
-      } catch {
-        // If recompute fails, still allow dashboard load (user can click recompute manually).
-      }
-      showToast("Sync de marketing completado.", "is-ok");
-      loadMarketing().catch(() => null);
-    } catch (error) {
-      showToast(error?.message || "No se pudo sincronizar marketing.", "is-error");
-    } finally {
-      setButtonLoading(marketingSync, false);
-    }
-  });
-}
-if (marketingRecompute) {
-  marketingRecompute.addEventListener("click", async () => {
-    try {
-      ensureMarketingDefaults();
-      const { shopDomain, from, to } = getMarketingQuery();
-      if (!shopDomain) {
-        showToast("Selecciona una tienda primero.", "is-warn");
-        return;
-      }
-      setButtonLoading(marketingRecompute, true, "Recalculando...");
-      await fetchJson("/api/marketing/metrics/recompute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shopDomain, from, to }),
-      });
-      showToast("Métricas recomputadas.", "is-ok");
-      loadMarketing().catch(() => null);
-    } catch (error) {
-      showToast(error?.message || "No se pudieron recomputar las métricas.", "is-error");
-    } finally {
-      setButtonLoading(marketingRecompute, false);
-    }
   });
 }
 if (assistantInput) {
