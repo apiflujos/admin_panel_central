@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
     <link rel="stylesheet" href="styles.css?v=20260209p2" />
   </head>
-  <body data-build="20260209p11">
+  <body data-build="20260209p12">
     <div class="app-shell">
       <aside class="sidebar">
         <div class="sidebar-header">
@@ -1119,7 +1119,7 @@
                       <span class="status-pill is-live">Core</span>
                     </div>
                     <div class="connections-group-body">
-                      <div class="connection-block">
+                      <div class="connection-block" id="shopify-connection-block">
                         <div class="connection-block-header">
                           <div>
                             <div class="provider-title">
@@ -1165,7 +1165,7 @@
                       </div>
                     </div>
                     <div class="connections-group-body">
-                      <div class="connection-block">
+                      <div class="connection-block" id="alegra-connection-block">
                         <div class="connection-block-header">
                           <div>
                             <div class="provider-title">
@@ -1255,7 +1255,7 @@
           </div>
         </div>
 
-		      <div class="settings-pane" data-settings-pane="marketing">
+      <div class="settings-pane" data-settings-pane="marketing">
         <div class="settings-group provider-group" data-group="marketing">
           <div class="settings-group-header" data-group-toggle="marketing">
             <h4 class="group-title">Marketing</h4>
@@ -1281,6 +1281,15 @@
                   <p class="kpi-sub">Pixel + Webhooks para sesiones, funnels y UTMs.</p>
 
                   <div class="module-body">
+                    <div class="settings-grid connection-fields">
+                      <div class="field span-2">
+                        <label>Base URL (APP_HOST) <span class="tip" data-tip="Ej: https://tu-app.onrender.com">?</span></label>
+                        <div class="field-actions inline">
+                          <input type="text" id="ads-app-host" placeholder="https://tu-app.onrender.com" />
+                          <button class="primary" id="ads-app-save" type="button">Guardar</button>
+                        </div>
+                      </div>
+                    </div>
                     <div class="mode-sections">
                       <div class="mode-section" data-readonly-free="1">
                         <div class="mode-head">
@@ -1349,27 +1358,8 @@
                 </div>
               </div>
               <div class="connections-group-body">
-                <div class="connection-block ads-host-block">
-                  <div class="connection-block-header">
-                    <div>
-                      <div class="provider-title">
-                        <h4>Base URL (OAuth)</h4>
-                      </div>
-                      <p class="kpi-sub">Dominio publico del backend para callbacks.</p>
-                    </div>
-                    <div class="connection-block-actions">
-                      <button class="primary" id="ads-app-save" type="button">Guardar credenciales</button>
-                    </div>
-                  </div>
-                  <div class="settings-grid connection-fields">
-                    <div class="field span-2">
-                      <label>Base URL (APP_HOST) <span class="tip" data-tip="Ej: https://tu-app.onrender.com">?</span></label>
-                      <input type="text" id="ads-app-host" placeholder="https://tu-app.onrender.com" />
-                    </div>
-                  </div>
-                </div>
                 <div class="ads-platform-grid">
-                  <div class="connection-block ads-platform">
+                  <div class="connection-block ads-platform" id="google-ads-block">
                     <div class="connection-block-header">
                       <div class="provider-title">
                         <img class="provider-logo" src="/brands/googleads.png?v=20260201s" alt="Google Ads" />
@@ -1401,7 +1391,7 @@
                     </div>
                   </div>
 
-                  <div class="connection-block ads-platform">
+                  <div class="connection-block ads-platform" id="meta-ads-block">
                     <div class="connection-block-header">
                       <div class="provider-title">
                         <img class="provider-logo" src="/brands/meta.png?v=20260201s" alt="Meta Ads" />
@@ -1429,7 +1419,7 @@
                     </div>
                   </div>
 
-                  <div class="connection-block ads-platform">
+                  <div class="connection-block ads-platform" id="tiktok-ads-block">
                     <div class="connection-block-header">
                       <div class="provider-title">
                         <img class="provider-logo" src="/brands/tiktok.png?v=20260201s" alt="TikTok Ads" />
@@ -2608,6 +2598,6 @@
       </div>
     </div>
 
-	    <script src="app.js?v=20260209p11" type="module"></script>
+	    <script src="app.js?v=20260209p12" type="module"></script>
 	  </body>
 	</html>

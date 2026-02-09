@@ -266,15 +266,20 @@ const connectShopify = document.getElementById("connect-shopify");
 const connectAlegra = document.getElementById("connect-alegra");
 const shopifyConnectionPill = document.getElementById("shopify-connection-pill");
 const alegraConnectionPill = document.getElementById("alegra-connection-pill");
+const shopifyConnectionBlock = document.getElementById("shopify-connection-block");
+const alegraConnectionBlock = document.getElementById("alegra-connection-block");
 const googleAdsCustomerId = document.getElementById("google-ads-customer-id");
 const connectGoogleAds = document.getElementById("connect-google-ads");
 const googleAdsConnectionPill = document.getElementById("google-ads-connection-pill");
+const googleAdsBlock = document.getElementById("google-ads-block");
 const metaAdsAccountId = document.getElementById("meta-ads-account-id");
 const connectMetaAds = document.getElementById("connect-meta-ads");
 const metaAdsConnectionPill = document.getElementById("meta-ads-connection-pill");
+const metaAdsBlock = document.getElementById("meta-ads-block");
 const tiktokAdsAdvertiserId = document.getElementById("tiktok-ads-advertiser-id");
 const connectTikTokAds = document.getElementById("connect-tiktok-ads");
 const tiktokAdsConnectionPill = document.getElementById("tiktok-ads-connection-pill");
+const tiktokAdsBlock = document.getElementById("tiktok-ads-block");
 const adsAppHost = document.getElementById("ads-app-host");
 const googleAdsClientId = document.getElementById("google-ads-client-id");
 const googleAdsClientSecret = document.getElementById("google-ads-client-secret");
@@ -4871,6 +4876,7 @@ async function loadConnections(options = {}) {
     updateTikTokAdsStatus(data);
     clearAdsConnectInputs();
     initSetupMode(stores.length);
+    clearConnectionForm();
     updateWizardStartAvailability();
     syncSettingsPane();
     await maybeApplyPendingStoreConfigCopy();
@@ -4963,6 +4969,11 @@ function applyConnectionPill(pill, ok, text) {
   pill.classList.toggle("is-off", !ok);
 }
 
+function toggleConnectionBlock(block, visible) {
+  if (!(block instanceof HTMLElement)) return;
+  block.style.display = visible ? "" : "none";
+}
+
 function updateConnectionPills() {
   const domain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   const store = domain ? getStoreConnectionByDomain(domain) : null;
@@ -4972,6 +4983,14 @@ function updateConnectionPills() {
   const alegraLabel = store?.alegraNeedsReconnect ? "Reconectar" : (alegraOk ? "Conectado" : "Pendiente");
   applyConnectionPill(shopifyConnectionPill, shopifyOk && !store?.shopifyNeedsReconnect, shopifyLabel);
   applyConnectionPill(alegraConnectionPill, alegraOk && !store?.alegraNeedsReconnect, alegraLabel);
+  toggleConnectionBlock(
+    shopifyConnectionBlock,
+    !shopifyOk || Boolean(store?.shopifyNeedsReconnect)
+  );
+  toggleConnectionBlock(
+    alegraConnectionBlock,
+    !alegraOk || Boolean(store?.alegraNeedsReconnect)
+  );
 }
 
 function updateGoogleAdsStatus(payload) {
@@ -4981,6 +5000,7 @@ function updateGoogleAdsStatus(payload) {
   const needsReconnect = Boolean(google.needsReconnect);
   const label = needsReconnect ? "Reconectar" : (connected ? "Conectado" : "Sin conectar");
   applyConnectionPill(googleAdsConnectionPill, connected && !needsReconnect, label);
+  toggleConnectionBlock(googleAdsBlock, !connected || needsReconnect);
   if (googleAdsCustomerId && google.customerId && !googleAdsCustomerId.value) {
     googleAdsCustomerId.value = google.customerId;
   }
@@ -4993,6 +5013,7 @@ function updateMetaAdsStatus(payload) {
   const needsReconnect = Boolean(meta.needsReconnect);
   const label = needsReconnect ? "Reconectar" : (connected ? "Conectado" : "Sin conectar");
   applyConnectionPill(metaAdsConnectionPill, connected && !needsReconnect, label);
+  toggleConnectionBlock(metaAdsBlock, !connected || needsReconnect);
   if (metaAdsAccountId && meta.adAccountId && !metaAdsAccountId.value) {
     metaAdsAccountId.value = meta.adAccountId;
   }
@@ -5005,6 +5026,7 @@ function updateTikTokAdsStatus(payload) {
   const needsReconnect = Boolean(tt.needsReconnect);
   const label = needsReconnect ? "Reconectar" : (connected ? "Conectado" : "Sin conectar");
   applyConnectionPill(tiktokAdsConnectionPill, connected && !needsReconnect, label);
+  toggleConnectionBlock(tiktokAdsBlock, !connected || needsReconnect);
   if (tiktokAdsAdvertiserId && tt.advertiserId && !tiktokAdsAdvertiserId.value) {
     tiktokAdsAdvertiserId.value = tt.advertiserId;
   }
@@ -10814,6 +10836,7 @@ async function connectShopifyWithToken(params) {
   });
   if (shopifyToken) shopifyToken.value = "";
   showToast("Shopify conectado.", "is-ok");
+  clearConnectionForm();
   setConnectionsSetupOpen(true);
   setSettingsPane("connections", { persist: false });
   await loadConnections();
