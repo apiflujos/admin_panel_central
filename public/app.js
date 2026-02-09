@@ -792,7 +792,6 @@ function activateNav(target) {
 
 function resolveSettingsPaneKey(value) {
   if (value === "stores") return "stores";
-  if (value === "marketing") return "marketing";
   return "connections";
 }
 
@@ -800,8 +799,7 @@ function getStoredSettingsPane() {
   try {
     const stored = localStorage.getItem(SETTINGS_PANE_KEY) || "";
     return stored === "stores" ||
-      stored === "connections" ||
-      stored === "marketing"
+      stored === "connections"
       ? stored
       : "";
   } catch {
@@ -863,7 +861,6 @@ function getSettingsPaneForElement(element) {
   const key = pane.getAttribute("data-settings-pane") || "";
   return key === "stores" ||
     key === "connections" ||
-    key === "marketing"
     ? key
     : "";
 }
@@ -887,7 +884,7 @@ function initSettingsSubmenu() {
     const button = target.closest("[data-settings-pane-link]");
     if (!(button instanceof HTMLElement)) return;
     const key = button.getAttribute("data-settings-pane-link") || "";
-    if (key !== "stores" && key !== "connections" && key !== "marketing") return;
+    if (key !== "stores" && key !== "connections") return;
     if (button.hasAttribute("disabled")) return;
     activateNav("settings");
     setSettingsPane(key);
