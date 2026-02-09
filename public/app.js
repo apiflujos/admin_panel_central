@@ -867,6 +867,9 @@ function setSettingsPane(paneKey, options = {}) {
     });
   }
   if (persist) saveSettingsPane(next);
+  if (next === "stores") {
+    ensureStoresPaneVisible();
+  }
 }
 
 function syncSettingsPane() {
@@ -878,6 +881,25 @@ function syncSettingsPane() {
   const stored = getStoredSettingsPane();
   const desired = forced ? "connections" : (currentSettingsPane || stored || "connections");
   setSettingsPane(desired, { persist: false });
+}
+
+function ensureStoresPaneVisible() {
+  const pane = document.querySelector('[data-settings-pane="stores"]');
+  if (!(pane instanceof HTMLElement)) return;
+  const switcher = document.getElementById("stores-switcher-panel");
+  if (switcher && switcher.scrollIntoView) {
+    switcher.scrollIntoView({ block: "start", behavior: "instant" });
+  }
+  const field = document.getElementById("store-active-field");
+  if (field) field.style.display = "";
+  const list = document.getElementById("store-active-list");
+  if (list) {
+    list.style.display = "";
+    list.style.visibility = "visible";
+    list.style.opacity = "1";
+  }
+  const storeGroup = getGroupPanel("store");
+  if (storeGroup) setGroupCollapsed(storeGroup, false);
 }
 
 // Ensure initial state for contacts action buttons (if settings pane is visible).
