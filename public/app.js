@@ -787,7 +787,6 @@ function activateNav(target) {
 
 function resolveSettingsPaneKey(value) {
   if (value === "stores") return "stores";
-  if (value === "integrations") return "integrations";
   if (value === "marketing") return "marketing";
   return "connections";
 }
@@ -797,7 +796,6 @@ function getStoredSettingsPane() {
     const stored = localStorage.getItem(SETTINGS_PANE_KEY) || "";
     return stored === "stores" ||
       stored === "connections" ||
-      stored === "integrations" ||
       stored === "marketing"
       ? stored
       : "";
@@ -845,17 +843,11 @@ updateContactsActionVisibility();
 
 function updateSettingsSubmenuAvailability() {
   if (!settingsSubmenu) return;
-  const hasStores = Boolean(storesCache && storesCache.length);
-  const isAdminLike = currentUserRole === "admin" || currentUserRole === "super_admin" || currentUserIsSuperAdmin;
   settingsSubmenu.querySelectorAll("[data-settings-pane-link]").forEach((button) => {
     const key = button.getAttribute("data-settings-pane-link") || "";
     if (key !== "stores") return;
-    const shouldDisable = !hasStores && !isAdminLike;
-    button.toggleAttribute("disabled", shouldDisable);
-    button.classList.toggle("is-disabled", shouldDisable);
-    if (shouldDisable && button.classList.contains("is-active")) {
-      setSettingsPane("connections");
-    }
+    button.removeAttribute("disabled");
+    button.classList.remove("is-disabled");
   });
 }
 
@@ -866,7 +858,6 @@ function getSettingsPaneForElement(element) {
   const key = pane.getAttribute("data-settings-pane") || "";
   return key === "stores" ||
     key === "connections" ||
-    key === "integrations" ||
     key === "marketing"
     ? key
     : "";
@@ -891,7 +882,7 @@ function initSettingsSubmenu() {
     const button = target.closest("[data-settings-pane-link]");
     if (!(button instanceof HTMLElement)) return;
     const key = button.getAttribute("data-settings-pane-link") || "";
-    if (key !== "stores" && key !== "connections" && key !== "integrations" && key !== "marketing") return;
+    if (key !== "stores" && key !== "connections" && key !== "marketing") return;
     if (button.hasAttribute("disabled")) return;
     activateNav("settings");
     setSettingsPane(key);
