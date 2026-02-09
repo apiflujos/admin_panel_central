@@ -253,6 +253,7 @@ const manualOpen = document.getElementById("manual-open");
 const wizardHint = document.getElementById("wizard-hint");
 const setupModePicker = document.getElementById("setup-mode-picker");
 const settingsSubmenu = document.getElementById("settings-submenu");
+let settingsPaneListenerAttached = false;
 const copyConfigField = document.getElementById("copy-config-field");
 const copyConfigSelect = document.getElementById("copy-config-select");
 const DEFAULT_WIZARD_HINT = wizardHint ? wizardHint.textContent : "";
@@ -873,13 +874,10 @@ function ensureSettingsPaneForElement(element, options = {}) {
   setSettingsPane(key, { persist });
 }
 
-function initSettingsSubmenu() {
-  if (!settingsSubmenu) {
-    syncSettingsPane();
-    ensureSettingsVisibility();
-    return;
-  }
-  settingsSubmenu.addEventListener("click", (event) => {
+function attachSettingsPaneListener() {
+  if (settingsPaneListenerAttached) return;
+  settingsPaneListenerAttached = true;
+  document.addEventListener("click", (event) => {
     const target = event.target instanceof HTMLElement ? event.target : null;
     if (!target) return;
     const button = target.closest("[data-settings-pane-link]");
@@ -891,6 +889,15 @@ function initSettingsSubmenu() {
     setSettingsPane(key);
     ensureSettingsVisibility();
   });
+}
+
+function initSettingsSubmenu() {
+  attachSettingsPaneListener();
+  if (!settingsSubmenu) {
+    syncSettingsPane();
+    ensureSettingsVisibility();
+    return;
+  }
   updateSettingsSubmenuAvailability();
   syncSettingsPane();
   ensureSettingsVisibility();
