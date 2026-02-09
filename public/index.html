@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
     <link rel="stylesheet" href="styles.css?v=20260209p1" />
   </head>
-  <body data-build="20260209p6">
+  <body data-build="20260209p7">
     <div class="app-shell">
       <aside class="sidebar">
         <div class="sidebar-header">
@@ -87,7 +87,7 @@
 		            <button class="nav-subitem is-active" type="button" data-settings-pane-link="connections" title="Conexiones">Conexiones</button>
 		            <button class="nav-subitem" type="button" data-settings-pane-link="marketing" title="Marketing">Marketing</button>
 		            <button class="nav-subitem" type="button" data-settings-pane-link="stores" title="Tiendas">Tiendas</button>
-		            <button class="nav-subitem" type="button" data-settings-pane-link="integrations" title="Integraciones">Integraciones</button>
+		            <!-- Integraciones eliminado: token API vive en Conexiones -->
 		          </div>
 
           <div class="nav-spacer" aria-hidden="true"></div>
@@ -1046,7 +1046,47 @@
 
 		        <section class="section" id="settings">
 		          <div class="settings-pane is-active" data-settings-pane="connections">
-				            <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-setup-open="0" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (autorizacion) y luego Alegra (clave de acceso o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa (ej: Oliva Shoes Colombia).&#10;4) Configura Productos, Pedidos y Contactos segun tu forma de trabajo.&#10;5) Revisa Operacion (sincronizacion automatica y salud).&#10;&#10;Tip: la configuracion guiada es para tienda nueva; si ya hay tienda activa, usa Manual.">
+		          <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera un token para integraciones y pruebas (API) sin consola.">
+		            <div class="panel-header">
+		              <h3 data-module-toggle="qa-token">Token de integracion</h3>
+		              <span class="panel-tag tag-bridge">Integraciones</span>
+		            </div>
+		            <div class="module-body">
+		              <div class="settings-grid">
+		                <div class="field">
+		                  <label>Scopes</label>
+		                  <select id="qa-token-scope" disabled>
+		                    <option value="general" selected>General</option>
+		                  </select>
+		                  <p class="field-hint">Token con acceso general a la plataforma.</p>
+		                </div>
+		                <div class="field">
+		                  <label>Caducidad</label>
+		                  <select id="qa-token-ttl">
+		                    <option value="0">Nunca</option>
+		                    <option value="5">5 minutos</option>
+		                    <option value="15">15 minutos</option>
+		                    <option value="30" selected>30 minutos</option>
+		                    <option value="60">60 minutos</option>
+		                    <option value="120">120 minutos</option>
+		                  </select>
+		                </div>
+		                <div class="field span-2">
+		                  <label>Token</label>
+		                  <div class="field-actions inline">
+		                    <input type="text" id="qa-token-value" readonly placeholder="Genera un token" />
+		                    <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
+		                  </div>
+		                  <p class="field-hint" id="qa-token-hint">Caduca segun la opcion seleccionada.</p>
+		                </div>
+		              </div>
+		              <div class="toolbar is-actions">
+		                <button class="primary" id="qa-token-generate" type="button">Generar clave</button>
+		              </div>
+		            </div>
+		          </div>
+
+		          <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-setup-open="0" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (autorizacion) y luego Alegra (clave de acceso o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa (ej: Oliva Shoes Colombia).&#10;4) Configura Productos, Pedidos y Contactos segun tu forma de trabajo.&#10;5) Revisa Operacion (sincronizacion automatica y salud).&#10;&#10;Tip: la configuracion guiada es para tienda nueva; si ya hay tienda activa, usa Manual.">
 		            <div class="panel-header">
 		              <h3 data-module-toggle="connections" data-title-base="Nueva conexion">Nueva conexion</h3>
 		              <span class="panel-tag">Acceso</span>
@@ -2371,54 +2411,7 @@
 
 	        </div>
 
-	      <div class="settings-pane" data-settings-pane="integrations">
-	        <div class="settings-group provider-group" data-group="integrations">
-	          <div class="settings-group-header" data-group-toggle="integrations">
-	            <h4 class="group-title">Integraciones</h4>
-	          </div>
-	          <div class="settings-group-body">
-	            <div class="panel admin-only module" data-provider="bridge" data-module="qa-token" id="qa-token-panel" data-help="Genera un token para integraciones y pruebas (API) sin consola.">
-	              <div class="panel-header">
-	                <h3 data-module-toggle="qa-token">Token de integracion</h3>
-	                <span class="panel-tag tag-bridge">Integraciones</span>
-	              </div>
-	              <div class="module-body">
-	                <div class="settings-grid">
-	                  <div class="field">
-	                    <label>Scopes</label>
-	                    <select id="qa-token-scope" disabled>
-	                      <option value="general" selected>General</option>
-	                    </select>
-	                    <p class="field-hint">Token con acceso general a la plataforma.</p>
-	                  </div>
-	                  <div class="field">
-	                    <label>Caducidad</label>
-	                    <select id="qa-token-ttl">
-	                      <option value="0">Nunca</option>
-	                      <option value="5">5 minutos</option>
-	                      <option value="15">15 minutos</option>
-	                      <option value="30" selected>30 minutos</option>
-	                      <option value="60">60 minutos</option>
-	                      <option value="120">120 minutos</option>
-	                    </select>
-	                  </div>
-	                  <div class="field span-2">
-	                    <label>Token</label>
-	                    <div class="field-actions inline">
-	                      <input type="text" id="qa-token-value" readonly placeholder="Genera un token" />
-	                      <button class="ghost" id="qa-token-copy" type="button">Copiar</button>
-	                    </div>
-	                    <p class="field-hint" id="qa-token-hint">Caduca segun la opcion seleccionada.</p>
-	                  </div>
-	                </div>
-	                <div class="toolbar is-actions">
-	                  <button class="primary" id="qa-token-generate" type="button">Generar clave</button>
-	                </div>
-	              </div>
-	            </div>
-	          </div>
-	        </div>
-	      </div>
+	      <!-- Integraciones eliminado: token API ahora vive en Conexiones -->
 
 	        </section>
       </main>
