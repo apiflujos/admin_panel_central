@@ -903,7 +903,9 @@ function bindSettingsPaneButtons() {
     if (key !== "stores" && key !== "connections") return;
     const handler = (event) => {
       if (button.hasAttribute("disabled")) return;
-      event.preventDefault();
+      if (event.cancelable && event.type !== "touchstart") {
+        event.preventDefault();
+      }
       activateNav("settings");
       setSettingsPane(key);
       ensureSettingsVisibility();
