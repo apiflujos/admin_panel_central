@@ -3518,6 +3518,13 @@ function reorderSettingsPanels() {
 
 function openDefaultGroups() {
   const openKeys = new Set();
+  const activePane =
+    document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
+  const keepConnectionsOpen =
+    activePane === "connections" || getModulePanel("connections")?.getAttribute("data-setup-open") === "1";
+  if (keepConnectionsOpen) {
+    ["commerce", "accounting", "ai", "marketing-core"].forEach((key) => openKeys.add(key));
+  }
   document.querySelectorAll("[data-group]").forEach((panel) => {
     const key = panel.getAttribute("data-group") || "";
     setGroupCollapsed(panel, !openKeys.has(key));
