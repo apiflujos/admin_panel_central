@@ -770,6 +770,7 @@ function showSection(target) {
     loadContacts().catch(() => null);
   }
   if (target === "settings") {
+    bindSettingsPaneButtons();
     syncSettingsPane();
     ensureSettingsVisibility();
   }
@@ -897,22 +898,24 @@ function attachSettingsPaneListener() {
 function bindSettingsPaneButtons() {
   document.querySelectorAll("[data-settings-pane-link]").forEach((button) => {
     if (!(button instanceof HTMLElement)) return;
-    if (settingsPaneButtonsBound.has(button)) return;
-    settingsPaneButtonsBound.add(button);
     const key = button.getAttribute("data-settings-pane-link") || "";
     if (key !== "stores" && key !== "connections") return;
     const handler = (event) => {
       if (button.hasAttribute("disabled")) return;
-      if (event.cancelable && event.type !== "touchstart") {
+      if (event?.cancelable && event?.type !== "touchstart") {
         event.preventDefault();
       }
       activateNav("settings");
       setSettingsPane(key);
       ensureSettingsVisibility();
     };
-    button.addEventListener("click", handler, { capture: true });
-    button.addEventListener("pointerdown", handler, { capture: true });
-    button.addEventListener("touchstart", handler, { capture: true, passive: true });
+    if (!settingsPaneButtonsBound.has(button)) {
+      settingsPaneButtonsBound.add(button);
+      button.addEventListener("touchstart", handler, { capture: true, passive: true });
+    }
+    // Force handler in case other listeners stop propagation.
+    button.onclick = handler;
+    button.onpointerdown = handler;
   });
 }
 
