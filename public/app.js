@@ -6119,34 +6119,30 @@ function renderConnections(settings) {
       const alegraNeedsReconnect = Boolean(store.alegraNeedsReconnect);
       const shopifyConnected = Boolean(store.shopifyConnected ?? store.status === "Conectado") && !shopifyNeedsReconnect;
       const alegraConnected = Boolean(store.alegraConnected ?? store.alegraAccountId) && !alegraNeedsReconnect;
-      const shopifyLabel = store.shopDomain || "Shopify sin dominio";
       const storeLabel = store.storeName || store.shopDomain || "Tienda";
+      const shopifyLabel = store.shopDomain || "Shopify";
       const alegraLabel = store.alegraEmail
         ? `${store.alegraEmail} (${store.alegraEnvironment || "prod"})`
-        : "Sin Alegra asignado";
-      const googleAdsLabel = googleAds.connected
-        ? `Google Ads ${googleAds.customerId ? `(${googleAds.customerId})` : ""}`.trim()
-        : googleAds.needsReconnect
-          ? "Reconectar Google Ads"
-          : "Google Ads sin conectar";
-      const metaAdsLabel = settings?.metaAds?.connected
-        ? `Meta Ads ${settings?.metaAds?.adAccountId ? `(${settings.metaAds.adAccountId})` : ""}`.trim()
-        : settings?.metaAds?.needsReconnect
-          ? "Reconectar Meta Ads"
-          : "Meta Ads sin conectar";
-      const tiktokAdsLabel = settings?.tiktokAds?.connected
-        ? `TikTok Ads ${settings?.tiktokAds?.advertiserId ? `(${settings.tiktokAds.advertiserId})` : ""}`.trim()
-        : settings?.tiktokAds?.needsReconnect
-          ? "Reconectar TikTok Ads"
-          : "TikTok Ads sin conectar";
-      const overallConnected = shopifyConnected && alegraConnected;
-      const overallLabel = overallConnected
-        ? "Conectado"
-        : shopifyNeedsReconnect
-          ? "Reconectar Shopify"
-          : alegraNeedsReconnect
-            ? "Reconectar Alegra"
-            : "Pendiente";
+        : "Alegra";
+      const connectedBadges = [];
+      if (shopifyConnected) connectedBadges.push(`Shopify · ${shopifyLabel}`);
+      if (alegraConnected) connectedBadges.push(`Alegra · ${alegraLabel}`);
+      if (googleAds.connected) {
+        connectedBadges.push(
+          `Google Ads${googleAds.customerId ? ` · ${googleAds.customerId}` : ""}`
+        );
+      }
+      if (settings?.metaAds?.connected) {
+        connectedBadges.push(
+          `Meta Ads${settings?.metaAds?.adAccountId ? ` · ${settings.metaAds.adAccountId}` : ""}`
+        );
+      }
+      if (settings?.tiktokAds?.connected) {
+        connectedBadges.push(
+          `TikTok Ads${settings?.tiktokAds?.advertiserId ? ` · ${settings.tiktokAds.advertiserId}` : ""}`
+        );
+      }
+      const hasConnections = connectedBadges.length > 0;
       return `
         <div class="connection-card${isActive ? " is-active" : ""}">
           <div class="connection-tiles" aria-label="Resumen de conexiones">
@@ -6155,24 +6151,16 @@ function renderConnections(settings) {
               <div class="connection-tile-value">${storeLabel}</div>
             </div>
             <div class="connection-tile">
-              <div class="connection-tile-label">Shopify</div>
-              <div class="connection-tile-value">${shopifyLabel}</div>
-            </div>
-            <div class="connection-tile">
-              <div class="connection-tile-label">Alegra</div>
-              <div class="connection-tile-value">${alegraLabel}</div>
-            </div>
-            <div class="connection-tile">
-              <div class="connection-tile-label">Ads</div>
-              <div class="connection-tile-value">${googleAdsLabel}</div>
-              <div class="connection-tile-value">${metaAdsLabel}</div>
-              <div class="connection-tile-value">${tiktokAdsLabel}</div>
+              <div class="connection-tile-label">Conexiones</div>
+              <div class="connection-tile-value">
+                ${hasConnections ? connectedBadges.join(" · ") : "Sin conexiones activas"}
+              </div>
             </div>
           </div>
           <div class="connection-footer">
             <div class="connection-footer-pills">
               ${isActive ? `<span class="status-pill is-ok">Activa</span>` : ""}
-              <span class="status-pill ${overallConnected ? "is-ok" : "is-off"}">${overallLabel}</span>
+              ${hasConnections ? `<span class="status-pill is-ok">Conectado</span>` : ""}
             </div>
             <button class="ghost danger" data-connection-remove="${store.id}">Eliminar tienda</button>
           </div>
