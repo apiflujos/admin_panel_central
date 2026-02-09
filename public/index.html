@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
     <link rel="stylesheet" href="styles.css?v=20260209p1" />
   </head>
-  <body data-build="20260209p1">
+  <body data-build="20260209p2">
     <div class="app-shell">
       <aside class="sidebar">
         <div class="sidebar-header">
@@ -1168,6 +1168,37 @@
                     </div>
                   </div>
 
+                  <div class="connections-group" data-group="ai">
+                    <div class="connections-group-header">
+                      <div class="group-title">
+                        <span class="group-kicker">Asistencia</span>
+                        <h4>IA</h4>
+                      </div>
+                    </div>
+                    <div class="connections-group-body">
+                      <div class="connection-block">
+                        <div class="connection-block-header">
+                          <div>
+                            <div class="provider-title">
+                              <img class="provider-logo" src="/brands/openai.png?v=20260201s" alt="OpenAI" />
+                              <h4>OpenAI</h4>
+                            </div>
+                            <p class="kpi-sub">Clave del proveedor de IA</p>
+                          </div>
+                          <div class="connection-block-actions">
+                            <span class="status-pill is-off" id="ai-connection-pill">Sin conectar</span>
+                          </div>
+                        </div>
+                        <div class="settings-grid connection-fields">
+                          <div class="field span-2">
+                            <label>Token de IA <span class="tip" data-tip="Clave del proveedor de IA (por ejemplo OpenAI). Se usa para el asistente y soporte.">?</span></label>
+                            <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div class="panel admin-only module" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas. Cada tarjeta corresponde a una tienda (multi-tienda).">
                     <div class="panel-header">
                       <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
@@ -1385,33 +1416,7 @@
 		            </div>
 		          </div>
 
-		          <div class="connections-group" data-group="ai">
-		            <div class="connections-group-header">
-		              <div class="group-title">
-		                <span class="group-kicker">Asistencia</span>
-		                <h4>IA</h4>
-		              </div>
-		            </div>
-		            <div class="connections-group-body">
-		              <div class="connection-block">
-		                <div class="connection-block-header">
-		                  <div>
-		                    <div class="provider-title">
-		                      <img class="provider-logo" src="/brands/openai.png?v=20260201s" alt="OpenAI" />
-		                      <h4>IA</h4>
-		                    </div>
-		                    <p class="kpi-sub">Clave del proveedor de IA</p>
-		                  </div>
-		                </div>
-		                <div class="settings-grid connection-fields">
-		                  <div class="field span-2">
-		                    <label>Token de IA <span class="tip" data-tip="Clave del proveedor de IA (por ejemplo OpenAI). Se usa para el asistente y soporte.">?</span></label>
-		                    <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
-		                  </div>
-		                </div>
-		              </div>
-		            </div>
-		          </div>
+		          <!-- IA movido a Conexiones para mantener consistencia -->
 		        </div>
 		      </div>
 
