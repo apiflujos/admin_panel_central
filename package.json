@@ -7,6 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "node node_modules/typescript/bin/tsc -p tsconfig.json",
     "start": "node dist/server.js",
+    "check:frontend": "node --check public/app.js && node --check public/company.js && node --check public/login.js && node --check public/users.js",
     "qa:smoke": "node scripts/qa-smoke.js"
   },
   "dependencies": {

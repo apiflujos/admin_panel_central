@@ -859,10 +859,7 @@ function getSettingsPaneForElement(element) {
   const pane = element.closest("[data-settings-pane]");
   if (!(pane instanceof HTMLElement)) return "";
   const key = pane.getAttribute("data-settings-pane") || "";
-  return key === "stores" ||
-    key === "connections" ||
-    ? key
-    : "";
+  return key === "stores" || key === "connections" ? key : "";
 }
 
 function ensureSettingsPaneForElement(element, options = {}) {
