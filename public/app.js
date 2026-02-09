@@ -254,6 +254,7 @@ const wizardHint = document.getElementById("wizard-hint");
 const setupModePicker = document.getElementById("setup-mode-picker");
 const settingsSubmenu = document.getElementById("settings-submenu");
 let settingsPaneListenerAttached = false;
+const settingsPaneButtonsBound = new WeakSet();
 const copyConfigField = document.getElementById("copy-config-field");
 const copyConfigSelect = document.getElementById("copy-config-select");
 const DEFAULT_WIZARD_HINT = wizardHint ? wizardHint.textContent : "";
@@ -877,7 +878,7 @@ function ensureSettingsPaneForElement(element, options = {}) {
 function attachSettingsPaneListener() {
   if (settingsPaneListenerAttached) return;
   settingsPaneListenerAttached = true;
-  document.addEventListener("click", (event) => {
+  const handleClick = (event) => {
     const target = event.target instanceof HTMLElement ? event.target : null;
     if (!target) return;
     const button = target.closest("[data-settings-pane-link]");
@@ -888,11 +889,34 @@ function attachSettingsPaneListener() {
     activateNav("settings");
     setSettingsPane(key);
     ensureSettingsVisibility();
-  }, { capture: true });
+  };
+  document.addEventListener("click", handleClick, { capture: true });
+  document.addEventListener("pointerdown", handleClick, { capture: true });
+}
+
+function bindSettingsPaneButtons() {
+  document.querySelectorAll("[data-settings-pane-link]").forEach((button) => {
+    if (!(button instanceof HTMLElement)) return;
+    if (settingsPaneButtonsBound.has(button)) return;
+    settingsPaneButtonsBound.add(button);
+    const key = button.getAttribute("data-settings-pane-link") || "";
+    if (key !== "stores" && key !== "connections") return;
+    const handler = (event) => {
+      if (button.hasAttribute("disabled")) return;
+      event.preventDefault();
+      activateNav("settings");
+      setSettingsPane(key);
+      ensureSettingsVisibility();
+    };
+    button.addEventListener("click", handler, { capture: true });
+    button.addEventListener("pointerdown", handler, { capture: true });
+    button.addEventListener("touchstart", handler, { capture: true, passive: true });
+  });
 }
 
 function initSettingsSubmenu() {
   attachSettingsPaneListener();
+  bindSettingsPaneButtons();
   if (!settingsSubmenu) {
     syncSettingsPane();
     ensureSettingsVisibility();
