@@ -52,8 +52,14 @@ const publicDir = path.resolve("public");
 app.use(
   express.static(publicDir, {
     setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".html")) {
+      const lower = filePath.toLowerCase();
+      if (lower.endsWith(".html")) {
         res.setHeader("Cache-Control", "no-store");
+        return;
+      }
+      if (lower.endsWith("/app.js") || lower.endsWith("/styles.css")) {
+        // Always revalidate core assets to avoid stale UI after deploys.
+        res.setHeader("Cache-Control", "no-cache, must-revalidate");
       }
     },
   })
