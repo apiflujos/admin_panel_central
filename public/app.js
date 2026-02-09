@@ -253,9 +253,6 @@ const manualOpen = document.getElementById("manual-open");
 const wizardHint = document.getElementById("wizard-hint");
 const setupModePicker = document.getElementById("setup-mode-picker");
 const settingsSubmenu = document.getElementById("settings-submenu");
-let settingsPaneListenerAttached = false;
-const settingsPaneButtonsBound = new WeakSet();
-let currentSettingsPane = "";
 const copyConfigField = document.getElementById("copy-config-field");
 const copyConfigSelect = document.getElementById("copy-config-select");
 const DEFAULT_WIZARD_HINT = wizardHint ? wizardHint.textContent : "";
@@ -269,20 +266,15 @@ const connectShopify = document.getElementById("connect-shopify");
 const connectAlegra = document.getElementById("connect-alegra");
 const shopifyConnectionPill = document.getElementById("shopify-connection-pill");
 const alegraConnectionPill = document.getElementById("alegra-connection-pill");
-const shopifyConnectionBlock = document.getElementById("shopify-connection-block");
-const alegraConnectionBlock = document.getElementById("alegra-connection-block");
 const googleAdsCustomerId = document.getElementById("google-ads-customer-id");
 const connectGoogleAds = document.getElementById("connect-google-ads");
 const googleAdsConnectionPill = document.getElementById("google-ads-connection-pill");
-const googleAdsBlock = document.getElementById("google-ads-block");
 const metaAdsAccountId = document.getElementById("meta-ads-account-id");
 const connectMetaAds = document.getElementById("connect-meta-ads");
 const metaAdsConnectionPill = document.getElementById("meta-ads-connection-pill");
-const metaAdsBlock = document.getElementById("meta-ads-block");
 const tiktokAdsAdvertiserId = document.getElementById("tiktok-ads-advertiser-id");
 const connectTikTokAds = document.getElementById("connect-tiktok-ads");
 const tiktokAdsConnectionPill = document.getElementById("tiktok-ads-connection-pill");
-const tiktokAdsBlock = document.getElementById("tiktok-ads-block");
 const adsAppHost = document.getElementById("ads-app-host");
 const googleAdsClientId = document.getElementById("google-ads-client-id");
 const googleAdsClientSecret = document.getElementById("google-ads-client-secret");
@@ -771,7 +763,6 @@ function showSection(target) {
     loadContacts().catch(() => null);
   }
   if (target === "settings") {
-    bindSettingsPaneButtons();
     syncSettingsPane();
     ensureSettingsVisibility();
   }
@@ -796,6 +787,8 @@ function activateNav(target) {
 
 function resolveSettingsPaneKey(value) {
   if (value === "stores") return "stores";
+  if (value === "integrations") return "integrations";
+  if (value === "marketing") return "marketing";
   return "connections";
 }
 
@@ -803,7 +796,9 @@ function getStoredSettingsPane() {
   try {
     const stored = localStorage.getItem(SETTINGS_PANE_KEY) || "";
     return stored === "stores" ||
-      stored === "connections"
+      stored === "connections" ||
+      stored === "integrations" ||
+      stored === "marketing"
       ? stored
       : "";
   } catch {
@@ -819,38 +814,9 @@ function saveSettingsPane(value) {
   }
 }
 
-function shouldForceConnectionsPane() {
-  if (!Array.isArray(storesCache) || storesCache.length === 0) return true;
-  const state = getWizardState();
-  if (!isWizardStateActive(state)) return false;
-  const stepKey = state ? WIZARD_MODULE_ORDER[state.step] || "" : "";
-  if (stepKey === "connect-shopify") {
-    return !isShopifyConnectedForDomain(getWizardTargetDomain());
-  }
-  if (stepKey === "connect-alegra") {
-    return !isAlegraConnectedForDomain(getWizardTargetDomain());
-  }
-  return false;
-}
-
-function requestSettingsPane(key, options = {}) {
-  const { persist = true, force = false } = options || {};
-  const next = resolveSettingsPaneKey(key);
-  if (next === "connections" && !force && !shouldForceConnectionsPane()) {
-    const stored = getStoredSettingsPane();
-    const desired = currentSettingsPane || stored;
-    if (desired && desired !== "connections") {
-      setSettingsPane(desired, { persist: false });
-      return;
-    }
-  }
-  setSettingsPane(next, { persist });
-}
-
 function setSettingsPane(paneKey, options = {}) {
   const { persist = true } = options || {};
   const next = resolveSettingsPaneKey(paneKey);
-  currentSettingsPane = next;
   const settingsSection = document.getElementById("settings");
   if (settingsSection && !settingsSection.classList.contains("is-active")) {
     activateNav("settings");
@@ -867,39 +833,11 @@ function setSettingsPane(paneKey, options = {}) {
     });
   }
   if (persist) saveSettingsPane(next);
-  if (next === "stores") {
-    ensureStoresPaneVisible();
-  }
 }
 
 function syncSettingsPane() {
-  const settingsSection = document.getElementById("settings");
-  if (!settingsSection || !settingsSection.classList.contains("is-active")) {
-    return;
-  }
-  const forced = shouldForceConnectionsPane();
   const stored = getStoredSettingsPane();
-  const desired = forced ? "connections" : (currentSettingsPane || stored || "connections");
-  setSettingsPane(desired, { persist: false });
-}
-
-function ensureStoresPaneVisible() {
-  const pane = document.querySelector('[data-settings-pane="stores"]');
-  if (!(pane instanceof HTMLElement)) return;
-  const switcher = document.getElementById("stores-switcher-panel");
-  if (switcher && switcher.scrollIntoView) {
-    switcher.scrollIntoView({ block: "start", behavior: "instant" });
-  }
-  const field = document.getElementById("store-active-field");
-  if (field) field.style.display = "";
-  const list = document.getElementById("store-active-list");
-  if (list) {
-    list.style.display = "";
-    list.style.visibility = "visible";
-    list.style.opacity = "1";
-  }
-  const storeGroup = getGroupPanel("store");
-  if (storeGroup) setGroupCollapsed(storeGroup, false);
+  setSettingsPane(stored || "connections", { persist: false });
 }
 
 // Ensure initial state for contacts action buttons (if settings pane is visible).
@@ -907,11 +845,17 @@ updateContactsActionVisibility();
 
 function updateSettingsSubmenuAvailability() {
   if (!settingsSubmenu) return;
+  const hasStores = Boolean(storesCache && storesCache.length);
+  const isAdminLike = currentUserRole === "admin" || currentUserRole === "super_admin" || currentUserIsSuperAdmin;
   settingsSubmenu.querySelectorAll("[data-settings-pane-link]").forEach((button) => {
     const key = button.getAttribute("data-settings-pane-link") || "";
     if (key !== "stores") return;
-    button.removeAttribute("disabled");
-    button.classList.remove("is-disabled");
+    const shouldDisable = !hasStores && !isAdminLike;
+    button.toggleAttribute("disabled", shouldDisable);
+    button.classList.toggle("is-disabled", shouldDisable);
+    if (shouldDisable && button.classList.contains("is-active")) {
+      setSettingsPane("connections");
+    }
   });
 }
 
@@ -920,7 +864,12 @@ function getSettingsPaneForElement(element) {
   const pane = element.closest("[data-settings-pane]");
   if (!(pane instanceof HTMLElement)) return "";
   const key = pane.getAttribute("data-settings-pane") || "";
-  return key === "stores" || key === "connections" ? key : "";
+  return key === "stores" ||
+    key === "connections" ||
+    key === "integrations" ||
+    key === "marketing"
+    ? key
+    : "";
 }
 
 function ensureSettingsPaneForElement(element, options = {}) {
@@ -930,57 +879,24 @@ function ensureSettingsPaneForElement(element, options = {}) {
   setSettingsPane(key, { persist });
 }
 
-function attachSettingsPaneListener() {
-  if (settingsPaneListenerAttached) return;
-  settingsPaneListenerAttached = true;
-  const handleClick = (event) => {
-    const target = event.target instanceof HTMLElement ? event.target : null;
-    if (!target) return;
-    const button = target.closest("[data-settings-pane-link]");
-    if (!(button instanceof HTMLElement)) return;
-    const key = button.getAttribute("data-settings-pane-link") || "";
-    if (key !== "stores" && key !== "connections") return;
-    if (button.hasAttribute("disabled")) return;
-    activateNav("settings");
-    requestSettingsPane(key);
-    ensureSettingsVisibility();
-  };
-  document.addEventListener("click", handleClick, { capture: true });
-  document.addEventListener("pointerdown", handleClick, { capture: true });
-}
-
-function bindSettingsPaneButtons() {
-  document.querySelectorAll("[data-settings-pane-link]").forEach((button) => {
-    if (!(button instanceof HTMLElement)) return;
-    const key = button.getAttribute("data-settings-pane-link") || "";
-    if (key !== "stores" && key !== "connections") return;
-    const handler = (event) => {
-      if (button.hasAttribute("disabled")) return;
-      if (event?.cancelable && event?.type !== "touchstart") {
-        event.preventDefault();
-      }
-      activateNav("settings");
-      requestSettingsPane(key);
-      ensureSettingsVisibility();
-    };
-    if (!settingsPaneButtonsBound.has(button)) {
-      settingsPaneButtonsBound.add(button);
-      button.addEventListener("touchstart", handler, { capture: true, passive: true });
-    }
-    // Force handler in case other listeners stop propagation.
-    button.onclick = handler;
-    button.onpointerdown = handler;
-  });
-}
-
 function initSettingsSubmenu() {
-  attachSettingsPaneListener();
-  bindSettingsPaneButtons();
   if (!settingsSubmenu) {
     syncSettingsPane();
     ensureSettingsVisibility();
     return;
   }
+  settingsSubmenu.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) return;
+    const button = target.closest("[data-settings-pane-link]");
+    if (!(button instanceof HTMLElement)) return;
+    const key = button.getAttribute("data-settings-pane-link") || "";
+    if (key !== "stores" && key !== "connections" && key !== "integrations" && key !== "marketing") return;
+    if (button.hasAttribute("disabled")) return;
+    activateNav("settings");
+    setSettingsPane(key);
+    ensureSettingsVisibility();
+  });
   updateSettingsSubmenuAvailability();
   syncSettingsPane();
   ensureSettingsVisibility();
@@ -990,7 +906,7 @@ function ensureSettingsVisibility() {
   const settingsSection = document.getElementById("settings");
   if (!settingsSection) return;
   if (!settingsSection.classList.contains("is-active")) return;
-  const isAdminLike = isAdminLikeRole(currentUserRole, currentUserIsSuperAdmin);
+  const isAdminLike = currentUserRole === "admin" || currentUserRole === "super_admin";
   if (isAdminLike) {
     settingsSection.querySelectorAll(".admin-only").forEach((panel) => {
       panel.style.display = "";
@@ -998,10 +914,7 @@ function ensureSettingsVisibility() {
   }
   const hasActivePane = Boolean(settingsSection.querySelector(".settings-pane.is-active"));
   if (!hasActivePane) {
-    const forced = shouldForceConnectionsPane();
-    const stored = getStoredSettingsPane();
-    const desired = forced ? "connections" : (currentSettingsPane || stored || "connections");
-    setSettingsPane(desired, { persist: false });
+    setSettingsPane("connections", { persist: false });
   }
 }
 
@@ -2402,7 +2315,7 @@ function initSetupModeControls() {
     setSetupMode(mode, { persist: true, stopWizard: true });
     const isManual = mode === "manual";
     setConnectionsSetupOpen(true);
-    requestSettingsPane("connections", { persist: false, force: true });
+    setSettingsPane("connections", { persist: false });
     closeCoach({ persistDismiss: false });
     if (isManual) {
       const focusTarget =
@@ -2478,17 +2391,13 @@ function resolveUserRole(role, isSuperAdminFlag) {
   return "agent";
 }
 
-function isAdminLikeRole(role, isSuperAdminFlag) {
-  return role === "admin" || role === "agent" || role === "super_admin" || Boolean(isSuperAdminFlag);
-}
-
 function applyRoleAccess(role, isSuperAdminFlag) {
   currentUserRole = resolveUserRole(role, isSuperAdminFlag);
   currentUserIsSuperAdmin = currentUserRole === "super_admin" || Boolean(isSuperAdminFlag);
   const settingsNav = document.querySelector('.nav-item[data-target="settings"]');
   const logsNav = document.querySelector('.nav-item[data-target="logs"]');
   const adminOnlyPanels = document.querySelectorAll(".admin-only");
-  const isAdminLike = isAdminLikeRole(currentUserRole, currentUserIsSuperAdmin);
+  const isAdminLike = currentUserRole === "admin" || currentUserRole === "super_admin" || currentUserIsSuperAdmin;
   if (!isAdminLike) {
     if (settingsNav) settingsNav.style.display = "none";
     adminOnlyPanels.forEach((panel) => {
@@ -2673,7 +2582,7 @@ function renderUsers(items) {
         <td>${user.phone || "-"}</td>
         <td>
           ${
-            isAdminLikeRole(currentUserRole, currentUserIsSuperAdmin)
+            currentUserRole === "admin"
               ? `<button class="ghost" data-user-delete="${user.id}">Eliminar</button>`
               : "-"
           }
@@ -2701,7 +2610,7 @@ function renderUsers(items) {
 }
 
 async function loadUsers() {
-  if (!isAdminLikeRole(currentUserRole, currentUserIsSuperAdmin)) return;
+  if (currentUserRole !== "admin") return;
   try {
     const data = await fetchJson("/api/users");
     renderUsers(data.items || []);
@@ -3619,13 +3528,6 @@ function reorderSettingsPanels() {
 
 function openDefaultGroups() {
   const openKeys = new Set();
-  const activePane =
-    document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
-  const keepConnectionsOpen =
-    activePane === "connections" || getModulePanel("connections")?.getAttribute("data-setup-open") === "1";
-  if (keepConnectionsOpen) {
-    ["commerce", "accounting", "ai", "marketing-core"].forEach((key) => openKeys.add(key));
-  }
   document.querySelectorAll("[data-group]").forEach((panel) => {
     const key = panel.getAttribute("data-group") || "";
     setGroupCollapsed(panel, !openKeys.has(key));
@@ -4224,13 +4126,7 @@ async function openWizardStep() {
   });
 
   if (next.moduleKey === "connect-shopify" || next.moduleKey === "connect-alegra") {
-    const targetDomain = getWizardTargetDomain();
-    const needsConnections =
-      (next.moduleKey === "connect-shopify" && !isShopifyConnectedForDomain(targetDomain)) ||
-      (next.moduleKey === "connect-alegra" && !isAlegraConnectedForDomain(targetDomain));
-    if (needsConnections) {
-      requestSettingsPane("connections", { persist: false, force: true });
-    }
+    setSettingsPane("connections", { persist: false });
     ensureConnectionsSetupOpen();
     const target = next.focusTarget || getWizardModuleStatus(next.moduleKey).focusTarget;
     if (target) {
@@ -4984,7 +4880,6 @@ async function loadConnections(options = {}) {
     updateTikTokAdsStatus(data);
     clearAdsConnectInputs();
     initSetupMode(stores.length);
-    clearConnectionForm();
     updateWizardStartAvailability();
     syncSettingsPane();
     await maybeApplyPendingStoreConfigCopy();
@@ -5077,11 +4972,6 @@ function applyConnectionPill(pill, ok, text) {
   pill.classList.toggle("is-off", !ok);
 }
 
-function toggleConnectionBlock(block, visible) {
-  if (!(block instanceof HTMLElement)) return;
-  block.style.display = visible ? "" : "none";
-}
-
 function updateConnectionPills() {
   const domain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   const store = domain ? getStoreConnectionByDomain(domain) : null;
@@ -5091,14 +4981,6 @@ function updateConnectionPills() {
   const alegraLabel = store?.alegraNeedsReconnect ? "Reconectar" : (alegraOk ? "Conectado" : "Pendiente");
   applyConnectionPill(shopifyConnectionPill, shopifyOk && !store?.shopifyNeedsReconnect, shopifyLabel);
   applyConnectionPill(alegraConnectionPill, alegraOk && !store?.alegraNeedsReconnect, alegraLabel);
-  toggleConnectionBlock(
-    shopifyConnectionBlock,
-    !shopifyOk || Boolean(store?.shopifyNeedsReconnect)
-  );
-  toggleConnectionBlock(
-    alegraConnectionBlock,
-    !alegraOk || Boolean(store?.alegraNeedsReconnect)
-  );
 }
 
 function updateGoogleAdsStatus(payload) {
@@ -5108,7 +4990,6 @@ function updateGoogleAdsStatus(payload) {
   const needsReconnect = Boolean(google.needsReconnect);
   const label = needsReconnect ? "Reconectar" : (connected ? "Conectado" : "Sin conectar");
   applyConnectionPill(googleAdsConnectionPill, connected && !needsReconnect, label);
-  toggleConnectionBlock(googleAdsBlock, !connected || needsReconnect);
   if (googleAdsCustomerId && google.customerId && !googleAdsCustomerId.value) {
     googleAdsCustomerId.value = google.customerId;
   }
@@ -5121,7 +5002,6 @@ function updateMetaAdsStatus(payload) {
   const needsReconnect = Boolean(meta.needsReconnect);
   const label = needsReconnect ? "Reconectar" : (connected ? "Conectado" : "Sin conectar");
   applyConnectionPill(metaAdsConnectionPill, connected && !needsReconnect, label);
-  toggleConnectionBlock(metaAdsBlock, !connected || needsReconnect);
   if (metaAdsAccountId && meta.adAccountId && !metaAdsAccountId.value) {
     metaAdsAccountId.value = meta.adAccountId;
   }
@@ -5134,7 +5014,6 @@ function updateTikTokAdsStatus(payload) {
   const needsReconnect = Boolean(tt.needsReconnect);
   const label = needsReconnect ? "Reconectar" : (connected ? "Conectado" : "Sin conectar");
   applyConnectionPill(tiktokAdsConnectionPill, connected && !needsReconnect, label);
-  toggleConnectionBlock(tiktokAdsBlock, !connected || needsReconnect);
   if (tiktokAdsAdvertiserId && tt.advertiserId && !tiktokAdsAdvertiserId.value) {
     tiktokAdsAdvertiserId.value = tt.advertiserId;
   }
@@ -5149,7 +5028,7 @@ function clearAdsConnectInputs() {
 function maybeJumpToConnectionsSummary() {
   const params = new URLSearchParams(window.location.search);
   if (params.get("connections") !== "1") return;
-  requestSettingsPane("connections", { persist: false, force: true });
+  setSettingsPane("connections", { persist: false });
   const summary = document.querySelector('[data-module="connections-summary"]');
   if (summary && summary.scrollIntoView) {
     summary.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -6240,74 +6119,60 @@ function renderConnections(settings) {
       const alegraNeedsReconnect = Boolean(store.alegraNeedsReconnect);
       const shopifyConnected = Boolean(store.shopifyConnected ?? store.status === "Conectado") && !shopifyNeedsReconnect;
       const alegraConnected = Boolean(store.alegraConnected ?? store.alegraAccountId) && !alegraNeedsReconnect;
+      const shopifyLabel = store.shopDomain || "Shopify sin dominio";
       const storeLabel = store.storeName || store.shopDomain || "Tienda";
-      const shopifyLabel = store.shopDomain || "Sin dominio";
       const alegraLabel = store.alegraEmail
         ? `${store.alegraEmail} (${store.alegraEnvironment || "prod"})`
-        : "Sin cuenta";
-      const platformTiles = [
-        {
-          label: "Shopify",
-          value: shopifyConnected
-            ? shopifyLabel
-            : shopifyNeedsReconnect
-            ? "Requiere reconectar"
-            : "Sin conectar",
-        },
-        {
-          label: "Alegra",
-          value: alegraConnected
-            ? alegraLabel
-            : alegraNeedsReconnect
-            ? "Requiere reconectar"
-            : "Sin conectar",
-        },
-        {
-          label: "Google Ads",
-          value: googleAds.connected
-            ? googleAds.customerId || "Conectado"
-            : "Sin conectar",
-        },
-        {
-          label: "Meta Ads",
-          value: settings?.metaAds?.connected
-            ? settings?.metaAds?.adAccountId || "Conectado"
-            : "Sin conectar",
-        },
-        {
-          label: "TikTok Ads",
-          value: settings?.tiktokAds?.connected
-            ? settings?.tiktokAds?.advertiserId || "Conectado"
-            : "Sin conectar",
-        },
-      ];
-      const hasConnections = platformTiles.some((tile) => tile.value !== "Sin conectar");
+        : "Sin Alegra asignado";
+      const googleAdsLabel = googleAds.connected
+        ? `Google Ads ${googleAds.customerId ? `(${googleAds.customerId})` : ""}`.trim()
+        : googleAds.needsReconnect
+          ? "Reconectar Google Ads"
+          : "Google Ads sin conectar";
+      const metaAdsLabel = settings?.metaAds?.connected
+        ? `Meta Ads ${settings?.metaAds?.adAccountId ? `(${settings.metaAds.adAccountId})` : ""}`.trim()
+        : settings?.metaAds?.needsReconnect
+          ? "Reconectar Meta Ads"
+          : "Meta Ads sin conectar";
+      const tiktokAdsLabel = settings?.tiktokAds?.connected
+        ? `TikTok Ads ${settings?.tiktokAds?.advertiserId ? `(${settings.tiktokAds.advertiserId})` : ""}`.trim()
+        : settings?.tiktokAds?.needsReconnect
+          ? "Reconectar TikTok Ads"
+          : "TikTok Ads sin conectar";
+      const overallConnected = shopifyConnected && alegraConnected;
+      const overallLabel = overallConnected
+        ? "Conectado"
+        : shopifyNeedsReconnect
+          ? "Reconectar Shopify"
+          : alegraNeedsReconnect
+            ? "Reconectar Alegra"
+            : "Pendiente";
       return `
         <div class="connection-card${isActive ? " is-active" : ""}">
-          <div class="connection-head">
-            <div class="connection-summary-text">
-              <h4 class="connection-store-title">${storeLabel}</h4>
-              <p>${domain || ""}</p>
+          <div class="connection-tiles" aria-label="Resumen de conexiones">
+            <div class="connection-tile">
+              <div class="connection-tile-label">Tienda</div>
+              <div class="connection-tile-value">${storeLabel}</div>
             </div>
-            <div class="connection-summary-meta">
-              ${isActive ? `<span class="status-pill is-ok">Activa</span>` : ""}
+            <div class="connection-tile">
+              <div class="connection-tile-label">Shopify</div>
+              <div class="connection-tile-value">${shopifyLabel}</div>
             </div>
-          </div>
-          <div class="connection-tiles connection-tiles-platforms" aria-label="Plataformas conectadas">
-            ${platformTiles
-              .map(
-                (tile) => `
-              <div class="connection-tile">
-                <div class="connection-tile-label">${tile.label}</div>
-                <div class="connection-tile-value">${tile.value}</div>
-              </div>
-            `
-              )
-              .join("")}
+            <div class="connection-tile">
+              <div class="connection-tile-label">Alegra</div>
+              <div class="connection-tile-value">${alegraLabel}</div>
+            </div>
+            <div class="connection-tile">
+              <div class="connection-tile-label">Ads</div>
+              <div class="connection-tile-value">${googleAdsLabel}</div>
+              <div class="connection-tile-value">${metaAdsLabel}</div>
+              <div class="connection-tile-value">${tiktokAdsLabel}</div>
+            </div>
           </div>
           <div class="connection-footer">
             <div class="connection-footer-pills">
-              ${hasConnections ? `<span class="status-pill is-ok">Conectado</span>` : ""}
+              ${isActive ? `<span class="status-pill is-ok">Activa</span>` : ""}
+              <span class="status-pill ${overallConnected ? "is-ok" : "is-off"}">${overallLabel}</span>
             </div>
             <button class="ghost danger" data-connection-remove="${store.id}">Eliminar tienda</button>
           </div>
@@ -8097,25 +7962,24 @@ async function runStoreProductsSync() {
 	          }
 	          continue;
 	        }
-        if (payload.type === "complete") {
-          const total = Number(payload.total ?? payload.processed ?? 0) || 0;
-          const processed = Number(payload.processed ?? 0) || 0;
-          const synced = Number(payload.synced ?? 0) || 0;
-          const skipped = Number(payload.skipped ?? 0) || 0;
-          const failed = Number(payload.failed ?? 0) || 0;
-          const summary =
-            total > 0
-              ? `Total: ${total} · Procesados: ${processed} · Facturados: ${synced} · Existentes: ${skipped} · Fallidos: ${failed}`
-              : "Sin pedidos para sincronizar con esos filtros.";
-          if (ordersSyncStatus) {
-            ordersSyncStatus.textContent = summary;
-          }
-          finishOrdersProgress("Pedidos 100%");
-          stopProgress("Pedidos 100%");
-          await loadOperationsView();
-          autoSyncMarketingFromOrders("orders-sync-complete");
-          return;
-        }
+	        if (payload.type === "complete") {
+	          const total = Number(payload.total ?? payload.processed ?? 0) || 0;
+	          const processed = Number(payload.processed ?? 0) || 0;
+	          const synced = Number(payload.synced ?? 0) || 0;
+	          const skipped = Number(payload.skipped ?? 0) || 0;
+	          const failed = Number(payload.failed ?? 0) || 0;
+	          const summary =
+	            total > 0
+	              ? `Total: ${total} · Procesados: ${processed} · Facturados: ${synced} · Existentes: ${skipped} · Fallidos: ${failed}`
+	              : "Sin pedidos para sincronizar con esos filtros.";
+	          if (ordersSyncStatus) {
+	            ordersSyncStatus.textContent = summary;
+	          }
+	          finishOrdersProgress("Pedidos 100%");
+	          stopProgress("Pedidos 100%");
+	          await loadOperationsView();
+	          return;
+	        }
 	        if (payload.type === "error") {
 	          throw new Error(payload.error || "No se pudo sincronizar pedidos.");
 	        }
@@ -8130,7 +7994,6 @@ async function runStoreProductsSync() {
     finishOrdersProgress("Pedidos 100%");
     stopProgress("Pedidos 100%");
 		    await loadOperationsView();
-        autoSyncMarketingFromOrders("orders-sync-final");
 		  } catch (error) {
 	    const message = error?.message || "No se pudo sincronizar pedidos.";
 	    if (ordersSyncStatus) {
@@ -8358,7 +8221,6 @@ function ensureProductsLoaded() {
 }
 
 let marketingLoading = false;
-const marketingAutoSyncAttempts = new Set();
 let superAdminLoaded = false;
 
 function utcMonthKey(date = new Date()) {
@@ -8371,7 +8233,7 @@ function setBillingTopbarVisible(visible) {
 }
 
 async function loadBillingTopbar() {
-  if (!isAdminLikeRole(currentUserRole, currentUserIsSuperAdmin)) {
+  if (currentUserRole !== "admin" && currentUserRole !== "super_admin") {
     setBillingTopbarVisible(false);
     return;
   }
@@ -8726,30 +8588,6 @@ function getMarketingQuery() {
   return { shopDomain, from, to };
 }
 
-async function autoSyncMarketingFromOrders(sourceLabel) {
-  try {
-    ensureMarketingDefaults();
-    const { shopDomain, from, to } = getMarketingQuery();
-    if (!shopDomain || !from || !to) return;
-    const attemptKey = `${shopDomain}:${from}:${to}:${sourceLabel}`;
-    if (marketingAutoSyncAttempts.has(attemptKey)) return;
-    marketingAutoSyncAttempts.add(attemptKey);
-    await fetchJson("/api/marketing/sync/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ shopDomain, sinceDate: from, maxOrders: 1500 }),
-    });
-    await fetchJson("/api/marketing/metrics/recompute", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ shopDomain, from, to }),
-    });
-    loadMarketing().catch(() => null);
-  } catch {
-    // ignore auto sync failures to avoid blocking UX
-  }
-}
-
 function pct(value) {
   if (value === null || value === undefined) return null;
   const num = Number(value);
@@ -8871,10 +8709,9 @@ async function loadMarketing() {
     renderMarketingDashboard(data);
     if (isMarketingDashboardEmpty(data)) {
       setMarketingStatus(
-        "Sin datos en este rango. Se sincroniza automáticamente desde pedidos; para UTM/Sessions/Funnel instala el Pixel y configura webhooks.",
+        "Sin datos en este rango. Usa “Sincronizar pedidos” y luego “Recalcular métricas”. Para UTM/Sessions/Funnel: instala el Pixel y configura webhooks.",
         "is-warn"
       );
-      autoSyncMarketingFromOrders("dashboard-empty");
     } else {
       setMarketingStatus("OK", "is-ok");
     }
@@ -9977,7 +9814,7 @@ if (manualOpen) {
   manualOpen.addEventListener("click", () => {
     setSetupMode("manual", { persist: true, stopWizard: true });
     setConnectionsSetupOpen(true);
-    requestSettingsPane("connections", { persist: false, force: true });
+    setSettingsPane("connections", { persist: false });
     closeCoach({ persistDismiss: false });
     const target = storeNameInput || shopifyDomain;
     if (target) focusFieldWithContext(target);
@@ -10970,9 +10807,8 @@ async function connectShopifyWithToken(params) {
   });
   if (shopifyToken) shopifyToken.value = "";
   showToast("Shopify conectado.", "is-ok");
-  clearConnectionForm();
   setConnectionsSetupOpen(true);
-  requestSettingsPane("connections", { persist: false, force: true });
+  setSettingsPane("connections", { persist: false });
   await loadConnections();
   updateConnectionPills();
   return response;
@@ -11122,7 +10958,7 @@ async function connectStore(kind) {
   }
   clearConnectionForm();
   setConnectionsSetupOpen(true);
-  requestSettingsPane("connections", { persist: false, force: true });
+  setSettingsPane("connections", { persist: false });
   await loadConnections();
   try {
     await loadSettings({ preserveUi: true });
@@ -11348,6 +11184,65 @@ if (saPlanLimitsBody instanceof HTMLElement) {
 if (marketingRefresh) {
   marketingRefresh.addEventListener("click", () => {
     loadMarketing().catch(() => null);
+  });
+}
+if (marketingSync) {
+  marketingSync.addEventListener("click", async () => {
+    try {
+      ensureMarketingDefaults();
+      const { shopDomain, from, to } = getMarketingQuery();
+      if (!shopDomain) {
+        showToast("Selecciona una tienda primero.", "is-warn");
+        return;
+      }
+      setButtonLoading(marketingSync, true, "Sincronizando...");
+      await fetchJson("/api/marketing/sync/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopDomain, sinceDate: from, maxOrders: 1500 }),
+      });
+      try {
+        if (from && to) {
+          await fetchJson("/api/marketing/metrics/recompute", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ shopDomain, from, to }),
+          });
+        }
+      } catch {
+        // If recompute fails, still allow dashboard load (user can click recompute manually).
+      }
+      showToast("Sync de marketing completado.", "is-ok");
+      loadMarketing().catch(() => null);
+    } catch (error) {
+      showToast(error?.message || "No se pudo sincronizar marketing.", "is-error");
+    } finally {
+      setButtonLoading(marketingSync, false);
+    }
+  });
+}
+if (marketingRecompute) {
+  marketingRecompute.addEventListener("click", async () => {
+    try {
+      ensureMarketingDefaults();
+      const { shopDomain, from, to } = getMarketingQuery();
+      if (!shopDomain) {
+        showToast("Selecciona una tienda primero.", "is-warn");
+        return;
+      }
+      setButtonLoading(marketingRecompute, true, "Recalculando...");
+      await fetchJson("/api/marketing/metrics/recompute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopDomain, from, to }),
+      });
+      showToast("Métricas recomputadas.", "is-ok");
+      loadMarketing().catch(() => null);
+    } catch (error) {
+      showToast(error?.message || "No se pudieron recomputar las métricas.", "is-error");
+    } finally {
+      setButtonLoading(marketingRecompute, false);
+    }
   });
 }
 if (assistantInput) {
@@ -12912,47 +12807,46 @@ async function init() {
   await safeLoad(loadMetrics());
   setOperationsView("orders");
   await safeLoad(loadOperationsView());
-  const isAdminLikeUser = isAdminLikeRole(currentUserRole, currentUserIsSuperAdmin);
-  if (isAdminLikeUser) {
+  if (currentUserRole === "admin" || currentUserRole === "super_admin") {
     await safeLoad(loadConnections());
     await safeLoad(loadSettings());
     await safeLoad(loadResolutions());
   }
 	  await Promise.all([
-	    isAdminLikeUser && alegraHasToken
+	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
 	      ? safeLoad(loadCatalog(cfgCostCenter, "cost-centers"))
 	      : Promise.resolve(null),
-	    isAdminLikeUser && alegraHasToken
+	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
 	      ? safeLoad(loadCatalog(cfgWarehouse, "warehouses"))
 	      : Promise.resolve(null),
-      isAdminLikeUser && alegraHasToken && productsShopifyBulkWarehouse instanceof HTMLSelectElement
+      (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken && productsShopifyBulkWarehouse instanceof HTMLSelectElement
         ? safeLoad(loadCatalog(productsShopifyBulkWarehouse, "warehouses"))
         : Promise.resolve(null),
-      isAdminLikeUser && alegraHasToken && cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
+      (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken && cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
         ? safeLoad(loadCatalog(cfgProductsShopifyToAlegraWarehouse, "warehouses"))
         : Promise.resolve(null),
-	    isAdminLikeUser && alegraHasToken
+	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
 	      ? safeLoad(loadCatalog(cfgTransferDest, "warehouses"))
 	      : Promise.resolve(null),
-	    isAdminLikeUser && alegraHasToken
+	    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
 	      ? safeLoad(loadCatalog(cfgTransferPriority, "warehouses"))
       : Promise.resolve(null),
-    isAdminLikeUser && alegraHasToken
+    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
       ? safeLoad(loadCatalog(cfgSeller, "sellers"))
       : Promise.resolve(null),
-    isAdminLikeUser && alegraHasToken
+    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
       ? safeLoad(loadCatalog(cfgPaymentMethod, "payment-methods"))
       : Promise.resolve(null),
-    isAdminLikeUser && alegraHasToken
+    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
       ? safeLoad(loadCatalog(cfgBankAccount, "bank-accounts"))
       : Promise.resolve(null),
-    isAdminLikeUser && alegraHasToken
+    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
       ? safeLoad(loadCatalog(cfgPriceGeneral, "price-lists"))
       : Promise.resolve(null),
-    isAdminLikeUser && alegraHasToken
+    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
       ? safeLoad(loadCatalog(cfgPriceDiscount, "price-lists"))
       : Promise.resolve(null),
-    isAdminLikeUser && alegraHasToken
+    (currentUserRole === "admin" || currentUserRole === "super_admin") && alegraHasToken
       ? safeLoad(loadCatalog(cfgPriceWholesale, "price-lists"))
       : Promise.resolve(null),
   ]);
