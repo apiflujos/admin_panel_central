@@ -1774,6 +1774,18 @@ button {
   word-break: break-word;
 }
 
+body.force-settings .section {
+  display: none !important;
+}
+
+body.force-settings #settings {
+  display: flex !important;
+}
+
+body.force-settings .settings-panes.is-filtered [data-settings-pane] {
+  display: block !important;
+}
+
 .store-meta {
   margin-bottom: 6px;
 }

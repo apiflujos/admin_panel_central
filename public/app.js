@@ -12791,9 +12791,17 @@ async function init() {
       return null;
     }
   };
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("settings") === "1") {
+    document.body.classList.add("force-settings");
+  }
   loadSidebarState();
   captureOnboardingParam();
   initSettingsSubmenu();
+  if (document.body.classList.contains("force-settings")) {
+    activateNav("settings");
+    setSettingsPane(getStoredSettingsPane() || "stores", { persist: false });
+  }
   cleanupLegacyConnectionsUi();
   initGroupControls();
 		  initToggleFields();
