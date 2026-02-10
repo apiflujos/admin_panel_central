@@ -1604,12 +1604,12 @@ button {
 }
 
 .settings-group-title {
-  font-size: 8.2px;
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--muted);
-  margin-top: 8px;
+  margin-top: 20px;
 }
 
 .settings-group {
@@ -1617,7 +1617,7 @@ button {
   border-radius: 16px;
   padding: 0;
   background: var(--panel);
-  margin-top: 10px;
+  margin-top: 16px;
   overflow: hidden;
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
 }
@@ -1652,20 +1652,20 @@ button {
 .settings-group-header h3,
 .settings-group-header h4 {
   margin: 0;
-  font-size: 15.2px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--text);
 }
 
 .settings-group-header h4 {
-  font-size: 15.2px;
+  font-size: 18px;
   color: var(--text);
 }
 
 /* Titulos principales (ej: Tiendas, Productos e inventario) */
 .settings-group-header h3[data-store-title],
 .settings-group-header h4.group-title {
-  font-size: 15.2px;
+  font-size: 18px;
 }
 
 .group-title {
@@ -1688,7 +1688,7 @@ button {
 
 /* Titulos con logos (Shopify ↔ Alegra): reducir jerarquia visual. */
 .settings-group.provider-group .settings-group-header h4.group-title {
-  font-size: 11.8px;
+  font-size: 15px;
 }
 
 .settings-group.provider-group[data-group="products"] .settings-group-header {
@@ -1723,9 +1723,13 @@ button {
 
 .settings-group-body {
   display: grid;
-  gap: 8px;
+  gap: 16px;
   margin-top: 0;
-  padding: 10px;
+  padding: 14px;
+}
+
+.panel.module {
+  margin-top: 10px;
 }
 
 .settings-group.is-collapsed .settings-group-body {
