@@ -255,6 +255,7 @@ const setupModePicker = document.getElementById("setup-mode-picker");
 const settingsSubmenu = document.getElementById("settings-submenu");
 const settingsSubnav = document.getElementById("settings-subnav");
 const settingsPaneIndicator = document.getElementById("settings-pane-indicator");
+const storesDebugBar = document.getElementById("stores-debug");
 const copyConfigField = document.getElementById("copy-config-field");
 const copyConfigSelect = document.getElementById("copy-config-select");
 const DEFAULT_WIZARD_HINT = wizardHint ? wizardHint.textContent : "";
@@ -849,6 +850,7 @@ function setSettingsPane(paneKey, options = {}) {
     settingsPaneIndicator.classList.toggle("is-ok", next === "stores");
   }
   if (persist) saveSettingsPane(next);
+  updateStoresDebug("setSettingsPane");
 }
 
 function syncSettingsPane() {
@@ -943,6 +945,31 @@ function ensureSettingsVisibility() {
   if (!hasActivePane) {
     setSettingsPane("connections", { persist: false });
   }
+  updateStoresDebug("ensureSettingsVisibility");
+}
+
+function updateStoresDebug(source) {
+  if (!storesDebugBar) return;
+  const pane = document.querySelector('[data-settings-pane="stores"]');
+  const paneActive = pane?.classList.contains("is-active") ? "on" : "off";
+  const list = document.getElementById("store-active-list");
+  const listCount = list?.children?.length || 0;
+  const listHeight = list ? Math.round(list.getBoundingClientRect().height) : 0;
+  const paneHeight = pane ? Math.round(pane.getBoundingClientRect().height) : 0;
+  const switcher = document.getElementById("store-active-field");
+  const switcherHeight = switcher ? Math.round(switcher.getBoundingClientRect().height) : 0;
+  const group = document.querySelector('.settings-group.store-group[data-group="store"]');
+  const groupExists = group ? "yes" : "no";
+  const groupCollapsed = group?.classList.contains("is-collapsed") ? "yes" : "no";
+  const storeCount = Array.isArray(storesCache) ? storesCache.length : 0;
+  const activeDomain = normalizeShopDomain(activeStoreDomain || "");
+  const hasConfig = activeStoreConfig ? "yes" : "no";
+  const activeLabel = getActiveStoreLabel() || "-";
+  storesDebugBar.textContent =
+    `Estado Tiendas (${source || "idle"}): pane=${paneActive} paneH=${paneHeight} ` +
+    `switcherH=${switcherHeight} list=${listCount} listH=${listHeight} ` +
+    `stores=${storeCount} active=${activeLabel} domain=${activeDomain || "-"} ` +
+    `config=${hasConfig} group=${groupExists} collapsed=${groupCollapsed}`;
 }
 
 function cleanupLegacyConnectionsUi() {
@@ -5130,6 +5157,7 @@ function renderStoreActiveSelect(stores, options = {}) {
   loadLegacyStoreConfig().catch(() => null);
   openWizardStep();
   updateConnectionPills();
+  updateStoresDebug("renderStoreActiveSelect");
 }
 
 function renderStoreContextSelects(stores) {
@@ -6100,6 +6128,7 @@ async function loadLegacyStoreConfig() {
     updatePrerequisites();
     applyToggleDependencies();
     applyProductSettings();
+    updateStoresDebug("loadLegacyStoreConfig");
   }
 }
 
