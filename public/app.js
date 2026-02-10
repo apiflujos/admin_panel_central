@@ -791,6 +791,8 @@ function activateNav(target) {
 }
 
 function resolveSettingsPaneKey(value) {
+  const hasStoresPane = Boolean(document.querySelector('[data-settings-pane="stores"]'));
+  if (!hasStoresPane) return "connections";
   return value === "stores" ? "stores" : "connections";
 }
 
