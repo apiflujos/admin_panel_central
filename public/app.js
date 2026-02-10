@@ -5559,6 +5559,14 @@ function applyShopifyConnectMethod(method) {
   const next = method === "token" ? "token" : "oauth";
   const resolved = next === "oauth" && !shopifyOAuthAvailable ? "token" : next;
   if (shopifyConnectPicker) {
+    const oauthBtn = shopifyConnectPicker.querySelector('[data-shopify-connect="oauth"]');
+    const tokenBtn = shopifyConnectPicker.querySelector('[data-shopify-connect="token"]');
+    if (oauthBtn instanceof HTMLElement) {
+      oauthBtn.style.display = shopifyOAuthAvailable ? "" : "none";
+    }
+    if (tokenBtn instanceof HTMLElement) {
+      tokenBtn.style.display = "";
+    }
     shopifyConnectPicker.querySelectorAll("[data-shopify-connect]").forEach((button) => {
       if (!(button instanceof HTMLButtonElement)) return;
       button.classList.toggle(
@@ -5572,10 +5580,7 @@ function applyShopifyConnectMethod(method) {
     shopifyTokenField.style.display = isToken ? "" : "none";
   }
   if (shopifyToken) {
-    shopifyToken.disabled = !isToken;
-    if (!isToken) {
-      shopifyToken.value = "";
-    }
+    shopifyToken.disabled = false;
   }
   if (shopifyConnectHint) {
     if (!shopifyOAuthAvailable) {
