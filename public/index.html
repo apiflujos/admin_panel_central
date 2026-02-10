@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
-    <link rel="stylesheet" href="styles.css?v=20260210p37" />
+    <link rel="stylesheet" href="styles.css?v=20260210p39" />
   </head>
   <body>
     <div class="app-shell">
@@ -1084,7 +1084,8 @@
 	                </div>
 	              </div>
 	              <div class="connections-groups">
-                  <div class="connections-group" data-group="commerce">
+                  <div class="connections-duo">
+                    <div class="connections-group" data-group="commerce">
                     <div class="connections-group-header">
                       <div class="group-title">
                         <span class="group-kicker">Commerce</span>
@@ -1129,9 +1130,10 @@
                         </div>
                       </div>
                     </div>
+                    </div>
                   </div>
 
-                  <div class="connections-group" data-group="accounting">
+                    <div class="connections-group" data-group="accounting">
                     <div class="connections-group-header">
                       <div class="group-title">
                         <span class="group-kicker">Contabilidad</span>
@@ -1178,6 +1180,8 @@
                         </div>
                       </div>
                     </div>
+                    </div>
+                  </div>
                   </div>
 
 	            </div>
@@ -1317,8 +1321,8 @@
                             <div class="mode-section" data-readonly-free="1">
                               <div class="mode-head">
                                 <div class="mode-head-left">
-                                  <h4>Pixel (sessions / add-to-cart / UTM)</h4>
-                                  <span class="tip" data-tip="Paso 1: genera la Key (por tienda).&#10;Paso 2: pega el script en Shopify → Online Store → Themes → Edit code → layout/theme.liquid (antes de </body>).&#10;Paso 3: espera 1-2 minutos y vuelve a cargar Marketing.">?</span>
+                                  <h4>Pixel (sessions / UTM / funnel)</h4>
+                                  <span class="tip" data-tip="Esto SI requiere pegar el script en Shopify (theme.liquid). Sin el pixel no hay sesiones ni UTM.">?</span>
                                 </div>
                               </div>
                               <div class="mode-grid">
@@ -1331,7 +1335,6 @@
                                   <div class="field-actions inline">
                                     <input type="text" id="mk-cfg-pixel-key" readonly placeholder="Cargando..." />
                                     <button class="ghost" id="mk-cfg-copy-key" type="button">Copiar</button>
-                                    <button class="ghost" id="mk-cfg-rotate-key" type="button" title="Genera una nueva key (invalidará la anterior)">Rotar</button>
                                   </div>
                                   <p class="field-hint" id="mk-cfg-status">Sin datos</p>
                                 </div>
@@ -1340,9 +1343,8 @@
                                   <div class="field-actions inline">
                                     <input type="text" id="mk-cfg-script" readonly placeholder="Cargando..." />
                                     <button class="ghost" id="mk-cfg-copy-script" type="button">Copiar script</button>
-                                    <button class="ghost" id="mk-cfg-test" type="button" title="Envía un evento de prueba (no afecta métricas)">Probar</button>
                                   </div>
-                                  <p class="field-hint">Nota: esto habilita sessions/funnel. Las ventas/UTM de pedidos salen de Shopify (sync/webhooks).</p>
+                                  <p class="field-hint">Obligatorio para sesiones/UTM. Ventas vienen de Shopify vía webhooks.</p>
                                 </div>
                               </div>
                             </div>
@@ -1350,8 +1352,8 @@
                             <div class="mode-section" data-readonly-free="1">
                               <div class="mode-head">
                                 <div class="mode-head-left">
-                                  <h4>Webhooks de Marketing (orders / checkouts / customers)</h4>
-                                  <span class="tip" data-tip="Crea webhooks en Shopify apuntando a este endpoint para capturar eventos de pedidos y checkout en tiempo real.">?</span>
+                                  <h4>Webhooks de Shopify</h4>
+                                  <span class="tip" data-tip="Necesarios para capturar pedidos/checkout en tiempo real.">?</span>
                                 </div>
                               </div>
                               <div class="mode-grid">
@@ -1361,7 +1363,6 @@
                                     <input type="text" id="mk-cfg-webhook-url" readonly placeholder="Cargando..." />
                                     <button class="ghost" id="mk-cfg-copy-webhook" type="button">Copiar URL</button>
                                     <button class="primary" id="mk-cfg-create-webhooks" type="button">Crear webhooks</button>
-                                    <button class="ghost danger" id="mk-cfg-delete-webhooks" type="button">Eliminar webhooks</button>
                                   </div>
                                   <p class="field-hint" id="mk-cfg-webhooks-status">Sin datos</p>
                                 </div>
@@ -2560,6 +2561,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260210p37" type="module"></script>
+    <script src="app.js?v=20260210p39" type="module"></script>
 	  </body>
 	</html>
