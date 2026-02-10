@@ -1577,6 +1577,20 @@ button {
   display: block;
 }
 
+#settings-connections:target,
+#settings-stores:target {
+  display: block !important;
+}
+
+.settings-subnav .settings-tab,
+#settings-pane-actions .ghost,
+#settings-pane-actions .primary {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Fallback: ensure settings panes are visible even if JS fails to toggle. */
 #settings.is-active .settings-pane {
   display: block;

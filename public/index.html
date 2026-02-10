@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
-    <link rel="stylesheet" href="styles.css?v=20260210p18" />
+    <link rel="stylesheet" href="styles.css?v=20260210p24" />
   </head>
   <body>
     <div class="app-shell">
@@ -1043,15 +1043,15 @@
 
 		        <section class="section" id="settings">
           <div class="settings-subnav" id="settings-subnav" aria-label="Submenu configuraciones">
-            <button class="settings-tab is-active" type="button" data-settings-tab="connections">Conexiones</button>
-            <button class="settings-tab" type="button" data-settings-tab="stores">Tiendas</button>
+            <a class="settings-tab is-active" href="#settings-connections" data-settings-tab="connections">Conexiones</a>
+            <a class="settings-tab" href="#settings-stores" data-settings-tab="stores">Tiendas</a>
             <span class="status-pill" id="settings-pane-indicator">Conexiones</span>
           </div>
           <div class="toolbar is-actions" id="settings-pane-actions">
-            <button class="ghost" type="button" data-settings-tab="connections">Ir a Conexiones</button>
-            <button class="primary" type="button" data-settings-tab="stores">Ir a Tiendas</button>
+            <a class="ghost" href="#settings-connections" data-settings-tab="connections">Ir a Conexiones</a>
+            <a class="primary" href="#settings-stores" data-settings-tab="stores">Ir a Tiendas</a>
           </div>
-		          <div class="settings-pane is-active" data-settings-pane="connections">
+		          <div class="settings-pane is-active" data-settings-pane="connections" id="settings-connections">
                 <div class="settings-group-title">Conexiones</div>
 				            <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-setup-open="0" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (autorizacion) y luego Alegra (clave de acceso o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa (ej: Oliva Shoes Colombia).&#10;4) Configura Productos, Pedidos y Contactos segun tu forma de trabajo.&#10;5) Revisa Operacion (sincronizacion automatica y salud).&#10;&#10;Tip: la configuracion guiada es para tienda nueva; si ya hay tienda activa, usa Manual.">
 		            <div class="panel-header">
@@ -2268,7 +2268,7 @@
 
 	        </div>
 
-          <div class="settings-pane" data-settings-pane="stores">
+          <div class="settings-pane" data-settings-pane="stores" id="settings-stores">
           <div class="settings-group provider-group" data-group="store-sync">
             <div class="settings-group-header" data-group-toggle="store-sync">
               <h4 class="group-title">
@@ -2562,6 +2562,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260210p23" type="module"></script>
+    <script src="app.js?v=20260210p24" type="module"></script>
 	  </body>
 	</html>
