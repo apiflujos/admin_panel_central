@@ -1044,11 +1044,12 @@
 		        <section class="section" id="settings">
           <div class="settings-subnav" id="settings-subnav" aria-label="Submenu configuraciones">
           <div class="toolbar is-actions" id="settings-pane-actions">
-            <button class="ghost" type="button" data-settings-tab="connections">Ir a Conexiones</button>
-            <button class="primary" type="button" data-settings-tab="stores">Ir a Tiendas</button>
+            <button class="ghost" type="button" onclick="window.__setSettingsPane && window.__setSettingsPane('connections')">Ir a Conexiones</button>
+            <button class="primary" type="button" onclick="window.__setSettingsPane && window.__setSettingsPane('stores')">Ir a Tiendas</button>
           </div>
             <button class="settings-tab is-active" type="button" data-settings-tab="connections">Conexiones</button>
             <button class="settings-tab" type="button" data-settings-tab="stores">Tiendas</button>
+            <span class="status-pill" id="settings-pane-indicator">Conexiones</span>
           </div>
 		          <div class="settings-pane is-active" data-settings-pane="connections">
                 <div class="settings-group-title">Conexiones</div>
@@ -2561,6 +2562,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260210p21" type="module"></script>
+    <script src="app.js?v=20260210p22" type="module"></script>
 	  </body>
 	</html>

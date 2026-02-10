@@ -254,6 +254,7 @@ const wizardHint = document.getElementById("wizard-hint");
 const setupModePicker = document.getElementById("setup-mode-picker");
 const settingsSubmenu = document.getElementById("settings-submenu");
 const settingsSubnav = document.getElementById("settings-subnav");
+const settingsPaneIndicator = document.getElementById("settings-pane-indicator");
 const copyConfigField = document.getElementById("copy-config-field");
 const copyConfigSelect = document.getElementById("copy-config-select");
 const DEFAULT_WIZARD_HINT = wizardHint ? wizardHint.textContent : "";
@@ -824,6 +825,15 @@ function setSettingsPane(paneKey, options = {}) {
         button.getAttribute("data-settings-pane-link") === next
       );
     });
+  }
+  if (settingsSubnav) {
+    settingsSubnav.querySelectorAll("[data-settings-tab]").forEach((button) => {
+      button.classList.toggle("is-active", button.getAttribute("data-settings-tab") === next);
+    });
+  }
+  if (settingsPaneIndicator) {
+    settingsPaneIndicator.textContent = next === "stores" ? "Tiendas" : "Conexiones";
+    settingsPaneIndicator.classList.toggle("is-ok", next === "stores");
   }
   if (persist) saveSettingsPane(next);
 }
