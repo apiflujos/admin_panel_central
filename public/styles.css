@@ -1939,7 +1939,7 @@ body.force-settings #settings {
 
 .ads-platform-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1953,6 +1953,33 @@ body.force-settings #settings {
 
 .ads-platform .settings-grid.connection-fields {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.panel.ads-platform {
+  border-radius: 12px;
+  padding: 10px;
+  gap: 8px;
+  box-shadow: var(--shadow);
+}
+
+.ads-platform-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ads-platform-header h3 {
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+@media (max-width: 980px) {
+  .ads-platform-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .connection-block.is-compact {
