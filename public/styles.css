@@ -1562,10 +1562,13 @@ button {
 }
 
 .settings-topnav button {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.02em;
   padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .settings-tab {
@@ -1618,7 +1621,7 @@ button {
 }
 
 .settings-group-title {
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -1957,6 +1960,18 @@ body.force-settings #settings {
 
 .connections-group-tiles {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.connections-duo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 980px) {
+  .connections-duo {
+    grid-template-columns: 1fr;
+  }
 }
 
 .ads-platform-grid {
