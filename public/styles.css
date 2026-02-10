@@ -430,8 +430,8 @@ body {
 }
 
 .topbar h1 {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .subtitle {
@@ -662,7 +662,7 @@ button {
 }
 
 .kpi-sub {
-  font-size: 8.4px;
+  font-size: 10px;
   color: var(--muted);
 }
 
@@ -783,12 +783,12 @@ button {
 }
 
 .section-title {
-  font-size: 11px;
+  font-size: 12.5px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted);
   font-weight: 700;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .metrics-charts {
@@ -827,11 +827,11 @@ button {
 
 .panel-subtitle {
   margin: 0 0 8px;
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .kpi-chart .chart-placeholder {
@@ -1249,14 +1249,14 @@ button {
 
 .panel-header h3 {
   margin: 0;
-  font-size: 14.2px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--text);
 }
 
-/* Titulos principales (Productos / Contactos / Pedidos / Facturas): reducir 20%. */
+/* Titulos principales (Productos / Contactos / Pedidos / Facturas). */
 .panel:not(.module) > .panel-header h3 {
-  font-size: 11.4px;
+  font-size: 16px;
 }
 
 .panel-header h3[data-module-toggle] {
@@ -1621,12 +1621,12 @@ button {
 }
 
 .settings-group-title {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 14.5px;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--muted);
-  margin-top: 20px;
+  margin-top: 22px;
 }
 
 .settings-group {
@@ -1669,20 +1669,20 @@ button {
 .settings-group-header h3,
 .settings-group-header h4 {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--text);
 }
 
 .settings-group-header h4 {
-  font-size: 18px;
+  font-size: 20px;
   color: var(--text);
 }
 
 /* Titulos principales (ej: Tiendas, Productos e inventario) */
 .settings-group-header h3[data-store-title],
 .settings-group-header h4.group-title {
-  font-size: 18px;
+  font-size: 20px;
 }
 
 .group-title {
@@ -1705,7 +1705,7 @@ button {
 
 /* Titulos con logos (Shopify ↔ Alegra): reducir jerarquia visual. */
 .settings-group.provider-group .settings-group-header h4.group-title {
-  font-size: 15px;
+  font-size: 17px;
 }
 
 .settings-group.provider-group[data-group="products"] .settings-group-header {
