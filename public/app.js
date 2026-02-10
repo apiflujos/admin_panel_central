@@ -256,6 +256,8 @@ const settingsSubmenu = document.getElementById("settings-submenu");
 const settingsSubnav = document.getElementById("settings-subnav");
 const settingsPaneIndicator = document.getElementById("settings-pane-indicator");
 const storesDebugBar = document.getElementById("stores-debug");
+const settingsPaneConnectionsToggle = document.getElementById("settings-pane-connections");
+const settingsPaneStoresToggle = document.getElementById("settings-pane-stores");
 const copyConfigField = document.getElementById("copy-config-field");
 const copyConfigSelect = document.getElementById("copy-config-select");
 const DEFAULT_WIZARD_HINT = wizardHint ? wizardHint.textContent : "";
@@ -813,12 +815,9 @@ function setSettingsPane(paneKey, options = {}) {
   const { persist = true } = options || {};
   const next = resolveSettingsPaneKey(paneKey);
   const settingsSection = document.getElementById("settings");
-  const settingsPanes = document.querySelector(".settings-panes");
   if (settingsSection && !settingsSection.classList.contains("is-active")) {
     activateNav("settings");
   }
-  const settingsPaneConnectionsToggle = document.getElementById("settings-pane-connections");
-  const settingsPaneStoresToggle = document.getElementById("settings-pane-stores");
   if (settingsPaneConnectionsToggle instanceof HTMLInputElement && settingsPaneStoresToggle instanceof HTMLInputElement) {
     if (next === "stores") {
       settingsPaneStoresToggle.checked = true;
@@ -826,11 +825,10 @@ function setSettingsPane(paneKey, options = {}) {
       settingsPaneConnectionsToggle.checked = true;
     }
   }
-  if (settingsPanes) {
-    settingsPanes.classList.add("is-filtered");
-  }
   document.querySelectorAll("[data-settings-pane]").forEach((pane) => {
-    pane.classList.toggle("is-active", pane.getAttribute("data-settings-pane") === next);
+    const isActive = pane.getAttribute("data-settings-pane") === next;
+    pane.classList.toggle("is-active", isActive);
+    pane.hidden = !isActive;
   });
   if (settingsSubmenu) {
     settingsSubmenu.querySelectorAll("[data-settings-pane-link]").forEach((button) => {
@@ -899,6 +897,16 @@ function initSettingsSubmenu() {
       ensureSettingsVisibility();
     });
   }
+  if (settingsPaneConnectionsToggle instanceof HTMLInputElement) {
+    settingsPaneConnectionsToggle.addEventListener("change", () => {
+      if (settingsPaneConnectionsToggle.checked) setSettingsPane("connections");
+    });
+  }
+  if (settingsPaneStoresToggle instanceof HTMLInputElement) {
+    settingsPaneStoresToggle.addEventListener("change", () => {
+      if (settingsPaneStoresToggle.checked) setSettingsPane("stores");
+    });
+  }
   document.addEventListener("click", (event) => {
     const target = event.target instanceof HTMLElement ? event.target : null;
     if (!target) return;
@@ -945,6 +953,12 @@ function ensureSettingsVisibility() {
   if (!hasActivePane) {
     setSettingsPane("connections", { persist: false });
   }
+  document.querySelectorAll("[data-settings-pane]").forEach((pane) => {
+    if (!(pane instanceof HTMLElement)) return;
+    if (!pane.classList.contains("is-active")) {
+      pane.hidden = true;
+    }
+  });
   updateStoresDebug("ensureSettingsVisibility");
 }
 

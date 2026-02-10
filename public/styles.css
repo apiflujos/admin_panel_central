@@ -1569,22 +1569,10 @@ button {
   box-shadow: 0 8px 16px rgba(15, 23, 42, 0.06);
 }
 
-.settings-pane {
-  display: block;
-}
-
 .settings-pane-toggle {
   position: absolute;
   opacity: 0;
   pointer-events: none;
-}
-
-.settings-panes.is-filtered [data-settings-pane] {
-  display: none;
-}
-
-.settings-panes.is-filtered [data-settings-pane].is-active {
-  display: block;
 }
 
 .settings-tab.is-active {
@@ -1780,10 +1768,6 @@ body.force-settings .section {
 
 body.force-settings #settings {
   display: flex !important;
-}
-
-body.force-settings .settings-panes.is-filtered [data-settings-pane] {
-  display: block !important;
 }
 
 .store-meta {
