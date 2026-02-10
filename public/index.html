@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
-    <link rel="stylesheet" href="styles.css?v=20260210p24" />
+    <link rel="stylesheet" href="styles.css?v=20260210p25" />
   </head>
   <body>
     <div class="app-shell">
@@ -1042,16 +1042,18 @@
 	        </section>
 
 		        <section class="section" id="settings">
+          <input class="settings-pane-toggle" type="radio" name="settings-pane" id="settings-pane-connections" checked />
+          <input class="settings-pane-toggle" type="radio" name="settings-pane" id="settings-pane-stores" />
           <div class="settings-subnav" id="settings-subnav" aria-label="Submenu configuraciones">
-            <a class="settings-tab is-active" href="#settings-connections" data-settings-tab="connections">Conexiones</a>
-            <a class="settings-tab" href="#settings-stores" data-settings-tab="stores">Tiendas</a>
-            <span class="status-pill" id="settings-pane-indicator">Conexiones</span>
+            <label class="settings-tab" data-settings-tab="connections" for="settings-pane-connections">Conexiones</label>
+            <label class="settings-tab" data-settings-tab="stores" for="settings-pane-stores">Tiendas</label>
           </div>
           <div class="toolbar is-actions" id="settings-pane-actions">
-            <a class="ghost" href="#settings-connections" data-settings-tab="connections">Ir a Conexiones</a>
-            <a class="primary" href="#settings-stores" data-settings-tab="stores">Ir a Tiendas</a>
+            <label class="ghost settings-action-btn" data-settings-tab="connections" for="settings-pane-connections">Ir a Conexiones</label>
+            <label class="primary settings-action-btn" data-settings-tab="stores" for="settings-pane-stores">Ir a Tiendas</label>
           </div>
-		          <div class="settings-pane is-active" data-settings-pane="connections" id="settings-connections">
+          <div class="settings-panes">
+		          <div class="settings-pane" data-settings-pane="connections">
                 <div class="settings-group-title">Conexiones</div>
 				            <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-setup-open="0" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (autorizacion) y luego Alegra (clave de acceso o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa (ej: Oliva Shoes Colombia).&#10;4) Configura Productos, Pedidos y Contactos segun tu forma de trabajo.&#10;5) Revisa Operacion (sincronizacion automatica y salud).&#10;&#10;Tip: la configuracion guiada es para tienda nueva; si ya hay tienda activa, usa Manual.">
 		            <div class="panel-header">
@@ -1415,6 +1417,100 @@
             </div>
           </div>
 	      </div>
+
+          <div class="settings-pane" data-settings-pane="stores" id="settings-stores">
+          <div class="settings-group provider-group" data-group="store-sync">
+            <div class="settings-group-header" data-group-toggle="store-sync">
+              <h4 class="group-title">
+                <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
+                Sincronizacion tiendas Shopify
+              </h4>
+            </div>
+            <div class="settings-group-body">
+              <div class="panel admin-only module" data-provider="shopify" data-manager="shopify" data-module="store-sync-products" data-help="Copia productos entre tiendas Shopify dentro de tu organizacion. Ideal para clonar catalogos o mover productos de una tienda a otra.">
+                <div class="panel-header">
+                  <h3 data-module-toggle="store-sync-products" data-title-base="Productos Shopify → Shopify">
+                    Productos Shopify → Shopify
+                    <span class="tip" data-tip="Copia productos de una tienda Shopify origen a una tienda Shopify destino. Puedes elegir si copiar descripcion, fotos, etiquetas y tipo/categoria.">?</span>
+                  </h3>
+                  <div class="panel-meta">
+                    <span class="panel-tag tag-bridge">Shopify → Shopify</span>
+                  </div>
+                </div>
+                <div class="module-body">
+                  <div class="mode-sections">
+                    <div class="mode-section">
+                      <div class="mode-head">
+                        <div class="mode-head-left">
+                          <h4>Origen, destino y reglas</h4>
+                        </div>
+                      </div>
+                      <div class="mode-grid">
+                        <div class="mode-field">
+                          <label for="store-sync-source">Tienda origen</label>
+                          <select id="store-sync-source"></select>
+                        </div>
+                        <div class="mode-field">
+                          <label for="store-sync-target">Tienda destino</label>
+                          <select id="store-sync-target"></select>
+                        </div>
+                        <div class="mode-field">
+                          <label for="store-sync-alegra-account">Cuenta Alegra</label>
+                          <select id="store-sync-alegra-account"></select>
+                        </div>
+                        <div class="mode-field">
+                          <label for="store-sync-price-list">Lista de precios Alegra</label>
+                          <select id="store-sync-price-list" data-allow-empty="true" data-empty-label="Seleccionar..."></select>
+                        </div>
+                        <div class="mode-field">
+                          <label for="store-sync-status">Estado destino</label>
+                          <select id="store-sync-status">
+                            <option value="draft" selected>Borrador</option>
+                            <option value="active">Activo</option>
+                          </select>
+                        </div>
+                        <div class="mode-field">
+                          <label for="store-sync-price-fallback">Si no hay precio en lista</label>
+                          <select id="store-sync-price-fallback">
+                            <option value="shopify" selected>Tomar precio original</option>
+                            <option value="none">No poner precio</option>
+                            <option value="skip">No sincronizar</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="mode-toggle-grid" aria-label="Opciones de copia">
+                        <div class="mode-toggle">
+                          <label for="store-sync-only-active">Solo activos en origen <span class="tip" data-tip="Si está ON, solo copia productos activos de la tienda origen.">?</span></label>
+                          <input type="checkbox" id="store-sync-only-active" class="toggle" checked />
+                        </div>
+                        <div class="mode-toggle">
+                          <label for="store-sync-include-descriptions">Copiar descripciones <span class="tip" data-tip="Incluye la descripción HTML del producto.">?</span></label>
+                          <input type="checkbox" id="store-sync-include-descriptions" class="toggle" checked />
+                        </div>
+                        <div class="mode-toggle">
+                          <label for="store-sync-include-images">Copiar fotos <span class="tip" data-tip="Copia las fotos principales del producto (hasta 15 por producto).">?</span></label>
+                          <input type="checkbox" id="store-sync-include-images" class="toggle" checked />
+                        </div>
+                        <div class="mode-toggle">
+                          <label for="store-sync-include-product-type">Copiar tipo/categoría <span class="tip" data-tip="Copia el tipo de producto (categoría interna).">?</span></label>
+                          <input type="checkbox" id="store-sync-include-product-type" class="toggle" checked />
+                        </div>
+                        <div class="mode-toggle">
+                          <label for="store-sync-include-tags">Copiar etiquetas <span class="tip" data-tip="Copia las etiquetas (tags) del producto.">?</span></label>
+                          <input type="checkbox" id="store-sync-include-tags" class="toggle" checked />
+                        </div>
+                      </div>
+                      <div class="mode-actions">
+                        <button class="primary" id="store-sync-run" type="button">Sincronizar productos</button>
+                        <button class="ghost" id="store-sync-clear" type="button">Limpiar</button>
+                        <span class="kpi-sub" id="store-sync-status-label">Sin datos</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
 				          <div class="panel admin-only" id="stores-switcher-panel" data-help="Tiendas conectadas: elige la tienda activa. Todo lo de abajo (productos, pedidos, contactos, etc.) se guarda por tienda activa.">
 				            <div class="panel-header">
@@ -2268,104 +2364,6 @@
 
 	        </div>
 
-          <div class="settings-pane" data-settings-pane="stores" id="settings-stores">
-          <div class="settings-group provider-group" data-group="store-sync">
-            <div class="settings-group-header" data-group-toggle="store-sync">
-              <h4 class="group-title">
-                <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
-                Sincronizacion tiendas Shopify
-              </h4>
-            </div>
-            <div class="settings-group-body">
-              <div class="panel admin-only module" data-provider="shopify" data-manager="shopify" data-module="store-sync-products" data-help="Copia productos entre tiendas Shopify dentro de tu organizacion. Ideal para clonar catalogos o mover productos de una tienda a otra.">
-                <div class="panel-header">
-                  <h3 data-module-toggle="store-sync-products" data-title-base="Productos Shopify → Shopify">
-                    Productos Shopify → Shopify
-                    <span class="tip" data-tip="Copia productos de una tienda Shopify origen a una tienda Shopify destino. Puedes elegir si copiar descripcion, fotos, etiquetas y tipo/categoria.">?</span>
-                  </h3>
-                  <div class="panel-meta">
-                    <span class="panel-tag tag-bridge">Shopify → Shopify</span>
-                  </div>
-                </div>
-                <div class="module-body">
-                  <div class="mode-sections">
-                    <div class="mode-section">
-                      <div class="mode-head">
-                        <div class="mode-head-left">
-                          <h4>Origen, destino y reglas</h4>
-                        </div>
-                      </div>
-                      <div class="mode-grid">
-                        <div class="mode-field">
-                          <label for="store-sync-source">Tienda origen</label>
-                          <select id="store-sync-source"></select>
-                        </div>
-                        <div class="mode-field">
-                          <label for="store-sync-target">Tienda destino</label>
-                          <select id="store-sync-target"></select>
-                        </div>
-                        <div class="mode-field">
-                          <label for="store-sync-alegra-account">Cuenta Alegra</label>
-                          <select id="store-sync-alegra-account"></select>
-                        </div>
-                        <div class="mode-field">
-                          <label for="store-sync-price-list">Lista de precios Alegra</label>
-                          <select id="store-sync-price-list" data-allow-empty="true" data-empty-label="Seleccionar..."></select>
-                        </div>
-                        <div class="mode-field">
-                          <label for="store-sync-status">Estado destino</label>
-                          <select id="store-sync-status">
-                            <option value="draft" selected>Borrador</option>
-                            <option value="active">Activo</option>
-                          </select>
-                        </div>
-                        <div class="mode-field">
-                          <label for="store-sync-price-fallback">Si no hay precio en lista</label>
-                          <select id="store-sync-price-fallback">
-                            <option value="shopify" selected>Tomar precio original</option>
-                            <option value="none">No poner precio</option>
-                            <option value="skip">No sincronizar</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div class="mode-toggle-grid" aria-label="Opciones de copia">
-                        <div class="mode-toggle">
-                          <label for="store-sync-only-active">Solo activos en origen <span class="tip" data-tip="Si está ON, solo copia productos activos de la tienda origen.">?</span></label>
-                          <input type="checkbox" id="store-sync-only-active" class="toggle" checked />
-                        </div>
-                        <div class="mode-toggle">
-                          <label for="store-sync-include-descriptions">Copiar descripciones <span class="tip" data-tip="Incluye la descripción HTML del producto.">?</span></label>
-                          <input type="checkbox" id="store-sync-include-descriptions" class="toggle" checked />
-                        </div>
-                        <div class="mode-toggle">
-                          <label for="store-sync-include-images">Copiar fotos <span class="tip" data-tip="Copia las fotos principales del producto (hasta 15 por producto).">?</span></label>
-                          <input type="checkbox" id="store-sync-include-images" class="toggle" checked />
-                        </div>
-                        <div class="mode-toggle">
-                          <label for="store-sync-include-product-type">Copiar tipo/categoría <span class="tip" data-tip="Copia el tipo de producto (categoría interna).">?</span></label>
-                          <input type="checkbox" id="store-sync-include-product-type" class="toggle" checked />
-                        </div>
-                        <div class="mode-toggle">
-                          <label for="store-sync-include-tags">Copiar etiquetas <span class="tip" data-tip="Copia las etiquetas (tags) del producto.">?</span></label>
-                          <input type="checkbox" id="store-sync-include-tags" class="toggle" checked />
-                        </div>
-                      </div>
-                      <div class="mode-actions">
-                        <button class="primary" id="store-sync-run" type="button">Sincronizar productos</button>
-                        <button class="ghost" id="store-sync-clear" type="button">Limpiar</button>
-                        <span class="kpi-sub" id="store-sync-status-label">Sin datos</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-
-          <div class="settings-group-title">Sincronizacion entre tiendas</div>
-
-				          <div class="settings-group-title">Tiendas</div>
           </div>
 	        </section>
       </main>
@@ -2562,6 +2560,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260210p24" type="module"></script>
+    <script src="app.js?v=20260210p25" type="module"></script>
 	  </body>
 	</html>

@@ -1573,27 +1573,42 @@ button {
   display: none;
 }
 
+.settings-pane-toggle {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.settings-panes [data-settings-pane] {
+  display: none;
+}
+
+#settings-pane-connections:checked ~ .settings-panes [data-settings-pane="connections"] {
+  display: block;
+}
+
+#settings-pane-stores:checked ~ .settings-panes [data-settings-pane="stores"] {
+  display: block;
+}
+
 .settings-pane.is-active {
   display: block;
 }
 
-#settings-connections:target,
-#settings-stores:target {
-  display: block !important;
+#settings-pane-connections:checked ~ .settings-subnav label[for="settings-pane-connections"],
+#settings-pane-stores:checked ~ .settings-subnav label[for="settings-pane-stores"] {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.12);
+  color: var(--text);
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.06);
 }
 
 .settings-subnav .settings-tab,
-#settings-pane-actions .ghost,
-#settings-pane-actions .primary {
+#settings-pane-actions .settings-action-btn {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-/* Fallback: ensure settings panes are visible even if JS fails to toggle. */
-#settings.is-active .settings-pane {
-  display: block;
 }
 
 @media (max-width: 720px) {

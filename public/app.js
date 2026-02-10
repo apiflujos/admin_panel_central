@@ -815,6 +815,15 @@ function setSettingsPane(paneKey, options = {}) {
   if (settingsSection && !settingsSection.classList.contains("is-active")) {
     activateNav("settings");
   }
+  const settingsPaneConnectionsToggle = document.getElementById("settings-pane-connections");
+  const settingsPaneStoresToggle = document.getElementById("settings-pane-stores");
+  if (settingsPaneConnectionsToggle instanceof HTMLInputElement && settingsPaneStoresToggle instanceof HTMLInputElement) {
+    if (next === "stores") {
+      settingsPaneStoresToggle.checked = true;
+    } else {
+      settingsPaneConnectionsToggle.checked = true;
+    }
+  }
   document.querySelectorAll("[data-settings-pane]").forEach((pane) => {
     pane.classList.toggle("is-active", pane.getAttribute("data-settings-pane") === next);
   });
