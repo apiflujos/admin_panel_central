@@ -288,7 +288,7 @@ const metaAdsAppId = document.getElementById("meta-ads-app-id");
 const metaAdsAppSecret = document.getElementById("meta-ads-app-secret");
 const tiktokAdsAppId = document.getElementById("tiktok-ads-app-id");
 const tiktokAdsAppSecret = document.getElementById("tiktok-ads-app-secret");
-const adsAppSave = document.getElementById("ads-app-save");
+const adsAppSaveButtons = Array.from(document.querySelectorAll("[data-ads-save]"));
 const aiKey = document.getElementById("ai-key");
 const aiSave = document.getElementById("ai-save");
 const passwordCurrent = document.getElementById("password-current");
@@ -9774,19 +9774,19 @@ if (aiSave) {
   });
 }
 
-if (adsAppSave) {
-  adsAppSave.addEventListener("click", async () => {
-    setButtonLoading(adsAppSave, true, "Guardando...");
+adsAppSaveButtons.forEach((button) => {
+  button.addEventListener("click", async () => {
+    setButtonLoading(button, true, "Guardando...");
     try {
       await saveSettings({ includeAdsApps: true });
       showToast("Configuracion Ads guardada.", "is-ok");
     } catch (error) {
       showToast(error?.message || "No se pudo guardar.", "is-error");
     } finally {
-      setButtonLoading(adsAppSave, false);
+      setButtonLoading(button, false);
     }
   });
-}
+});
 
 if (aiKey) {
   let aiTokenTimer = null;

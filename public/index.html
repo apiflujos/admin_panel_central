@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
-    <link rel="stylesheet" href="styles.css?v=20260210p44" />
+    <link rel="stylesheet" href="styles.css?v=20260210p45" />
   </head>
   <body>
     <div class="app-shell">
@@ -1176,19 +1176,6 @@
                       </div>
                     </div>
                     <div class="connections-group-body">
-                      <div class="connection-block ads-host-block">
-                        <div class="connection-block-header">
-                          <div>
-                            <div class="provider-title">
-                              <h4>Credenciales Ads</h4>
-                            </div>
-                            <p class="kpi-sub">Se guardan con la URL pública actual del app automáticamente.</p>
-                          </div>
-                          <div class="connection-block-actions">
-                            <button class="primary" id="ads-app-save" type="button">Guardar credenciales</button>
-                          </div>
-                        </div>
-                      </div>
                       <div class="ads-platform-grid">
                         <div class="connection-block ads-platform">
                           <div class="connection-block-header">
@@ -1218,6 +1205,7 @@
                             </div>
                           </div>
                           <div class="connection-block-actions">
+                            <button class="ghost" data-ads-save="google" type="button">Guardar credenciales</button>
                             <button class="primary" id="connect-google-ads" type="button">Conectar Google</button>
                           </div>
                         </div>
@@ -1246,6 +1234,7 @@
                             </div>
                           </div>
                           <div class="connection-block-actions">
+                            <button class="ghost" data-ads-save="meta" type="button">Guardar credenciales</button>
                             <button class="primary" id="connect-meta-ads" type="button">Conectar Meta</button>
                           </div>
                         </div>
@@ -1274,6 +1263,7 @@
                             </div>
                           </div>
                           <div class="connection-block-actions">
+                            <button class="ghost" data-ads-save="tiktok" type="button">Guardar credenciales</button>
                             <button class="primary" id="connect-tiktok-ads" type="button">Conectar TikTok</button>
                           </div>
                         </div>
@@ -2530,6 +2520,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260210p44" type="module"></script>
+    <script src="app.js?v=20260210p45" type="module"></script>
 	  </body>
 	</html>
