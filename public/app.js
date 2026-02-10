@@ -874,6 +874,16 @@ function initSettingsSubmenu() {
       ensureSettingsVisibility();
     });
   }
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) return;
+    const button = target.closest("[data-settings-tab]");
+    if (!(button instanceof HTMLElement)) return;
+    const key = button.getAttribute("data-settings-tab") || "";
+    if (key !== "stores" && key !== "connections") return;
+    setSettingsPane(key);
+    ensureSettingsVisibility();
+  });
   if (!settingsSubmenu) {
     syncSettingsPane();
     ensureSettingsVisibility();
