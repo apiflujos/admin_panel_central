@@ -253,6 +253,7 @@ const manualOpen = document.getElementById("manual-open");
 const wizardHint = document.getElementById("wizard-hint");
 const setupModePicker = document.getElementById("setup-mode-picker");
 const settingsSubmenu = document.getElementById("settings-submenu");
+const settingsSubnav = document.getElementById("settings-subnav");
 const copyConfigField = document.getElementById("copy-config-field");
 const copyConfigSelect = document.getElementById("copy-config-select");
 const DEFAULT_WIZARD_HINT = wizardHint ? wizardHint.textContent : "";
@@ -786,13 +787,13 @@ function activateNav(target) {
 }
 
 function resolveSettingsPaneKey(value) {
-  return value === "stores" ? "stores" : (value === "integrations" ? "integrations" : "connections");
+  return value === "stores" ? "stores" : "connections";
 }
 
 function getStoredSettingsPane() {
   try {
     const stored = localStorage.getItem(SETTINGS_PANE_KEY) || "";
-    return stored === "stores" || stored === "connections" || stored === "integrations" ? stored : "";
+    return stored === "stores" || stored === "connections" ? stored : "";
   } catch {
     return "";
   }
@@ -850,7 +851,7 @@ function getSettingsPaneForElement(element) {
   const pane = element.closest("[data-settings-pane]");
   if (!(pane instanceof HTMLElement)) return "";
   const key = pane.getAttribute("data-settings-pane") || "";
-  return key === "stores" || key === "connections" || key === "integrations" ? key : "";
+  return key === "stores" || key === "connections" ? key : "";
 }
 
 function ensureSettingsPaneForElement(element, options = {}) {
@@ -861,6 +862,18 @@ function ensureSettingsPaneForElement(element, options = {}) {
 }
 
 function initSettingsSubmenu() {
+  if (settingsSubnav) {
+    settingsSubnav.addEventListener("click", (event) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (!target) return;
+      const button = target.closest("[data-settings-tab]");
+      if (!(button instanceof HTMLElement)) return;
+      const key = button.getAttribute("data-settings-tab") || "";
+      if (key !== "stores" && key !== "connections") return;
+      setSettingsPane(key);
+      ensureSettingsVisibility();
+    });
+  }
   if (!settingsSubmenu) {
     syncSettingsPane();
     ensureSettingsVisibility();
