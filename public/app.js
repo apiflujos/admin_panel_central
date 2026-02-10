@@ -828,7 +828,6 @@ function setSettingsPane(paneKey, options = {}) {
   document.querySelectorAll("[data-settings-pane]").forEach((pane) => {
     const isActive = pane.getAttribute("data-settings-pane") === next;
     pane.classList.toggle("is-active", isActive);
-    pane.hidden = !isActive;
   });
   if (settingsSubmenu) {
     settingsSubmenu.querySelectorAll("[data-settings-pane-link]").forEach((button) => {
@@ -953,12 +952,6 @@ function ensureSettingsVisibility() {
   if (!hasActivePane) {
     setSettingsPane("connections", { persist: false });
   }
-  document.querySelectorAll("[data-settings-pane]").forEach((pane) => {
-    if (!(pane instanceof HTMLElement)) return;
-    if (!pane.classList.contains("is-active")) {
-      pane.hidden = true;
-    }
-  });
   updateStoresDebug("ensureSettingsVisibility");
 }
 
