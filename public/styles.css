@@ -3247,6 +3247,20 @@ textarea::placeholder {
   gap: 8px;
 }
 
+.settings-grid .field select,
+.settings-grid .field input:not([type="checkbox"]),
+.settings-grid .field textarea {
+  width: 100%;
+  max-width: 360px;
+  justify-self: start;
+}
+
+.settings-grid .field.span-2 select,
+.settings-grid .field.span-2 input:not([type="checkbox"]),
+.settings-grid .field.span-2 textarea {
+  max-width: 520px;
+}
+
 .settings-grid.single-column {
   grid-template-columns: 1fr;
 }
@@ -3408,7 +3422,7 @@ textarea::placeholder {
   margin-top: 10px;
   display: grid;
   /* UX: en desktop deben caber 4 opciones en una sola fila. */
-  grid-template-columns: repeat(auto-fit, minmax(140px, 190px));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 220px));
   gap: 6px;
   justify-content: flex-start;
   align-items: stretch;
@@ -3424,9 +3438,10 @@ textarea::placeholder {
   align-content: start;
   min-height: 58px;
   width: 100%;
-  max-width: none;
+  max-width: 260px;
   text-align: left;
   justify-items: stretch;
+  justify-self: start;
 }
 
 .mode-toggle label {
