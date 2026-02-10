@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
-    <link rel="stylesheet" href="styles.css?v=20260210p15" />
+    <link rel="stylesheet" href="styles.css?v=20260210p16" />
   </head>
   <body>
     <div class="app-shell">
@@ -1042,7 +1042,11 @@
 	        </section>
 
 		        <section class="section" id="settings">
-		          <div class="settings-pane is-active" id="settings-pane">
+          <div class="settings-subnav" id="settings-subnav" aria-label="Submenu configuraciones">
+            <button class="settings-tab is-active" type="button" data-settings-tab="connections">Conexiones</button>
+            <button class="settings-tab" type="button" data-settings-tab="stores">Tiendas</button>
+          </div>
+		          <div class="settings-pane is-active" data-settings-pane="connections">
                 <div class="settings-group-title">Conexiones</div>
 				            <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-setup-open="0" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (autorizacion) y luego Alegra (clave de acceso o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa (ej: Oliva Shoes Colombia).&#10;4) Configura Productos, Pedidos y Contactos segun tu forma de trabajo.&#10;5) Revisa Operacion (sincronizacion automatica y salud).&#10;&#10;Tip: la configuracion guiada es para tienda nueva; si ya hay tienda activa, usa Manual.">
 		            <div class="panel-header">
@@ -1406,9 +1410,6 @@
             </div>
           </div>
 	      </div>
-
-				        <div class="settings-section">
-          <div class="settings-group-title">Sincronizacion entre tiendas</div>
           <div class="settings-group provider-group" data-group="store-sync">
             <div class="settings-group-header" data-group-toggle="store-sync">
               <h4 class="group-title">
@@ -1502,7 +1503,6 @@
             </div>
           </div>
 
-				          <div class="settings-group-title">Tiendas</div>
 				          <div class="panel admin-only" id="stores-switcher-panel" data-help="Tiendas conectadas: elige la tienda activa. Todo lo de abajo (productos, pedidos, contactos, etc.) se guarda por tienda activa.">
 				            <div class="panel-header">
 				              <h3>
@@ -2355,6 +2355,11 @@
 
 	        </div>
 
+          <div class="settings-pane" data-settings-pane="stores">
+          <div class="settings-group-title">Sincronizacion entre tiendas</div>
+
+				          <div class="settings-group-title">Tiendas</div>
+          </div>
 	        </section>
       </main>
     </div>
@@ -2550,6 +2555,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260210p15" type="module"></script>
+    <script src="app.js?v=20260210p16" type="module"></script>
 	  </body>
 	</html>
