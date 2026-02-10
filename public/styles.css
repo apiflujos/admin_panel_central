@@ -1221,6 +1221,10 @@ button {
   background: var(--provider-accent, var(--stroke));
 }
 
+#settings .panel[data-provider]::before {
+  display: none;
+}
+
 .panel[data-provider="shopify"] {
   --provider-accent: #0f172a;
 }
