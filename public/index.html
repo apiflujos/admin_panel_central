@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiFlujos - Alegra Integraciones</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
-    <link rel="stylesheet" href="styles.css?v=20260210p34" />
+    <link rel="stylesheet" href="styles.css?v=20260210p35" />
   </head>
   <body>
     <div class="app-shell">
@@ -1042,8 +1042,14 @@
 	        </section>
 
         <section class="section" id="settings">
+          <div class="settings-topnav" id="settings-topnav">
+            <button class="ghost" data-scroll-to="settings-connections">Conexiones</button>
+            <button class="ghost" data-scroll-to="settings-marketing">Marketing</button>
+            <button class="ghost" data-scroll-to="settings-ai">IA & Tokens</button>
+            <button class="ghost" data-scroll-to="settings-stores">Tiendas</button>
+          </div>
           <div class="settings-pane" data-settings-pane="connections">
-                <div class="settings-group-title">Conexiones</div>
+                <div class="settings-group-title" id="settings-connections">Conexiones</div>
 				            <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-setup-open="0" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (autorizacion) y luego Alegra (clave de acceso o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa (ej: Oliva Shoes Colombia).&#10;4) Configura Productos, Pedidos y Contactos segun tu forma de trabajo.&#10;5) Revisa Operacion (sincronizacion automatica y salud).&#10;&#10;Tip: la configuracion guiada es para tienda nueva; si ya hay tienda activa, usa Manual.">
 		            <div class="panel-header">
 		              <h3 data-module-toggle="connections" data-title-base="Nueva conexion">Nueva conexion</h3>
@@ -1168,7 +1174,7 @@
 	          </div>
 	        </div>
 
-          <div class="settings-group-title">Marketing</div>
+          <div class="settings-group-title" id="settings-marketing">Marketing</div>
                   <div class="connections-group" data-group="marketing-ads">
                     <div class="connections-group-header">
                       <div class="group-title">
@@ -1354,7 +1360,7 @@
                       </div>
                     </div>
 
-                  <div class="settings-group-title">IA &amp; Tokens</div>
+                  <div class="settings-group-title" id="settings-ai">IA &amp; Tokens</div>
                   <div class="connections-group" data-group="ai">
                     <div class="connections-group-header">
                       <div class="group-title">
@@ -1395,7 +1401,7 @@
               </div>
             </div>
           </div>
-          <div class="settings-group-title">Tiendas</div>
+          <div class="settings-group-title" id="settings-stores">Tiendas</div>
           <div class="settings-group provider-group" data-group="store-sync">
             <div class="settings-group-header" data-group-toggle="store-sync">
               <h4 class="group-title">
@@ -2535,6 +2541,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260210p34" type="module"></script>
+    <script src="app.js?v=20260210p35" type="module"></script>
 	  </body>
 	</html>

@@ -1554,6 +1554,20 @@ button {
   margin: 8px 0 10px;
 }
 
+.settings-topnav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.settings-topnav button {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 8px 12px;
+}
+
 .settings-tab {
   border: 1px solid transparent;
   background: transparent;

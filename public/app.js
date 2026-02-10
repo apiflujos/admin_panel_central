@@ -908,6 +908,21 @@ function initSettingsSubmenu() {
       if (settingsPaneStoresToggle.checked) setSettingsPane("stores");
     });
   }
+  const settingsTopnav = document.getElementById("settings-topnav");
+  if (settingsTopnav) {
+    settingsTopnav.addEventListener("click", (event) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (!target) return;
+      const button = target.closest("[data-scroll-to]");
+      if (!(button instanceof HTMLElement)) return;
+      const id = button.getAttribute("data-scroll-to") || "";
+      if (!id) return;
+      const el = document.getElementById(id);
+      if (el && el.scrollIntoView) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }
   document.addEventListener("click", (event) => {
     const target = event.target instanceof HTMLElement ? event.target : null;
     if (!target) return;
