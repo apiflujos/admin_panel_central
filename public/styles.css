@@ -1570,7 +1570,7 @@ button {
 }
 
 .settings-pane {
-  display: none;
+  display: block;
 }
 
 .settings-pane-toggle {
@@ -1579,24 +1579,15 @@ button {
   pointer-events: none;
 }
 
-.settings-panes [data-settings-pane] {
+.settings-panes.is-filtered [data-settings-pane] {
   display: none;
 }
 
-#settings-pane-connections:checked ~ .settings-panes [data-settings-pane="connections"] {
+.settings-panes.is-filtered [data-settings-pane].is-active {
   display: block;
 }
 
-#settings-pane-stores:checked ~ .settings-panes [data-settings-pane="stores"] {
-  display: block;
-}
-
-.settings-pane.is-active {
-  display: block;
-}
-
-#settings-pane-connections:checked ~ .settings-subnav label[for="settings-pane-connections"],
-#settings-pane-stores:checked ~ .settings-subnav label[for="settings-pane-stores"] {
+.settings-tab.is-active {
   background: rgba(15, 23, 42, 0.04);
   border-color: rgba(15, 23, 42, 0.12);
   color: var(--text);

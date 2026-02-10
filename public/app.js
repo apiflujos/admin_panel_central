@@ -812,6 +812,7 @@ function setSettingsPane(paneKey, options = {}) {
   const { persist = true } = options || {};
   const next = resolveSettingsPaneKey(paneKey);
   const settingsSection = document.getElementById("settings");
+  const settingsPanes = document.querySelector(".settings-panes");
   if (settingsSection && !settingsSection.classList.contains("is-active")) {
     activateNav("settings");
   }
@@ -823,6 +824,9 @@ function setSettingsPane(paneKey, options = {}) {
     } else {
       settingsPaneConnectionsToggle.checked = true;
     }
+  }
+  if (settingsPanes) {
+    settingsPanes.classList.add("is-filtered");
   }
   document.querySelectorAll("[data-settings-pane]").forEach((pane) => {
     pane.classList.toggle("is-active", pane.getAttribute("data-settings-pane") === next);
