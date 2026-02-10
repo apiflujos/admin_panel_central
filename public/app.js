@@ -894,6 +894,9 @@ function initSettingsSubmenu() {
     setSettingsPane(key);
     ensureSettingsVisibility();
   });
+  if (typeof window !== "undefined") {
+    window.__setSettingsPane = (key) => setSettingsPane(key);
+  }
   if (!settingsSubmenu) {
     syncSettingsPane();
     ensureSettingsVisibility();
