@@ -3480,7 +3480,16 @@ function reorderSettingsPanels() {
 }
 
 function openDefaultGroups() {
-  const openKeys = new Set();
+  const openKeys = new Set([
+    "marketing",
+    "store-sync",
+    "store",
+    "products",
+    "orders",
+    "contacts",
+    "operations",
+    "admin",
+  ]);
   document.querySelectorAll("[data-group]").forEach((panel) => {
     const key = panel.getAttribute("data-group") || "";
     setGroupCollapsed(panel, !openKeys.has(key));
