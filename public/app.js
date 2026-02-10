@@ -173,9 +173,6 @@ const saPlanLimitsBody = document.querySelector("#sa-plan-limits-table tbody");
 const marketingStoreSelect = document.getElementById("marketing-store-select");
 const marketingFrom = document.getElementById("marketing-from");
 const marketingTo = document.getElementById("marketing-to");
-const marketingRefresh = document.getElementById("marketing-refresh");
-const marketingSync = document.getElementById("marketing-sync");
-const marketingRecompute = document.getElementById("marketing-recompute");
 const marketingStatus = document.getElementById("marketing-status");
 const mkKpiRevenue = document.getElementById("mk-kpi-revenue");
 const mkKpiSpend = document.getElementById("mk-kpi-spend");
@@ -8263,7 +8260,23 @@ function ensureProductsLoaded() {
 }
 
 let marketingLoading = false;
+let marketingReloadTimer = null;
 let superAdminLoaded = false;
+
+function isMarketingActive() {
+  const marketingSection = document.getElementById("marketing");
+  return marketingSection instanceof HTMLElement && marketingSection.classList.contains("is-active");
+}
+
+function scheduleMarketingLoad() {
+  if (!isMarketingActive()) return;
+  if (marketingReloadTimer) {
+    clearTimeout(marketingReloadTimer);
+  }
+  marketingReloadTimer = setTimeout(() => {
+    loadMarketing().catch(() => null);
+  }, 300);
+}
 
 function utcMonthKey(date = new Date()) {
   return date.toISOString().slice(0, 7);
@@ -8747,7 +8760,7 @@ async function loadMarketing() {
     renderMarketingDashboard(data);
     if (isMarketingDashboardEmpty(data)) {
       setMarketingStatus(
-        "Sin datos en este rango. Usa “Sincronizar pedidos” y luego “Recalcular métricas”. Para UTM/Sessions/Funnel: instala el Pixel y configura webhooks.",
+        "Sin datos en este rango. Verifica Pixel + Webhooks en Configuración → Marketing y sincronización de pedidos en Operación.",
         "is-warn"
       );
     } else {
@@ -11219,70 +11232,6 @@ if (saPlanLimitsBody instanceof HTMLElement) {
     }
   });
 }
-if (marketingRefresh) {
-  marketingRefresh.addEventListener("click", () => {
-    loadMarketing().catch(() => null);
-  });
-}
-if (marketingSync) {
-  marketingSync.addEventListener("click", async () => {
-    try {
-      ensureMarketingDefaults();
-      const { shopDomain, from, to } = getMarketingQuery();
-      if (!shopDomain) {
-        showToast("Selecciona una tienda primero.", "is-warn");
-        return;
-      }
-      setButtonLoading(marketingSync, true, "Sincronizando...");
-      await fetchJson("/api/marketing/sync/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shopDomain, sinceDate: from, maxOrders: 1500 }),
-      });
-      try {
-        if (from && to) {
-          await fetchJson("/api/marketing/metrics/recompute", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ shopDomain, from, to }),
-          });
-        }
-      } catch {
-        // If recompute fails, still allow dashboard load (user can click recompute manually).
-      }
-      showToast("Sync de marketing completado.", "is-ok");
-      loadMarketing().catch(() => null);
-    } catch (error) {
-      showToast(error?.message || "No se pudo sincronizar marketing.", "is-error");
-    } finally {
-      setButtonLoading(marketingSync, false);
-    }
-  });
-}
-if (marketingRecompute) {
-  marketingRecompute.addEventListener("click", async () => {
-    try {
-      ensureMarketingDefaults();
-      const { shopDomain, from, to } = getMarketingQuery();
-      if (!shopDomain) {
-        showToast("Selecciona una tienda primero.", "is-warn");
-        return;
-      }
-      setButtonLoading(marketingRecompute, true, "Recalculando...");
-      await fetchJson("/api/marketing/metrics/recompute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shopDomain, from, to }),
-      });
-      showToast("Métricas recomputadas.", "is-ok");
-      loadMarketing().catch(() => null);
-    } catch (error) {
-      showToast(error?.message || "No se pudieron recomputar las métricas.", "is-error");
-    } finally {
-      setButtonLoading(marketingRecompute, false);
-    }
-  });
-}
 if (assistantInput) {
   assistantInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.ctrlKey) {
@@ -11387,6 +11336,7 @@ if (alegraAccountSelect) {
 		      loadProducts().catch(() => null);
 	      loadOperations().catch(() => null);
 	      loadContacts().catch(() => null);
+	      scheduleMarketingLoad();
 		    });
 		  }
 
@@ -11416,6 +11366,16 @@ if (alegraAccountSelect) {
   bindStoreContextSelect(productsStoreSelect);
   bindStoreContextSelect(contactsStoreSelect);
   bindStoreContextSelect(marketingStoreSelect);
+
+  if (marketingStoreSelect) {
+    marketingStoreSelect.addEventListener("change", scheduleMarketingLoad);
+  }
+  if (marketingFrom) {
+    marketingFrom.addEventListener("change", scheduleMarketingLoad);
+  }
+  if (marketingTo) {
+    marketingTo.addEventListener("change", scheduleMarketingLoad);
+  }
 
 	if (connectShopify) {
 	  connectShopify.addEventListener("click", async () => {
@@ -12833,16 +12793,16 @@ async function init() {
   }
   cleanupLegacyConnectionsUi();
   initGroupControls();
-		  initToggleFields();
-		  initToggleDependencies();
-		  initDependencyDisabledToasts();
-		  setupMultiSelectDropdowns();
-		  updateInvoicesBackfillUi();
-		  updateAlegraOrdersAutoUi();
-		  initTips();
-		  initSetupModeControls();
-		  initShopifyConnectPicker();
-		  updateWizardStartAvailability();
+  initToggleFields();
+  initToggleDependencies();
+  initDependencyDisabledToasts();
+  setupMultiSelectDropdowns();
+  updateInvoicesBackfillUi();
+  updateAlegraOrdersAutoUi();
+  initTips();
+  initSetupModeControls();
+  initShopifyConnectPicker();
+  updateWizardStartAvailability();
   applyProductSettings();
   await safeLoad(loadCurrentUser());
   await safeLoad(loadCompanyProfile());
@@ -12851,6 +12811,7 @@ async function init() {
   await safeLoad(loadMetrics());
   setOperationsView("orders");
   await safeLoad(loadOperationsView());
+  await safeLoad(loadMarketing());
   await safeLoad(loadConnections());
   await safeLoad(loadSettings());
   await safeLoad(loadResolutions());
