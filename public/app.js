@@ -195,6 +195,7 @@ const mkCfgCreateWebhooks = document.getElementById("mk-cfg-create-webhooks");
 const mkCfgDeleteWebhooks = document.getElementById("mk-cfg-delete-webhooks");
 const mkCfgWebhooksStatus = document.getElementById("mk-cfg-webhooks-status");
 const mkCfgStoreSelect = document.getElementById("mk-cfg-store-select");
+const mkCfgConnect = document.getElementById("mk-cfg-connect");
 const chartAlegra = document.getElementById("chart-alegra");
 const alegraGrowthLabel = document.getElementById("chart-alegra-label");
 const assistantMessages = document.getElementById("assistant-messages");
@@ -5204,6 +5205,31 @@ function getMarketingConfigShopDomain() {
   return normalizeShopDomain(activeStoreDomain || "");
 }
 
+const MARKETING_READY_KEY = "apiflujos-marketing-ready:";
+
+function getMarketingReadyKey(shopDomain) {
+  return `${MARKETING_READY_KEY}${shopDomain || ""}`;
+}
+
+function setMarketingReady(shopDomain, ready) {
+  if (!shopDomain) return;
+  try {
+    localStorage.setItem(getMarketingReadyKey(shopDomain), ready ? "1" : "0");
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function getMarketingReadyState(shopDomain) {
+  if (!shopDomain) return "";
+  try {
+    const stored = localStorage.getItem(getMarketingReadyKey(shopDomain));
+    return stored === "1" ? "ready" : stored === "0" ? "not-ready" : "";
+  } catch {
+    return "";
+  }
+}
+
 function setMarketingConfigStatus(message, className) {
   if (!mkCfgStatus) return;
   mkCfgStatus.textContent = message || "Sin datos";
@@ -5227,11 +5253,13 @@ async function loadMarketingConfig() {
   try {
     setMarketingConfigStatus("Cargando...", "");
     const data = await fetchJson(`/api/marketing/pixel/config?shopDomain=${encodeURIComponent(shopDomain)}`);
-    if (mkCfgPixelKey) mkCfgPixelKey.value = data.pixelKey || "";
+    const pixelKey = data.pixelKey || "";
+    if (mkCfgPixelKey) mkCfgPixelKey.value = pixelKey;
     if (mkCfgScript) mkCfgScript.value = data.pixelScriptTag || data.pixelScriptUrl || "";
     if (mkCfgWebhookUrl) mkCfgWebhookUrl.value = data.webhookUrl || "";
     setMarketingConfigStatus("Listo.", "is-ok");
-    await loadMarketingWebhooksStatus();
+    const webhooksOk = await loadMarketingWebhooksStatus();
+    setMarketingReady(shopDomain, Boolean(pixelKey) && webhooksOk);
   } catch (error) {
     setMarketingConfigStatus(error?.message || "No se pudo cargar.", "is-error");
   }
@@ -5241,18 +5269,21 @@ async function loadMarketingWebhooksStatus() {
   const shopDomain = getMarketingConfigShopDomain();
   if (!shopDomain) {
     setMarketingWebhooksStatus("Selecciona una tienda.", "is-warn");
-    return;
+    return false;
   }
   try {
     const data = await fetchJson(`/api/marketing/webhooks/status?shopDomain=${encodeURIComponent(shopDomain)}`);
     if (data?.ok) {
       setMarketingWebhooksStatus(`OK · ${data.connected}/${data.total} conectados`, "is-ok");
+      return true;
     } else {
       const missing = Array.isArray(data?.missing) ? data.missing.length : 0;
       setMarketingWebhooksStatus(`Faltan ${missing} webhooks`, "is-warn");
+      return false;
     }
   } catch (error) {
     setMarketingWebhooksStatus(error?.message || "No se pudo consultar.", "is-error");
+    return false;
   }
 }
 
@@ -5272,6 +5303,8 @@ async function rotateMarketingPixelKey() {
     if (mkCfgPixelKey) mkCfgPixelKey.value = result.pixelKey || "";
     if (mkCfgScript) mkCfgScript.value = result.pixelScriptTag || result.pixelScriptUrl || "";
     if (mkCfgWebhookUrl) mkCfgWebhookUrl.value = result.webhookUrl || "";
+    const webhooksOk = await loadMarketingWebhooksStatus();
+    setMarketingReady(shopDomain, Boolean(result.pixelKey) && webhooksOk);
     setMarketingConfigStatus("Key rotada.", "is-ok");
   } catch (error) {
     setMarketingConfigStatus(error?.message || "No se pudo rotar.", "is-error");
@@ -5317,7 +5350,9 @@ async function createMarketingWebhooks() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ shopDomain }),
     });
-    await loadMarketingWebhooksStatus();
+    const webhooksOk = await loadMarketingWebhooksStatus();
+    const pixelKey = mkCfgPixelKey ? String(mkCfgPixelKey.value || "").trim() : "";
+    setMarketingReady(shopDomain, Boolean(pixelKey) && webhooksOk);
   } catch (error) {
     setMarketingWebhooksStatus(error?.message || "No se pudo crear.", "is-error");
   }
@@ -5339,6 +5374,26 @@ async function deleteMarketingWebhooks() {
     await loadMarketingWebhooksStatus();
   } catch (error) {
     setMarketingWebhooksStatus(error?.message || "No se pudo eliminar.", "is-error");
+  }
+}
+
+async function connectMarketingSetup() {
+  const shopDomain = getMarketingConfigShopDomain();
+  if (!shopDomain) {
+    setMarketingConfigStatus("Selecciona una tienda.", "is-warn");
+    return;
+  }
+  try {
+    setMarketingConfigStatus("Conectando marketing...", "");
+    const currentKey = mkCfgPixelKey ? String(mkCfgPixelKey.value || "").trim() : "";
+    if (!currentKey) {
+      await rotateMarketingPixelKey();
+    }
+    await createMarketingWebhooks();
+    await loadMarketingConfig();
+    setMarketingConfigStatus("Marketing conectado.", "is-ok");
+  } catch (error) {
+    setMarketingConfigStatus(error?.message || "No se pudo conectar marketing.", "is-error");
   }
 }
 function renderStoreSyncSelects(stores) {
@@ -6186,9 +6241,13 @@ function renderConnections(settings) {
       const shopifyConnected = Boolean(store.shopifyConnected ?? store.status === "Conectado") && !shopifyNeedsReconnect;
       const alegraConnected = Boolean(store.alegraConnected ?? store.alegraAccountId) && !alegraNeedsReconnect;
       const storeLabel = store.storeName || store.shopDomain || "Tienda";
+      const marketingState = getMarketingReadyState(domain);
+      const marketingReady = marketingState === "ready";
+      const marketingKnown = marketingState !== "";
       const platforms = [
         { key: "shopify", label: "Shopify", ok: shopifyConnected, fail: shopifyNeedsReconnect },
         { key: "alegra", label: "Alegra", ok: alegraConnected, fail: alegraNeedsReconnect },
+        { key: "marketing", label: "Marketing", ok: marketingReady, fail: marketingKnown && !marketingReady },
         { key: "google", label: "Google Ads", ok: Boolean(googleAds.connected), fail: Boolean(googleAds.needsReconnect) },
         { key: "meta", label: "Meta Ads", ok: Boolean(settings?.metaAds?.connected), fail: Boolean(settings?.metaAds?.needsReconnect) },
         { key: "tiktok", label: "TikTok Ads", ok: Boolean(settings?.tiktokAds?.connected), fail: Boolean(settings?.tiktokAds?.needsReconnect) },
@@ -12248,6 +12307,12 @@ if (mkCfgCreateWebhooks) {
 if (mkCfgDeleteWebhooks) {
   mkCfgDeleteWebhooks.addEventListener("click", () => {
     deleteMarketingWebhooks();
+  });
+}
+
+if (mkCfgConnect) {
+  mkCfgConnect.addEventListener("click", () => {
+    connectMarketingSetup();
   });
 }
 
