@@ -196,6 +196,8 @@ const mkCfgDeleteWebhooks = document.getElementById("mk-cfg-delete-webhooks");
 const mkCfgWebhooksStatus = document.getElementById("mk-cfg-webhooks-status");
 const mkCfgStoreSelect = document.getElementById("mk-cfg-store-select");
 const mkCfgConnect = document.getElementById("mk-cfg-connect");
+const mkCfgPixelPill = document.getElementById("mk-cfg-pixel-pill");
+const mkCfgWebhooksPill = document.getElementById("mk-cfg-webhooks-pill");
 const chartAlegra = document.getElementById("chart-alegra");
 const alegraGrowthLabel = document.getElementById("chart-alegra-label");
 const assistantMessages = document.getElementById("assistant-messages");
@@ -5206,6 +5208,7 @@ function getMarketingConfigShopDomain() {
 }
 
 const MARKETING_READY_KEY = "apiflujos-marketing-ready:";
+let marketingAutoConnectInFlight = false;
 
 function getMarketingReadyKey(shopDomain) {
   return `${MARKETING_READY_KEY}${shopDomain || ""}`;
@@ -5227,6 +5230,22 @@ function getMarketingReadyState(shopDomain) {
     return stored === "1" ? "ready" : stored === "0" ? "not-ready" : "";
   } catch {
     return "";
+  }
+}
+
+function setMarketingPill(pill, ok, label) {
+  if (!pill) return;
+  pill.textContent = label;
+  pill.classList.toggle("is-ok", ok);
+  pill.classList.toggle("is-off", !ok);
+}
+
+function updateMarketingUiState({ pixelOk, webhooksOk }) {
+  setMarketingPill(mkCfgPixelPill, pixelOk, pixelOk ? "Pixel: OK" : "Pixel: Pendiente");
+  setMarketingPill(mkCfgWebhooksPill, webhooksOk, webhooksOk ? "Webhooks: OK" : "Webhooks: Pendiente");
+  if (mkCfgConnect) {
+    mkCfgConnect.textContent = pixelOk && webhooksOk ? "Marketing conectado" : "Conectar marketing";
+    mkCfgConnect.disabled = pixelOk && webhooksOk;
   }
 }
 
@@ -5259,7 +5278,14 @@ async function loadMarketingConfig() {
     if (mkCfgWebhookUrl) mkCfgWebhookUrl.value = data.webhookUrl || "";
     setMarketingConfigStatus("Listo.", "is-ok");
     const webhooksOk = await loadMarketingWebhooksStatus();
-    setMarketingReady(shopDomain, Boolean(pixelKey) && webhooksOk);
+    const pixelOk = Boolean(pixelKey);
+    updateMarketingUiState({ pixelOk, webhooksOk });
+    setMarketingReady(shopDomain, pixelOk && webhooksOk);
+    if (!(pixelOk && webhooksOk) && !marketingAutoConnectInFlight) {
+      marketingAutoConnectInFlight = true;
+      await connectMarketingSetup();
+      marketingAutoConnectInFlight = false;
+    }
   } catch (error) {
     setMarketingConfigStatus(error?.message || "No se pudo cargar.", "is-error");
   }
@@ -5275,14 +5301,17 @@ async function loadMarketingWebhooksStatus() {
     const data = await fetchJson(`/api/marketing/webhooks/status?shopDomain=${encodeURIComponent(shopDomain)}`);
     if (data?.ok) {
       setMarketingWebhooksStatus(`OK · ${data.connected}/${data.total} conectados`, "is-ok");
+      updateMarketingUiState({ pixelOk: true, webhooksOk: true });
       return true;
     } else {
       const missing = Array.isArray(data?.missing) ? data.missing.length : 0;
       setMarketingWebhooksStatus(`Faltan ${missing} webhooks`, "is-warn");
+      updateMarketingUiState({ pixelOk: true, webhooksOk: false });
       return false;
     }
   } catch (error) {
     setMarketingWebhooksStatus(error?.message || "No se pudo consultar.", "is-error");
+    updateMarketingUiState({ pixelOk: true, webhooksOk: false });
     return false;
   }
 }
