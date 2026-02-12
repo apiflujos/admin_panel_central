@@ -9,7 +9,7 @@ export function getRedis() {
     return null;
   }
   redis = new Redis(url, {
-    maxRetriesPerRequest: 2,
+    maxRetriesPerRequest: null,
     enableReadyCheck: true,
     lazyConnect: true,
   });
