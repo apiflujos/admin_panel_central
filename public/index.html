@@ -1107,6 +1107,36 @@
                           </div>
                         </div>
                       </div>
+                      <div class="connection-block">
+                        <div class="connection-block-header">
+                          <div>
+                            <div class="provider-title">
+                              <img class="provider-logo" src="/brands/woocommerce.png?v=20260213a" alt="WooCommerce" />
+                              <h4>WooCommerce</h4>
+                            </div>
+                            <p class="kpi-sub">API Key + Secret para esta tienda</p>
+                          </div>
+                          <div class="connection-block-actions">
+                            <span class="status-pill is-off" id="woocommerce-connection-pill">Pendiente</span>
+                            <button class="primary" id="connect-woocommerce" type="button">Conectar WooCommerce</button>
+                          </div>
+                        </div>
+                        <div class="settings-grid connection-fields">
+                          <div class="field span-2">
+                            <label>Dominio WooCommerce <span class="tip" data-tip="Dominio de la tienda (ej: tienda.com). Se usa para conectar WooCommerce a esta integracion.">?</span></label>
+                            <input type="text" id="woocommerce-domain" placeholder="tu-tienda.com" />
+                            <span class="field-hint">Se usa para crear la conexion con API key/secret.</span>
+                          </div>
+                          <div class="field span-2">
+                            <label>Consumer Key <span class="tip" data-tip="Clave API de WooCommerce (Consumer Key).">?</span></label>
+                            <input type="password" id="woocommerce-key" placeholder="ck_********" autocomplete="new-password" />
+                          </div>
+                          <div class="field span-2">
+                            <label>Consumer Secret <span class="tip" data-tip="Secreto API de WooCommerce (Consumer Secret).">?</span></label>
+                            <input type="password" id="woocommerce-secret" placeholder="cs_********" autocomplete="new-password" />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     </div>
                     <div class="connections-group" data-group="accounting">

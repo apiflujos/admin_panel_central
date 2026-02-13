@@ -246,6 +246,9 @@ const shopifyToken = document.getElementById("shopify-token");
 const shopifyTokenField = document.getElementById("shopify-token-field");
 const shopifyConnectPicker = document.getElementById("shopify-connect-picker");
 const shopifyConnectHint = document.getElementById("shopify-connect-hint");
+const wooDomain = document.getElementById("woocommerce-domain");
+const wooConsumerKey = document.getElementById("woocommerce-key");
+const wooConsumerSecret = document.getElementById("woocommerce-secret");
 const wizardStart = document.getElementById("wizard-start");
 const wizardStop = document.getElementById("wizard-stop");
 const wizardSkip = document.getElementById("wizard-skip");
@@ -269,8 +272,10 @@ const alegraEmail = document.getElementById("alegra-email");
 const alegraKey = document.getElementById("alegra-key");
 const connectShopify = document.getElementById("connect-shopify");
 const connectAlegra = document.getElementById("connect-alegra");
+const connectWooCommerce = document.getElementById("connect-woocommerce");
 const shopifyConnectionPill = document.getElementById("shopify-connection-pill");
 const alegraConnectionPill = document.getElementById("alegra-connection-pill");
+const wooConnectionPill = document.getElementById("woocommerce-connection-pill");
 const googleAdsCustomerId = document.getElementById("google-ads-customer-id");
 const connectGoogleAds = document.getElementById("connect-google-ads");
 const googleAdsConnectionPill = document.getElementById("google-ads-connection-pill");
@@ -507,6 +512,7 @@ let currentUserId = null;
 let activeStoreDomain = "";
 let activeStoreName = "";
 let storesCache = [];
+let wooStoresCache = [];
 let activeStoreConfig = null;
 let shopifyHasToken = false;
 let alegraHasToken = false;
@@ -4922,13 +4928,17 @@ async function maybeApplyPendingStoreConfigCopy() {
 
 async function loadConnections(options = {}) {
   try {
-    const data = await fetchJson("/api/connections");
+    const [data, wooData] = await Promise.all([
+      fetchJson("/api/connections"),
+      fetchJson("/api/woocommerce/connections").catch(() => ({ stores: [] })),
+    ]);
     maybeShowCryptoWarning(data);
-    renderConnections(data);
+    renderConnections({ ...data, wooStores: wooData?.stores || [] });
     renderAlegraAccountOptions(data.alegraAccounts || []);
     renderStoreSyncAlegraAccounts(data.alegraAccounts || []);
     const stores = Array.isArray(data.stores) ? data.stores : [];
     storesCache = stores;
+    wooStoresCache = Array.isArray(wooData?.stores) ? wooData.stores : [];
     updateSettingsSubmenuAvailability();
     renderCopyConfigOptions(stores);
     renderStoreActiveSelect(stores, options);
@@ -4947,7 +4957,7 @@ async function loadConnections(options = {}) {
     await maybeApplyPendingStoreConfigCopy();
     maybeJumpToConnectionsSummary();
   } catch {
-    renderConnections({ stores: [] });
+    renderConnections({ stores: [], wooStores: [] });
     renderAlegraAccountOptions([]);
     renderCopyConfigOptions([]);
     updateGoogleAdsStatus({ googleAds: { connected: false, needsReconnect: false } });
@@ -4957,6 +4967,7 @@ async function loadConnections(options = {}) {
     activeStoreDomain = "";
     activeStoreName = "";
     storesCache = [];
+    wooStoresCache = [];
     updateSettingsSubmenuAvailability();
     renderStoreActiveSelect([], options);
     updatePrerequisites();
@@ -5017,6 +5028,15 @@ function getStoreConnectionByDomain(domain) {
   );
 }
 
+function getWooConnectionByDomain(domain) {
+  const normalized = normalizeShopDomain(domain || "");
+  if (!normalized) return null;
+  return (
+    wooStoresCache.find((store) => normalizeShopDomain(store?.shopDomain || "") === normalized) ||
+    null
+  );
+}
+
 function isShopifyConnectedForDomain(domain) {
   const store = getStoreConnectionByDomain(domain);
   return Boolean(store?.shopifyConnected);
@@ -5043,6 +5063,12 @@ function updateConnectionPills() {
   const alegraLabel = store?.alegraNeedsReconnect ? "Reconectar" : (alegraOk ? "Conectado" : "Pendiente");
   applyConnectionPill(shopifyConnectionPill, shopifyOk && !store?.shopifyNeedsReconnect, shopifyLabel);
   applyConnectionPill(alegraConnectionPill, alegraOk && !store?.alegraNeedsReconnect, alegraLabel);
+
+  const wooDomainValue = normalizeShopDomain(wooDomain?.value || "");
+  const wooStore = wooDomainValue ? getWooConnectionByDomain(wooDomainValue) : null;
+  const wooOk = Boolean(wooStore?.hasConsumerKey && wooStore?.hasConsumerSecret);
+  const wooLabel = wooOk ? "Conectado" : "Pendiente";
+  applyConnectionPill(wooConnectionPill, wooOk, wooLabel);
 }
 
 function updateGoogleAdsStatus(payload) {
@@ -6246,13 +6272,19 @@ function renderConnections(settings) {
   if (!connectionsGrid) return;
   connectionsGrid.innerHTML = "";
   const stores = Array.isArray(settings.stores) ? settings.stores : [];
+  const wooStores = Array.isArray(settings.wooStores) ? settings.wooStores : [];
   const googleAds = settings?.googleAds || {};
   const activeDomain = normalizeShopDomain(activeStoreDomain || storeActiveSelect?.value || "");
-  const list = stores
+  const list = [
+    ...stores.map((store) => ({ ...store, provider: "shopify" })),
+    ...wooStores.map((store) => ({ ...store, provider: "woocommerce" })),
+  ]
     .slice()
     .sort((a, b) => {
-      const aIsActive = normalizeShopDomain(a?.shopDomain || "") === activeDomain;
-      const bIsActive = normalizeShopDomain(b?.shopDomain || "") === activeDomain;
+      const aIsActive =
+        a?.provider === "shopify" && normalizeShopDomain(a?.shopDomain || "") === activeDomain;
+      const bIsActive =
+        b?.provider === "shopify" && normalizeShopDomain(b?.shopDomain || "") === activeDomain;
       if (aIsActive === bIsActive) return 0;
       return aIsActive ? -1 : 1;
     });
@@ -6264,23 +6296,31 @@ function renderConnections(settings) {
   connectionsGrid.innerHTML = list
     .map((store) => {
       const domain = normalizeShopDomain(store?.shopDomain || "");
-      const isActive = domain && domain === activeDomain;
-      const shopifyNeedsReconnect = Boolean(store.shopifyNeedsReconnect);
-      const alegraNeedsReconnect = Boolean(store.alegraNeedsReconnect);
-      const shopifyConnected = Boolean(store.shopifyConnected ?? store.status === "Conectado") && !shopifyNeedsReconnect;
-      const alegraConnected = Boolean(store.alegraConnected ?? store.alegraAccountId) && !alegraNeedsReconnect;
+      const isActive = store?.provider === "shopify" && domain && domain === activeDomain;
       const storeLabel = store.storeName || store.shopDomain || "Tienda";
-      const marketingState = getMarketingReadyState(domain);
-      const marketingReady = marketingState === "ready";
-      const marketingKnown = marketingState !== "";
-      const platforms = [
-        { key: "shopify", label: "Shopify", ok: shopifyConnected, fail: shopifyNeedsReconnect },
-        { key: "alegra", label: "Alegra", ok: alegraConnected, fail: alegraNeedsReconnect },
-        { key: "marketing", label: "Marketing", ok: marketingReady, fail: marketingKnown && !marketingReady },
-        { key: "google", label: "Google Ads", ok: Boolean(googleAds.connected), fail: Boolean(googleAds.needsReconnect) },
-        { key: "meta", label: "Meta Ads", ok: Boolean(settings?.metaAds?.connected), fail: Boolean(settings?.metaAds?.needsReconnect) },
-        { key: "tiktok", label: "TikTok Ads", ok: Boolean(settings?.tiktokAds?.connected), fail: Boolean(settings?.tiktokAds?.needsReconnect) },
-      ].filter((item) => item.ok || item.fail);
+      let platforms = [];
+      if (store?.provider === "woocommerce") {
+        const wooConnected = Boolean(store.hasConsumerKey && store.hasConsumerSecret);
+        platforms = [{ key: "woocommerce", label: "WooCommerce", ok: wooConnected, fail: !wooConnected }];
+      } else {
+        const shopifyNeedsReconnect = Boolean(store.shopifyNeedsReconnect);
+        const alegraNeedsReconnect = Boolean(store.alegraNeedsReconnect);
+        const shopifyConnected =
+          Boolean(store.shopifyConnected ?? store.status === "Conectado") && !shopifyNeedsReconnect;
+        const alegraConnected =
+          Boolean(store.alegraConnected ?? store.alegraAccountId) && !alegraNeedsReconnect;
+        const marketingState = getMarketingReadyState(domain);
+        const marketingReady = marketingState === "ready";
+        const marketingKnown = marketingState !== "";
+        platforms = [
+          { key: "shopify", label: "Shopify", ok: shopifyConnected, fail: shopifyNeedsReconnect },
+          { key: "alegra", label: "Alegra", ok: alegraConnected, fail: alegraNeedsReconnect },
+          { key: "marketing", label: "Marketing", ok: marketingReady, fail: marketingKnown && !marketingReady },
+          { key: "google", label: "Google Ads", ok: Boolean(googleAds.connected), fail: Boolean(googleAds.needsReconnect) },
+          { key: "meta", label: "Meta Ads", ok: Boolean(settings?.metaAds?.connected), fail: Boolean(settings?.metaAds?.needsReconnect) },
+          { key: "tiktok", label: "TikTok Ads", ok: Boolean(settings?.tiktokAds?.connected), fail: Boolean(settings?.tiktokAds?.needsReconnect) },
+        ].filter((item) => item.ok || item.fail);
+      }
       return `
         <div class="connection-card${isActive ? " is-active" : ""}">
           <div class="connection-head">
@@ -9970,6 +10010,11 @@ if (shopifyDomain) {
     updateConnectionPills();
   });
 }
+if (wooDomain) {
+  wooDomain.addEventListener("input", () => {
+    updateConnectionPills();
+  });
+}
 
 if (syncOrdersShopifyEnabled) {
   syncOrdersShopifyEnabled.addEventListener("change", async () => {
@@ -10920,6 +10965,9 @@ function clearConnectionForm() {
   if (storeNameInput) storeNameInput.value = "";
   if (shopifyDomain) shopifyDomain.value = "";
   if (shopifyToken) shopifyToken.value = "";
+  if (wooDomain) wooDomain.value = "";
+  if (wooConsumerKey) wooConsumerKey.value = "";
+  if (wooConsumerSecret) wooConsumerSecret.value = "";
   if (copyConfigSelect) copyConfigSelect.value = "";
   if (alegraEmail) alegraEmail.value = "";
   if (alegraKey) alegraKey.value = "";
@@ -10946,6 +10994,37 @@ async function connectShopifyWithToken(params) {
   });
   if (shopifyToken) shopifyToken.value = "";
   showToast("Shopify conectado.", "is-ok");
+  setConnectionsSetupOpen(true);
+  setSettingsPane("connections", { persist: false });
+  await loadConnections();
+  updateConnectionPills();
+  return response;
+}
+
+async function connectWooCommerceStore() {
+  const domain = normalizeShopDomain(wooDomain?.value || "");
+  if (!domain) {
+    throw new Error("Dominio WooCommerce requerido.");
+  }
+  const consumerKey = wooConsumerKey ? wooConsumerKey.value.trim() : "";
+  const consumerSecret = wooConsumerSecret ? wooConsumerSecret.value.trim() : "";
+  if (!consumerKey || !consumerSecret) {
+    throw new Error("Consumer Key y Secret requeridos.");
+  }
+  const storeName = storeNameInput ? storeNameInput.value.trim() : "";
+  const response = await fetchJson("/api/woocommerce/connections", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      storeName,
+      shopDomain: domain,
+      consumerKey,
+      consumerSecret,
+    }),
+  });
+  if (wooConsumerKey) wooConsumerKey.value = "";
+  if (wooConsumerSecret) wooConsumerSecret.value = "";
+  showToast("WooCommerce conectado.", "is-ok");
   setConnectionsSetupOpen(true);
   setSettingsPane("connections", { persist: false });
   await loadConnections();
@@ -11388,7 +11467,7 @@ if (alegraAccountSelect) {
 	    }
 		      updateStoreModuleTitles();
 		      renderStoreActiveList(storesCache);
-		      renderConnections({ stores: storesCache });
+		      renderConnections({ stores: storesCache, wooStores: wooStoresCache });
 		      renderStoreContextSelects(storesCache);
 		      setShopifyWebhooksStatus("Sin configurar");
 		      const activePane =
@@ -11490,6 +11569,18 @@ if (connectAlegra) {
       .finally(() => {
         setButtonLoading(connectAlegra, false);
       });
+  });
+}
+if (connectWooCommerce) {
+  connectWooCommerce.addEventListener("click", async () => {
+    try {
+      setButtonLoading(connectWooCommerce, true, "Conectando...");
+      await connectWooCommerceStore();
+    } catch (error) {
+      showToast(error?.message || "No se pudo conectar WooCommerce.", "is-error");
+    } finally {
+      setButtonLoading(connectWooCommerce, false);
+    }
   });
 }
 if (connectGoogleAds) {
