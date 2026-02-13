@@ -12992,12 +12992,13 @@ async function init() {
   await safeLoad(loadCurrentUser());
   await safeLoad(loadCompanyProfile());
   await safeLoad(loadUsers());
-  await safeLoad(loadLogs());
-  await safeLoad(loadMetrics());
-  setOperationsView("orders");
-  await safeLoad(loadOperationsView());
-  await safeLoad(loadMarketing());
   await safeLoad(loadConnections());
+  // Defer heavy modules so connections appear quickly.
+  safeLoad(loadLogs());
+  safeLoad(loadMetrics());
+  setOperationsView("orders");
+  safeLoad(loadOperationsView());
+  safeLoad(loadMarketing());
   await safeLoad(loadSettings());
   await safeLoad(loadResolutions());
 	  await Promise.all([
