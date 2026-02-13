@@ -4,8 +4,6 @@ import { getSuperAdminEmail, getSuperAdminPassword } from "../sa/sa.bootstrap";
 
 export const AUTH_COOKIE_NAME = "os_session";
 
-const DEFAULT_ADMIN_EMAIL = "sebastian@apiflujos.com";
-const DEFAULT_ADMIN_PASSWORD = "Poderoso1980";
 const PASSWORD_ITERATIONS = 120000;
 const PASSWORD_DIGEST = "sha512";
 
@@ -188,25 +186,19 @@ async function ensureDefaultAdmin(pool: ReturnType<typeof getPool>, orgId: numbe
   }
   const adminEmail = String(process.env.ADMIN_EMAIL || "").trim();
   const adminPassword = String(process.env.ADMIN_PASSWORD || "");
-  const isProd = process.env.NODE_ENV === "production";
-  if (isProd && (!adminEmail || !adminPassword)) {
-    console.warn("WARNING: Falta ADMIN_EMAIL/ADMIN_PASSWORD para bootstrap de admin en producción. Se omite creación de admin.");
+  if (!adminEmail || !adminPassword) {
+    console.warn(
+      "WARNING: Falta ADMIN_EMAIL/ADMIN_PASSWORD para bootstrap de admin. Se omite creación de admin."
+    );
     return;
   }
-  const effectiveEmail = adminEmail || DEFAULT_ADMIN_EMAIL;
-  const effectivePassword = adminPassword || DEFAULT_ADMIN_PASSWORD;
-  if (!isProd && (!adminEmail || !adminPassword)) {
-    console.warn(
-      "WARNING: Usando credenciales admin por defecto (dev). Define ADMIN_EMAIL y ADMIN_PASSWORD antes de desplegar."
-    );
-  }
-  const passwordHash = hashPassword(effectivePassword);
+  const passwordHash = hashPassword(adminPassword);
   await pool.query(
     `
     INSERT INTO users (organization_id, email, password_hash, role, name)
     VALUES ($1, $2, $3, 'admin', $4)
     `,
-    [orgId, effectiveEmail, passwordHash, "Sebastian"]
+    [orgId, adminEmail, passwordHash, "Admin"]
   );
 }
 

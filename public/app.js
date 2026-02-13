@@ -2723,14 +2723,14 @@ async function loadLogs() {
     if (data?.error) {
       renderLogs([]);
       renderErrors([]);
-      logTableBody.innerHTML = `<tr><td colspan="6" class="empty">${data.error}</td></tr>`;
+      logTableBody.innerHTML = `<tr><td colspan="6" class="empty">${escapeHtml(data.error)}</td></tr>`;
       queueStatus.textContent = data.error;
       return;
     }
     renderLogs(data.items || []);
   } catch (error) {
     const message = error?.message || "No se pudieron cargar los logs.";
-    logTableBody.innerHTML = `<tr><td colspan="6" class="empty">${message}</td></tr>`;
+    logTableBody.innerHTML = `<tr><td colspan="6" class="empty">${escapeHtml(message)}</td></tr>`;
     queueStatus.textContent = message;
   }
 }
@@ -6297,7 +6297,7 @@ function renderConnections(settings) {
     .map((store) => {
       const domain = normalizeShopDomain(store?.shopDomain || "");
       const isActive = store?.provider === "shopify" && domain && domain === activeDomain;
-      const storeLabel = store.storeName || store.shopDomain || "Tienda";
+      const storeLabel = escapeHtml(store.storeName || store.shopDomain || "Tienda");
       let platforms = [];
       if (store?.provider === "woocommerce") {
         const wooConnected = Boolean(store.hasConsumerKey && store.hasConsumerSecret);
@@ -9759,7 +9759,8 @@ async function sendAssistantMessage() {
       thinkingMessage.classList.remove("is-thinking");
     }
     if (thinkingBubble) {
-      thinkingBubble.innerHTML = result.reply || "Listo.";
+      const safeReply = escapeHtml(result.reply || "Listo.").replace(/\n/g, "<br>");
+      thinkingBubble.innerHTML = safeReply;
     } else {
       appendAssistantMessage("bot", result.reply || "Listo.");
     }

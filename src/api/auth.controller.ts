@@ -161,12 +161,22 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
     res.status(403).json({ error: "forbidden" });
     return;
   }
+  const role = String(user.role || "");
+  if (role !== "admin" && role !== "super_admin") {
+    res.status(403).json({ error: "forbidden" });
+    return;
+  }
   next();
 }
 
 export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
   const user = (req as { user?: { role?: string; email?: string; is_super_admin?: boolean } }).user as any;
   if (!user) {
+    res.status(403).json({ error: "forbidden" });
+    return;
+  }
+  const role = String(user.role || "");
+  if (role !== "super_admin" || !user.is_super_admin) {
     res.status(403).json({ error: "forbidden" });
     return;
   }
