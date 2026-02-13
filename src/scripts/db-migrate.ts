@@ -4,10 +4,6 @@ import path from "path";
 import { getPool } from "../db";
 
 async function resolveMigrationsDir() {
-  const explicit = process.env.MIGRATIONS_DIR ? process.env.MIGRATIONS_DIR.trim() : "";
-  if (explicit) {
-    return path.resolve(process.cwd(), explicit);
-  }
   return path.resolve(process.cwd(), "src", "db", "migrations");
 }
 

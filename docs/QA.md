@@ -22,6 +22,10 @@ Con admin email/password:
 BASE_URL=https://<tu-servicio>.onrender.com ADMIN_EMAIL=<email> ADMIN_PASSWORD=<pass> SHOP_DOMAIN=<tu-tienda.myshopify.com> npm run qa:smoke
 ```
 
+Notas:
+- `BASE_URL` puede ser igual a `APP_HOST` (default: `http://localhost:10000`).
+- `QA_TOKEN` es un Bearer token opcional generado con `POST /api/auth/token` (requiere login admin).
+
 Valida:
 - `/health`
 - `/api/profile`
