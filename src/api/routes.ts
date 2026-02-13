@@ -99,6 +99,11 @@ import { marketingGraphqlHttpHandler } from "../marketing/graphql/marketing-grap
 import { billingSummaryHandler } from "./billing.controller";
 import { syncStoreProductsHandler } from "./store-sync.controller";
 import {
+  createWooConnectionHandler,
+  deleteWooConnectionHandler,
+  listWooConnectionsHandler,
+} from "./woocommerce-connections.controller";
+import {
   saAssignPlanHandler,
   saListModulesHandler,
   saListPlansHandler,
@@ -196,6 +201,9 @@ router.get("/connections", requireAdmin, wrap(listConnections));
 router.post("/connections", requireAdmin, wrap(createConnection));
 router.delete("/connections/domain/:shopDomain", requireAdmin, wrap(removeConnectionByDomain));
 router.delete("/connections/:id", requireAdmin, wrap(removeConnection));
+router.get("/woocommerce/connections", requireAdmin, wrap(listWooConnectionsHandler));
+router.post("/woocommerce/connections", requireAdmin, wrap(createWooConnectionHandler));
+router.delete("/woocommerce/connections/:shopDomain", requireAdmin, wrap(deleteWooConnectionHandler));
 router.get("/store-configs", requireAdmin, wrap(listStoreConfigsHandler));
 router.put("/store-configs/:shopDomain", requireAdmin, wrap(saveStoreConfigHandler));
 router.post("/settings/test", requireAdmin, wrap(testConnections));
