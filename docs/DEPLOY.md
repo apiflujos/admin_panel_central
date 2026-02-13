@@ -77,6 +77,12 @@ git merge main
 - `MIM_DATABASE_URL` (opcional, sin migraciones)
 - `MONGO_URL` (opcional, sin migraciones)
 
+## Pool de Postgres (opcional)
+- `DB_POOL_MAX` (default: 5)
+- `DB_POOL_IDLE_TIMEOUT_MS` (default: 30000)
+- `DB_POOL_CONNECTION_TIMEOUT_MS` (default: 5000)
+- `DB_APP_NAME` (para identificar conexiones en Postgres)
+
 ## Variables de scripts (no runtime)
 - `WEBHOOK_BASE_URL` se usa solo por `scripts/create-shopify-webhooks.js`.
 

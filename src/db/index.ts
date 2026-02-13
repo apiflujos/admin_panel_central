@@ -3,6 +3,13 @@ import { Pool } from "pg";
 let pool: Pool | null = null;
 const schemaChecks = new Set<string>();
 
+function parsePositiveInt(value: string | undefined, fallback: number) {
+  if (!value) return fallback;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.floor(parsed);
+}
+
 function getSchemaErrorMessage(message: string) {
   return `${message}. Run migrations with \"npm run db:migrate\".`;
 }
@@ -57,10 +64,24 @@ export function getPool() {
     }
     const ssl =
       process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined;
+    const poolMax = parsePositiveInt(process.env.DB_POOL_MAX, 5);
+    const idleTimeoutMillis = parsePositiveInt(
+      process.env.DB_POOL_IDLE_TIMEOUT_MS,
+      30000
+    );
+    const connectionTimeoutMillis = parsePositiveInt(
+      process.env.DB_POOL_CONNECTION_TIMEOUT_MS,
+      5000
+    );
+    const applicationName = String(process.env.DB_APP_NAME || "").trim() || undefined;
     pool = new Pool({
       connectionString,
       ssl,
       options: "-c search_path=public",
+      max: poolMax,
+      idleTimeoutMillis,
+      connectionTimeoutMillis,
+      application_name: applicationName,
     });
   }
   return pool;

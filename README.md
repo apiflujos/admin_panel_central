@@ -45,6 +45,12 @@ Before changing any code, **ask the human** if the change is for:
 - MongoDB: `MONGO_URL` (optional, used when called).
 - Redis cache/queues: `REDIS_URL` (required; app fails to start if missing).
 
+## Postgres pool (optional)
+- `DB_POOL_MAX` (default: 5)
+- `DB_POOL_IDLE_TIMEOUT_MS` (default: 30000)
+- `DB_POOL_CONNECTION_TIMEOUT_MS` (default: 5000)
+- `DB_APP_NAME` (identificador visible en `pg_stat_activity`)
+
 ## Public files / uploads
 - Folder: `public/data/`
 - Se usa para archivos que el cliente sube o consume vía rutas públicas.
