@@ -557,7 +557,7 @@ export async function syncProductsAcrossProviders(
             result.skipped += 1;
             continue;
           }
-          const created = await targetShopify.createProduct(input as Record<string, unknown>);
+          const created = await targetShopify.createProduct(input);
           const productId = (created as { product?: { id?: string } })?.product?.id || "";
           if (settings.includeImages !== false && productId) {
             const images = resolveWooProductImages(product);
