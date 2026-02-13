@@ -173,7 +173,7 @@
 	                <div class="metrics-controls">
 	                  <div class="metrics-control">
 	                    <label for="metrics-range">Rango</label>
-	                    <select id="metrics-range">
+	                    <select id="metrics-range" name="metrics_range">
 	                      <option value="day">Hoy</option>
 	                      <option value="week">Semana</option>
 	                      <option value="month" selected>Mes</option>
@@ -182,7 +182,7 @@
 	                  <div class="metrics-control metrics-downloads">
 	                    <label for="metrics-report">Reportes (CSV)</label>
 	                    <div class="metrics-download-row">
-	                      <select id="metrics-report">
+	                      <select id="metrics-report" name="metrics_report">
 	                        <option value="orders" selected>Ventas (Pedidos Shopify)</option>
 	                        <option value="invoices">Facturación (Facturas Alegra)</option>
 	                        <option value="top_products_revenue">Top ventas por producto</option>
@@ -354,19 +354,19 @@
             <div class="settings-grid">
               <div class="field">
                 <label>Nombre</label>
-                <input type="text" id="profile-name" placeholder="Nombre completo" />
+                <input type="text" id="profile-name" name="profile_name" placeholder="Nombre completo" />
               </div>
               <div class="field">
                 <label>Email</label>
-                <input type="email" id="profile-email" placeholder="correo@empresa.com" />
+                <input type="email" id="profile-email" name="profile_email" placeholder="correo@empresa.com" />
               </div>
               <div class="field">
                 <label>Telefono</label>
-                <input type="tel" id="profile-phone" placeholder="+57..." />
+                <input type="tel" id="profile-phone" name="profile_phone" placeholder="+57..." />
               </div>
               <div class="field">
                 <label>Foto de perfil</label>
-                <input type="file" id="profile-photo" accept="image/*" />
+                <input type="file" id="profile-photo" name="profile_photo" accept="image/*" />
               </div>
               <div class="field field-actions">
                 <label>&nbsp;</label>
@@ -374,15 +374,15 @@
               </div>
               <div class="field">
                 <label>Contrasena actual</label>
-                <input type="password" id="password-current" autocomplete="current-password" />
+                <input type="password" id="password-current" name="password_current" autocomplete="current-password" />
               </div>
               <div class="field">
                 <label>Nueva contrasena</label>
-                <input type="password" id="password-new" autocomplete="new-password" />
+                <input type="password" id="password-new" name="password_new" autocomplete="new-password" />
               </div>
               <div class="field">
                 <label>Confirmar contrasena</label>
-                <input type="password" id="password-confirm" autocomplete="new-password" />
+                <input type="password" id="password-confirm" name="password_confirm" autocomplete="new-password" />
               </div>
               <div class="field field-actions">
                 <label>&nbsp;</label>
@@ -403,16 +403,16 @@
               <span class="panel-tag">Cobro y medición</span>
             </div>
             <div class="toolbar products-toolbar">
-              <select id="sa-tab">
+              <select id="sa-tab" name="sa_tab">
                 <option value="tenant" selected>Tenant</option>
                 <option value="services">Servicios</option>
                 <option value="plans">Planes</option>
               </select>
               <div class="toolbar-store">
                 <label for="sa-tenant">Tenant</label>
-                <select id="sa-tenant"></select>
+                <select id="sa-tenant" name="sa_tenant"></select>
               </div>
-              <input type="month" id="sa-period" />
+              <input type="month" id="sa-period" name="sa_period" />
               <button class="primary" id="sa-load" type="button">Cargar</button>
               <button class="ghost danger" id="sa-reset" type="button" title="Resetea contadores del mes (no borra histórico)">Resetear contadores</button>
             </div>
@@ -430,30 +430,30 @@
               <div class="toolbar products-toolbar">
                 <div class="toolbar-store">
                   <label for="sa-plan-key">Asignar plan</label>
-                  <select id="sa-plan-key"></select>
+                  <select id="sa-plan-key" name="sa_plan_key"></select>
                 </div>
                 <button class="primary" id="sa-assign-plan" type="button">Asignar</button>
               </div>
               <div class="mode-grid" id="sa-snapshot-grid" aria-label="Snapshot del plan">
                 <div class="mode-field">
                   <label for="sa-snapshot-tenant-id">Tenant ID</label>
-                  <input id="sa-snapshot-tenant-id" disabled />
+                  <input id="sa-snapshot-tenant-id" name="sa_snapshot_tenant_id" disabled />
                 </div>
                 <div class="mode-field">
                   <label for="sa-snapshot-plan-key">Plan key</label>
-                  <input id="sa-snapshot-plan-key" disabled />
+                  <input id="sa-snapshot-plan-key" name="sa_snapshot_plan_key" disabled />
                 </div>
                 <div class="mode-field">
                   <label for="sa-snapshot-plan-type">Plan type</label>
-                  <input id="sa-snapshot-plan-type" disabled />
+                  <input id="sa-snapshot-plan-type" name="sa_snapshot_plan_type" disabled />
                 </div>
                 <div class="mode-field">
                   <label for="sa-snapshot-monthly-price">Precio mensual</label>
-                  <input id="sa-snapshot-monthly-price" disabled />
+                  <input id="sa-snapshot-monthly-price" name="sa_snapshot_monthly_price" disabled />
                 </div>
                 <div class="mode-field">
                   <label for="sa-snapshot-updated-at">Actualizado</label>
-                  <input id="sa-snapshot-updated-at" disabled />
+                  <input id="sa-snapshot-updated-at" name="sa_snapshot_updated_at" disabled />
                 </div>
               </div>
               <div class="table-card">
@@ -546,21 +546,21 @@
               <div class="toolbar products-toolbar">
                 <div class="toolbar-store">
                   <label for="sa-service-key">Key</label>
-                  <input id="sa-service-key" placeholder="orders" />
+                  <input id="sa-service-key" name="sa_service_key" placeholder="orders" />
                 </div>
                 <div class="toolbar-store">
                   <label for="sa-service-name">Nombre</label>
-                  <input id="sa-service-name" placeholder="Pedidos" />
+                  <input id="sa-service-name" name="sa_service_name" placeholder="Pedidos" />
                 </div>
                 <div class="toolbar-store">
                   <label for="sa-service-period">Periodo</label>
-                  <select id="sa-service-period">
+                  <select id="sa-service-period" name="sa_service_period">
                     <option value="monthly" selected>Mensual</option>
                     <option value="total">Total</option>
                   </select>
                 </div>
                 <label class="toggle-row">
-                  <input type="checkbox" id="sa-service-active" class="toggle" checked />
+                  <input type="checkbox" id="sa-service-active" name="sa_service_active" class="toggle" checked />
                   <span>Activo</span>
                 </label>
                 <button class="primary" id="sa-service-save" type="button">Guardar</button>
@@ -579,7 +579,7 @@
               <div class="toolbar products-toolbar">
                 <div class="toolbar-store">
                   <label for="sa-plan-limits-key">Plan</label>
-                  <select id="sa-plan-limits-key"></select>
+                  <select id="sa-plan-limits-key" name="sa_plan_limits_key"></select>
                 </div>
                 <button class="ghost" id="sa-plan-limits-load" type="button">Cargar</button>
               </div>
@@ -613,10 +613,10 @@
             <div class="toolbar products-toolbar">
               <div class="toolbar-store">
                 <label for="marketing-store-select">Tienda</label>
-                <select id="marketing-store-select"></select>
+                <select id="marketing-store-select" name="marketing_store_select"></select>
               </div>
-              <input type="date" id="marketing-from" aria-label="Fecha inicio" />
-              <input type="date" id="marketing-to" aria-label="Fecha fin" />
+              <input type="date" id="marketing-from" name="marketing_from" aria-label="Fecha inicio" />
+              <input type="date" id="marketing-to" name="marketing_to" aria-label="Fecha fin" />
             </div>
             <p class="field-hint" id="marketing-status">Sin datos</p>
 
@@ -739,24 +739,24 @@
 	            <div class="toolbar products-toolbar">
 	              <div class="toolbar-store">
 	                <label for="orders-store-select">Tienda</label>
-                <select id="orders-store-select"></select>
+                <select id="orders-store-select" name="orders_store_select"></select>
               </div>
-              <input type="text" id="ops-search" placeholder="Buscar por orden, cliente o producto" />
-              <input type="date" id="orders-date-filter" />
-              <select id="orders-days">
+              <input type="text" id="ops-search" name="ops_search" placeholder="Buscar por orden, cliente o producto" />
+              <input type="date" id="orders-date-filter" name="orders_date_filter" />
+              <select id="orders-days" name="orders_days">
                 <option value="7">Ultimos 7 dias</option>
                 <option value="15">Ultimos 15 dias</option>
                 <option value="30" selected>Ultimos 30 dias</option>
                 <option value="60">Ultimos 60 dias</option>
                 <option value="90">Ultimos 90 dias</option>
               </select>
-              <select id="orders-sort">
+              <select id="orders-sort" name="orders_sort">
                 <option value="date_desc">Orden: Fecha (recientes)</option>
                 <option value="date_asc">Orden: Fecha (antiguos)</option>
                 <option value="order_asc">Orden: Numero (asc)</option>
                 <option value="order_desc">Orden: Numero (desc)</option>
               </select>
-              <input type="number" id="orders-limit" min="1" placeholder="Filas por pagina" />
+              <input type="number" id="orders-limit" name="orders_limit" min="1" placeholder="Filas por pagina" />
               <button class="ghost" id="ops-search-btn">Buscar</button>
               <button class="primary" id="orders-refresh">Refrescar</button>
               <button class="ghost" id="orders-clear">Borrar filtros</button>
@@ -769,7 +769,7 @@
 	                <span class="sync-progress-label" id="orders-progress-label">Sincronizando 0%</span>
 	              </div>
 	              <div class="table-card orders-table">
-	                <table class="table" id="ops-table">
+	                <table class="table" id="orders-table">
 	                  <thead>
 	                    <tr>
 	                      <th>Fecha</th>
@@ -795,7 +795,7 @@
 	                  <button class="ghost" id="orders-next">Siguiente</button>
 	                </div>
 	                <div class="products-pagination">
-	                  <input type="number" id="orders-page-input" min="1" placeholder="Ir a" />
+	                  <input type="number" id="orders-page-input" name="orders_page_input" min="1" placeholder="Ir a" />
 	                  <button class="ghost" id="orders-page-go">Ir</button>
 	                </div>
 	                <span id="orders-count">Mostrando 0 de 0</span>
@@ -829,7 +829,7 @@
 	                  <button class="ghost" id="invoices-next">Siguiente</button>
 	                </div>
 	                <div class="products-pagination">
-	                  <input type="number" id="invoices-page-input" min="1" placeholder="Ir a" />
+	                  <input type="number" id="invoices-page-input" name="invoices_page_input" min="1" placeholder="Ir a" />
 	                  <button class="ghost" id="invoices-page-go">Ir</button>
 	                </div>
 	                <span id="invoices-count">Mostrando 0 de 0</span>
@@ -847,17 +847,17 @@
             <div class="toolbar products-toolbar">
               <div class="toolbar-store">
                 <label for="products-store-select">Tienda</label>
-                <select id="products-store-select"></select>
+                <select id="products-store-select" name="products_store_select"></select>
               </div>
-              <input type="text" id="products-search" placeholder="Buscar por nombre o referencia" />
-              <input type="date" id="products-date-filter" />
-              <select id="products-sort">
+              <input type="text" id="products-search" name="products_search" placeholder="Buscar por nombre o referencia" />
+              <input type="date" id="products-date-filter" name="products_date_filter" />
+              <select id="products-sort" name="products_sort">
                 <option value="date_desc">Orden: Fecha (recientes)</option>
                 <option value="date_asc">Orden: Fecha (antiguos)</option>
                 <option value="ref_asc">Orden: Referencia (A-Z)</option>
                 <option value="ref_desc">Orden: Referencia (Z-A)</option>
               </select>
-              <input type="number" id="products-limit" min="1" max="30" value="30" placeholder="Limite listado" />
+              <input type="number" id="products-limit" name="products_limit" min="1" max="30" value="30" placeholder="Limite listado" />
               <button class="ghost" id="products-search-btn">Buscar</button>
               <button class="primary" id="products-refresh">Refrescar</button>
               <button class="ghost" id="products-clear">Borrar filtros</button>
@@ -875,10 +875,10 @@
                 </details>
               </div>
               <label class="filter-inline">
-                <input type="checkbox" id="products-instock-only" />
+                <input type="checkbox" id="products-instock-only" name="products_instock_only" />
                 <span>Solo con existencias</span>
               </label>
-              <select id="products-status-filter">
+              <select id="products-status-filter" name="products_status_filter">
                 <option value="all">Estado Alegra: Todos</option>
                 <option value="active">Activos</option>
                 <option value="inactive">Inactivos</option>
@@ -919,7 +919,7 @@
                 <button class="ghost" id="products-next">Siguiente</button>
               </div>
               <div class="products-pagination">
-                <input type="number" id="products-page-input" min="1" placeholder="Ir a" />
+                <input type="number" id="products-page-input" name="products_page_input" min="1" placeholder="Ir a" />
                 <button class="ghost" id="products-page-go">Ir</button>
               </div>
               <span id="products-count">Mostrando 0 de 0</span>
@@ -937,22 +937,22 @@
             <div class="toolbar products-toolbar">
               <div class="toolbar-store">
                 <label for="contacts-store-select">Tienda</label>
-                <select id="contacts-store-select"></select>
+                <select id="contacts-store-select" name="contacts_store_select"></select>
               </div>
-              <input type="text" id="contacts-search" placeholder="Buscar por nombre, email o telefono" />
-              <input type="date" id="contacts-date-start" />
-              <input type="date" id="contacts-date-end" />
-              <select id="contacts-status">
+              <input type="text" id="contacts-search" name="contacts_search" placeholder="Buscar por nombre, email o telefono" />
+              <input type="date" id="contacts-date-start" name="contacts_date_start" />
+              <input type="date" id="contacts-date-end" name="contacts_date_end" />
+              <select id="contacts-status" name="contacts_status">
                 <option value="">Estado: Todos</option>
                 <option value="synced">Sincronizado</option>
                 <option value="pending">Pendiente</option>
               </select>
-              <select id="contacts-source">
+              <select id="contacts-source" name="contacts_source">
                 <option value="">Origen: Todos</option>
                 <option value="shopify">Shopify</option>
                 <option value="alegra">Alegra</option>
               </select>
-              <input type="number" id="contacts-limit" min="1" placeholder="Filas por pagina" />
+              <input type="number" id="contacts-limit" name="contacts_limit" min="1" placeholder="Filas por pagina" />
               <button class="ghost" id="contacts-search-btn">Buscar</button>
               <button class="primary" id="contacts-refresh">Refrescar</button>
 	              <button class="ghost" id="contacts-clear">Borrar filtros</button>
@@ -992,7 +992,7 @@
                 <button class="ghost" id="contacts-next">Siguiente</button>
               </div>
               <div class="products-pagination">
-                <input type="number" id="contacts-page-input" min="1" placeholder="Ir a" />
+                <input type="number" id="contacts-page-input" name="contacts_page_input" min="1" placeholder="Ir a" />
                 <button class="ghost" id="contacts-page-go">Ir</button>
               </div>
               <span id="contacts-count">Mostrando 0 de 0</span>
@@ -1007,8 +1007,8 @@
               <span class="panel-tag">Trazabilidad</span>
             </div>
             <div class="toolbar">
-              <input type="text" placeholder="ID de pedido" id="log-order-id" />
-              <select id="log-status">
+              <input type="text" placeholder="ID de pedido" id="log-order-id" name="log_order_id" />
+              <select id="log-status" name="log_status">
                 <option value="">Todos</option>
                 <option value="success">Exitosos</option>
                 <option value="fail">Errores</option>
@@ -1018,7 +1018,7 @@
               <button class="primary" id="log-retry">Reintentar fallidos</button>
               <span class="status-pill" id="queue-status">Sin datos</span>
             </div>
-            <table class="table" id="log-table">
+            <table class="table" id="logs-table">
               <thead>
                 <tr>
                   <th>Fecha</th>
@@ -1057,7 +1057,7 @@
 	              <div class="settings-grid store-meta">
 		                <div class="field span-2">
 		                  <label>Nombre de la tienda <span class="tip" data-tip="Nombre visible de la tienda. Se usa para identificar esta configuracion y aparece en Tiendas.">?</span></label>
-		                  <input type="text" id="store-name" placeholder="Tienda de ejemplo" />
+		                  <input type="text" id="store-name" name="store_name" placeholder="Tienda de ejemplo" />
 		                  <span class="field-hint">Este nombre identifica el set de configuraciones.</span>
 	                </div>
 	              </div>
@@ -1089,7 +1089,7 @@
                         <div class="settings-grid connection-fields">
                           <div class="field span-2">
                             <label>Shopify dominio <span class="tip" data-tip="Dominio de la tienda (ej: tu-tienda.myshopify.com). Se usa para conectar Shopify a esta integracion.">?</span></label>
-                            <input type="text" id="shopify-domain" placeholder="tu-tienda.myshopify.com" />
+                            <input type="text" id="shopify-domain" name="shopify_domain" placeholder="tu-tienda.myshopify.com" />
                             <span class="field-hint">Se usa para iniciar la autorizacion de Shopify.</span>
                           </div>
                           <div class="field span-2">
@@ -1102,7 +1102,7 @@
                           </div>
                           <div class="field span-2" id="shopify-token-field">
                             <label>Clave de acceso Shopify <span class="tip" data-tip="Pega aqui la clave de acceso (Admin API) de Shopify para esta tienda y presiona Conectar Shopify.">?</span></label>
-                            <input type="password" id="shopify-token" placeholder="shpat_********" autocomplete="new-password" />
+                            <input type="password" id="shopify-token" name="shopify_token" placeholder="shpat_********" autocomplete="new-password" />
                             <span class="field-hint">Se guarda cifrada. Usala si no puedes conectar por autorizacion.</span>
                           </div>
                         </div>
@@ -1134,24 +1134,24 @@
                         <div class="settings-grid connection-fields">
                           <div class="field">
                             <label>Cuenta Alegra <span class="tip" data-tip="Selecciona una cuenta guardada o crea una nueva con email + clave de acceso.">?</span></label>
-                            <select id="alegra-account-select">
+                            <select id="alegra-account-select" name="alegra_account_select">
                               <option value="new">Nueva cuenta Alegra</option>
                             </select>
                           </div>
                           <div class="field" id="alegra-env-field">
                             <label>Entorno Alegra <span class="tip" data-tip="Produccion es el entorno real. Pruebas es para validar sin afectar tu operacion (si tu cuenta lo soporta).">?</span></label>
-                            <select id="alegra-env-select">
+                            <select id="alegra-env-select" name="alegra_env_select">
                               <option value="prod">Produccion</option>
                               <option value="sandbox">Pruebas</option>
                             </select>
                           </div>
                           <div class="field">
                             <label>Email usuario <span class="tip" data-tip="Email del usuario de Alegra con acceso a la cuenta.">?</span></label>
-                            <input type="email" id="alegra-email" placeholder="admin@empresa.com" />
+                            <input type="email" id="alegra-email" name="alegra_email" placeholder="admin@empresa.com" />
                           </div>
                           <div class="field">
                             <label>Clave de acceso <span class="tip" data-tip="Clave de acceso de Alegra (se guarda cifrada). Si seleccionas una cuenta guardada y te pide reconectar, pega la clave aqui para actualizarla.">?</span></label>
-                            <input type="password" id="alegra-key" placeholder="api_********" autocomplete="new-password" />
+                            <input type="password" id="alegra-key" name="alegra_key" placeholder="api_********" autocomplete="new-password" />
                           </div>
                         </div>
                       </div>
@@ -1186,19 +1186,19 @@
                           <div class="settings-grid connection-fields">
                             <div class="field span-2">
                               <label>Client ID</label>
-                              <input type="text" id="google-ads-client-id" placeholder="xxxx.apps.googleusercontent.com" />
+                              <input type="text" id="google-ads-client-id" name="google_ads_client_id" placeholder="xxxx.apps.googleusercontent.com" />
                             </div>
                             <div class="field span-2">
                               <label>Client Secret</label>
-                              <input type="password" id="google-ads-client-secret" placeholder="********" autocomplete="new-password" />
+                              <input type="password" id="google-ads-client-secret" name="google_ads_client_secret" placeholder="********" autocomplete="new-password" />
                             </div>
                             <div class="field span-2">
                               <label>Developer Token</label>
-                              <input type="password" id="google-ads-developer-token" placeholder="********" autocomplete="new-password" />
+                              <input type="password" id="google-ads-developer-token" name="google_ads_developer_token" placeholder="********" autocomplete="new-password" />
                             </div>
                             <div class="field span-2">
                               <label>Customer ID <span class="tip" data-tip="Formato 123-456-7890.">?</span></label>
-                              <input type="text" id="google-ads-customer-id" placeholder="123-456-7890" />
+                              <input type="text" id="google-ads-customer-id" name="google_ads_customer_id" placeholder="123-456-7890" />
                             </div>
                           </div>
                           <div class="connection-block-actions">
@@ -1219,15 +1219,15 @@
                           <div class="settings-grid connection-fields">
                             <div class="field span-2">
                               <label>App ID</label>
-                              <input type="text" id="meta-ads-app-id" placeholder="1234567890" />
+                              <input type="text" id="meta-ads-app-id" name="meta_ads_app_id" placeholder="1234567890" />
                             </div>
                             <div class="field span-2">
                               <label>App Secret</label>
-                              <input type="password" id="meta-ads-app-secret" placeholder="********" autocomplete="new-password" />
+                              <input type="password" id="meta-ads-app-secret" name="meta_ads_app_secret" placeholder="********" autocomplete="new-password" />
                             </div>
                             <div class="field span-2">
                               <label>Ad Account ID <span class="tip" data-tip="Solo numeros.">?</span></label>
-                              <input type="text" id="meta-ads-account-id" placeholder="1234567890" />
+                              <input type="text" id="meta-ads-account-id" name="meta_ads_account_id" placeholder="1234567890" />
                             </div>
                           </div>
                           <div class="connection-block-actions">
@@ -1248,15 +1248,15 @@
                           <div class="settings-grid connection-fields">
                             <div class="field span-2">
                               <label>App ID</label>
-                              <input type="text" id="tiktok-ads-app-id" placeholder="1234567890" />
+                              <input type="text" id="tiktok-ads-app-id" name="tiktok_ads_app_id" placeholder="1234567890" />
                             </div>
                             <div class="field span-2">
                               <label>App Secret</label>
-                              <input type="password" id="tiktok-ads-app-secret" placeholder="********" autocomplete="new-password" />
+                              <input type="password" id="tiktok-ads-app-secret" name="tiktok_ads_app_secret" placeholder="********" autocomplete="new-password" />
                             </div>
                             <div class="field span-2">
                               <label>Advertiser ID</label>
-                              <input type="text" id="tiktok-ads-advertiser-id" placeholder="1234567890" />
+                              <input type="text" id="tiktok-ads-advertiser-id" name="tiktok_ads_advertiser_id" placeholder="1234567890" />
                             </div>
                           </div>
                           <div class="connection-block-actions">
@@ -1292,12 +1292,12 @@
                               <div class="mode-grid">
                                 <div class="mode-field field-span">
                                   <label>Tienda</label>
-                                  <select id="mk-cfg-store-select"></select>
+                                  <select id="mk-cfg-store-select" name="mk_cfg_store_select"></select>
                                 </div>
                                 <div class="mode-field field-span">
                                   <label>Pixel Key (por tienda)</label>
                                   <div class="field-actions inline">
-                                    <input type="text" id="mk-cfg-pixel-key" readonly placeholder="Cargando..." />
+                                    <input type="text" id="mk-cfg-pixel-key" name="mk_cfg_pixel_key" readonly placeholder="Cargando..." />
                                     <button class="ghost" id="mk-cfg-copy-key" type="button">Copiar</button>
                                   </div>
                                   <p class="field-hint" id="mk-cfg-status">Sin datos</p>
@@ -1305,7 +1305,7 @@
                                 <div class="mode-field field-span">
                                   <label>Script para Shopify (theme.liquid)</label>
                                   <div class="field-actions inline">
-                                    <input type="text" id="mk-cfg-script" readonly placeholder="Cargando..." />
+                                    <input type="text" id="mk-cfg-script" name="mk_cfg_script" readonly placeholder="Cargando..." />
                                     <button class="ghost" id="mk-cfg-copy-script" type="button">Copiar script</button>
                                   </div>
                                   <p class="field-hint">Obligatorio para sesiones/UTM. Ventas vienen de Shopify vía webhooks.</p>
@@ -1324,7 +1324,7 @@
                                 <div class="mode-field field-span">
                                   <label>Callback URL</label>
                                   <div class="field-actions inline">
-                                    <input type="text" id="mk-cfg-webhook-url" readonly placeholder="Cargando..." />
+                                    <input type="text" id="mk-cfg-webhook-url" name="mk_cfg_webhook_url" readonly placeholder="Cargando..." />
                                     <button class="ghost" id="mk-cfg-copy-webhook" type="button">Copiar URL</button>
                                     <button class="primary" id="mk-cfg-create-webhooks" type="button">Crear webhooks</button>
                                   </div>
@@ -1360,7 +1360,7 @@
                         <div class="settings-grid connection-fields">
                           <div class="field span-2">
                             <label>Token de IA <span class="tip" data-tip="Clave del proveedor de IA (por ejemplo OpenAI). Se usa para el asistente y soporte.">?</span></label>
-                            <input type="password" id="ai-key" placeholder="sk-********" autocomplete="new-password" />
+                            <input type="password" id="ai-key" name="ai_key" placeholder="sk-********" autocomplete="new-password" />
                           </div>
                         </div>
                       </div>
@@ -1409,30 +1409,31 @@
                       <div class="mode-grid">
                         <div class="mode-field">
                           <label for="store-sync-source">Tienda origen</label>
-                          <select id="store-sync-source"></select>
+                          <select id="store-sync-source" name="store_sync_source"></select>
                         </div>
                         <div class="mode-field">
                           <label for="store-sync-target">Tienda destino</label>
-                          <select id="store-sync-target"></select>
+                          <select id="store-sync-target" name="store_sync_target"></select>
                         </div>
                         <div class="mode-field">
                           <label for="store-sync-alegra-account">Cuenta Alegra</label>
-                          <select id="store-sync-alegra-account"></select>
+                          <select id="store-sync-alegra-account" name="store_sync_alegra_account"></select>
                         </div>
                         <div class="mode-field">
                           <label for="store-sync-price-list">Lista de precios Alegra</label>
-                          <select id="store-sync-price-list" data-allow-empty="true" data-empty-label="Seleccionar..."></select>
+                          <select id="store-sync-price-list" name="store_sync_price_list" data-allow-empty="true" data-empty-label="Seleccionar...">
+  <option value="">Seleccionar...</option></select>
                         </div>
                         <div class="mode-field">
                           <label for="store-sync-status">Estado destino</label>
-                          <select id="store-sync-status">
+                          <select id="store-sync-status" name="store_sync_status">
                             <option value="draft" selected>Borrador</option>
                             <option value="active">Activo</option>
                           </select>
                         </div>
                         <div class="mode-field">
                           <label for="store-sync-price-fallback">Si no hay precio en lista</label>
-                          <select id="store-sync-price-fallback">
+                          <select id="store-sync-price-fallback" name="store_sync_price_fallback">
                             <option value="shopify" selected>Tomar precio original</option>
                             <option value="none">No poner precio</option>
                             <option value="skip">No sincronizar</option>
@@ -1442,23 +1443,23 @@
                       <div class="mode-toggle-grid" aria-label="Opciones de copia">
                         <div class="mode-toggle">
                           <label for="store-sync-only-active">Solo activos en origen <span class="tip" data-tip="Si está ON, solo copia productos activos de la tienda origen.">?</span></label>
-                          <input type="checkbox" id="store-sync-only-active" class="toggle" checked />
+                          <input type="checkbox" id="store-sync-only-active" name="store_sync_only_active" class="toggle" checked />
                         </div>
                         <div class="mode-toggle">
                           <label for="store-sync-include-descriptions">Copiar descripciones <span class="tip" data-tip="Incluye la descripción HTML del producto.">?</span></label>
-                          <input type="checkbox" id="store-sync-include-descriptions" class="toggle" checked />
+                          <input type="checkbox" id="store-sync-include-descriptions" name="store_sync_include_descriptions" class="toggle" checked />
                         </div>
                         <div class="mode-toggle">
                           <label for="store-sync-include-images">Copiar fotos <span class="tip" data-tip="Copia las fotos principales del producto (hasta 15 por producto).">?</span></label>
-                          <input type="checkbox" id="store-sync-include-images" class="toggle" checked />
+                          <input type="checkbox" id="store-sync-include-images" name="store_sync_include_images" class="toggle" checked />
                         </div>
                         <div class="mode-toggle">
                           <label for="store-sync-include-product-type">Copiar tipo/categoría <span class="tip" data-tip="Copia el tipo de producto (categoría interna).">?</span></label>
-                          <input type="checkbox" id="store-sync-include-product-type" class="toggle" checked />
+                          <input type="checkbox" id="store-sync-include-product-type" name="store_sync_include_product_type" class="toggle" checked />
                         </div>
                         <div class="mode-toggle">
                           <label for="store-sync-include-tags">Copiar etiquetas <span class="tip" data-tip="Copia las etiquetas (tags) del producto.">?</span></label>
-                          <input type="checkbox" id="store-sync-include-tags" class="toggle" checked />
+                          <input type="checkbox" id="store-sync-include-tags" name="store_sync_include_tags" class="toggle" checked />
                         </div>
                       </div>
                       <div class="mode-actions">
@@ -1491,7 +1492,7 @@
 				                </div>
 				                <div class="store-switcher-items is-wide" id="store-active-list"></div>
 				                <div class="field-hint store-scope-hint">Configuración independiente por tienda.</div>
-				                <select id="store-active-select" class="is-hidden" aria-hidden="true" tabindex="-1"></select>
+				                <select id="store-active-select" name="store_active_select" class="is-hidden" aria-hidden="true" tabindex="-1"></select>
 				              </div>
 				            </div>
 				          </div>
@@ -1540,15 +1541,15 @@
                           <div class="mode-grid" id="products-sync-grid">
                             <div class="mode-field">
                               <label for="products-date-start">Fecha inicio</label>
-                              <input type="date" id="products-date-start" />
+                              <input type="date" id="products-date-start" name="products_date_start" />
                             </div>
                             <div class="mode-field">
                               <label for="products-date-end">Fecha fin</label>
-                              <input type="date" id="products-date-end" />
+                              <input type="date" id="products-date-end" name="products_date_end" />
                             </div>
                             <div class="mode-field">
                               <label for="products-sync-limit">Limite (opcional)</label>
-                              <input type="number" id="products-sync-limit" min="1" placeholder="200" />
+                              <input type="number" id="products-sync-limit" name="products_sync_limit" min="1" placeholder="200" />
                             </div>
                             <div class="mode-field" id="cfg-warehouse-sync-field">
                               <label>Bodegas para stock (masivo) <span class="tip" data-tip="Opcional. Si eliges bodegas aquí, el masivo calcula/filtra el stock usando solo esas bodegas. Si dejas “Todas”, usamos las bodegas guardadas en “Inventario y bodegas” (también aplican para automático).">?</span></label>
@@ -1564,26 +1565,26 @@
 	                          <div class="mode-toggle-grid" aria-label="Opciones masivo">
 		                            <div class="mode-toggle">
 		                              <label for="products-sync-only-active">Solo activos en Alegra <span class="tip" data-tip="Si está activo, el masivo ignora productos inactivos en Alegra. Recomendado para evitar crear productos descontinuados en Shopify.">?</span></label>
-		                              <input type="checkbox" id="products-sync-only-active" class="toggle" checked />
+		                              <input type="checkbox" id="products-sync-only-active" name="products_sync_only_active" class="toggle" checked />
 		                            </div>
 				                            <div class="mode-toggle">
 				                              <label for="products-sync-update-existing">Actualizar existentes <span class="tip" data-tip="ON: si el producto ya existe, lo actualiza en la base de datos.&#10;Si además “Publicar en Shopify” está ON, también actualiza el producto existente en Shopify (por SKU/Barcode): precio de variantes y estado (draft/active).&#10;OFF: no modifica productos existentes (ni en la base de datos, ni en Shopify); solo guarda productos nuevos.">?</span></label>
-				                              <input type="checkbox" id="products-sync-update-existing" class="toggle" checked />
+				                              <input type="checkbox" id="products-sync-update-existing" name="products_sync_update_existing" class="toggle" checked />
 				                            </div>
 				                            <div class="mode-toggle">
 				                              <label for="products-sync-publish">Publicar en Shopify <span class="tip" data-tip="ON: crea productos nuevos en Shopify.&#10;Si “Actualizar existentes” está ON, también actualiza productos ya existentes en Shopify (por SKU/Barcode).&#10;OFF: no crea ni actualiza nada en Shopify (solo trabaja en la base de datos).&#10;Tip: usa OFF para cargar catálogo y validar antes de publicar.">?</span></label>
-				                              <input type="checkbox" id="products-sync-publish" class="toggle" checked />
+				                              <input type="checkbox" id="products-sync-publish" name="products_sync_publish" class="toggle" checked />
 				                            </div>
 				                            <div class="mode-toggle">
 				                              <label for="products-publish-status-mass">Estado <span class="tip" data-tip="Borrador = no visible en la tienda. Activo = visible y listo para vender. Solo aplica si “Publicar en Shopify” está activo.">?</span></label>
-				                              <select id="products-publish-status-mass" data-depends-on="products-sync-publish">
+				                              <select id="products-publish-status-mass" name="products_publish_status_mass" data-depends-on="products-sync-publish">
 				                                <option value="draft">Borrador</option>
 				                                <option value="active">Activo</option>
 				                              </select>
 				                            </div>
 		                            <div class="mode-toggle">
 		                              <label for="products-sync-include-inventory">Incluir inventario <span class="tip" data-tip="ON: trae inventario desde Alegra (y lo guarda en la base de datos).&#10;Si además “Publicar en Shopify” está ON, también sincroniza existencias en Shopify usando las bodegas configuradas en “Inventario y bodegas”.">?</span></label>
-		                              <input type="checkbox" id="products-sync-include-inventory" class="toggle" checked />
+		                              <input type="checkbox" id="products-sync-include-inventory" name="products_sync_include_inventory" class="toggle" checked />
 		                            </div>
 	                          </div>
 	                          <div class="mode-actions">
@@ -1604,7 +1605,7 @@
 							                          <div class="mode-head">
 							                            <div class="mode-head-left">
 							                              <label class="mode-title-toggle" for="rules-auto-enabled" data-dep-controller="1">
-							                                <input type="checkbox" id="rules-auto-enabled" class="toggle" data-dep-controller="1" checked />
+							                                <input type="checkbox" id="rules-auto-enabled" name="rules_auto_enabled" class="toggle" data-dep-controller="1" checked />
 								                                <span>Automático: productos Alegra → Shopify</span>
 								                              </label>
 										                              <span class="tip" data-tip="Se ejecuta sola cuando llegan cambios desde Alegra. Estas reglas también aplican cuando sincronizas manualmente desde el módulo Productos. Si apagas “Publicar en Shopify”, el sistema solo actualiza datos y no deja productos visibles.">?</span>
@@ -1613,27 +1614,27 @@
 										                          <div class="mode-toggle-grid" aria-label="Opciones automático (Alegra → Shopify)" data-depends-on="rules-auto-enabled">
 									                            <div class="mode-toggle">
 									                              <label for="rules-auto-create-shopify">Crear nuevos en Shopify <span class="tip" data-tip="Si está OFF, no creamos productos nuevos en Shopify. Solo actualizamos los que ya existan/mapeados.">?</span></label>
-								                              <input type="checkbox" id="rules-auto-create-shopify" class="toggle" data-depends-on="rules-auto-enabled" checked />
+								                              <input type="checkbox" id="rules-auto-create-shopify" name="rules_auto_create_shopify" class="toggle" data-depends-on="rules-auto-enabled" checked />
 									                            </div>
 									                            <div class="mode-toggle">
 									                              <label for="rules-auto-update-shopify">Actualizar existentes en Shopify <span class="tip" data-tip="Si está OFF, no modificamos productos existentes (precio/stock/estado). Igual se registran en la base para que los veas en Productos.">?</span></label>
-								                              <input type="checkbox" id="rules-auto-update-shopify" class="toggle" data-depends-on="rules-auto-enabled" checked />
+								                              <input type="checkbox" id="rules-auto-update-shopify" name="rules_auto_update_shopify" class="toggle" data-depends-on="rules-auto-enabled" checked />
 									                            </div>
 									                            <div class="mode-toggle">
 									                              <label for="rules-only-active">Solo activos en Alegra <span class="tip" data-tip="Si está activo, solo se sincronizan productos activos en Alegra (automático y manual por SKU).">?</span></label>
-								                              <input type="checkbox" id="rules-only-active" class="toggle" />
+								                              <input type="checkbox" id="rules-only-active" name="rules_only_active" class="toggle" />
 									                            </div>
 						                            <div class="mode-toggle">
 						                              <label for="rules-auto-publish">Publicar en Shopify <span class="tip" data-tip="Enciende/apaga la publicación. Si lo apagas, solo sincronizamos datos, pero no publicamos productos (automático ni manual por SKU).">?</span></label>
-						                              <input type="checkbox" id="rules-auto-publish" class="toggle" />
+						                              <input type="checkbox" id="rules-auto-publish" name="rules_auto_publish" class="toggle" />
 						                            </div>
 									                            <div class="mode-toggle">
 									                              <label for="rules-auto-images">Publicar fotos <span class="tip" data-tip="Si está activo, intentamos subir fotos del producto a Shopify. Si una foto falla, el producto puede publicarse igual (solo quedará sin esa foto).">?</span></label>
-									                              <input type="checkbox" id="rules-auto-images" class="toggle" data-depends-on="rules-auto-publish" />
+									                              <input type="checkbox" id="rules-auto-images" name="rules_auto_images" class="toggle" data-depends-on="rules-auto-publish" />
 									                            </div>
 						                            <div class="mode-toggle">
 						                              <label for="rules-auto-status">Estado <span class="tip" data-tip="Define el estado de publicación cuando “Publicar en Shopify” está activo: Borrador o Activo.">?</span></label>
-						                              <select id="rules-auto-status" data-depends-on="rules-auto-publish">
+						                              <select id="rules-auto-status" name="rules_auto_status" data-depends-on="rules-auto-publish">
 						                                <option value="draft">Borrador</option>
 						                                <option value="active">Activo</option>
 						                              </select>
@@ -1666,40 +1667,41 @@
 		                          <div class="mode-grid">
 		                            <div class="mode-field">
 		                              <label for="products-shopify-bulk-date-start">Fecha inicio</label>
-		                              <input type="date" id="products-shopify-bulk-date-start" />
+		                              <input type="date" id="products-shopify-bulk-date-start" name="products_shopify_bulk_date_start" />
 		                            </div>
 		                            <div class="mode-field">
 		                              <label for="products-shopify-bulk-date-end">Fecha fin</label>
-		                              <input type="date" id="products-shopify-bulk-date-end" />
+		                              <input type="date" id="products-shopify-bulk-date-end" name="products_shopify_bulk_date_end" />
 		                            </div>
 		                            <div class="mode-field">
 		                              <label for="products-shopify-bulk-limit">Limite (opcional)</label>
-		                              <input type="number" id="products-shopify-bulk-limit" min="1" placeholder="200" />
+		                              <input type="number" id="products-shopify-bulk-limit" name="products_shopify_bulk_limit" min="1" placeholder="200" />
 		                            </div>
 		                          </div>
 		                          <div class="mode-toggle-grid" aria-label="Opciones masivo productos Shopify → Alegra">
 		                            <div class="mode-toggle">
 					                              <label for="products-shopify-bulk-create">Crear nuevos en Alegra <span class="tip" data-tip="Si está OFF, solo actualizamos existentes (por mapping o match). Si está ON, creamos ítems en Alegra cuando no existen.">?</span></label>
-					                              <input type="checkbox" id="products-shopify-bulk-create" class="toggle" />
+					                              <input type="checkbox" id="products-shopify-bulk-create" name="products_shopify_bulk_create" class="toggle" />
 					                            </div>
 					                            <div class="mode-toggle">
 					                              <label for="products-shopify-bulk-update">Actualizar existentes en Alegra <span class="tip" data-tip="Si está OFF, no modificamos ítems existentes; solo intentamos mapear/matchear. Recomendado: ON.">?</span></label>
-					                              <input type="checkbox" id="products-shopify-bulk-update" class="toggle" checked />
+					                              <input type="checkbox" id="products-shopify-bulk-update" name="products_shopify_bulk_update" class="toggle" checked />
 					                            </div>
 		                            <div class="mode-toggle">
 		                              <label for="products-shopify-bulk-include-inventory">Incluir inventario <span class="tip" data-tip="Si está ON, ajustamos el stock en Alegra para la bodega seleccionada usando el inventario total de Shopify.">?</span></label>
-		                              <input type="checkbox" id="products-shopify-bulk-include-inventory" class="toggle" />
+		                              <input type="checkbox" id="products-shopify-bulk-include-inventory" name="products_shopify_bulk_include_inventory" class="toggle" />
 		                            </div>
 		                            <div class="mode-toggle">
 		                              <label for="products-shopify-bulk-match">Prioridad de identificación <span class="tip" data-tip="Antes de crear, buscamos el ítem en Alegra con esta prioridad. Si encontramos match, actualizamos (evita duplicados).">?</span></label>
-		                              <select id="products-shopify-bulk-match">
+		                              <select id="products-shopify-bulk-match" name="products_shopify_bulk_match">
 		                                <option value="sku_barcode" selected>SKU → Barcode</option>
 		                                <option value="barcode_sku">Barcode → SKU</option>
 		                              </select>
 		                            </div>
 		                            <div class="mode-toggle">
 		                              <label for="products-shopify-bulk-warehouse">Bodega destino (stock) <span class="tip" data-tip="Obligatoria si “Incluir inventario” está ON. Debe existir en Alegra (Configuración → Conexiones).">?</span></label>
-		                              <select id="products-shopify-bulk-warehouse" data-allow-empty="true" data-empty-label="Seleccionar..." data-depends-on="products-shopify-bulk-include-inventory"></select>
+		                              <select id="products-shopify-bulk-warehouse" name="products_shopify_bulk_warehouse" data-allow-empty="true" data-empty-label="Seleccionar..." data-depends-on="products-shopify-bulk-include-inventory">
+  <option value="">Seleccionar...</option></select>
 		                            </div>
 		                          </div>
 		                          <div class="mode-actions">
@@ -1720,7 +1722,7 @@
 		                          <div class="mode-head">
 		                            <div class="mode-head-left">
 		                              <label class="mode-title-toggle" for="cfg-products-shopify-to-alegra-enabled" data-dep-controller="1">
-		                                <input type="checkbox" id="cfg-products-shopify-to-alegra-enabled" class="toggle" data-dep-controller="1" />
+		                                <input type="checkbox" id="cfg-products-shopify-to-alegra-enabled" name="cfg_products_shopify_to_alegra_enabled" class="toggle" data-dep-controller="1" />
 			                                <span>Automático: productos Shopify → Alegra</span>
 			                              </label>
 		                              <span class="tip" data-tip="ON: cuando llega un webhook de Shopify (products/create o products/update), actualizamos/creamos el ítem en Alegra según las opciones.">?</span>
@@ -1729,26 +1731,27 @@
 		                          <div class="mode-toggle-grid" aria-label="Opciones automatico productos Shopify → Alegra" data-depends-on="cfg-products-shopify-to-alegra-enabled">
 		                            <div class="mode-toggle">
 			                              <label for="cfg-products-shopify-to-alegra-create">Crear nuevos en Alegra</label>
-			                              <input type="checkbox" id="cfg-products-shopify-to-alegra-create" class="toggle" data-depends-on="cfg-products-shopify-to-alegra-enabled" />
+			                              <input type="checkbox" id="cfg-products-shopify-to-alegra-create" name="cfg_products_shopify_to_alegra_create" class="toggle" data-depends-on="cfg-products-shopify-to-alegra-enabled" />
 			                            </div>
 			                            <div class="mode-toggle">
 			                              <label for="cfg-products-shopify-to-alegra-update">Actualizar existentes en Alegra</label>
-			                              <input type="checkbox" id="cfg-products-shopify-to-alegra-update" class="toggle" data-depends-on="cfg-products-shopify-to-alegra-enabled" checked />
+			                              <input type="checkbox" id="cfg-products-shopify-to-alegra-update" name="cfg_products_shopify_to_alegra_update" class="toggle" data-depends-on="cfg-products-shopify-to-alegra-enabled" checked />
 			                            </div>
 		                            <div class="mode-toggle">
 		                              <label for="cfg-products-shopify-to-alegra-include-inventory">Incluir inventario</label>
-		                              <input type="checkbox" id="cfg-products-shopify-to-alegra-include-inventory" class="toggle" data-depends-on="cfg-products-shopify-to-alegra-enabled" />
+		                              <input type="checkbox" id="cfg-products-shopify-to-alegra-include-inventory" name="cfg_products_shopify_to_alegra_include_inventory" class="toggle" data-depends-on="cfg-products-shopify-to-alegra-enabled" />
 		                            </div>
 		                            <div class="mode-toggle">
 		                              <label for="cfg-products-shopify-to-alegra-match">Prioridad de identificación</label>
-		                              <select id="cfg-products-shopify-to-alegra-match" data-depends-on="cfg-products-shopify-to-alegra-enabled">
+		                              <select id="cfg-products-shopify-to-alegra-match" name="cfg_products_shopify_to_alegra_match" data-depends-on="cfg-products-shopify-to-alegra-enabled">
 		                                <option value="sku_barcode" selected>SKU → Barcode</option>
 		                                <option value="barcode_sku">Barcode → SKU</option>
 		                              </select>
 		                            </div>
 		                            <div class="mode-toggle">
 		                              <label for="cfg-products-shopify-to-alegra-warehouse">Bodega destino (stock) <span class="tip" data-tip="Obligatoria si “Incluir inventario” está ON. Debe existir en Alegra.">?</span></label>
-		                              <select id="cfg-products-shopify-to-alegra-warehouse" data-allow-empty="true" data-empty-label="Seleccionar..." data-depends-on="cfg-products-shopify-to-alegra-include-inventory"></select>
+		                              <select id="cfg-products-shopify-to-alegra-warehouse" name="cfg_products_shopify_to_alegra_warehouse" data-allow-empty="true" data-empty-label="Seleccionar..." data-depends-on="cfg-products-shopify-to-alegra-include-inventory">
+  <option value="">Seleccionar...</option></select>
 		                            </div>
 		                          </div>
 		                        </div>
@@ -1773,7 +1776,7 @@
 						                          <div class="mode-head">
 								                            <div class="mode-head-left">
 								                              <label class="mode-title-toggle" for="inventory-cron-enabled" data-dep-controller="1">
-								                                <input type="checkbox" id="inventory-cron-enabled" class="toggle" data-dep-controller="1" />
+								                                <input type="checkbox" id="inventory-cron-enabled" name="inventory_cron_enabled" class="toggle" data-dep-controller="1" />
 									                                <span>Automático: inventario Alegra → Shopify</span>
 									                              </label>
 								                              <span class="tip" data-tip="Prende o apaga la automatización de inventario, define cada cuánto consultar y de qué bodegas tomar el stock.">?</span>
@@ -1782,7 +1785,7 @@
 						                          <div class="mode-toggle-grid" aria-label="Opciones de inventario" data-depends-on="inventory-cron-enabled">
 					                            <div class="mode-toggle">
 					                              <label for="inventory-cron-interval-select">Cada cuánto consultar</label>
-					                              <select id="inventory-cron-interval-select" data-depends-on="inventory-cron-enabled">
+					                              <select id="inventory-cron-interval-select" name="inventory_cron_interval_select" data-depends-on="inventory-cron-enabled">
 				                                <option value="5">Cada 5 minutos</option>
 			                                <option value="10">Cada 10 minutos</option>
 			                                <option value="15">Cada 15 minutos</option>
@@ -1800,7 +1803,7 @@
 				                            </div>
 			                            <div class="mode-toggle">
 			                              <label for="rules-sync-enabled">Sincronizar inventario en Shopify <span class="tip" data-tip="Si lo apagas, el sistema no actualizará existencias en Shopify (ni en masivo ni en automático).">?</span></label>
-			                              <input type="checkbox" id="rules-sync-enabled" class="toggle" />
+			                              <input type="checkbox" id="rules-sync-enabled" name="rules_sync_enabled" class="toggle" />
 			                            </div>
 			                          </div>
 			                          <div class="mode-actions" aria-label="Estado de automatización">
@@ -1850,33 +1853,33 @@
 				                          <div class="mode-grid">
 			                            <div class="mode-field">
 			                              <label for="sync-contacts-bulk-date-start">Fecha inicio</label>
-			                              <input type="date" id="sync-contacts-bulk-date-start" />
+			                              <input type="date" id="sync-contacts-bulk-date-start" name="sync_contacts_bulk_date_start" />
 			                            </div>
 		                            <div class="mode-field">
 		                              <label for="sync-contacts-bulk-date-end">Fecha fin</label>
-		                              <input type="date" id="sync-contacts-bulk-date-end" />
+		                              <input type="date" id="sync-contacts-bulk-date-end" name="sync_contacts_bulk_date_end" />
 		                            </div>
 			                            <div class="mode-field">
 			                              <label for="sync-contact-limit">Limite (opcional)</label>
-			                              <input type="number" id="sync-contact-limit" min="1" placeholder="200" />
+			                              <input type="number" id="sync-contact-limit" name="sync_contact_limit" min="1" placeholder="200" />
 			                            </div>
 			                          </div>
 				                          <div class="mode-toggle-grid" aria-label="Direcciones masivo">
 				                            <div class="mode-toggle">
 					                              <label for="sync-contacts-bulk-shopify">Permitir Shopify → Alegra <span class="tip" data-tip="Trae contactos desde Shopify (según fechas) y los actualiza/crea en Alegra.">?</span></label>
-					                              <input type="checkbox" id="sync-contacts-bulk-shopify" class="toggle" checked />
+					                              <input type="checkbox" id="sync-contacts-bulk-shopify" name="sync_contacts_bulk_shopify" class="toggle" checked />
 				                            </div>
 				                            <div class="mode-toggle">
 					                              <label for="sync-contacts-bulk-create-alegra">Crear nuevos en Alegra <span class="tip" data-tip="Solo aplica a Shopify → Alegra. ON: si no existe en Alegra, lo creamos. OFF: solo actualizamos existentes (sin crear nuevos).">?</span></label>
-					                              <input type="checkbox" id="sync-contacts-bulk-create-alegra" class="toggle" data-depends-on="sync-contacts-bulk-shopify" checked />
+					                              <input type="checkbox" id="sync-contacts-bulk-create-alegra" name="sync_contacts_bulk_create_alegra" class="toggle" data-depends-on="sync-contacts-bulk-shopify" checked />
 				                            </div>
 				                            <div class="mode-toggle">
 					                              <label for="sync-contacts-bulk-alegra">Permitir Alegra → Shopify <span class="tip" data-tip="Trae contactos desde Alegra (según fechas) y los actualiza/crea en Shopify.">?</span></label>
-					                              <input type="checkbox" id="sync-contacts-bulk-alegra" class="toggle" checked />
+					                              <input type="checkbox" id="sync-contacts-bulk-alegra" name="sync_contacts_bulk_alegra" class="toggle" checked />
 				                            </div>
 				                            <div class="mode-toggle">
 					                              <label for="sync-contacts-bulk-create-shopify">Crear nuevos en Shopify <span class="tip" data-tip="Solo aplica a Alegra → Shopify. ON: si no existe en Shopify, lo creamos. OFF: solo actualizamos existentes (sin crear nuevos).">?</span></label>
-					                              <input type="checkbox" id="sync-contacts-bulk-create-shopify" class="toggle" data-depends-on="sync-contacts-bulk-alegra" checked />
+					                              <input type="checkbox" id="sync-contacts-bulk-create-shopify" name="sync_contacts_bulk_create_shopify" class="toggle" data-depends-on="sync-contacts-bulk-alegra" checked />
 				                            </div>
 				                          </div>
 				                          <div class="mode-actions">
@@ -1897,7 +1900,7 @@
 						                          <div class="mode-head">
 						                            <div class="mode-head-left">
 						                              <label class="mode-title-toggle" for="sync-contacts-enabled" data-dep-controller="1">
-						                                <input type="checkbox" id="sync-contacts-enabled" class="toggle" data-dep-controller="1" checked />
+						                                <input type="checkbox" id="sync-contacts-enabled" name="sync_contacts_enabled" class="toggle" data-dep-controller="1" checked />
 							                                <span>Automático: contactos Shopify ↔ Alegra</span>
 							                              </label>
 								                              <span class="tip" data-tip="Define qué direcciones están permitidas en automático. Nota: el masivo usa los toggles de arriba (dirección + crear).">?</span>
@@ -1906,23 +1909,23 @@
 						                          <div class="mode-grid" data-depends-on="sync-contacts-enabled">
 					                            <div class="mode-field">
 						                              <label for="sync-contacts-shopify">Permitir Shopify → Alegra <span class="tip" data-tip="Permite que el sistema sincronice automáticamente desde Shopify hacia Alegra.">?</span></label>
-						                              <input type="checkbox" id="sync-contacts-shopify" class="toggle" checked />
+						                              <input type="checkbox" id="sync-contacts-shopify" name="sync_contacts_shopify" class="toggle" checked />
 				                            </div>
 			                            <div class="mode-field">
 					                              <label for="sync-contacts-create-alegra">Crear nuevos en Alegra <span class="tip" data-tip="En automático, permite crear nuevos contactos en Alegra cuando no existen. Si lo apagas, solo se actualizan existentes.">?</span></label>
-				                              <input type="checkbox" id="sync-contacts-create-alegra" class="toggle" data-depends-on="sync-contacts-shopify" checked />
+				                              <input type="checkbox" id="sync-contacts-create-alegra" name="sync_contacts_create_alegra" class="toggle" data-depends-on="sync-contacts-shopify" checked />
 			                            </div>
 			                            <div class="mode-field">
 				                              <label for="sync-contacts-alegra">Permitir Alegra → Shopify <span class="tip" data-tip="Permite que el sistema sincronice automáticamente desde Alegra hacia Shopify.">?</span></label>
-				                              <input type="checkbox" id="sync-contacts-alegra" class="toggle" checked />
+				                              <input type="checkbox" id="sync-contacts-alegra" name="sync_contacts_alegra" class="toggle" checked />
 			                            </div>
 			                            <div class="mode-field">
 					                              <label for="sync-contacts-create-shopify">Crear nuevos en Shopify <span class="tip" data-tip="En automático, permite crear nuevos clientes en Shopify cuando no existen. Si lo apagas, solo se actualizan existentes.">?</span></label>
-				                              <input type="checkbox" id="sync-contacts-create-shopify" class="toggle" data-depends-on="sync-contacts-alegra" checked />
+				                              <input type="checkbox" id="sync-contacts-create-shopify" name="sync_contacts_create_shopify" class="toggle" data-depends-on="sync-contacts-alegra" checked />
 			                            </div>
 			                            <div class="mode-field">
 				                              <label for="sync-contacts-priority">Prioridad de identificación <span class="tip" data-tip="Antes de crear, buscamos el contacto en el destino usando este orden. Si encontramos match, actualizamos (evita duplicados). Recomendación: si el Documento es confiable, ponlo primero.">?</span></label>
-			                              <select id="sync-contacts-priority">
+			                              <select id="sync-contacts-priority" name="sync_contacts_priority">
 			                                <option value="document_phone_email">Documento → Teléfono → Email</option>
 			                                <option value="email_document_phone">Email → Documento → Teléfono</option>
 		                                <option value="phone_document_email">Teléfono → Documento → Email</option>
@@ -1970,17 +1973,17 @@
 	                          <div class="mode-grid">
 	                            <div class="mode-field">
 	                              <label for="orders-sync-date-start">Fecha inicio</label>
-	                              <input type="date" id="orders-sync-date-start" />
+	                              <input type="date" id="orders-sync-date-start" name="orders_sync_date_start" />
 	                            </div>
 	                            <div class="mode-field">
 	                              <label for="orders-sync-date-end">Fecha fin</label>
-	                              <input type="date" id="orders-sync-date-end" />
+	                              <input type="date" id="orders-sync-date-end" name="orders_sync_date_end" />
 	                            </div>
 	                            <div class="mode-field">
 	                              <label for="orders-sync-limit">Limite (opcional)</label>
-	                              <input type="number" id="orders-sync-limit" min="1" placeholder="200" />
+	                              <input type="number" id="orders-sync-limit" name="orders_sync_limit" min="1" placeholder="200" />
 	                            </div>
-		                            <input type="hidden" id="orders-sync-number" value="" />
+		                            <input type="hidden" id="orders-sync-number" name="orders_sync_number" value="" />
 	                          </div>
 	                          <div class="mode-actions">
 	                            <button class="primary" id="orders-sync" type="button">Sincronizar masivo</button>
@@ -2000,7 +2003,7 @@
 								                          <div class="mode-head">
 								                            <div class="mode-head-left">
 							                              <label class="mode-title-toggle" for="sync-orders-shopify-enabled" data-dep-controller="1">
-							                                <input type="checkbox" id="sync-orders-shopify-enabled" class="toggle" data-dep-controller="1" />
+							                                <input type="checkbox" id="sync-orders-shopify-enabled" name="sync_orders_shopify_enabled" class="toggle" data-dep-controller="1" />
 								                                <span>Automático: pedidos Shopify → Alegra</span>
 								                              </label>
 									                              <span class="tip" data-tip="ON: procesa pedidos nuevos en tiempo real (webhooks).&#10;OFF: no se detectan pedidos nuevos automáticamente.">?</span>
@@ -2009,13 +2012,13 @@
 								                          <div class="mode-toggle-grid" aria-label="Opciones automatico pedidos" data-depends-on="sync-orders-shopify-enabled">
 								                            <div class="mode-toggle">
 								                              <label for="sync-orders-shopify-invoice">Crear factura <span class="tip" data-tip="Si está ON, se crea la factura usando Logistica/Traslados + Facturacion. Si está OFF, solo registramos el pedido en la base.">?</span></label>
-								                              <input type="checkbox" id="sync-orders-shopify-invoice" class="toggle" data-depends-on="sync-orders-shopify-enabled" />
+								                              <input type="checkbox" id="sync-orders-shopify-invoice" name="sync_orders_shopify_invoice" class="toggle" data-depends-on="sync-orders-shopify-enabled" />
 								                            </div>
 								                          </div>
 								                          <div class="mode-actions" aria-label="Estado webhooks Shopify">
 								                            <span class="kpi-sub"><strong>Webhooks:</strong> <span id="shopify-webhooks-status">Sin configurar</span></span>
 								                          </div>
-							                          <select id="sync-orders-shopify" hidden aria-hidden="true" tabindex="-1">
+							                          <select id="sync-orders-shopify" name="sync_orders_shopify" hidden aria-hidden="true" tabindex="-1">
 							                            <option value="db_only">Solo registrar</option>
 							                            <option value="invoice">Crear factura</option>
 							                            <option value="off">No sincronizar</option>
@@ -2032,11 +2035,11 @@
 	                          <div class="mode-toggle-grid" aria-label="Accion masiva facturas">
 	                            <div class="mode-toggle">
 	                              <label for="invoices-backfill-create-shopify">Crear pedido en Shopify <span class="tip" data-tip="OFF: solo cargamos facturas a la base. ON: creamos pedidos/borradores en Shopify (según “Crear como”).">?</span></label>
-	                              <input type="checkbox" id="invoices-backfill-create-shopify" class="toggle" />
+	                              <input type="checkbox" id="invoices-backfill-create-shopify" name="invoices_backfill_create_shopify" class="toggle" />
 	                            </div>
 	                            <div class="mode-toggle" id="invoices-backfill-mode-field" hidden>
 	                              <label for="invoices-backfill-mode">Crear como <span class="tip" data-tip="Borrador (Draft): se crea como borrador, no queda visible para clientes.&#10;Activo (Order): se crea como pedido activo en Shopify.&#10;Solo aplica si “Crear pedido en Shopify” está ON.">?</span></label>
-	                              <select id="invoices-backfill-mode">
+	                              <select id="invoices-backfill-mode" name="invoices_backfill_mode">
 	                                <option value="draft" selected>Borrador (Draft)</option>
 	                                <option value="active">Activo (Order)</option>
 	                              </select>
@@ -2045,15 +2048,15 @@
 	                          <div class="mode-grid">
 	                            <div class="mode-field">
 	                              <label for="invoices-backfill-date-start">Fecha inicio</label>
-	                              <input type="date" id="invoices-backfill-date-start" />
+	                              <input type="date" id="invoices-backfill-date-start" name="invoices_backfill_date_start" />
 	                            </div>
 	                            <div class="mode-field">
 	                              <label for="invoices-backfill-date-end">Fecha fin</label>
-	                              <input type="date" id="invoices-backfill-date-end" />
+	                              <input type="date" id="invoices-backfill-date-end" name="invoices_backfill_date_end" />
 	                            </div>
 	                            <div class="mode-field">
 	                              <label for="invoices-backfill-limit">Limite (recomendado)</label>
-	                              <input type="number" id="invoices-backfill-limit" min="1" placeholder="200" />
+	                              <input type="number" id="invoices-backfill-limit" name="invoices_backfill_limit" min="1" placeholder="200" />
 	                            </div>
 	                          </div>
 	                          <div class="mode-actions">
@@ -2074,7 +2077,7 @@
 							                          <div class="mode-head">
 							                            <div class="mode-head-left">
 							                              <label class="mode-title-toggle" for="sync-orders-alegra-enabled" data-dep-controller="1">
-							                                <input type="checkbox" id="sync-orders-alegra-enabled" class="toggle" data-dep-controller="1" />
+							                                <input type="checkbox" id="sync-orders-alegra-enabled" name="sync_orders_alegra_enabled" class="toggle" data-dep-controller="1" />
 								                                <span>Automático: facturas Alegra → Shopify</span>
 								                              </label>
 								                              <span class="tip" data-tip="ON: cuando llega un webhook de factura desde Alegra, creamos el pedido en Shopify según el modo seleccionado.&#10;Recomendado: configurar el webhook como /api/webhooks/alegra?shopDomain=tu-tienda.myshopify.com.">?</span>
@@ -2083,7 +2086,7 @@
 							                          <div class="mode-grid" id="sync-orders-alegra-mode-field" hidden>
 							                            <div class="mode-field">
 							                              <label for="sync-orders-alegra">Crear pedido como</label>
-							                              <select id="sync-orders-alegra">
+							                              <select id="sync-orders-alegra" name="sync_orders_alegra">
 							                                <option value="off" selected>Apagado</option>
 							                                <option value="draft">Borrador (Draft)</option>
 							                                <option value="active">Activo (Order)</option>
@@ -2107,7 +2110,7 @@
                   <div class="mode-head">
                     <div class="mode-head-left">
                       <label class="mode-title-toggle" for="cfg-transfer-enabled" data-dep-controller="1">
-                        <input type="checkbox" id="cfg-transfer-enabled" class="toggle" data-dep-controller="1" />
+                        <input type="checkbox" id="cfg-transfer-enabled" name="cfg_transfer_enabled" class="toggle" data-dep-controller="1" />
                         <span>Traslado de inventario</span>
                       </label>
                       <span class="tip" data-tip="Define de qué bodegas sale la mercancía y a qué bodega llega antes de crear la factura. Se ejecuta automáticamente cuando Pedidos → Crear factura está activo.">?</span>
@@ -2117,7 +2120,7 @@
 		                  <div class="mode-grid" data-depends-on="cfg-transfer-enabled">
 			                    <div class="field mode-field">
 			                      <label>Tipo de bodega destino <span class="tip" data-tip="Automática: usa Bodega prioritaria (o la primera disponible) como destino. Fija (HUB): usa la bodega seleccionada aquí. Por regla: disponible próximamente.">?</span></label>
-			                      <select id="cfg-transfer-dest-mode" data-depends-on="cfg-transfer-enabled">
+			                      <select id="cfg-transfer-dest-mode" name="cfg_transfer_dest_mode" data-depends-on="cfg-transfer-enabled">
 			                        <option value="fixed">Fija (HUB)</option>
 			                        <option value="auto">Automática</option>
 			                        <option value="rule">Por regla</option>
@@ -2125,15 +2128,15 @@
 			                    </div>
 		                    <div class="field mode-field">
 		                      <label>Bodega destino (HUB) <span class="tip" data-tip="Bodega destino donde queda el inventario listo para facturar y ajustar stock. Solo aplica cuando el tipo de destino es Fija (HUB).">?</span></label>
-		                      <select id="cfg-transfer-dest" data-depends-on="cfg-transfer-enabled"></select>
+		                      <select id="cfg-transfer-dest" name="cfg_transfer_dest" data-depends-on="cfg-transfer-enabled"></select>
 		                    </div>
 			                    <div class="field mode-field">
 			                      <label for="cfg-transfer-dest-required">Destino requerido <span class="tip" data-tip="Si está ON, el sistema no puede crear factura si no hay un destino definido.">?</span></label>
-			                      <input type="checkbox" id="cfg-transfer-dest-required" class="toggle" data-depends-on="cfg-transfer-enabled" checked />
+			                      <input type="checkbox" id="cfg-transfer-dest-required" name="cfg_transfer_dest_required" class="toggle" data-depends-on="cfg-transfer-enabled" checked />
 			                    </div>
 		                    <div class="field mode-field">
 		                      <label>Estrategia principal</label>
-		                      <select id="cfg-transfer-strategy" data-depends-on="cfg-transfer-enabled">
+		                      <select id="cfg-transfer-strategy" name="cfg_transfer_strategy" data-depends-on="cfg-transfer-enabled">
 		                        <option value="manual">Manual (sin estrategia)</option>
 		                        <option value="consolidation">Consolidacion</option>
 		                        <option value="priority">Prioridad</option>
@@ -2152,7 +2155,7 @@
 		                    </div>
 		                    <div class="field mode-field">
 		                      <label>Estrategia de respaldo</label>
-		                      <select id="cfg-transfer-fallback" data-depends-on="cfg-transfer-enabled">
+		                      <select id="cfg-transfer-fallback" name="cfg_transfer_fallback" data-depends-on="cfg-transfer-enabled">
 		                        <option value="">Ninguna</option>
                         <option value="manual">Manual (sin estrategia)</option>
                         <option value="consolidation">Consolidacion</option>
@@ -2162,7 +2165,7 @@
                     </div>
                     <div class="field mode-field">
                       <label>Desempate</label>
-                      <select id="cfg-transfer-tiebreak" data-depends-on="cfg-transfer-enabled">
+                      <select id="cfg-transfer-tiebreak" name="cfg_transfer_tiebreak" data-depends-on="cfg-transfer-enabled">
                         <option value="">Ninguno</option>
                         <option value="max_stock">Mayor existencia</option>
                         <option value="priority">Prioridad</option>
@@ -2171,18 +2174,18 @@
                     </div>
                     <div class="field mode-field">
                       <label>Bodega prioritaria</label>
-                      <select id="cfg-transfer-priority" data-depends-on="cfg-transfer-enabled"></select>
+                      <select id="cfg-transfer-priority" name="cfg_transfer_priority" data-depends-on="cfg-transfer-enabled"></select>
                     </div>
                     <div class="field mode-field">
                       <label>Stock minimo por bodega</label>
-                      <input type="number" id="cfg-transfer-min-stock" data-depends-on="cfg-transfer-enabled" min="0" step="1" placeholder="0" />
+                      <input type="number" id="cfg-transfer-min-stock" name="cfg_transfer_min_stock" data-depends-on="cfg-transfer-enabled" min="0" step="1" placeholder="0" />
                     </div>
                   </div>
 
 	                  <div class="mode-toggle-grid" aria-label="Opciones de traslado" data-depends-on="cfg-transfer-enabled">
 	                    <div class="mode-toggle">
 	                      <label for="cfg-transfer-split">Permitir dividir pedido <span class="tip" data-tip="Si un pedido tiene items en bodegas distintas, permite crear traslados por partes.">?</span></label>
-	                      <input type="checkbox" id="cfg-transfer-split" class="toggle" data-depends-on="cfg-transfer-enabled" />
+	                      <input type="checkbox" id="cfg-transfer-split" name="cfg_transfer_split" class="toggle" data-depends-on="cfg-transfer-enabled" />
 	                    </div>
 	                  </div>
 	                </div>
@@ -2202,7 +2205,7 @@
 	                  <div class="mode-head">
 	                    <div class="mode-head-left">
 	                      <label class="mode-title-toggle" for="cfg-price-enabled" data-dep-controller="1">
-	                        <input type="checkbox" id="cfg-price-enabled" class="toggle" data-dep-controller="1" />
+	                        <input type="checkbox" id="cfg-price-enabled" name="cfg_price_enabled" class="toggle" data-dep-controller="1" />
 	                        <span>Listas de precios (opcional)</span>
 	                      </label>
 	                      <span class="tip" data-tip="Opcional. Si lo apagas o dejas vacío, se usa el precio base de Alegra.">?</span>
@@ -2211,19 +2214,22 @@
 	                  <div class="mode-grid">
 	                    <div class="field mode-field">
 	                      <label>Lista para precio base</label>
-	                      <select id="cfg-price-general" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="Usar precio base de Alegra"></select>
+	                      <select id="cfg-price-general" name="cfg_price_general" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="Usar precio base de Alegra">
+  <option value="">Usar precio base de Alegra</option></select>
 	                    </div>
 	                    <div class="field mode-field">
 	                      <label>Lista para descuentos</label>
-	                      <select id="cfg-price-discount" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="No aplicar descuento"></select>
+	                      <select id="cfg-price-discount" name="cfg_price_discount" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="No aplicar descuento">
+  <option value="">No aplicar descuento</option></select>
 	                    </div>
 	                    <div class="field mode-field">
 	                      <label>Lista para mayoristas</label>
-	                      <select id="cfg-price-wholesale" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="No aplicar mayorista"></select>
+	                      <select id="cfg-price-wholesale" name="cfg_price_wholesale" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="No aplicar mayorista">
+  <option value="">No aplicar mayorista</option></select>
 	                    </div>
 	                    <div class="field mode-field">
 	                      <label>Moneda</label>
-	                      <select id="cfg-price-currency" data-depends-on="cfg-price-enabled">
+	                      <select id="cfg-price-currency" name="cfg_price_currency" data-depends-on="cfg-price-enabled">
 	                        <option value="">Auto</option>
 	                        <option value="COP">COP</option>
 	                        <option value="USD">USD</option>
@@ -2242,40 +2248,42 @@
 				                  <div class="mode-grid">
 			                    <div class="field is-toggle mode-field">
 			                      <label>Factura electrónica (opcional) <span class="tip" data-tip="Actívala solo si necesitas capturar datos de factura electrónica por pedido (NIT/razón social, etc.). No bloquea la factura estándar.">?</span></label>
-			                      <input type="checkbox" id="cfg-einvoice-enabled" class="toggle" />
+			                      <input type="checkbox" id="cfg-einvoice-enabled" name="cfg_einvoice_enabled" class="toggle" />
 			                    </div>
 				                    <div class="field mode-field">
 				                      <label>Tipo de factura</label>
-				                      <select id="cfg-invoice-status">
+				                      <select id="cfg-invoice-status" name="cfg_invoice_status">
 				                        <option value="draft">Borrador</option>
 			                        <option value="active">Activa</option>
 			                      </select>
 			                    </div>
 				                    <div class="field mode-field" data-depends-on="cfg-einvoice-enabled">
 					                      <label>Resolución DIAN <span class="tip" data-tip="Solo aplica si activas Factura electrónica.">?</span></label>
-					                      <select id="cfg-resolution"></select>
+					                      <select id="cfg-resolution" name="cfg_resolution"></select>
 				                    </div>
-		                    <select id="cfg-warehouse" class="is-hidden"></select>
+		                    <select id="cfg-warehouse" name="cfg_warehouse" class="is-hidden"></select>
 		                    <div class="field mode-field">
 		                      <label>Centro de costos</label>
-		                      <select id="cfg-cost-center"></select>
+		                      <select id="cfg-cost-center" name="cfg_cost_center"></select>
 		                    </div>
 		                    <div class="field mode-field">
 		                      <label>Vendedor</label>
-		                      <select id="cfg-seller"></select>
+		                      <select id="cfg-seller" name="cfg_seller"></select>
 		                    </div>
 		                    <div class="field mode-field">
 		                      <label>Metodo de pago</label>
-		                      <select id="cfg-payment-method" data-allow-empty="true" data-empty-label="No aplicar"></select>
+		                      <select id="cfg-payment-method" name="cfg_payment_method" data-allow-empty="true" data-empty-label="No aplicar">
+  <option value="">No aplicar</option></select>
 		                    </div>
 		                    <div class="field mode-field">
 		                      <label>Cuenta bancaria</label>
-		                      <select id="cfg-bank-account" data-depends-on="cfg-apply-payment" data-allow-empty="true" data-empty-label="No aplicar"></select>
+		                      <select id="cfg-bank-account" name="cfg_bank_account" data-depends-on="cfg-apply-payment" data-allow-empty="true" data-empty-label="No aplicar">
+  <option value="">No aplicar</option></select>
 		                      <p class="field-hint">Si aparecen "Sin datos", crea metodos de pago y cuentas en Alegra.</p>
 		                    </div>
 			                    <div class="field is-toggle mode-field">
 			                      <label>Aplicar pago</label>
-			                      <input type="checkbox" id="cfg-apply-payment" class="toggle" />
+			                      <input type="checkbox" id="cfg-apply-payment" name="cfg_apply_payment" class="toggle" />
 			                    </div>
 			                    <div class="field mode-field">
 			                      <label>Observaciones</label>
@@ -2311,8 +2319,8 @@
 		                          </label>
 			                        </div>
 			                      </details>
-			                      <input type="text" id="cfg-observations-extra" placeholder="Texto adicional (opcional)" />
-			                      <input type="hidden" id="cfg-observations" />
+			                      <input type="text" id="cfg-observations-extra" name="cfg_observations_extra" placeholder="Texto adicional (opcional)" />
+			                      <input type="hidden" id="cfg-observations" name="cfg_observations" />
 			                      <p class="field-hint" id="cfg-observations-preview">-</p>
 			                    </div>
 			                  </div>
@@ -2364,33 +2372,33 @@
                 <path d="M7 12l6-6a4 4 0 1 1 6 6l-8 8a6 6 0 0 1-8-8l9-9" />
               </svg>
             </label>
-            <textarea id="assistant-input" rows="2" placeholder="Escribe una instruccion para Olivia IA..."></textarea>
+            <textarea id="assistant-input" name="assistant_input" rows="2" placeholder="Escribe una instruccion para Olivia IA..."></textarea>
             <button class="primary assistant-send" id="assistant-send" type="button" title="Enviar">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path d="M4 12l16-8-6 8 6 8-16-8z" />
               </svg>
             </button>
           </div>
-          <input id="assistant-file" type="file" multiple accept="image/*,application/pdf" />
+          <input id="assistant-file" name="assistant_file" type="file" multiple accept="image/*,application/pdf" />
         </div>
       </div>
     </div>
 
-    <div class="modal" id="payload-modal" aria-hidden="true">
+    <div class="modal" id="payload-modal" role="dialog" aria-modal="true" aria-labelledby="payload-modal-title" aria-hidden="true">
       <div class="modal-content">
         <div class="modal-header">
-          <h4>Detalle de payload</h4>
+          <h4 id="payload-modal-title">Detalle de payload</h4>
           <button id="modal-close">Cerrar</button>
         </div>
         <pre id="modal-body">Sin datos</pre>
       </div>
     </div>
 
-    <div class="modal" id="einvoice-modal" aria-hidden="true">
+    <div class="modal" id="einvoice-modal" role="dialog" aria-modal="true" aria-labelledby="einvoice-modal-title" aria-hidden="true">
       <div class="modal-content">
         <div class="modal-header">
           <div>
-            <h4>Factura electronica</h4>
+            <h4 id="einvoice-modal-title">Factura electronica</h4>
             <p class="kpi-sub" id="einvoice-order">Pedido: -</p>
           </div>
           <button id="einvoice-close">Cerrar</button>
@@ -2398,15 +2406,15 @@
         <div class="settings-grid modal-form">
           <div class="field">
             <label>Facturar electronicamente</label>
-            <input type="checkbox" id="einvoice-flag" />
+            <input type="checkbox" id="einvoice-flag" name="einvoice_flag" />
           </div>
           <div class="field">
             <label>Nombre fiscal</label>
-            <input type="text" id="einvoice-name" placeholder="Nombre o razon social" />
+            <input type="text" id="einvoice-name" name="einvoice_name" placeholder="Nombre o razon social" />
           </div>
           <div class="field">
             <label>Tipo de documento</label>
-            <select id="einvoice-id-type">
+            <select id="einvoice-id-type" name="einvoice_id_type">
               <option value="">Seleccionar</option>
               <option value="CC">CC</option>
               <option value="NIT">NIT</option>
@@ -2418,35 +2426,35 @@
           </div>
           <div class="field">
             <label>Numero de documento</label>
-            <input type="text" id="einvoice-id-number" placeholder="Documento" />
+            <input type="text" id="einvoice-id-number" name="einvoice_id_number" placeholder="Documento" />
           </div>
           <div class="field">
             <label>Email</label>
-            <input type="email" id="einvoice-email" placeholder="correo@cliente.com" />
+            <input type="email" id="einvoice-email" name="einvoice_email" placeholder="correo@cliente.com" />
           </div>
           <div class="field">
             <label>Telefono</label>
-            <input type="text" id="einvoice-phone" placeholder="Telefono" />
+            <input type="text" id="einvoice-phone" name="einvoice_phone" placeholder="Telefono" />
           </div>
           <div class="field">
             <label>Direccion</label>
-            <input type="text" id="einvoice-address" placeholder="Calle 123 # 4-56" />
+            <input type="text" id="einvoice-address" name="einvoice_address" placeholder="Calle 123 # 4-56" />
           </div>
           <div class="field">
             <label>Ciudad</label>
-            <input type="text" id="einvoice-city" placeholder="Ciudad" />
+            <input type="text" id="einvoice-city" name="einvoice_city" placeholder="Ciudad" />
           </div>
           <div class="field">
             <label>Departamento</label>
-            <input type="text" id="einvoice-state" placeholder="Departamento" />
+            <input type="text" id="einvoice-state" name="einvoice_state" placeholder="Departamento" />
           </div>
           <div class="field">
             <label>Pais</label>
-            <input type="text" id="einvoice-country" placeholder="Colombia" />
+            <input type="text" id="einvoice-country" name="einvoice_country" placeholder="Colombia" />
           </div>
           <div class="field">
             <label>Codigo postal</label>
-            <input type="text" id="einvoice-zip" placeholder="Codigo postal" />
+            <input type="text" id="einvoice-zip" name="einvoice_zip" placeholder="Codigo postal" />
           </div>
         </div>
         <div class="toolbar">
@@ -2456,11 +2464,11 @@
       </div>
     </div>
 
-	    <div class="modal" id="photos-modal" aria-hidden="true">
+	    <div class="modal" id="photos-modal" role="dialog" aria-modal="true" aria-labelledby="photos-modal-title" aria-hidden="true">
 	      <div class="modal-content">
 	        <div class="modal-header">
 	          <div>
-	            <h4>Cargador masivo de fotos</h4>
+	            <h4 id="photos-modal-title">Cargador masivo de fotos</h4>
 	            <p class="kpi-sub">Sube URLs de imágenes por SKU o código de barras (CSV desde Excel).</p>
 	          </div>
 	          <div class="modal-actions">
@@ -2471,7 +2479,7 @@
 	        <div class="settings-grid modal-form">
 	          <div class="field">
 	            <label>Archivo CSV</label>
-	            <input type="file" id="photos-file" accept=".csv,text/csv" />
+	            <input type="file" id="photos-file" name="photos_file" accept=".csv,text/csv" />
 	            <p class="field-hint">
 	              Columnas recomendadas: <code>sku</code> o <code>barcode</code> y <code>images</code> (URLs separadas por <code>|</code>).
 	              También aceptamos <code>image_1</code>, <code>image_2</code>...
@@ -2479,29 +2487,29 @@
 	          </div>
           <div class="field">
             <label for="photos-match-by">Match por</label>
-            <select id="photos-match-by">
+            <select id="photos-match-by" name="photos_match_by">
               <option value="sku" selected>SKU</option>
               <option value="barcode">Código de barras</option>
             </select>
           </div>
           <div class="field">
             <label for="photos-attach-variant">Asociar a variante <span class="tip" data-tip="Si está ON, intentamos asociar la imagen a la variante encontrada (si Shopify lo permite). Si OFF, se sube como imagen del producto.">?</span></label>
-            <input type="checkbox" id="photos-attach-variant" class="toggle" checked />
+            <input type="checkbox" id="photos-attach-variant" name="photos_attach_variant" class="toggle" checked />
           </div>
           <div class="field">
             <label for="photos-mode">Modo de imágenes <span class="tip" data-tip="Agregar = conserva fotos existentes y añade nuevas. Reemplazar = elimina fotos existentes del producto y luego sube las nuevas (puede ser más lento).">?</span></label>
-            <select id="photos-mode">
+            <select id="photos-mode" name="photos_mode">
               <option value="append" selected>Agregar</option>
               <option value="replace">Reemplazar</option>
             </select>
           </div>
           <div class="field">
             <label for="photos-publish-enabled">Cambiar estado del producto <span class="tip" data-tip="ON: al terminar de subir fotos, forzamos el estado del producto (Borrador/Activo). OFF: no tocamos el estado.">?</span></label>
-            <input type="checkbox" id="photos-publish-enabled" class="toggle" />
+            <input type="checkbox" id="photos-publish-enabled" name="photos_publish_enabled" class="toggle" />
           </div>
 	          <div class="field" id="photos-publish-status-field" hidden>
 	            <label for="photos-publish-status">Estado</label>
-	            <select id="photos-publish-status">
+	            <select id="photos-publish-status" name="photos_publish_status">
 	              <option value="draft" selected>Borrador</option>
 	              <option value="active">Activo</option>
 	            </select>
