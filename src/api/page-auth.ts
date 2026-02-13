@@ -1,6 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
 import { AUTH_COOKIE_NAME, getSessionUser } from "../services/auth.service";
-import { getSuperAdminEmail } from "../sa/sa.bootstrap";
 
 function getCookie(req: Request, name: string) {
   const header = req.headers.cookie || "";
@@ -27,12 +26,10 @@ function getAuthToken(req: Request) {
 export async function requirePageSuperAdmin(req: Request, res: Response, next: NextFunction) {
   const token = getAuthToken(req);
   const user = await getSessionUser(token);
-  const requiredEmail = getSuperAdminEmail();
   const ok =
     Boolean(user) &&
     String((user as any).role || "") === "super_admin" &&
-    Boolean((user as any).is_super_admin) &&
-    String((user as any).email || "").trim().toLowerCase() === requiredEmail;
+    Boolean((user as any).is_super_admin);
   if (!ok) {
     res.status(302).setHeader("Location", "/login.html");
     res.end();

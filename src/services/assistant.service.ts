@@ -117,7 +117,7 @@ export async function handleAssistantQuery(
     return { reply: "Necesito una instruccion para continuar." };
   }
   const introPrefix = intro
-    ? "Hola, soy Olivia IA. Puedo ayudarte con productos, pedidos, sincronizaciones y reportes. "
+    ? "Hola, soy el asistente IA. Puedo ayudarte con productos, pedidos, sincronizaciones y reportes. "
     : "";
   const withIntro = (text: string) => (introPrefix ? `${introPrefix}${text}` : text);
 

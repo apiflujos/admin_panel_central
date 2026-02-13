@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { createOAuthState, consumeOAuthState } from "../services/oauth-state.service";
 import { getOrgId, getPool } from "../db";
+import { isTenantModuleEnabled } from "../sa/sa.repository";
 import { getAdsAppConfig } from "../services/ads-app-config.service";
 import { readGoogleAdsCredentials, upsertGoogleAdsCredentials } from "../services/store-connections.service";
 
@@ -11,6 +12,13 @@ type OAuthEnv = {
   clientSecret: string;
   appHost: string;
 };
+
+async function assertModuleEnabled() {
+  const enabled = await isTenantModuleEnabled(getOrgId(), GOOGLE_ADS_PROVIDER);
+  if (!enabled) {
+    throw new Error("Modulo Google Ads desactivado por ApiFlujos.");
+  }
+}
 
 async function ensureOAuthEnv(req: Request): Promise<OAuthEnv> {
   const adsConfig = await getAdsAppConfig();
@@ -40,6 +48,7 @@ export async function googleAdsOAuthStatus(req: Request, res: Response) {
 
 export async function startGoogleAdsOAuth(req: Request, res: Response) {
   try {
+    await assertModuleEnabled();
     const env = await ensureOAuthEnv(req);
     const customerId = String(req.query.customerId || "").trim();
     const shopDomain = String(req.query.shopDomain || "").trim();
@@ -69,6 +78,7 @@ export async function startGoogleAdsOAuth(req: Request, res: Response) {
 
 export async function googleAdsOAuthCallback(req: Request, res: Response) {
   try {
+    await assertModuleEnabled();
     const env = await ensureOAuthEnv(req);
     if (req.query.error) {
       return res.status(400).send(String(req.query.error_description || req.query.error));

@@ -5,6 +5,9 @@ import helmet from "helmet";
 import morgan from "morgan";
 import { router } from "./api/routes";
 import { shopifyOAuthCallback, startShopifyOAuth } from "./api/shopify-oauth.controller";
+import { googleAdsOAuthCallback } from "./api/google-ads-oauth.controller";
+import { metaAdsOAuthCallback } from "./api/meta-ads-oauth.controller";
+import { tiktokAdsOAuthCallback } from "./api/tiktok-ads-oauth.controller";
 import { startInventoryAdjustmentsPoller } from "./jobs/inventory-adjustments";
 import { startOrdersSyncPoller } from "./jobs/orders-sync";
 import { startProductsSyncPoller } from "./jobs/products-sync";
@@ -108,6 +111,9 @@ app.get("/health/db", async (_req, res) => {
 
 app.get("/auth", startShopifyOAuth);
 app.get("/auth/callback", shopifyOAuthCallback);
+app.get("/auth/google-ads/callback", googleAdsOAuthCallback);
+app.get("/auth/meta-ads/callback", metaAdsOAuthCallback);
+app.get("/auth/tiktok-ads/callback", tiktokAdsOAuthCallback);
 app.get("/dashboard", (_req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
@@ -126,9 +132,13 @@ app.use((err: unknown, _req: express.Request, res: express.Response, next: expre
   res.status(500).json({ error: "internal_error" });
 });
 
-// Importante: Usar process.env.PORT y host 0.0.0.0
-const port = Number(process.env.PORT || 10000);
+// Importante: Usar process.env.APP_PORT y host 0.0.0.0
+const port = Number(process.env.APP_PORT || 10000);
 const host = "0.0.0.0";
+
+if (!String(process.env.REDIS_URL || "").trim()) {
+  throw new Error("REDIS_URL is required");
+}
 
 app.listen(port, host, () => {
   console.log("-------------------------------------------");

@@ -1,6 +1,6 @@
 const payload = {
-  name: "TEST Olivia Shoes - Item Prueba IVA",
-  reference: `TEST-OLIVIA-IVA-${Date.now()}`,
+  name: "TEST Admin Central - Item Prueba IVA",
+  reference: `TEST-ADMIN-CENTRAL-IVA-${Date.now()}`,
   status: "active",
   price: [
     {

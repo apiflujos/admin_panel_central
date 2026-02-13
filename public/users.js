@@ -4,7 +4,7 @@ const userName = document.getElementById("user-name");
 const userRole = document.getElementById("user-role");
 const userMenu = document.getElementById("topbar-user-menu");
 const userMenuToggle = document.getElementById("topbar-user-toggle");
-const companyLogo = document.getElementById("company-logo");
+const clientLogo = document.getElementById("client-logo");
 
 const usersTableBody = document.querySelector("#users-table tbody");
 const userNameInput = document.getElementById("user-create-name");
@@ -17,6 +17,23 @@ const usersMessage = document.getElementById("users-message");
 
 let currentUserRole = "agent";
 let csrfToken = "";
+let currentUserIsSuperAdmin = false;
+
+async function loadBranding() {
+  try {
+    const response = await fetch("/brand.json", { cache: "no-cache" });
+    if (!response.ok) return;
+    const brand = await response.json();
+    const appTitle = String(brand.appTitle || "").trim() || "Admin Central";
+    const clientName = String(brand.clientName || "").trim();
+    const suffix = "Usuarios";
+    document.title = clientName
+      ? `${appTitle} · ${clientName} - ${suffix}`
+      : `${appTitle} - ${suffix}`;
+  } catch {
+    // ignore
+  }
+}
 
 async function fetchJson(url, options) {
   const method = String(options?.method || "GET").toUpperCase();
@@ -58,19 +75,39 @@ async function loadCurrentUser() {
   try {
     const data = await fetchJson("/api/profile");
     const user = data.user || {};
-    currentUserRole = user.role || "agent";
-    if (currentUserRole !== "admin") {
+    currentUserRole = user.role || (user.isSuperAdmin ? "super_admin" : "agent");
+    currentUserIsSuperAdmin = Boolean(user.isSuperAdmin);
+    if (currentUserRole !== "admin" && currentUserRole !== "super_admin") {
       window.location.href = "/";
       return;
     }
-    const roleLabel = user.role === "admin" ? "Admin" : "Agente";
+    const roleLabel =
+      currentUserRole === "super_admin" ? "Super Admin" : currentUserRole === "admin" ? "Admin" : "Agente";
     if (userName) userName.textContent = user.name || user.email || "Usuario";
     if (userRole) userRole.textContent = roleLabel;
     if (userAvatar) {
       userAvatar.src = user.photoBase64 || "/assets/avatar.png";
     }
-    if (companyLogo && data.company?.logoBase64) {
-      companyLogo.src = data.company.logoBase64;
+    if (userRoleInput) {
+      if (!currentUserIsSuperAdmin) {
+        userRoleInput.value = "agent";
+        userRoleInput.disabled = true;
+        userRoleInput.title = "Solo super admin puede asignar roles.";
+      } else {
+        userRoleInput.disabled = false;
+        userRoleInput.title = "";
+      }
+    }
+    if (clientLogo) {
+      if (data.company?.logoBase64) {
+        clientLogo.src = data.company.logoBase64;
+        clientLogo.style.display = "";
+        clientLogo.closest(".topbar-brand")?.classList.add("has-client-logo");
+      } else {
+        clientLogo.src = "";
+        clientLogo.style.display = "none";
+        clientLogo.closest(".topbar-brand")?.classList.remove("has-client-logo");
+      }
     }
     await ensureCsrfToken();
   } catch {
@@ -136,9 +173,11 @@ async function createUserFromForm() {
       name: userNameInput ? userNameInput.value.trim() : "",
       email: userEmailInput ? userEmailInput.value.trim() : "",
       phone: userPhoneInput ? userPhoneInput.value.trim() : "",
-      role: userRoleInput ? userRoleInput.value : "agent",
       password: userPasswordInput ? userPasswordInput.value : "",
     };
+    if (currentUserIsSuperAdmin && userRoleInput) {
+      payload.role = userRoleInput.value;
+    }
     await fetchJson("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -209,6 +248,7 @@ document.addEventListener("click", (event) => {
 });
 
 async function init() {
+  loadBranding();
   await loadCurrentUser();
   await loadUsers();
 }

@@ -36,7 +36,7 @@ export async function listUsers() {
     `
     SELECT id, email, role, name, phone, photo_base64, created_at
     FROM users
-    WHERE organization_id = $1
+    WHERE organization_id = $1 AND is_super_admin = false
     ORDER BY created_at DESC
     `,
     [orgId]
@@ -98,7 +98,7 @@ export async function updateUser(userId: number, payload: UserPayload) {
     `
     SELECT id, email, role, name, phone, photo_base64, password_hash
     FROM users
-    WHERE id = $1 AND organization_id = $2
+    WHERE id = $1 AND organization_id = $2 AND is_super_admin = false
     LIMIT 1
     `,
     [userId, orgId]
@@ -135,7 +135,7 @@ export async function updateUser(userId: number, payload: UserPayload) {
         phone = $4,
         photo_base64 = $5,
         password_hash = $6
-    WHERE id = $7 AND organization_id = $8
+    WHERE id = $7 AND organization_id = $8 AND is_super_admin = false
     RETURNING id, email, role, name, phone, photo_base64, created_at
     `,
     [email, role, name, phone, photo, nextHash, userId, orgId]
@@ -164,7 +164,7 @@ export async function deleteUser(userId: number, currentUserId: number) {
     `
     SELECT role
     FROM users
-    WHERE id = $1 AND organization_id = $2
+    WHERE id = $1 AND organization_id = $2 AND is_super_admin = false
     LIMIT 1
     `,
     [userId, orgId]
@@ -185,7 +185,7 @@ export async function deleteUser(userId: number, currentUserId: number) {
   await pool.query(
     `
     DELETE FROM users
-    WHERE id = $1 AND organization_id = $2
+    WHERE id = $1 AND organization_id = $2 AND is_super_admin = false
     `,
     [userId, orgId]
   );

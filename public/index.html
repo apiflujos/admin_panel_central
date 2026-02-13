@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ApiFlujos - Alegra Integraciones</title>
+    <title>Admin Central</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
     <link rel="stylesheet" href="styles.css?v=20260210p47" />
   </head>
@@ -126,6 +126,7 @@
           <div class="topbar-left">
             <div class="topbar-brand apiflujos-brand">
               <img id="company-logo" src="/assets/logo.png" alt="ApiFlujos" />
+              <img id="client-logo" class="client-logo" alt="Logo cliente" />
             </div>
           </div>
           <div class="topbar-actions">
@@ -166,8 +167,8 @@
               <div class="metrics-hero">
                 <div>
                   <p class="metrics-kicker">Metricas</p>
-                  <h2>Panorama operativo Olivia Shoes</h2>
-                  <p class="metrics-sub">Ventas, pedidos y actividad de sincronizacion en un solo lugar.</p>
+                  <h2 id="dashboard-hero-title">Panorama operativo</h2>
+                  <p class="metrics-sub" id="dashboard-hero-subtitle">Ventas, pedidos y actividad de sincronizacion en un solo lugar.</p>
                   <p class="metrics-sub" id="metrics-insights"></p>
                 </div>
 	                <div class="metrics-controls">
@@ -407,6 +408,7 @@
                 <option value="tenant" selected>Tenant</option>
                 <option value="services">Servicios</option>
                 <option value="plans">Planes</option>
+                <option value="users">Usuarios ApiFlujos</option>
               </select>
               <div class="toolbar-store">
                 <label for="sa-tenant">Tenant</label>
@@ -593,6 +595,56 @@
                       <th>Límite</th>
                       <th>Precio unitario</th>
                       <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td colspan="5" class="empty">Sin datos</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="panel" id="sa-pane-users" style="display:none">
+              <div class="panel-header">
+                <h3>Usuarios ApiFlujos</h3>
+                <div class="panel-meta">
+                  <span class="panel-source">users</span>
+                  <span class="panel-tag">Super Admin</span>
+                </div>
+              </div>
+              <div class="mode-grid" aria-label="Super admins">
+                <div class="mode-field">
+                  <label for="sa-user-name">Nombre</label>
+                  <input id="sa-user-name" name="sa_user_name" placeholder="Nombre" />
+                </div>
+                <div class="mode-field">
+                  <label for="sa-user-email">Email</label>
+                  <input id="sa-user-email" name="sa_user_email" type="email" placeholder="correo@apiflujos.com" />
+                </div>
+                <div class="mode-field">
+                  <label for="sa-user-phone">Telefono</label>
+                  <input id="sa-user-phone" name="sa_user_phone" placeholder="+57..." />
+                </div>
+                <div class="mode-field">
+                  <label for="sa-user-password">Contrasena</label>
+                  <input id="sa-user-password" name="sa_user_password" type="password" autocomplete="new-password" placeholder="********" />
+                  <p class="field-hint">Deja vacío para mantener la contrasena actual.</p>
+                </div>
+              </div>
+              <div class="toolbar products-toolbar">
+                <button class="primary" id="sa-user-create" type="button">Crear super admin</button>
+                <button class="ghost" id="sa-user-cancel" type="button" style="display:none">Cancelar</button>
+              </div>
+              <p class="field-hint" id="sa-users-message"></p>
+              <div class="table-card">
+                <table class="table" id="sa-users-table">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Email</th>
+                      <th>Telefono</th>
+                      <th>Creado</th>
+                      <th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1014,6 +1066,10 @@
                 <option value="fail">Errores</option>
                 <option value="retrying">Reintentando</option>
               </select>
+              <select id="log-entity" name="log_entity">
+                <option value="">Todas entidades</option>
+                <option value="super_admin_user">Super Admin (ApiFlujos)</option>
+              </select>
               <button class="ghost" id="log-filter">Filtrar</button>
               <button class="primary" id="log-retry">Reintentar fallidos</button>
               <span class="status-pill" id="queue-status">Sin datos</span>
@@ -1047,7 +1103,7 @@
           </div>
           <div class="settings-pane" data-settings-pane="connections">
                 <div class="settings-group-title" id="settings-connections">Conexiones</div>
-				            <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-setup-open="0" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (autorizacion) y luego Alegra (clave de acceso o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa (ej: Oliva Shoes Colombia).&#10;4) Configura Productos, Pedidos y Contactos segun tu forma de trabajo.&#10;5) Revisa Operacion (sincronizacion automatica y salud).&#10;&#10;Tip: la configuracion guiada es para tienda nueva; si ya hay tienda activa, usa Manual.">
+				            <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-setup-open="0" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (autorizacion) y luego Alegra (clave de acceso o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa.&#10;4) Configura Productos, Pedidos y Contactos segun tu forma de trabajo.&#10;5) Revisa Operacion (sincronizacion automatica y salud).&#10;&#10;Tip: la configuracion guiada es para tienda nueva; si ya hay tienda activa, usa Manual.">
 		            <div class="panel-header">
 		              <h3 data-module-toggle="connections" data-title-base="Nueva conexion">Nueva conexion</h3>
 		              <span class="panel-tag">Acceso</span>
@@ -2378,7 +2434,7 @@
           <div class="assistant-header-title">
             <div class="assistant-avatar-wrap">
               <img src="/assets/logo.png" alt="Apiflujos" class="assistant-avatar-badge" />
-              <img src="/assets/avatar.png" alt="Olivia IA" class="assistant-avatar" />
+              <img src="/assets/avatar.png" alt="Asistente IA" class="assistant-avatar" />
             </div>
             <div class="assistant-title">
               <h3>Asistente IA</h3>
@@ -2386,7 +2442,7 @@
             </div>
           </div>
           <div class="assistant-header-actions">
-            <span class="panel-tag">Olivia</span>
+            <span class="panel-tag" id="assistant-tag">Asistente</span>
             <button class="ghost" id="assistant-close" type="button">Cerrar</button>
           </div>
         </div>
@@ -2402,7 +2458,7 @@
                 <path d="M7 12l6-6a4 4 0 1 1 6 6l-8 8a6 6 0 0 1-8-8l9-9" />
               </svg>
             </label>
-            <textarea id="assistant-input" name="assistant_input" rows="2" placeholder="Escribe una instruccion para Olivia IA..."></textarea>
+            <textarea id="assistant-input" name="assistant_input" rows="2" placeholder="Escribe una instruccion para el asistente IA..."></textarea>
             <button class="primary assistant-send" id="assistant-send" type="button" title="Enviar">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path d="M4 12l16-8-6 8 6 8-16-8z" />

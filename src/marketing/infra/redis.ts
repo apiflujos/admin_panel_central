@@ -6,7 +6,7 @@ export function getRedis() {
   if (redis) return redis;
   const url = String(process.env.REDIS_URL || "").trim();
   if (!url) {
-    return null;
+    throw new Error("REDIS_URL is required");
   }
   redis = new Redis(url, {
     maxRetriesPerRequest: null,

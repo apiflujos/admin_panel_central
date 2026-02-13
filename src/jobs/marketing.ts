@@ -28,45 +28,38 @@ export function startMarketingJobs() {
   if (!enabled) return;
 
   const redis = getRedis();
-  const hasRedis = Boolean(redis);
-  if (!hasRedis) {
-    console.log("[marketing] Redis not configured: running cron in-process (no BullMQ).");
-  }
+  const queues = buildMarketingQueues(redis);
 
-  const queues = redis ? buildMarketingQueues(redis) : null;
+  buildWorker("marketing_sync", redis, async (job) => {
+    if (job.name === "sync_orders") {
+      const { shopDomain, sinceDate, maxOrders } = (job.data || {}) as Record<string, unknown>;
+      return syncMarketingOrders(String(shopDomain || ""), {
+        sinceDate: typeof sinceDate === "string" ? sinceDate : undefined,
+        maxOrders: typeof maxOrders === "number" ? maxOrders : undefined,
+      });
+    }
+    return null;
+  });
 
-  if (redis && queues) {
-    buildWorker("marketing_sync", redis, async (job) => {
-      if (job.name === "sync_orders") {
-        const { shopDomain, sinceDate, maxOrders } = (job.data || {}) as Record<string, unknown>;
-        return syncMarketingOrders(String(shopDomain || ""), {
-          sinceDate: typeof sinceDate === "string" ? sinceDate : undefined,
-          maxOrders: typeof maxOrders === "number" ? maxOrders : undefined,
-        });
-      }
-      return null;
-    });
+  buildWorker("marketing_metrics", redis, async (job) => {
+    if (job.name === "recompute_daily") {
+      const { shopDomain, from, to } = (job.data || {}) as Record<string, unknown>;
+      return recomputeDailyMarketingMetrics({
+        shopDomain: String(shopDomain || ""),
+        from: String(from || ""),
+        to: String(to || ""),
+      });
+    }
+    return null;
+  });
 
-    buildWorker("marketing_metrics", redis, async (job) => {
-      if (job.name === "recompute_daily") {
-        const { shopDomain, from, to } = (job.data || {}) as Record<string, unknown>;
-        return recomputeDailyMarketingMetrics({
-          shopDomain: String(shopDomain || ""),
-          from: String(from || ""),
-          to: String(to || ""),
-        });
-      }
-      return null;
-    });
-
-    buildWorker("marketing_alerts", redis, async (job) => {
-      if (job.name === "evaluate_alerts") {
-        const { shopDomain, date } = (job.data || {}) as Record<string, unknown>;
-        return evaluateMarketingAlerts(String(shopDomain || ""), String(date || ""));
-      }
-      return null;
-    });
-  }
+  buildWorker("marketing_alerts", redis, async (job) => {
+    if (job.name === "evaluate_alerts") {
+      const { shopDomain, date } = (job.data || {}) as Record<string, unknown>;
+      return evaluateMarketingAlerts(String(shopDomain || ""), String(date || ""));
+    }
+    return null;
+  });
 
   // Cron: enqueue jobs (preferred) or run inline if Redis missing.
   const syncSpec = String(process.env.MARKETING_CRON_SYNC || "0 2 * * *"); // 02:00 daily
@@ -77,11 +70,7 @@ export function startMarketingJobs() {
   startCron(syncSpec, async () => {
     const shops = await listShopDomains();
     for (const shopDomain of shops) {
-      if (queues) {
-        await queues.sync.add("sync_orders", { shopDomain }, { jobId: `sync_orders:${shopDomain}:${todayKey()}` });
-      } else {
-        await syncMarketingOrders(shopDomain);
-      }
+      await queues.sync.add("sync_orders", { shopDomain }, { jobId: `sync_orders:${shopDomain}:${todayKey()}` });
     }
   }).start();
 
@@ -90,15 +79,11 @@ export function startMarketingJobs() {
     const to = todayKey();
     const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     for (const shopDomain of shops) {
-      if (queues) {
-        await queues.metrics.add(
-          "recompute_daily",
-          { shopDomain, from, to },
-          { jobId: `metrics:${shopDomain}:${from}:${to}` }
-        );
-      } else {
-        await recomputeDailyMarketingMetrics({ shopDomain, from, to });
-      }
+      await queues.metrics.add(
+        "recompute_daily",
+        { shopDomain, from, to },
+        { jobId: `metrics:${shopDomain}:${from}:${to}` }
+      );
     }
   }).start();
 
@@ -106,11 +91,7 @@ export function startMarketingJobs() {
     const shops = await listShopDomains();
     const date = todayKey();
     for (const shopDomain of shops) {
-      if (queues) {
-        await queues.alerts.add("evaluate_alerts", { shopDomain, date }, { jobId: `alerts:${shopDomain}:${date}` });
-      } else {
-        await evaluateMarketingAlerts(shopDomain, date);
-      }
+      await queues.alerts.add("evaluate_alerts", { shopDomain, date }, { jobId: `alerts:${shopDomain}:${date}` });
     }
   }).start();
 
@@ -126,5 +107,5 @@ export function startMarketingJobs() {
     }
   }).start();
 
-  console.log("[marketing] jobs scheduled", { hasRedis, syncSpec, metricsSpec, alertsSpec, adsSpec });
+  console.log("[marketing] jobs scheduled", { syncSpec, metricsSpec, alertsSpec, adsSpec });
 }

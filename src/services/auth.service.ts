@@ -58,7 +58,7 @@ export async function authenticateUser(email: string, password: string, remember
   if (!verifyPassword(password, user.password_hash)) {
     return null;
   }
-  // Super admin must match both flags (email + is_super_admin).
+  // Bootstrap super admin must match both flags (email + is_super_admin).
   if (isSuperAdminLogin && !user.is_super_admin) {
     return null;
   }
@@ -203,37 +203,48 @@ async function ensureDefaultAdmin(pool: ReturnType<typeof getPool>, orgId: numbe
 }
 
 async function ensureSuperAdmin(pool: ReturnType<typeof getPool>) {
-  const email = getSuperAdminEmail();
-  const password = getSuperAdminPassword();
-  const orgId = 1;
+  const orgId = getOrgId();
   await ensureOrganization(pool, orgId);
 
-  const existing = await pool.query<{ id: number; is_super_admin: boolean }>(
+  const existingSuperAdmin = await pool.query<{ id: number }>(
     `
-    SELECT id, is_super_admin
+    SELECT id
+    FROM users
+    WHERE organization_id = $1 AND is_super_admin = true
+    LIMIT 1
+    `,
+    [orgId]
+  );
+  if (existingSuperAdmin.rows.length) {
+    return;
+  }
+
+  const email = getSuperAdminEmail();
+  const password = getSuperAdminPassword();
+  const passwordHash = hashPassword(password);
+  const existing = await pool.query<{ id: number }>(
+    `
+    SELECT id
     FROM users
     WHERE organization_id = $1 AND lower(email) = lower($2)
     LIMIT 1
     `,
     [orgId, email]
   );
-  const passwordHash = hashPassword(password);
   if (existing.rows.length) {
     const row = existing.rows[0];
-    if (row && row.id) {
-      await pool.query(
-        `
-        UPDATE users
-        SET password_hash = $1,
-            role = 'super_admin',
-            is_super_admin = true,
-            name = COALESCE(NULLIF(name,''), 'Super Admin')
-        WHERE id = $2
-        `,
-        [passwordHash, row.id]
-      );
-      return;
-    }
+    await pool.query(
+      `
+      UPDATE users
+      SET password_hash = $1,
+          role = 'super_admin',
+          is_super_admin = true,
+          name = COALESCE(NULLIF(name,''), 'Super Admin')
+      WHERE id = $2
+      `,
+      [passwordHash, row.id]
+    );
+    return;
   }
 
   await pool.query(

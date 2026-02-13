@@ -12,7 +12,7 @@ function normalizeShopDomain(value: unknown) {
 }
 
 function resolveBaseUrl(req: Request) {
-  const explicit = String(process.env.PUBLIC_URL || process.env.APP_HOST || "").trim();
+  const explicit = String(process.env.APP_HOST || "").trim();
   if (explicit) return explicit.replace(/\/$/, "");
   const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0];
   const forwardedHost = String(req.headers["x-forwarded-host"] || "").split(",")[0];

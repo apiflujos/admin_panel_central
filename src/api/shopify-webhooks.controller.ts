@@ -13,7 +13,7 @@ const DEFAULT_TOPICS = [
 ];
 
 function resolveBaseUrl(req: Request) {
-  const explicit = process.env.PUBLIC_URL || "";
+  const explicit = process.env.APP_HOST || "";
   if (explicit) return explicit.replace(/\/$/, "");
   const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0];
   const forwardedHost = String(req.headers["x-forwarded-host"] || "").split(",")[0];

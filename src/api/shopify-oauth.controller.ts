@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import type { Request, Response } from "express";
 import { ShopifyClient } from "../connectors/shopify";
+import { getOrgId } from "../db";
+import { isTenantModuleEnabled } from "../sa/sa.repository";
 import { upsertStoreConnection } from "../services/store-connections.service";
 import {
   createOAuthState,
@@ -17,6 +19,13 @@ type OAuthEnv = {
   appHost: string;
 };
 
+async function assertModuleEnabled(moduleKey: string) {
+  const enabled = await isTenantModuleEnabled(getOrgId(), moduleKey);
+  if (!enabled) {
+    throw new Error(`Modulo ${moduleKey} desactivado por ApiFlujos.`);
+  }
+}
+
 export function shopifyOAuthStatus(req: Request, res: Response) {
   const apiKey = String(process.env.SHOPIFY_API_KEY || "").trim();
   const apiSecret = String(process.env.SHOPIFY_API_SECRET || "").trim();
@@ -26,7 +35,7 @@ export function shopifyOAuthStatus(req: Request, res: Response) {
   if (!apiKey) missing.push("SHOPIFY_API_KEY");
   if (!apiSecret) missing.push("SHOPIFY_API_SECRET");
   if (!scopes) missing.push("SHOPIFY_SCOPES");
-  if (!appHost) missing.push("APP_HOST (o PUBLIC_URL)");
+  if (!appHost) missing.push("APP_HOST");
   res.status(200).json({
     enabled: missing.length === 0,
     missing,
@@ -35,7 +44,7 @@ export function shopifyOAuthStatus(req: Request, res: Response) {
 }
 
 function resolveAppHost(req: Request) {
-  const explicit = String(process.env.APP_HOST || process.env.PUBLIC_URL || "").trim();
+  const explicit = String(process.env.APP_HOST || "").trim();
   if (explicit) return explicit.replace(/\/$/, "");
   const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
   const forwardedHost = String(req.headers["x-forwarded-host"] || "").split(",")[0].trim();
@@ -55,7 +64,7 @@ function ensureOAuthEnv(req: Request): OAuthEnv {
   if (!apiKey) missing.push("SHOPIFY_API_KEY");
   if (!apiSecret) missing.push("SHOPIFY_API_SECRET");
   if (!scopes) missing.push("SHOPIFY_SCOPES");
-  if (!appHost) missing.push("APP_HOST (o PUBLIC_URL)");
+  if (!appHost) missing.push("APP_HOST");
   if (missing.length) {
     throw new Error(`Configuracion OAuth incompleta. Falta: ${missing.join(", ")}`);
   }
@@ -93,6 +102,7 @@ function validateHmac(query: Record<string, unknown>, apiSecret: string) {
 
 export async function startShopifyOAuth(req: Request, res: Response) {
   try {
+    await assertModuleEnabled("shopify");
     const env = ensureOAuthEnv(req);
     const shopParam = String(req.query.shop || "").trim();
     const storeNameParam = String(req.query.storeName || "").trim();
@@ -117,6 +127,7 @@ export async function startShopifyOAuth(req: Request, res: Response) {
 
 export async function shopifyOAuthCallback(req: Request, res: Response) {
   try {
+    await assertModuleEnabled("shopify");
     const env = ensureOAuthEnv(req);
     if (req.query.error) {
       return res.status(400).send(String(req.query.error_description || req.query.error));

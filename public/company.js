@@ -4,7 +4,7 @@ const userName = document.getElementById("user-name");
 const userRole = document.getElementById("user-role");
 const userMenu = document.getElementById("topbar-user-menu");
 const userMenuToggle = document.getElementById("topbar-user-toggle");
-const companyLogo = document.getElementById("company-logo");
+const clientLogo = document.getElementById("client-logo");
 
 const companyName = document.getElementById("company-name");
 const companyPhone = document.getElementById("company-phone");
@@ -15,6 +15,22 @@ const companyMessage = document.getElementById("company-message");
 
 let currentUserRole = "agent";
 let csrfToken = "";
+
+async function loadBranding() {
+  try {
+    const response = await fetch("/brand.json", { cache: "no-cache" });
+    if (!response.ok) return;
+    const brand = await response.json();
+    const appTitle = String(brand.appTitle || "").trim() || "Admin Central";
+    const clientName = String(brand.clientName || "").trim();
+    const suffix = "Empresa";
+    document.title = clientName
+      ? `${appTitle} · ${clientName} - ${suffix}`
+      : `${appTitle} - ${suffix}`;
+  } catch {
+    // ignore
+  }
+}
 
 async function fetchJson(url, options) {
   const method = String(options?.method || "GET").toUpperCase();
@@ -56,15 +72,16 @@ async function loadCurrentUser() {
   try {
     const data = await fetchJson("/api/profile");
     const user = data.user || {};
-    currentUserRole = user.role || "agent";
-    const roleLabel = user.role === "admin" ? "Admin" : "Agente";
+    currentUserRole = user.role || (user.isSuperAdmin ? "super_admin" : "agent");
+    const roleLabel =
+      currentUserRole === "super_admin" ? "Super Admin" : currentUserRole === "admin" ? "Admin" : "Agente";
     if (userName) userName.textContent = user.name || user.email || "Usuario";
     if (userRole) userRole.textContent = roleLabel;
     if (userAvatar) {
       userAvatar.src = user.photoBase64 || "/assets/avatar.png";
     }
     document.querySelectorAll(".admin-only").forEach((el) => {
-      el.style.display = currentUserRole === "admin" ? "" : "none";
+      el.style.display = currentUserRole === "admin" || currentUserRole === "super_admin" ? "" : "none";
     });
     await ensureCsrfToken();
   } catch {
@@ -75,8 +92,16 @@ async function loadCurrentUser() {
 async function loadCompanyProfile() {
   try {
     const data = await fetchJson("/api/company");
-    if (companyLogo && data.logoBase64) {
-      companyLogo.src = data.logoBase64;
+    if (clientLogo) {
+      if (data.logoBase64) {
+        clientLogo.src = data.logoBase64;
+        clientLogo.style.display = "";
+        clientLogo.closest(".topbar-brand")?.classList.add("has-client-logo");
+      } else {
+        clientLogo.src = "";
+        clientLogo.style.display = "none";
+        clientLogo.closest(".topbar-brand")?.classList.remove("has-client-logo");
+      }
     }
     if (companyName) companyName.value = data.name || "";
     if (companyPhone) companyPhone.value = data.phone || "";
@@ -116,8 +141,16 @@ async function saveCompany() {
       body: JSON.stringify(payload),
     });
     if (companyMessage) companyMessage.textContent = "Empresa actualizada.";
-    if (companyLogo) {
-      companyLogo.src = data.logoBase64 || "/assets/logo.png";
+    if (clientLogo) {
+      if (data.logoBase64) {
+        clientLogo.src = data.logoBase64;
+        clientLogo.style.display = "";
+        clientLogo.closest(".topbar-brand")?.classList.add("has-client-logo");
+      } else {
+        clientLogo.src = "";
+        clientLogo.style.display = "none";
+        clientLogo.closest(".topbar-brand")?.classList.remove("has-client-logo");
+      }
     }
   } catch (error) {
     if (companyMessage) {
@@ -147,7 +180,11 @@ if (companyLogoInput) {
         throw new Error("El logo supera 2MB.");
       }
       const preview = await readFileAsDataUrl(file);
-      if (companyLogo) companyLogo.src = preview;
+      if (clientLogo) {
+        clientLogo.src = preview;
+        clientLogo.style.display = "";
+        clientLogo.closest(".topbar-brand")?.classList.add("has-client-logo");
+      }
     } catch (error) {
       if (companyMessage) {
         companyMessage.textContent = error?.message || "No se pudo cargar el logo.";
@@ -196,6 +233,7 @@ document.addEventListener("click", (event) => {
 });
 
 async function init() {
+  loadBranding();
   await loadCurrentUser();
   await loadCompanyProfile();
 }

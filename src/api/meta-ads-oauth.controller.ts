@@ -2,6 +2,8 @@ import type { Request, Response } from "express";
 import { createOAuthState, consumeOAuthState } from "../services/oauth-state.service";
 import { upsertMetaAdsCredentials } from "../services/store-connections.service";
 import { getAdsAppConfig } from "../services/ads-app-config.service";
+import { getOrgId } from "../db";
+import { isTenantModuleEnabled } from "../sa/sa.repository";
 
 const META_ADS_PROVIDER = "meta_ads";
 
@@ -10,6 +12,13 @@ type OAuthEnv = {
   appSecret: string;
   appHost: string;
 };
+
+async function assertModuleEnabled() {
+  const enabled = await isTenantModuleEnabled(getOrgId(), META_ADS_PROVIDER);
+  if (!enabled) {
+    throw new Error("Modulo Meta Ads desactivado por ApiFlujos.");
+  }
+}
 
 async function ensureOAuthEnv(req: Request): Promise<OAuthEnv> {
   const adsConfig = await getAdsAppConfig();
@@ -39,6 +48,7 @@ export async function metaAdsOAuthStatus(req: Request, res: Response) {
 
 export async function startMetaAdsOAuth(req: Request, res: Response) {
   try {
+    await assertModuleEnabled();
     const env = await ensureOAuthEnv(req);
     const adAccountId = String(req.query.adAccountId || "").trim();
     const shopDomain = String(req.query.shopDomain || "").trim();
@@ -65,6 +75,7 @@ export async function startMetaAdsOAuth(req: Request, res: Response) {
 
 export async function metaAdsOAuthCallback(req: Request, res: Response) {
   try {
+    await assertModuleEnabled();
     const env = await ensureOAuthEnv(req);
     if (req.query.error) {
       return res.status(400).send(String(req.query.error_description || req.query.error));

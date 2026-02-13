@@ -1,5 +1,6 @@
 {
-  "name": "alegra-shopify-middleware",
+  "name": "admin-central-platform",
+  "description": "Multi-tenant middleware for Shopify, Alegra, and marketing operations.",
   "version": "0.1.0",
   "private": true,
   "type": "commonjs",
@@ -7,6 +8,8 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "node node_modules/typescript/bin/tsc -p tsconfig.json",
     "start": "node dist/server.js",
+    "db:migrate": "node dist/scripts/db-migrate.js",
+    "db:migrate:dev": "ts-node-dev --transpile-only --exit-child src/scripts/db-migrate.ts",
     "check:frontend": "node --check public/app.js && node --check public/company.js && node --check public/login.js && node --check public/users.js",
     "qa:smoke": "node scripts/qa-smoke.js"
   },
@@ -18,6 +21,7 @@
     "graphql-http": "^1.22.4",
     "helmet": "^7.1.0",
     "ioredis": "^5.9.2",
+    "mongodb": "^6.12.0",
     "morgan": "^1.10.0",
     "node-cron": "^4.2.1",
     "pg": "^8.11.5",

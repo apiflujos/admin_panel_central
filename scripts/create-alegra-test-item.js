@@ -1,7 +1,7 @@
 const uniqueSuffix = Date.now();
 const payload = {
-  name: `TEST Olivia Shoes - Item Prueba IVA ${uniqueSuffix}`,
-  reference: `TEST-OLIVIA-IVA-${uniqueSuffix}`,
+  name: `TEST Admin Central - Item Prueba IVA ${uniqueSuffix}`,
+  reference: `TEST-ADMIN-CENTRAL-IVA-${uniqueSuffix}`,
   description: "Item de prueba para validar precio, IVA y existencias.",
   status: "active",
   price: [

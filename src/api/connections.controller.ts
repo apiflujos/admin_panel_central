@@ -1,4 +1,6 @@
 import type { Request, Response } from "express";
+import { getOrgId } from "../db";
+import { isTenantModuleEnabled } from "../sa/sa.repository";
 import { createSyncLog } from "../services/logs.service";
 import {
   deleteStoreConnection,
@@ -9,6 +11,19 @@ import {
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "No disponible";
+
+const moduleError = (moduleKey: string) => {
+  const err = new Error(`Modulo ${moduleKey} desactivado por ApiFlujos.`);
+  (err as { statusCode?: number }).statusCode = 403;
+  return err;
+};
+
+async function assertModuleEnabled(moduleKey: string) {
+  const enabled = await isTenantModuleEnabled(getOrgId(), moduleKey);
+  if (!enabled) {
+    throw moduleError(moduleKey);
+  }
+}
 
 export async function listConnections(_req: Request, res: Response) {
   try {
@@ -36,6 +51,12 @@ export async function listConnections(_req: Request, res: Response) {
 export async function createConnection(req: Request, res: Response) {
   try {
     const payload = req.body || {};
+    if (payload?.shopify?.shopDomain || payload?.shopify?.accessToken) {
+      await assertModuleEnabled("shopify");
+    }
+    if (payload?.alegra) {
+      await assertModuleEnabled("alegra");
+    }
     const result = await upsertStoreConnection({
       storeName: payload?.storeName || "",
       shopDomain: payload?.shopify?.shopDomain || "",
@@ -54,7 +75,8 @@ export async function createConnection(req: Request, res: Response) {
     });
   } catch (error) {
     const message = getErrorMessage(error);
-    res.status(400).json({ error: message });
+    const status = (error as { statusCode?: number }).statusCode || 400;
+    res.status(status).json({ error: message });
     await createSyncLog({
       entity: "connections_create",
       direction: "shopify->alegra",

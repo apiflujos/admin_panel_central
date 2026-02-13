@@ -1,4 +1,6 @@
 import type { Request, Response } from "express";
+import { getOrgId } from "../db";
+import { isTenantModuleEnabled } from "../sa/sa.repository";
 import { createSyncLog } from "../services/logs.service";
 import {
   deleteWooConnectionByDomain,
@@ -8,6 +10,19 @@ import {
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "No disponible";
+
+const moduleError = (moduleKey: string) => {
+  const err = new Error(`Modulo ${moduleKey} desactivado por ApiFlujos.`);
+  (err as { statusCode?: number }).statusCode = 403;
+  return err;
+};
+
+async function assertModuleEnabled(moduleKey: string) {
+  const enabled = await isTenantModuleEnabled(getOrgId(), moduleKey);
+  if (!enabled) {
+    throw moduleError(moduleKey);
+  }
+}
 
 export async function listWooConnectionsHandler(_req: Request, res: Response) {
   try {
@@ -34,6 +49,7 @@ export async function listWooConnectionsHandler(_req: Request, res: Response) {
 
 export async function createWooConnectionHandler(req: Request, res: Response) {
   try {
+    await assertModuleEnabled("woocommerce");
     const payload = req.body || {};
     const result = await upsertWooConnection({
       storeName: payload?.storeName || "",
@@ -53,7 +69,8 @@ export async function createWooConnectionHandler(req: Request, res: Response) {
     });
   } catch (error) {
     const message = getErrorMessage(error);
-    res.status(400).json({ error: message });
+    const status = (error as { statusCode?: number }).statusCode || 400;
+    res.status(status).json({ error: message });
     await createSyncLog({
       entity: "woocommerce_connections_create",
       direction: "woocommerce->alegra",

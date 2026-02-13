@@ -95,8 +95,9 @@ const photosProgressBar = document.getElementById("photos-progress-bar");
 const photosProgressLabel = document.getElementById("photos-progress-label");
 const photosErrors = document.getElementById("photos-errors");
 
-const logTableBody = document.querySelector("#log-table tbody");
+const logTableBody = document.querySelector("#logs-table tbody");
 const logStatus = document.getElementById("log-status");
+const logEntity = document.getElementById("log-entity");
 const logOrderId = document.getElementById("log-order-id");
 const logFilter = document.getElementById("log-filter");
 const logRetry = document.getElementById("log-retry");
@@ -151,6 +152,7 @@ const saUsageBody = document.querySelector("#sa-usage-table tbody");
 const saPaneTenant = document.getElementById("sa-pane-tenant");
 const saPaneServices = document.getElementById("sa-pane-services");
 const saPanePlans = document.getElementById("sa-pane-plans");
+const saPaneUsers = document.getElementById("sa-pane-users");
 const saPlanKey = document.getElementById("sa-plan-key");
 const saAssignPlan = document.getElementById("sa-assign-plan");
 const saSnapshotTenantId = document.getElementById("sa-snapshot-tenant-id");
@@ -169,6 +171,14 @@ const saServiceSave = document.getElementById("sa-service-save");
 const saPlanLimitsKey = document.getElementById("sa-plan-limits-key");
 const saPlanLimitsLoad = document.getElementById("sa-plan-limits-load");
 const saPlanLimitsBody = document.querySelector("#sa-plan-limits-table tbody");
+const saUsersBody = document.querySelector("#sa-users-table tbody");
+const saUserNameInput = document.getElementById("sa-user-name");
+const saUserEmailInput = document.getElementById("sa-user-email");
+const saUserPhoneInput = document.getElementById("sa-user-phone");
+const saUserPasswordInput = document.getElementById("sa-user-password");
+const saUserCreate = document.getElementById("sa-user-create");
+const saUserCancel = document.getElementById("sa-user-cancel");
+const saUsersMessage = document.getElementById("sa-users-message");
 
 const marketingStoreSelect = document.getElementById("marketing-store-select");
 const marketingFrom = document.getElementById("marketing-from");
@@ -214,9 +224,12 @@ const billingPlanPill = document.getElementById("billing-plan-pill");
 const billingMonthMetrics = document.getElementById("billing-month-metrics");
 const userMenu = document.getElementById("topbar-user-menu");
 const userMenuToggle = document.getElementById("topbar-user-toggle");
-const companyLogo = document.getElementById("company-logo");
+const clientLogo = document.getElementById("client-logo");
 const sidebarLogout = document.getElementById("sidebar-logout");
 const sidebarToggleIcon = document.getElementById("sidebar-toggle-icon");
+const heroTitle = document.getElementById("dashboard-hero-title");
+const heroSubtitle = document.getElementById("dashboard-hero-subtitle");
+const assistantTag = document.getElementById("assistant-tag");
 
 const storeNameInput = document.getElementById("store-name");
 const storeActiveField = document.getElementById("store-active-field");
@@ -509,6 +522,8 @@ let shopifyAdminBase = "";
 let currentUserRole = "agent";
 let currentUserIsSuperAdmin = false;
 let currentUserId = null;
+let editingSaUserId = null;
+let tenantModules = {};
 let activeStoreDomain = "";
 let activeStoreName = "";
 let storesCache = [];
@@ -2488,31 +2503,164 @@ function applyShopifyOAuthAvailability() {
 }
 
 function resolveUserRole(role, isSuperAdminFlag) {
-  if (role) return role;
   if (isSuperAdminFlag) return "super_admin";
+  if (role === "admin") return "admin";
   return "agent";
 }
 
 function applyRoleAccess(role, isSuperAdminFlag) {
   currentUserRole = resolveUserRole(role, isSuperAdminFlag);
-  currentUserIsSuperAdmin = true;
+  currentUserIsSuperAdmin = Boolean(isSuperAdminFlag);
+  const isAdmin = currentUserRole === "admin" || currentUserIsSuperAdmin;
   const settingsNav = document.querySelector('.nav-item[data-target="settings"]');
   const logsNav = document.querySelector('.nav-item[data-target="logs"]');
   const adminOnlyPanels = document.querySelectorAll(".admin-only");
-  if (settingsNav) settingsNav.style.display = "";
+  if (settingsNav) settingsNav.style.display = isAdmin ? "" : "none";
   adminOnlyPanels.forEach((panel) => {
-    panel.style.display = "";
+    panel.style.display = isAdmin ? "" : "none";
   });
 
   const logsSection = document.getElementById("logs");
-  if (logsNav) logsNav.style.display = "";
-  if (logsSection) logsSection.style.display = "";
+  if (logsNav) logsNav.style.display = currentUserIsSuperAdmin ? "" : "none";
+  if (logsSection) logsSection.style.display = currentUserIsSuperAdmin ? "" : "none";
 
   if (navSuperadmin instanceof HTMLElement) {
-    navSuperadmin.style.display = "";
+    navSuperadmin.style.display = currentUserIsSuperAdmin ? "" : "none";
   }
   loadBillingTopbar().catch(() => null);
   updateSettingsSubmenuAvailability();
+  applyUserRoleControls();
+}
+
+function applyUserRoleControls() {
+  if (!(userRoleInput instanceof HTMLSelectElement)) return;
+  if (!currentUserIsSuperAdmin) {
+    userRoleInput.value = "agent";
+    userRoleInput.disabled = true;
+    userRoleInput.title = "Solo super admin puede asignar roles.";
+  } else {
+    userRoleInput.disabled = false;
+    userRoleInput.title = "";
+  }
+}
+
+function setTenantModules(items) {
+  const next = {};
+  if (Array.isArray(items)) {
+    items.forEach((item) => {
+      if (!item || !item.key) return;
+      next[String(item.key)] = Boolean(item.enabled);
+    });
+  }
+  tenantModules = next;
+}
+
+function isModuleEnabled(moduleKey) {
+  if (!moduleKey) return true;
+  if (!(moduleKey in tenantModules)) return true;
+  return Boolean(tenantModules[moduleKey]);
+}
+
+function setModuleBlockDisabled(block, disabled, message) {
+  if (!(block instanceof HTMLElement)) return;
+  block.classList.toggle("is-disabled", disabled);
+  const hintClass = "module-disabled-hint";
+  const existing = block.querySelector(`.${hintClass}`);
+  if (disabled) {
+    const hint =
+      existing ||
+      Object.assign(document.createElement("p"), {
+        className: `field-hint ${hintClass}`,
+      });
+    hint.textContent = message || "Desactivado por ApiFlujos.";
+    if (!existing) {
+      block.appendChild(hint);
+    }
+  } else if (existing) {
+    existing.remove();
+  }
+  block.querySelectorAll("input, select, textarea, button").forEach((el) => {
+    if (!(el instanceof HTMLElement)) return;
+    if (disabled) {
+      if (!el.hasAttribute("data-module-disabled")) {
+        el.setAttribute("data-module-disabled", "1");
+        if ("disabled" in el) {
+          el.disabled = true;
+        }
+      }
+    } else if (el.getAttribute("data-module-disabled") === "1") {
+      el.removeAttribute("data-module-disabled");
+      if ("disabled" in el) {
+        el.disabled = false;
+      }
+    }
+  });
+}
+
+function applyConnectionModule(moduleKey, button, label) {
+  if (!(button instanceof HTMLElement)) return;
+  const enabled = isModuleEnabled(moduleKey);
+  const block = button.closest(".connection-block");
+  if (block) {
+    setModuleBlockDisabled(block, !enabled, `${label} desactivado por ApiFlujos.`);
+    return;
+  }
+  if (!enabled) {
+    if (!button.hasAttribute("data-module-disabled")) {
+      button.setAttribute("data-module-disabled", "1");
+      if ("disabled" in button) {
+        button.disabled = true;
+      }
+    }
+    button.title = `${label} desactivado por ApiFlujos.`;
+  } else if (button.getAttribute("data-module-disabled") === "1") {
+    button.removeAttribute("data-module-disabled");
+    if ("disabled" in button) {
+      button.disabled = false;
+    }
+    button.title = "";
+  }
+}
+
+function applyAiModule() {
+  const enabled = isModuleEnabled("ia");
+  const nodes = [aiKey, aiSave].filter((node) => node instanceof HTMLElement);
+  nodes.forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    if (!enabled) {
+      if (!node.hasAttribute("data-module-disabled")) {
+        node.setAttribute("data-module-disabled", "1");
+        if ("disabled" in node) {
+          node.disabled = true;
+        }
+      }
+    } else if (node.getAttribute("data-module-disabled") === "1") {
+      node.removeAttribute("data-module-disabled");
+      if ("disabled" in node) {
+        node.disabled = false;
+      }
+    }
+  });
+}
+
+function applyTenantModules() {
+  applyConnectionModule("shopify", connectShopify, "Shopify");
+  applyConnectionModule("woocommerce", connectWooCommerce, "WooCommerce");
+  applyConnectionModule("alegra", connectAlegra, "Alegra");
+  applyConnectionModule("google_ads", connectGoogleAds, "Google Ads");
+  applyConnectionModule("meta_ads", connectMetaAds, "Meta Ads");
+  applyConnectionModule("tiktok_ads", connectTikTokAds, "TikTok Ads");
+  applyAiModule();
+}
+
+async function loadTenantModules() {
+  try {
+    const data = await fetchJson("/api/modules");
+    setTenantModules(data.items || []);
+    applyTenantModules();
+  } catch {
+    // ignore if not allowed
+  }
 }
 
 async function loadCurrentUser() {
@@ -2521,7 +2669,8 @@ async function loadCurrentUser() {
     const user = data.user || {};
     currentUserId = user.id || null;
     currentUserIsSuperAdmin = Boolean(user.isSuperAdmin);
-    const roleLabel = user.role === "super_admin" ? "Super Admin" : (user.role === "admin" ? "Admin" : "Agente");
+    const resolvedRole = resolveUserRole(user.role, user.isSuperAdmin);
+    const roleLabel = resolvedRole === "super_admin" ? "Super Admin" : (resolvedRole === "admin" ? "Admin" : "Agente");
     if (userName) userName.textContent = user.name || user.email || "Usuario";
     if (userRole) userRole.textContent = roleLabel;
     if (userAvatar) {
@@ -2537,7 +2686,8 @@ async function loadCurrentUser() {
       const user = auth.user || {};
       currentUserId = user.id || null;
       currentUserIsSuperAdmin = Boolean(user.isSuperAdmin);
-      const roleLabel = user.role === "super_admin" ? "Super Admin" : (user.role === "admin" ? "Admin" : "Agente");
+      const resolvedRole = resolveUserRole(user.role, user.isSuperAdmin);
+      const roleLabel = resolvedRole === "super_admin" ? "Super Admin" : (resolvedRole === "admin" ? "Admin" : "Agente");
       if (userName) userName.textContent = user.name || user.email || "Usuario";
       if (userRole) userRole.textContent = roleLabel;
       if (userAvatar) {
@@ -2572,14 +2722,51 @@ function toggleUserMenu(forceState) {
 async function loadCompanyProfile() {
   try {
     const data = await fetchJson("/api/company");
-    if (companyLogo && data.logoBase64) {
-      companyLogo.src = data.logoBase64;
+    if (clientLogo) {
+      if (data.logoBase64) {
+        clientLogo.src = data.logoBase64;
+        clientLogo.style.display = "";
+        clientLogo.closest(".topbar-brand")?.classList.add("has-client-logo");
+      } else {
+        clientLogo.src = "";
+        clientLogo.style.display = "none";
+        clientLogo.closest(".topbar-brand")?.classList.remove("has-client-logo");
+      }
     }
     if (companyName) companyName.value = data.name || "";
     if (companyPhone) companyPhone.value = data.phone || "";
     if (companyAddress) companyAddress.value = data.address || "";
   } catch {
     // ignore load errors
+  }
+}
+
+async function loadBranding() {
+  try {
+    const response = await fetch("/brand.json", { cache: "no-cache" });
+    if (!response.ok) return;
+    const brand = await response.json();
+    const appTitle = String(brand.appTitle || "").trim();
+    const clientName = String(brand.clientName || "").trim();
+    if (appTitle) {
+      document.title = clientName ? `${appTitle} · ${clientName}` : appTitle;
+    }
+    if (heroTitle && brand.heroTitle) {
+      heroTitle.textContent = String(brand.heroTitle);
+    } else if (heroTitle && clientName) {
+      heroTitle.textContent = `Panorama operativo · ${clientName}`;
+    }
+    if (heroSubtitle && brand.heroSubtitle) {
+      heroSubtitle.textContent = String(brand.heroSubtitle);
+    }
+    if (assistantTag && brand.assistantTag) {
+      assistantTag.textContent = String(brand.assistantTag);
+    }
+    if (assistantInput && brand.assistantPlaceholder) {
+      assistantInput.placeholder = String(brand.assistantPlaceholder);
+    }
+  } catch {
+    // ignore branding errors
   }
 }
 
@@ -2638,8 +2825,16 @@ async function saveCompany() {
       body: JSON.stringify(payload),
     });
     if (companyMessage) companyMessage.textContent = "Empresa actualizada.";
-    if (companyLogo) {
-      companyLogo.src = data.logoBase64 || "/assets/logo.png";
+    if (clientLogo) {
+      if (data.logoBase64) {
+        clientLogo.src = data.logoBase64;
+        clientLogo.style.display = "";
+        clientLogo.closest(".topbar-brand")?.classList.add("has-client-logo");
+      } else {
+        clientLogo.src = "";
+        clientLogo.style.display = "none";
+        clientLogo.closest(".topbar-brand")?.classList.remove("has-client-logo");
+      }
     }
   } catch (error) {
     if (companyMessage) {
@@ -2706,9 +2901,11 @@ async function createUserFromForm() {
       name: userNameInput ? userNameInput.value.trim() : "",
       email: userEmailInput ? userEmailInput.value.trim() : "",
       phone: userPhoneInput ? userPhoneInput.value.trim() : "",
-      role: userRoleInput ? userRoleInput.value : "agent",
       password: userPasswordInput ? userPasswordInput.value : "",
     };
+    if (currentUserIsSuperAdmin && userRoleInput) {
+      payload.role = userRoleInput.value;
+    }
     const data = await fetchJson("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2732,6 +2929,9 @@ async function loadLogs() {
   const params = new URLSearchParams();
   if (logStatus.value) {
     params.set("status", logStatus.value);
+  }
+  if (logEntity instanceof HTMLSelectElement && logEntity.value) {
+    params.set("entity", logEntity.value);
   }
   if (logOrderId.value) {
     params.set("orderId", logOrderId.value);
@@ -8461,6 +8661,7 @@ function setSaPane(paneKey) {
   if (saPaneTenant) saPaneTenant.style.display = key === "tenant" ? "" : "none";
   if (saPaneServices) saPaneServices.style.display = key === "services" ? "" : "none";
   if (saPanePlans) saPanePlans.style.display = key === "plans" ? "" : "none";
+  if (saPaneUsers) saPaneUsers.style.display = key === "users" ? "" : "none";
 }
 
 function ensureSaDefaultsUi() {
@@ -8667,6 +8868,120 @@ async function loadSaPlanLimits() {
     .join("");
 }
 
+function resetSaUserForm() {
+  editingSaUserId = null;
+  if (saUserNameInput) saUserNameInput.value = "";
+  if (saUserEmailInput) saUserEmailInput.value = "";
+  if (saUserPhoneInput) saUserPhoneInput.value = "";
+  if (saUserPasswordInput) saUserPasswordInput.value = "";
+  if (saUserCreate) saUserCreate.textContent = "Crear super admin";
+  if (saUserCancel) saUserCancel.style.display = "none";
+}
+
+function setSaUsersMessage(message) {
+  if (saUsersMessage) saUsersMessage.textContent = message || "";
+}
+
+function renderSaUsers(items) {
+  if (!saUsersBody) return;
+  if (!Array.isArray(items) || !items.length) {
+    saUsersBody.innerHTML = `<tr><td colspan="5" class="empty">Sin usuarios.</td></tr>`;
+    return;
+  }
+  const byId = new Map(items.map((user) => [String(user.id), user]));
+  saUsersBody.innerHTML = items
+    .map((user) => {
+      const isSelf = Number(user.id) === Number(currentUserId);
+      return `
+        <tr>
+          <td>${escapeHtml(user.name || "-")}</td>
+          <td>${escapeHtml(user.email || "-")}</td>
+          <td>${escapeHtml(user.phone || "-")}</td>
+          <td>${user.createdAt ? formatDate(user.createdAt) : "-"}</td>
+          <td>
+            <button class="ghost" type="button" data-sa-user-edit="${user.id}">Editar</button>
+            <button class="ghost danger" type="button" data-sa-user-delete="${user.id}" ${isSelf ? "disabled" : ""}>Eliminar</button>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+  saUsersBody.querySelectorAll("button[data-sa-user-edit]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const userId = String(button.getAttribute("data-sa-user-edit") || "");
+      const user = byId.get(userId);
+      if (!user) return;
+      editingSaUserId = Number(user.id);
+      if (saUserNameInput) saUserNameInput.value = user.name || "";
+      if (saUserEmailInput) saUserEmailInput.value = user.email || "";
+      if (saUserPhoneInput) saUserPhoneInput.value = user.phone || "";
+      if (saUserPasswordInput) saUserPasswordInput.value = "";
+      if (saUserCreate) saUserCreate.textContent = "Guardar cambios";
+      if (saUserCancel) saUserCancel.style.display = "";
+      setSaUsersMessage("");
+    });
+  });
+  saUsersBody.querySelectorAll("button[data-sa-user-delete]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const userId = Number(button.getAttribute("data-sa-user-delete") || 0);
+      if (!userId) return;
+      const confirmDelete = window.confirm("Seguro que deseas eliminar este super admin?");
+      if (!confirmDelete) return;
+      try {
+        await fetchJson(`/api/sa/users/${userId}`, { method: "DELETE" });
+        setSaUsersMessage("Super admin eliminado.");
+        await loadSaUsers();
+      } catch (error) {
+        setSaUsersMessage(error?.message || "No se pudo eliminar.");
+      }
+    });
+  });
+}
+
+async function loadSaUsers() {
+  try {
+    resetSaUserForm();
+    setSaUsersMessage("");
+    const data = await fetchJson(`/api/sa/users?t=${Date.now()}`);
+    renderSaUsers(data.items || []);
+  } catch (error) {
+    setSaUsersMessage(error?.message || "No se pudieron cargar usuarios.");
+  }
+}
+
+async function saveSaUserFromForm() {
+  if (!saUserCreate) return;
+  try {
+    const name = saUserNameInput ? saUserNameInput.value.trim() : "";
+    const email = saUserEmailInput ? saUserEmailInput.value.trim() : "";
+    const phone = saUserPhoneInput ? saUserPhoneInput.value.trim() : "";
+    const password = saUserPasswordInput ? saUserPasswordInput.value : "";
+    if (!email) {
+      throw new Error("Email requerido.");
+    }
+    const payload = { email, name, phone };
+    if (password) {
+      payload.password = password;
+    }
+    if (!editingSaUserId && !password) {
+      throw new Error("Contrasena requerida.");
+    }
+    const method = editingSaUserId ? "PUT" : "POST";
+    const url = editingSaUserId ? `/api/sa/users/${editingSaUserId}` : "/api/sa/users";
+    setSaUsersMessage(editingSaUserId ? "Actualizando..." : "Creando...");
+    await fetchJson(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    setSaUsersMessage(editingSaUserId ? "Super admin actualizado." : "Super admin creado.");
+    resetSaUserForm();
+    await loadSaUsers();
+  } catch (error) {
+    setSaUsersMessage(error?.message || "No se pudo guardar.");
+  }
+}
+
 async function loadSuperAdmin() {
   if (!currentUserIsSuperAdmin) {
     setSaStatus("Sin permisos.", "is-warn");
@@ -8688,6 +9003,11 @@ async function loadSuperAdmin() {
   }
   if (tabKey === "plans") {
     await loadSaPlanLimits();
+    setSaStatus("OK", "is-ok");
+    return;
+  }
+  if (tabKey === "users") {
+    await loadSaUsers();
     setSaStatus("OK", "is-ok");
     return;
   }
@@ -9623,7 +9943,7 @@ function buildAssistantMessage(role, content, options = {}) {
     badge.className = "assistant-avatar-badge";
     const avatar = document.createElement("img");
     avatar.src = "/assets/avatar.png";
-    avatar.alt = "Olivia IA";
+    avatar.alt = "Asistente IA";
     avatar.className = "assistant-message-avatar";
     avatarWrap.appendChild(badge);
     avatarWrap.appendChild(avatar);
@@ -11418,6 +11738,16 @@ if (saPlanLimitsBody instanceof HTMLElement) {
     }
   });
 }
+if (saUserCreate) {
+  saUserCreate.addEventListener("click", () => {
+    saveSaUserFromForm().catch(() => null);
+  });
+}
+if (saUserCancel) {
+  saUserCancel.addEventListener("click", () => {
+    resetSaUserForm();
+  });
+}
 if (assistantInput) {
   assistantInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.ctrlKey) {
@@ -11917,7 +12247,11 @@ if (companyLogoInput) {
         throw new Error("El logo supera 2MB.");
       }
       const preview = await readFileAsDataUrl(file);
-      if (companyLogo) companyLogo.src = preview;
+      if (clientLogo) {
+        clientLogo.src = preview;
+        clientLogo.style.display = "";
+        clientLogo.closest(".topbar-brand")?.classList.add("has-client-logo");
+      }
     } catch (error) {
       if (companyMessage) {
         companyMessage.textContent = error?.message || "No se pudo cargar el logo.";
@@ -12988,6 +13322,7 @@ async function init() {
   if (params.get("settings") === "1") {
     document.body.classList.add("force-settings");
   }
+  safeLoad(loadBranding());
   loadSidebarState();
   captureOnboardingParam();
   initSettingsSubmenu();
@@ -13009,6 +13344,7 @@ async function init() {
   updateWizardStartAvailability();
   applyProductSettings();
   await safeLoad(loadCurrentUser());
+  await safeLoad(loadTenantModules());
   await safeLoad(ensureCsrfToken());
   await safeLoad(loadCompanyProfile());
   await safeLoad(loadUsers());
