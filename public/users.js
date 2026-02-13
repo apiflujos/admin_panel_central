@@ -16,8 +16,17 @@ const userCreate = document.getElementById("user-create");
 const usersMessage = document.getElementById("users-message");
 
 let currentUserRole = "agent";
+let csrfToken = "";
 
 async function fetchJson(url, options) {
+  const method = String(options?.method || "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
+    const headers = new Headers(options?.headers || {});
+    if (csrfToken) {
+      headers.set("X-CSRF-Token", csrfToken);
+    }
+    options = { ...(options || {}), headers };
+  }
   const response = await fetch(url, options);
   if (response.status === 401) {
     window.location.href = "/login.html";
@@ -34,6 +43,15 @@ function toggleUserMenu(forceState) {
   if (!userMenu) return;
   const next = typeof forceState === "boolean" ? forceState : !userMenu.classList.contains("is-open");
   userMenu.classList.toggle("is-open", next);
+}
+
+async function ensureCsrfToken() {
+  try {
+    const data = await fetchJson("/api/auth/csrf");
+    csrfToken = String(data?.token || "");
+  } catch {
+    csrfToken = "";
+  }
 }
 
 async function loadCurrentUser() {
@@ -54,6 +72,7 @@ async function loadCurrentUser() {
     if (companyLogo && data.company?.logoBase64) {
       companyLogo.src = data.company.logoBase64;
     }
+    await ensureCsrfToken();
   } catch {
     // ignore
   }
@@ -172,7 +191,7 @@ if (userMenu) {
       return;
     }
     if (action === "logout") {
-      fetch("/api/auth/logout", { method: "POST" })
+      fetchJson("/api/auth/logout", { method: "POST" })
         .catch(() => null)
         .finally(() => {
           window.location.href = "/login.html";

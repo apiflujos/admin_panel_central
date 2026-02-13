@@ -5,8 +5,10 @@ import {
   authMiddleware,
   changePasswordHandler,
   createAuthTokenHandler,
+  csrfTokenHandler,
   loginHandler,
   logoutHandler,
+  requireCsrf,
   requireAdmin,
   requireSuperAdmin,
 } from "./auth.controller";
@@ -136,6 +138,7 @@ router.get("/marketing/pixel.js", wrap(marketingPixelScriptHandler));
 router.post("/marketing/collect", wrap(marketingCollectHandler));
 
 router.post("/auth/login", wrap(loginHandler));
+router.get("/auth/csrf", wrap(csrfTokenHandler));
 router.get("/auth/shopify", wrap(startShopifyOAuth));
 router.get("/auth/shopify/callback", wrap(shopifyOAuthCallback));
 router.get("/auth/google-ads/callback", wrap(googleAdsOAuthCallback));
@@ -144,6 +147,7 @@ router.get("/auth/tiktok-ads/callback", wrap(tiktokAdsOAuthCallback));
 router.get("/company/public", wrap(getCompanyPublicHandler));
 
 router.use(wrap(authMiddleware));
+router.use(wrap(requireCsrf));
 
 router.post("/auth/logout", wrap(logoutHandler));
 router.post("/auth/password", wrap(changePasswordHandler));

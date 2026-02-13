@@ -14,8 +14,17 @@ const companySave = document.getElementById("company-save");
 const companyMessage = document.getElementById("company-message");
 
 let currentUserRole = "agent";
+let csrfToken = "";
 
 async function fetchJson(url, options) {
+  const method = String(options?.method || "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
+    const headers = new Headers(options?.headers || {});
+    if (csrfToken) {
+      headers.set("X-CSRF-Token", csrfToken);
+    }
+    options = { ...(options || {}), headers };
+  }
   const response = await fetch(url, options);
   if (response.status === 401) {
     window.location.href = "/login.html";
@@ -26,6 +35,15 @@ async function fetchJson(url, options) {
     throw new Error(text || "Error de red");
   }
   return response.json();
+}
+
+async function ensureCsrfToken() {
+  try {
+    const data = await fetchJson("/api/auth/csrf");
+    csrfToken = String(data?.token || "");
+  } catch {
+    csrfToken = "";
+  }
 }
 
 function toggleUserMenu(forceState) {
@@ -48,6 +66,7 @@ async function loadCurrentUser() {
     document.querySelectorAll(".admin-only").forEach((el) => {
       el.style.display = currentUserRole === "admin" ? "" : "none";
     });
+    await ensureCsrfToken();
   } catch {
     // ignore
   }
@@ -159,7 +178,7 @@ if (userMenu) {
       return;
     }
     if (action === "logout") {
-      fetch("/api/auth/logout", { method: "POST" })
+      fetchJson("/api/auth/logout", { method: "POST" })
         .catch(() => null)
         .finally(() => {
           window.location.href = "/login.html";

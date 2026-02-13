@@ -643,6 +643,7 @@ let productsShopifyBulkAbort = null;
 let productsShopifyBulkRunning = false;
 let activeProductsShopifyBulkSyncId = "";
 let operationsView = "orders";
+let csrfToken = "";
 
 function setOrdersBulkSyncRunning(running) {
   const isRunning = Boolean(running);
@@ -1550,6 +1551,14 @@ async function runPhotosBulkUpload() {
 }
 
 async function fetchJson(url, options) {
+  const method = String(options?.method || "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
+    const headers = new Headers(options?.headers || {});
+    if (csrfToken) {
+      headers.set("X-CSRF-Token", csrfToken);
+    }
+    options = { ...(options || {}), headers };
+  }
   let response;
   try {
     response = await fetch(url, options);
@@ -1579,6 +1588,15 @@ async function fetchJson(url, options) {
     throw new Error(message || "Error de red");
   }
   return response.json();
+}
+
+async function ensureCsrfToken() {
+  try {
+    const data = await fetchJson("/api/auth/csrf");
+    csrfToken = String(data?.token || "");
+  } catch {
+    csrfToken = "";
+  }
 }
 
 function closeHelpPanels(except) {
@@ -11216,7 +11234,7 @@ if (metricsReportDownload) {
 }
 if (sidebarLogout) {
   sidebarLogout.addEventListener("click", () => {
-    fetch("/api/auth/logout", { method: "POST" })
+    fetchJson("/api/auth/logout", { method: "POST" })
       .catch(() => null)
       .finally(() => {
         window.location.href = "/login.html";
@@ -11937,7 +11955,7 @@ if (userMenuToggle) {
       return;
     }
       if (action === "logout") {
-        fetch("/api/auth/logout", { method: "POST" })
+        fetchJson("/api/auth/logout", { method: "POST" })
           .catch(() => null)
           .finally(() => {
             window.location.href = "/login.html";
@@ -12991,6 +13009,7 @@ async function init() {
   updateWizardStartAvailability();
   applyProductSettings();
   await safeLoad(loadCurrentUser());
+  await safeLoad(ensureCsrfToken());
   await safeLoad(loadCompanyProfile());
   await safeLoad(loadUsers());
   await safeLoad(loadConnections());

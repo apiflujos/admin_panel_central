@@ -8,6 +8,7 @@ import {
   updatePassword,
 } from "../services/auth.service";
 import { getSuperAdminEmail } from "../sa/sa.bootstrap";
+import { createCsrfToken, verifyCsrfToken } from "../utils/csrf";
 
 function getCookie(req: Request, name: string) {
   const header = req.headers.cookie || "";
@@ -144,6 +145,23 @@ export async function changePasswordHandler(req: Request, res: Response) {
   }
 }
 
+export async function csrfTokenHandler(req: Request, res: Response) {
+  const token = getAuthToken(req);
+  if (!token) {
+    res.status(401).json({ error: "unauthorized" });
+    return;
+  }
+  const csrf = createCsrfToken(token);
+  if (!csrf) {
+    const isProd = process.env.NODE_ENV === "production";
+    if (isProd) {
+      res.status(500).json({ error: "csrf_unavailable" });
+      return;
+    }
+  }
+  res.json({ ok: true, token: csrf || "" });
+}
+
 export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
   const token = getAuthToken(req);
   const user = await getSessionUser(token);
@@ -216,4 +234,33 @@ export async function createAuthTokenHandler(req: Request, res: Response) {
     ttlMinutes: clamped ?? null,
     scopes,
   });
+}
+
+export function requireCsrf(req: Request, res: Response, next: NextFunction) {
+  const method = String(req.method || "GET").toUpperCase();
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") {
+    next();
+    return;
+  }
+  const token = getAuthToken(req);
+  if (!token) {
+    res.status(401).json({ error: "unauthorized" });
+    return;
+  }
+  const expected = createCsrfToken(token);
+  if (!expected) {
+    const isProd = process.env.NODE_ENV === "production";
+    if (isProd) {
+      res.status(500).json({ error: "csrf_unavailable" });
+      return;
+    }
+    next();
+    return;
+  }
+  const header = String(req.headers["x-csrf-token"] || "");
+  if (!verifyCsrfToken(token, header)) {
+    res.status(403).json({ error: "csrf_invalid" });
+    return;
+  }
+  next();
 }
