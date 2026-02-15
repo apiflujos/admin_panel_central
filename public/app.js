@@ -242,9 +242,12 @@ const productsStoreSelect = document.getElementById("products-store-select");
 const contactsStoreSelect = document.getElementById("contacts-store-select");
 const storeSyncSourceSelect = document.getElementById("store-sync-source");
 const storeSyncTargetSelect = document.getElementById("store-sync-target");
+const storeSyncSourceProviderSelect = document.getElementById("store-sync-source-provider");
+const storeSyncTargetProviderSelect = document.getElementById("store-sync-target-provider");
 const storeSyncAlegraAccountSelect = document.getElementById("store-sync-alegra-account");
 const storeSyncPriceListSelect = document.getElementById("store-sync-price-list");
 const storeSyncStatusSelect = document.getElementById("store-sync-status");
+const storeSyncScopeSelect = document.getElementById("store-sync-scope");
 const storeSyncPriceFallbackSelect = document.getElementById("store-sync-price-fallback");
 const storeSyncOnlyActive = document.getElementById("store-sync-only-active");
 const storeSyncIncludeDescriptions = document.getElementById("store-sync-include-descriptions");
@@ -3603,12 +3606,15 @@ function validateInitialConnection(kind) {
   const hasActiveContext = Boolean(activeDomain);
   const nameInput = storeNameInput ? storeNameInput.value.trim() : "";
   const resolvedName = nameInput || (activeDomain && activeStoreName ? activeStoreName : "");
+  const hasShopifyContext = Boolean(resolvedDomain);
 
-  if (!resolvedName && !hasActiveContext) {
-    errors.push({ field: storeNameInput, message: "Nombre de tienda requerido." });
-  }
-  if (!resolvedDomain) {
-    errors.push({ field: shopifyDomain, message: "Dominio Shopify requerido." });
+  if (kind !== "alegra" || hasShopifyContext) {
+    if (!resolvedName && !hasActiveContext) {
+      errors.push({ field: storeNameInput, message: "Nombre de tienda requerido." });
+    }
+    if (!resolvedDomain) {
+      errors.push({ field: shopifyDomain, message: "Dominio Shopify requerido." });
+    }
   }
   if (kind === "shopify" && getShopifyConnectMethod() === "token") {
     if (!shopifyToken || !shopifyToken.value.trim()) {
@@ -3617,7 +3623,12 @@ function validateInitialConnection(kind) {
   }
   if (kind === "alegra") {
     if (alegraAccountSelect && alegraAccountSelect.value !== "new") {
-      // account selected; no extra required fields
+      if (!hasShopifyContext) {
+        errors.push({
+          field: alegraAccountSelect,
+          message: "Selecciona una cuenta nueva para conectar Alegra sin tienda.",
+        });
+      }
     } else {
       if (!alegraEmail || !alegraEmail.value.trim()) {
         errors.push({
@@ -5366,7 +5377,7 @@ function renderStoreActiveSelect(stores, options = {}) {
     storeActiveField.style.display = "none";
     storeActiveSelect.innerHTML = "";
     renderStoreActiveList([]);
-    renderStoreSyncSelects([]);
+    renderStoreSyncSelects();
     if (storeActiveNameLabel) {
       storeActiveNameLabel.textContent = "-";
     }
@@ -5403,7 +5414,7 @@ function renderStoreActiveSelect(stores, options = {}) {
   updateStoreModuleTitles();
   renderStoreActiveList(stores);
   renderStoreContextSelects(stores);
-  renderStoreSyncSelects(stores);
+  renderStoreSyncSelects();
   renderMarketingConfigStoreSelects(stores);
   setShopifyWebhooksStatus("Sin configurar");
   const activePane =
@@ -5669,31 +5680,52 @@ async function connectMarketingSetup() {
     setMarketingConfigStatus(error?.message || "No se pudo conectar marketing.", "is-error");
   }
 }
-function renderStoreSyncSelects(stores) {
+function getStoresByProvider(provider) {
+  if (provider === "woocommerce") return Array.isArray(wooStoresCache) ? wooStoresCache : [];
+  return Array.isArray(storesCache) ? storesCache : [];
+}
+
+function renderStoreSyncSelects() {
   if (!storeSyncSourceSelect || !storeSyncTargetSelect) return;
-  const list = Array.isArray(stores) ? stores : [];
-  const options = list
-    .map((store) => `<option value="${store.shopDomain}">${store.storeName || store.shopDomain}</option>`)
-    .join("");
-  storeSyncSourceSelect.innerHTML = options;
-  storeSyncTargetSelect.innerHTML = options;
-  const disabled = list.length <= 1;
-  storeSyncSourceSelect.disabled = disabled;
-  storeSyncTargetSelect.disabled = disabled;
-  const defaultSource = activeStoreDomain || list[0]?.shopDomain || "";
+  const sourceProvider = storeSyncSourceProviderSelect?.value || "shopify";
+  const targetProvider = storeSyncTargetProviderSelect?.value || "shopify";
+  const sourceList = getStoresByProvider(sourceProvider);
+  const targetList = getStoresByProvider(targetProvider);
+  const sourceOptions = sourceList.length
+    ? sourceList
+        .map((store) => `<option value="${store.shopDomain}">${store.storeName || store.shopDomain}</option>`)
+        .join("")
+    : `<option value="">Sin tiendas</option>`;
+  const targetOptions = targetList.length
+    ? targetList
+        .map((store) => `<option value="${store.shopDomain}">${store.storeName || store.shopDomain}</option>`)
+        .join("")
+    : `<option value="">Sin tiendas</option>`;
+  storeSyncSourceSelect.innerHTML = sourceOptions;
+  storeSyncTargetSelect.innerHTML = targetOptions;
+  storeSyncSourceSelect.disabled = sourceList.length <= 0;
+  storeSyncTargetSelect.disabled = targetList.length <= 0;
+  const defaultSource =
+    sourceProvider === "shopify"
+      ? activeStoreDomain || sourceList[0]?.shopDomain || ""
+      : sourceList[0]?.shopDomain || "";
   if (defaultSource) storeSyncSourceSelect.value = defaultSource;
   if (!storeSyncTargetSelect.value || storeSyncTargetSelect.value === defaultSource) {
-    const fallback = list.find((store) => store.shopDomain !== defaultSource)?.shopDomain || defaultSource;
-    storeSyncTargetSelect.value = fallback;
+    const fallback = targetList.find((store) => store.shopDomain !== defaultSource)?.shopDomain || targetList[0]?.shopDomain || "";
+    if (fallback) storeSyncTargetSelect.value = fallback;
   }
   ensureStoreSyncDistinct();
 }
 
 function ensureStoreSyncDistinct() {
   if (!storeSyncSourceSelect || !storeSyncTargetSelect) return;
+  const sourceProvider = storeSyncSourceProviderSelect?.value || "shopify";
+  const targetProvider = storeSyncTargetProviderSelect?.value || "shopify";
   const source = storeSyncSourceSelect.value;
   const target = storeSyncTargetSelect.value;
-  if (!source || source !== target) return;
+  if (!source || !target) return;
+  if (sourceProvider !== targetProvider) return;
+  if (source !== target) return;
   const options = Array.from(storeSyncTargetSelect.options || []);
   const fallback = options.find((option) => option.value && option.value !== source);
   if (fallback) {
@@ -8163,19 +8195,26 @@ async function runProductsShopifyBulkSync() {
 }
 
 async function runStoreProductsSync() {
+  const sourceProvider = storeSyncSourceProviderSelect?.value || "shopify";
+  const targetProvider = storeSyncTargetProviderSelect?.value || "shopify";
   const source = normalizeShopDomain(storeSyncSourceSelect?.value || "");
   const target = normalizeShopDomain(storeSyncTargetSelect?.value || "");
+  const scope = storeSyncScopeSelect instanceof HTMLSelectElement ? storeSyncScopeSelect.value : "products";
   const alegraAccountId =
     storeSyncAlegraAccountSelect instanceof HTMLSelectElement
       ? Number(storeSyncAlegraAccountSelect.value || 0)
       : 0;
   const priceListId =
     storeSyncPriceListSelect instanceof HTMLSelectElement ? storeSyncPriceListSelect.value : "";
+  if (scope !== "products") {
+    if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Inventario: proximo modulo. Selecciona Productos.";
+    return;
+  }
   if (!source || !target) {
     if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Selecciona tiendas origen y destino.";
     return;
   }
-  if (source === target) {
+  if (sourceProvider === targetProvider && source === target) {
     if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Origen y destino deben ser diferentes.";
     return;
   }
@@ -8211,11 +8250,14 @@ async function runStoreProductsSync() {
 
   if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Sincronizando...";
   try {
+    const isShopifyOnly = sourceProvider === "shopify" && targetProvider === "shopify";
     const result = await fetchJson("/api/sync/stores/products", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        provider: "shopify",
+        provider: isShopifyOnly ? "shopify" : "cross",
+        sourceProvider,
+        targetProvider,
         sourceShopDomain: source,
         targetShopDomain: target,
         settings: {
@@ -11458,6 +11500,20 @@ async function connectStore(kind) {
   const normalizedInput = normalizeShopDomain(shopDomainValue || "");
   const sameStore = normalizedActive && normalizedActive === normalizedInput;
   const resolvedStoreName = storeName || (sameStore ? activeStoreName : "") || "";
+  const hasShopifyContext = Boolean(normalizedInput || normalizedActive);
+  if (kind === "alegra" && !hasShopifyContext) {
+    if (alegraAccountSelect && alegraAccountSelect.value !== "new") {
+      throw new Error("Selecciona una cuenta nueva para conectar Alegra sin tienda.");
+    }
+    await saveCredentials("alegra");
+    showToast("Alegra conectado.", "is-ok");
+    clearConnectionForm();
+    setConnectionsSetupOpen(true);
+    setSettingsPane("connections", { persist: false });
+    await loadSettings({ preserveUi: true });
+    updateConnectionPills();
+    return;
+  }
   if (!shopDomainValue) {
     throw new Error("Dominio Shopify requerido");
   }
@@ -12471,9 +12527,21 @@ if (storeSyncSourceSelect) {
   });
 }
 
+if (storeSyncSourceProviderSelect) {
+  storeSyncSourceProviderSelect.addEventListener("change", () => {
+    renderStoreSyncSelects();
+  });
+}
+
 if (storeSyncTargetSelect) {
   storeSyncTargetSelect.addEventListener("change", () => {
     ensureStoreSyncDistinct();
+  });
+}
+
+if (storeSyncTargetProviderSelect) {
+  storeSyncTargetProviderSelect.addEventListener("change", () => {
+    renderStoreSyncSelects();
   });
 }
 
@@ -12486,8 +12554,11 @@ if (storeSyncRun) {
 if (storeSyncClear) {
   storeSyncClear.addEventListener("click", () => {
     if (storeSyncStatusSelect instanceof HTMLSelectElement) storeSyncStatusSelect.value = "draft";
+    if (storeSyncScopeSelect instanceof HTMLSelectElement) storeSyncScopeSelect.value = "products";
     if (storeSyncPriceFallbackSelect instanceof HTMLSelectElement)
       storeSyncPriceFallbackSelect.value = "shopify";
+    if (storeSyncSourceProviderSelect instanceof HTMLSelectElement) storeSyncSourceProviderSelect.value = "shopify";
+    if (storeSyncTargetProviderSelect instanceof HTMLSelectElement) storeSyncTargetProviderSelect.value = "shopify";
     if (storeSyncAlegraAccountSelect instanceof HTMLSelectElement)
       storeSyncAlegraAccountSelect.value = "";
     if (storeSyncPriceListSelect instanceof HTMLSelectElement) {
@@ -12503,6 +12574,7 @@ if (storeSyncClear) {
     if (storeSyncIncludeImages instanceof HTMLInputElement) storeSyncIncludeImages.checked = true;
     if (storeSyncIncludeProductType instanceof HTMLInputElement) storeSyncIncludeProductType.checked = true;
     if (storeSyncIncludeTags instanceof HTMLInputElement) storeSyncIncludeTags.checked = true;
+    renderStoreSyncSelects();
     ensureStoreSyncDistinct();
     if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Sin datos";
   });
