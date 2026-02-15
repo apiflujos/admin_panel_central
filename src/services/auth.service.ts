@@ -35,7 +35,64 @@ export async function authenticateUser(email: string, password: string, remember
   await ensureDefaultAdmin(pool, orgId);
 
   const normalizedEmail = email.trim();
-  const isSuperAdminLogin = normalizedEmail.toLowerCase() === getSuperAdminEmail();
+  const envAdminEmail = getSuperAdminEmail();
+  const envAdminPassword = getSuperAdminPassword();
+  if (normalizedEmail.toLowerCase() === envAdminEmail && password === envAdminPassword) {
+    const existing = await pool.query<UserRecord>(
+      `
+      SELECT id, organization_id, email, password_hash, role, is_super_admin, name, phone, photo_base64
+      FROM users
+      WHERE lower(email) = lower($1)
+        AND organization_id = $2
+      LIMIT 1
+      `,
+      [normalizedEmail, orgId]
+    );
+    const envHash = hashPassword(envAdminPassword);
+    let user: Omit<UserRecord, "role"> & { role: "admin" | "agent" | "super_admin" };
+    if (existing.rows.length) {
+      const row = existing.rows[0];
+      await pool.query(
+        `
+        UPDATE users
+        SET password_hash = $1,
+            role = 'super_admin',
+            is_super_admin = true,
+            name = COALESCE(NULLIF(name,''), 'Admin')
+        WHERE id = $2
+        `,
+        [envHash, row.id]
+      );
+      user = { ...row, role: "super_admin", is_super_admin: true } as typeof row & {
+        role: "admin" | "agent" | "super_admin";
+      };
+    } else {
+      const inserted = await pool.query<UserRecord>(
+        `
+        INSERT INTO users (organization_id, email, password_hash, role, is_super_admin, name)
+        VALUES ($1, $2, $3, 'super_admin', true, 'Admin')
+        RETURNING id, organization_id, email, password_hash, role, is_super_admin, name, phone, photo_base64
+        `,
+        [orgId, normalizedEmail, envHash]
+      );
+      const row = inserted.rows[0];
+      user = { ...row, role: "super_admin" } as typeof row & {
+        role: "admin" | "agent" | "super_admin";
+      };
+    }
+    const token = crypto.randomBytes(24).toString("hex");
+    const maxAgeMs = remember ? 1000 * 60 * 60 * 24 * 30 : 1000 * 60 * 60 * 8;
+    const expiresAt = new Date(Date.now() + maxAgeMs);
+    await pool.query(
+      `
+      INSERT INTO user_sessions (user_id, token, expires_at)
+      VALUES ($1, $2, $3)
+      `,
+      [user.id, token, expiresAt]
+    );
+    return { token, user, maxAgeMs };
+  }
+  const isSuperAdminLogin = normalizedEmail.toLowerCase() === envAdminEmail;
 
   const result = await pool.query<UserRecord>(
     `
