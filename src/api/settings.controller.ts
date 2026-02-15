@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { validateConnections } from "../services/connectivity.service";
 import { createSyncLog } from "../services/logs.service";
+import { saveConnectionTest } from "../services/connection-tests.service";
 import {
   getSettings as getSettingsService,
   listAlegraCatalogItems,
@@ -22,6 +23,7 @@ const getErrorMessage = (error: unknown) =>
 const summarizeSettingsPayload = (payload: Record<string, unknown>) => ({
   hasShopify: Boolean((payload.shopify as Record<string, unknown> | undefined)?.accessToken),
   hasAlegra: Boolean((payload.alegra as Record<string, unknown> | undefined)?.apiKey),
+  hasWooCommerce: Boolean((payload.woocommerce as Record<string, unknown> | undefined)?.consumerKey),
   hasAi: Boolean((payload.ai as Record<string, unknown> | undefined)?.apiKey),
   hasAdsApps: Boolean(payload.adsApps),
   hasRules: Boolean(payload.rules),
@@ -34,6 +36,19 @@ export async function testConnections(req: Request, res: Response) {
   try {
     const result = await validateConnections(req.body || {});
     res.status(200).json(result);
+    if (Array.isArray(result.results)) {
+      await Promise.all(
+        result.results.map((entry) =>
+          saveConnectionTest({
+            provider: entry.provider,
+            status: entry.status,
+            message: entry.message || null,
+            request: summarizeSettingsPayload(req.body || {}),
+            response: { status: entry.status, message: entry.message || null },
+          }).catch(() => undefined)
+        )
+      );
+    }
     await safeCreateLog({
       entity: "connections_test",
       direction: "shopify->alegra",

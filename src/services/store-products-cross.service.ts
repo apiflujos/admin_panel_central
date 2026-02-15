@@ -462,6 +462,14 @@ export async function syncProductsAcrossProviders(
       if (params.sourceProvider === "shopify") {
         const product = entry.product as ShopifyProduct;
         const identifiers = resolveShopifyVariantIdentifiers(product);
+        if (!identifiers.length) {
+          result.skipped += 1;
+          result.errors?.push({
+            title: String(product?.title || "").trim() || undefined,
+            message: "SKU o barcode requerido para sincronizar producto de Shopify.",
+          });
+          continue;
+        }
         let exists = false;
         if (params.targetProvider === "shopify" && targetShopify) {
           for (const identifier of identifiers) {
@@ -526,6 +534,14 @@ export async function syncProductsAcrossProviders(
         const product = entry.product as WooProduct;
         const variations = entry.variations || [];
         const identifiers = resolveWooIdentifiers(product, variations);
+        if (!identifiers.length) {
+          result.skipped += 1;
+          result.errors?.push({
+            title: String(product?.name || "").trim() || undefined,
+            message: "SKU requerido para sincronizar producto de WooCommerce.",
+          });
+          continue;
+        }
         let exists = false;
         if (params.targetProvider === "shopify" && targetShopify) {
           for (const identifier of identifiers) {
