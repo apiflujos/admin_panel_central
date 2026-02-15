@@ -11392,6 +11392,20 @@ async function connectWooCommerceStore() {
   if (!consumerKey || !consumerSecret) {
     throw new Error("Consumer Key y Secret requeridos.");
   }
+  const testResult = await fetchJson("/api/settings/test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      woocommerce: {
+        shopDomain: domain,
+        consumerKey,
+        consumerSecret,
+      },
+    }),
+  });
+  if (!String(testResult?.woocommerce || "").startsWith("ok")) {
+    throw new Error(String(testResult?.woocommerce || "No se pudo validar WooCommerce."));
+  }
   const storeName = storeNameInput ? storeNameInput.value.trim() : "";
   const response = await fetchJson("/api/woocommerce/connections", {
     method: "POST",
