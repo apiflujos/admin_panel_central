@@ -35,6 +35,7 @@ import { shopifyMarketingWebhookHandler } from "./marketing-webhooks.controller"
 import { marketingCollectHandler, marketingPixelScriptHandler } from "./marketing-pixel.controller";
 import { getInventoryAdjustmentsCheckpoint } from "./checkpoints.controller";
 import { createConnection, listConnections, removeConnection, removeConnectionByDomain } from "./connections.controller";
+import { listConnectionTestsHandler } from "./connection-tests.controller";
 import { listStoreConfigsHandler, saveStoreConfigHandler } from "./store-configs.controller";
 import {
   createUserHandler,
@@ -100,6 +101,7 @@ import { syncInvoicesToShopifyHandler } from "./invoices-sync.controller";
 import { marketingGraphqlHttpHandler } from "../marketing/graphql/marketing-graphql";
 import { billingSummaryHandler } from "./billing.controller";
 import { syncStoreProductsHandler } from "./store-sync.controller";
+import { listTenantModulesHandler } from "./modules.controller";
 import {
   createWooConnectionHandler,
   deleteWooConnectionHandler,
@@ -120,6 +122,12 @@ import {
   saUpsertPlanLimitHandler,
   saUpsertServiceHandler,
 } from "./superadmin.controller";
+import {
+  saCreateUserHandler,
+  saDeleteUserHandler,
+  saListUsersHandler,
+  saUpdateUserHandler,
+} from "./superadmin-users.controller";
 
 export const router = Router();
 
@@ -161,6 +169,8 @@ router.get("/auth/tiktok-ads/start", requireAdmin, wrap(startTikTokAdsOAuth));
 router.get("/auth/tiktok-ads/status", requireAdmin, wrap(tiktokAdsOAuthStatus));
 router.post("/auth/token", requireAdmin, wrap(createAuthTokenHandler));
 
+router.get("/modules", requireAdmin, wrap(listTenantModulesHandler));
+
 router.get("/billing/summary", wrap(billingSummaryHandler));
 
 // Marketing config (authed)
@@ -177,6 +187,10 @@ router.get("/sa/modules", requireSuperAdmin, wrap(saListModulesHandler));
 router.get("/sa/tenant/modules", requireSuperAdmin, wrap(saListTenantModulesHandler));
 router.get("/sa/services", requireSuperAdmin, wrap(saListServicesHandler));
 router.post("/sa/services", requireSuperAdmin, wrap(saUpsertServiceHandler));
+router.get("/sa/users", requireSuperAdmin, wrap(saListUsersHandler));
+router.post("/sa/users", requireSuperAdmin, wrap(saCreateUserHandler));
+router.put("/sa/users/:userId", requireSuperAdmin, wrap(saUpdateUserHandler));
+router.delete("/sa/users/:userId", requireSuperAdmin, wrap(saDeleteUserHandler));
 router.get("/sa/tenant/plan", requireSuperAdmin, wrap(saGetTenantPlanSnapshotHandler));
 router.get("/sa/plan/limits", requireSuperAdmin, wrap(saGetPlanLimitsHandler));
 router.post("/sa/plan/limits", requireSuperAdmin, wrap(saUpsertPlanLimitHandler));
@@ -202,6 +216,7 @@ router.get("/alegra/items/:itemId/warehouses", wrap(listItemWarehouseSummaryHand
 router.get("/alegra/inventory-adjustments", wrap(listInventoryAdjustmentsHandler));
 router.get("/alegra/image", wrap(proxyAlegraImageHandler));
 router.get("/connections", requireAdmin, wrap(listConnections));
+router.get("/connections/tests", requireAdmin, wrap(listConnectionTestsHandler));
 router.post("/connections", requireAdmin, wrap(createConnection));
 router.delete("/connections/domain/:shopDomain", requireAdmin, wrap(removeConnectionByDomain));
 router.delete("/connections/:id", requireAdmin, wrap(removeConnection));
