@@ -1,16 +1,19 @@
 import { getPool } from "../db";
 
-export const DEFAULT_SUPER_ADMIN_EMAIL = "comercial@apiflujos.com";
-export const DEFAULT_SUPER_ADMIN_PASSWORD = "apiflujos2026*";
-
 export function getSuperAdminEmail() {
-  // Bootstrap super admin account (can be changed later via Super Admin > Usuarios ApiFlujos).
-  return DEFAULT_SUPER_ADMIN_EMAIL.trim().toLowerCase();
+  const value = String(process.env.ADMIN_EMAIL || "").trim();
+  if (!value) {
+    throw new Error("Missing required env var: ADMIN_EMAIL");
+  }
+  return value.toLowerCase();
 }
 
 export function getSuperAdminPassword() {
-  // Bootstrap super admin password (can be changed later via Super Admin > Usuarios ApiFlujos).
-  return DEFAULT_SUPER_ADMIN_PASSWORD;
+  const value = String(process.env.ADMIN_PASSWORD || "").trim();
+  if (!value) {
+    throw new Error("Missing required env var: ADMIN_PASSWORD");
+  }
+  return value;
 }
 
 export type SaPlanType = "master" | "pro" | "on_demand";
@@ -39,34 +42,6 @@ export async function ensureSaDefaults() {
             updated_at = NOW()
       `,
       [svc.key, svc.name, svc.periodType]
-    );
-  }
-
-  // Default modules (feature toggles per tenant).
-  const defaultModules: Array<{ key: string; name: string }> = [
-    { key: "shopify", name: "Shopify" },
-    { key: "woocommerce", name: "WooCommerce" },
-    { key: "alegra", name: "Alegra" },
-    { key: "google_ads", name: "Google Ads" },
-    { key: "meta_ads", name: "Meta Ads" },
-    { key: "tiktok_ads", name: "TikTok Ads" },
-    { key: "chatwoot", name: "Chatwoot" },
-    { key: "mim", name: "MIM" },
-    { key: "ia", name: "IA" },
-    { key: "envioclick", name: "EnvioClick" },
-    { key: "envia", name: "Envia.com" },
-  ];
-
-  for (const mod of defaultModules) {
-    await pool.query(
-      `
-      INSERT INTO sa.module_definitions (key, name, active, updated_at)
-      VALUES ($1,$2,true,NOW())
-      ON CONFLICT (key) DO UPDATE
-        SET name = COALESCE(NULLIF(EXCLUDED.name,''), sa.module_definitions.name),
-            updated_at = NOW()
-      `,
-      [mod.key, mod.name]
     );
   }
 
