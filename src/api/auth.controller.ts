@@ -58,6 +58,12 @@ export async function loginHandler(req: Request, res: Response) {
   const password = String(req.body?.password || "");
   const remember = Boolean(req.body?.remember);
   const normalizedEmail = email.trim().toLowerCase();
+  const superAdminEmail = String(process.env.ADMIN_EMAIL || "").trim();
+  const superAdminPassword = String(process.env.ADMIN_PASSWORD || "").trim();
+  if (!superAdminEmail || !superAdminPassword) {
+    res.status(500).send("Missing ADMIN_EMAIL or ADMIN_PASSWORD");
+    return;
+  }
   const isSuperAdminAttempt = normalizedEmail === getSuperAdminEmail();
   try {
     const result = await authenticateUser(email, password, remember);

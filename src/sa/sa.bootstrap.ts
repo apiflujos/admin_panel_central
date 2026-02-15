@@ -1,16 +1,19 @@
 import { getPool } from "../db";
 
-export const DEFAULT_SUPER_ADMIN_EMAIL = "comercial@apiflujos.com";
-export const DEFAULT_SUPER_ADMIN_PASSWORD = "apiflujos2026*";
-
 export function getSuperAdminEmail() {
-  // Fixed / immutable super admin account (do not override via env to avoid lockouts).
-  return DEFAULT_SUPER_ADMIN_EMAIL.trim().toLowerCase();
+  const value = String(process.env.ADMIN_EMAIL || "").trim();
+  if (!value) {
+    throw new Error("Missing required env var: ADMIN_EMAIL");
+  }
+  return value.toLowerCase();
 }
 
 export function getSuperAdminPassword() {
-  // Fixed / immutable super admin password (do not override via env to avoid lockouts).
-  return DEFAULT_SUPER_ADMIN_PASSWORD;
+  const value = String(process.env.ADMIN_PASSWORD || "").trim();
+  if (!value) {
+    throw new Error("Missing required env var: ADMIN_PASSWORD");
+  }
+  return value;
 }
 
 export type SaPlanType = "master" | "pro" | "on_demand";
