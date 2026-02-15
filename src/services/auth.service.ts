@@ -37,6 +37,9 @@ export async function authenticateUser(email: string, password: string, remember
   const normalizedEmail = email.trim();
   const envAdminEmail = getSuperAdminEmail();
   const envAdminPassword = getSuperAdminPassword();
+  if (normalizedEmail.toLowerCase() === envAdminEmail && password !== envAdminPassword) {
+    console.warn("[auth] admin password mismatch for env admin email");
+  }
   if (normalizedEmail.toLowerCase() === envAdminEmail && password === envAdminPassword) {
     const existing = await pool.query<UserRecord>(
       `
@@ -80,6 +83,7 @@ export async function authenticateUser(email: string, password: string, remember
         role: "admin" | "agent" | "super_admin";
       };
     }
+    console.info("[auth] env admin login ok (seeded/updated user)");
     const token = crypto.randomBytes(24).toString("hex");
     const maxAgeMs = remember ? 1000 * 60 * 60 * 24 * 30 : 1000 * 60 * 60 * 8;
     const expiresAt = new Date(Date.now() + maxAgeMs);
