@@ -132,8 +132,8 @@ app.use((err: unknown, _req: express.Request, res: express.Response, next: expre
   res.status(500).json({ error: "internal_error" });
 });
 
-// Importante: Usar process.env.PORT y host 0.0.0.0
-const port = Number(process.env.PORT || 10000);
+// Importante: Usar APP_PORT si está definido, sino PORT.
+const port = Number(process.env.APP_PORT || process.env.PORT || 10000);
 const host = "0.0.0.0";
 
 app.listen(port, host, () => {
