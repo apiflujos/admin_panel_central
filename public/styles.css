@@ -98,8 +98,6 @@ body {
   display: grid;
   grid-template-columns: 220px 1fr;
   min-height: 100vh;
-  height: 100vh;
-  overflow: hidden;
 }
 
 .sidebar {
@@ -109,11 +107,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  align-self: start;
-  overflow: hidden;
+  max-height: 100vh;
+  overflow-y: auto;
 }
 
 .sidebar-header {
@@ -400,11 +395,11 @@ body {
 }
 
 .content {
-  padding: 20px 24px 32px;
+  padding: 0 24px 32px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  height: 100vh;
+  min-height: 100vh;
   overflow-y: auto;
 }
 
@@ -413,7 +408,8 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 6px 0;
+  padding: 12px 0 6px 0;
+  margin: 0;
 }
 
 .topbar-left {
