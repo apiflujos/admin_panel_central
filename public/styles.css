@@ -1789,6 +1789,8 @@ body.force-settings .section {
 
 body.force-settings #settings {
   display: flex !important;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .settings-pane {
