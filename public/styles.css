@@ -1557,7 +1557,8 @@ button {
   margin-bottom: 14px;
 }
 
-.settings-topnav button {
+.settings-topnav button,
+.settings-topnav .ghost {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -1785,18 +1786,6 @@ button {
 
 body.force-settings .section {
   display: none !important;
-}
-
-body.force-settings .app-shell {
-  grid-template-columns: 1fr;
-}
-
-body.force-settings .sidebar {
-  display: none;
-}
-
-body.force-settings .content {
-  width: 100%;
 }
 
 body.force-settings #settings {
