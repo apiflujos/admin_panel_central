@@ -817,16 +817,45 @@ function activateNav(target) {
 
 function resolveSettingsPaneKey(value) {
   const hasStoresPane = Boolean(document.querySelector('[data-settings-pane="stores"]'));
-  if (!hasStoresPane) return "connections";
-  return value === "stores" ? "stores" : "connections";
+  const hasMarketingPane = Boolean(document.querySelector('[data-settings-pane="marketing"]'));
+  if (value === "stores" && hasStoresPane) return "stores";
+  if (value === "marketing" && hasMarketingPane) return "marketing";
+  return "connections";
 }
 
 function getStoredSettingsPane() {
   try {
     const stored = localStorage.getItem(SETTINGS_PANE_KEY) || "";
-    return stored === "stores" || stored === "connections" ? stored : "";
+    return stored === "stores" || stored === "connections" || stored === "marketing" ? stored : "";
   } catch {
     return "";
+  }
+}
+
+function isSettingsPath(pathname) {
+  if (typeof pathname !== "string") return false;
+  return pathname === "/settings" || pathname.startsWith("/settings/");
+}
+
+function getSettingsPaneFromPath() {
+  if (typeof window === "undefined") return "";
+  const pathname = window.location?.pathname || "";
+  if (!isSettingsPath(pathname)) return "";
+  const parts = pathname.split("/").filter(Boolean);
+  const pane = parts[1] || "";
+  if (pane === "connections" || pane === "stores" || pane === "marketing") return pane;
+  return "connections";
+}
+
+function updateSettingsPath(paneKey, options = {}) {
+  const { replace = false } = options || {};
+  if (typeof window === "undefined") return;
+  const next = resolveSettingsPaneKey(paneKey);
+  const nextUrl = `/settings/${next}`;
+  if (replace) {
+    window.history.replaceState({ settingsPane: next }, "", nextUrl);
+  } else {
+    window.history.pushState({ settingsPane: next }, "", nextUrl);
   }
 }
 
@@ -839,7 +868,7 @@ function saveSettingsPane(value) {
 }
 
 function setSettingsPane(paneKey, options = {}) {
-  const { persist = true } = options || {};
+  const { persist = true, updateUrl = false } = options || {};
   const next = resolveSettingsPaneKey(paneKey);
   const settingsSection = document.getElementById("settings");
   if (settingsSection && !settingsSection.classList.contains("is-active")) {
@@ -869,17 +898,31 @@ function setSettingsPane(paneKey, options = {}) {
       button.classList.toggle("is-active", button.getAttribute("data-settings-tab") === next);
     });
   }
+  const settingsTopnav = document.getElementById("settings-topnav");
+  if (settingsTopnav) {
+    settingsTopnav.querySelectorAll("[data-settings-pane-link]").forEach((button) => {
+      button.classList.toggle(
+        "is-active",
+        button.getAttribute("data-settings-pane-link") === next
+      );
+    });
+  }
   if (settingsPaneIndicator) {
-    settingsPaneIndicator.textContent = next === "stores" ? "Tiendas" : "Conexiones";
+    settingsPaneIndicator.textContent =
+      next === "stores" ? "Tiendas" : next === "marketing" ? "Marketing" : "Conexiones";
     settingsPaneIndicator.classList.toggle("is-ok", next === "stores");
+  }
+  if (updateUrl && isSettingsPath(window.location?.pathname || "")) {
+    updateSettingsPath(next);
   }
   if (persist) saveSettingsPane(next);
   updateStoresDebug("setSettingsPane");
 }
 
 function syncSettingsPane() {
+  const fromPath = getSettingsPaneFromPath();
   const stored = getStoredSettingsPane();
-  setSettingsPane(stored || "connections", { persist: false });
+  setSettingsPane(fromPath || stored || "connections", { persist: false });
 }
 
 // Ensure initial state for contacts action buttons (if settings pane is visible).
@@ -900,7 +943,7 @@ function getSettingsPaneForElement(element) {
   const pane = element.closest("[data-settings-pane]");
   if (!(pane instanceof HTMLElement)) return "";
   const key = pane.getAttribute("data-settings-pane") || "";
-  return key === "stores" || key === "connections" ? key : "";
+  return key === "stores" || key === "connections" || key === "marketing" ? key : "";
 }
 
 function ensureSettingsPaneForElement(element, options = {}) {
@@ -918,8 +961,8 @@ function initSettingsSubmenu() {
       const button = target.closest("[data-settings-tab]");
       if (!(button instanceof HTMLElement)) return;
       const key = button.getAttribute("data-settings-tab") || "";
-      if (key !== "stores" && key !== "connections") return;
-      setSettingsPane(key);
+      if (key !== "stores" && key !== "connections" && key !== "marketing") return;
+      setSettingsPane(key, { updateUrl: isSettingsPath(window.location?.pathname || "") });
       ensureSettingsVisibility();
     });
   }
@@ -938,14 +981,17 @@ function initSettingsSubmenu() {
     settingsTopnav.addEventListener("click", (event) => {
       const target = event.target instanceof HTMLElement ? event.target : null;
       if (!target) return;
-      const button = target.closest("[data-scroll-to]");
+      const button = target.closest("[data-settings-pane-link]");
       if (!(button instanceof HTMLElement)) return;
-      const id = button.getAttribute("data-scroll-to") || "";
-      if (!id) return;
-      const el = document.getElementById(id);
-      if (el && el.scrollIntoView) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      const key = button.getAttribute("data-settings-pane-link") || "";
+      if (!key) return;
+      if (isSettingsPath(window.location?.pathname || "")) {
+        setSettingsPane(key, { updateUrl: true });
+      } else {
+        window.location.href = `/settings/${resolveSettingsPaneKey(key)}`;
+        return;
       }
+      ensureSettingsVisibility();
     });
   }
   document.addEventListener("click", (event) => {
@@ -954,8 +1000,8 @@ function initSettingsSubmenu() {
     const button = target.closest("[data-settings-tab]");
     if (!(button instanceof HTMLElement)) return;
     const key = button.getAttribute("data-settings-tab") || "";
-    if (key !== "stores" && key !== "connections") return;
-    setSettingsPane(key);
+    if (key !== "stores" && key !== "connections" && key !== "marketing") return;
+    setSettingsPane(key, { updateUrl: isSettingsPath(window.location?.pathname || "") });
     ensureSettingsVisibility();
   });
   if (typeof window !== "undefined") {
@@ -972,10 +1018,15 @@ function initSettingsSubmenu() {
     const button = target.closest("[data-settings-pane-link]");
     if (!(button instanceof HTMLElement)) return;
     const key = button.getAttribute("data-settings-pane-link") || "";
-    if (key !== "stores" && key !== "connections" && key !== "integrations") return;
+    if (key !== "stores" && key !== "connections" && key !== "marketing") return;
     if (button.hasAttribute("disabled")) return;
-    activateNav("settings");
-    setSettingsPane(key);
+    if (isSettingsPath(window.location?.pathname || "")) {
+      activateNav("settings");
+      setSettingsPane(key, { updateUrl: true });
+    } else {
+      window.location.href = `/settings/${resolveSettingsPaneKey(key)}`;
+      return;
+    }
     ensureSettingsVisibility();
   });
   updateSettingsSubmenuAvailability();
@@ -1069,6 +1120,12 @@ navItems.forEach((item) => {
       if (opsView === "invoices") invoicesStart = 0;
       else ordersStart = 0;
     }
+    if (target === "settings") {
+      if (!isSettingsPath(window.location?.pathname || "")) {
+        window.location.href = "/settings/connections";
+        return;
+      }
+    }
     activateNav(target);
     const moduleKey = item.getAttribute("data-module");
     const groups = (item.getAttribute("data-groups") || "")
@@ -1106,6 +1163,10 @@ document.addEventListener("click", (event) => {
   const navTarget = button.getAttribute("data-nav-to") || "";
   if (!navTarget) return;
   event.preventDefault();
+  if (navTarget === "settings") {
+    window.location.href = "/settings/connections";
+    return;
+  }
   activateNav(navTarget);
 });
 
@@ -13405,7 +13466,7 @@ async function init() {
     }
   };
   const params = new URLSearchParams(window.location.search);
-  if (params.get("settings") === "1") {
+  if (params.get("settings") === "1" || isSettingsPath(window.location.pathname)) {
     document.body.classList.add("force-settings");
   }
   safeLoad(loadBranding());
@@ -13414,7 +13475,18 @@ async function init() {
   initSettingsSubmenu();
   if (document.body.classList.contains("force-settings")) {
     activateNav("settings");
-    setSettingsPane(getStoredSettingsPane() || "stores", { persist: false });
+    const pathPane = getSettingsPaneFromPath();
+    setSettingsPane(pathPane || getStoredSettingsPane() || "connections", {
+      persist: false,
+      updateUrl: Boolean(pathPane),
+    });
+  }
+  if (typeof window !== "undefined") {
+    window.addEventListener("popstate", () => {
+      if (!isSettingsPath(window.location.pathname)) return;
+      const pathPane = getSettingsPaneFromPath();
+      setSettingsPane(pathPane || "connections", { persist: false });
+    });
   }
   cleanupLegacyConnectionsUi();
   initGroupControls();

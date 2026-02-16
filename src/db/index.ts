@@ -174,6 +174,16 @@ export async function ensureConnectionTestsTable(poolInstance: Pool) {
   ]);
 }
 
+export async function ensureConnectionTestsTable(poolInstance: Pool) {
+  await assertColumns(poolInstance, "connection_tests", [
+    "organization_id",
+    "provider",
+    "status",
+    "message",
+    "checked_at",
+  ]);
+}
+
 export function getOrgId() {
   const raw = process.env.APP_ORG_ID || "1";
   const parsed = Number(raw);

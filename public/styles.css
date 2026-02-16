@@ -60,17 +60,6 @@ body {
   width: 120px;
 }
 
-.login-brand .client-logo {
-  display: none;
-  max-height: 32px;
-  max-width: 180px;
-  object-fit: contain;
-}
-
-.login-brand.has-client-logo .client-logo {
-  display: block;
-}
-
 .login-title {
   font-size: 16px;
   font-weight: 700;
@@ -163,23 +152,6 @@ body {
   font-weight: 700;
   letter-spacing: 0.01em;
   color: var(--text);
-}
-
-.topbar-brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.topbar-brand .client-logo {
-  display: none;
-  max-height: 26px;
-  max-width: 140px;
-  object-fit: contain;
-}
-
-.topbar-brand.has-client-logo .client-logo {
-  display: block;
 }
 
 .nav-spacer {
@@ -1823,6 +1795,14 @@ body.force-settings #settings {
   display: flex !important;
 }
 
+.settings-pane {
+  display: none;
+}
+
+.settings-pane.is-active {
+  display: block;
+}
+
 .store-meta {
   margin-bottom: 6px;
 }
@@ -2095,10 +2075,6 @@ body.force-settings #settings {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.connection-block.is-disabled {
-  opacity: 0.6;
 }
 
 .connection-block-header {
