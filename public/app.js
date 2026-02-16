@@ -277,6 +277,12 @@ const settingsPaneIndicator = document.getElementById("settings-pane-indicator")
 const storesDebugBar = document.getElementById("stores-debug");
 const settingsPaneConnectionsToggle = document.getElementById("settings-pane-connections");
 const settingsPaneStoresToggle = document.getElementById("settings-pane-stores");
+const connectionModal = document.getElementById("connection-modal");
+const connectionModalBody = document.getElementById("connection-modal-body");
+const connectionModalOpen = document.getElementById("open-connection-modal");
+const connectionNameSlot = document.getElementById("connection-name-slot");
+const connectionFormSlot = document.getElementById("connection-form-slot");
+const connectionNameNext = document.getElementById("connection-step-name-next");
 const copyConfigField = document.getElementById("copy-config-field");
 const copyConfigSelect = document.getElementById("copy-config-select");
 const DEFAULT_WIZARD_HINT = wizardHint ? wizardHint.textContent : "";
@@ -564,6 +570,7 @@ const PRODUCT_SETTINGS_KEY = "apiflujos-products-settings";
 const STORE_WIZARD_KEY = "apiflujos-store-wizard";
 const SETUP_MODE_KEY = "apiflujos-setup-mode";
 const SETTINGS_PANE_KEY = "apiflujos-settings-pane";
+const SETTINGS_INTENT_KEY = "apiflujos-settings-intent";
 const COPY_CONFIG_FROM_KEY = "apiflujos-copy-config-from";
 const COPY_CONFIG_TO_KEY = "apiflujos-copy-config-to";
 const COPY_CONFIG_AT_KEY = "apiflujos-copy-config-at";
@@ -799,6 +806,12 @@ function showSection(target) {
 }
 
 function activateNav(target) {
+  const pathname = window?.location?.pathname || "";
+  const allowSettings =
+    document.body.classList.contains("force-settings") || isSettingsPath(pathname);
+  if (target === "settings" && !allowSettings) {
+    target = "dashboard";
+  }
   navItems.forEach((button) => {
     const buttonTarget = button.getAttribute("data-target") || "";
     if (buttonTarget !== target) {
@@ -813,6 +826,17 @@ function activateNav(target) {
     button.classList.add("is-active");
   });
   showSection(target);
+  const content = document.querySelector(".content");
+  if (content) {
+    content.scrollTop = 0;
+  }
+  if (typeof document !== "undefined") {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }
+  if (typeof window !== "undefined") {
+    window.scrollTo(0, 0);
+  }
 }
 
 function resolveSettingsPaneKey(value) {
@@ -837,6 +861,125 @@ function isSettingsPath(pathname) {
   return pathname === "/settings" || pathname.startsWith("/settings/");
 }
 
+function consumeSettingsIntent() {
+  try {
+    const value = sessionStorage.getItem(SETTINGS_INTENT_KEY);
+    if (value) {
+      sessionStorage.removeItem(SETTINGS_INTENT_KEY);
+      return true;
+    }
+  } catch {
+    // ignore storage errors
+  }
+  return false;
+}
+
+function markSettingsIntent() {
+  try {
+    sessionStorage.setItem(SETTINGS_INTENT_KEY, "1");
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function setupViewportDebug() {
+  return;
+  const overlay = document.createElement("div");
+  overlay.id = "viewport-debug";
+  overlay.style.position = "fixed";
+  overlay.style.right = "12px";
+  overlay.style.bottom = "12px";
+  overlay.style.zIndex = "9999";
+  overlay.style.background = "rgba(15, 23, 42, 0.9)";
+  overlay.style.color = "#fff";
+  overlay.style.padding = "8px 10px";
+  overlay.style.borderRadius = "10px";
+  overlay.style.fontSize = "11px";
+  overlay.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace";
+  overlay.style.boxShadow = "0 8px 18px rgba(15, 23, 42, 0.25)";
+  const update = () => {
+    const intent =
+      (typeof sessionStorage !== "undefined" &&
+        sessionStorage.getItem(SETTINGS_INTENT_KEY)) ||
+      "";
+    const ref = typeof document !== "undefined" ? document.referrer : "";
+    const active =
+      document.querySelector(".section.is-active")?.id || "none";
+    const line1 = `viewport: ${window.innerWidth}x${window.innerHeight} · dpr ${window.devicePixelRatio}`;
+    const line2 = `path: ${window.location.pathname} · force: ${document.body.classList.contains("force-settings") ? "1" : "0"}`;
+    const line3 = `intent: ${intent ? "1" : "0"} · ref: ${ref ? "1" : "0"}`;
+    const line4 = `active: ${active}`;
+    overlay.textContent = `${line1}\n${line2}\n${line3}\n${line4}`;
+  };
+  overlay.style.whiteSpace = "pre";
+  update();
+  window.addEventListener("resize", update);
+  document.body.appendChild(overlay);
+}
+
+let connectionWizardStep = "name";
+let connectionWizardChoice = "shopify";
+
+function setConnectionWizardStep(step) {
+  if (!connectionModal) return;
+  connectionWizardStep = step;
+  connectionModal.querySelectorAll("[data-connection-step]").forEach((pane) => {
+    const isActive = pane.getAttribute("data-connection-step") === step;
+    pane.classList.toggle("is-active", isActive);
+  });
+  const backBtn = connectionModal.querySelector("[data-connection-modal-back]");
+  if (backBtn instanceof HTMLElement) {
+    backBtn.style.display = step === "name" ? "none" : "";
+  }
+}
+
+function openConnectionModal() {
+  if (!connectionModal) return;
+  connectionModal.classList.add("is-open");
+  connectionModal.setAttribute("aria-hidden", "false");
+  setConnectionWizardStep("name");
+  if (typeof document !== "undefined") {
+    document.body.classList.add("modal-open");
+  }
+}
+
+function closeConnectionModal() {
+  if (!connectionModal) return;
+  connectionModal.classList.remove("is-open");
+  connectionModal.setAttribute("aria-hidden", "true");
+  setConnectionWizardStep("name");
+  if (typeof document !== "undefined") {
+    document.body.classList.remove("modal-open");
+  }
+}
+
+function setConnectionChoice(kind) {
+  if (!connectionModal) return;
+  const choice = kind || "shopify";
+  connectionWizardChoice = choice;
+  const title = connectionModal.querySelector("#connection-modal-title");
+  if (title) {
+    title.textContent =
+      choice === "woocommerce"
+        ? "Conectar WooCommerce"
+        : choice === "alegra"
+          ? "Conectar Alegra"
+          : "Conectar Shopify";
+  }
+  connectionModal.querySelectorAll("[data-connection-choice]").forEach((button) => {
+    const isActive = button.getAttribute("data-connection-choice") === choice;
+    button.classList.toggle("is-active", isActive);
+  });
+  document.querySelectorAll("[data-connection-kind]").forEach((block) => {
+    const kinds = (block.getAttribute("data-connection-kind") || "").split(/\s+/).filter(Boolean);
+    const shouldShow = kinds.includes(choice);
+    if (block instanceof HTMLElement) {
+      block.classList.toggle("is-hidden", !shouldShow);
+    }
+  });
+  setConnectionWizardStep("form");
+}
+
 function getSettingsPaneFromPath() {
   if (typeof window === "undefined") return "";
   const pathname = window.location?.pathname || "";
@@ -845,6 +988,21 @@ function getSettingsPaneFromPath() {
   const pane = parts[1] || "";
   if (pane === "connections" || pane === "stores" || pane === "marketing") return pane;
   return "connections";
+}
+
+function pruneSettingsPanesForPath() {
+  if (typeof window === "undefined") return;
+  if (!isSettingsPath(window.location?.pathname || "")) return;
+  const activeKey = getSettingsPaneFromPath() || "connections";
+  document.querySelectorAll("[data-settings-pane]").forEach((pane) => {
+    const key = pane.getAttribute("data-settings-pane") || "";
+    if (key !== activeKey) {
+      pane.remove();
+    } else {
+      pane.classList.add("is-active");
+      if (pane instanceof HTMLElement) pane.hidden = false;
+    }
+  });
 }
 
 function updateSettingsPath(paneKey, options = {}) {
@@ -884,6 +1042,9 @@ function setSettingsPane(paneKey, options = {}) {
   document.querySelectorAll("[data-settings-pane]").forEach((pane) => {
     const isActive = pane.getAttribute("data-settings-pane") === next;
     pane.classList.toggle("is-active", isActive);
+    if (pane instanceof HTMLElement) {
+      pane.hidden = !isActive;
+    }
   });
   if (settingsSubmenu) {
     settingsSubmenu.querySelectorAll("[data-settings-pane-link]").forEach((button) => {
@@ -1122,6 +1283,7 @@ navItems.forEach((item) => {
     }
     if (target === "settings") {
       if (!isSettingsPath(window.location?.pathname || "")) {
+        markSettingsIntent();
         window.location.href = "/settings/connections";
         return;
       }
@@ -1164,6 +1326,7 @@ document.addEventListener("click", (event) => {
   if (!navTarget) return;
   event.preventDefault();
   if (navTarget === "settings") {
+    markSettingsIntent();
     window.location.href = "/settings/connections";
     return;
   }
@@ -2581,7 +2744,8 @@ function applyRoleAccess(role, isSuperAdminFlag) {
   const adminOnlyPanels = document.querySelectorAll(".admin-only");
   if (settingsNav) settingsNav.style.display = isAdmin ? "" : "none";
   adminOnlyPanels.forEach((panel) => {
-    panel.style.display = isAdmin ? "" : "none";
+    const inSettings = panel.closest("#settings");
+    panel.style.display = isAdmin || inSettings ? "" : "none";
   });
 
   const logsSection = document.getElementById("logs");
@@ -3600,6 +3764,12 @@ function setModulePrereqWarning(moduleKey, message) {
 
 function focusFieldWithContext(field) {
   if (!(field instanceof HTMLElement)) return;
+  const pathname = window?.location?.pathname || "";
+  const allowSettingsFocus =
+    document.body.classList.contains("force-settings") || isSettingsPath(pathname);
+  if (!allowSettingsFocus) {
+    return;
+  }
   activateNav("settings");
   ensureSettingsPaneForElement(field, { persist: false });
   const panel = field.closest(".module[data-module]");
@@ -3878,6 +4048,7 @@ function reorderSettingsPanels() {
 function openDefaultGroups() {
   const openKeys = new Set([
     "marketing",
+    "marketing-ads",
     "store-sync",
     "store",
     "products",
@@ -3885,6 +4056,8 @@ function openDefaultGroups() {
     "contacts",
     "operations",
     "admin",
+    "commerce",
+    "accounting",
   ]);
   document.querySelectorAll("[data-group]").forEach((panel) => {
     const key = panel.getAttribute("data-group") || "";
@@ -4449,11 +4622,20 @@ function initSetupMode(storesCount = 0) {
   const activePane =
     document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
   const wizardActive = isWizardStateActive(getWizardState());
-  const shouldOpen = alreadyOpen || activePane === "connections" || wizardActive || storesCount === 0;
+  const shouldOpen = alreadyOpen || wizardActive || activePane === "connections";
   setConnectionsSetupOpen(shouldOpen);
 }
 
 async function openWizardStep() {
+  const pathname = window?.location?.pathname || "";
+  if (!document.body.classList.contains("force-settings") && !isSettingsPath(pathname)) {
+    return;
+  }
+  if (!storesCache.length) {
+    clearWizardState();
+    updateWizardUI();
+    return;
+  }
   const state = getWizardState();
   if (!state || !isWizardStateActive(state)) {
     updateWizardUI();
@@ -5243,6 +5425,10 @@ async function loadConnections(options = {}) {
     clearAdsConnectInputs();
     initSetupMode(stores.length);
     updateWizardStartAvailability();
+    const connectionsSummary = getModulePanel("connections-summary");
+    if (connectionsSummary) {
+      connectionsSummary.style.display = stores.length ? "" : "none";
+    }
     syncSettingsPane();
     await maybeApplyPendingStoreConfigCopy();
     maybeJumpToConnectionsSummary();
@@ -5263,6 +5449,10 @@ async function loadConnections(options = {}) {
     updatePrerequisites();
     initSetupMode(0);
     updateWizardStartAvailability();
+    const connectionsSummary = getModulePanel("connections-summary");
+    if (connectionsSummary) {
+      connectionsSummary.style.display = "none";
+    }
     syncSettingsPane();
   }
 }
@@ -6039,7 +6229,7 @@ function updateWizardStartAvailability() {
   const hasDomain =
     Boolean(shopifyDomain && normalizeShopDomain(shopifyDomain.value)) || hasActiveStore;
   const ready = hasName && hasDomain;
-  wizardStart.disabled = false;
+  wizardStart.disabled = !hasActiveStore && !hasDomain;
   wizardStart.setAttribute(
     "title",
     ready
@@ -11439,6 +11629,7 @@ async function connectShopifyWithToken(params) {
   });
   if (shopifyToken) shopifyToken.value = "";
   showToast("Shopify conectado.", "is-ok");
+  closeConnectionModal();
   setConnectionsSetupOpen(true);
   setSettingsPane("connections", { persist: false });
   await loadConnections();
@@ -11484,6 +11675,7 @@ async function connectWooCommerceStore() {
   if (wooConsumerKey) wooConsumerKey.value = "";
   if (wooConsumerSecret) wooConsumerSecret.value = "";
   showToast("WooCommerce conectado.", "is-ok");
+  closeConnectionModal();
   setConnectionsSetupOpen(true);
   setSettingsPane("connections", { persist: false });
   await loadConnections();
@@ -11585,6 +11777,7 @@ async function connectStore(kind) {
     }
     await saveCredentials("alegra");
     showToast("Alegra conectado.", "is-ok");
+    closeConnectionModal();
     clearConnectionForm();
     setConnectionsSetupOpen(true);
     setSettingsPane("connections", { persist: false });
@@ -11657,6 +11850,7 @@ async function connectStore(kind) {
     showToast(error?.message || "Conexion guardada, pero no se pudieron cargar las configuraciones.", "is-warn");
   }
   updateConnectionPills();
+  closeConnectionModal();
 }
 
 if (refreshButton) {
@@ -12604,6 +12798,50 @@ if (storeSyncSourceSelect) {
     ensureStoreSyncDistinct();
   });
 }
+if (connectionModalOpen) {
+  connectionModalOpen.addEventListener("click", () => {
+    connectionWizardChoice = "shopify";
+    openConnectionModal();
+  });
+}
+if (connectionModal) {
+  connectionModal.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) return;
+    if (target.closest("[data-connection-modal-close]")) {
+      closeConnectionModal();
+      return;
+    }
+    if (target.closest("[data-connection-modal-back]")) {
+      if (connectionWizardStep === "form") {
+        setConnectionWizardStep("platform");
+      } else {
+        setConnectionWizardStep("name");
+      }
+      return;
+    }
+    const choice = target.closest("[data-connection-choice]");
+    if (choice instanceof HTMLElement) {
+      const kind = choice.getAttribute("data-connection-choice") || "shopify";
+      setConnectionChoice(kind);
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeConnectionModal();
+  });
+}
+if (connectionNameNext) {
+  connectionNameNext.addEventListener("click", () => {
+    const nameValue = storeNameInput ? storeNameInput.value.trim() : "";
+    if (!nameValue) {
+      if (storeNameInput) markFieldError(storeNameInput, "Nombre requerido.");
+      if (storeNameInput) focusFieldWithContext(storeNameInput);
+      showToast("Completa el nombre de la tienda.", "is-warn");
+      return;
+    }
+    setConnectionWizardStep("platform");
+  });
+}
 
 if (storeSyncSourceProviderSelect) {
   storeSyncSourceProviderSelect.addEventListener("change", () => {
@@ -13460,6 +13698,20 @@ productSettingInputs.forEach((input) => {
 });
 
 async function init() {
+  if (typeof history !== "undefined" && "scrollRestoration" in history) {
+    history.scrollRestoration = "manual";
+  }
+  const resetScrollPosition = () => {
+    const content = document.querySelector(".content");
+    if (content) content.scrollTop = 0;
+    if (typeof document !== "undefined") {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+    if (typeof window !== "undefined") {
+      window.scrollTo(0, 0);
+    }
+  };
   const safeLoad = async (promise) => {
     try {
       return await promise;
@@ -13469,8 +13721,39 @@ async function init() {
     }
   };
   const params = new URLSearchParams(window.location.search);
-  if (params.get("settings") === "1" || isSettingsPath(window.location.pathname)) {
-    document.body.classList.add("force-settings");
+  const pathname = window.location.pathname || "";
+  const isSettingsView =
+    params.get("settings") === "1" || isSettingsPath(pathname);
+  setupViewportDebug();
+  if (isSettingsView) {
+    const hasParam = params.get("settings") === "1";
+    const hasIntent = consumeSettingsIntent();
+    const origin = window.location.origin;
+    const hasReferrer =
+      typeof document !== "undefined" &&
+      typeof document.referrer === "string" &&
+      document.referrer.startsWith(origin);
+    if (!hasParam && !hasIntent && !hasReferrer) {
+      window.location.href = "/";
+      return;
+    }
+    markSettingsIntent();
+  }
+  document.body.classList.toggle("force-settings", isSettingsView);
+  if (isSettingsView) {
+    pruneSettingsPanesForPath();
+  }
+  if (connectionModalBody) {
+    const connectionsPanel = getModulePanel("connections");
+    if (connectionsPanel && connectionFormSlot && !connectionFormSlot.contains(connectionsPanel)) {
+      connectionFormSlot.appendChild(connectionsPanel);
+    }
+  }
+  if (connectionNameSlot && storeNameInput) {
+    const field = storeNameInput.closest(".field");
+    if (field && !connectionNameSlot.contains(field)) {
+      connectionNameSlot.appendChild(field);
+    }
   }
   safeLoad(loadBranding());
   loadSidebarState();
@@ -13483,7 +13766,10 @@ async function init() {
       persist: false,
       updateUrl: Boolean(pathPane),
     });
+  } else {
+    activateNav("dashboard");
   }
+  resetScrollPosition();
   if (typeof window !== "undefined") {
     window.addEventListener("popstate", () => {
       if (!isSettingsPath(window.location.pathname)) return;
@@ -13562,6 +13848,7 @@ async function init() {
   if (window.location && window.location.pathname === "/__sa") {
     activateNav("superadmin");
   }
+  resetScrollPosition();
 }
 
 init();

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Central</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
-    <link rel="stylesheet" href="/styles.css?v=20260210p47" />
+    <link rel="stylesheet" href="/styles.css?v=20260216p18" />
   </head>
   <body>
     <div class="app-shell">
@@ -654,7 +654,6 @@
               </div>
             </div>
           </div>
-          </div>
         </section>
 
         <section class="section" id="marketing">
@@ -1096,6 +1095,51 @@
 	        </section>
 
         <section class="section" id="settings">
+          <div class="connection-modal" id="connection-modal" aria-hidden="true">
+            <div class="connection-modal-backdrop" data-connection-modal-close="1"></div>
+            <div class="connection-modal-card" role="dialog" aria-modal="true" aria-labelledby="connection-modal-title">
+              <div class="connection-modal-header">
+                <div>
+                  <h3 id="connection-modal-title">Nueva conexion</h3>
+                </div>
+                <div class="connection-modal-actions">
+                  <button class="ghost" type="button" data-connection-modal-back="1">Volver</button>
+                  <button class="ghost" type="button" data-connection-modal-close="1">Cerrar</button>
+                </div>
+              </div>
+              <div class="connection-modal-body" id="connection-modal-body">
+                <div class="connection-step" data-connection-step="name">
+                  <div id="connection-name-slot"></div>
+                  <button class="primary" id="connection-step-name-next" type="button">Continuar</button>
+                </div>
+                <div class="connection-step" data-connection-step="platform">
+                  <div class="connection-step-header">
+                    <h4>Selecciona la plataforma</h4>
+                  </div>
+                  <div class="connection-chooser" id="connection-chooser">
+                    <button class="connection-choice" type="button" data-connection-choice="shopify">
+                      <img src="/brands/shopify.png?v=20260201s" alt="Shopify" />
+                      Shopify
+                    </button>
+                    <button class="connection-choice" type="button" data-connection-choice="woocommerce">
+                      <img src="/brands/woocommerce.png?v=20260201s" alt="WooCommerce" />
+                      WooCommerce
+                    </button>
+                    <button class="connection-choice" type="button" data-connection-choice="alegra">
+                      <img src="/brands/alegra.png?v=20260201s" alt="Alegra" />
+                      Alegra
+                    </button>
+                  </div>
+                </div>
+                <div class="connection-step" data-connection-step="form">
+                  <div class="connection-step-header">
+                    <h4>Completa los accesos</h4>
+                  </div>
+                  <div id="connection-form-slot"></div>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="settings-topnav" id="settings-topnav">
             <a class="ghost" href="/settings/connections" data-settings-pane-link="connections">Conexiones</a>
             <a class="ghost" href="/settings/marketing" data-settings-pane-link="marketing">Marketing</a>
@@ -1103,6 +1147,15 @@
           </div>
           <div class="settings-pane is-active" data-settings-pane="connections">
                 <div class="settings-group-title" id="settings-connections">Conexiones</div>
+                <div class="panel" id="connections-new-panel">
+                  <div class="panel-header">
+                    <h3>Nueva conexion</h3>
+                  </div>
+                  <div class="module-body">
+                    <button class="primary" id="open-connection-modal" type="button">Nueva conexion</button>
+                    <p class="field-hint">Elige la plataforma para conectar y completa los accesos.</p>
+                  </div>
+                </div>
 				            <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-setup-open="0" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (autorizacion) y luego Alegra (clave de acceso o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa.&#10;4) Configura Productos, Pedidos y Contactos segun tu forma de trabajo.&#10;5) Revisa Operacion (sincronizacion automatica y salud).&#10;&#10;Tip: la configuracion guiada es para tienda nueva; si ya hay tienda activa, usa Manual.">
 		            <div class="panel-header">
 		              <h3 data-module-toggle="connections" data-title-base="Nueva conexion">Nueva conexion</h3>
@@ -1111,7 +1164,7 @@
             <div class="module-body">
               <div class="connections-form" id="connections-form">
 	              <div class="settings-grid store-meta">
-		                <div class="field span-2">
+		                <div class="field span-2" data-connection-kind="shopify woocommerce">
 		                  <label>Nombre de la tienda <span class="tip" data-tip="Nombre visible de la tienda. Se usa para identificar esta configuracion y aparece en Tiendas.">?</span></label>
 		                  <input type="text" id="store-name" name="store_name" placeholder="Tienda de ejemplo" />
 		                  <span class="field-hint">Este nombre identifica el set de configuraciones.</span>
@@ -1119,8 +1172,8 @@
 	              </div>
 	              <div class="connections-groups">
                   <div class="connections-duo">
-                    <div class="connections-group" data-group="commerce">
-                    <div class="connections-group-header">
+                    <div class="connections-group" data-group="commerce" data-connection-kind="shopify woocommerce">
+                    <div class="connections-group-header" data-group-toggle="commerce">
                       <div class="group-title">
                         <span class="group-kicker">Commerce</span>
                         <h4>Shopify</h4>
@@ -1128,7 +1181,7 @@
                       <span class="status-pill is-live">Core</span>
                     </div>
                     <div class="connections-group-body">
-                      <div class="connection-block">
+                      <div class="connection-block" data-connection-kind="shopify">
                         <div class="connection-block-header">
                           <div>
                             <div class="provider-title">
@@ -1163,7 +1216,7 @@
                           </div>
                         </div>
                       </div>
-                      <div class="connection-block">
+                      <div class="connection-block" data-connection-kind="woocommerce">
                         <div class="connection-block-header">
                           <div>
                             <div class="provider-title">
@@ -1195,15 +1248,15 @@
                       </div>
                     </div>
                     </div>
-                    <div class="connections-group" data-group="accounting">
-                    <div class="connections-group-header">
+                  <div class="connections-group" data-group="accounting" data-connection-kind="alegra">
+                    <div class="connections-group-header" data-group-toggle="accounting">
                       <div class="group-title">
                         <span class="group-kicker">Contabilidad</span>
                         <h4>Alegra</h4>
                       </div>
                     </div>
                     <div class="connections-group-body">
-                      <div class="connection-block">
+                      <div class="connection-block" data-connection-kind="alegra">
                         <div class="connection-block-header">
                           <div>
                             <div class="provider-title">
@@ -1262,127 +1315,12 @@
                   </div>
                 </div>
 
-          <div class="settings-group provider-group" data-group="store-sync">
-            <div class="settings-group-header" data-group-toggle="store-sync">
-              <h4 class="group-title">
-                <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
-                Sincronizador tienda a tienda
-              </h4>
-            </div>
-            <div class="settings-group-body">
-              <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="store-sync-products" data-help="Copia productos entre tiendas Shopify o WooCommerce dentro de tu organizacion. Ideal para clonar catalogos o mover productos de una tienda a otra.">
-                <div class="panel-header">
-                  <h3 data-module-toggle="store-sync-products" data-title-base="Sincronizador tienda a tienda">
-                    Sincronizador tienda a tienda
-                    <span class="tip" data-tip="Copia productos entre tiendas Shopify o WooCommerce. Puedes elegir reglas de precio, estado, descripciones, fotos y etiquetas.">?</span>
-                  </h3>
-                  <div class="panel-meta">
-                    <span class="panel-tag tag-bridge">Tienda a tienda</span>
-                  </div>
-                </div>
-                <div class="module-body">
-                  <div class="mode-sections">
-                    <div class="mode-section">
-                      <div class="mode-head">
-                        <div class="mode-head-left">
-                          <h4>Origen, destino y reglas</h4>
-                        </div>
-                      </div>
-                      <div class="mode-grid">
-                        <div class="mode-field">
-                          <label for="store-sync-source-provider">Conexion origen</label>
-                          <select id="store-sync-source-provider" name="store_sync_source_provider">
-                            <option value="shopify" selected>Shopify</option>
-                            <option value="woocommerce">WooCommerce</option>
-                          </select>
-                        </div>
-                        <div class="mode-field">
-                          <label for="store-sync-source">Tienda origen</label>
-                          <select id="store-sync-source" name="store_sync_source"></select>
-                        </div>
-                        <div class="mode-field">
-                          <label for="store-sync-alegra-account">Cuenta Alegra</label>
-                          <select id="store-sync-alegra-account" name="store_sync_alegra_account"></select>
-                        </div>
-                        <div class="mode-field">
-                          <label for="store-sync-price-list">Lista de precios Alegra</label>
-                          <select id="store-sync-price-list" name="store_sync_price_list" data-allow-empty="true" data-empty-label="Seleccionar...">
-  <option value="">Seleccionar...</option></select>
-                        </div>
-                        <div class="mode-field">
-                          <label for="store-sync-status">Estado destino</label>
-                          <select id="store-sync-status" name="store_sync_status">
-                            <option value="draft" selected>Borrador</option>
-                            <option value="active">Activo</option>
-                          </select>
-                        </div>
-                        <div class="mode-field">
-                          <label for="store-sync-scope">Que sincronizar</label>
-                          <select id="store-sync-scope" name="store_sync_scope">
-                            <option value="products" selected>Productos</option>
-                            <option value="inventory">Inventario (proximo)</option>
-                          </select>
-                        </div>
-                        <div class="mode-field">
-                          <label for="store-sync-price-fallback">Si no hay precio en lista</label>
-                          <select id="store-sync-price-fallback" name="store_sync_price_fallback">
-                            <option value="shopify" selected>Tomar precio original</option>
-                            <option value="none">No poner precio</option>
-                            <option value="skip">No sincronizar</option>
-                          </select>
-                        </div>
-                        <div class="mode-field">
-                          <label for="store-sync-target-provider">Conexion destino</label>
-                          <select id="store-sync-target-provider" name="store_sync_target_provider">
-                            <option value="shopify" selected>Shopify</option>
-                            <option value="woocommerce">WooCommerce</option>
-                          </select>
-                        </div>
-                        <div class="mode-field">
-                          <label for="store-sync-target">Tienda destino</label>
-                          <select id="store-sync-target" name="store_sync_target"></select>
-                        </div>
-                      </div>
-                      <div class="mode-toggle-grid" aria-label="Opciones de copia">
-                        <div class="mode-toggle">
-                          <label for="store-sync-only-active">Solo activos en origen <span class="tip" data-tip="Si está ON, solo copia productos activos de la tienda origen.">?</span></label>
-                          <input type="checkbox" id="store-sync-only-active" name="store_sync_only_active" class="toggle" checked />
-                        </div>
-                        <div class="mode-toggle">
-                          <label for="store-sync-include-descriptions">Copiar descripciones <span class="tip" data-tip="Incluye la descripción HTML del producto.">?</span></label>
-                          <input type="checkbox" id="store-sync-include-descriptions" name="store_sync_include_descriptions" class="toggle" checked />
-                        </div>
-                        <div class="mode-toggle">
-                          <label for="store-sync-include-images">Copiar fotos <span class="tip" data-tip="Copia las fotos principales del producto (hasta 15 por producto).">?</span></label>
-                          <input type="checkbox" id="store-sync-include-images" name="store_sync_include_images" class="toggle" checked />
-                        </div>
-                        <div class="mode-toggle">
-                          <label for="store-sync-include-product-type">Copiar tipo/categoría <span class="tip" data-tip="Copia el tipo de producto (categoría interna).">?</span></label>
-                          <input type="checkbox" id="store-sync-include-product-type" name="store_sync_include_product_type" class="toggle" checked />
-                        </div>
-                        <div class="mode-toggle">
-                          <label for="store-sync-include-tags">Copiar etiquetas <span class="tip" data-tip="Copia las etiquetas (tags) del producto.">?</span></label>
-                          <input type="checkbox" id="store-sync-include-tags" name="store_sync_include_tags" class="toggle" checked />
-                        </div>
-                      </div>
-                      <div class="mode-actions">
-                        <button class="primary" id="store-sync-run" type="button">Sincronizar productos</button>
-                        <button class="ghost" id="store-sync-clear" type="button">Limpiar</button>
-                        <span class="kpi-sub" id="store-sync-status-label">Sin datos</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           </div>
 
           <div class="settings-pane" data-settings-pane="marketing">
           <div class="settings-group-title" id="settings-marketing">Marketing</div>
                   <div class="connections-group" data-group="marketing-ads">
-                    <div class="connections-group-header">
+                    <div class="connections-group-header" data-group-toggle="marketing-ads">
                       <div class="group-title">
                         <span class="group-kicker">Marketing Ads</span>
                         <h4>Google · Meta · TikTok</h4>
@@ -2418,9 +2356,124 @@
 	            </div>
 	          </div>
 	        </div>
-
-
-          </div>
+	          
+	          <div class="settings-group provider-group" data-group="store-sync">
+	            <div class="settings-group-header" data-group-toggle="store-sync">
+	              <h4 class="group-title">
+	                <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
+	                Sincronizador tienda a tienda
+	              </h4>
+	            </div>
+	            <div class="settings-group-body">
+	              <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="store-sync-products" data-help="Copia productos entre tiendas Shopify o WooCommerce dentro de tu organizacion. Ideal para clonar catalogos o mover productos de una tienda a otra.">
+	                <div class="panel-header">
+	                  <h3 data-module-toggle="store-sync-products" data-title-base="Sincronizador tienda a tienda">
+	                    Sincronizador tienda a tienda
+	                    <span class="tip" data-tip="Copia productos entre tiendas Shopify o WooCommerce. Puedes elegir reglas de precio, estado, descripciones, fotos y etiquetas.">?</span>
+	                  </h3>
+	                  <div class="panel-meta">
+	                    <span class="panel-tag tag-bridge">Tienda a tienda</span>
+	                  </div>
+	                </div>
+	                <div class="module-body">
+	                  <div class="mode-sections">
+	                    <div class="mode-section">
+	                      <div class="mode-head">
+	                        <div class="mode-head-left">
+	                          <h4>Origen, destino y reglas</h4>
+	                        </div>
+	                      </div>
+	                      <div class="mode-grid">
+	                        <div class="mode-field">
+	                          <label for="store-sync-source-provider">Conexion origen</label>
+	                          <select id="store-sync-source-provider" name="store_sync_source_provider">
+	                            <option value="shopify" selected>Shopify</option>
+	                            <option value="woocommerce">WooCommerce</option>
+	                          </select>
+	                        </div>
+	                        <div class="mode-field">
+	                          <label for="store-sync-source">Tienda origen</label>
+	                          <select id="store-sync-source" name="store_sync_source"></select>
+	                        </div>
+	                        <div class="mode-field">
+	                          <label for="store-sync-alegra-account">Cuenta Alegra</label>
+	                          <select id="store-sync-alegra-account" name="store_sync_alegra_account"></select>
+	                        </div>
+	                        <div class="mode-field">
+	                          <label for="store-sync-price-list">Lista de precios Alegra</label>
+	                          <select id="store-sync-price-list" name="store_sync_price_list" data-allow-empty="true" data-empty-label="Seleccionar...">
+	                            <option value="">Seleccionar...</option>
+	                          </select>
+	                        </div>
+	                        <div class="mode-field">
+	                          <label for="store-sync-status">Estado destino</label>
+	                          <select id="store-sync-status" name="store_sync_status">
+	                            <option value="draft" selected>Borrador</option>
+	                            <option value="active">Activo</option>
+	                          </select>
+	                        </div>
+	                        <div class="mode-field">
+	                          <label for="store-sync-scope">Que sincronizar</label>
+	                          <select id="store-sync-scope" name="store_sync_scope">
+	                            <option value="products" selected>Productos</option>
+	                            <option value="inventory">Inventario (proximo)</option>
+	                          </select>
+	                        </div>
+	                        <div class="mode-field">
+	                          <label for="store-sync-price-fallback">Si no hay precio en lista</label>
+	                          <select id="store-sync-price-fallback" name="store_sync_price_fallback">
+	                            <option value="shopify" selected>Tomar precio original</option>
+	                            <option value="none">No poner precio</option>
+	                            <option value="skip">No sincronizar</option>
+	                          </select>
+	                        </div>
+	                        <div class="mode-field">
+	                          <label for="store-sync-target-provider">Conexion destino</label>
+	                          <select id="store-sync-target-provider" name="store_sync_target_provider">
+	                            <option value="shopify" selected>Shopify</option>
+	                            <option value="woocommerce">WooCommerce</option>
+	                          </select>
+	                        </div>
+	                        <div class="mode-field">
+	                          <label for="store-sync-target">Tienda destino</label>
+	                          <select id="store-sync-target" name="store_sync_target"></select>
+	                        </div>
+	                      </div>
+	                      <div class="mode-toggle-grid" aria-label="Opciones de copia">
+	                        <div class="mode-toggle">
+	                          <label for="store-sync-only-active">Solo activos en origen <span class="tip" data-tip="Si está ON, solo copia productos activos de la tienda origen.">?</span></label>
+	                          <input type="checkbox" id="store-sync-only-active" name="store_sync_only_active" class="toggle" checked />
+	                        </div>
+	                        <div class="mode-toggle">
+	                          <label for="store-sync-include-descriptions">Copiar descripciones <span class="tip" data-tip="Incluye la descripción HTML del producto.">?</span></label>
+	                          <input type="checkbox" id="store-sync-include-descriptions" name="store_sync_include_descriptions" class="toggle" checked />
+	                        </div>
+	                        <div class="mode-toggle">
+	                          <label for="store-sync-include-images">Copiar fotos <span class="tip" data-tip="Copia las fotos principales del producto (hasta 15 por producto).">?</span></label>
+	                          <input type="checkbox" id="store-sync-include-images" name="store_sync_include_images" class="toggle" checked />
+	                        </div>
+	                        <div class="mode-toggle">
+	                          <label for="store-sync-include-product-type">Copiar tipo/categoría <span class="tip" data-tip="Copia el tipo de producto (categoría interna).">?</span></label>
+	                          <input type="checkbox" id="store-sync-include-product-type" name="store_sync_include_product_type" class="toggle" checked />
+	                        </div>
+	                        <div class="mode-toggle">
+	                          <label for="store-sync-include-tags">Copiar etiquetas <span class="tip" data-tip="Copia las etiquetas (tags) del producto.">?</span></label>
+	                          <input type="checkbox" id="store-sync-include-tags" name="store_sync_include_tags" class="toggle" checked />
+	                        </div>
+	                      </div>
+	                      <div class="mode-actions">
+	                        <button class="primary" id="store-sync-run" type="button">Sincronizar productos</button>
+	                        <button class="ghost" id="store-sync-clear" type="button">Limpiar</button>
+	                        <span class="kpi-sub" id="store-sync-status-label">Sin datos</span>
+	                      </div>
+	                    </div>
+	                  </div>
+	                </div>
+	              </div>
+	            </div>
+	          </div>
+	          
+	          </div>
         </section>
       </main>
     </div>
@@ -2616,6 +2669,6 @@
       </div>
     </div>
 
-    <script src="/app.js?v=20260210p50" type="module"></script>
+    <script src="/app.js?v=20260216p20" type="module"></script>
 	  </body>
 	</html>
