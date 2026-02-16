@@ -1795,6 +1795,14 @@ body.force-settings #settings {
   display: flex !important;
 }
 
+.settings-pane {
+  display: none;
+}
+
+.settings-pane.is-active {
+  display: block;
+}
+
 .store-meta {
   margin-bottom: 6px;
 }

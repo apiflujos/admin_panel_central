@@ -654,6 +654,7 @@
               </div>
             </div>
           </div>
+          </div>
         </section>
 
         <section class="section" id="marketing">
@@ -1096,11 +1097,11 @@
 
         <section class="section" id="settings">
           <div class="settings-topnav" id="settings-topnav">
-            <button class="ghost" data-scroll-to="settings-connections">Conexiones</button>
-            <button class="ghost" data-scroll-to="settings-marketing">Marketing</button>
-            <button class="ghost" data-scroll-to="settings-stores">Tiendas</button>
+            <a class="ghost" href="/settings/connections" data-settings-pane-link="connections">Conexiones</a>
+            <a class="ghost" href="/settings/marketing" data-settings-pane-link="marketing">Marketing</a>
+            <a class="ghost" href="/settings/stores" data-settings-pane-link="stores">Tiendas</a>
           </div>
-          <div class="settings-pane" data-settings-pane="connections">
+          <div class="settings-pane is-active" data-settings-pane="connections">
                 <div class="settings-group-title" id="settings-connections">Conexiones</div>
 				            <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-setup-open="0" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (autorizacion) y luego Alegra (clave de acceso o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa.&#10;4) Configura Productos, Pedidos y Contactos segun tu forma de trabajo.&#10;5) Revisa Operacion (sincronizacion automatica y salud).&#10;&#10;Tip: la configuracion guiada es para tienda nueva; si ya hay tienda activa, usa Manual.">
 		            <div class="panel-header">
@@ -1376,6 +1377,9 @@
             </div>
           </div>
 
+          </div>
+
+          <div class="settings-pane" data-settings-pane="marketing">
           <div class="settings-group-title" id="settings-marketing">Marketing</div>
                   <div class="connections-group" data-group="marketing-ads">
                     <div class="connections-group-header">
@@ -1550,6 +1554,9 @@
                     </div>
 
 	              </div>
+          </div>
+
+          <div class="settings-pane" data-settings-pane="stores">
           <div class="settings-group-title" id="settings-stores">Tiendas</div>
 				          <div class="panel admin-only" id="stores-switcher-panel" data-help="Tiendas conectadas: elige la tienda activa. Todo lo de abajo (productos, pedidos, contactos, etc.) se guarda por tienda activa.">
 				            <div class="panel-header">

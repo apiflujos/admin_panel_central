@@ -111,6 +111,12 @@ app.get("/auth/callback", shopifyOAuthCallback);
 app.get("/dashboard", (_req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
+app.get("/settings", (_req, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
+});
+app.get("/settings/:pane", (_req, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
+});
 
 app.get("/__sa", requirePageSuperAdmin, (_req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
