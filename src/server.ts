@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import path from "path";
+import fs from "fs";
 import helmet from "helmet";
 import morgan from "morgan";
 import { router } from "./api/routes";
@@ -111,11 +112,33 @@ app.get("/auth/callback", shopifyOAuthCallback);
 app.get("/dashboard", (_req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
+const indexHtmlPath = path.join(publicDir, "index.html");
+const renderIndexWithBodyClass = (res: express.Response, className: string) => {
+  try {
+    const html = fs.readFileSync(indexHtmlPath, "utf8");
+    const withClass = html.replace(
+      /<body(\s[^>]*)?>/i,
+      (match, attrs = "") => {
+        if (/class=/.test(attrs)) {
+          return match.replace(/class=("|')([^"']*)("|')/i, (full, quote, value) => {
+            const next = value.includes(className) ? value : `${value} ${className}`.trim();
+            return `class=${quote}${next}${quote}`;
+          });
+        }
+        return `<body${attrs} class=\"${className}\">`;
+      }
+    );
+    res.send(withClass);
+  } catch (error) {
+    console.error("[settings] failed to render index:", error);
+    res.status(500).send("error");
+  }
+};
 app.get("/settings", (_req, res) => {
-  res.sendFile(path.join(publicDir, "index.html"));
+  renderIndexWithBodyClass(res, "force-settings");
 });
 app.get("/settings/:pane", (_req, res) => {
-  res.sendFile(path.join(publicDir, "index.html"));
+  renderIndexWithBodyClass(res, "force-settings");
 });
 
 app.get("/__sa", requirePageSuperAdmin, (_req, res) => {
