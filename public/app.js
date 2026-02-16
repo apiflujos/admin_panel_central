@@ -9523,6 +9523,9 @@ async function loadOperations() {
 }
 
 function renderOperations(items) {
+  if (!opsTableBody) {
+    return;
+  }
   if (!items.length) {
     opsTableBody.innerHTML = `<tr><td colspan="7" class="empty">Sin ordenes para mostrar.</td></tr>`;
     ordersTotal = 0;
