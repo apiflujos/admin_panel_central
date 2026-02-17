@@ -4900,34 +4900,19 @@ function setConnectionContextClasses({ shopifyConnected, alegraConnected, wooCon
   document.body.classList.toggle("no-alegra", !alegraConnected);
 }
 
-function getCommerceLabel({ shopifyConnected, wooConnected }) {
-  if (shopifyConnected && wooConnected) return "Shopify + WooCommerce";
-  if (shopifyConnected) return "Shopify";
-  if (wooConnected) return "WooCommerce";
-  return "E‑commerce";
-}
-
-function getAccountingLabel({ alegraConnected }) {
-  return alegraConnected ? "Alegra" : "Contable";
-}
-
 function updateConnectionModuleCards(context) {
-  const commerceLabel = getCommerceLabel(context);
-  const accountingLabel = getAccountingLabel(context);
   const commerceCard = document.querySelector('[data-connection-group-open="commerce"]');
   if (commerceCard) {
     const subtitle = commerceCard.querySelector(".module-card-subtitle");
     if (subtitle) {
-      subtitle.textContent =
-        commerceLabel === "E‑commerce" ? "Conecta una tienda" : commerceLabel;
+      subtitle.textContent = "Shopify · WooCommerce";
     }
   }
   const accountingCard = document.querySelector('[data-connection-group-open="accounting"]');
   if (accountingCard) {
     const subtitle = accountingCard.querySelector(".module-card-subtitle");
     if (subtitle) {
-      subtitle.textContent =
-        accountingLabel === "Contable" ? "Conecta una plataforma contable" : accountingLabel;
+      subtitle.textContent = "Alegra";
     }
   }
 }
