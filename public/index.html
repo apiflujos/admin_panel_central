@@ -947,19 +947,23 @@
                   <thead>
                     <tr>
                       <th>Producto / Referencia</th>
-                      <th>ID Contable</th>
-                      <th>ID E‑commerce</th>
-	                      <th>Referencia/SKU</th>
+                      <th id="products-th-accounting-id">ID Contable</th>
+                      <th id="products-th-commerce-id">ID E‑commerce</th>
+                      <th>Referencia/SKU</th>
                       <th>Fecha</th>
-                      <th>Estado Contable</th>
+                      <th id="products-th-accounting-status">Estado Contable</th>
                       <th>Stock total</th>
-                      <th>Estado E‑commerce</th>
+                      <th id="products-th-commerce-status">Estado E‑commerce</th>
+                      <th id="products-th-accounting-track">Seguimiento Contable</th>
+                      <th id="products-th-commerce-track">Seguimiento E‑commerce</th>
+                      <th id="products-th-accounting-oversell">Sobreventa Contable</th>
+                      <th id="products-th-commerce-oversell">Sobreventa E‑commerce</th>
                       <th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td colspan="9" class="empty">Sin productos para mostrar.</td>
+                      <td colspan="13" class="empty">Sin productos para mostrar.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1633,7 +1637,7 @@
 	                        <div class="mode-section" data-readonly-free="1">
 		                          <div class="mode-head">
 		                            <div class="mode-head-left">
-					                              <h4>Masivo: productos Contable → E‑commerce</h4>
+			                              <h4 data-title-template="Masivo: productos {accounting} → {commerce}">Masivo: productos Contable → E‑commerce</h4>
 					                              <span class="tip" data-tip="Este masivo se usa para catálogo inicial o re-procesar un rango.&#10;Crea productos en E‑commerce solo si NO existen (por SKU/Barcode).&#10;Recomendación: prueba con un rango corto y apaga “Publicar” si quieres validar antes.">?</span>
 			                            </div>
 			                          </div>
@@ -1663,26 +1667,30 @@
                           </div>
 	                          <div class="mode-toggle-grid" aria-label="Opciones masivo">
 		                            <div class="mode-toggle">
-		                              <label for="products-sync-only-active">Solo activos en Contable <span class="tip" data-tip="Si está activo, el masivo ignora productos inactivos en Contable. Recomendado para evitar crear productos descontinuados en E‑commerce.">?</span></label>
+		                              <label for="products-sync-only-active"><span data-label-template="Solo activos en {accounting}">Solo activos en Contable</span> <span class="tip" data-tip="Si está activo, el masivo ignora productos inactivos en Contable. Recomendado para evitar crear productos descontinuados en E‑commerce.">?</span></label>
 		                              <input type="checkbox" id="products-sync-only-active" name="products_sync_only_active" class="toggle" checked />
 		                            </div>
 				                            <div class="mode-toggle">
-				                              <label for="products-sync-update-existing">Actualizar existentes <span class="tip" data-tip="ON: si el producto ya existe, lo actualiza en la base de datos.&#10;Si además “Publicar en E‑commerce” está ON, también actualiza el producto existente en E‑commerce (por SKU/Barcode): precio de variantes y estado (draft/active).&#10;OFF: no modifica productos existentes (ni en la base de datos, ni en E‑commerce); solo guarda productos nuevos.">?</span></label>
+				                              <label for="products-sync-update-existing"><span data-label-template="Actualizar existentes en {commerce}">Actualizar existentes</span> <span class="tip" data-tip="ON: si el producto ya existe, lo actualiza en la base de datos.&#10;Si además “Publicar en E‑commerce” está ON, también actualiza el producto existente en E‑commerce (por SKU/Barcode): precio de variantes y estado (draft/active).&#10;OFF: no modifica productos existentes (ni en la base de datos, ni en E‑commerce); solo guarda productos nuevos.">?</span></label>
 				                              <input type="checkbox" id="products-sync-update-existing" name="products_sync_update_existing" class="toggle" checked />
 				                            </div>
 				                            <div class="mode-toggle">
-				                              <label for="products-sync-publish">Publicar en E‑commerce <span class="tip" data-tip="ON: crea productos nuevos en E‑commerce.&#10;Si “Actualizar existentes” está ON, también actualiza productos ya existentes en E‑commerce (por SKU/Barcode).&#10;OFF: no crea ni actualiza nada en E‑commerce (solo trabaja en la base de datos).&#10;Tip: usa OFF para cargar catálogo y validar antes de publicar.">?</span></label>
+				                              <label for="products-sync-publish"><span data-label-template="Publicar en {commerce}">Publicar en E‑commerce</span> <span class="tip" data-tip="ON: crea productos nuevos en E‑commerce.&#10;Si “Actualizar existentes” está ON, también actualiza productos ya existentes en E‑commerce (por SKU/Barcode).&#10;OFF: no crea ni actualiza nada en E‑commerce (solo trabaja en la base de datos).&#10;Tip: usa OFF para cargar catálogo y validar antes de publicar.">?</span></label>
 				                              <input type="checkbox" id="products-sync-publish" name="products_sync_publish" class="toggle" checked />
 				                            </div>
-				                            <div class="mode-toggle">
-				                              <label for="products-publish-status-mass">Estado <span class="tip" data-tip="Borrador = no visible en la tienda. Activo = visible y listo para vender. Solo aplica si “Publicar en E‑commerce” está activo.">?</span></label>
-				                              <select id="products-publish-status-mass" name="products_publish_status_mass" data-depends-on="products-sync-publish">
-				                                <option value="draft">Borrador</option>
-				                                <option value="active">Activo</option>
-				                              </select>
-				                            </div>
+                            <div class="mode-toggle">
+                              <label for="products-publish-status-mass">Estado <span class="tip" data-tip="Borrador = no visible en la tienda. Activo = visible y listo para vender. Solo aplica si “Publicar en E‑commerce” está activo.">?</span></label>
+                              <select id="products-publish-status-mass" name="products_publish_status_mass" data-depends-on="products-sync-publish">
+                                <option value="draft">Borrador</option>
+                                <option value="active">Activo</option>
+                              </select>
+                            </div>
+                            <div class="mode-toggle">
+                              <label for="products-sync-track-inventory"><span data-label-template="Seguimiento de inventarios ({accounting})">Seguimiento de inventarios</span> <span class="tip" data-tip="Si está ON, los productos se crean con seguimiento de inventario activo. Esto requiere que “Sincronizar inventario en E‑commerce” esté encendido. Si un producto no tiene seguimiento en Shopify (o se permite sobreventa), ese comportamiento se respeta. Las reglas de inventario de Contable rigen este seguimiento.">?</span></label>
+                              <input type="checkbox" id="products-sync-track-inventory" name="products_sync_track_inventory" class="toggle" checked />
+                            </div>
 		                            <div class="mode-toggle">
-		                              <label for="products-sync-include-inventory">Incluir inventario <span class="tip" data-tip="ON: trae inventario desde Contable (y lo guarda en la base de datos).&#10;Si además “Publicar en E‑commerce” está ON, también sincroniza existencias en E‑commerce usando las bodegas configuradas en “Inventario y bodegas”.">?</span></label>
+		                              <label for="products-sync-include-inventory">Publicar existencias <span class="tip" data-tip="ON: trae inventario desde Contable (y lo guarda en la base de datos).&#10;Si además “Publicar en E‑commerce” está ON, también sincroniza existencias en E‑commerce usando las bodegas configuradas en “Inventario y bodegas”.">?</span></label>
 		                              <input type="checkbox" id="products-sync-include-inventory" name="products_sync_include_inventory" class="toggle" checked />
 		                            </div>
 	                          </div>
@@ -1705,39 +1713,43 @@
 							                            <div class="mode-head-left">
 							                              <label class="mode-title-toggle" for="rules-auto-enabled" data-dep-controller="1">
 							                                <input type="checkbox" id="rules-auto-enabled" name="rules_auto_enabled" class="toggle" data-dep-controller="1" checked />
-								                                <span>Automático: productos Contable → E‑commerce</span>
+									                                <span data-title-template="Automático: productos {accounting} → {commerce}">Automático: productos Contable → E‑commerce</span>
 								                              </label>
 										                              <span class="tip" data-tip="Se ejecuta sola cuando llegan cambios desde Contable. Estas reglas también aplican cuando sincronizas manualmente desde el módulo Productos. Si apagas “Publicar en E‑commerce”, el sistema solo actualiza datos y no deja productos visibles.">?</span>
 									                            </div>
 									                          </div>
 										                          <div class="mode-toggle-grid" aria-label="Opciones automático (Contable → E‑commerce)" data-depends-on="rules-auto-enabled">
 									                            <div class="mode-toggle">
-									                              <label for="rules-auto-create-shopify">Crear nuevos en E‑commerce <span class="tip" data-tip="Si está OFF, no creamos productos nuevos en E‑commerce. Solo actualizamos los que ya existan/mapeados.">?</span></label>
+									                              <label for="rules-auto-create-shopify"><span data-label-template="Crear nuevos en {commerce}">Crear nuevos en E‑commerce</span> <span class="tip" data-tip="Si está OFF, no creamos productos nuevos en E‑commerce. Solo actualizamos los que ya existan/mapeados.">?</span></label>
 								                              <input type="checkbox" id="rules-auto-create-shopify" name="rules_auto_create_shopify" class="toggle" data-depends-on="rules-auto-enabled" checked />
 									                            </div>
 									                            <div class="mode-toggle">
-									                              <label for="rules-auto-update-shopify">Actualizar existentes en E‑commerce <span class="tip" data-tip="Si está OFF, no modificamos productos existentes (precio/stock/estado). Igual se registran en la base para que los veas en Productos.">?</span></label>
+									                              <label for="rules-auto-update-shopify"><span data-label-template="Actualizar existentes en {commerce}">Actualizar existentes en E‑commerce</span> <span class="tip" data-tip="Si está OFF, no modificamos productos existentes (precio/stock/estado). Igual se registran en la base para que los veas en Productos.">?</span></label>
 								                              <input type="checkbox" id="rules-auto-update-shopify" name="rules_auto_update_shopify" class="toggle" data-depends-on="rules-auto-enabled" checked />
 									                            </div>
 									                            <div class="mode-toggle">
-									                              <label for="rules-only-active">Solo activos en Contable <span class="tip" data-tip="Si está activo, solo se sincronizan productos activos en Contable (automático y manual por SKU).">?</span></label>
+									                              <label for="rules-only-active"><span data-label-template="Solo activos en {accounting}">Solo activos en Contable</span> <span class="tip" data-tip="Si está activo, solo se sincronizan productos activos en Contable (automático y manual por SKU).">?</span></label>
 								                              <input type="checkbox" id="rules-only-active" name="rules_only_active" class="toggle" />
 									                            </div>
 						                            <div class="mode-toggle">
-						                              <label for="rules-auto-publish">Publicar en E‑commerce <span class="tip" data-tip="Enciende/apaga la publicación. Si lo apagas, solo sincronizamos datos, pero no publicamos productos (automático ni manual por SKU).">?</span></label>
+						                              <label for="rules-auto-publish"><span data-label-template="Publicar en {commerce}">Publicar en E‑commerce</span> <span class="tip" data-tip="Enciende/apaga la publicación. Si lo apagas, solo sincronizamos datos, pero no publicamos productos (automático ni manual por SKU).">?</span></label>
 						                              <input type="checkbox" id="rules-auto-publish" name="rules_auto_publish" class="toggle" />
 						                            </div>
 									                            <div class="mode-toggle">
 									                              <label for="rules-auto-images">Publicar fotos <span class="tip" data-tip="Si está activo, intentamos subir fotos del producto a E‑commerce. Si una foto falla, el producto puede publicarse igual (solo quedará sin esa foto).">?</span></label>
 									                              <input type="checkbox" id="rules-auto-images" name="rules_auto_images" class="toggle" data-depends-on="rules-auto-publish" />
 									                            </div>
-						                            <div class="mode-toggle">
-						                              <label for="rules-auto-status">Estado <span class="tip" data-tip="Define el estado de publicación cuando “Publicar en E‑commerce” está activo: Borrador o Activo.">?</span></label>
-						                              <select id="rules-auto-status" name="rules_auto_status" data-depends-on="rules-auto-publish">
-						                                <option value="draft">Borrador</option>
-						                                <option value="active">Activo</option>
-						                              </select>
-						        </div>
+                            <div class="mode-toggle">
+                              <label for="rules-auto-status">Estado <span class="tip" data-tip="Define el estado de publicación cuando “Publicar en E‑commerce” está activo: Borrador o Activo.">?</span></label>
+                              <select id="rules-auto-status" name="rules_auto_status" data-depends-on="rules-auto-publish">
+                                <option value="draft">Borrador</option>
+                                <option value="active">Activo</option>
+                              </select>
+        </div>
+                            <div class="mode-toggle">
+                              <label for="rules-auto-track-inventory">Seguimiento de inventarios <span class="tip" data-tip="Si está ON, los productos se crean con seguimiento de inventario activo. Esto requiere que “Sincronizar inventario en E‑commerce” esté encendido. Si un producto no tiene seguimiento en Shopify (o se permite sobreventa), ese comportamiento se respeta. Las reglas de inventario de Contable rigen este seguimiento.">?</span></label>
+                              <input type="checkbox" id="rules-auto-track-inventory" name="rules_auto_track_inventory" class="toggle" checked />
+                            </div>
 	                      </div>
 		                      <p class="field-hint module-warning is-hidden" data-module-warning="shopify-rules"></p>
 		                    </div>
@@ -2220,15 +2232,15 @@
 
 		                  <div class="mode-grid" data-depends-on="cfg-transfer-enabled">
 			                    <div class="field mode-field">
-			                      <label>Tipo de bodega destino <span class="tip" data-tip="Automática: usa Bodega prioritaria (o la primera disponible) como destino. Fija (HUB): usa la bodega seleccionada aquí. Por regla: disponible próximamente.">?</span></label>
+			                      <label>Tipo de bodega destino <span class="tip" data-tip="Automática: usa Bodega prioritaria (o la primera disponible) como destino. Fija: usa la bodega seleccionada aquí. Por regla: disponible próximamente.">?</span></label>
 			                      <select id="cfg-transfer-dest-mode" name="cfg_transfer_dest_mode" data-depends-on="cfg-transfer-enabled">
-			                        <option value="fixed">Fija (HUB)</option>
+			                        <option value="fixed">Fija</option>
 			                        <option value="auto">Automática</option>
 			                        <option value="rule">Por regla</option>
 			                      </select>
 			                    </div>
 		                    <div class="field mode-field">
-		                      <label>Bodega destino (HUB) <span class="tip" data-tip="Bodega destino donde queda el inventario listo para facturar y ajustar stock. Solo aplica cuando el tipo de destino es Fija (HUB).">?</span></label>
+		                      <label>Bodega destino <span class="tip" data-tip="Bodega destino donde queda el inventario listo para facturar y ajustar stock. Solo aplica cuando el tipo de destino es Fija.">?</span></label>
 		                      <select id="cfg-transfer-dest" name="cfg_transfer_dest" data-depends-on="cfg-transfer-enabled"></select>
 		                    </div>
 			                    <div class="field mode-field">
@@ -2369,7 +2381,8 @@
 		                    </div>
 		                    <div class="field mode-field">
 		                      <label>Vendedor</label>
-		                      <select id="cfg-seller" name="cfg_seller"></select>
+		                      <select id="cfg-seller" name="cfg_seller" data-allow-empty="true" data-empty-label="Auto">
+  <option value="">Auto</option></select>
 		                    </div>
 		                    <div class="field mode-field">
 		                      <label>Metodo de pago</label>
@@ -2438,10 +2451,14 @@
 	          
 	          <div class="settings-group provider-group" data-group="store-sync">
 	            <div class="settings-group-header" data-group-toggle="store-sync">
-	              <h4 class="group-title">
-	                <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="E‑commerce" />
-	                Sincronizador tienda a tienda
-	              </h4>
+              <h4 class="group-title">
+                <span class="store-sync-logos">
+                  <img class="provider-logo store-sync-logo store-sync-logo-source" src="/brands/shopify.png?v=20260201s" alt="Origen" />
+                  <span class="group-arrow">↔</span>
+                  <img class="provider-logo store-sync-logo store-sync-logo-target" src="/brands/shopify.png?v=20260201s" alt="Destino" />
+                </span>
+                Sincronizador tienda a tienda
+              </h4>
 	            </div>
 	            <div class="settings-group-body">
 	              <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="store-sync-products" data-help="Copia productos entre tiendas E‑commerce o WooCommerce dentro de tu organizacion. Ideal para clonar catalogos o mover productos de una tienda a otra.">
@@ -2475,22 +2492,33 @@
 	                          <select id="store-sync-source" name="store_sync_source"></select>
 	                        </div>
 	                        <div class="mode-field">
-	                          <label for="store-sync-alegra-account">Cuenta Contable</label>
+	                          <label for="store-sync-alegra-account"><span data-label-template="Cuenta {accounting}">Cuenta Contable</span></label>
 	                          <select id="store-sync-alegra-account" name="store_sync_alegra_account"></select>
 	                        </div>
 	                        <div class="mode-field">
-	                          <label for="store-sync-price-list">Lista de precios Contable</label>
+	                          <label for="store-sync-price-list"><span data-label-template="Lista de precios {accounting}">Lista de precios Contable</span></label>
 	                          <select id="store-sync-price-list" name="store_sync_price_list" data-allow-empty="true" data-empty-label="Seleccionar...">
 	                            <option value="">Seleccionar...</option>
 	                          </select>
 	                        </div>
-	                        <div class="mode-field">
-	                          <label for="store-sync-status">Estado destino</label>
-	                          <select id="store-sync-status" name="store_sync_status">
-	                            <option value="draft" selected>Borrador</option>
-	                            <option value="active">Activo</option>
-	                          </select>
-	                        </div>
+                        <div class="mode-field">
+                          <label for="store-sync-status">Estado destino</label>
+                          <select id="store-sync-status" name="store_sync_status">
+                            <option value="draft" selected>Borrador</option>
+                            <option value="active">Activo</option>
+                          </select>
+                        </div>
+                        <div class="mode-field">
+                          <label for="store-sync-track-inventory"><span data-label-template="Seguimiento de inventarios ({accounting})">Seguimiento de inventarios (Alegra)</span> <span class="tip" data-tip="Si está ON, los productos se crean con seguimiento de inventario activo. Esto requiere que “Sincronizar inventario en E‑commerce” esté encendido. Si un producto no tiene seguimiento en Shopify (o se permite sobreventa), ese comportamiento se respeta. Las reglas de inventario de Alegra rigen este seguimiento.">?</span></label>
+                          <input type="checkbox" id="store-sync-track-inventory" name="store_sync_track_inventory" class="toggle" checked />
+                        </div>
+                        <div class="mode-field">
+                          <label for="store-sync-inventory-source"><span data-label-template="Inventario desde {accounting}/{commerce}">Inventario desde Contable</span> <span class="tip" data-tip="Define la fuente de inventario cuando “Publicar existencias” está ON. Solo una fuente puede estar activa.">?</span></label>
+                          <select id="store-sync-inventory-source" name="store_sync_inventory_source">
+                            <option value="accounting" selected>Contable</option>
+                            <option value="commerce">E‑commerce (origen)</option>
+                          </select>
+                        </div>
 	                        <div class="mode-field">
 	                          <label for="store-sync-scope">Que sincronizar</label>
 	                          <select id="store-sync-scope" name="store_sync_scope">
@@ -2518,27 +2546,31 @@
 	                          <select id="store-sync-target" name="store_sync_target"></select>
 	                        </div>
 	                      </div>
-	                      <div class="mode-toggle-grid" aria-label="Opciones de copia">
+                      <div class="mode-toggle-grid" aria-label="Opciones de copia">
+                        <div class="mode-toggle">
+                          <label for="store-sync-include-inventory"><span id="store-sync-include-inventory-label" data-label-template="Publicar existencias ({accounting})">Publicar existencias (Alegra)</span> <span class="tip" data-tip="Si está ON, publica existencias en la tienda destino. Requiere seguimiento de inventarios activo.">?</span></label>
+                          <input type="checkbox" id="store-sync-include-inventory" name="store_sync_include_inventory" class="toggle" checked />
+                        </div>
 	                        <div class="mode-toggle">
 	                          <label for="store-sync-only-active">Solo activos en origen <span class="tip" data-tip="Si está ON, solo copia productos activos de la tienda origen.">?</span></label>
 	                          <input type="checkbox" id="store-sync-only-active" name="store_sync_only_active" class="toggle" checked />
 	                        </div>
-	                        <div class="mode-toggle">
-	                          <label for="store-sync-include-descriptions">Copiar descripciones <span class="tip" data-tip="Incluye la descripción HTML del producto.">?</span></label>
-	                          <input type="checkbox" id="store-sync-include-descriptions" name="store_sync_include_descriptions" class="toggle" checked />
-	                        </div>
-	                        <div class="mode-toggle">
-	                          <label for="store-sync-include-images">Copiar fotos <span class="tip" data-tip="Copia las fotos principales del producto (hasta 15 por producto).">?</span></label>
-	                          <input type="checkbox" id="store-sync-include-images" name="store_sync_include_images" class="toggle" checked />
-	                        </div>
-	                        <div class="mode-toggle">
-	                          <label for="store-sync-include-product-type">Copiar tipo/categoría <span class="tip" data-tip="Copia el tipo de producto (categoría interna).">?</span></label>
-	                          <input type="checkbox" id="store-sync-include-product-type" name="store_sync_include_product_type" class="toggle" checked />
-	                        </div>
-	                        <div class="mode-toggle">
-	                          <label for="store-sync-include-tags">Copiar etiquetas <span class="tip" data-tip="Copia las etiquetas (tags) del producto.">?</span></label>
-	                          <input type="checkbox" id="store-sync-include-tags" name="store_sync_include_tags" class="toggle" checked />
-	                        </div>
+                        <div class="mode-toggle">
+                          <label for="store-sync-include-descriptions">Publicar descripciones <span class="tip" data-tip="Incluye la descripción HTML del producto.">?</span></label>
+                          <input type="checkbox" id="store-sync-include-descriptions" name="store_sync_include_descriptions" class="toggle" checked />
+                        </div>
+                        <div class="mode-toggle">
+                          <label for="store-sync-include-images">Publicar fotos <span class="tip" data-tip="Incluye las fotos principales del producto (hasta 15 por producto).">?</span></label>
+                          <input type="checkbox" id="store-sync-include-images" name="store_sync_include_images" class="toggle" checked />
+                        </div>
+                        <div class="mode-toggle">
+                          <label for="store-sync-include-product-type">Publicar tipo/categoría <span class="tip" data-tip="Incluye el tipo de producto (categoría interna).">?</span></label>
+                          <input type="checkbox" id="store-sync-include-product-type" name="store_sync_include_product_type" class="toggle" checked />
+                        </div>
+                        <div class="mode-toggle">
+                          <label for="store-sync-include-tags">Publicar etiquetas <span class="tip" data-tip="Incluye las etiquetas (tags) del producto.">?</span></label>
+                          <input type="checkbox" id="store-sync-include-tags" name="store_sync_include_tags" class="toggle" checked />
+                        </div>
 	                      </div>
 	                      <div class="mode-actions">
 	                        <button class="primary" id="store-sync-run" type="button">Sincronizar productos</button>

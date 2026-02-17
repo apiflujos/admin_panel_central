@@ -261,6 +261,9 @@ const storeSyncPriceListSelect = document.getElementById("store-sync-price-list"
 const storeSyncStatusSelect = document.getElementById("store-sync-status");
 const storeSyncScopeSelect = document.getElementById("store-sync-scope");
 const storeSyncPriceFallbackSelect = document.getElementById("store-sync-price-fallback");
+const storeSyncTrackInventory = document.getElementById("store-sync-track-inventory");
+const storeSyncIncludeInventory = document.getElementById("store-sync-include-inventory");
+const storeSyncInventorySource = document.getElementById("store-sync-inventory-source");
 const storeSyncOnlyActive = document.getElementById("store-sync-only-active");
 const storeSyncIncludeDescriptions = document.getElementById("store-sync-include-descriptions");
 const storeSyncIncludeImages = document.getElementById("store-sync-include-images");
@@ -269,6 +272,7 @@ const storeSyncIncludeTags = document.getElementById("store-sync-include-tags");
 const storeSyncRun = document.getElementById("store-sync-run");
 const storeSyncClear = document.getElementById("store-sync-clear");
 const storeSyncStatusLabel = document.getElementById("store-sync-status-label");
+const storeSyncIncludeInventoryLabel = document.getElementById("store-sync-include-inventory-label");
 const shopifyDomain = document.getElementById("shopify-domain");
 const shopifyToken = document.getElementById("shopify-token");
 const shopifyTokenField = document.getElementById("shopify-token-field");
@@ -464,6 +468,7 @@ const productsSyncPublish = document.getElementById("products-sync-publish");
 const productsSyncUpdateExisting = document.getElementById("products-sync-update-existing");
 const productsSyncOnlyPublished = document.getElementById("products-sync-only-published");
 const productsSyncIncludeInventory = document.getElementById("products-sync-include-inventory");
+const productsSyncTrackInventory = document.getElementById("products-sync-track-inventory");
 const productsSyncFilteredBtn = document.getElementById("products-sync-filtered");
 const productsSyncStopBtn = document.getElementById("products-sync-stop");
 const ordersSyncDateStart = document.getElementById("orders-sync-date-start");
@@ -534,6 +539,7 @@ const rulesAutoEnabled = document.getElementById("rules-auto-enabled");
 const rulesAutoPublish = document.getElementById("rules-auto-publish");
 const rulesAutoStatus = document.getElementById("rules-auto-status");
 const rulesAutoImages = document.getElementById("rules-auto-images");
+const rulesAutoTrackInventory = document.getElementById("rules-auto-track-inventory");
 const cfgWarehouseSync = document.getElementById("cfg-warehouse-sync");
 const cfgWarehouseSyncSummary = document.getElementById("cfg-warehouse-sync-summary");
 const cfgWarehouseSelectAll = document.getElementById("cfg-warehouse-select-all");
@@ -573,6 +579,7 @@ let inventoryRules = {
   onlyActiveItems: false,
   includeImages: true,
   syncEnabled: true,
+  trackInventory: true,
   warehouseIds: [],
 };
 let globalInvoiceSettings = null;
@@ -604,6 +611,7 @@ const DEFAULT_PRODUCT_SETTINGS = {
     status: "draft",
     includeImages: true,
     vendor: "",
+    trackInventory: true,
   },
     sync: {
       dateStart: "",
@@ -4392,8 +4400,8 @@ function validateInvoiceModule() {
 	        field: destinationMode === "auto" ? cfgTransferDestMode : cfgTransferDest,
 	        message:
 	          destinationMode === "auto"
-	            ? "Define el destino automático (usa Bodega prioritaria o cambia a Fija HUB)."
-	            : "Bodega destino (HUB) requerida.",
+	            ? "Define el destino automático (usa Bodega prioritaria o cambia a Fija)."
+	            : "Bodega destino requerida.",
 	      });
 	    }
 	  }
@@ -4782,13 +4790,18 @@ function getStoreConnections(store) {
       Boolean(store?.shopify?.shopifyConnected ?? store?.shopify?.status === "Conectado") &&
       !store?.shopify?.shopifyNeedsReconnect;
     const alegraOk = Boolean(store?.alegra) && !store?.alegra?.needsReconnect;
-    const wooOk = Boolean(store?.woo?.ok);
+    const wooOk =
+      Boolean(store?.woo?.ok) ||
+      (Array.isArray(wooStoresCache) &&
+        wooStoresCache.some((wooStore) => String(wooStore.storeId || wooStore.store_id || "") === String(store?.id || "")));
     return { shopifyConnected: shopifyOk, alegraConnected: alegraOk, wooConnected: wooOk };
   }
   return {
     shopifyConnected: Boolean(store?.shopifyConnected ?? store?.status === "Conectado"),
     alegraConnected: Boolean(store?.alegraConnected ?? store?.alegraAccountId),
-    wooConnected: false,
+    wooConnected:
+      Array.isArray(wooStoresCache) &&
+      wooStoresCache.some((wooStore) => String(wooStore.storeId || wooStore.store_id || "") === String(store?.id || "")),
   };
 }
 
@@ -4962,6 +4975,85 @@ function updateDynamicModuleTitles(context) {
   setModuleBridgeTag("sync-orders", `${commerceLabel} ↔ ${accountingLabel}`);
   setModuleTitle("alegra-logistics", `Logística (${accountingLabel}) para facturar pedidos`);
   setModuleTitle("alegra-invoice", `Facturación en ${accountingLabel} (para pedidos)`);
+  applyDynamicLabelTemplates({ commerceLabel, accountingLabel });
+  replacePlatformLabelsInSettings({ commerceLabel, accountingLabel });
+  updateStoreSyncInventoryLabels({ commerceLabel, accountingLabel });
+  updateProductsTableHeaders({ commerceLabel, accountingLabel });
+}
+
+function applyDynamicLabelTemplates({ commerceLabel, accountingLabel }) {
+  document.querySelectorAll("[data-label-template]").forEach((node) => {
+    const template = node.getAttribute("data-label-template") || "";
+    if (!template) return;
+    node.textContent = template
+      .replaceAll("{commerce}", commerceLabel)
+      .replaceAll("{accounting}", accountingLabel);
+  });
+  document.querySelectorAll("[data-title-template]").forEach((node) => {
+    const template = node.getAttribute("data-title-template") || "";
+    if (!template) return;
+    node.textContent = template
+      .replaceAll("{commerce}", commerceLabel)
+      .replaceAll("{accounting}", accountingLabel);
+  });
+}
+
+function getStoreSyncInventorySource() {
+  if (!(storeSyncInventorySource instanceof HTMLSelectElement)) return "accounting";
+  return storeSyncInventorySource.value === "commerce" ? "commerce" : "accounting";
+}
+
+function updateStoreSyncInventoryLabels({ commerceLabel, accountingLabel }) {
+  const source = getStoreSyncInventorySource();
+  if (storeSyncInventorySource instanceof HTMLSelectElement) {
+    const accountingOption = storeSyncInventorySource.querySelector('option[value="accounting"]');
+    if (accountingOption) {
+      accountingOption.textContent = accountingLabel;
+    }
+    const commerceOption = storeSyncInventorySource.querySelector('option[value="commerce"]');
+    if (commerceOption) {
+      commerceOption.textContent = `${commerceLabel} (origen)`;
+    }
+  }
+  if (storeSyncIncludeInventoryLabel) {
+    const sourceLabel = source === "commerce" ? commerceLabel : accountingLabel;
+    storeSyncIncludeInventoryLabel.textContent = `Publicar existencias (${sourceLabel})`;
+  }
+}
+
+function updateProductsTableHeaders({ commerceLabel, accountingLabel }) {
+  const setText = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  };
+  setText("products-th-accounting-id", `ID ${accountingLabel}`);
+  setText("products-th-commerce-id", `ID ${commerceLabel}`);
+  setText("products-th-accounting-status", `Estado ${accountingLabel}`);
+  setText("products-th-commerce-status", `Estado ${commerceLabel}`);
+  setText("products-th-accounting-track", `Seguimiento ${accountingLabel}`);
+  setText("products-th-commerce-track", `Seguimiento ${commerceLabel}`);
+  setText("products-th-accounting-oversell", `Sobreventa ${accountingLabel}`);
+  setText("products-th-commerce-oversell", `Sobreventa ${commerceLabel}`);
+}
+
+function replacePlatformLabelsInSettings({ commerceLabel, accountingLabel }) {
+  const settings = document.getElementById("settings");
+  if (!settings) return;
+  const walker = document.createTreeWalker(settings, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())) {
+    if (!node || !node.nodeValue) continue;
+    if (!node.__apiflujosPlatformTemplate) {
+      node.__apiflujosPlatformTemplate = node.nodeValue;
+    }
+    const template = node.__apiflujosPlatformTemplate;
+    const next = template
+      .replaceAll("E‑commerce", commerceLabel)
+      .replaceAll("Contable", accountingLabel);
+    if (next !== node.nodeValue) {
+      node.nodeValue = next;
+    }
+  }
 }
 
 function updateSettingsStoreHeading(context) {
@@ -4990,14 +5082,30 @@ function updateSettingsStoreHeading(context) {
 function updateStoreSyncTitle() {
   const title = document.querySelector('[data-module-toggle="store-sync-products"]');
   if (!title) return;
-  const source =
+  const shopifyCount = Array.isArray(storesCache) ? storesCache.length : 0;
+  const wooCount = Array.isArray(wooStoresCache) ? wooStoresCache.length : 0;
+  const resolveProvider = (current) => {
+    if (current === "woocommerce" && wooCount === 0 && shopifyCount > 0) return "shopify";
+    if (current === "shopify" && shopifyCount === 0 && wooCount > 0) return "woocommerce";
+    if (current === "shopify" && shopifyCount === 0 && wooCount === 0) return "shopify";
+    return current || "shopify";
+  };
+  const source = resolveProvider(
     storeSyncSourceProviderSelect instanceof HTMLSelectElement
       ? storeSyncSourceProviderSelect.value
-      : "";
-  const target =
+      : ""
+  );
+  const target = resolveProvider(
     storeSyncTargetProviderSelect instanceof HTMLSelectElement
       ? storeSyncTargetProviderSelect.value
-      : "";
+      : ""
+  );
+  if (storeSyncSourceProviderSelect instanceof HTMLSelectElement) {
+    storeSyncSourceProviderSelect.value = source;
+  }
+  if (storeSyncTargetProviderSelect instanceof HTMLSelectElement) {
+    storeSyncTargetProviderSelect.value = target;
+  }
   const labelMap = {
     shopify: "Shopify",
     woocommerce: "WooCommerce",
@@ -5005,6 +5113,44 @@ function updateStoreSyncTitle() {
   const sourceLabel = labelMap[source] || "E‑commerce";
   const targetLabel = labelMap[target] || "E‑commerce";
   title.textContent = `Sincronizador tienda a tienda (${sourceLabel} ↔ ${targetLabel})`;
+  updateStoreSyncLogos(source, target);
+}
+
+function applyStoreSyncInventoryGuard() {
+  if (!(storeSyncIncludeInventory instanceof HTMLInputElement)) return;
+  if (!(storeSyncTrackInventory instanceof HTMLInputElement)) return;
+  if (storeSyncIncludeInventory.checked && !storeSyncTrackInventory.checked) {
+    storeSyncTrackInventory.checked = true;
+  }
+  if (!storeSyncTrackInventory.checked) {
+    storeSyncIncludeInventory.checked = false;
+  }
+  const storeConnections = getStoreConnections(getActiveStore());
+  updateStoreSyncInventoryLabels({
+    commerceLabel: getCommerceLabel(storeConnections),
+    accountingLabel: getAccountingLabel(storeConnections),
+  });
+}
+
+function updateStoreSyncLogos(source, target) {
+  const resolveLogo = (provider) => {
+    if (provider === "woocommerce") {
+      return { src: "/brands/woocommerce.png?v=20260201s", alt: "WooCommerce" };
+    }
+    return { src: "/brands/shopify.png?v=20260201s", alt: "Shopify" };
+  };
+  const sourceLogo = document.querySelector(".store-sync-logo-source");
+  const targetLogo = document.querySelector(".store-sync-logo-target");
+  const sourceMeta = resolveLogo(source);
+  const targetMeta = resolveLogo(target);
+  if (sourceLogo instanceof HTMLImageElement) {
+    sourceLogo.setAttribute("src", sourceMeta.src);
+    sourceLogo.setAttribute("alt", sourceMeta.alt);
+  }
+  if (targetLogo instanceof HTMLImageElement) {
+    targetLogo.setAttribute("src", targetMeta.src);
+    targetLogo.setAttribute("alt", targetMeta.alt);
+  }
 }
 
 function updateConnectionScopedVisibility(storeConnections) {
@@ -5726,6 +5872,52 @@ function initGroupControls() {
   });
 }
 
+function getTrackInventoryValue() {
+  if (productsSyncTrackInventory instanceof HTMLInputElement) {
+    return productsSyncTrackInventory.checked;
+  }
+  if (rulesAutoTrackInventory instanceof HTMLInputElement) {
+    return rulesAutoTrackInventory.checked;
+  }
+  return true;
+}
+
+function setTrackInventoryValue(nextValue) {
+  if (productsSyncTrackInventory instanceof HTMLInputElement) {
+    productsSyncTrackInventory.checked = Boolean(nextValue);
+  }
+  if (rulesAutoTrackInventory instanceof HTMLInputElement) {
+    rulesAutoTrackInventory.checked = Boolean(nextValue);
+  }
+}
+
+function isAnyInventoryTrackingEnabled() {
+  const productTracking = getTrackInventoryValue();
+  const storeTracking =
+    storeSyncTrackInventory instanceof HTMLInputElement
+      ? storeSyncTrackInventory.checked
+      : false;
+  return Boolean(productTracking || storeTracking);
+}
+
+function applyInventoryTrackingGuard() {
+  if (!(rulesSyncEnabled instanceof HTMLInputElement)) return;
+  const inventoryEnabled = rulesSyncEnabled.checked;
+  if (!inventoryEnabled) {
+    setTrackInventoryValue(false);
+  }
+  const trackingOn = isAnyInventoryTrackingEnabled();
+  if (trackingOn) {
+    if (!rulesSyncEnabled.checked) {
+      rulesSyncEnabled.checked = true;
+    }
+    rulesSyncEnabled.disabled = true;
+    setTrackInventoryValue(true);
+  } else {
+    rulesSyncEnabled.disabled = false;
+  }
+}
+
 function applyProductSettings() {
   if (productsPublishStatusMass) productsPublishStatusMass.value = productSettings.publish.status;
   if (rulesAutoStatus) rulesAutoStatus.value = productSettings.publish.status;
@@ -5747,6 +5939,14 @@ function applyProductSettings() {
   if (productsSyncIncludeInventory) {
     productsSyncIncludeInventory.checked = productSettings.sync.includeInventory !== false;
   }
+  const trackInventoryValue =
+    typeof storeRuleOverrides?.trackInventory === "boolean"
+      ? storeRuleOverrides.trackInventory
+      : productSettings.publish.trackInventory !== false;
+  setTrackInventoryValue(trackInventoryValue);
+  if (productSettings.publish) {
+    productSettings.publish.trackInventory = trackInventoryValue;
+  }
 	updateSyncWarehouseState();
 	if (productsLimitInput) productsLimitInput.value = productSettings.filters.listLimit || "30";
 	if (productsDateFilter) productsDateFilter.value = productSettings.filters.productsDate || "";
@@ -5765,6 +5965,7 @@ function applyProductSettings() {
   if (ordersDateFilter) ordersDateFilter.value = productSettings.filters.ordersDate || "";
   if (ordersDaysSelect) ordersDaysSelect.value = productSettings.filters.ordersDays || "30";
   if (ordersSort) ordersSort.value = productSettings.filters.ordersSort || "date_desc";
+  applyInventoryTrackingGuard();
 }
 
 function refreshProductSettingsFromInputs() {
@@ -5772,6 +5973,7 @@ function refreshProductSettingsFromInputs() {
     publish: {
       status: rulesAutoStatus ? rulesAutoStatus.value : "draft",
       includeImages: rulesAutoImages ? rulesAutoImages.checked : true,
+      trackInventory: getTrackInventoryValue(),
     },
     sync: {
       dateStart: productsDateStart ? productsDateStart.value : "",
@@ -5938,6 +6140,7 @@ async function loadSettings(options = {}) {
         onlyActiveItems: Boolean(data.rules.onlyActiveItems),
         includeImages: data.rules.includeImages !== false,
         syncEnabled: data.rules.syncEnabled !== false,
+        trackInventory: data.rules.trackInventory !== false,
         warehouseIds: Array.isArray(data.rules.warehouseIds) ? data.rules.warehouseIds : [],
       };
     }
@@ -6671,8 +6874,22 @@ function getStoresByProvider(provider) {
 
 function renderStoreSyncSelects() {
   if (!storeSyncSourceSelect || !storeSyncTargetSelect) return;
-  const sourceProvider = storeSyncSourceProviderSelect?.value || "shopify";
-  const targetProvider = storeSyncTargetProviderSelect?.value || "shopify";
+  const shopifyCount = Array.isArray(storesCache) ? storesCache.length : 0;
+  const wooCount = Array.isArray(wooStoresCache) ? wooStoresCache.length : 0;
+  const resolveProvider = (current) => {
+    if (current === "woocommerce" && wooCount === 0 && shopifyCount > 0) return "shopify";
+    if (current === "shopify" && shopifyCount === 0 && wooCount > 0) return "woocommerce";
+    if (current === "shopify" && shopifyCount === 0 && wooCount === 0) return "shopify";
+    return current || "shopify";
+  };
+  const sourceProvider = resolveProvider(storeSyncSourceProviderSelect?.value || "shopify");
+  const targetProvider = resolveProvider(storeSyncTargetProviderSelect?.value || "shopify");
+  if (storeSyncSourceProviderSelect instanceof HTMLSelectElement) {
+    storeSyncSourceProviderSelect.value = sourceProvider;
+  }
+  if (storeSyncTargetProviderSelect instanceof HTMLSelectElement) {
+    storeSyncTargetProviderSelect.value = targetProvider;
+  }
   const sourceList = getStoresByProvider(sourceProvider);
   const targetList = getStoresByProvider(targetProvider);
   const sourceOptions = sourceList.length
@@ -6699,6 +6916,7 @@ function renderStoreSyncSelects() {
     if (fallback) storeSyncTargetSelect.value = fallback;
   }
   ensureStoreSyncDistinct();
+  updateStoreSyncTitle();
 }
 
 function ensureStoreSyncDistinct() {
@@ -7202,6 +7420,8 @@ function applyRuleSettings(settings, options = {}) {
   if (rulesAutoStatus) {
     rulesAutoStatus.value = settings.autoPublishStatus === "active" ? "active" : "draft";
   }
+  const trackInventoryValue = settings.trackInventory !== false;
+  setTrackInventoryValue(trackInventoryValue);
   if (rulesOnlyActive) {
     rulesOnlyActive.checked = Boolean(settings.onlyActiveItems);
   }
@@ -7222,6 +7442,7 @@ function applyRuleSettings(settings, options = {}) {
     updateInShopify: settings.updateInShopify !== false,
     onlyActiveItems: Boolean(settings.onlyActiveItems),
     includeImages: settings.includeImages !== false,
+    trackInventory: settings.trackInventory !== false,
     syncEnabled: settings.syncEnabled !== false,
     webhookItemsEnabled: settings.webhookItemsEnabled !== false,
     warehouseIds: Array.isArray(settings.warehouseIds) ? settings.warehouseIds : [],
@@ -7229,6 +7450,7 @@ function applyRuleSettings(settings, options = {}) {
   if (productsPublishStatusMass) {
     productsPublishStatusMass.value = rulesAutoStatus?.value || "draft";
   }
+  applyInventoryTrackingGuard();
   renderInventoryWarehouseFilters();
 }
 
@@ -7822,6 +8044,15 @@ function pickAlegraPrice(prices) {
 }
 
 function normalizeProduct(item) {
+  const resolveAlegraOverSell = (inventory) => {
+    if (!inventory || typeof inventory !== "object") return false;
+    const negativeSale = inventory.negativeSale;
+    const allowNegative = inventory.allowNegative;
+    return Boolean(
+      typeof negativeSale === "boolean" ? negativeSale : typeof allowNegative === "boolean" ? allowNegative : false
+    );
+  };
+  const resolveAlegraTrackable = (inventory) => Boolean(inventory && typeof inventory === "object");
   const isDbRow =
     item &&
     (Object.prototype.hasOwnProperty.call(item, "alegra_item_id") ||
@@ -7851,6 +8082,8 @@ function normalizeProduct(item) {
       images: [],
       variants: [],
       variantBarcodes: skuValue && skuValue !== "Sin referencia" ? [skuValue] : [],
+      alegraOverSell: false,
+      alegraTrackable: false,
     };
   }
   const createdAt = item.createdAt || item.created_at || item.created_at_date || item.created || "";
@@ -7905,6 +8138,8 @@ function normalizeProduct(item) {
     parseNumber(item.inventory?.availableQuantity) ??
     (warehouses.length ? warehouseSum : null) ??
     parseNumber(item.inventory?.initialQuantity);
+  const alegraOverSell = resolveAlegraOverSell(item.inventory);
+  const alegraTrackable = resolveAlegraTrackable(item.inventory);
   const primarySku = item.reference || item.barcode || customSku || "";
   const variantParentId =
     item.variantParent_id || item.variantParentId || item.idItemParent || null;
@@ -7964,6 +8199,8 @@ function normalizeProduct(item) {
       (variantWarehouses.length ? variantWarehouseSum : null) ??
       parseNumber(variant?.inventory?.initialQuantity);
     const variantSku = variant?.reference || variant?.barcode || customSku || "";
+    const variantOverSell = resolveAlegraOverSell(variant?.inventory);
+    const variantTrackable = resolveAlegraTrackable(variant?.inventory);
     return {
       id: variant?.id ? String(variant.id) : `${item.id || "parent"}-${variantSku || "variant"}`,
       name: variant?.name || `${item.name || "Producto"} / ${variantSku || "variante"}`,
@@ -7984,6 +8221,8 @@ function normalizeProduct(item) {
       status: variant?.status || item.status || "active",
       variantCount: 0,
       createdAt: variantCreatedAt,
+      alegraOverSell: variantOverSell,
+      alegraTrackable: variantTrackable,
     };
   });
   return {
@@ -8008,6 +8247,8 @@ function normalizeProduct(item) {
     status: item.status || "active",
     variantCount: variantList.length,
     createdAt,
+    alegraOverSell,
+    alegraTrackable,
   };
 }
 
@@ -8544,11 +8785,11 @@ async function loadShopifyLookup(products) {
 function renderProducts() {
   if (!productsTableBody) return;
   if (productsLoading) {
-    productsTableBody.innerHTML = `<tr><td colspan="9" class="empty">Cargando productos...</td></tr>`;
+    productsTableBody.innerHTML = `<tr><td colspan="13" class="empty">Cargando productos...</td></tr>`;
     return;
   }
   if (!productsRows.length) {
-    productsTableBody.innerHTML = `<tr><td colspan="9" class="empty">Sin productos para mostrar.</td></tr>`;
+    productsTableBody.innerHTML = `<tr><td colspan="13" class="empty">Sin productos para mostrar.</td></tr>`;
     return;
   }
 
@@ -8613,12 +8854,20 @@ function renderProducts() {
         .map((sku) => shopifyLookup[sku])
         .find((entry) => entry?.published);
       const resolvedLookup = lookup?.published ? lookup : variantLookup;
+      const shopifyTracked = resolvedLookup?.tracked === true;
+      const shopifyPolicy = resolvedLookup?.inventoryPolicy || "";
+      const shopifyOverSell = shopifyPolicy === "CONTINUE";
+      const hasSku = Boolean(product.sku && product.sku !== "Sin referencia");
       const isPublished = Boolean(resolvedLookup?.published);
       const statusLabel = isPublished ? "Publicado" : product.sku ? "Pendiente" : "Sin SKU";
       const statusClass = isPublished ? "status-chip is-success" : "status-chip is-warning";
       const alegraStatus = normalizeStatus(product.status) === "inactive" ? "Inactivo" : "Activo";
       const alegraStatusClass =
         normalizeStatus(product.status) === "inactive" ? "status-chip is-error" : "status-chip is-success";
+      const allowToggle = row.type === "variant" || (row.type === "parent" && !row.hasChildren);
+      const alegraIdValue = product.id ? String(product.id) : "";
+      const alegraOverSell = Boolean(product.alegraOverSell);
+      const alegraTrackable = product.alegraTrackable !== false && Boolean(alegraIdValue);
       const shopifyUrl = resolvedLookup?.productId && shopifyAdminBase
         ? `${shopifyAdminBase}/products/${resolvedLookup.productId}`
         : "";
@@ -8671,6 +8920,42 @@ function renderProducts() {
             <span class="${statusClass}">${statusLabel}</span><br />
             <span class="kpi-sub">${isPublished ? formatShopifyStatus(resolvedLookup?.status || "active") : "Sin publicar"}</span>
           </td>
+          <td class="product-toggle-cell">
+            ${
+              allowToggle
+                ? `<label class="toggle-field" title="Seguimiento de inventarios en Contable (Alegra)">
+                    <input type="checkbox" class="toggle toggle-mini product-track-toggle" data-track-target="alegra" data-alegra-id="${alegraIdValue}" ${alegraTrackable ? "checked" : ""} ${alegraIdValue ? "" : "disabled"} />
+                  </label>`
+                : "—"
+            }
+          </td>
+          <td class="product-toggle-cell">
+            ${
+              allowToggle
+                ? `<label class="toggle-field" title="Seguimiento de inventarios en E‑commerce (Shopify)">
+                    <input type="checkbox" class="toggle toggle-mini product-track-toggle" data-track-target="shopify" data-sku="${hasSku ? product.sku : ""}" ${shopifyTracked ? "checked" : ""} ${hasSku ? "" : "disabled"} />
+                  </label>`
+                : "—"
+            }
+          </td>
+          <td class="product-toggle-cell">
+            ${
+              allowToggle
+                ? `<label class="toggle-field" title="Sobreventa en Contable (Alegra)">
+                    <input type="checkbox" class="toggle toggle-mini product-oversell-toggle" data-oversell-target="alegra" data-alegra-id="${alegraIdValue}" ${alegraOverSell ? "checked" : ""} ${alegraTrackable ? "" : "disabled"} />
+                  </label>`
+                : "—"
+            }
+          </td>
+          <td class="product-toggle-cell">
+            ${
+              allowToggle
+                ? `<label class="toggle-field" title="Sobreventa en E‑commerce (Shopify)">
+                    <input type="checkbox" class="toggle toggle-mini product-oversell-toggle" data-oversell-target="shopify" data-sku="${hasSku ? product.sku : ""}" ${shopifyOverSell ? "checked" : ""} ${shopifyTracked && hasSku ? "" : "disabled"} />
+                  </label>`
+                : "—"
+            }
+          </td>
           <td class="actions">
             ${
               row.type === "parent"
@@ -8709,6 +8994,148 @@ function renderProducts() {
     }
   };
 
+  productsTableBody.onchange = async (event) => {
+    const input =
+      event.target instanceof HTMLInputElement
+        ? event.target
+        : event.target instanceof HTMLElement
+          ? event.target.closest("input")
+          : null;
+    if (!input) return;
+    if (input.classList.contains("product-oversell-toggle")) {
+      const target = input.getAttribute("data-oversell-target") || "";
+      const alegraId = input.getAttribute("data-alegra-id") || "";
+      const sku = input.getAttribute("data-sku") || "";
+      const nextValue = input.checked;
+      try {
+        input.disabled = true;
+        await updateProductOversell({ target, alegraId, sku, value: nextValue });
+        if (target === "alegra" && alegraId) {
+          const match = productsList.find((item) => String(item.id) === String(alegraId));
+          if (match) match.alegraOverSell = nextValue;
+          productsRows.forEach((row) => {
+            if (String(row.item?.id || "") === String(alegraId)) {
+              row.item.alegraOverSell = nextValue;
+            }
+          });
+        }
+        if (target === "shopify" && sku) {
+          const entry = shopifyLookup[sku];
+          if (entry) {
+            entry.inventoryPolicy = nextValue ? "CONTINUE" : "DENY";
+          }
+        }
+        showToast("Configuracion actualizada.", "is-success");
+      } catch (error) {
+        input.checked = !nextValue;
+        showToast(error?.message || "No se pudo guardar la configuracion.", "is-warn");
+      } finally {
+        input.disabled = false;
+      }
+      return;
+    }
+    if (input.classList.contains("product-track-toggle")) {
+      const target = input.getAttribute("data-track-target") || "";
+      const alegraId = input.getAttribute("data-alegra-id") || "";
+      const sku = input.getAttribute("data-sku") || "";
+      const nextValue = input.checked;
+      try {
+        input.disabled = true;
+        const alegraItem = alegraId
+          ? productsList.find((item) => String(item.id) === String(alegraId))
+          : null;
+        await updateProductTracking({
+          target,
+          alegraId,
+          sku,
+          value: nextValue,
+          inventoryQuantity: alegraItem?.inventoryQuantity ?? null,
+          inventoryUnit: alegraItem?.inventoryUnit || "u",
+          allowOversellAlegra: Boolean(alegraItem?.alegraOverSell),
+        });
+        if (target === "alegra" && alegraId) {
+          productsRows.forEach((row) => {
+            if (String(row.item?.id || "") === String(alegraId)) {
+              row.item.alegraTrackable = nextValue;
+              if (!nextValue) {
+                row.item.alegraOverSell = false;
+              }
+            }
+          });
+        }
+        if (target === "shopify" && sku) {
+          const entry = shopifyLookup[sku];
+          if (entry) {
+            entry.tracked = nextValue;
+            if (!nextValue) {
+              entry.inventoryPolicy = "DENY";
+            }
+          }
+        }
+        renderProducts();
+        showToast("Configuracion actualizada.", "is-success");
+      } catch (error) {
+        input.checked = !nextValue;
+        showToast(error?.message || "No se pudo guardar la configuracion.", "is-warn");
+      } finally {
+        input.disabled = false;
+      }
+    }
+  };
+
+}
+
+async function updateProductOversell({ target, alegraId, sku, value }) {
+  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+  const payload = { shopDomain };
+  if (target === "alegra") {
+    if (!alegraId) throw new Error("Falta el ID de Alegra.");
+    payload.alegraId = alegraId;
+    payload.allowOversellAlegra = value;
+  } else if (target === "shopify") {
+    if (!sku) throw new Error("Falta el SKU para Shopify.");
+    payload.sku = sku;
+    payload.allowOversellShopify = value;
+  } else {
+    throw new Error("Accion no soportada.");
+  }
+  await fetchJson("/api/products/oversell", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+async function updateProductTracking({
+  target,
+  alegraId,
+  sku,
+  value,
+  inventoryQuantity,
+  inventoryUnit,
+  allowOversellAlegra,
+}) {
+  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+  const payload = { shopDomain };
+  if (target === "alegra") {
+    if (!alegraId) throw new Error("Falta el ID de Alegra.");
+    payload.alegraId = alegraId;
+    payload.trackInventoryAlegra = value;
+    payload.inventoryQuantity = inventoryQuantity;
+    payload.inventoryUnit = inventoryUnit;
+    payload.allowOversellAlegra = allowOversellAlegra;
+  } else if (target === "shopify") {
+    if (!sku) throw new Error("Falta el SKU para Shopify.");
+    payload.sku = sku;
+    payload.trackInventoryShopify = value;
+  } else {
+    throw new Error("Accion no soportada.");
+  }
+  await fetchJson("/api/products/tracking", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 }
 
 function renderProductsPagination(parentCount) {
@@ -8910,6 +9337,7 @@ async function runProductsSync(mode) {
           publishOnSync: productSettings.sync.publishOnSync !== false,
           updateExisting: productSettings.sync.updateExisting !== false,
           onlyPublishedInShopify: productSettings.sync.onlyPublishedInShopify !== false,
+          trackInventory: productSettings.publish.trackInventory !== false,
         },
         stream: true,
       }),
@@ -9305,6 +9733,15 @@ async function runStoreProductsSync() {
       : true;
   const includeTags =
     storeSyncIncludeTags instanceof HTMLInputElement ? Boolean(storeSyncIncludeTags.checked) : true;
+  const trackInventory =
+    storeSyncTrackInventory instanceof HTMLInputElement
+      ? Boolean(storeSyncTrackInventory.checked)
+      : true;
+  const includeInventory =
+    storeSyncIncludeInventory instanceof HTMLInputElement
+      ? Boolean(storeSyncIncludeInventory.checked)
+      : true;
+  const inventorySource = getStoreSyncInventorySource();
 
   if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Sincronizando...";
   try {
@@ -9328,17 +9765,21 @@ async function runStoreProductsSync() {
           includeImages,
           includeProductType,
           includeTags,
+          trackInventory,
+          includeInventory,
+          inventorySource,
         },
       }),
     });
     const total = Number(result?.total) || 0;
     const created = Number(result?.created) || 0;
+    const updated = Number(result?.updated) || 0;
     const skipped = Number(result?.skipped) || 0;
     const failed = Number(result?.failed) || 0;
     if (storeSyncStatusLabel) {
       storeSyncStatusLabel.textContent =
         total > 0
-          ? `Total ${total} · Creados ${created} · Omitidos ${skipped} · Fallidos ${failed}`
+          ? `Total ${total} · Creados ${created} · Actualizados ${updated} · Omitidos ${skipped} · Fallidos ${failed}`
           : "Sin productos para sincronizar.";
     }
   } catch (error) {
@@ -12043,11 +12484,16 @@ async function saveStoreConfigFromSettings() {
           rulesAutoUpdateShopify instanceof HTMLInputElement
             ? rulesAutoUpdateShopify.checked !== false
             : true,
-	      includeImages: rulesAutoImages ? rulesAutoImages.checked !== false : true,
-	      syncEnabled: rulesSyncEnabled ? rulesSyncEnabled.checked : true,
-	      webhookItemsEnabled: rulesAutoEnabled ? rulesAutoEnabled.checked !== false : true,
-	      warehouseIds: getSelectedInventoryWarehouseIds(),
-	    },
+      includeImages: rulesAutoImages ? rulesAutoImages.checked !== false : true,
+      trackInventory: getTrackInventoryValue(),
+      syncEnabled: getTrackInventoryValue()
+        ? true
+        : rulesSyncEnabled
+          ? rulesSyncEnabled.checked
+          : true,
+      webhookItemsEnabled: rulesAutoEnabled ? rulesAutoEnabled.checked !== false : true,
+      warehouseIds: getSelectedInventoryWarehouseIds(),
+    },
 	    sync: {
 	      contacts: {
 	        enabled: contactsEnabled,
@@ -12146,6 +12592,7 @@ async function saveSettings(options = {}) {
         ? Number(inventoryCronIntervalSelect.value || inventoryRules.inventoryAdjustmentsIntervalMinutes || 5)
         : inventoryRules.inventoryAdjustmentsIntervalMinutes,
       inventoryAdjustmentsAutoPublish: true,
+      trackInventory: inventoryRules.trackInventory !== false,
       warehouseIds: Array.isArray(inventoryRules.warehouseIds) ? inventoryRules.warehouseIds : [],
     };
     inventoryRules = { ...inventoryRules, ...rulesPayload };
@@ -13644,6 +14091,16 @@ if (storeSyncSourceSelect) {
 if (storeSyncSourceProviderSelect) {
   storeSyncSourceProviderSelect.addEventListener("change", updateStoreSyncTitle);
 }
+
+if (storeSyncIncludeInventory instanceof HTMLInputElement) {
+  storeSyncIncludeInventory.addEventListener("change", applyStoreSyncInventoryGuard);
+}
+if (storeSyncTrackInventory instanceof HTMLInputElement) {
+  storeSyncTrackInventory.addEventListener("change", applyStoreSyncInventoryGuard);
+}
+if (storeSyncInventorySource instanceof HTMLSelectElement) {
+  storeSyncInventorySource.addEventListener("change", applyStoreSyncInventoryGuard);
+}
 if (storeSyncTargetProviderSelect) {
   storeSyncTargetProviderSelect.addEventListener("change", updateStoreSyncTitle);
 }
@@ -13923,6 +14380,7 @@ if (storeSyncClear) {
       storeSyncPriceFallbackSelect.value = "shopify";
     if (storeSyncSourceProviderSelect instanceof HTMLSelectElement) storeSyncSourceProviderSelect.value = "shopify";
     if (storeSyncTargetProviderSelect instanceof HTMLSelectElement) storeSyncTargetProviderSelect.value = "shopify";
+    if (storeSyncInventorySource instanceof HTMLSelectElement) storeSyncInventorySource.value = "accounting";
     if (storeSyncAlegraAccountSelect instanceof HTMLSelectElement)
       storeSyncAlegraAccountSelect.value = "";
     if (storeSyncPriceListSelect instanceof HTMLSelectElement) {
@@ -13938,9 +14396,44 @@ if (storeSyncClear) {
     if (storeSyncIncludeImages instanceof HTMLInputElement) storeSyncIncludeImages.checked = true;
     if (storeSyncIncludeProductType instanceof HTMLInputElement) storeSyncIncludeProductType.checked = true;
     if (storeSyncIncludeTags instanceof HTMLInputElement) storeSyncIncludeTags.checked = true;
+    if (storeSyncTrackInventory instanceof HTMLInputElement) storeSyncTrackInventory.checked = true;
+    if (storeSyncIncludeInventory instanceof HTMLInputElement) storeSyncIncludeInventory.checked = true;
     renderStoreSyncSelects();
     ensureStoreSyncDistinct();
     if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Sin datos";
+    applyStoreSyncInventoryGuard();
+  });
+}
+
+const syncTrackInventoryInputs = [productsSyncTrackInventory, rulesAutoTrackInventory].filter(
+  (node) => node instanceof HTMLInputElement
+);
+if (syncTrackInventoryInputs.length) {
+  syncTrackInventoryInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      setTrackInventoryValue(input.checked);
+      applyInventoryTrackingGuard();
+      refreshProductSettingsFromInputs();
+    });
+  });
+}
+
+if (storeSyncTrackInventory instanceof HTMLInputElement) {
+  storeSyncTrackInventory.addEventListener("change", () => {
+    applyInventoryTrackingGuard();
+  });
+}
+
+if (rulesSyncEnabled instanceof HTMLInputElement) {
+  rulesSyncEnabled.addEventListener("change", () => {
+    if (!rulesSyncEnabled.checked) {
+      setTrackInventoryValue(false);
+      showToast(
+        "Desactivaste inventario: el seguimiento queda apagado en todos los sincronizadores.",
+        "is-warn"
+      );
+    }
+    applyInventoryTrackingGuard();
   });
 }
 
