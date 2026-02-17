@@ -4974,9 +4974,17 @@ function updateSettingsStoreHeading(context) {
   const hasAccounting = accountingLabel !== "Contable";
   if (hasCommerce && hasAccounting) {
     titleText.textContent = `Configuraciones por tienda · ${commerceLabel} + ${accountingLabel}`;
-  } else {
-    titleText.textContent = "Configuraciones por tienda";
+    return;
   }
+  if (hasCommerce) {
+    titleText.textContent = `Configuraciones por tienda · ${commerceLabel}`;
+    return;
+  }
+  if (hasAccounting) {
+    titleText.textContent = `Configuraciones por tienda · ${accountingLabel}`;
+    return;
+  }
+  titleText.textContent = "Configuraciones por tienda";
 }
 
 function updateStoreSyncTitle() {
@@ -6911,7 +6919,7 @@ function applyShopifyConnectMethod(method) {
     const oauthBtn = shopifyConnectPicker.querySelector('[data-shopify-connect="oauth"]');
     const tokenBtn = shopifyConnectPicker.querySelector('[data-shopify-connect="token"]');
     if (oauthBtn instanceof HTMLElement) {
-      oauthBtn.style.display = shopifyOAuthAvailable ? "" : "none";
+      oauthBtn.style.display = "";
     }
     if (tokenBtn instanceof HTMLElement) {
       tokenBtn.style.display = "";
