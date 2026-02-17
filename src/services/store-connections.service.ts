@@ -258,6 +258,7 @@ export async function listStoreConnections() {
       store_name: string | null;
       access_token_encrypted: string | null;
       created_at: string;
+      store_id: number | null;
       alegra_account_id: number | null;
       user_email: string | null;
       environment: string | null;
@@ -1202,7 +1203,7 @@ export async function deleteAlegraAccountByStoreId(storeId: number) {
     `,
     [orgId, storeId]
   );
-  return { deleted: result.rowCount > 0 };
+  return { deleted: (result.rowCount || 0) > 0 };
 }
 
 export async function upsertAlegraAccount(input?: AlegraAccountInput) {
