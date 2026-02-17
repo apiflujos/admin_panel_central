@@ -34,7 +34,14 @@ import {
 import { shopifyMarketingWebhookHandler } from "./marketing-webhooks.controller";
 import { marketingCollectHandler, marketingPixelScriptHandler } from "./marketing-pixel.controller";
 import { getInventoryAdjustmentsCheckpoint } from "./checkpoints.controller";
-import { createConnection, listConnections, removeConnection, removeConnectionByDomain } from "./connections.controller";
+import {
+  createConnection,
+  listConnections,
+  removeConnection,
+  removeConnectionByDomain,
+  removeAlegraConnection,
+} from "./connections.controller";
+import { createStoreHandler, deleteStoreHandler, listStoresHandler } from "./stores.controller";
 import { listConnectionTestsHandler } from "./connection-tests.controller";
 import { listStoreConfigsHandler, saveStoreConfigHandler } from "./store-configs.controller";
 import {
@@ -220,11 +227,15 @@ router.get("/connections/tests", requireAdmin, wrap(listConnectionTestsHandler))
 router.post("/connections", requireAdmin, wrap(createConnection));
 router.delete("/connections/domain/:shopDomain", requireAdmin, wrap(removeConnectionByDomain));
 router.delete("/connections/:id", requireAdmin, wrap(removeConnection));
+router.delete("/connections/alegra/:storeId", requireAdmin, wrap(removeAlegraConnection));
+router.get("/stores", requireAdmin, wrap(listStoresHandler));
+router.post("/stores", requireAdmin, wrap(createStoreHandler));
+router.delete("/stores/:id", requireAdmin, wrap(deleteStoreHandler));
 router.get("/woocommerce/connections", requireAdmin, wrap(listWooConnectionsHandler));
 router.post("/woocommerce/connections", requireAdmin, wrap(createWooConnectionHandler));
 router.delete("/woocommerce/connections/:shopDomain", requireAdmin, wrap(deleteWooConnectionHandler));
 router.get("/store-configs", requireAdmin, wrap(listStoreConfigsHandler));
-router.put("/store-configs/:shopDomain", requireAdmin, wrap(saveStoreConfigHandler));
+router.put("/store-configs/:storeKey", requireAdmin, wrap(saveStoreConfigHandler));
 router.post("/settings/test", requireAdmin, wrap(testConnections));
 router.put("/settings", requireAdmin, wrap(updateSettings));
 router.get("/settings", requireAdmin, wrap(getSettings));

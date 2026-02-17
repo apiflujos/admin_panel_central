@@ -6,6 +6,7 @@ export type WooCommerceStoreInput = {
   consumerKey: string;
   consumerSecret: string;
   storeName?: string;
+  storeId?: number;
 };
 
 type WooCommerceStoreRecord = {
@@ -13,6 +14,7 @@ type WooCommerceStoreRecord = {
   consumerKey: string;
   consumerSecret: string;
   storeName?: string;
+  storeId?: number;
 };
 
 type WooCommerceCredentialPayload = {
@@ -106,6 +108,7 @@ export async function listWooConnections() {
     stores: stores.map((store) => ({
       shopDomain: store.shopDomain,
       storeName: store.storeName || "",
+      storeId: store.storeId,
       hasConsumerKey: Boolean(store.consumerKey),
       hasConsumerSecret: Boolean(store.consumerSecret),
     })),
@@ -154,6 +157,7 @@ export async function upsertWooConnection(input: WooCommerceStoreInput) {
     consumerKey,
     consumerSecret,
     storeName: input.storeName || "",
+    storeId: input.storeId,
   };
   if (existingIndex >= 0) {
     stores[existingIndex] = record;
@@ -177,6 +181,22 @@ export async function deleteWooConnectionByDomain(shopDomain: string) {
   const stores = credential.stores.filter(
     (entry) => normalizeShopDomain(entry.shopDomain) !== domain
   );
+  if (stores.length === credential.stores.length) {
+    return { deleted: false };
+  }
+  await upsertWooCredential({ stores });
+  return { deleted: true };
+}
+
+export async function deleteWooConnectionsByStoreId(storeId: number) {
+  if (!Number.isFinite(storeId)) {
+    throw new Error("ID de tienda invalido");
+  }
+  const credential = await readWooCredential();
+  if (!credential?.stores?.length) {
+    return { deleted: false };
+  }
+  const stores = credential.stores.filter((entry) => Number(entry.storeId) !== Number(storeId));
   if (stores.length === credential.stores.length) {
     return { deleted: false };
   }

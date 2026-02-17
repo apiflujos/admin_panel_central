@@ -4,6 +4,7 @@ import { ShopifyClient } from "../connectors/shopify";
 import { getOrgId } from "../db";
 import { isTenantModuleEnabled } from "../sa/sa.repository";
 import { upsertStoreConnection } from "../services/store-connections.service";
+import { getStoreById } from "../services/stores.service";
 import {
   createOAuthState,
   consumeOAuthState,
@@ -106,12 +107,19 @@ export async function startShopifyOAuth(req: Request, res: Response) {
     const env = ensureOAuthEnv(req);
     const shopParam = String(req.query.shop || "").trim();
     const storeNameParam = String(req.query.storeName || "").trim();
+    const storeIdParam = Number(req.query.storeId || "");
     if (!shopParam || !isValidShopDomain(shopParam)) {
       return res.status(400).send("Shop domain invalido");
     }
     const shop = normalizeShopDomainForOAuth(shopParam);
     const nonce = crypto.randomBytes(16).toString("hex");
-    await createOAuthState(shop, nonce, storeNameParam || null);
+    let resolvedStoreName = storeNameParam || null;
+    const storeId = Number.isFinite(storeIdParam) ? storeIdParam : null;
+    if (!resolvedStoreName && storeId) {
+      const store = await getStoreById(storeId);
+      resolvedStoreName = store?.name || null;
+    }
+    await createOAuthState(shop, nonce, resolvedStoreName || null, storeId);
     const redirectUri = `${env.appHost}/auth/callback`;
     const authorizeUrl =
       `https://${shop}/admin/oauth/authorize` +
@@ -170,11 +178,16 @@ export async function shopifyOAuthCallback(req: Request, res: Response) {
       throw new Error("Access token vacio");
     }
     const normalizedShop = normalizeShopDomainForOAuth(shop);
-    const storeName = stateResult.storeName || normalizedShop;
+    let storeName = stateResult.storeName || normalizedShop;
+    if (stateResult.storeId) {
+      const store = await getStoreById(stateResult.storeId);
+      if (store?.name) storeName = store.name;
+    }
     const connectionResult = await upsertStoreConnection({
       shopDomain: normalizedShop,
       accessToken,
       storeName,
+      storeId: stateResult.storeId || undefined,
       scopes: tokenPayload.scope || env.scopes,
     });
     const client = new ShopifyClient({

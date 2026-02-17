@@ -30,16 +30,16 @@ export async function listStoreConfigsHandler(_req: Request, res: Response) {
 
 export async function saveStoreConfigHandler(req: Request, res: Response) {
   try {
-    const shopDomain = req.params.shopDomain || "";
+    const storeKey = req.params.storeKey || "";
     const payload = req.body || {};
-    const result = await saveStoreConfig(shopDomain, payload);
+    const result = await saveStoreConfig(storeKey, payload);
     res.status(200).json(result);
     await createSyncLog({
       entity: "store_configs_save",
       direction: "shopify->alegra",
       status: "success",
       message: "Store config actualizado",
-      request: { shopDomain },
+      request: { storeKey },
     });
   } catch (error) {
     const message = getErrorMessage(error);
@@ -49,7 +49,7 @@ export async function saveStoreConfigHandler(req: Request, res: Response) {
       direction: "shopify->alegra",
       status: "fail",
       message,
-      request: { shopDomain: req.params.shopDomain },
+      request: { storeKey: req.params.storeKey },
     });
   }
 }

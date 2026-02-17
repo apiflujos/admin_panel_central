@@ -53,6 +53,7 @@ export async function createWooConnectionHandler(req: Request, res: Response) {
     const payload = req.body || {};
     const result = await upsertWooConnection({
       storeName: payload?.storeName || "",
+      storeId: Number.isFinite(payload?.storeId) ? payload.storeId : undefined,
       shopDomain: payload?.woocommerce?.shopDomain || payload?.shopDomain || "",
       consumerKey: payload?.woocommerce?.consumerKey || payload?.consumerKey || "",
       consumerSecret: payload?.woocommerce?.consumerSecret || payload?.consumerSecret || "",

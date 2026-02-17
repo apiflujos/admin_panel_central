@@ -1,12 +1,14 @@
 import { encryptString, decryptString } from "../utils/crypto";
 import { isValidShopDomain } from "./shopify-oauth.service";
 import { ensureOrganization, getOrgId, getPool } from "../db";
+import { listWooConnections } from "./woocommerce-connections.service";
 
 type AlegraAccountInput = {
   accountId?: number;
   email?: string;
   apiKey?: string;
   environment?: "sandbox" | "prod";
+  storeId?: number;
 };
 
 type ShopifyStoreInput = {
@@ -15,6 +17,7 @@ type ShopifyStoreInput = {
   storeName?: string;
   scopes?: string;
   alegra?: AlegraAccountInput;
+  storeId?: number;
 };
 
 const GOOGLE_ADS_PROVIDER = "google_ads";
@@ -134,12 +137,40 @@ export async function listStoreConnections() {
   const orgId = getOrgId();
   let securityMisconfigured = false;
 
+  const storesCatalogRows = await pool.query<{
+    id: number;
+    name: string;
+    created_at: string;
+  }>(
+    `
+    SELECT id, name, created_at
+    FROM stores
+    WHERE organization_id = $1
+    ORDER BY created_at DESC
+    `,
+    [orgId]
+  );
+
+  const singleStoreId =
+    storesCatalogRows.rows.length === 1 ? Number(storesCatalogRows.rows[0].id) : null;
+  if (Number.isFinite(singleStoreId)) {
+    await pool.query(
+      `
+      UPDATE alegra_accounts
+      SET store_id = $1
+      WHERE organization_id = $2 AND store_id IS NULL
+      `,
+      [singleStoreId, orgId]
+    );
+  }
+
   let stores = await pool.query<{
     id: number;
     shop_domain: string;
     store_name: string | null;
     access_token_encrypted: string | null;
     created_at: string;
+    store_id: number | null;
     alegra_account_id: number | null;
     user_email: string | null;
     environment: string | null;
@@ -151,6 +182,7 @@ export async function listStoreConnections() {
            s.store_name,
            s.access_token_encrypted,
            s.created_at,
+           s.store_id,
            c.alegra_account_id,
            a.user_email,
            a.environment,
@@ -186,6 +218,7 @@ export async function listStoreConnections() {
              s.store_name,
              s.access_token_encrypted,
              s.created_at,
+             s.store_id,
              c.alegra_account_id,
              a.user_email,
              a.environment,
@@ -209,9 +242,10 @@ export async function listStoreConnections() {
     api_key_encrypted: string | null;
     environment: string | null;
     created_at: string;
+    store_id: number | null;
   }>(
     `
-    SELECT id, user_email, api_key_encrypted, environment, created_at
+    SELECT id, user_email, api_key_encrypted, environment, created_at, store_id
     FROM alegra_accounts
     WHERE organization_id = $1
     ORDER BY created_at DESC
@@ -223,6 +257,7 @@ export async function listStoreConnections() {
       id: row.id,
       shopDomain: row.shop_domain,
       storeName: row.store_name || "",
+      storeId: row.store_id || undefined,
       ...(() => {
         let shopifyConnected = false;
         let shopifyNeedsReconnect = false;
@@ -286,6 +321,7 @@ export async function listStoreConnections() {
       id: row.id,
       email: row.user_email,
       environment: row.environment || "prod",
+      storeId: row.store_id || undefined,
       needsReconnect: (() => {
         if (!row.api_key_encrypted) return true;
         try {
@@ -320,6 +356,48 @@ export async function listStoreConnections() {
     return { connected: false, needsReconnect: true, advertiserId: "" };
   });
 
+  const wooData = await listWooConnections().catch(() => ({ stores: [] }));
+  const wooByStore = new Map<number, { shopDomain: string; storeName: string; ok: boolean }>();
+  wooData.stores.forEach((store) => {
+    const storeId = Number((store as { storeId?: number }).storeId);
+    if (!Number.isFinite(storeId)) return;
+    const ok = Boolean(store.hasConsumerKey && store.hasConsumerSecret);
+    wooByStore.set(storeId, { shopDomain: store.shopDomain, storeName: store.storeName || "", ok });
+  });
+
+  const shopifyByStore = new Map<number, (typeof mappedStores)[number]>();
+  mappedStores.forEach((store) => {
+    const storeId = Number((store as { storeId?: number }).storeId);
+    if (!Number.isFinite(storeId)) return;
+    shopifyByStore.set(storeId, store);
+  });
+
+  const alegraByStore = new Map<number, (typeof mappedAlegraAccounts)[number]>();
+  const fallbackStoreId =
+    storesCatalogRows.rows.length === 1 ? Number(storesCatalogRows.rows[0].id) : null;
+  mappedAlegraAccounts.forEach((account) => {
+    let storeId = Number(account.storeId);
+    if (!Number.isFinite(storeId) && fallbackStoreId) {
+      storeId = fallbackStoreId;
+    }
+    if (!Number.isFinite(storeId)) return;
+    alegraByStore.set(storeId, account);
+  });
+
+  const storesCatalog = storesCatalogRows.rows.map((store) => {
+    const shopify = shopifyByStore.get(store.id);
+    const alegra = alegraByStore.get(store.id);
+    const woo = wooByStore.get(store.id);
+    return {
+      id: store.id,
+      name: store.name,
+      createdAt: store.created_at,
+      shopify,
+      alegra,
+      woo,
+    };
+  });
+
   return {
     securityMisconfigured,
     stores: mappedStores,
@@ -327,6 +405,7 @@ export async function listStoreConnections() {
     googleAds,
     metaAds,
     tiktokAds,
+    storesCatalog,
   };
 }
 
@@ -609,13 +688,56 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
   await ensureOrganization(pool, orgId);
 
   const shopDomain = normalizeShopDomain(input.shopDomain || "");
-  const storeName = input.storeName?.trim() || null;
+  let storeName = input.storeName?.trim() || null;
+  const providedStoreId = Number.isFinite(input.storeId as number) ? Number(input.storeId) : null;
   const scopes = input.scopes?.trim() || null;
   if (!shopDomain) {
     throw new Error("Dominio Shopify requerido");
   }
   if (!isValidShopDomain(shopDomain)) {
     throw new Error("Dominio Shopify invalido");
+  }
+  let resolvedStoreId = providedStoreId;
+  if (resolvedStoreId) {
+    const store = await pool.query<{ id: number; name: string }>(
+      `
+      SELECT id, name
+      FROM stores
+      WHERE organization_id = $1 AND id = $2
+      LIMIT 1
+      `,
+      [orgId, resolvedStoreId]
+    );
+    if (!store.rows.length) {
+      throw new Error("Tienda no encontrada");
+    }
+    storeName = store.rows[0].name;
+  } else {
+    const desiredName = storeName || shopDomain;
+    const existingStore = await pool.query<{ id: number }>(
+      `
+      SELECT id
+      FROM stores
+      WHERE organization_id = $1 AND name = $2
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+      [orgId, desiredName]
+    );
+    if (existingStore.rows.length) {
+      resolvedStoreId = existingStore.rows[0].id;
+    } else {
+      const createdStore = await pool.query<{ id: number }>(
+        `
+        INSERT INTO stores (organization_id, name)
+        VALUES ($1, $2)
+        RETURNING id
+        `,
+        [orgId, desiredName]
+      );
+      resolvedStoreId = createdStore.rows[0]?.id || null;
+    }
+    storeName = desiredName;
   }
   const trimmedToken = input.accessToken?.trim() || "";
   const accessTokenEncrypted = trimmedToken
@@ -641,10 +763,11 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
       UPDATE shopify_stores
       SET access_token_encrypted = COALESCE($1, access_token_encrypted),
           store_name = COALESCE($2, store_name),
-          scopes = COALESCE($3, scopes)
+          scopes = COALESCE($3, scopes),
+          store_id = COALESCE($5, store_id)
       WHERE id = $4
       `,
-      [accessTokenEncrypted, storeName, scopes, storeId]
+      [accessTokenEncrypted, storeName, scopes, storeId, resolvedStoreId]
     );
   } else {
     if (!accessTokenEncrypted) {
@@ -652,23 +775,26 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
     }
     const created = await pool.query<{ id: number }>(
       `
-      INSERT INTO shopify_stores (organization_id, shop_domain, store_name, access_token_encrypted, scopes)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO shopify_stores (organization_id, shop_domain, store_name, access_token_encrypted, scopes, store_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING id
       `,
-      [orgId, shopDomain, storeName, accessTokenEncrypted, scopes || ""]
+      [orgId, shopDomain, storeName, accessTokenEncrypted, scopes || "", resolvedStoreId]
     );
     storeId = created.rows[0]?.id;
     isNew = true;
   }
 
-  const alegraAccountId = await resolveAlegraAccountId(pool, orgId, input.alegra);
+  const alegraAccountId = await resolveAlegraAccountId(pool, orgId, {
+    ...input.alegra,
+    storeId: resolvedStoreId || input.alegra?.storeId,
+  });
 
   if (alegraAccountId) {
-    await upsertStoreConfig(pool, orgId, shopDomain, alegraAccountId);
+    await upsertStoreConfig(pool, orgId, shopDomain, alegraAccountId, resolvedStoreId);
   }
 
-  return { storeId, shopDomain, alegraAccountId, isNew };
+  return { storeId, shopDomain, alegraAccountId, isNew, storeIdRef: resolvedStoreId || null };
 }
 
 type DeleteStoreConnectionOptions = {
@@ -928,6 +1054,7 @@ async function resolveAlegraAccountId(
   input?: AlegraAccountInput
 ) {
   if (!input) return undefined;
+  const storeId = Number.isFinite(input.storeId as number) ? Number(input.storeId) : null;
   if (input.accountId) {
     const apiKey = input.apiKey?.trim();
     if (apiKey) {
@@ -935,10 +1062,20 @@ async function resolveAlegraAccountId(
       await pool.query(
         `
         UPDATE alegra_accounts
-        SET api_key_encrypted = $1
+        SET api_key_encrypted = $1,
+            store_id = COALESCE($4, store_id)
         WHERE organization_id = $2 AND id = $3
         `,
-        [encrypted, orgId, input.accountId]
+        [encrypted, orgId, input.accountId, storeId]
+      );
+    } else if (storeId) {
+      await pool.query(
+        `
+        UPDATE alegra_accounts
+        SET store_id = $1
+        WHERE organization_id = $2 AND id = $3
+        `,
+        [storeId, orgId, input.accountId]
       );
     }
     return input.accountId;
@@ -964,60 +1101,93 @@ async function resolveAlegraAccountId(
     await pool.query(
       `
       UPDATE alegra_accounts
-      SET api_key_encrypted = $1
+      SET api_key_encrypted = $1,
+          store_id = COALESCE($3, store_id)
       WHERE id = $2
       `,
-      [encrypted, existing.rows[0].id]
+      [encrypted, existing.rows[0].id, storeId]
     );
     return existing.rows[0].id;
   }
 
   const created = await pool.query<{ id: number }>(
     `
-    INSERT INTO alegra_accounts (organization_id, user_email, api_key_encrypted, environment)
-    VALUES ($1, $2, $3, $4)
+    INSERT INTO alegra_accounts (organization_id, user_email, api_key_encrypted, environment, store_id)
+    VALUES ($1, $2, $3, $4, $5)
     RETURNING id
     `,
-    [orgId, email, encrypted, environment]
+    [orgId, email, encrypted, environment, storeId]
   );
   return created.rows[0]?.id;
+}
+
+export async function deleteAlegraAccountByStoreId(storeId: number) {
+  if (!Number.isFinite(storeId)) {
+    throw new Error("ID de tienda invalido");
+  }
+  const pool = getPool();
+  const orgId = getOrgId();
+  await ensureOrganization(pool, orgId);
+  const result = await pool.query(
+    `
+    DELETE FROM alegra_accounts
+    WHERE organization_id = $1 AND store_id = $2
+    `,
+    [orgId, storeId]
+  );
+  return { deleted: result.rowCount > 0 };
+}
+
+export async function upsertAlegraAccount(input?: AlegraAccountInput) {
+  if (!input) return { accountId: undefined as number | undefined };
+  const pool = getPool();
+  const orgId = getOrgId();
+  await ensureOrganization(pool, orgId);
+  const accountId = await resolveAlegraAccountId(pool, orgId, input);
+  return { accountId };
 }
 
 async function upsertStoreConfig(
   pool: ReturnType<typeof getPool>,
   orgId: number,
   shopDomain: string,
-  alegraAccountId: number
+  alegraAccountId: number,
+  storeId?: number | null
 ) {
   const existing = await pool.query<{ id: number }>(
     `
     SELECT id
     FROM shopify_store_configs
-    WHERE organization_id = $1 AND shop_domain = $2
+    WHERE organization_id = $1
+      AND (
+        (store_id IS NOT NULL AND store_id = $2)
+        OR (store_id IS NULL AND shop_domain = $3)
+      )
     ORDER BY created_at DESC
     LIMIT 1
     `,
-    [orgId, shopDomain]
+    [orgId, storeId || null, shopDomain]
   );
 
   if (existing.rows.length) {
     await pool.query(
       `
       UPDATE shopify_store_configs
-      SET alegra_account_id = $1
+      SET alegra_account_id = $1,
+          store_id = COALESCE($3, store_id)
       WHERE id = $2
       `,
-      [alegraAccountId, existing.rows[0].id]
+      [alegraAccountId, existing.rows[0].id, storeId]
     );
     return;
   }
 
   await pool.query(
     `
-    INSERT INTO shopify_store_configs (organization_id, shop_domain, alegra_account_id)
-    VALUES ($1, $2, $3)
+    INSERT INTO shopify_store_configs (organization_id, shop_domain, alegra_account_id, store_id)
+    VALUES ($1, $2, $3, $4)
     `,
-    [orgId, shopDomain, alegraAccountId]
+    [orgId, shopDomain, alegraAccountId, storeId || null]
   );
 }
 

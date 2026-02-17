@@ -12,7 +12,8 @@ const normalizeShopDomain = (value: string) =>
 export async function createOAuthState(
   shopDomain: string,
   nonce: string,
-  storeName?: string | null
+  storeName?: string | null,
+  storeId?: number | null
 ) {
   const pool = getPool();
   const orgId = getOrgId();
@@ -20,10 +21,10 @@ export async function createOAuthState(
   const normalized = normalizeShopDomain(shopDomain);
   await pool.query(
     `
-    INSERT INTO shopify_oauth_states (organization_id, shop_domain, nonce, store_name, created_at)
-    VALUES ($1, $2, $3, $4, NOW())
+    INSERT INTO shopify_oauth_states (organization_id, shop_domain, nonce, store_name, store_id, created_at)
+    VALUES ($1, $2, $3, $4, $5, NOW())
     `,
-    [orgId, normalized, nonce, storeName || null]
+    [orgId, normalized, nonce, storeName || null, storeId || null]
   );
 }
 
@@ -39,9 +40,9 @@ export async function consumeOAuthState(shopDomain: string, nonce: string) {
     `,
     [orgId]
   );
-  const result = await pool.query<{ id: number; store_name: string | null }>(
+  const result = await pool.query<{ id: number; store_name: string | null; store_id: number | null }>(
     `
-    SELECT id, store_name
+    SELECT id, store_name, store_id
     FROM shopify_oauth_states
     WHERE organization_id = $1
       AND shop_domain = $2
@@ -55,7 +56,7 @@ export async function consumeOAuthState(shopDomain: string, nonce: string) {
   const row = result.rows[0];
   if (!row?.id) return { ok: false as const };
   await pool.query("DELETE FROM shopify_oauth_states WHERE id = $1", [row.id]);
-  return { ok: true as const, storeName: row.store_name || "" };
+  return { ok: true as const, storeName: row.store_name || "", storeId: row.store_id || null };
 }
 
 export function isValidShopDomain(value: string) {

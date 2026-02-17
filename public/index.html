@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Central</title>
     <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
-    <link rel="stylesheet" href="/styles.css?v=20260216p18" />
+    <link rel="stylesheet" href="/styles.css?v=20260216p58" />
   </head>
   <body>
     <div class="app-shell">
@@ -184,8 +184,8 @@
 	                    <label for="metrics-report">Reportes (CSV)</label>
 	                    <div class="metrics-download-row">
 	                      <select id="metrics-report" name="metrics_report">
-	                        <option value="orders" selected>Ventas (Pedidos Shopify)</option>
-	                        <option value="invoices">Facturación (Facturas Alegra)</option>
+	                        <option value="orders" selected>Ventas (Pedidos E‑commerce)</option>
+	                        <option value="invoices">Facturación (Facturas Contable)</option>
 	                        <option value="top_products_revenue">Top ventas por producto</option>
 	                        <option value="repeat_customers">Clientes recurrentes</option>
 	                        <option value="dead_stock">Stock muerto</option>
@@ -194,8 +194,8 @@
 	                    </div>
 	                  </div>
 	                  <div class="metrics-status">
-	                    <span class="status-pill" id="metrics-shopify-status">Shopify</span>
-	                    <span class="status-pill" id="metrics-alegra-status">Alegra</span>
+	                    <span class="status-pill" id="metrics-shopify-status">E‑commerce</span>
+	                    <span class="status-pill" id="metrics-alegra-status">Contable</span>
 	                  </div>
 	                </div>
 	              </div>
@@ -203,25 +203,25 @@
               <div class="section-title">Panel de Victorias</div>
               <div class="kpi-grid metrics-kpi-grid victories-kpis">
                 <div class="kpi-card">
-                  <p id="kpi-shopify-label">Pedidos Shopify</p>
-                  <span class="kpi-source">Fuente: Shopify</span>
+                  <p id="kpi-shopify-label">Pedidos E‑commerce</p>
+                  <span class="kpi-source">Fuente: E‑commerce</span>
                   <h2 id="kpi-sales-today">--</h2>
                   <span class="kpi-sub" id="kpi-sales-today-sub">Vs ayer</span>
                 </div>
                 <div class="kpi-card">
-                  <p id="kpi-alegra-label">Facturacion Alegra</p>
-                  <span class="kpi-source">Fuente: Alegra</span>
+                  <p id="kpi-alegra-label">Facturacion Contable</p>
+                  <span class="kpi-source">Fuente: Contable</span>
                   <h2 id="kpi-billing-alegra">--</h2>
                   <span class="kpi-sub" id="kpi-billing-alegra-sub">Vs mes pasado</span>
                 </div>
                 <div class="kpi-card kpi-chart">
                   <p id="chart-weekly-label">Crecimiento pedidos</p>
-                  <span class="kpi-source">Fuente: Shopify</span>
+                  <span class="kpi-source">Fuente: E‑commerce</span>
                   <div class="chart-placeholder chart-compact" id="chart-weekly"></div>
                 </div>
                 <div class="kpi-card kpi-chart" id="chart-alegra-card">
                   <p id="chart-alegra-label">Crecimiento facturacion</p>
-                  <span class="kpi-source">Fuente: Alegra</span>
+                  <span class="kpi-source">Fuente: Contable</span>
                   <div class="chart-placeholder chart-compact" id="chart-alegra"></div>
                 </div>
               </div>
@@ -231,7 +231,7 @@
                   <div class="panel-header">
                     <h3>Top 10 Productos Estrella</h3>
                     <div class="panel-meta">
-                      <span class="panel-source">Fuente: Shopify</span>
+                      <span class="panel-source">Fuente: E‑commerce</span>
                       <span class="panel-tag">Unidades</span>
                     </div>
                   </div>
@@ -241,7 +241,7 @@
                   <div class="panel-header">
                     <h3>Top 10 Generadores de Caja</h3>
                     <div class="panel-meta">
-                      <span class="panel-source">Fuente: Shopify</span>
+                      <span class="panel-source">Fuente: E‑commerce</span>
                       <span class="panel-tag">Facturacion</span>
                     </div>
                   </div>
@@ -262,7 +262,7 @@
                   <div class="panel-header">
                     <h3>Top 10 Ciudades Destino</h3>
                     <div class="panel-meta">
-                      <span class="panel-source">Fuente: Shopify</span>
+                      <span class="panel-source">Fuente: E‑commerce</span>
                       <span class="panel-tag">Colombia</span>
                     </div>
                   </div>
@@ -272,7 +272,7 @@
 	                  <div class="panel-header">
 	                    <h3>Top 10 Clientes Recurrentes</h3>
 	                    <div class="panel-meta">
-	                      <span class="panel-source">Fuente: Shopify</span>
+	                      <span class="panel-source">Fuente: E‑commerce</span>
 	                      <span class="panel-tag">Pedidos</span>
 	                    </div>
 	                  </div>
@@ -294,8 +294,8 @@
                   <div class="panel-header">
                     <h3>Participacion por Metodos de Pago</h3>
                     <div class="panel-meta">
-                      <span class="panel-source">Fuente: Alegra</span>
-                      <span class="panel-tag">Alegra</span>
+                      <span class="panel-source">Fuente: Contable</span>
+                      <span class="panel-tag">Contable</span>
                     </div>
                   </div>
                   <div class="chart-placeholder" id="wins-payment-methods"></div>
@@ -308,7 +308,7 @@
                   <div class="panel-header">
                     <h3>Alertas de Inventario y Stock</h3>
                     <div class="panel-meta">
-                      <span class="panel-source">Fuente: Alegra</span>
+                      <span class="panel-source">Fuente: Contable</span>
                       <span class="panel-tag">Operativo</span>
                     </div>
                   </div>
@@ -660,7 +660,7 @@
           <div class="panel">
             <div class="panel-header">
               <h3>Marketing &amp; Analytics</h3>
-              <span class="panel-tag">Shopify</span>
+              <span class="panel-tag">E‑commerce</span>
             </div>
             <div class="toolbar products-toolbar">
               <div class="toolbar-store">
@@ -675,7 +675,7 @@
             <div class="kpi-grid metrics-kpi-grid">
               <div class="kpi-card">
                 <p>Revenue</p>
-                <span class="kpi-source">Fuente: Shopify</span>
+                <span class="kpi-source">Fuente: E‑commerce</span>
                 <h2 id="mk-kpi-revenue">--</h2>
                 <span class="kpi-sub">Rango seleccionado</span>
               </div>
@@ -828,7 +828,7 @@
 	                      <th>Nro. Orden</th>
 	                      <th>Cliente</th>
 	                      <th>Productos</th>
-	                      <th>Estado Alegra</th>
+	                      <th>Estado Contable</th>
 	                      <th>Accion</th>
 	                      <th>Nro. Factura</th>
 	                    </tr>
@@ -894,7 +894,7 @@
           <div class="panel">
             <div class="panel-header">
               <h3>Gestion de productos</h3>
-              <span class="panel-tag">Alegra → Shopify</span>
+              <span class="panel-tag">Contable → E‑commerce</span>
             </div>
             <div class="toolbar products-toolbar">
               <div class="toolbar-store">
@@ -931,7 +931,7 @@
                 <span>Solo con existencias</span>
               </label>
               <select id="products-status-filter" name="products_status_filter">
-                <option value="all">Estado Alegra: Todos</option>
+                <option value="all">Estado Contable: Todos</option>
                 <option value="active">Activos</option>
                 <option value="inactive">Inactivos</option>
               </select>
@@ -947,13 +947,13 @@
                   <thead>
                     <tr>
                       <th>Producto / Referencia</th>
-                      <th>ID Alegra</th>
-                      <th>ID Shopify</th>
+                      <th>ID Contable</th>
+                      <th>ID E‑commerce</th>
 	                      <th>Referencia/SKU</th>
                       <th>Fecha</th>
-                      <th>Estado Alegra</th>
+                      <th>Estado Contable</th>
                       <th>Stock total</th>
-                      <th>Estado Shopify</th>
+                      <th>Estado E‑commerce</th>
                       <th>Acciones</th>
                     </tr>
                   </thead>
@@ -1001,8 +1001,8 @@
               </select>
               <select id="contacts-source" name="contacts_source">
                 <option value="">Origen: Todos</option>
-                <option value="shopify">Shopify</option>
-                <option value="alegra">Alegra</option>
+                <option value="shopify">E‑commerce</option>
+                <option value="alegra">Contable</option>
               </select>
               <input type="number" id="contacts-limit" name="contacts_limit" min="1" placeholder="Filas por pagina" />
               <button class="ghost" id="contacts-search-btn">Buscar</button>
@@ -1025,8 +1025,8 @@
                     <th>Documento</th>
                     <th>Origen</th>
                     <th>Estado</th>
-                    <th>Shopify</th>
-                    <th>Alegra</th>
+                    <th>E‑commerce</th>
+                    <th>Contable</th>
                     <th>Actualizado</th>
                   </tr>
                 </thead>
@@ -1099,407 +1099,476 @@
             <div class="connection-modal-backdrop" data-connection-modal-close="1"></div>
             <div class="connection-modal-card" role="dialog" aria-modal="true" aria-labelledby="connection-modal-title">
               <div class="connection-modal-header">
-                <div>
-                  <h3 id="connection-modal-title">Nueva conexion</h3>
+                <div class="connection-modal-brand">
+                  <div class="brand-avatar">
+                    <img src="/assets/avatar.png" alt="Asistente ApiFlujos" />
+                  </div>
+                  <div>
+                    <span class="brand-kicker">ApiFlujos</span>
+                    <h3 id="connection-modal-title">Nueva conexion</h3>
+                    <div class="connection-modal-meta">
+                      <span class="status-pill is-off" id="connection-modal-store-pill">Tienda: -</span>
+                      <span class="status-pill is-off" id="connection-modal-platform-pill">Plataforma: -</span>
+                    </div>
+                  </div>
                 </div>
                 <div class="connection-modal-actions">
                   <button class="ghost" type="button" data-connection-modal-back="1">Volver</button>
-                  <button class="ghost" type="button" data-connection-modal-close="1">Cerrar</button>
+                  <button class="modal-close" type="button" data-connection-modal-close="1" aria-label="Cerrar">×</button>
                 </div>
               </div>
               <div class="connection-modal-body" id="connection-modal-body">
                 <div class="connection-step" data-connection-step="name">
-                  <div id="connection-name-slot"></div>
-                  <button class="primary" id="connection-step-name-next" type="button">Continuar</button>
+                  <div id="connection-name-slot">
+                    <div class="field">
+                      <label>Tienda</label>
+                      <select id="connection-store-select" name="connection_store_select"></select>
+                      <span class="field-hint">Asocia esta conexion a una tienda existente.</span>
+                    </div>
+                    <div class="field-actions">
+                      <button class="ghost" id="connection-store-create" type="button">Crear tienda</button>
+                    </div>
+                  </div>
+                  <div class="connection-step-actions">
+                    <button class="primary is-solid" id="connection-step-name-next" type="button">Siguiente</button>
+                  </div>
+                </div>
+                <div class="connection-step" data-connection-step="group">
+                  <div class="connection-step-header">
+                    <h4>Selecciona el tipo de conexión</h4>
+                    <p class="field-hint" id="connection-store-selected"></p>
+                  </div>
+                  <div class="connection-group-chooser">
+                    <button class="connection-group-choice" type="button" data-connection-group-choice="commerce">
+                      <span class="group-icon is-commerce" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                          <path d="M6 8h13l-1.2 7.2a2 2 0 0 1-2 1.6H9.2a2 2 0 0 1-2-1.6L6 8Z"/>
+                          <path d="M9 8 7.6 5.4A2 2 0 0 0 5.8 4H4"/>
+                          <circle cx="9.5" cy="19" r="1.2"/>
+                          <circle cx="16.5" cy="19" r="1.2"/>
+                        </svg>
+                      </span>
+                      E‑commerce
+                    </button>
+                    <button class="connection-group-choice" type="button" data-connection-group-choice="accounting">
+                      <span class="group-icon is-accounting" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                          <rect x="4" y="3.5" width="16" height="17" rx="2"/>
+                          <path d="M8 8h8M8 12h8M8 16h5"/>
+                        </svg>
+                      </span>
+                      Contabilidad
+                    </button>
+                    <button class="connection-group-choice" type="button" data-connection-group-choice="ads">
+                      <span class="group-icon is-ads" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                          <path d="M4 17 10 7l3.5 6 2.5-4 4 8H4Z"/>
+                          <path d="M6 17h12"/>
+                        </svg>
+                      </span>
+                      Ads
+                    </button>
+                  </div>
                 </div>
                 <div class="connection-step" data-connection-step="platform">
                   <div class="connection-step-header">
-                    <h4>Selecciona la plataforma</h4>
+                    <h4>Selecciona la conexión</h4>
+                    <p class="field-hint" id="connection-store-selected-platform"></p>
                   </div>
                   <div class="connection-chooser" id="connection-chooser">
-                    <button class="connection-choice" type="button" data-connection-choice="shopify">
+                    <button class="connection-choice" type="button" data-connection-choice="shopify" data-connection-group="commerce">
                       <img src="/brands/shopify.png?v=20260201s" alt="Shopify" />
                       Shopify
                     </button>
-                    <button class="connection-choice" type="button" data-connection-choice="woocommerce">
+                    <button class="connection-choice" type="button" data-connection-choice="woocommerce" data-connection-group="commerce">
                       <img src="/brands/woocommerce.png?v=20260201s" alt="WooCommerce" />
                       WooCommerce
                     </button>
-                    <button class="connection-choice" type="button" data-connection-choice="alegra">
+                    <button class="connection-choice" type="button" data-connection-choice="alegra" data-connection-group="accounting">
                       <img src="/brands/alegra.png?v=20260201s" alt="Alegra" />
                       Alegra
                     </button>
+                    <button class="connection-choice" type="button" data-connection-choice="google-ads" data-connection-group="ads">
+                      <img src="/brands/googleads.png?v=20260201s" alt="Google Ads" />
+                      Google Ads
+                    </button>
+                    <button class="connection-choice" type="button" data-connection-choice="meta-ads" data-connection-group="ads">
+                      <img src="/brands/meta.png?v=20260201s" alt="Meta Ads" />
+                      Meta Ads
+                    </button>
+                    <button class="connection-choice" type="button" data-connection-choice="tiktok-ads" data-connection-group="ads">
+                      <img src="/brands/tiktok.png?v=20260201s" alt="TikTok Ads" />
+                      TikTok Ads
+                    </button>
+                    <button class="connection-choice" type="button" data-connection-choice="shopify-marketing" data-connection-group="ads">
+                      <img src="/brands/shopify.png?v=20260201s" alt="Shopify Marketing" />
+                      Shopify Marketing
+                    </button>
+                    
                   </div>
                 </div>
                 <div class="connection-step" data-connection-step="form">
-                  <div class="connection-step-header">
-                    <h4>Completa los accesos</h4>
+                  <div id="connection-form-slot">
+                    <div class="connections-form" id="connections-form">
+                      <input type="hidden" id="store-name" name="store_name" />
+                      <div class="connections-groups">
+                        <div class="connections-duo">
+                          <div class="connections-group" data-group="commerce" data-connection-kind="shopify woocommerce">
+                            <div class="connections-group-header" data-group-toggle="commerce">
+                              <div class="group-title">
+                                <span class="group-kicker">E‑commerce</span>
+                                <h4>Shopify · WooCommerce</h4>
+                              </div>
+                              <span class="status-pill is-live">Core</span>
+                            </div>
+                            <div class="connections-group-body">
+                              <div class="connection-block" data-connection-kind="shopify">
+                                <div class="connection-block-header">
+                                  <div>
+                                    <div class="provider-title">
+                                      <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
+                                      <h4>Shopify</h4>
+                                    </div>
+                                    <p class="kpi-sub">Autorizacion de Shopify para esta tienda</p>
+                                  </div>
+                                  <div class="connection-block-actions">
+                                    <span class="status-pill is-off" id="shopify-connection-pill">Pendiente</span>
+                                    <button class="primary" id="connect-shopify" type="button">Conectar Shopify</button>
+                                  </div>
+                                </div>
+                                <div class="settings-grid connection-fields">
+                                  <div class="field span-2">
+                                    <label>Dominio Shopify <span class="tip" data-tip="Dominio de la tienda (ej: tu-tienda.myshopify.com). Se usa para conectar Shopify a esta integracion.">?</span></label>
+                                    <input type="text" id="shopify-domain" name="shopify_domain" placeholder="tu-tienda.myshopify.com" />
+                                    <span class="field-hint">Se usa para iniciar la autorizacion de Shopify.</span>
+                                  </div>
+                                  <div class="field span-2">
+                                    <label>Metodo de conexion <span class="tip" data-tip="Elige como conectar Shopify: por autorizacion (OAuth2) o por clave de acceso (Admin API).">?</span></label>
+                                    <div class="setup-mode-picker" id="shopify-connect-picker" aria-label="Metodo de conexion Shopify">
+                                      <button class="setup-mode is-active" type="button" data-shopify-connect="oauth">Por autorizacion</button>
+                                      <button class="setup-mode" type="button" data-shopify-connect="token">Por clave de acceso</button>
+                                    </div>
+                                    <span class="field-hint" id="shopify-connect-hint">Por autorizacion abre la pantalla de Shopify para conectar esta tienda.</span>
+                                  </div>
+                                  <div class="field span-2" id="shopify-token-field">
+                                    <label>Clave de acceso Shopify <span class="tip" data-tip="Pega aqui la clave de acceso (Admin API) de Shopify para esta tienda y presiona Conectar Shopify.">?</span></label>
+                                    <input type="password" id="shopify-token" name="shopify_token" placeholder="shpat_********" autocomplete="new-password" />
+                                    <span class="field-hint">Se guarda cifrada. Usala si no puedes conectar por autorizacion.</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div class="connection-block" data-connection-kind="woocommerce">
+                                <div class="connection-block-header">
+                                  <div>
+                                    <div class="provider-title">
+                                      <img class="provider-logo" src="/brands/woocommerce.png?v=20260213a" alt="WooCommerce" />
+                                      <h4>WooCommerce</h4>
+                                    </div>
+                                    <p class="kpi-sub">API Key + Secret para esta tienda</p>
+                                  </div>
+                                  <div class="connection-block-actions">
+                                    <span class="status-pill is-off" id="woocommerce-connection-pill">Pendiente</span>
+                                    <button class="primary" id="connect-woocommerce" type="button">Conectar WooCommerce</button>
+                                  </div>
+                                </div>
+                                <div class="settings-grid connection-fields">
+                                  <div class="field span-2">
+                                    <label>Dominio WooCommerce <span class="tip" data-tip="Dominio de la tienda (ej: tienda.com). Se usa para conectar WooCommerce a esta integracion.">?</span></label>
+                                    <input type="text" id="woocommerce-domain" name="woocommerce_domain" placeholder="tu-tienda.com" />
+                                    <span class="field-hint">Se usa para crear la conexion con API key/secret.</span>
+                                  </div>
+                                  <div class="field span-2">
+                                    <label>Consumer Key <span class="tip" data-tip="Clave API de WooCommerce (Consumer Key).">?</span></label>
+                                    <input type="password" id="woocommerce-key" name="woocommerce_key" placeholder="ck_********" autocomplete="new-password" />
+                                  </div>
+                                  <div class="field span-2">
+                                    <label>Consumer Secret <span class="tip" data-tip="Secreto API de WooCommerce (Consumer Secret).">?</span></label>
+                                    <input type="password" id="woocommerce-secret" name="woocommerce_secret" placeholder="cs_********" autocomplete="new-password" />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="connections-group" data-group="accounting" data-connection-kind="alegra">
+                            <div class="connections-group-header" data-group-toggle="accounting">
+                              <div class="group-title">
+                                <span class="group-kicker">Contabilidad</span>
+                                <h4>Alegra</h4>
+                              </div>
+                            </div>
+                            <div class="connections-group-body">
+                              <div class="connection-block" data-connection-kind="alegra">
+                                <div class="connection-block-header">
+                                  <div>
+                                    <div class="provider-title">
+                                      <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
+                                      <h4>Alegra</h4>
+                                    </div>
+                                    <p class="kpi-sub">Cuenta y credenciales de Alegra</p>
+                                  </div>
+                                  <div class="connection-block-actions">
+                                    <span class="status-pill is-off" id="alegra-connection-pill">Pendiente</span>
+                                    <button class="primary" id="connect-alegra" type="button">Conectar Alegra</button>
+                                  </div>
+                                </div>
+                                <div class="settings-grid connection-fields">
+                                  <div class="field">
+                                    <label>Cuenta Alegra <span class="tip" data-tip="Selecciona una cuenta guardada o crea una nueva con email + clave de acceso.">?</span></label>
+                                    <select id="alegra-account-select" name="alegra_account_select">
+                                      <option value="new">Nueva cuenta Alegra</option>
+                                    </select>
+                                  </div>
+                                  <div class="field" id="alegra-env-field">
+                                    <label>Entorno Alegra <span class="tip" data-tip="Produccion es el entorno real. Pruebas es para validar sin afectar tu operacion (si tu cuenta lo soporta).">?</span></label>
+                                    <select id="alegra-env-select" name="alegra_env_select">
+                                      <option value="prod">Produccion</option>
+                                      <option value="sandbox">Pruebas</option>
+                                    </select>
+                                  </div>
+                                  <div class="field">
+                                    <label>Email usuario <span class="tip" data-tip="Email del usuario de Alegra con acceso a la cuenta.">?</span></label>
+                                    <input type="email" id="alegra-email" name="alegra_email" placeholder="admin@empresa.com" />
+                                  </div>
+                                  <div class="field">
+                                    <label>Clave de acceso <span class="tip" data-tip="Clave de acceso de Alegra (se guarda cifrada). Si seleccionas una cuenta guardada y te pide reconectar, pega la clave aqui para actualizarla.">?</span></label>
+                                    <input type="password" id="alegra-key" name="alegra_key" placeholder="api_********" autocomplete="new-password" />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="connections-group" data-group="ads" data-connection-kind="google-ads meta-ads tiktok-ads shopify-marketing">
+                          <div class="connections-group-header" data-group-toggle="ads">
+                            <div class="group-title">
+                              <span class="group-kicker">Ads</span>
+                              <h4>Google · Meta · TikTok</h4>
+                            </div>
+                          </div>
+                          <div class="connections-group-body">
+                            <div class="ads-platform-grid">
+                              <div class="connection-block ads-platform" data-connection-kind="google-ads">
+                                <div class="connection-block-header">
+                                  <div class="provider-title">
+                                    <img class="provider-logo" src="/brands/googleads.png?v=20260201s" alt="Google Ads" />
+                                    <h4>Google Ads</h4>
+                                  </div>
+                                  <span class="status-pill is-off" id="google-ads-connection-pill">Sin conectar</span>
+                                </div>
+                                <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
+                                <div class="settings-grid connection-fields">
+                                  <div class="field span-2">
+                                    <label>Client ID</label>
+                                    <input type="text" id="google-ads-client-id" name="google_ads_client_id" placeholder="xxxx.apps.googleusercontent.com" />
+                                  </div>
+                                  <div class="field span-2">
+                                    <label>Client Secret</label>
+                                    <input type="password" id="google-ads-client-secret" name="google_ads_client_secret" placeholder="********" autocomplete="new-password" />
+                                  </div>
+                                  <div class="field span-2">
+                                    <label>Developer Token</label>
+                                    <input type="password" id="google-ads-developer-token" name="google_ads_developer_token" placeholder="********" autocomplete="new-password" />
+                                  </div>
+                                  <div class="field span-2">
+                                    <label>Customer ID <span class="tip" data-tip="Formato 123-456-7890.">?</span></label>
+                                    <input type="text" id="google-ads-customer-id" name="google_ads_customer_id" placeholder="123-456-7890" />
+                                  </div>
+                                </div>
+                                <div class="connection-block-actions">
+                                  <button class="ghost" data-ads-save="google" type="button">Guardar credenciales</button>
+                                  <button class="primary" id="connect-google-ads" type="button">Conectar Google</button>
+                                </div>
+                              </div>
+
+                              <div class="connection-block ads-platform" data-connection-kind="meta-ads">
+                                <div class="connection-block-header">
+                                  <div class="provider-title">
+                                    <img class="provider-logo" src="/brands/meta.png?v=20260201s" alt="Meta Ads" />
+                                    <h4>Meta Ads</h4>
+                                  </div>
+                                  <span class="status-pill is-off" id="meta-ads-connection-pill">Sin conectar</span>
+                                </div>
+                                <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
+                                <div class="settings-grid connection-fields">
+                                  <div class="field span-2">
+                                    <label>App ID</label>
+                                    <input type="text" id="meta-ads-app-id" name="meta_ads_app_id" placeholder="1234567890" />
+                                  </div>
+                                  <div class="field span-2">
+                                    <label>App Secret</label>
+                                    <input type="password" id="meta-ads-app-secret" name="meta_ads_app_secret" placeholder="********" autocomplete="new-password" />
+                                  </div>
+                                  <div class="field span-2">
+                                    <label>Ad Account ID <span class="tip" data-tip="Solo numeros.">?</span></label>
+                                    <input type="text" id="meta-ads-account-id" name="meta_ads_account_id" placeholder="1234567890" />
+                                  </div>
+                                </div>
+                                <div class="connection-block-actions">
+                                  <button class="ghost" data-ads-save="meta" type="button">Guardar credenciales</button>
+                                  <button class="primary" id="connect-meta-ads" type="button">Conectar Meta</button>
+                                </div>
+                              </div>
+
+                              <div class="connection-block ads-platform" data-connection-kind="tiktok-ads">
+                                <div class="connection-block-header">
+                                  <div class="provider-title">
+                                    <img class="provider-logo" src="/brands/tiktok.png?v=20260201s" alt="TikTok Ads" />
+                                    <h4>TikTok Ads</h4>
+                                  </div>
+                                  <span class="status-pill is-off" id="tiktok-ads-connection-pill">Sin conectar</span>
+                                </div>
+                                <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
+                                <div class="settings-grid connection-fields">
+                                  <div class="field span-2">
+                                    <label>App ID</label>
+                                    <input type="text" id="tiktok-ads-app-id" name="tiktok_ads_app_id" placeholder="1234567890" />
+                                  </div>
+                                  <div class="field span-2">
+                                    <label>App Secret</label>
+                                    <input type="password" id="tiktok-ads-app-secret" name="tiktok_ads_app_secret" placeholder="********" autocomplete="new-password" />
+                                  </div>
+                                  <div class="field span-2">
+                                    <label>Advertiser ID</label>
+                                    <input type="text" id="tiktok-ads-advertiser-id" name="tiktok_ads_advertiser_id" placeholder="1234567890" />
+                                  </div>
+                                </div>
+                                <div class="connection-block-actions">
+                                  <button class="ghost" data-ads-save="tiktok" type="button">Guardar credenciales</button>
+                                  <button class="primary" id="connect-tiktok-ads" type="button">Conectar TikTok</button>
+                                </div>
+                              </div>
+
+                              
+
+                            </div>
+                            <div class="connection-block ads-platform" data-connection-kind="shopify-marketing" data-provider="shopify" data-manager="shopify" data-module="marketing-config" data-module-priority="core" data-help="Configura el Pixel (para sessions / funnel / UTM) y los Webhooks de Marketing. Shopify NO entrega sesiones/UTM de tráfico desde la Admin API; por eso este módulo instala el Pixel y registra eventos para métricas.">
+                              <div class="connection-block-header">
+                                <div class="provider-title">
+                                  <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
+                                  <h4>Shopify Marketing</h4>
+                                </div>
+                                <div class="connection-block-actions">
+                                  <span class="status-pill is-off" id="mk-cfg-pixel-pill">Pixel: Pendiente</span>
+                                  <span class="status-pill is-off" id="mk-cfg-webhooks-pill">Webhooks: Pendiente</span>
+                                  <button class="primary" id="mk-cfg-connect" type="button">Conectar marketing</button>
+                                </div>
+                              </div>
+                              <p class="kpi-sub">Pixel + Webhooks para sesiones, UTM y funnel.</p>
+                              <div class="module-body">
+                                <div class="mode-sections">
+                                  <div class="mode-section" data-readonly-free="1">
+                                    <div class="mode-head">
+                                      <div class="mode-head-left">
+                                        <h4>Pixel (sessions / UTM / funnel)</h4>
+                                        <span class="tip" data-tip="Esto SI requiere pegar el script en Shopify (theme.liquid). Sin el pixel no hay sesiones ni UTM.">?</span>
+                                      </div>
+                                    </div>
+                                    <div class="mode-grid">
+                                      <div class="mode-field field-span">
+                                        <label>Tienda</label>
+                                        <select id="mk-cfg-store-select" name="mk_cfg_store_select"></select>
+                                      </div>
+                                      <div class="mode-field field-span">
+                                        <label>Pixel Key (por tienda)</label>
+                                        <div class="field-actions inline">
+                                          <input type="text" id="mk-cfg-pixel-key" name="mk_cfg_pixel_key" readonly placeholder="Cargando..." />
+                                          <button class="ghost" id="mk-cfg-copy-key" type="button">Copiar</button>
+                                        </div>
+                                        <p class="field-hint" id="mk-cfg-status">Sin datos</p>
+                                      </div>
+                                      <div class="mode-field field-span">
+                                        <label>Script para Shopify (theme.liquid)</label>
+                                        <div class="field-actions inline">
+                                          <input type="text" id="mk-cfg-script" name="mk_cfg_script" readonly placeholder="Cargando..." />
+                                          <button class="ghost" id="mk-cfg-copy-script" type="button">Copiar script</button>
+                                        </div>
+                                        <p class="field-hint">Obligatorio para sesiones/UTM. Ventas vienen de Shopify vía webhooks.</p>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div class="mode-section" data-readonly-free="1">
+                                    <div class="mode-head">
+                                      <div class="mode-head-left">
+                                        <h4>Webhooks de Shopify</h4>
+                                        <span class="tip" data-tip="Necesarios para capturar pedidos/checkout en tiempo real.">?</span>
+                                      </div>
+                                    </div>
+                                    <div class="mode-grid">
+                                      <div class="mode-field field-span">
+                                        <label>Callback URL</label>
+                                        <div class="field-actions inline">
+                                          <input type="text" id="mk-cfg-webhook-url" name="mk_cfg_webhook_url" readonly placeholder="Cargando..." />
+                                          <button class="ghost" id="mk-cfg-copy-webhook" type="button">Copiar URL</button>
+                                          <button class="primary" id="mk-cfg-create-webhooks" type="button">Crear webhooks</button>
+                                        </div>
+                                        <p class="field-hint" id="mk-cfg-webhooks-status">Sin datos</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <p class="field-hint module-warning is-hidden" data-module-warning="marketing-config"></p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div id="connection-form-slot"></div>
                 </div>
               </div>
             </div>
           </div>
-          <div class="settings-topnav" id="settings-topnav">
-            <a class="ghost" href="/settings/connections" data-settings-pane-link="connections">Conexiones</a>
-            <a class="ghost" href="/settings/marketing" data-settings-pane-link="marketing">Marketing</a>
-            <a class="ghost" href="/settings/stores" data-settings-pane-link="stores">Tiendas</a>
-          </div>
           <div class="settings-pane is-active" data-settings-pane="connections">
                 <div class="settings-group-title" id="settings-connections">Conexiones</div>
-                <div class="panel" id="connections-new-panel">
+                    <div class="connections-module-grid">
+                <div class="connections-module-card" data-connection-group-open="commerce">
+                  <div class="module-card-icon is-commerce">
+                    <svg class="module-icon is-commerce" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M6 8h13l-1.2 7.2a2 2 0 0 1-2 1.6H9.2a2 2 0 0 1-2-1.6L6 8Z"/>
+                      <path d="M9 8 7.6 5.4A2 2 0 0 0 5.8 4H4"/>
+                      <circle cx="9.5" cy="19" r="1.2"/>
+                      <circle cx="16.5" cy="19" r="1.2"/>
+                    </svg>
+                  </div>
+                  <div class="module-card-title">E‑commerce</div>
+                  <div class="module-card-subtitle">Shopify · WooCommerce</div>
+                </div>
+                <div class="connections-module-card" data-connection-group-open="accounting">
+                  <div class="module-card-icon is-accounting">
+                    <svg class="module-icon is-accounting" viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="4" y="3.5" width="16" height="17" rx="2"/>
+                      <path d="M8 8h8M8 12h8M8 16h5"/>
+                    </svg>
+                  </div>
+                  <div class="module-card-title">Contabilidad</div>
+                  <div class="module-card-subtitle">Conecta una plataforma contable</div>
+                </div>
+                <div class="connections-module-card" data-connection-group-open="ads">
+                  <div class="module-card-icon is-ads">
+                    <svg class="module-icon is-ads" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 17 10 7l3.5 6 2.5-4 4 8H4Z"/>
+                      <path d="M6 17h12"/>
+                    </svg>
+                  </div>
+                  <div class="module-card-title">Ads</div>
+                  <div class="module-card-subtitle">Google · Meta · TikTok</div>
+                </div>
+                    </div>
+                <div class="panel admin-only module" data-module="stores-panel" id="stores-panel">
                   <div class="panel-header">
-                    <h3>Nueva conexion</h3>
+                    <h3>Tiendas conectadas</h3>
                   </div>
                   <div class="module-body">
-                    <button class="primary" id="open-connection-modal" type="button">Nueva conexion</button>
-                    <p class="field-hint">Elige la plataforma para conectar y completa los accesos.</p>
+                    <div class="store-list" id="stores-list"></div>
                   </div>
                 </div>
-				            <div class="panel admin-only module" data-module="connections" data-module-readonly="false" data-setup-open="0" data-help="Configurar tienda (paso a paso):&#10;1) En Nueva conexion: elige configuracion guiada o manual.&#10;2) Conecta Shopify (autorizacion) y luego Alegra (clave de acceso o cuenta guardada).&#10;3) En Tiendas: confirma la tienda activa.&#10;4) Configura Productos, Pedidos y Contactos segun tu forma de trabajo.&#10;5) Revisa Operacion (sincronizacion automatica y salud).&#10;&#10;Tip: la configuracion guiada es para tienda nueva; si ya hay tienda activa, usa Manual.">
-		            <div class="panel-header">
-		              <h3 data-module-toggle="connections" data-title-base="Nueva conexion">Nueva conexion</h3>
-		              <span class="panel-tag">Acceso</span>
-	            </div>
-            <div class="module-body">
-              <div class="connections-form" id="connections-form">
-	              <div class="settings-grid store-meta">
-		                <div class="field span-2" data-connection-kind="shopify woocommerce">
-		                  <label>Nombre de la tienda <span class="tip" data-tip="Nombre visible de la tienda. Se usa para identificar esta configuracion y aparece en Tiendas.">?</span></label>
-		                  <input type="text" id="store-name" name="store_name" placeholder="Tienda de ejemplo" />
-		                  <span class="field-hint">Este nombre identifica el set de configuraciones.</span>
-	                </div>
-	              </div>
-	              <div class="connections-groups">
-                  <div class="connections-duo">
-                    <div class="connections-group" data-group="commerce" data-connection-kind="shopify woocommerce">
-                    <div class="connections-group-header" data-group-toggle="commerce">
-                      <div class="group-title">
-                        <span class="group-kicker">Commerce</span>
-                        <h4>Shopify</h4>
-                      </div>
-                      <span class="status-pill is-live">Core</span>
-                    </div>
-                    <div class="connections-group-body">
-                      <div class="connection-block" data-connection-kind="shopify">
-                        <div class="connection-block-header">
-                          <div>
-                            <div class="provider-title">
-                              <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
-                              <h4>Shopify</h4>
-                            </div>
-                            <p class="kpi-sub">Autorizacion de Shopify para esta tienda</p>
-                          </div>
-                          <div class="connection-block-actions">
-                            <span class="status-pill is-off" id="shopify-connection-pill">Pendiente</span>
-                            <button class="primary" id="connect-shopify" type="button">Conectar Shopify</button>
-                          </div>
-                        </div>
-                        <div class="settings-grid connection-fields">
-                          <div class="field span-2">
-                            <label>Shopify dominio <span class="tip" data-tip="Dominio de la tienda (ej: tu-tienda.myshopify.com). Se usa para conectar Shopify a esta integracion.">?</span></label>
-                            <input type="text" id="shopify-domain" name="shopify_domain" placeholder="tu-tienda.myshopify.com" />
-                            <span class="field-hint">Se usa para iniciar la autorizacion de Shopify.</span>
-                          </div>
-                          <div class="field span-2">
-                            <label>Metodo de conexion <span class="tip" data-tip="Elige como conectar Shopify: por autorizacion (OAuth2) o por clave de acceso (Admin API).">?</span></label>
-                            <div class="setup-mode-picker" id="shopify-connect-picker" aria-label="Metodo de conexion Shopify">
-                              <button class="setup-mode is-active" type="button" data-shopify-connect="oauth">Por autorizacion</button>
-                              <button class="setup-mode" type="button" data-shopify-connect="token">Por clave de acceso</button>
-                            </div>
-                            <span class="field-hint" id="shopify-connect-hint">Por autorizacion abre la pantalla de Shopify para conectar esta tienda.</span>
-                          </div>
-                          <div class="field span-2" id="shopify-token-field">
-                            <label>Clave de acceso Shopify <span class="tip" data-tip="Pega aqui la clave de acceso (Admin API) de Shopify para esta tienda y presiona Conectar Shopify.">?</span></label>
-                            <input type="password" id="shopify-token" name="shopify_token" placeholder="shpat_********" autocomplete="new-password" />
-                            <span class="field-hint">Se guarda cifrada. Usala si no puedes conectar por autorizacion.</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="connection-block" data-connection-kind="woocommerce">
-                        <div class="connection-block-header">
-                          <div>
-                            <div class="provider-title">
-                              <img class="provider-logo" src="/brands/woocommerce.png?v=20260213a" alt="WooCommerce" />
-                              <h4>WooCommerce</h4>
-                            </div>
-                            <p class="kpi-sub">API Key + Secret para esta tienda</p>
-                          </div>
-                          <div class="connection-block-actions">
-                            <span class="status-pill is-off" id="woocommerce-connection-pill">Pendiente</span>
-                            <button class="primary" id="connect-woocommerce" type="button">Conectar WooCommerce</button>
-                          </div>
-                        </div>
-                        <div class="settings-grid connection-fields">
-                          <div class="field span-2">
-                            <label>Dominio WooCommerce <span class="tip" data-tip="Dominio de la tienda (ej: tienda.com). Se usa para conectar WooCommerce a esta integracion.">?</span></label>
-                            <input type="text" id="woocommerce-domain" name="woocommerce_domain" placeholder="tu-tienda.com" />
-                            <span class="field-hint">Se usa para crear la conexion con API key/secret.</span>
-                          </div>
-                          <div class="field span-2">
-                            <label>Consumer Key <span class="tip" data-tip="Clave API de WooCommerce (Consumer Key).">?</span></label>
-                            <input type="password" id="woocommerce-key" name="woocommerce_key" placeholder="ck_********" autocomplete="new-password" />
-                          </div>
-                          <div class="field span-2">
-                            <label>Consumer Secret <span class="tip" data-tip="Secreto API de WooCommerce (Consumer Secret).">?</span></label>
-                            <input type="password" id="woocommerce-secret" name="woocommerce_secret" placeholder="cs_********" autocomplete="new-password" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    </div>
-                  <div class="connections-group" data-group="accounting" data-connection-kind="alegra">
-                    <div class="connections-group-header" data-group-toggle="accounting">
-                      <div class="group-title">
-                        <span class="group-kicker">Contabilidad</span>
-                        <h4>Alegra</h4>
-                      </div>
-                    </div>
-                    <div class="connections-group-body">
-                      <div class="connection-block" data-connection-kind="alegra">
-                        <div class="connection-block-header">
-                          <div>
-                            <div class="provider-title">
-                              <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
-                              <h4>Alegra</h4>
-                            </div>
-                            <p class="kpi-sub">Cuenta y credenciales</p>
-                          </div>
-                          <div class="connection-block-actions">
-                            <span class="status-pill is-off" id="alegra-connection-pill">Pendiente</span>
-                            <button class="primary" id="connect-alegra" type="button">Conectar Alegra</button>
-                          </div>
-                        </div>
-                        <div class="settings-grid connection-fields">
-                          <div class="field">
-                            <label>Cuenta Alegra <span class="tip" data-tip="Selecciona una cuenta guardada o crea una nueva con email + clave de acceso.">?</span></label>
-                            <select id="alegra-account-select" name="alegra_account_select">
-                              <option value="new">Nueva cuenta Alegra</option>
-                            </select>
-                          </div>
-                          <div class="field" id="alegra-env-field">
-                            <label>Entorno Alegra <span class="tip" data-tip="Produccion es el entorno real. Pruebas es para validar sin afectar tu operacion (si tu cuenta lo soporta).">?</span></label>
-                            <select id="alegra-env-select" name="alegra_env_select">
-                              <option value="prod">Produccion</option>
-                              <option value="sandbox">Pruebas</option>
-                            </select>
-                          </div>
-                          <div class="field">
-                            <label>Email usuario <span class="tip" data-tip="Email del usuario de Alegra con acceso a la cuenta.">?</span></label>
-                            <input type="email" id="alegra-email" name="alegra_email" placeholder="admin@empresa.com" />
-                          </div>
-                          <div class="field">
-                            <label>Clave de acceso <span class="tip" data-tip="Clave de acceso de Alegra (se guarda cifrada). Si seleccionas una cuenta guardada y te pide reconectar, pega la clave aqui para actualizarla.">?</span></label>
-                            <input type="password" id="alegra-key" name="alegra_key" placeholder="api_********" autocomplete="new-password" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    </div>
-                  </div>
-                  </div>
-
-	            </div>
-	          </div>
-	        </div>
-
-                <div class="panel admin-only module" data-provider="bridge" data-module="connections-summary" data-help="Resumen de conexiones guardadas. Cada tarjeta corresponde a una tienda (multi-tienda).">
-                  <div class="panel-header">
-                    <h3 data-module-toggle="connections-summary">Conexiones guardadas</h3>
-                    <span class="panel-tag tag-bridge">Conexiones</span>
-                  </div>
-                  <div class="module-body">
-                    <div class="connections-grid" id="connections-grid">
-                      <div class="connection-card empty">Sin conexiones.</div>
-                    </div>
-                  </div>
-                </div>
-
-          </div>
-
-          <div class="settings-pane" data-settings-pane="marketing">
-          <div class="settings-group-title" id="settings-marketing">Marketing</div>
-                  <div class="connections-group" data-group="marketing-ads">
-                    <div class="connections-group-header" data-group-toggle="marketing-ads">
-                      <div class="group-title">
-                        <span class="group-kicker">Marketing Ads</span>
-                        <h4>Google · Meta · TikTok</h4>
-                      </div>
-                    </div>
-                    <div class="connections-group-body">
-                      <div class="ads-platform-grid">
-                        <div class="connection-block ads-platform">
-                          <div class="connection-block-header">
-                            <div class="provider-title">
-                              <img class="provider-logo" src="/brands/googleads.png?v=20260201s" alt="Google Ads" />
-                              <h4>Google Ads</h4>
-                            </div>
-                            <span class="status-pill is-off" id="google-ads-connection-pill">Sin conectar</span>
-                          </div>
-                          <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
-                          <div class="settings-grid connection-fields">
-                            <div class="field span-2">
-                              <label>Client ID</label>
-                              <input type="text" id="google-ads-client-id" name="google_ads_client_id" placeholder="xxxx.apps.googleusercontent.com" />
-                            </div>
-                            <div class="field span-2">
-                              <label>Client Secret</label>
-                              <input type="password" id="google-ads-client-secret" name="google_ads_client_secret" placeholder="********" autocomplete="new-password" />
-                            </div>
-                            <div class="field span-2">
-                              <label>Developer Token</label>
-                              <input type="password" id="google-ads-developer-token" name="google_ads_developer_token" placeholder="********" autocomplete="new-password" />
-                            </div>
-                            <div class="field span-2">
-                              <label>Customer ID <span class="tip" data-tip="Formato 123-456-7890.">?</span></label>
-                              <input type="text" id="google-ads-customer-id" name="google_ads_customer_id" placeholder="123-456-7890" />
-                            </div>
-                          </div>
-                          <div class="connection-block-actions">
-                            <button class="ghost" data-ads-save="google" type="button">Guardar credenciales</button>
-                            <button class="primary" id="connect-google-ads" type="button">Conectar Google</button>
-                          </div>
-                        </div>
-
-                        <div class="connection-block ads-platform">
-                          <div class="connection-block-header">
-                            <div class="provider-title">
-                              <img class="provider-logo" src="/brands/meta.png?v=20260201s" alt="Meta Ads" />
-                              <h4>Meta Ads</h4>
-                            </div>
-                            <span class="status-pill is-off" id="meta-ads-connection-pill">Sin conectar</span>
-                          </div>
-                          <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
-                          <div class="settings-grid connection-fields">
-                            <div class="field span-2">
-                              <label>App ID</label>
-                              <input type="text" id="meta-ads-app-id" name="meta_ads_app_id" placeholder="1234567890" />
-                            </div>
-                            <div class="field span-2">
-                              <label>App Secret</label>
-                              <input type="password" id="meta-ads-app-secret" name="meta_ads_app_secret" placeholder="********" autocomplete="new-password" />
-                            </div>
-                            <div class="field span-2">
-                              <label>Ad Account ID <span class="tip" data-tip="Solo numeros.">?</span></label>
-                              <input type="text" id="meta-ads-account-id" name="meta_ads_account_id" placeholder="1234567890" />
-                            </div>
-                          </div>
-                          <div class="connection-block-actions">
-                            <button class="ghost" data-ads-save="meta" type="button">Guardar credenciales</button>
-                            <button class="primary" id="connect-meta-ads" type="button">Conectar Meta</button>
-                          </div>
-                        </div>
-
-                        <div class="connection-block ads-platform">
-                          <div class="connection-block-header">
-                            <div class="provider-title">
-                              <img class="provider-logo" src="/brands/tiktok.png?v=20260201s" alt="TikTok Ads" />
-                              <h4>TikTok Ads</h4>
-                            </div>
-                            <span class="status-pill is-off" id="tiktok-ads-connection-pill">Sin conectar</span>
-                          </div>
-                          <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
-                          <div class="settings-grid connection-fields">
-                            <div class="field span-2">
-                              <label>App ID</label>
-                              <input type="text" id="tiktok-ads-app-id" name="tiktok_ads_app_id" placeholder="1234567890" />
-                            </div>
-                            <div class="field span-2">
-                              <label>App Secret</label>
-                              <input type="password" id="tiktok-ads-app-secret" name="tiktok_ads_app_secret" placeholder="********" autocomplete="new-password" />
-                            </div>
-                            <div class="field span-2">
-                              <label>Advertiser ID</label>
-                              <input type="text" id="tiktok-ads-advertiser-id" name="tiktok_ads_advertiser_id" placeholder="1234567890" />
-                            </div>
-                          </div>
-                          <div class="connection-block-actions">
-                            <button class="ghost" data-ads-save="tiktok" type="button">Guardar credenciales</button>
-                            <button class="primary" id="connect-tiktok-ads" type="button">Conectar TikTok</button>
-                          </div>
-                        </div>
-
-                        <div class="connection-block ads-platform" data-provider="shopify" data-manager="shopify" data-module="marketing-config" data-module-priority="core" data-help="Configura el Pixel (para sessions / funnel / UTM) y los Webhooks de Marketing. Shopify NO entrega sesiones/UTM de tráfico desde la Admin API; por eso este módulo instala el Pixel y registra eventos para métricas.">
-                          <div class="connection-block-header">
-                            <div class="provider-title">
-                              <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
-                              <h4>Shopify Marketing</h4>
-                            </div>
-                            <div class="connection-block-actions">
-                              <span class="status-pill is-off" id="mk-cfg-pixel-pill">Pixel: Pendiente</span>
-                              <span class="status-pill is-off" id="mk-cfg-webhooks-pill">Webhooks: Pendiente</span>
-                              <button class="primary" id="mk-cfg-connect" type="button">Conectar marketing</button>
-                            </div>
-                          </div>
-                          <p class="kpi-sub">Pixel + Webhooks para sesiones, UTM y funnel.</p>
-                          <div class="module-body">
-                            <div class="mode-sections">
-                              <div class="mode-section" data-readonly-free="1">
-                                <div class="mode-head">
-                                  <div class="mode-head-left">
-                                    <h4>Pixel (sessions / UTM / funnel)</h4>
-                                    <span class="tip" data-tip="Esto SI requiere pegar el script en Shopify (theme.liquid). Sin el pixel no hay sesiones ni UTM.">?</span>
-                                  </div>
-                                </div>
-                                <div class="mode-grid">
-                                  <div class="mode-field field-span">
-                                    <label>Tienda</label>
-                                    <select id="mk-cfg-store-select" name="mk_cfg_store_select"></select>
-                                  </div>
-                                  <div class="mode-field field-span">
-                                    <label>Pixel Key (por tienda)</label>
-                                    <div class="field-actions inline">
-                                      <input type="text" id="mk-cfg-pixel-key" name="mk_cfg_pixel_key" readonly placeholder="Cargando..." />
-                                      <button class="ghost" id="mk-cfg-copy-key" type="button">Copiar</button>
-                                    </div>
-                                    <p class="field-hint" id="mk-cfg-status">Sin datos</p>
-                                  </div>
-                                  <div class="mode-field field-span">
-                                    <label>Script para Shopify (theme.liquid)</label>
-                                    <div class="field-actions inline">
-                                      <input type="text" id="mk-cfg-script" name="mk_cfg_script" readonly placeholder="Cargando..." />
-                                      <button class="ghost" id="mk-cfg-copy-script" type="button">Copiar script</button>
-                                    </div>
-                                    <p class="field-hint">Obligatorio para sesiones/UTM. Ventas vienen de Shopify vía webhooks.</p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div class="mode-section" data-readonly-free="1">
-                                <div class="mode-head">
-                                  <div class="mode-head-left">
-                                    <h4>Webhooks de Shopify</h4>
-                                    <span class="tip" data-tip="Necesarios para capturar pedidos/checkout en tiempo real.">?</span>
-                                  </div>
-                                </div>
-                                <div class="mode-grid">
-                                  <div class="mode-field field-span">
-                                    <label>Callback URL</label>
-                                    <div class="field-actions inline">
-                                      <input type="text" id="mk-cfg-webhook-url" name="mk_cfg_webhook_url" readonly placeholder="Cargando..." />
-                                      <button class="ghost" id="mk-cfg-copy-webhook" type="button">Copiar URL</button>
-                                      <button class="primary" id="mk-cfg-create-webhooks" type="button">Crear webhooks</button>
-                                    </div>
-                                    <p class="field-hint" id="mk-cfg-webhooks-status">Sin datos</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <p class="field-hint module-warning is-hidden" data-module-warning="marketing-config"></p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-	              </div>
-          </div>
-
-          <div class="settings-pane" data-settings-pane="stores">
-          <div class="settings-group-title" id="settings-stores">Tiendas</div>
-				          <div class="panel admin-only" id="stores-switcher-panel" data-help="Tiendas conectadas: elige la tienda activa. Todo lo de abajo (productos, pedidos, contactos, etc.) se guarda por tienda activa.">
+          <div class="settings-group-title" id="settings-stores">Configuraciones por tienda</div>
+          <div class="settings-store-active" id="settings-store-active"></div>
+				          <div class="panel admin-only is-hidden" id="stores-switcher-panel" data-help="Tiendas conectadas: elige la tienda activa. Todo lo de abajo (productos, pedidos, contactos, etc.) se guarda por tienda activa.">
 				            <div class="panel-header">
 				              <h3>
-				                Tiendas conectadas
+				                Tienda activa
 				                <span class="tip" data-tip="Las configuraciones se guardan por tienda. Cambiar la tienda activa no afecta a las demás.">?</span>
 				              </h3>
 				            </div>
@@ -1531,24 +1600,25 @@
 			                <div class="settings-group-body">
 
 				          <div class="settings-group provider-group" data-group="products">
-				                <div class="settings-group-header" data-group-toggle="products">
+                  <div class="settings-group-header" data-group-toggle="products">
 			                  <h4 class="group-title">
-		                    <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
-	                    <span class="group-arrow">→</span>
-                    <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
-                    Productos e inventario
+		                    <img class="provider-logo is-alegra" src="/brands/alegra.png?v=20260201s" alt="Contable" />
+	                    <span class="group-arrow is-commerce">→</span>
+                    <img class="provider-logo is-shopify" src="/brands/shopify.png?v=20260201s" alt="E‑commerce" />
+                    <span class="group-text group-text-dual">Productos e inventario</span>
+                    <span class="group-text group-text-alegra-only">Productos e inventario (Contable)</span>
                   </h4>
                 </div>
                 <div class="settings-group-body">
-	                  <div class="panel admin-only module" data-provider="bridge" data-manager="alegra" data-module="shopify-rules" data-module-priority="core" id="legacy-publish-panel" data-help="Modulo principal de Productos: define como se publican y actualizan productos en Shopify cuando llegan cambios desde Alegra (automatico: se sincroniza solo) o cuando publicas manual/masivo desde el panel de Productos.">
+	                  <div class="panel admin-only module" data-provider="bridge" data-manager="alegra" data-module="shopify-rules" data-module-priority="core" id="legacy-publish-panel" data-help="Modulo principal de Productos: define como se publican y actualizan productos en E‑commerce cuando llegan cambios desde Contable (automatico: se sincroniza solo) o cuando publicas manual/masivo desde el panel de Productos.">
                     <div class="panel-header">
-			                      <h3 data-module-toggle="shopify-rules" data-title-base="Sincronizar productos (Alegra → Shopify)">
-			                        Sincronizar productos (Alegra → Shopify)
-				                        <span class="tip" data-tip="Reglas por tienda para sincronizar productos de Alegra a Shopify. Masivo = catálogo inicial o re-sincronización por fechas. Automático = se ejecuta solo cuando llegan cambios desde Alegra.">?</span>
+			                      <h3 data-module-toggle="shopify-rules" data-title-base="Sincronizar productos (Contable → E‑commerce)">
+			                        Sincronizar productos (Contable → E‑commerce)
+				                        <span class="tip" data-tip="Reglas por tienda para sincronizar productos de Contable a E‑commerce. Masivo = catálogo inicial o re-sincronización por fechas. Automático = se ejecuta solo cuando llegan cambios desde Contable.">?</span>
 			                      </h3>
                       <div class="panel-meta">
                         <span class="panel-tag tag-core">Core</span>
-                        <span class="panel-tag tag-bridge">Alegra → Shopify</span>
+                        <span class="panel-tag tag-bridge">Contable → E‑commerce</span>
                       </div>
                     </div>
                     <div class="module-body">
@@ -1556,8 +1626,8 @@
 	                        <div class="mode-section" data-readonly-free="1">
 		                          <div class="mode-head">
 		                            <div class="mode-head-left">
-					                              <h4>Masivo: productos Alegra → Shopify</h4>
-					                              <span class="tip" data-tip="Este masivo se usa para catálogo inicial o re-procesar un rango.&#10;Crea productos en Shopify solo si NO existen (por SKU/Barcode).&#10;Recomendación: prueba con un rango corto y apaga “Publicar” si quieres validar antes.">?</span>
+					                              <h4>Masivo: productos Contable → E‑commerce</h4>
+					                              <span class="tip" data-tip="Este masivo se usa para catálogo inicial o re-procesar un rango.&#10;Crea productos en E‑commerce solo si NO existen (por SKU/Barcode).&#10;Recomendación: prueba con un rango corto y apaga “Publicar” si quieres validar antes.">?</span>
 			                            </div>
 			                          </div>
                           <div class="mode-grid" id="products-sync-grid">
@@ -1586,26 +1656,26 @@
                           </div>
 	                          <div class="mode-toggle-grid" aria-label="Opciones masivo">
 		                            <div class="mode-toggle">
-		                              <label for="products-sync-only-active">Solo activos en Alegra <span class="tip" data-tip="Si está activo, el masivo ignora productos inactivos en Alegra. Recomendado para evitar crear productos descontinuados en Shopify.">?</span></label>
+		                              <label for="products-sync-only-active">Solo activos en Contable <span class="tip" data-tip="Si está activo, el masivo ignora productos inactivos en Contable. Recomendado para evitar crear productos descontinuados en E‑commerce.">?</span></label>
 		                              <input type="checkbox" id="products-sync-only-active" name="products_sync_only_active" class="toggle" checked />
 		                            </div>
 				                            <div class="mode-toggle">
-				                              <label for="products-sync-update-existing">Actualizar existentes <span class="tip" data-tip="ON: si el producto ya existe, lo actualiza en la base de datos.&#10;Si además “Publicar en Shopify” está ON, también actualiza el producto existente en Shopify (por SKU/Barcode): precio de variantes y estado (draft/active).&#10;OFF: no modifica productos existentes (ni en la base de datos, ni en Shopify); solo guarda productos nuevos.">?</span></label>
+				                              <label for="products-sync-update-existing">Actualizar existentes <span class="tip" data-tip="ON: si el producto ya existe, lo actualiza en la base de datos.&#10;Si además “Publicar en E‑commerce” está ON, también actualiza el producto existente en E‑commerce (por SKU/Barcode): precio de variantes y estado (draft/active).&#10;OFF: no modifica productos existentes (ni en la base de datos, ni en E‑commerce); solo guarda productos nuevos.">?</span></label>
 				                              <input type="checkbox" id="products-sync-update-existing" name="products_sync_update_existing" class="toggle" checked />
 				                            </div>
 				                            <div class="mode-toggle">
-				                              <label for="products-sync-publish">Publicar en Shopify <span class="tip" data-tip="ON: crea productos nuevos en Shopify.&#10;Si “Actualizar existentes” está ON, también actualiza productos ya existentes en Shopify (por SKU/Barcode).&#10;OFF: no crea ni actualiza nada en Shopify (solo trabaja en la base de datos).&#10;Tip: usa OFF para cargar catálogo y validar antes de publicar.">?</span></label>
+				                              <label for="products-sync-publish">Publicar en E‑commerce <span class="tip" data-tip="ON: crea productos nuevos en E‑commerce.&#10;Si “Actualizar existentes” está ON, también actualiza productos ya existentes en E‑commerce (por SKU/Barcode).&#10;OFF: no crea ni actualiza nada en E‑commerce (solo trabaja en la base de datos).&#10;Tip: usa OFF para cargar catálogo y validar antes de publicar.">?</span></label>
 				                              <input type="checkbox" id="products-sync-publish" name="products_sync_publish" class="toggle" checked />
 				                            </div>
 				                            <div class="mode-toggle">
-				                              <label for="products-publish-status-mass">Estado <span class="tip" data-tip="Borrador = no visible en la tienda. Activo = visible y listo para vender. Solo aplica si “Publicar en Shopify” está activo.">?</span></label>
+				                              <label for="products-publish-status-mass">Estado <span class="tip" data-tip="Borrador = no visible en la tienda. Activo = visible y listo para vender. Solo aplica si “Publicar en E‑commerce” está activo.">?</span></label>
 				                              <select id="products-publish-status-mass" name="products_publish_status_mass" data-depends-on="products-sync-publish">
 				                                <option value="draft">Borrador</option>
 				                                <option value="active">Activo</option>
 				                              </select>
 				                            </div>
 		                            <div class="mode-toggle">
-		                              <label for="products-sync-include-inventory">Incluir inventario <span class="tip" data-tip="ON: trae inventario desde Alegra (y lo guarda en la base de datos).&#10;Si además “Publicar en Shopify” está ON, también sincroniza existencias en Shopify usando las bodegas configuradas en “Inventario y bodegas”.">?</span></label>
+		                              <label for="products-sync-include-inventory">Incluir inventario <span class="tip" data-tip="ON: trae inventario desde Contable (y lo guarda en la base de datos).&#10;Si además “Publicar en E‑commerce” está ON, también sincroniza existencias en E‑commerce usando las bodegas configuradas en “Inventario y bodegas”.">?</span></label>
 		                              <input type="checkbox" id="products-sync-include-inventory" name="products_sync_include_inventory" class="toggle" checked />
 		                            </div>
 	                          </div>
@@ -1628,34 +1698,34 @@
 							                            <div class="mode-head-left">
 							                              <label class="mode-title-toggle" for="rules-auto-enabled" data-dep-controller="1">
 							                                <input type="checkbox" id="rules-auto-enabled" name="rules_auto_enabled" class="toggle" data-dep-controller="1" checked />
-								                                <span>Automático: productos Alegra → Shopify</span>
+								                                <span>Automático: productos Contable → E‑commerce</span>
 								                              </label>
-										                              <span class="tip" data-tip="Se ejecuta sola cuando llegan cambios desde Alegra. Estas reglas también aplican cuando sincronizas manualmente desde el módulo Productos. Si apagas “Publicar en Shopify”, el sistema solo actualiza datos y no deja productos visibles.">?</span>
+										                              <span class="tip" data-tip="Se ejecuta sola cuando llegan cambios desde Contable. Estas reglas también aplican cuando sincronizas manualmente desde el módulo Productos. Si apagas “Publicar en E‑commerce”, el sistema solo actualiza datos y no deja productos visibles.">?</span>
 									                            </div>
 									                          </div>
-										                          <div class="mode-toggle-grid" aria-label="Opciones automático (Alegra → Shopify)" data-depends-on="rules-auto-enabled">
+										                          <div class="mode-toggle-grid" aria-label="Opciones automático (Contable → E‑commerce)" data-depends-on="rules-auto-enabled">
 									                            <div class="mode-toggle">
-									                              <label for="rules-auto-create-shopify">Crear nuevos en Shopify <span class="tip" data-tip="Si está OFF, no creamos productos nuevos en Shopify. Solo actualizamos los que ya existan/mapeados.">?</span></label>
+									                              <label for="rules-auto-create-shopify">Crear nuevos en E‑commerce <span class="tip" data-tip="Si está OFF, no creamos productos nuevos en E‑commerce. Solo actualizamos los que ya existan/mapeados.">?</span></label>
 								                              <input type="checkbox" id="rules-auto-create-shopify" name="rules_auto_create_shopify" class="toggle" data-depends-on="rules-auto-enabled" checked />
 									                            </div>
 									                            <div class="mode-toggle">
-									                              <label for="rules-auto-update-shopify">Actualizar existentes en Shopify <span class="tip" data-tip="Si está OFF, no modificamos productos existentes (precio/stock/estado). Igual se registran en la base para que los veas en Productos.">?</span></label>
+									                              <label for="rules-auto-update-shopify">Actualizar existentes en E‑commerce <span class="tip" data-tip="Si está OFF, no modificamos productos existentes (precio/stock/estado). Igual se registran en la base para que los veas en Productos.">?</span></label>
 								                              <input type="checkbox" id="rules-auto-update-shopify" name="rules_auto_update_shopify" class="toggle" data-depends-on="rules-auto-enabled" checked />
 									                            </div>
 									                            <div class="mode-toggle">
-									                              <label for="rules-only-active">Solo activos en Alegra <span class="tip" data-tip="Si está activo, solo se sincronizan productos activos en Alegra (automático y manual por SKU).">?</span></label>
+									                              <label for="rules-only-active">Solo activos en Contable <span class="tip" data-tip="Si está activo, solo se sincronizan productos activos en Contable (automático y manual por SKU).">?</span></label>
 								                              <input type="checkbox" id="rules-only-active" name="rules_only_active" class="toggle" />
 									                            </div>
 						                            <div class="mode-toggle">
-						                              <label for="rules-auto-publish">Publicar en Shopify <span class="tip" data-tip="Enciende/apaga la publicación. Si lo apagas, solo sincronizamos datos, pero no publicamos productos (automático ni manual por SKU).">?</span></label>
+						                              <label for="rules-auto-publish">Publicar en E‑commerce <span class="tip" data-tip="Enciende/apaga la publicación. Si lo apagas, solo sincronizamos datos, pero no publicamos productos (automático ni manual por SKU).">?</span></label>
 						                              <input type="checkbox" id="rules-auto-publish" name="rules_auto_publish" class="toggle" />
 						                            </div>
 									                            <div class="mode-toggle">
-									                              <label for="rules-auto-images">Publicar fotos <span class="tip" data-tip="Si está activo, intentamos subir fotos del producto a Shopify. Si una foto falla, el producto puede publicarse igual (solo quedará sin esa foto).">?</span></label>
+									                              <label for="rules-auto-images">Publicar fotos <span class="tip" data-tip="Si está activo, intentamos subir fotos del producto a E‑commerce. Si una foto falla, el producto puede publicarse igual (solo quedará sin esa foto).">?</span></label>
 									                              <input type="checkbox" id="rules-auto-images" name="rules_auto_images" class="toggle" data-depends-on="rules-auto-publish" />
 									                            </div>
 						                            <div class="mode-toggle">
-						                              <label for="rules-auto-status">Estado <span class="tip" data-tip="Define el estado de publicación cuando “Publicar en Shopify” está activo: Borrador o Activo.">?</span></label>
+						                              <label for="rules-auto-status">Estado <span class="tip" data-tip="Define el estado de publicación cuando “Publicar en E‑commerce” está activo: Borrador o Activo.">?</span></label>
 						                              <select id="rules-auto-status" name="rules_auto_status" data-depends-on="rules-auto-publish">
 						                                <option value="draft">Borrador</option>
 						                                <option value="active">Activo</option>
@@ -1666,15 +1736,15 @@
 		                    </div>
 		                  </div>
 
-		                  <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="shopify-products-to-alegra" data-module-priority="core" id="shopify-products-to-alegra-panel" data-help="Bidireccionalidad de Productos (Shopify → Alegra): crea/actualiza ítems en Alegra desde productos y variantes de Shopify. Masivo = catálogo inicial o re-procesar un rango por fechas. Automático = se ejecuta con webhooks de Shopify (products/create y products/update).">
+		                  <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="shopify-products-to-alegra" data-module-priority="core" id="shopify-products-to-alegra-panel" data-help="Bidireccionalidad de Productos (E‑commerce → Contable): crea/actualiza ítems en Contable desde productos y variantes de E‑commerce. Masivo = catálogo inicial o re-procesar un rango por fechas. Automático = se ejecuta con webhooks de E‑commerce (products/create y products/update).">
 		                    <div class="panel-header">
-			                      <h3 data-module-toggle="shopify-products-to-alegra" data-title-base="Sincronizar productos (Shopify → Alegra)">
-			                        Sincronizar productos (Shopify → Alegra)
-			                        <span class="tip" data-tip="Sincroniza productos y variantes desde Shopify hacia Alegra. Tip: prueba primero con “Crear en Alegra” apagado para validar match por SKU/Barcode.">?</span>
+			                      <h3 data-module-toggle="shopify-products-to-alegra" data-title-base="Sincronizar productos (E‑commerce → Contable)">
+			                        Sincronizar productos (E‑commerce → Contable)
+			                        <span class="tip" data-tip="Sincroniza productos y variantes desde E‑commerce hacia Contable. Tip: prueba primero con “Crear en Contable” apagado para validar match por SKU/Barcode.">?</span>
 			                      </h3>
 		                      <div class="panel-meta">
 		                        <span class="panel-tag tag-core">Core</span>
-		                        <span class="panel-tag tag-bridge">Shopify → Alegra</span>
+		                        <span class="panel-tag tag-bridge">E‑commerce → Contable</span>
 		                      </div>
 		                    </div>
 		                    <div class="module-body">
@@ -1682,8 +1752,8 @@
 		                        <div class="mode-section" data-readonly-free="1">
 		                          <div class="mode-head">
 		                            <div class="mode-head-left">
-			                              <h4>Masivo: productos Shopify → Alegra</h4>
-			                              <span class="tip" data-tip="Trae productos de Shopify por fechas y sincroniza cada variante como un ítem en Alegra. Si no hay match por SKU/Barcode, puedes permitir crear. Si incluyes inventario, se ajusta el stock en la bodega seleccionada.">?</span>
+			                              <h4>Masivo: productos E‑commerce → Contable</h4>
+			                              <span class="tip" data-tip="Trae productos de E‑commerce por fechas y sincroniza cada variante como un ítem en Contable. Si no hay match por SKU/Barcode, puedes permitir crear. Si incluyes inventario, se ajusta el stock en la bodega seleccionada.">?</span>
 		                            </div>
 		                          </div>
 		                          <div class="mode-grid">
@@ -1700,28 +1770,28 @@
 		                              <input type="number" id="products-shopify-bulk-limit" name="products_shopify_bulk_limit" min="1" placeholder="200" />
 		                            </div>
 		                          </div>
-		                          <div class="mode-toggle-grid" aria-label="Opciones masivo productos Shopify → Alegra">
+		                          <div class="mode-toggle-grid" aria-label="Opciones masivo productos E‑commerce → Contable">
 		                            <div class="mode-toggle">
-					                              <label for="products-shopify-bulk-create">Crear nuevos en Alegra <span class="tip" data-tip="Si está OFF, solo actualizamos existentes (por mapping o match). Si está ON, creamos ítems en Alegra cuando no existen.">?</span></label>
+					                              <label for="products-shopify-bulk-create">Crear nuevos en Contable <span class="tip" data-tip="Si está OFF, solo actualizamos existentes (por mapping o match). Si está ON, creamos ítems en Contable cuando no existen.">?</span></label>
 					                              <input type="checkbox" id="products-shopify-bulk-create" name="products_shopify_bulk_create" class="toggle" />
 					                            </div>
 					                            <div class="mode-toggle">
-					                              <label for="products-shopify-bulk-update">Actualizar existentes en Alegra <span class="tip" data-tip="Si está OFF, no modificamos ítems existentes; solo intentamos mapear/matchear. Recomendado: ON.">?</span></label>
+					                              <label for="products-shopify-bulk-update">Actualizar existentes en Contable <span class="tip" data-tip="Si está OFF, no modificamos ítems existentes; solo intentamos mapear/matchear. Recomendado: ON.">?</span></label>
 					                              <input type="checkbox" id="products-shopify-bulk-update" name="products_shopify_bulk_update" class="toggle" checked />
 					                            </div>
 		                            <div class="mode-toggle">
-		                              <label for="products-shopify-bulk-include-inventory">Incluir inventario <span class="tip" data-tip="Si está ON, ajustamos el stock en Alegra para la bodega seleccionada usando el inventario total de Shopify.">?</span></label>
+		                              <label for="products-shopify-bulk-include-inventory">Incluir inventario <span class="tip" data-tip="Si está ON, ajustamos el stock en Contable para la bodega seleccionada usando el inventario total de E‑commerce.">?</span></label>
 		                              <input type="checkbox" id="products-shopify-bulk-include-inventory" name="products_shopify_bulk_include_inventory" class="toggle" />
 		                            </div>
 		                            <div class="mode-toggle">
-		                              <label for="products-shopify-bulk-match">Prioridad de identificación <span class="tip" data-tip="Antes de crear, buscamos el ítem en Alegra con esta prioridad. Si encontramos match, actualizamos (evita duplicados).">?</span></label>
+		                              <label for="products-shopify-bulk-match">Prioridad de identificación <span class="tip" data-tip="Antes de crear, buscamos el ítem en Contable con esta prioridad. Si encontramos match, actualizamos (evita duplicados).">?</span></label>
 		                              <select id="products-shopify-bulk-match" name="products_shopify_bulk_match">
 		                                <option value="sku_barcode" selected>SKU → Barcode</option>
 		                                <option value="barcode_sku">Barcode → SKU</option>
 		                              </select>
 		                            </div>
 		                            <div class="mode-toggle">
-		                              <label for="products-shopify-bulk-warehouse">Bodega destino (stock) <span class="tip" data-tip="Obligatoria si “Incluir inventario” está ON. Debe existir en Alegra (Configuración → Conexiones).">?</span></label>
+		                              <label for="products-shopify-bulk-warehouse">Bodega destino (stock) <span class="tip" data-tip="Obligatoria si “Incluir inventario” está ON. Debe existir en Contable (Configuración → Conexiones).">?</span></label>
 		                              <select id="products-shopify-bulk-warehouse" name="products_shopify_bulk_warehouse" data-allow-empty="true" data-empty-label="Seleccionar..." data-depends-on="products-shopify-bulk-include-inventory">
   <option value="">Seleccionar...</option></select>
 		                            </div>
@@ -1745,18 +1815,18 @@
 		                            <div class="mode-head-left">
 		                              <label class="mode-title-toggle" for="cfg-products-shopify-to-alegra-enabled" data-dep-controller="1">
 		                                <input type="checkbox" id="cfg-products-shopify-to-alegra-enabled" name="cfg_products_shopify_to_alegra_enabled" class="toggle" data-dep-controller="1" />
-			                                <span>Automático: productos Shopify → Alegra</span>
+			                                <span>Automático: productos E‑commerce → Contable</span>
 			                              </label>
-		                              <span class="tip" data-tip="ON: cuando llega un webhook de Shopify (products/create o products/update), actualizamos/creamos el ítem en Alegra según las opciones.">?</span>
+		                              <span class="tip" data-tip="ON: cuando llega un webhook de E‑commerce (products/create o products/update), actualizamos/creamos el ítem en Contable según las opciones.">?</span>
 		                            </div>
 		                          </div>
-		                          <div class="mode-toggle-grid" aria-label="Opciones automatico productos Shopify → Alegra" data-depends-on="cfg-products-shopify-to-alegra-enabled">
+		                          <div class="mode-toggle-grid" aria-label="Opciones automatico productos E‑commerce → Contable" data-depends-on="cfg-products-shopify-to-alegra-enabled">
 		                            <div class="mode-toggle">
-			                              <label for="cfg-products-shopify-to-alegra-create">Crear nuevos en Alegra</label>
+			                              <label for="cfg-products-shopify-to-alegra-create">Crear nuevos en Contable</label>
 			                              <input type="checkbox" id="cfg-products-shopify-to-alegra-create" name="cfg_products_shopify_to_alegra_create" class="toggle" data-depends-on="cfg-products-shopify-to-alegra-enabled" />
 			                            </div>
 			                            <div class="mode-toggle">
-			                              <label for="cfg-products-shopify-to-alegra-update">Actualizar existentes en Alegra</label>
+			                              <label for="cfg-products-shopify-to-alegra-update">Actualizar existentes en Contable</label>
 			                              <input type="checkbox" id="cfg-products-shopify-to-alegra-update" name="cfg_products_shopify_to_alegra_update" class="toggle" data-depends-on="cfg-products-shopify-to-alegra-enabled" checked />
 			                            </div>
 		                            <div class="mode-toggle">
@@ -1771,7 +1841,7 @@
 		                              </select>
 		                            </div>
 		                            <div class="mode-toggle">
-		                              <label for="cfg-products-shopify-to-alegra-warehouse">Bodega destino (stock) <span class="tip" data-tip="Obligatoria si “Incluir inventario” está ON. Debe existir en Alegra.">?</span></label>
+		                              <label for="cfg-products-shopify-to-alegra-warehouse">Bodega destino (stock) <span class="tip" data-tip="Obligatoria si “Incluir inventario” está ON. Debe existir en Contable.">?</span></label>
 		                              <select id="cfg-products-shopify-to-alegra-warehouse" name="cfg_products_shopify_to_alegra_warehouse" data-allow-empty="true" data-empty-label="Seleccionar..." data-depends-on="cfg-products-shopify-to-alegra-include-inventory">
   <option value="">Seleccionar...</option></select>
 		                            </div>
@@ -1782,14 +1852,14 @@
 		                    </div>
 		                  </div>
 
-				                  <div class="panel admin-only module" data-provider="bridge" data-manager="alegra" data-module="alegra-inventory" id="inventory-rules-panel" data-help="Inventario automatico por tienda: define de que bodegas se toma el stock y si lo mantenemos actualizado en Shopify.">
+				                  <div class="panel admin-only module" data-provider="bridge" data-manager="alegra" data-module="alegra-inventory" id="inventory-rules-panel" data-help="Inventario automatico por tienda: define de que bodegas se toma el stock y si lo mantenemos actualizado en E‑commerce.">
 			                    <div class="panel-header">
-				                      <h3 data-module-toggle="alegra-inventory" data-title-base="Sincronizar inventario (Alegra → Shopify)">
-				                        Sincronizar inventario (Alegra → Shopify)
-			                        <span class="tip" data-tip="Mantiene el stock al día en Shopify: corre solo cada cierto tiempo y actualiza existencias usando las bodegas de Alegra que elijas.">?</span>
+				                      <h3 data-module-toggle="alegra-inventory" data-title-base="Sincronizar inventario (Contable → E‑commerce)">
+				                        Sincronizar inventario (Contable → E‑commerce)
+			                        <span class="tip" data-tip="Mantiene el stock al día en E‑commerce: corre solo cada cierto tiempo y actualiza existencias usando las bodegas de Contable que elijas.">?</span>
 			                      </h3>
 		                      <div class="panel-meta">
-		                        <span class="panel-tag tag-bridge">Alegra → Shopify</span>
+		                        <span class="panel-tag tag-bridge">Contable → E‑commerce</span>
 	                      </div>
 	                    </div>
                     <div class="module-body">
@@ -1799,7 +1869,7 @@
 								                            <div class="mode-head-left">
 								                              <label class="mode-title-toggle" for="inventory-cron-enabled" data-dep-controller="1">
 								                                <input type="checkbox" id="inventory-cron-enabled" name="inventory_cron_enabled" class="toggle" data-dep-controller="1" />
-									                                <span>Automático: inventario Alegra → Shopify</span>
+									                                <span>Automático: inventario Contable → E‑commerce</span>
 									                              </label>
 								                              <span class="tip" data-tip="Prende o apaga la automatización de inventario, define cada cuánto consultar y de qué bodegas tomar el stock.">?</span>
 								                            </div>
@@ -1824,7 +1894,7 @@
 			                              </details>
 				                            </div>
 			                            <div class="mode-toggle">
-			                              <label for="rules-sync-enabled">Sincronizar inventario en Shopify <span class="tip" data-tip="Si lo apagas, el sistema no actualizará existencias en Shopify (ni en masivo ni en automático).">?</span></label>
+			                              <label for="rules-sync-enabled">Sincronizar inventario en E‑commerce <span class="tip" data-tip="Si lo apagas, el sistema no actualizará existencias en E‑commerce (ni en masivo ni en automático).">?</span></label>
 			                              <input type="checkbox" id="rules-sync-enabled" name="rules_sync_enabled" class="toggle" />
 			                            </div>
 			                          </div>
@@ -1847,29 +1917,30 @@
 		              <div class="settings-group provider-group" data-group="contacts">
 	                <div class="settings-group-header" data-group-toggle="contacts">
 	                  <h4 class="group-title">
-	                    <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
-	                    <span class="group-arrow">↔</span>
-	                    <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
-	                    Contactos
+	                    <img class="provider-logo is-shopify" src="/brands/shopify.png?v=20260201s" alt="E‑commerce" />
+	                    <span class="group-arrow is-commerce">↔</span>
+	                    <img class="provider-logo is-alegra" src="/brands/alegra.png?v=20260201s" alt="Contable" />
+	                    <span class="group-text group-text-dual">Contactos</span>
+	                    <span class="group-text group-text-alegra-only">Contactos (Contable)</span>
 	                  </h4>
 	                </div>
 	                <div class="settings-group-body">
-			                  <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="sync-contacts" data-module-priority="core" data-help="Modulo principal de Contactos: define como se identifican y sincronizan clientes entre Shopify y Alegra. Incluye masivo y automático.">
+			                  <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="sync-contacts" data-module-priority="core" data-help="Modulo principal de Contactos: define como se identifican y sincronizan clientes entre E‑commerce y Contable. Incluye masivo y automático.">
 		                    <div class="panel-header">
-				                      <h3 data-module-toggle="sync-contacts" data-title-base="Sincronizar contactos (Shopify ↔ Alegra)">
-				                        Sincronizar contactos (Shopify ↔ Alegra)
-					                        <span class="tip" data-tip="Sincroniza clientes entre Shopify y Alegra. Para evitar duplicados: define la “Prioridad de identificación” y prueba primero con los toggles de “Crear” apagados.">?</span>
+				                      <h3 data-module-toggle="sync-contacts" data-title-base="Sincronizar contactos (E‑commerce ↔ Contable)">
+				                        Sincronizar contactos (E‑commerce ↔ Contable)
+					                        <span class="tip" data-tip="Sincroniza clientes entre E‑commerce y Contable. Para evitar duplicados: define la “Prioridad de identificación” y prueba primero con los toggles de “Crear” apagados.">?</span>
 				                      </h3>
 	                      <div class="panel-meta">
 	                        <span class="panel-tag tag-core">Core</span>
-	                        <span class="panel-tag tag-bridge">Alegra ↔ Shopify</span>
+	                        <span class="panel-tag tag-bridge">Contable ↔ E‑commerce</span>
 	                      </div>
 	                    </div>
 	                    <div class="module-body">
 		                      <div class="mode-sections">
 				                        <div class="mode-section" data-readonly-free="1">
 				                          <div class="mode-head">
-							                            <h4>Masivo: contactos Shopify ↔ Alegra</h4>
+							                            <h4>Masivo: contactos E‑commerce ↔ Contable</h4>
 							                            <span class="tip" data-tip="Crea/normaliza contactos en lote. Puedes correr una dirección o ambas (bidireccional); si activas ambas se ejecuta en 2 fases. Tip anti-duplicados: define la prioridad y prueba primero con “Crear” apagado.">?</span>
 					                          </div>
 				                          <div class="mode-grid">
@@ -1888,19 +1959,19 @@
 			                          </div>
 				                          <div class="mode-toggle-grid" aria-label="Direcciones masivo">
 				                            <div class="mode-toggle">
-					                              <label for="sync-contacts-bulk-shopify">Permitir Shopify → Alegra <span class="tip" data-tip="Trae contactos desde Shopify (según fechas) y los actualiza/crea en Alegra.">?</span></label>
+					                              <label for="sync-contacts-bulk-shopify">Permitir E‑commerce → Contable <span class="tip" data-tip="Trae contactos desde E‑commerce (según fechas) y los actualiza/crea en Contable.">?</span></label>
 					                              <input type="checkbox" id="sync-contacts-bulk-shopify" name="sync_contacts_bulk_shopify" class="toggle" checked />
 				                            </div>
 				                            <div class="mode-toggle">
-					                              <label for="sync-contacts-bulk-create-alegra">Crear nuevos en Alegra <span class="tip" data-tip="Solo aplica a Shopify → Alegra. ON: si no existe en Alegra, lo creamos. OFF: solo actualizamos existentes (sin crear nuevos).">?</span></label>
+					                              <label for="sync-contacts-bulk-create-alegra">Crear nuevos en Contable <span class="tip" data-tip="Solo aplica a E‑commerce → Contable. ON: si no existe en Contable, lo creamos. OFF: solo actualizamos existentes (sin crear nuevos).">?</span></label>
 					                              <input type="checkbox" id="sync-contacts-bulk-create-alegra" name="sync_contacts_bulk_create_alegra" class="toggle" data-depends-on="sync-contacts-bulk-shopify" checked />
 				                            </div>
 				                            <div class="mode-toggle">
-					                              <label for="sync-contacts-bulk-alegra">Permitir Alegra → Shopify <span class="tip" data-tip="Trae contactos desde Alegra (según fechas) y los actualiza/crea en Shopify.">?</span></label>
+					                              <label for="sync-contacts-bulk-alegra">Permitir Contable → E‑commerce <span class="tip" data-tip="Trae contactos desde Contable (según fechas) y los actualiza/crea en E‑commerce.">?</span></label>
 					                              <input type="checkbox" id="sync-contacts-bulk-alegra" name="sync_contacts_bulk_alegra" class="toggle" checked />
 				                            </div>
 				                            <div class="mode-toggle">
-					                              <label for="sync-contacts-bulk-create-shopify">Crear nuevos en Shopify <span class="tip" data-tip="Solo aplica a Alegra → Shopify. ON: si no existe en Shopify, lo creamos. OFF: solo actualizamos existentes (sin crear nuevos).">?</span></label>
+					                              <label for="sync-contacts-bulk-create-shopify">Crear nuevos en E‑commerce <span class="tip" data-tip="Solo aplica a Contable → E‑commerce. ON: si no existe en E‑commerce, lo creamos. OFF: solo actualizamos existentes (sin crear nuevos).">?</span></label>
 					                              <input type="checkbox" id="sync-contacts-bulk-create-shopify" name="sync_contacts_bulk_create_shopify" class="toggle" data-depends-on="sync-contacts-bulk-alegra" checked />
 				                            </div>
 				                          </div>
@@ -1923,26 +1994,26 @@
 						                            <div class="mode-head-left">
 						                              <label class="mode-title-toggle" for="sync-contacts-enabled" data-dep-controller="1">
 						                                <input type="checkbox" id="sync-contacts-enabled" name="sync_contacts_enabled" class="toggle" data-dep-controller="1" checked />
-							                                <span>Automático: contactos Shopify ↔ Alegra</span>
+							                                <span>Automático: contactos E‑commerce ↔ Contable</span>
 							                              </label>
 								                              <span class="tip" data-tip="Define qué direcciones están permitidas en automático. Nota: el masivo usa los toggles de arriba (dirección + crear).">?</span>
 						                            </div>
 						                          </div>
 						                          <div class="mode-grid" data-depends-on="sync-contacts-enabled">
 					                            <div class="mode-field">
-						                              <label for="sync-contacts-shopify">Permitir Shopify → Alegra <span class="tip" data-tip="Permite que el sistema sincronice automáticamente desde Shopify hacia Alegra.">?</span></label>
+						                              <label for="sync-contacts-shopify">Permitir E‑commerce → Contable <span class="tip" data-tip="Permite que el sistema sincronice automáticamente desde E‑commerce hacia Contable.">?</span></label>
 						                              <input type="checkbox" id="sync-contacts-shopify" name="sync_contacts_shopify" class="toggle" checked />
 				                            </div>
 			                            <div class="mode-field">
-					                              <label for="sync-contacts-create-alegra">Crear nuevos en Alegra <span class="tip" data-tip="En automático, permite crear nuevos contactos en Alegra cuando no existen. Si lo apagas, solo se actualizan existentes.">?</span></label>
+					                              <label for="sync-contacts-create-alegra">Crear nuevos en Contable <span class="tip" data-tip="En automático, permite crear nuevos contactos en Contable cuando no existen. Si lo apagas, solo se actualizan existentes.">?</span></label>
 				                              <input type="checkbox" id="sync-contacts-create-alegra" name="sync_contacts_create_alegra" class="toggle" data-depends-on="sync-contacts-shopify" checked />
 			                            </div>
 			                            <div class="mode-field">
-				                              <label for="sync-contacts-alegra">Permitir Alegra → Shopify <span class="tip" data-tip="Permite que el sistema sincronice automáticamente desde Alegra hacia Shopify.">?</span></label>
+				                              <label for="sync-contacts-alegra">Permitir Contable → E‑commerce <span class="tip" data-tip="Permite que el sistema sincronice automáticamente desde Contable hacia E‑commerce.">?</span></label>
 				                              <input type="checkbox" id="sync-contacts-alegra" name="sync_contacts_alegra" class="toggle" checked />
 			                            </div>
 			                            <div class="mode-field">
-					                              <label for="sync-contacts-create-shopify">Crear nuevos en Shopify <span class="tip" data-tip="En automático, permite crear nuevos clientes en Shopify cuando no existen. Si lo apagas, solo se actualizan existentes.">?</span></label>
+					                              <label for="sync-contacts-create-shopify">Crear nuevos en E‑commerce <span class="tip" data-tip="En automático, permite crear nuevos clientes en E‑commerce cuando no existen. Si lo apagas, solo se actualizan existentes.">?</span></label>
 				                              <input type="checkbox" id="sync-contacts-create-shopify" name="sync_contacts_create_shopify" class="toggle" data-depends-on="sync-contacts-alegra" checked />
 			                            </div>
 			                            <div class="mode-field">
@@ -1965,22 +2036,23 @@
 	              <div class="settings-group provider-group" data-group="orders">
 	                <div class="settings-group-header" data-group-toggle="orders">
 	                  <h4 class="group-title">
-	                    <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
-	                    <span class="group-arrow">↔</span>
-	                    <img class="provider-logo" src="/brands/alegra.png?v=20260201s" alt="Alegra" />
-		                    Pedidos y facturación
+	                    <img class="provider-logo is-shopify" src="/brands/shopify.png?v=20260201s" alt="E‑commerce" />
+	                    <span class="group-arrow is-commerce">↔</span>
+	                    <img class="provider-logo is-alegra" src="/brands/alegra.png?v=20260201s" alt="Contable" />
+		                    <span class="group-text group-text-dual">Pedidos y facturación</span>
+                        <span class="group-text group-text-alegra-only">Facturación (Contable)</span>
 	                  </h4>
 	                </div>
 	                <div class="settings-group-body">
-	                  <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="sync-orders" data-module-priority="core" data-help="Modulo principal de Pedidos: define como se sincronizan pedidos entre Shopify y Alegra. Incluye automatico (se sincroniza solo), masivo (inicio) y acciones manuales por pedido.">
+	                  <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="sync-orders" data-module-priority="core" data-help="Modulo principal de Pedidos: define como se sincronizan pedidos entre E‑commerce y Contable. Incluye automatico (se sincroniza solo), masivo (inicio) y acciones manuales por pedido.">
 	                    <div class="panel-header">
-			                      <h3 data-module-toggle="sync-orders" data-title-base="Pedidos (Shopify → Alegra) y facturas (Alegra → Shopify)">
-			                        Pedidos (Shopify → Alegra) y facturas (Alegra → Shopify)
-	                        <span class="tip" data-tip="Aquí controlas las 2 direcciones:&#10;1) Pedidos: Shopify → Alegra (registrar / crear factura).&#10;2) Facturas: Alegra → Shopify (crear pedido/draft).&#10;Recomendación: prueba primero en masivo con rangos cortos.">?</span>
+			                      <h3 data-module-toggle="sync-orders" data-title-base="Pedidos (E‑commerce → Contable) y facturas (Contable → E‑commerce)">
+			                        Pedidos (E‑commerce → Contable) y facturas (Contable → E‑commerce)
+	                        <span class="tip" data-tip="Aquí controlas las 2 direcciones:&#10;1) Pedidos: E‑commerce → Contable (registrar / crear factura).&#10;2) Facturas: Contable → E‑commerce (crear pedido/draft).&#10;Recomendación: prueba primero en masivo con rangos cortos.">?</span>
 	                      </h3>
                       <div class="panel-meta">
                         <span class="panel-tag tag-core">Core</span>
-                        <span class="panel-tag tag-bridge">Shopify ↔ Alegra</span>
+                        <span class="panel-tag tag-bridge">E‑commerce ↔ Contable</span>
                       </div>
                     </div>
 		                    <div class="module-body">
@@ -1988,8 +2060,8 @@
 			                        <div class="mode-section" data-readonly-free="1">
 			                          <div class="mode-head">
 			                            <div class="mode-head-left">
-				                              <h4>Sincronizar pedidos de Shopify a Alegra (masivo)</h4>
-		                              <span class="tip" data-tip="Trae pedidos de Shopify por fechas o por número. Siempre los registramos en la base.&#10;Si en Automático tienes “Crear factura” ON, también intentará facturarlos en Alegra.&#10;Tip: usa un rango corto para validar.">?</span>
+				                              <h4>Sincronizar pedidos de E‑commerce a Contable (masivo)</h4>
+		                              <span class="tip" data-tip="Trae pedidos de E‑commerce por fechas o por número. Siempre los registramos en la base.&#10;Si en Automático tienes “Crear factura” ON, también intentará facturarlos en Contable.&#10;Tip: usa un rango corto para validar.">?</span>
 	                            </div>
 	                          </div>
 	                          <div class="mode-grid">
@@ -2026,7 +2098,7 @@
 								                            <div class="mode-head-left">
 							                              <label class="mode-title-toggle" for="sync-orders-shopify-enabled" data-dep-controller="1">
 							                                <input type="checkbox" id="sync-orders-shopify-enabled" name="sync_orders_shopify_enabled" class="toggle" data-dep-controller="1" />
-								                                <span>Automático: pedidos Shopify → Alegra</span>
+								                                <span>Automático: pedidos E‑commerce → Contable</span>
 								                              </label>
 									                              <span class="tip" data-tip="ON: procesa pedidos nuevos en tiempo real (webhooks).&#10;OFF: no se detectan pedidos nuevos automáticamente.">?</span>
 							                            </div>
@@ -2037,7 +2109,7 @@
 								                              <input type="checkbox" id="sync-orders-shopify-invoice" name="sync_orders_shopify_invoice" class="toggle" data-depends-on="sync-orders-shopify-enabled" />
 								                            </div>
 								                          </div>
-								                          <div class="mode-actions" aria-label="Estado webhooks Shopify">
+								                          <div class="mode-actions" aria-label="Estado webhooks E‑commerce">
 								                            <span class="kpi-sub"><strong>Webhooks:</strong> <span id="shopify-webhooks-status">Sin configurar</span></span>
 								                          </div>
 							                          <select id="sync-orders-shopify" name="sync_orders_shopify" hidden aria-hidden="true" tabindex="-1">
@@ -2050,17 +2122,17 @@
 			                        <div class="mode-section" data-readonly-free="1">
 			                          <div class="mode-head">
 				                            <div class="mode-head-left">
-				                              <h4>Sincronizar facturas de Alegra a Shopify (masivo)</h4>
-		                              <span class="tip" data-tip="Paso 1: decide si quieres crear el pedido en Shopify o solo cargar las facturas a la base (para verlas en Facturas).&#10;Paso 2 (opcional): si activas “Crear pedido”, elige Borrador o Activo.&#10;Tip: si el item está mapeado (Alegra ↔ Shopify), se usa la variante; si no, se crea una línea personalizada.">?</span>
+				                              <h4>Sincronizar facturas de Contable a E‑commerce (masivo)</h4>
+		                              <span class="tip" data-tip="Paso 1: decide si quieres crear el pedido en E‑commerce o solo cargar las facturas a la base (para verlas en Facturas).&#10;Paso 2 (opcional): si activas “Crear pedido”, elige Borrador o Activo.&#10;Tip: si el item está mapeado (Contable ↔ E‑commerce), se usa la variante; si no, se crea una línea personalizada.">?</span>
 		                            </div>
 	                          </div>
 	                          <div class="mode-toggle-grid" aria-label="Accion masiva facturas">
 	                            <div class="mode-toggle">
-	                              <label for="invoices-backfill-create-shopify">Crear pedido en Shopify <span class="tip" data-tip="OFF: solo cargamos facturas a la base. ON: creamos pedidos/borradores en Shopify (según “Crear como”).">?</span></label>
+	                              <label for="invoices-backfill-create-shopify">Crear pedido en E‑commerce <span class="tip" data-tip="OFF: solo cargamos facturas a la base. ON: creamos pedidos/borradores en E‑commerce (según “Crear como”).">?</span></label>
 	                              <input type="checkbox" id="invoices-backfill-create-shopify" name="invoices_backfill_create_shopify" class="toggle" />
 	                            </div>
 	                            <div class="mode-toggle" id="invoices-backfill-mode-field" hidden>
-	                              <label for="invoices-backfill-mode">Crear como <span class="tip" data-tip="Borrador (Draft): se crea como borrador, no queda visible para clientes.&#10;Activo (Order): se crea como pedido activo en Shopify.&#10;Solo aplica si “Crear pedido en Shopify” está ON.">?</span></label>
+	                              <label for="invoices-backfill-mode">Crear como <span class="tip" data-tip="Borrador (Draft): se crea como borrador, no queda visible para clientes.&#10;Activo (Order): se crea como pedido activo en E‑commerce.&#10;Solo aplica si “Crear pedido en E‑commerce” está ON.">?</span></label>
 	                              <select id="invoices-backfill-mode" name="invoices_backfill_mode">
 	                                <option value="draft" selected>Borrador (Draft)</option>
 	                                <option value="active">Activo (Order)</option>
@@ -2100,9 +2172,9 @@
 							                            <div class="mode-head-left">
 							                              <label class="mode-title-toggle" for="sync-orders-alegra-enabled" data-dep-controller="1">
 							                                <input type="checkbox" id="sync-orders-alegra-enabled" name="sync_orders_alegra_enabled" class="toggle" data-dep-controller="1" />
-								                                <span>Automático: facturas Alegra → Shopify</span>
+								                                <span>Automático: facturas Contable → E‑commerce</span>
 								                              </label>
-								                              <span class="tip" data-tip="ON: cuando llega un webhook de factura desde Alegra, creamos el pedido en Shopify según el modo seleccionado.&#10;Recomendado: configurar el webhook como /api/webhooks/alegra?shopDomain=tu-tienda.myshopify.com.">?</span>
+								                              <span class="tip" data-tip="ON: cuando llega un webhook de factura desde Contable, creamos el pedido en E‑commerce según el modo seleccionado.&#10;Recomendado: configurar el webhook como /api/webhooks/alegra?shopDomain=tu-tienda.myshopify.com.">?</span>
 							                            </div>
 							                          </div>
 							                          <div class="mode-grid" id="sync-orders-alegra-mode-field" hidden>
@@ -2121,9 +2193,9 @@
 		                    </div>
 		                  </div>
 
-				                  <div class="panel admin-only module" data-provider="alegra" data-manager="shopify" data-module="alegra-logistics" id="inventory-transfer-panel" data-help="Configura el traslado de inventario que se ejecuta automaticamente antes de facturar pedidos (Shopify → Alegra).">
+				                  <div class="panel admin-only module" data-provider="alegra" data-manager="shopify" data-module="alegra-logistics" id="inventory-transfer-panel" data-help="Configura el traslado de inventario que se ejecuta automaticamente antes de facturar pedidos (E‑commerce → Contable).">
             <div class="panel-header">
-	              <h3 data-module-toggle="alegra-logistics" data-title-base="Logística (Alegra) para facturar pedidos">Logística (Alegra) para facturar pedidos</h3>
+	              <h3 data-module-toggle="alegra-logistics" data-title-base="Logística (Contable) para facturar pedidos">Logística (Contable) para facturar pedidos</h3>
 
             </div>
             <div class="module-body">
@@ -2216,9 +2288,9 @@
 			            </div>
 			          </div>
 
-			                  <div class="panel admin-only module" data-provider="alegra" data-manager="shopify" data-module="alegra-invoice" id="legacy-invoice-panel" data-help="Se usa cuando Shopify → Alegra = Factura. Define listas de precios y parametros de facturacion.">
+			                  <div class="panel admin-only module" data-provider="alegra" data-manager="shopify" data-module="alegra-invoice" id="legacy-invoice-panel" data-help="Se usa cuando E‑commerce → Contable = Factura. Define listas de precios y parametros de facturacion.">
 	            <div class="panel-header">
-	              <h3 data-module-toggle="alegra-invoice" data-title-base="Facturación en Alegra (para pedidos)">Facturación en Alegra (para pedidos)</h3>
+	              <h3 data-module-toggle="alegra-invoice" data-title-base="Facturación en Contable (para pedidos)">Facturación en Contable (para pedidos)</h3>
 
 	            </div>
 	            <div class="module-body">
@@ -2230,14 +2302,14 @@
 	                        <input type="checkbox" id="cfg-price-enabled" name="cfg_price_enabled" class="toggle" data-dep-controller="1" />
 	                        <span>Listas de precios (opcional)</span>
 	                      </label>
-	                      <span class="tip" data-tip="Opcional. Si lo apagas o dejas vacío, se usa el precio base de Alegra.">?</span>
+	                      <span class="tip" data-tip="Opcional. Si lo apagas o dejas vacío, se usa el precio base de Contable.">?</span>
 	                    </div>
 	                  </div>
 	                  <div class="mode-grid">
 	                    <div class="field mode-field">
 	                      <label>Lista para precio base</label>
-	                      <select id="cfg-price-general" name="cfg_price_general" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="Usar precio base de Alegra">
-  <option value="">Usar precio base de Alegra</option></select>
+	                      <select id="cfg-price-general" name="cfg_price_general" data-depends-on="cfg-price-enabled" data-allow-empty="true" data-empty-label="Usar precio base de Contable">
+  <option value="">Usar precio base de Contable</option></select>
 	                    </div>
 	                    <div class="field mode-field">
 	                      <label>Lista para descuentos</label>
@@ -2301,7 +2373,7 @@
 		                      <label>Cuenta bancaria</label>
 		                      <select id="cfg-bank-account" name="cfg_bank_account" data-depends-on="cfg-apply-payment" data-allow-empty="true" data-empty-label="No aplicar">
   <option value="">No aplicar</option></select>
-		                      <p class="field-hint">Si aparecen "Sin datos", crea metodos de pago y cuentas en Alegra.</p>
+		                      <p class="field-hint">Si aparecen "Sin datos", crea metodos de pago y cuentas en Contable.</p>
 		                    </div>
 			                    <div class="field is-toggle mode-field">
 			                      <label>Aplicar pago</label>
@@ -2320,8 +2392,8 @@
 		                            <span>Número de pedido</span>
 		                          </label>
 		                          <label>
-		                            <input type="checkbox" data-observation-key="payment_gateways" data-observation-line="Pago (Shopify): {{order.payment_gateways}}" />
-		                            <span>Tipo de pago (Shopify)</span>
+		                            <input type="checkbox" data-observation-key="payment_gateways" data-observation-line="Pago (E‑commerce): {{order.payment_gateways}}" />
+		                            <span>Tipo de pago (E‑commerce)</span>
 		                          </label>
 		                          <label>
 		                            <input type="checkbox" data-observation-key="items_summary" data-observation-line="Productos: {{order.items_summary}}" />
@@ -2360,16 +2432,16 @@
 	          <div class="settings-group provider-group" data-group="store-sync">
 	            <div class="settings-group-header" data-group-toggle="store-sync">
 	              <h4 class="group-title">
-	                <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="Shopify" />
+	                <img class="provider-logo" src="/brands/shopify.png?v=20260201s" alt="E‑commerce" />
 	                Sincronizador tienda a tienda
 	              </h4>
 	            </div>
 	            <div class="settings-group-body">
-	              <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="store-sync-products" data-help="Copia productos entre tiendas Shopify o WooCommerce dentro de tu organizacion. Ideal para clonar catalogos o mover productos de una tienda a otra.">
+	              <div class="panel admin-only module" data-provider="bridge" data-manager="shopify" data-module="store-sync-products" data-help="Copia productos entre tiendas E‑commerce o WooCommerce dentro de tu organizacion. Ideal para clonar catalogos o mover productos de una tienda a otra.">
 	                <div class="panel-header">
 	                  <h3 data-module-toggle="store-sync-products" data-title-base="Sincronizador tienda a tienda">
 	                    Sincronizador tienda a tienda
-	                    <span class="tip" data-tip="Copia productos entre tiendas Shopify o WooCommerce. Puedes elegir reglas de precio, estado, descripciones, fotos y etiquetas.">?</span>
+	                    <span class="tip" data-tip="Copia productos entre tiendas E‑commerce o WooCommerce. Puedes elegir reglas de precio, estado, descripciones, fotos y etiquetas.">?</span>
 	                  </h3>
 	                  <div class="panel-meta">
 	                    <span class="panel-tag tag-bridge">Tienda a tienda</span>
@@ -2387,7 +2459,7 @@
 	                        <div class="mode-field">
 	                          <label for="store-sync-source-provider">Conexion origen</label>
 	                          <select id="store-sync-source-provider" name="store_sync_source_provider">
-	                            <option value="shopify" selected>Shopify</option>
+	                            <option value="shopify" selected>E‑commerce</option>
 	                            <option value="woocommerce">WooCommerce</option>
 	                          </select>
 	                        </div>
@@ -2396,11 +2468,11 @@
 	                          <select id="store-sync-source" name="store_sync_source"></select>
 	                        </div>
 	                        <div class="mode-field">
-	                          <label for="store-sync-alegra-account">Cuenta Alegra</label>
+	                          <label for="store-sync-alegra-account">Cuenta Contable</label>
 	                          <select id="store-sync-alegra-account" name="store_sync_alegra_account"></select>
 	                        </div>
 	                        <div class="mode-field">
-	                          <label for="store-sync-price-list">Lista de precios Alegra</label>
+	                          <label for="store-sync-price-list">Lista de precios Contable</label>
 	                          <select id="store-sync-price-list" name="store_sync_price_list" data-allow-empty="true" data-empty-label="Seleccionar...">
 	                            <option value="">Seleccionar...</option>
 	                          </select>
@@ -2430,7 +2502,7 @@
 	                        <div class="mode-field">
 	                          <label for="store-sync-target-provider">Conexion destino</label>
 	                          <select id="store-sync-target-provider" name="store_sync_target_provider">
-	                            <option value="shopify" selected>Shopify</option>
+	                            <option value="shopify" selected>E‑commerce</option>
 	                            <option value="woocommerce">WooCommerce</option>
 	                          </select>
 	                        </div>
@@ -2517,6 +2589,25 @@
             </button>
           </div>
           <input id="assistant-file" name="assistant_file" type="file" multiple accept="image/*,application/pdf" />
+        </div>
+      </div>
+    </div>
+
+    <div class="modal" id="store-create-modal" role="dialog" aria-modal="true" aria-labelledby="store-create-title" aria-hidden="true">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 id="store-create-title">Nueva tienda</h4>
+          <button class="modal-close" id="store-create-close" type="button" aria-label="Cerrar">×</button>
+        </div>
+        <div class="settings-grid modal-form">
+          <div class="field span-2">
+            <label>Nombre de la tienda</label>
+            <input type="text" id="store-create-name" name="store_create_name" placeholder="Tienda de ejemplo" />
+            <span class="field-hint">Solo nombre. Puedes conectar plataformas despues.</span>
+          </div>
+        </div>
+        <div class="modal-actions is-right">
+          <button class="primary is-solid" id="store-create-save" type="button">Crear tienda</button>
         </div>
       </div>
     </div>
@@ -2630,7 +2721,7 @@
             </select>
           </div>
           <div class="field">
-            <label for="photos-attach-variant">Asociar a variante <span class="tip" data-tip="Si está ON, intentamos asociar la imagen a la variante encontrada (si Shopify lo permite). Si OFF, se sube como imagen del producto.">?</span></label>
+            <label for="photos-attach-variant">Asociar a variante <span class="tip" data-tip="Si está ON, intentamos asociar la imagen a la variante encontrada (si E‑commerce lo permite). Si OFF, se sube como imagen del producto.">?</span></label>
             <input type="checkbox" id="photos-attach-variant" name="photos_attach_variant" class="toggle" checked />
           </div>
           <div class="field">
@@ -2669,6 +2760,6 @@
       </div>
     </div>
 
-    <script src="/app.js?v=20260216p20" type="module"></script>
+    <script src="/app.js?v=20260216p58" type="module"></script>
 	  </body>
 	</html>

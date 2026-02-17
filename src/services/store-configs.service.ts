@@ -9,6 +9,11 @@ const normalizeShopDomain = (value: string) =>
     .replace(/\/.*$/, "")
     .toLowerCase();
 
+const normalizeStoreId = (value: unknown) => {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? Number(parsed) : null;
+};
+
 const normalizeIdList = (value?: unknown) =>
   Array.isArray(value) ? value.map((id) => String(id)).filter(Boolean) : [];
 
@@ -115,8 +120,10 @@ export async function listStoreConfigs() {
   const settings = await getSettings();
 
   const stores = await pool.query<{
-    shop_domain: string;
-    access_token_encrypted: string;
+    store_id: number;
+    store_name: string;
+    shop_domain: string | null;
+    access_token_encrypted: string | null;
     alegra_account_id: number | null;
     transfer_destination_warehouse_id: string | null;
     transfer_origin_warehouse_ids: string | null;
@@ -127,10 +134,14 @@ export async function listStoreConfigs() {
     price_list_wholesale_id: string | null;
     currency: string | null;
     config_json: unknown;
+    config_id: number | null;
   }>(
     `
-    SELECT s.shop_domain,
+    SELECT st.id AS store_id,
+           st.name AS store_name,
+           COALESCE(c.shop_domain, s.shop_domain) AS shop_domain,
            s.access_token_encrypted,
+           c.id AS config_id,
            c.alegra_account_id,
            c.transfer_destination_warehouse_id,
            c.transfer_origin_warehouse_ids,
@@ -141,12 +152,25 @@ export async function listStoreConfigs() {
            c.price_list_wholesale_id,
            c.currency,
            c.config_json
-    FROM shopify_stores s
-    LEFT JOIN shopify_store_configs c
-      ON c.organization_id = s.organization_id
-     AND c.shop_domain = s.shop_domain
-    WHERE s.organization_id = $1
-    ORDER BY s.created_at DESC
+    FROM stores st
+    LEFT JOIN LATERAL (
+      SELECT shop_domain, access_token_encrypted
+      FROM shopify_stores s
+      WHERE s.organization_id = st.organization_id
+        AND s.store_id = st.id
+      ORDER BY s.created_at DESC
+      LIMIT 1
+    ) s ON true
+    LEFT JOIN LATERAL (
+      SELECT *
+      FROM shopify_store_configs c
+      WHERE c.organization_id = st.organization_id
+        AND c.store_id = st.id
+      ORDER BY c.created_at DESC
+      LIMIT 1
+    ) c ON true
+    WHERE st.organization_id = $1
+    ORDER BY st.created_at DESC
     `,
     [orgId]
   );
@@ -156,7 +180,9 @@ export async function listStoreConfigs() {
     invoice: settings.invoice || {},
   };
 
-  return stores.rows.map((row) => {
+  return stores.rows
+    .filter((row) => Boolean(row.config_id))
+    .map((row) => {
     const config = (row.config_json as Record<string, unknown>) || {};
     const transfers = (config.transfers as Record<string, unknown>) || {};
     const priceLists = (config.priceLists as Record<string, unknown>) || {};
@@ -168,7 +194,9 @@ export async function listStoreConfigs() {
     const orderSync = (sync.orders as Record<string, unknown>) || {};
     const productSync = (sync.products as Record<string, unknown>) || {};
     return {
-      shopDomain: row.shop_domain,
+      storeId: row.store_id,
+      storeName: row.store_name,
+      shopDomain: row.shop_domain || undefined,
       alegraAccountId: row.alegra_account_id || undefined,
 	      transfers: {
 	        enabled: normalizeBoolean(transfers.enabled, true),
@@ -313,7 +341,7 @@ export async function listStoreConfigs() {
           normalizeBoolean(invoiceDefaults.einvoiceEnabled, false)
         ),
       },
-	    sync: {
+      sync: {
 	      contacts: {
 	        enabled: normalizeBoolean(
 	          (contactSync as Record<string, unknown>).enabled,
@@ -350,16 +378,15 @@ export async function listStoreConfigs() {
             matchPriority: normalizeProductMatchPriority(productSync.matchPriority, "sku_barcode"),
           },
 		    },
-		  };
-	  });
-	}
+      };
+    });
+}
 
-export async function getStoreConfigForDomain(shopDomain: string) {
+async function getStoreConfigForStoreId(storeId: number) {
   const pool = getPool();
   const orgId = getOrgId();
   const settings = await getSettings();
-  const domain = normalizeShopDomain(shopDomain || "");
-  if (!domain) return null;
+  if (!Number.isFinite(storeId)) return null;
 
   const result = await pool.query<{
     shop_domain: string;
@@ -385,11 +412,11 @@ export async function getStoreConfigForDomain(shopDomain: string) {
            currency,
            config_json
     FROM shopify_store_configs
-    WHERE organization_id = $1 AND shop_domain = $2
+    WHERE organization_id = $1 AND store_id = $2
     ORDER BY created_at DESC
     LIMIT 1
     `,
-    [orgId, domain]
+    [orgId, storeId]
   );
   if (!result.rows.length) return null;
   const row = result.rows[0];
@@ -408,6 +435,7 @@ export async function getStoreConfigForDomain(shopDomain: string) {
   const orderSync = (sync.orders as Record<string, unknown>) || {};
   const productSync = (sync.products as Record<string, unknown>) || {};
   return {
+    storeId,
     shopDomain: row.shop_domain,
 	    transfers: {
 	      enabled: normalizeBoolean(transfers.enabled, true),
@@ -579,14 +607,100 @@ export async function getStoreConfigForDomain(shopDomain: string) {
   };
 }
 
-export async function saveStoreConfig(
-  shopDomain: string,
+export async function getStoreConfigForDomain(shopDomain: string) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const domain = normalizeShopDomain(shopDomain || "");
+  if (!domain) return null;
+
+  const store = await pool.query<{ store_id: number | null }>(
+    `
+    SELECT store_id
+    FROM shopify_stores
+    WHERE organization_id = $1 AND shop_domain = $2
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId, domain]
+  );
+  const storeId = store.rows[0]?.store_id;
+  if (Number.isFinite(storeId)) {
+    return getStoreConfigForStoreId(Number(storeId));
+  }
+
+  const fallback = await pool.query<{ store_id: number | null }>(
+    `
+    SELECT store_id
+    FROM shopify_store_configs
+    WHERE organization_id = $1 AND shop_domain = $2
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId, domain]
+  );
+  const fallbackStoreId = fallback.rows[0]?.store_id;
+  if (Number.isFinite(fallbackStoreId)) {
+    return getStoreConfigForStoreId(Number(fallbackStoreId));
+  }
+  return null;
+}
+
+async function resolveStoreConfigTarget(
+  storeKey: string,
   payload: Record<string, unknown>
 ) {
   const pool = getPool();
   const orgId = getOrgId();
-  const domain = normalizeShopDomain(shopDomain || "");
-  if (!domain) throw new Error("Dominio invalido");
+  const fromParam = normalizeStoreId(storeKey);
+  const fromPayload = normalizeStoreId(payload.storeId);
+  const storeId = fromParam ?? fromPayload ?? null;
+  const shopDomainRaw =
+    typeof payload.shopDomain === "string" ? payload.shopDomain : storeKey;
+  const shopDomain = shopDomainRaw ? normalizeShopDomain(shopDomainRaw) : "";
+
+  if (storeId) {
+    const store = await pool.query<{ shop_domain: string | null }>(
+      `
+      SELECT shop_domain
+      FROM shopify_stores
+      WHERE organization_id = $1 AND store_id = $2
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+      [orgId, storeId]
+    );
+    return {
+      storeId,
+      shopDomain: store.rows[0]?.shop_domain || (shopDomain || null),
+    };
+  }
+
+  if (shopDomain) {
+    const store = await pool.query<{ store_id: number | null }>(
+      `
+      SELECT store_id
+      FROM shopify_stores
+      WHERE organization_id = $1 AND shop_domain = $2
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+      [orgId, shopDomain]
+    );
+    const resolvedStoreId = store.rows[0]?.store_id || null;
+    return { storeId: resolvedStoreId, shopDomain };
+  }
+
+  return { storeId: null, shopDomain: null };
+}
+
+export async function saveStoreConfig(
+  storeKey: string,
+  payload: Record<string, unknown>
+) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const target = await resolveStoreConfigTarget(storeKey, payload);
+  if (!target.storeId && !target.shopDomain) throw new Error("Tienda invalida");
 
   const transfers = (payload.transfers as Record<string, unknown>) || {};
   const priceLists = (payload.priceLists as Record<string, unknown>) || {};
@@ -603,11 +717,15 @@ export async function saveStoreConfig(
     `
     SELECT id
     FROM shopify_store_configs
-    WHERE organization_id = $1 AND shop_domain = $2
+    WHERE organization_id = $1
+      AND (
+        (store_id IS NOT NULL AND store_id = $2)
+        OR (store_id IS NULL AND shop_domain = $3)
+      )
     ORDER BY created_at DESC
     LIMIT 1
     `,
-    [orgId, domain]
+    [orgId, target.storeId, target.shopDomain]
   );
 
   const originIds = normalizeIdList(transfers.originWarehouseIds as string[]);
@@ -624,8 +742,10 @@ export async function saveStoreConfig(
           price_list_discount_id = $6,
           price_list_wholesale_id = $7,
           currency = $8,
-          config_json = $9
-      WHERE id = $10
+          config_json = $9,
+          store_id = COALESCE($10, store_id),
+          shop_domain = COALESCE($11, shop_domain)
+      WHERE id = $12
       `,
       [
         (transfers.destinationWarehouseId as string) || null,
@@ -637,6 +757,8 @@ export async function saveStoreConfig(
         (priceLists.wholesaleId as string) || null,
         (priceLists.currency as string) || null,
         configJson,
+        target.storeId,
+        target.shopDomain,
         existing.rows[0].id,
       ]
     );
@@ -644,12 +766,13 @@ export async function saveStoreConfig(
     await pool.query(
       `
       INSERT INTO shopify_store_configs
-        (organization_id, shop_domain, transfer_destination_warehouse_id, transfer_origin_warehouse_ids, transfer_priority_warehouse_id, transfer_strategy, price_list_general_id, price_list_discount_id, price_list_wholesale_id, currency, config_json)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        (organization_id, shop_domain, store_id, transfer_destination_warehouse_id, transfer_origin_warehouse_ids, transfer_priority_warehouse_id, transfer_strategy, price_list_general_id, price_list_discount_id, price_list_wholesale_id, currency, config_json)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
       `,
       [
         orgId,
-        domain,
+        target.shopDomain,
+        target.storeId,
         (transfers.destinationWarehouseId as string) || null,
         originIds.length ? originIds.join(",") : null,
         (transfers.priorityWarehouseId as string) || null,
@@ -663,7 +786,7 @@ export async function saveStoreConfig(
     );
   }
 
-  return { saved: true };
+  return { saved: true, storeId: target.storeId || undefined };
 }
 
 export async function getStoreCredential(shopDomain: string) {

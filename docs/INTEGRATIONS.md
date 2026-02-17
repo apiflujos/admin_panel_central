@@ -131,7 +131,7 @@ Facturacion global:
 - `observationsTemplate`, `einvoiceEnabled`
 
 ### Por tienda (store-configs)
-Guardado en `shopify_store_configs.config_json`.
+Guardado en `shopify_store_configs.config_json`, asociado a `store_id`.
 
 Transferencias:
 - `enabled`, `destinationWarehouseId`, `originWarehouseIds`, `priorityWarehouseId`
@@ -155,6 +155,7 @@ Sync por tienda:
 Notas:
 - Si no hay override, se usan valores globales.
 - `syncEnabled` bloquea envio a Shopify pero permite guardar en BD.
+- La tienda se identifica por `store_id` (no depende solo de `shop_domain`).
 
 ## Identidad y branding
 - El logo de **ApiFlujos** siempre se muestra como marca principal.
@@ -173,7 +174,7 @@ Autenticación:
 Conexiones/configuración:
 - `GET/POST /api/connections`, `DELETE /api/connections/:id`
 - `GET/PUT /api/settings`
-- `GET/PUT /api/store-configs/:shopDomain`
+- `GET/PUT /api/store-configs/:storeKey` (`store_id` recomendado; `shopDomain` sigue aceptado por compatibilidad)
 
 Productos/Inventario:
 - `GET /api/products`, `GET /api/alegra/items`

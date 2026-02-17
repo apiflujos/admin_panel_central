@@ -5,7 +5,9 @@ import { createSyncLog } from "../services/logs.service";
 import {
   deleteStoreConnection,
   deleteStoreConnectionByDomain,
+  deleteAlegraAccountByStoreId,
   listStoreConnections,
+  upsertAlegraAccount,
   upsertStoreConnection,
 } from "../services/store-connections.service";
 
@@ -57,12 +59,25 @@ export async function createConnection(req: Request, res: Response) {
     if (payload?.alegra) {
       await assertModuleEnabled("alegra");
     }
-    const result = await upsertStoreConnection({
-      storeName: payload?.storeName || "",
-      shopDomain: payload?.shopify?.shopDomain || "",
-      accessToken: payload?.shopify?.accessToken || "",
-      alegra: payload?.alegra || undefined,
-    });
+    let result: Record<string, unknown> = {};
+    const shopDomain = payload?.shopify?.shopDomain || "";
+    const storeId = Number.isFinite(payload?.storeId) ? payload.storeId : undefined;
+    if (shopDomain) {
+      result = await upsertStoreConnection({
+        storeName: payload?.storeName || "",
+        shopDomain,
+        accessToken: payload?.shopify?.accessToken || "",
+        alegra: payload?.alegra || undefined,
+        storeId,
+      });
+    } else if (payload?.alegra) {
+      result = await upsertAlegraAccount({
+        ...(payload.alegra || {}),
+        storeId,
+      });
+    } else {
+      throw new Error("Conexion invalida");
+    }
     const list = await listStoreConnections();
     res.status(200).json({ created: result, ...list });
     await createSyncLog({
@@ -135,6 +150,35 @@ export async function removeConnectionByDomain(req: Request, res: Response) {
       status: "success",
       message: result.deleted ? "Conexion eliminada" : "Conexion no encontrada",
       request: { shopDomain, purgeData },
+    });
+  } catch (error) {
+    const message = getErrorMessage(error);
+    res.status(400).json({ error: message });
+    await createSyncLog({
+      entity: "connections_delete",
+      direction: "shopify->alegra",
+      status: "fail",
+      message,
+    });
+  }
+}
+
+export async function removeAlegraConnection(req: Request, res: Response) {
+  try {
+    const storeId = Number(req.params.storeId);
+    if (!Number.isFinite(storeId)) {
+      res.status(400).json({ error: "ID invalido" });
+      return;
+    }
+    const result = await deleteAlegraAccountByStoreId(storeId);
+    const list = await listStoreConnections();
+    res.status(200).json({ ...list, ...result });
+    await createSyncLog({
+      entity: "connections_delete",
+      direction: "shopify->alegra",
+      status: "success",
+      message: result.deleted ? "Alegra desconectado" : "Alegra no encontrado",
+      request: { storeId },
     });
   } catch (error) {
     const message = getErrorMessage(error);

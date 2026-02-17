@@ -57,6 +57,17 @@ const contactsCountLabel = document.getElementById("contacts-count");
 const modal = document.getElementById("payload-modal");
 const modalBody = document.getElementById("modal-body");
 const modalClose = document.getElementById("modal-close");
+const storeCreateModal = document.getElementById("store-create-modal");
+const storeCreateOpen = document.getElementById("store-create-open");
+const storeCreateClose = document.getElementById("store-create-close");
+const storeCreateSave = document.getElementById("store-create-save");
+const storeCreateName = document.getElementById("store-create-name");
+const storesList = document.getElementById("stores-list");
+const storesPanel = document.getElementById("stores-panel");
+const connectionStoreSelect = document.getElementById("connection-store-select");
+const connectionStoreCreate = document.getElementById("connection-store-create");
+const connectionStoreSelected = document.getElementById("connection-store-selected");
+const connectionStoreSelectedPlatform = document.getElementById("connection-store-selected-platform");
 const einvoiceModal = document.getElementById("einvoice-modal");
 const einvoiceClose = document.getElementById("einvoice-close");
 const einvoiceSave = document.getElementById("einvoice-save");
@@ -236,6 +247,7 @@ const storeActiveField = document.getElementById("store-active-field");
 const storeActiveSelect = document.getElementById("store-active-select");
 const storeActiveList = document.getElementById("store-active-list");
 const storeActiveNameLabel = document.getElementById("store-active-name");
+const settingsStoreActiveLabel = document.getElementById("settings-store-active");
 const storeDelete = document.getElementById("store-delete");
 const ordersStoreSelect = document.getElementById("orders-store-select");
 const productsStoreSelect = document.getElementById("products-store-select");
@@ -283,6 +295,8 @@ const connectionModalOpen = document.getElementById("open-connection-modal");
 const connectionNameSlot = document.getElementById("connection-name-slot");
 const connectionFormSlot = document.getElementById("connection-form-slot");
 const connectionNameNext = document.getElementById("connection-step-name-next");
+const connectionModalStorePill = document.getElementById("connection-modal-store-pill");
+const connectionModalPlatformPill = document.getElementById("connection-modal-platform-pill");
 const copyConfigField = document.getElementById("copy-config-field");
 const copyConfigSelect = document.getElementById("copy-config-select");
 const DEFAULT_WIZARD_HINT = wizardHint ? wizardHint.textContent : "";
@@ -812,6 +826,19 @@ function activateNav(target) {
   if (target === "settings" && !allowSettings) {
     target = "dashboard";
   }
+  if (target !== "settings" && isSettingsPath(pathname)) {
+    if (typeof window !== "undefined") {
+      window.history.replaceState({}, "", "/");
+    }
+    if (typeof document !== "undefined") {
+      document.body.classList.remove("force-settings");
+    }
+    try {
+      sessionStorage.removeItem(SETTINGS_INTENT_KEY);
+    } catch {
+      // ignore storage errors
+    }
+  }
   navItems.forEach((button) => {
     const buttonTarget = button.getAttribute("data-target") || "";
     if (buttonTarget !== target) {
@@ -839,21 +866,12 @@ function activateNav(target) {
   }
 }
 
-function resolveSettingsPaneKey(value) {
-  const hasStoresPane = Boolean(document.querySelector('[data-settings-pane="stores"]'));
-  const hasMarketingPane = Boolean(document.querySelector('[data-settings-pane="marketing"]'));
-  if (value === "stores" && hasStoresPane) return "stores";
-  if (value === "marketing" && hasMarketingPane) return "marketing";
+function resolveSettingsPaneKey(_value) {
   return "connections";
 }
 
 function getStoredSettingsPane() {
-  try {
-    const stored = localStorage.getItem(SETTINGS_PANE_KEY) || "";
-    return stored === "stores" || stored === "connections" || stored === "marketing" ? stored : "";
-  } catch {
-    return "";
-  }
+  return "connections";
 }
 
 function isSettingsPath(pathname) {
@@ -918,10 +936,273 @@ function setupViewportDebug() {
 }
 
 let connectionWizardStep = "name";
-let connectionWizardChoice = "shopify";
+let connectionWizardChoice = "";
+let connectionWizardGroup = "commerce";
+const STORE_ACTIVE_KEY = "apiflujos-active-store-id";
+let storesCatalog = [];
+let activeStoreId = "";
+let unassignedAlegraAccounts = [];
+
+function getActiveStoreId() {
+  if (activeStoreId) return activeStoreId;
+  try {
+    return String(localStorage.getItem(STORE_ACTIVE_KEY) || "");
+  } catch {
+    return "";
+  }
+}
+
+function setActiveStoreId(value) {
+  activeStoreId = value ? String(value) : "";
+  try {
+    if (activeStoreId) {
+      localStorage.setItem(STORE_ACTIVE_KEY, activeStoreId);
+    } else {
+      localStorage.removeItem(STORE_ACTIVE_KEY);
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function getStoreByIdFromCatalog(storeId) {
+  const id = Number(storeId);
+  if (!Number.isFinite(id)) return null;
+  return storesCatalog.find((store) => Number(store.id) === id) || null;
+}
+
+function getSelectedStore() {
+  if (!(connectionStoreSelect instanceof HTMLSelectElement)) return null;
+  return getStoreByIdFromCatalog(connectionStoreSelect.value);
+}
+
+function renderStoresList() {
+  if (!storesList) return;
+  const list = Array.isArray(storesCatalog) ? storesCatalog : [];
+  if (!list.length) {
+    storesList.innerHTML = `<div class="connection-card empty">Sin tiendas. Crea la primera para conectar plataformas.</div>`;
+    if (storesPanel) storesPanel.classList.add("is-hidden");
+    return;
+  }
+  if (storesPanel) storesPanel.classList.remove("is-hidden");
+  const current = getActiveStoreId();
+  storesList.innerHTML = list
+    .map((store) => {
+      const isActive = current && Number(current) === Number(store.id);
+      const platforms = [];
+      if (store?.shopify) {
+        const ok =
+          Boolean(store.shopify.shopifyConnected ?? store.shopify.status === "Conectado") &&
+          !store.shopify.shopifyNeedsReconnect;
+        platforms.push({ key: "shopify", label: "Shopify", ok, shopDomain: store.shopify.shopDomain });
+      }
+      if (store?.woo) {
+        platforms.push({
+          key: "woocommerce",
+          label: "WooCommerce",
+          ok: Boolean(store.woo.ok),
+          shopDomain: store.woo.shopDomain,
+        });
+      }
+      if (store?.alegra) {
+        const ok = !store.alegra.needsReconnect;
+        const envLabel = store.alegra.environment === "sandbox" ? "Sandbox" : "Produccion";
+        platforms.push({ key: "alegra", label: `Alegra · ${envLabel}`, ok });
+      }
+      const canAssociateAlegra =
+        !store?.alegra &&
+        Array.isArray(unassignedAlegraAccounts) &&
+        unassignedAlegraAccounts.length > 0;
+      const hasPlatforms = platforms.length > 0;
+      const actions = platforms
+        .filter((tile) => tile.key !== "none")
+        .map((tile) => {
+          const domainAttr = tile.shopDomain ? `data-shop-domain="${tile.shopDomain}"` : "";
+          const needsReconnect = tile.ok === false;
+          const reconnectLabel = needsReconnect ? `Reconectar ${tile.label}` : "";
+          return `
+            ${needsReconnect ? `<button class="primary tiny" type="button" data-store-action="reconnect" data-provider="${tile.key}" data-store-id="${store.id}" ${domainAttr}>${reconnectLabel}</button>` : ""}
+            <button class="ghost tiny" type="button" data-store-action="disconnect" data-provider="${tile.key}" data-store-id="${store.id}" ${domainAttr}>
+              Desconectar ${tile.label}
+            </button>
+          `;
+        })
+        .join("");
+      return `
+        <div class="connection-card${isActive ? " is-active" : ""}" data-store-card="${store.id}">
+          <div class="connection-head">
+            <div class="connection-summary-text">
+              <h4 class="connection-store-title">${escapeHtml(store.name)}</h4>
+            </div>
+            <div class="connection-summary-meta">
+              ${isActive ? `<span class="status-pill is-ok">Activa</span>` : ""}
+            </div>
+          </div>
+          ${
+            hasPlatforms
+              ? `<div class="connection-pill-row" aria-label="Plataformas conectadas">
+            ${platforms
+              .map(
+                (tile) => `
+              <span class="connection-pill ${tile.ok ? "is-ok" : "is-off"}">
+                <span class="connection-dot"></span>
+                ${tile.label}
+              </span>
+            `
+              )
+              .join("")}
+          </div>`
+              : `<div class="connection-empty">Sin conexiones aun.</div>`
+          }
+          <div class="connection-actions">
+            ${actions || ""}
+            ${
+              canAssociateAlegra
+                ? `<button class="primary tiny" type="button" data-store-action="associate-alegra" data-store-id="${store.id}">Asociar Alegra</button>`
+                : ""
+            }
+            <button class="ghost danger tiny" type="button" data-store-action="delete" data-store-id="${store.id}">
+              Eliminar tienda
+            </button>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderConnectionStoreSelect() {
+  if (!(connectionStoreSelect instanceof HTMLSelectElement)) return;
+  const list = Array.isArray(storesCatalog) ? storesCatalog : [];
+  if (!list.length) {
+    connectionStoreSelect.innerHTML = `<option value="">Sin tiendas</option>`;
+    connectionStoreSelect.disabled = true;
+    if (connectionStoreSelected) connectionStoreSelected.textContent = "";
+    if (connectionStoreSelectedPlatform) connectionStoreSelectedPlatform.textContent = "";
+    return;
+  }
+  connectionStoreSelect.disabled = false;
+  connectionStoreSelect.innerHTML = list
+    .map((store) => `<option value="${store.id}">${escapeHtml(store.name)}</option>`)
+    .join("");
+  const current = getActiveStoreId();
+  if (current) {
+    connectionStoreSelect.value = current;
+  } else if (activeStoreId) {
+    connectionStoreSelect.value = activeStoreId;
+  } else {
+    connectionStoreSelect.selectedIndex = 0;
+    setActiveStoreId(connectionStoreSelect.value);
+  }
+  const selectedStore = getSelectedStore();
+  if (storeNameInput) storeNameInput.value = selectedStore ? selectedStore.name : "";
+  updateConnectionStoreHints();
+}
+
+async function loadStoresCatalog() {
+  try {
+    const data = await fetchJson("/api/stores");
+    storesCatalog = Array.isArray(data.stores) ? data.stores : [];
+    if (!getActiveStoreId() && storesCatalog.length) {
+      setActiveStoreId(storesCatalog[0].id);
+    }
+    renderStoresList();
+    renderConnectionStoreSelect();
+  } catch {
+    storesCatalog = [];
+    renderStoresList();
+    renderConnectionStoreSelect();
+  }
+}
+
+function openStoreCreateModal() {
+  if (!storeCreateModal) return;
+  storeCreateModal.classList.add("is-open");
+  storeCreateModal.setAttribute("aria-hidden", "false");
+  if (storeCreateName) {
+    storeCreateName.value = "";
+    storeCreateName.focus();
+  }
+}
+
+function closeStoreCreateModal() {
+  if (!storeCreateModal) return;
+  storeCreateModal.classList.remove("is-open");
+  storeCreateModal.setAttribute("aria-hidden", "true");
+}
+
+function updateConnectionButtonsState() {
+  if (!connectionModal || !connectionModal.classList.contains("is-open")) return;
+  const method = getShopifyConnectMethod();
+  const selectedStoreId =
+    connectionStoreSelect instanceof HTMLSelectElement ? connectionStoreSelect.value : "";
+  const selectedStore = getStoreByIdFromCatalog(selectedStoreId);
+  const nameValue = selectedStore ? selectedStore.name : "";
+  if (storeNameInput) storeNameInput.value = nameValue;
+  const hasStore = Boolean(selectedStore);
+  const shopifyDomainValue = normalizeShopDomain(shopifyDomain?.value || "");
+  const shopifyTokenValue = shopifyToken ? shopifyToken.value.trim() : "";
+  const wooDomainValue = normalizeShopDomain(wooDomain?.value || "");
+  const wooKeyValue = wooConsumerKey ? wooConsumerKey.value.trim() : "";
+  const wooSecretValue = wooConsumerSecret ? wooConsumerSecret.value.trim() : "";
+  const alegraEmailValue = alegraEmail ? alegraEmail.value.trim() : "";
+  const alegraKeyValue = alegraKey ? alegraKey.value.trim() : "";
+  const alegraAccountValue = alegraAccountSelect ? alegraAccountSelect.value : "new";
+
+  const shopifyReady =
+    hasStore &&
+    Boolean(shopifyDomainValue) &&
+    (method !== "token" || Boolean(shopifyTokenValue));
+  const wooReady =
+    hasStore &&
+    Boolean(wooDomainValue) &&
+    Boolean(wooKeyValue) &&
+    Boolean(wooSecretValue);
+  const alegraReady =
+    hasStore &&
+    (alegraAccountValue && alegraAccountValue !== "new")
+      ? true
+      : Boolean(alegraEmailValue) && Boolean(alegraKeyValue);
+
+  if (connectShopify instanceof HTMLButtonElement) {
+    connectShopify.disabled = !shopifyReady;
+  }
+  if (connectWooCommerce instanceof HTMLButtonElement) {
+    connectWooCommerce.disabled = !wooReady;
+  }
+  if (connectAlegra instanceof HTMLButtonElement) {
+    connectAlegra.disabled = !alegraReady;
+  }
+}
+
+function resetConnectionFormVisibility(scope) {
+  if (!scope) return;
+  scope.querySelectorAll("[data-connection-kind]").forEach((block) => {
+    if (block instanceof HTMLElement) {
+      block.classList.remove("is-hidden");
+    }
+  });
+}
+
+function hideAllConnectionForms(scope) {
+  if (!scope) return;
+  scope.querySelectorAll("[data-connection-kind]").forEach((block) => {
+    if (block instanceof HTMLElement) {
+      block.classList.add("is-hidden");
+    }
+  });
+  scope.querySelectorAll(".connections-group").forEach((groupPanel) => {
+    if (groupPanel instanceof HTMLElement) {
+      groupPanel.classList.add("is-hidden");
+    }
+  });
+}
 
 function setConnectionWizardStep(step) {
   if (!connectionModal) return;
+  if (step === "form" && !connectionWizardChoice) {
+    step = "platform";
+  }
   connectionWizardStep = step;
   connectionModal.querySelectorAll("[data-connection-step]").forEach((pane) => {
     const isActive = pane.getAttribute("data-connection-step") === step;
@@ -931,13 +1212,62 @@ function setConnectionWizardStep(step) {
   if (backBtn instanceof HTMLElement) {
     backBtn.style.display = step === "name" ? "none" : "";
   }
+  connectionModal.classList.toggle("is-form", step === "form");
+  const scope = connectionModalBody || connectionModal;
+  if (step !== "form") {
+    hideAllConnectionForms(scope);
+  }
+  if (connectionFormSlot instanceof HTMLElement) {
+    connectionFormSlot.style.display = step === "form" ? "" : "none";
+  }
+  if (step === "form") {
+    connectionModal.setAttribute("data-connection-count", "1");
+  } else {
+    updateConnectionChoiceCount();
+  }
+  updateConnectionStoreHints();
+  updateConnectionButtonsState();
+}
+
+function updateConnectionChoiceCount() {
+  if (!connectionModal) return;
+  const activeGroup = connectionModal.getAttribute("data-connection-group") || "";
+  const choices = Array.from(
+    connectionModal.querySelectorAll("[data-connection-choice]")
+  ).filter((button) => {
+    if (!(button instanceof HTMLElement)) return true;
+    if (button.classList.contains("is-hidden")) return false;
+    if (activeGroup) {
+      const groupKey = button.getAttribute("data-connection-group") || "";
+      if (groupKey && groupKey !== activeGroup) return false;
+    }
+    return true;
+  });
+  const count = Math.max(1, choices.length);
+  connectionModal.setAttribute("data-connection-count", String(Math.min(count, 4)));
 }
 
 function openConnectionModal() {
   if (!connectionModal) return;
+  if (connectionModalBody) {
+    resetConnectionFormVisibility(connectionModalBody);
+  }
+  connectionWizardGroup = "commerce";
+  connectionWizardChoice = "";
+  connectionModal.setAttribute("data-connection-group", connectionWizardGroup);
+  renderConnectionStoreSelect();
   connectionModal.classList.add("is-open");
   connectionModal.setAttribute("aria-hidden", "false");
+  updateConnectionChoiceCount();
+  const title = connectionModal.querySelector("#connection-modal-title");
+  if (title) title.textContent = "Nueva conexion";
+  if (connectionModalPlatformPill) {
+    connectionModalPlatformPill.textContent = "Plataforma: -";
+    connectionModalPlatformPill.classList.add("is-off");
+    connectionModalPlatformPill.classList.remove("is-ok");
+  }
   setConnectionWizardStep("name");
+  updateConnectionStoreHints();
   if (typeof document !== "undefined") {
     document.body.classList.add("modal-open");
   }
@@ -947,10 +1277,46 @@ function closeConnectionModal() {
   if (!connectionModal) return;
   connectionModal.classList.remove("is-open");
   connectionModal.setAttribute("aria-hidden", "true");
+  connectionModal.removeAttribute("data-connection-group");
+  connectionModal.removeAttribute("data-connection-count");
+  if (connectionModalBody) {
+    resetConnectionFormVisibility(connectionModalBody);
+  }
+  connectionWizardGroup = "commerce";
+  connectionWizardChoice = "";
+  const title = connectionModal.querySelector("#connection-modal-title");
+  if (title) title.textContent = "Nueva conexion";
+  if (connectionModalPlatformPill) {
+    connectionModalPlatformPill.textContent = "Plataforma: -";
+    connectionModalPlatformPill.classList.add("is-off");
+    connectionModalPlatformPill.classList.remove("is-ok");
+  }
   setConnectionWizardStep("name");
   if (typeof document !== "undefined") {
     document.body.classList.remove("modal-open");
   }
+}
+
+function setConnectionGroup(group) {
+  if (!connectionModal) return;
+  const nextGroup = group || "commerce";
+  connectionWizardGroup = nextGroup;
+  connectionWizardChoice = "";
+  connectionModal.setAttribute("data-connection-group", connectionWizardGroup);
+  connectionModal.querySelectorAll("[data-connection-group-choice]").forEach((button) => {
+    const isActive = button.getAttribute("data-connection-group-choice") === nextGroup;
+    button.classList.toggle("is-active", isActive);
+  });
+  connectionModal.querySelectorAll("[data-connection-choice]").forEach((button) => {
+    const groupKey = button.getAttribute("data-connection-group") || "";
+    const show = groupKey === nextGroup;
+    button.classList.toggle("is-hidden", !show);
+  });
+  updateConnectionChoiceCount();
+  const scope = connectionModalBody || connectionModal;
+  hideAllConnectionForms(scope);
+  setConnectionWizardStep("platform");
+  updateConnectionStoreHints();
 }
 
 function setConnectionChoice(kind) {
@@ -964,29 +1330,77 @@ function setConnectionChoice(kind) {
         ? "Conectar WooCommerce"
         : choice === "alegra"
           ? "Conectar Alegra"
-          : "Conectar Shopify";
+          : choice === "google-ads"
+            ? "Conectar Google Ads"
+            : choice === "meta-ads"
+              ? "Conectar Meta Ads"
+              : choice === "tiktok-ads"
+                ? "Conectar TikTok Ads"
+                : choice === "shopify-marketing"
+                  ? "Conectar Shopify Marketing"
+                  : "Conectar Shopify";
+  }
+  if (connectionModalPlatformPill) {
+    const label =
+      choice === "woocommerce"
+        ? "Plataforma: WooCommerce"
+        : choice === "alegra"
+          ? "Plataforma: Alegra"
+          : choice === "google-ads"
+            ? "Plataforma: Google Ads"
+            : choice === "meta-ads"
+              ? "Plataforma: Meta Ads"
+              : choice === "tiktok-ads"
+                ? "Plataforma: TikTok Ads"
+                : choice === "shopify-marketing"
+                  ? "Plataforma: Shopify Marketing"
+                  : "Plataforma: Shopify";
+    connectionModalPlatformPill.textContent = label;
+    connectionModalPlatformPill.classList.remove("is-off");
+    connectionModalPlatformPill.classList.add("is-ok");
   }
   connectionModal.querySelectorAll("[data-connection-choice]").forEach((button) => {
     const isActive = button.getAttribute("data-connection-choice") === choice;
     button.classList.toggle("is-active", isActive);
   });
-  document.querySelectorAll("[data-connection-kind]").forEach((block) => {
+  const scope = connectionModalBody || connectionModal;
+  hideAllConnectionForms(scope);
+  let visibleGroup = null;
+  scope.querySelectorAll("[data-connection-kind]").forEach((block) => {
     const kinds = (block.getAttribute("data-connection-kind") || "").split(/\s+/).filter(Boolean);
     const shouldShow = kinds.includes(choice);
     if (block instanceof HTMLElement) {
       block.classList.toggle("is-hidden", !shouldShow);
+      if (shouldShow) {
+        visibleGroup = block.closest(".connections-group");
+      }
     }
   });
+  scope.querySelectorAll(".connections-group").forEach((group) => {
+    group.classList.toggle("is-hidden", group !== visibleGroup);
+  });
+  connectionModal.setAttribute("data-connection-count", "1");
+  updateConnectionButtonsState();
   setConnectionWizardStep("form");
+  updateConnectionStoreHints();
+}
+
+function updateConnectionStoreHints() {
+  const selectedStore = getSelectedStore();
+  const label = selectedStore ? `Tienda: ${selectedStore.name}` : "";
+  if (connectionStoreSelected) connectionStoreSelected.textContent = label;
+  if (connectionStoreSelectedPlatform) connectionStoreSelectedPlatform.textContent = label;
+  if (connectionModalStorePill) {
+    connectionModalStorePill.textContent = label || "Tienda: -";
+    connectionModalStorePill.classList.toggle("is-off", !label);
+    connectionModalStorePill.classList.toggle("is-ok", Boolean(label));
+  }
 }
 
 function getSettingsPaneFromPath() {
   if (typeof window === "undefined") return "";
   const pathname = window.location?.pathname || "";
   if (!isSettingsPath(pathname)) return "";
-  const parts = pathname.split("/").filter(Boolean);
-  const pane = parts[1] || "";
-  if (pane === "connections" || pane === "stores" || pane === "marketing") return pane;
   return "connections";
 }
 
@@ -1069,9 +1483,8 @@ function setSettingsPane(paneKey, options = {}) {
     });
   }
   if (settingsPaneIndicator) {
-    settingsPaneIndicator.textContent =
-      next === "stores" ? "Tiendas" : next === "marketing" ? "Marketing" : "Conexiones";
-    settingsPaneIndicator.classList.toggle("is-ok", next === "stores");
+    settingsPaneIndicator.textContent = "Conexiones";
+    settingsPaneIndicator.classList.remove("is-ok");
   }
   if (updateUrl && isSettingsPath(window.location?.pathname || "")) {
     updateSettingsPath(next);
@@ -1104,7 +1517,7 @@ function getSettingsPaneForElement(element) {
   const pane = element.closest("[data-settings-pane]");
   if (!(pane instanceof HTMLElement)) return "";
   const key = pane.getAttribute("data-settings-pane") || "";
-  return key === "stores" || key === "connections" || key === "marketing" ? key : "";
+  return key === "connections" ? key : "";
 }
 
 function ensureSettingsPaneForElement(element, options = {}) {
@@ -1155,12 +1568,19 @@ function initSettingsSubmenu() {
       ensureSettingsVisibility();
     });
   }
-  document.addEventListener("click", (event) => {
-    const target = event.target instanceof HTMLElement ? event.target : null;
-    if (!target) return;
-    const button = target.closest("[data-settings-tab]");
-    if (!(button instanceof HTMLElement)) return;
-    const key = button.getAttribute("data-settings-tab") || "";
+document.addEventListener("click", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (!target) return;
+  const quickGroup = target.closest("[data-connection-group-open]");
+  if (quickGroup instanceof HTMLElement) {
+    const group = quickGroup.getAttribute("data-connection-group-open") || "commerce";
+    openConnectionModal();
+    setConnectionGroup(group);
+    return;
+  }
+  const button = target.closest("[data-settings-tab]");
+  if (!(button instanceof HTMLElement)) return;
+  const key = button.getAttribute("data-settings-tab") || "";
     if (key !== "stores" && key !== "connections" && key !== "marketing") return;
     setSettingsPane(key, { updateUrl: isSettingsPath(window.location?.pathname || "") });
     ensureSettingsVisibility();
@@ -1303,7 +1723,7 @@ navItems.forEach((item) => {
         const panel = getModulePanel(moduleKey);
         if (panel) {
           setModuleCollapsed(panel, false);
-          panel.scrollIntoView({ behavior: "smooth", block: "start" });
+          panel.scrollIntoView({ behavior: "auto", block: "start" });
         }
       }, 0);
     }
@@ -2688,11 +3108,13 @@ function initShopifyConnectPicker() {
     const button = target.closest("[data-shopify-connect]");
     if (!(button instanceof HTMLButtonElement)) return;
     setShopifyConnectMethod(button.getAttribute("data-shopify-connect") || "oauth");
+    updateConnectionButtonsState();
   });
   if (shopifyToken) {
     shopifyToken.addEventListener("input", () => {
       if (shopifyToken.value.trim() && getShopifyConnectMethod() !== "token") {
         setShopifyConnectMethod("token");
+        updateConnectionButtonsState();
       }
     });
   }
@@ -2937,7 +3359,7 @@ function openPanelInSection(sectionId, panelId) {
   });
   const panel = document.getElementById(panelId);
   if (panel) {
-    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    panel.scrollIntoView({ behavior: "auto", block: "start" });
   }
 }
 
@@ -3782,7 +4204,7 @@ function focusFieldWithContext(field) {
     setGroupCollapsed(group, false);
     group = group.parentElement ? group.parentElement.closest("[data-group]") : null;
   }
-  field.scrollIntoView({ behavior: "smooth", block: "center" });
+  field.scrollIntoView({ behavior: "auto", block: "center" });
   setTimeout(() => {
     if (field.focus) field.focus();
   }, 200);
@@ -3825,7 +4247,7 @@ function focusWizardTarget(target) {
 
 function validateInitialConnection(kind) {
   const errors = [];
-  if (storeNameInput) clearFieldError(storeNameInput);
+  if (connectionStoreSelect) clearFieldError(connectionStoreSelect);
   if (shopifyDomain) clearFieldError(shopifyDomain);
   if (alegraEmail) clearFieldError(alegraEmail);
   if (alegraKey) clearFieldError(alegraKey);
@@ -3835,14 +4257,16 @@ function validateInitialConnection(kind) {
   const activeDomain = normalizeShopDomain(activeStoreDomain || "");
   const resolvedDomain = domainInput || activeDomain;
   const hasActiveContext = Boolean(activeDomain);
-  const nameInput = storeNameInput ? storeNameInput.value.trim() : "";
-  const resolvedName = nameInput || (activeDomain && activeStoreName ? activeStoreName : "");
+  const selectedStoreId =
+    connectionStoreSelect instanceof HTMLSelectElement ? connectionStoreSelect.value : "";
+  const selectedStore = getStoreByIdFromCatalog(selectedStoreId);
+  const resolvedName = selectedStore ? selectedStore.name : "";
   const hasShopifyContext = Boolean(resolvedDomain);
 
+  if (!resolvedName) {
+    errors.push({ field: connectionStoreSelect, message: "Selecciona una tienda." });
+  }
   if (kind !== "alegra" || hasShopifyContext) {
-    if (!resolvedName && !hasActiveContext) {
-      errors.push({ field: storeNameInput, message: "Nombre de tienda requerido." });
-    }
     if (!resolvedDomain) {
       errors.push({ field: shopifyDomain, message: "Dominio Shopify requerido." });
     }
@@ -3854,12 +4278,6 @@ function validateInitialConnection(kind) {
   }
   if (kind === "alegra") {
     if (alegraAccountSelect && alegraAccountSelect.value !== "new") {
-      if (!hasShopifyContext) {
-        errors.push({
-          field: alegraAccountSelect,
-          message: "Selecciona una cuenta nueva para conectar Alegra sin tienda.",
-        });
-      }
     } else {
       if (!alegraEmail || !alegraEmail.value.trim()) {
         errors.push({
@@ -4048,7 +4466,7 @@ function reorderSettingsPanels() {
 function openDefaultGroups() {
   const openKeys = new Set([
     "marketing",
-    "marketing-ads",
+    "ads",
     "store-sync",
     "store",
     "products",
@@ -4344,6 +4762,11 @@ function setModulePrereqButtons(panel, disabled) {
 }
 
 function getActiveStore() {
+  const activeId = getActiveStoreId();
+  if (activeId && Array.isArray(storesCatalog)) {
+    const byId = storesCatalog.find((store) => Number(store.id) === Number(activeId));
+    if (byId) return byId;
+  }
   const domain = normalizeShopDomain(activeStoreDomain || "");
   if (!domain) return null;
   return (
@@ -4354,31 +4777,53 @@ function getActiveStore() {
 }
 
 function getStoreConnections(store) {
+  if (store?.shopify || store?.alegra || store?.woo) {
+    const shopifyOk =
+      Boolean(store?.shopify?.shopifyConnected ?? store?.shopify?.status === "Conectado") &&
+      !store?.shopify?.shopifyNeedsReconnect;
+    const alegraOk = Boolean(store?.alegra) && !store?.alegra?.needsReconnect;
+    const wooOk = Boolean(store?.woo?.ok);
+    return { shopifyConnected: shopifyOk, alegraConnected: alegraOk, wooConnected: wooOk };
+  }
   return {
     shopifyConnected: Boolean(store?.shopifyConnected ?? store?.status === "Conectado"),
     alegraConnected: Boolean(store?.alegraConnected ?? store?.alegraAccountId),
+    wooConnected: false,
   };
 }
 
 function resolvePrereqState(requirements, context) {
-  const { hasStore, shopifyConnected, alegraConnected } = context;
+  const { hasStore, shopifyConnected, alegraConnected, wooConnected } = context;
+  const commerceConnected = Boolean(shopifyConnected || wooConnected);
   if (requirements.store && !hasStore) {
     return { enabled: false, message: "Primero crea una tienda en Nueva conexion." };
   }
   if (requirements.shopify && requirements.alegra) {
-    if (!shopifyConnected && !alegraConnected) {
-      return { enabled: false, message: "Conecta Shopify y Alegra para activar este modulo." };
+    if (!commerceConnected && !alegraConnected) {
+    return { enabled: false, message: "Conecta una plataforma de e‑commerce y una contable para activar este modulo." };
     }
-    if (!shopifyConnected) {
-      return { enabled: false, message: "Conecta Shopify para activar este modulo." };
+    if (!commerceConnected) {
+      return { enabled: false, message: "Conecta una plataforma de e‑commerce para activar este modulo." };
     }
     if (!alegraConnected) {
-      return { enabled: false, message: "Conecta Alegra para activar este modulo." };
+      return { enabled: false, message: "Conecta una plataforma contable para activar este modulo." };
     }
-  } else if (requirements.shopify && !shopifyConnected) {
-    return { enabled: false, message: "Conecta Shopify para activar este modulo." };
+  } else if (requirements.shopify && !commerceConnected) {
+    return { enabled: false, message: "Conecta una plataforma de e‑commerce para activar este modulo." };
   } else if (requirements.alegra && !alegraConnected) {
-    return { enabled: false, message: "Conecta Alegra para activar este modulo." };
+    return { enabled: false, message: "Conecta una plataforma contable para activar este modulo." };
+  }
+  return { enabled: true, message: "" };
+}
+
+function resolveCommerceOrAlegraState(context) {
+  const { hasStore, shopifyConnected, alegraConnected, wooConnected } = context;
+  const commerceConnected = Boolean(shopifyConnected || wooConnected);
+  if (!hasStore) {
+    return { enabled: false, message: "Primero crea una tienda en Nueva conexion." };
+  }
+  if (!commerceConnected && !alegraConnected) {
+    return { enabled: false, message: "Conecta Shopify/WooCommerce o Alegra para activar este modulo." };
   }
   return { enabled: true, message: "" };
 }
@@ -4391,8 +4836,225 @@ function applyPrereqState(moduleKey, state) {
   setModulePrereqButtons(panel, Boolean(state.message));
 }
 
+function setModuleVisible(moduleKey, visible) {
+  const panel = getModulePanel(moduleKey);
+  if (!panel) return;
+  panel.classList.toggle("is-hidden", !visible);
+}
+
+function setGroupVisible(groupKey, visible) {
+  const group = document.querySelector(`.settings-group.provider-group[data-group="${groupKey}"]`);
+  if (!group) return;
+  group.classList.toggle("is-hidden", !visible);
+}
+
+function setConnectionContextClasses({ shopifyConnected, alegraConnected, wooConnected }) {
+  const commerceOk = Boolean(shopifyConnected || wooConnected);
+  document.body.classList.toggle("has-commerce", commerceOk);
+  document.body.classList.toggle("no-commerce", !commerceOk);
+  document.body.classList.toggle("has-alegra", Boolean(alegraConnected));
+  document.body.classList.toggle("no-alegra", !alegraConnected);
+}
+
+function getCommerceLabel({ shopifyConnected, wooConnected }) {
+  if (shopifyConnected && wooConnected) return "Shopify + WooCommerce";
+  if (shopifyConnected) return "Shopify";
+  if (wooConnected) return "WooCommerce";
+  return "E‑commerce";
+}
+
+function getAccountingLabel({ alegraConnected }) {
+  return alegraConnected ? "Alegra" : "Contable";
+}
+
+function updateConnectionModuleCards(context) {
+  const commerceLabel = getCommerceLabel(context);
+  const accountingLabel = getAccountingLabel(context);
+  const commerceCard = document.querySelector('[data-connection-group-open="commerce"]');
+  if (commerceCard) {
+    const subtitle = commerceCard.querySelector(".module-card-subtitle");
+    if (subtitle) {
+      subtitle.textContent =
+        commerceLabel === "E‑commerce" ? "Conecta una tienda" : commerceLabel;
+    }
+  }
+  const accountingCard = document.querySelector('[data-connection-group-open="accounting"]');
+  if (accountingCard) {
+    const subtitle = accountingCard.querySelector(".module-card-subtitle");
+    if (subtitle) {
+      subtitle.textContent =
+        accountingLabel === "Contable" ? "Conecta una plataforma contable" : accountingLabel;
+    }
+  }
+}
+
+function setModuleTitle(moduleKey, text) {
+  const title = document.querySelector(`[data-module-toggle="${moduleKey}"]`);
+  if (title) title.textContent = text;
+}
+
+function setModuleBridgeTag(moduleKey, text) {
+  const panel = getModulePanel(moduleKey);
+  if (!panel) return;
+  const tag = panel.querySelector(".panel-tag.tag-bridge");
+  if (tag) tag.textContent = text;
+}
+
+function applyEcommerceLogo(label) {
+  const logo = document.querySelector('.provider-logo.is-shopify');
+  if (!logo) return;
+  if (label.startsWith("WooCommerce")) {
+    logo.setAttribute("src", "/brands/woocommerce.png?v=20260201s");
+    logo.setAttribute("alt", "WooCommerce");
+  } else {
+    logo.setAttribute("src", "/brands/shopify.png?v=20260201s");
+    logo.setAttribute("alt", "Shopify");
+  }
+}
+
+function updateDynamicGroupTitles(context) {
+  const commerceLabel = getCommerceLabel(context);
+  const accountingLabel = getAccountingLabel(context);
+  applyEcommerceLogo(commerceLabel);
+  document.querySelectorAll(".group-text-dual").forEach((node) => {
+    const group = node.closest(".settings-group");
+    const key = group?.getAttribute("data-group") || "";
+    if (key === "products") {
+      node.textContent = `Productos e inventario (${accountingLabel} → ${commerceLabel})`;
+    } else if (key === "contacts") {
+      node.textContent = `Contactos (${commerceLabel} ↔ ${accountingLabel})`;
+    } else if (key === "orders") {
+      node.textContent = `Pedidos (${commerceLabel} → ${accountingLabel}) y facturas (${accountingLabel} → ${commerceLabel})`;
+    }
+  });
+  document.querySelectorAll(".group-text-alegra-only").forEach((node) => {
+    const group = node.closest(".settings-group");
+    const key = group?.getAttribute("data-group") || "";
+    if (key === "products") {
+      node.textContent = `Productos e inventario (${accountingLabel})`;
+    } else if (key === "contacts") {
+      node.textContent = `Contactos (${accountingLabel})`;
+    } else if (key === "orders") {
+      node.textContent = `Facturación (${accountingLabel})`;
+    }
+  });
+}
+
+function updateDynamicModuleTitles(context) {
+  const commerceLabel = getCommerceLabel(context);
+  const accountingLabel = getAccountingLabel(context);
+  setModuleTitle("shopify-rules", `Sincronizar productos (${accountingLabel} → ${commerceLabel})`);
+  setModuleBridgeTag("shopify-rules", `${accountingLabel} → ${commerceLabel}`);
+  setModuleTitle("shopify-products-to-alegra", `Sincronizar productos (${commerceLabel} → ${accountingLabel})`);
+  setModuleBridgeTag("shopify-products-to-alegra", `${commerceLabel} → ${accountingLabel}`);
+  setModuleTitle("alegra-inventory", `Sincronizar inventario (${accountingLabel} → ${commerceLabel})`);
+  setModuleBridgeTag("alegra-inventory", `${accountingLabel} → ${commerceLabel}`);
+  setModuleTitle("sync-contacts", `Sincronizar contactos (${commerceLabel} ↔ ${accountingLabel})`);
+  setModuleBridgeTag("sync-contacts", `${commerceLabel} ↔ ${accountingLabel}`);
+  setModuleTitle(
+    "sync-orders",
+    `Pedidos (${commerceLabel} → ${accountingLabel}) y facturas (${accountingLabel} → ${commerceLabel})`
+  );
+  setModuleBridgeTag("sync-orders", `${commerceLabel} ↔ ${accountingLabel}`);
+  setModuleTitle("alegra-logistics", `Logística (${accountingLabel}) para facturar pedidos`);
+  setModuleTitle("alegra-invoice", `Facturación en ${accountingLabel} (para pedidos)`);
+}
+
+function updateStoreSyncTitle() {
+  const title = document.querySelector('[data-module-toggle="store-sync-products"]');
+  if (!title) return;
+  const source =
+    storeSyncSourceProviderSelect instanceof HTMLSelectElement
+      ? storeSyncSourceProviderSelect.value
+      : "";
+  const target =
+    storeSyncTargetProviderSelect instanceof HTMLSelectElement
+      ? storeSyncTargetProviderSelect.value
+      : "";
+  const labelMap = {
+    shopify: "Shopify",
+    woocommerce: "WooCommerce",
+  };
+  const sourceLabel = labelMap[source] || "E‑commerce";
+  const targetLabel = labelMap[target] || "E‑commerce";
+  title.textContent = `Sincronizador tienda a tienda (${sourceLabel} ↔ ${targetLabel})`;
+}
+
+function updateConnectionScopedVisibility(storeConnections) {
+  const shopifyOk = Boolean(storeConnections.shopifyConnected);
+  const alegraOk = Boolean(storeConnections.alegraConnected);
+  const wooOk = Boolean(storeConnections.wooConnected);
+  const commerceOk = shopifyOk || wooOk;
+  const hasAny = shopifyOk || alegraOk || wooOk;
+
+  setConnectionContextClasses({
+    shopifyConnected: shopifyOk,
+    alegraConnected: alegraOk,
+    wooConnected: wooOk,
+  });
+  updateDynamicGroupTitles({
+    shopifyConnected: shopifyOk,
+    alegraConnected: alegraOk,
+    wooConnected: wooOk,
+  });
+  updateDynamicModuleTitles({
+    shopifyConnected: shopifyOk,
+    alegraConnected: alegraOk,
+    wooConnected: wooOk,
+  });
+  updateConnectionModuleCards({
+    shopifyConnected: shopifyOk,
+    alegraConnected: alegraOk,
+    wooConnected: wooOk,
+  });
+
+  if (!hasAny) {
+    [
+      "shopify-rules",
+      "shopify-products-to-alegra",
+      "sync-contacts",
+      "sync-orders",
+      "alegra-inventory",
+      "alegra-invoice",
+      "alegra-logistics",
+      "store-sync-products",
+    ].forEach((key) => setModuleVisible(key, false));
+    setGroupVisible("products", false);
+    setGroupVisible("contacts", false);
+    setGroupVisible("orders", false);
+    setGroupVisible("store-sync", false);
+    return;
+  }
+
+  // Modulos base: visibles solo si hay ecommerce + plataforma contable.
+  const bridgeOk = commerceOk && alegraOk;
+  setModuleVisible("shopify-rules", bridgeOk);
+  setModuleVisible("shopify-products-to-alegra", bridgeOk);
+  setModuleVisible("sync-contacts", bridgeOk);
+  setModuleVisible("sync-orders", bridgeOk);
+  setModuleVisible("store-sync-products", commerceOk);
+
+  // Modulos Alegra (solo si hay puente completo).
+  setModuleVisible("alegra-inventory", bridgeOk);
+  setModuleVisible("alegra-invoice", bridgeOk);
+  setModuleVisible("alegra-logistics", bridgeOk);
+
+  setGroupVisible("products", bridgeOk);
+  setGroupVisible("contacts", bridgeOk);
+  setGroupVisible("orders", bridgeOk);
+  setGroupVisible("store-sync", commerceOk);
+}
+
 function updatePrerequisites() {
-  const store = getActiveStore();
+  let store = getActiveStore();
+  if (!store && Array.isArray(storesCatalog) && storesCatalog.length) {
+    const fallback = storesCatalog[0];
+    setActiveStoreId(fallback?.id || "");
+    activeStoreName = fallback?.name || fallback?.storeName || "";
+    activeStoreDomain = getStoreShopDomainFromCatalog(fallback);
+    updateStoreModuleTitles();
+    store = getActiveStore();
+  }
   const hasStore = Boolean(store);
   const storeConnections = getStoreConnections(store);
   const ordersShopifyEnabled =
@@ -4405,6 +5067,7 @@ function updatePrerequisites() {
     hasStore,
     shopifyConnected: storeConnections.shopifyConnected,
     alegraConnected: storeConnections.alegraConnected,
+    wooConnected: storeConnections.wooConnected,
   };
   const globalContext = {
     hasStore: true,
@@ -4413,15 +5076,18 @@ function updatePrerequisites() {
   };
 
   applyPrereqState("shopify-rules", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
-  applyPrereqState("alegra-inventory", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
+  applyPrereqState("shopify-products-to-alegra", resolvePrereqState({ store: true, shopify: true }, storeContext));
   applyPrereqState("sync-contacts", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
   applyPrereqState("sync-orders", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
-  applyPrereqState("alegra-tech", resolvePrereqState({ alegra: true }, globalContext));
 
-  // Facturacion/Logistica se pueden configurar siempre (sin bloquear la UI).
-  // Se usan solo cuando Shopify → Alegra = Factura, pero conviene dejarlos listos.
-  applyPrereqState("alegra-invoice", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
-  applyPrereqState("alegra-logistics", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
+  // Inventario requiere Alegra (y e‑commerce para publicar).
+  applyPrereqState("alegra-inventory", resolvePrereqState({ store: true, shopify: true, alegra: true }, storeContext));
+
+  // Facturacion/Logistica requieren Alegra, pero se pueden dejar listas antes de conectar e‑commerce.
+  applyPrereqState("alegra-invoice", resolvePrereqState({ store: true, alegra: true }, storeContext));
+  applyPrereqState("alegra-logistics", resolvePrereqState({ store: true, alegra: true }, storeContext));
+
+  updateConnectionScopedVisibility(storeConnections);
 }
 
 function updateInvoicesBackfillUi() {
@@ -4449,6 +5115,7 @@ function updateAlegraOrdersAutoUi() {
 
 function updateOrderSyncDependencies() {
   updatePrerequisites();
+  updateStoreSyncTitle();
   updateInvoicesBackfillUi();
   updateAlegraOrdersAutoUi();
 }
@@ -4728,7 +5395,7 @@ async function openWizardStep() {
 
   setModuleCollapsed(panel, false);
   setModuleReadonly(panel, false);
-  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  panel.scrollIntoView({ behavior: "auto", block: "start" });
 
   const focusTarget =
     next.focusTarget ||
@@ -5014,6 +5681,8 @@ function initGroupControls() {
     if (!target) return;
     const toggle = target.closest("[data-group-toggle]");
     if (!toggle) return;
+    const connectionsPane = toggle.closest('[data-settings-pane="connections"]');
+    if (connectionsPane) return;
     const key = toggle.getAttribute("data-group-toggle");
     const panel = key ? getGroupPanel(key) : null;
     if (!panel) return;
@@ -5276,7 +5945,7 @@ function renderCopyConfigOptions(stores) {
     return;
   }
 
-  const current = normalizeShopDomain(copyConfigSelect.value || "");
+  const current = normalizeStoreId(copyConfigSelect.value || "");
   copyConfigField.style.display = "";
   copyConfigSelect.innerHTML = "";
 
@@ -5286,17 +5955,15 @@ function renderCopyConfigOptions(stores) {
   copyConfigSelect.appendChild(emptyOption);
 
   list.forEach((store) => {
-    const domain = normalizeShopDomain(store?.shopDomain || "");
-    if (!domain) return;
+    const storeId = normalizeStoreId(store?.id || store?.storeId);
+    if (!storeId) return;
     const option = document.createElement("option");
-    option.value = domain;
-    option.textContent = store?.storeName || store?.shopDomain || domain;
+    option.value = storeId;
+    option.textContent = store?.storeName || store?.shopDomain || storeId;
     copyConfigSelect.appendChild(option);
   });
 
-  const exists = list.some(
-    (store) => normalizeShopDomain(store?.shopDomain || "") === current
-  );
+  const exists = list.some((store) => normalizeStoreId(store?.id || store?.storeId) === current);
   copyConfigSelect.value = exists ? current : "";
 }
 
@@ -5310,10 +5977,10 @@ function clearPendingConfigCopy() {
   }
 }
 
-function savePendingConfigCopy(fromDomain, toDomain) {
+function savePendingConfigCopy(fromId, toId) {
   try {
-    localStorage.setItem(COPY_CONFIG_FROM_KEY, fromDomain);
-    localStorage.setItem(COPY_CONFIG_TO_KEY, toDomain);
+    localStorage.setItem(COPY_CONFIG_FROM_KEY, fromId);
+    localStorage.setItem(COPY_CONFIG_TO_KEY, toId);
     localStorage.setItem(COPY_CONFIG_AT_KEY, String(Date.now()));
   } catch {
     // ignore storage errors
@@ -5322,8 +5989,8 @@ function savePendingConfigCopy(fromDomain, toDomain) {
 
 function getPendingConfigCopy() {
   try {
-    const from = normalizeShopDomain(localStorage.getItem(COPY_CONFIG_FROM_KEY) || "");
-    const to = normalizeShopDomain(localStorage.getItem(COPY_CONFIG_TO_KEY) || "");
+    const from = normalizeStoreId(localStorage.getItem(COPY_CONFIG_FROM_KEY) || "");
+    const to = normalizeStoreId(localStorage.getItem(COPY_CONFIG_TO_KEY) || "");
     const at = Number(localStorage.getItem(COPY_CONFIG_AT_KEY) || "");
     if (!from || !to) {
       clearPendingConfigCopy();
@@ -5339,10 +6006,10 @@ function getPendingConfigCopy() {
   }
 }
 
-function getStoreLabelByDomain(domain) {
-  const normalized = normalizeShopDomain(domain || "");
+function getStoreLabelById(storeId) {
+  const normalized = normalizeStoreId(storeId || "");
   const match = storesCache.find(
-    (store) => normalizeShopDomain(store?.shopDomain || "") === normalized
+    (store) => normalizeStoreId(store?.id || store?.storeId) === normalized
   );
   return match?.storeName || match?.shopDomain || normalized;
 }
@@ -5352,14 +6019,14 @@ async function maybeApplyPendingStoreConfigCopy() {
   if (pendingCopyInProgress) return;
   const pending = getPendingConfigCopy();
   if (!pending) return;
-  const fromDomain = pending.from;
-  const toDomain = pending.to;
-  if (!fromDomain || !toDomain || fromDomain === toDomain) {
+  const fromId = pending.from;
+  const toId = pending.to;
+  if (!fromId || !toId || fromId === toId) {
     clearPendingConfigCopy();
     return;
   }
   const toExists = storesCache.some(
-    (store) => normalizeShopDomain(store?.shopDomain || "") === toDomain
+    (store) => normalizeStoreId(store?.id || store?.storeId) === toId
   );
   if (!toExists) return;
 
@@ -5368,7 +6035,7 @@ async function maybeApplyPendingStoreConfigCopy() {
     const data = await fetchJson("/api/store-configs");
     const items = Array.isArray(data.items) ? data.items : [];
     const source =
-      items.find((item) => normalizeShopDomain(item.shopDomain || "") === fromDomain) || null;
+      items.find((item) => normalizeStoreId(item.storeId || "") === fromId) || null;
     if (!source) {
       showToast("No se encontro configuracion para copiar en la tienda origen.", "is-warn");
       clearPendingConfigCopy();
@@ -5381,13 +6048,13 @@ async function maybeApplyPendingStoreConfigCopy() {
       invoice: source.invoice || {},
       sync: source.sync || {},
     };
-    await fetchJson(`/api/store-configs/${encodeURIComponent(toDomain)}`, {
+    await fetchJson(`/api/store-configs/${encodeURIComponent(toId)}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
     showToast(
-      `Configuracion copiada: ${getStoreLabelByDomain(fromDomain)} → ${getStoreLabelByDomain(toDomain)}`,
+      `Configuracion copiada: ${getStoreLabelById(fromId)} → ${getStoreLabelById(toId)}`,
       "is-ok"
     );
     clearPendingConfigCopy();
@@ -5405,20 +6072,30 @@ async function loadConnections(options = {}) {
       fetchJson("/api/woocommerce/connections").catch(() => ({ stores: [] })),
     ]);
     maybeShowCryptoWarning(data);
+    if (Array.isArray(data.storesCatalog)) {
+      storesCatalog = data.storesCatalog;
+      renderStoresList();
+      renderConnectionStoreSelect();
+    } else {
+      await loadStoresCatalog();
+    }
     renderConnections({ ...data, wooStores: wooData?.stores || [] });
-    renderAlegraAccountOptions(data.alegraAccounts || []);
+    const alegraAccounts = Array.isArray(data.alegraAccounts) ? data.alegraAccounts : [];
+    unassignedAlegraAccounts = alegraAccounts.filter((account) => !account.storeId);
+    renderAlegraAccountOptions(alegraAccounts);
     renderStoreSyncAlegraAccounts(data.alegraAccounts || []);
     const stores = Array.isArray(data.stores) ? data.stores : [];
     storesCache = stores;
     wooStoresCache = Array.isArray(wooData?.stores) ? wooData.stores : [];
     updateSettingsSubmenuAvailability();
     renderCopyConfigOptions(stores);
-    renderStoreActiveSelect(stores, options);
+    renderStoreActiveSelect(storesCatalog, options);
     renderMarketingConfigStoreSelects(stores);
     if (mkCfgPixelKey) {
       loadMarketingConfig();
     }
     updatePrerequisites();
+    updateStoreSyncTitle();
     updateGoogleAdsStatus(data);
     updateMetaAdsStatus(data);
     updateTikTokAdsStatus(data);
@@ -5427,13 +6104,21 @@ async function loadConnections(options = {}) {
     updateWizardStartAvailability();
     const connectionsSummary = getModulePanel("connections-summary");
     if (connectionsSummary) {
-      connectionsSummary.style.display = stores.length ? "" : "none";
+      const hasAny =
+        (storesCatalog && storesCatalog.length) ||
+        stores.length ||
+        wooStoresCache.length ||
+        (data.alegraAccounts || []).length;
+      connectionsSummary.style.display = hasAny ? "" : "none";
     }
     syncSettingsPane();
     await maybeApplyPendingStoreConfigCopy();
     maybeJumpToConnectionsSummary();
   } catch {
     renderConnections({ stores: [], wooStores: [] });
+    storesCatalog = [];
+    renderStoresList();
+    renderConnectionStoreSelect();
     renderAlegraAccountOptions([]);
     renderCopyConfigOptions([]);
     updateGoogleAdsStatus({ googleAds: { connected: false, needsReconnect: false } });
@@ -5477,6 +6162,10 @@ function updateStoreModuleTitles() {
   }
   if (storeActiveNameLabel) {
     storeActiveNameLabel.textContent = getActiveStoreLabel() || "-";
+  }
+  if (settingsStoreActiveLabel) {
+    const label = getActiveStoreLabel();
+    settingsStoreActiveLabel.textContent = label ? `Tienda activa: ${label}` : "";
   }
   updateWizardStorePill();
 }
@@ -5599,7 +6288,7 @@ function maybeJumpToConnectionsSummary() {
   setSettingsPane("connections", { persist: false });
   const summary = document.querySelector('[data-module="connections-summary"]');
   if (summary && summary.scrollIntoView) {
-    summary.scrollIntoView({ behavior: "smooth", block: "start" });
+    summary.scrollIntoView({ behavior: "auto", block: "start" });
   }
   params.delete("connections");
   const next = params.toString();
@@ -5640,25 +6329,32 @@ function renderStoreActiveSelect(stores, options = {}) {
   storeActiveSelect.disabled = stores.length <= 1;
   storeActiveSelect.innerHTML = stores
     .map(
-      (store) =>
-        `<option value="${store.shopDomain}">${store.storeName || store.shopDomain}</option>`
+      (store) => {
+        const storeId = String(store.id || "");
+        const storeName = store.name || store.storeName || "Tienda";
+        const shopDomain = getStoreShopDomainFromCatalog(store);
+        const domainAttr = shopDomain ? `data-shop-domain="${escapeHtml(shopDomain)}"` : "";
+        return `<option value="${escapeHtml(storeId)}" ${domainAttr}>${escapeHtml(storeName)}</option>`;
+      }
     )
     .join("");
   const stored = (() => {
     try {
-      return localStorage.getItem("apiflujos-active-store") || "";
+      return localStorage.getItem(STORE_ACTIVE_KEY) || "";
     } catch {
       return "";
     }
   })();
-  const nextDomain =
-    stores.find((store) => store.shopDomain === stored)?.shopDomain ||
-    stores[0]?.shopDomain ||
+  const nextId =
+    stores.find((store) => String(store.id || "") === String(stored))?.id ||
+    stores[0]?.id ||
     "";
-  activeStoreDomain = nextDomain;
-  activeStoreName = stores.find((store) => store.shopDomain === nextDomain)?.storeName || "";
-  storeActiveSelect.value = nextDomain;
-  shopifyAdminBase = nextDomain ? `https://${nextDomain}/admin` : "";
+  setActiveStoreId(nextId);
+  const activeStore = stores.find((store) => String(store.id || "") === String(nextId)) || null;
+  activeStoreName = activeStore?.name || activeStore?.storeName || "";
+  activeStoreDomain = getStoreShopDomainFromCatalog(activeStore);
+  storeActiveSelect.value = String(nextId || "");
+  shopifyAdminBase = activeStoreDomain ? `https://${activeStoreDomain}/admin` : "";
   if (storeNameInput) {
     storeNameInput.placeholder = getActiveStoreLabel() || "Tienda de ejemplo";
   }
@@ -6106,6 +6802,11 @@ function normalizeShopDomain(value) {
     .toLowerCase();
 }
 
+function normalizeStoreId(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? String(parsed) : "";
+}
+
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => {
     if (char === "&") return "&amp;";
@@ -6117,26 +6818,37 @@ function escapeHtml(value) {
   });
 }
 
+function getStoreShopDomainFromCatalog(store) {
+  if (!store) return "";
+  return (
+    store.shopify?.shopDomain ||
+    store.shopDomain ||
+    ""
+  );
+}
+
 function renderStoreActiveList(stores) {
   if (!(storeActiveList instanceof HTMLElement)) return;
   const list = Array.isArray(stores) ? stores : [];
-  const activeDomain = normalizeShopDomain(activeStoreDomain || "");
+  const activeId = String(getActiveStoreId() || "");
   storeActiveList.innerHTML = list
     .map((store) => {
-      const domain = store.shopDomain || "";
-      const normalizedDomain = normalizeShopDomain(domain);
-      const title = store.storeName || domain;
-      const subtitle = store.storeName ? domain : "";
-      const isActive = normalizedDomain && normalizedDomain === activeDomain;
-      const shopifyOk = Boolean(store.shopifyConnected);
-      const alegraOk = Boolean(store.alegraConnected);
+      const storeId = String(store.id || "");
+      const domain = getStoreShopDomainFromCatalog(store);
+      const title = store.name || store.storeName || domain || "Tienda";
+      const subtitle = store.name && domain ? domain : "";
+      const isActive = storeId && storeId === activeId;
+      const shopifyOk = Boolean(store?.shopify?.shopifyConnected ?? store?.shopifyConnected);
+      const alegraOk = Boolean(store?.alegra && !store?.alegra?.needsReconnect) || Boolean(store?.alegraConnected);
+      const wooOk = Boolean(store?.woo?.ok);
       return `
-        <button class="ghost store-item ${isActive ? "is-active" : ""}" type="button" data-store-domain="${escapeHtml(domain)}">
+        <button class="ghost store-item ${isActive ? "is-active" : ""}" type="button" data-store-id="${escapeHtml(storeId)}">
           <span class="store-item-title">${escapeHtml(title)}</span>
           ${subtitle ? `<span class="store-item-sub">${escapeHtml(subtitle)}</span>` : ""}
           <span class="store-item-meta" aria-hidden="true">
             <span class="store-item-pill ${shopifyOk ? "is-ok" : "is-off"}">Shopify</span>
             <span class="store-item-pill ${alegraOk ? "is-ok" : "is-off"}">Alegra</span>
+            <span class="store-item-pill ${wooOk ? "is-ok" : "is-off"}">Woo</span>
           </span>
         </button>
       `;
@@ -6738,8 +7450,8 @@ function applyLegacyStoreConfig(config) {
 }
 
 async function loadLegacyStoreConfig() {
-  const domain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
-  if (!domain) {
+  const storeId = normalizeStoreId(getActiveStoreId() || storeActiveSelect?.value || "");
+  if (!storeId) {
     activeStoreConfig = null;
     clearLegacyStoreConfig();
     updatePrerequisites();
@@ -6749,7 +7461,7 @@ async function loadLegacyStoreConfig() {
     const data = await fetchJson("/api/store-configs");
     const items = Array.isArray(data.items) ? data.items : [];
     const match =
-      items.find((item) => normalizeShopDomain(item.shopDomain || "") === domain) ||
+      items.find((item) => normalizeStoreId(item.storeId || "") === storeId) ||
       (items.length === 1 ? items[0] : null);
     if (match) {
       activeStoreConfig = match;
@@ -6774,11 +7486,60 @@ function renderConnections(settings) {
   connectionsGrid.innerHTML = "";
   const stores = Array.isArray(settings.stores) ? settings.stores : [];
   const wooStores = Array.isArray(settings.wooStores) ? settings.wooStores : [];
+  const alegraAccounts = Array.isArray(settings.alegraAccounts) ? settings.alegraAccounts : [];
   const googleAds = settings?.googleAds || {};
+  const storesCatalogData = Array.isArray(settings.storesCatalog) ? settings.storesCatalog : [];
   const activeDomain = normalizeShopDomain(activeStoreDomain || storeActiveSelect?.value || "");
+  if (storesCatalogData.length) {
+    connectionsGrid.innerHTML = storesCatalogData
+      .map((store) => {
+        const storeLabel = escapeHtml(store.name || "Tienda");
+        const shopify = store.shopify;
+        const alegra = store.alegra;
+        const woo = store.woo;
+        const platforms = [];
+        if (shopify) {
+          const ok = Boolean(shopify.shopifyConnected ?? shopify.status === "Conectado") && !shopify.shopifyNeedsReconnect;
+          platforms.push({ key: "shopify", label: "Shopify", ok, fail: !ok });
+        }
+        if (woo) {
+          platforms.push({ key: "woocommerce", label: "WooCommerce", ok: Boolean(woo.ok), fail: !woo.ok });
+        }
+        if (alegra) {
+          const ok = !alegra.needsReconnect;
+          const envLabel = alegra.environment === "sandbox" ? "Sandbox" : "Produccion";
+          platforms.push({ key: "alegra", label: `Alegra · ${envLabel}`, ok, fail: !ok });
+        }
+        return `
+          <div class="connection-card">
+            <div class="connection-head">
+              <div class="connection-summary-text">
+                <h4 class="connection-store-title">${storeLabel}</h4>
+              </div>
+            </div>
+            <div class="connection-pill-row" aria-label="Plataformas conectadas">
+              ${(platforms.length ? platforms : [{ key: "none", label: "Sin conexiones", ok: false }])
+                .map(
+                  (tile) => `
+                <span class="connection-pill ${tile.ok ? "is-ok" : "is-off"}">
+                  <span class="connection-dot"></span>
+                  ${tile.label}
+                </span>
+              `
+                )
+                .join("")}
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+    return;
+  }
+
   const list = [
     ...stores.map((store) => ({ ...store, provider: "shopify" })),
     ...wooStores.map((store) => ({ ...store, provider: "woocommerce" })),
+    ...alegraAccounts.map((account) => ({ ...account, provider: "alegra" })),
   ]
     .slice()
     .sort((a, b) => {
@@ -6798,11 +7559,20 @@ function renderConnections(settings) {
     .map((store) => {
       const domain = normalizeShopDomain(store?.shopDomain || "");
       const isActive = store?.provider === "shopify" && domain && domain === activeDomain;
-      const storeLabel = escapeHtml(store.storeName || store.shopDomain || "Tienda");
+      const storeLabel =
+        store?.provider === "alegra"
+          ? `Alegra · ${escapeHtml(store.email || "Cuenta")}`
+          : escapeHtml(store.storeName || store.shopDomain || "Tienda");
       let platforms = [];
       if (store?.provider === "woocommerce") {
         const wooConnected = Boolean(store.hasConsumerKey && store.hasConsumerSecret);
         platforms = [{ key: "woocommerce", label: "WooCommerce", ok: wooConnected, fail: !wooConnected }];
+      } else if (store?.provider === "alegra") {
+        const alegraOk = !store.needsReconnect;
+        const envLabel = store.environment === "sandbox" ? "Sandbox" : "Produccion";
+        platforms = [
+          { key: "alegra", label: `Alegra · ${envLabel}`, ok: alegraOk, fail: !alegraOk },
+        ];
       } else {
         const shopifyNeedsReconnect = Boolean(store.shopifyNeedsReconnect);
         const alegraNeedsReconnect = Boolean(store.alegraNeedsReconnect);
@@ -11136,9 +11906,9 @@ async function runBulkContactSync() {
 }
 
 async function saveStoreConfigFromSettings() {
-  const domain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
-  if (!domain) {
-    throw new Error("Dominio Shopify requerido.");
+  const storeId = normalizeStoreId(getActiveStoreId() || storeActiveSelect?.value || "");
+  if (!storeId) {
+    throw new Error("Selecciona una tienda para guardar configuraciones.");
   }
   if (cfgProductsShopifyToAlegraIncludeInventory instanceof HTMLInputElement) {
     const includeInventory = Boolean(cfgProductsShopifyToAlegraIncludeInventory.checked);
@@ -11160,6 +11930,7 @@ async function saveStoreConfigFromSettings() {
   const matchPriority = matchPriorityKey.split("_").filter(Boolean);
   const generateInvoiceValue = true;
 	  const payload = {
+      storeId,
 	    transfers: {
 	      enabled: cfgTransferEnabled ? cfgTransferEnabled.checked : true,
 	      destinationMode: cfgTransferDestMode ? cfgTransferDestMode.value : "fixed",
@@ -11289,7 +12060,7 @@ async function saveStoreConfigFromSettings() {
         },
 	    },
 	  };
-	  await fetchJson(`/api/store-configs/${encodeURIComponent(domain)}`, {
+	  await fetchJson(`/api/store-configs/${encodeURIComponent(storeId)}`, {
 	    method: "PUT",
 	    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -11616,11 +12387,16 @@ async function connectShopifyWithToken(params) {
   if (!tokenValue) {
     throw new Error("Clave de acceso de Shopify requerida.");
   }
+  const store = getSelectedStore();
+  if (!store) {
+    throw new Error("Selecciona una tienda.");
+  }
   const response = await fetchJson("/api/connections", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      storeName: params.storeName || "",
+      storeId: store.id,
+      storeName: params.storeName || store.name || "",
       shopify: {
         shopDomain: params.shopDomain,
         accessToken: tokenValue,
@@ -11647,6 +12423,10 @@ async function connectWooCommerceStore() {
   if (!consumerKey || !consumerSecret) {
     throw new Error("Consumer Key y Secret requeridos.");
   }
+  const store = getSelectedStore();
+  if (!store) {
+    throw new Error("Selecciona una tienda.");
+  }
   const testResult = await fetchJson("/api/settings/test", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -11666,7 +12446,8 @@ async function connectWooCommerceStore() {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      storeName,
+      storeId: store.id,
+      storeName: storeName || store.name || "",
       shopDomain: domain,
       consumerKey,
       consumerSecret,
@@ -11692,10 +12473,12 @@ async function startShopifyOAuthFlow() {
   const normalizedActive = normalizeShopDomain(activeStoreDomain || "");
   const normalizedInput = normalizeShopDomain(shopDomainValue || "");
   const sameStore = normalizedActive && normalizedActive === normalizedInput;
+  const selectedStore = getSelectedStore();
   const resolvedStoreName =
-    (storeNameInput ? storeNameInput.value.trim() : "") ||
+    selectedStore?.name ||
     (sameStore ? activeStoreName : "") ||
     "";
+  const storeId = selectedStore?.id;
   if (!normalizedInput) {
     throw new Error("Dominio Shopify requerido");
   }
@@ -11714,9 +12497,12 @@ async function startShopifyOAuthFlow() {
   if (resolvedStoreName) {
     params.set("storeName", resolvedStoreName);
   }
-  const copyFrom = normalizeShopDomain(copyConfigSelect?.value || "");
-  if (copyFrom && copyFrom !== normalizedInput) {
-    savePendingConfigCopy(copyFrom, normalizedInput);
+  if (storeId) {
+    params.set("storeId", String(storeId));
+  }
+  const copyFrom = normalizeStoreId(copyConfigSelect?.value || "");
+  if (copyFrom && storeId && copyFrom !== String(storeId)) {
+    savePendingConfigCopy(copyFrom, String(storeId));
   }
   window.location.href = `/api/auth/shopify?${params.toString()}`;
 }
@@ -11764,37 +12550,30 @@ async function connectStore(kind) {
   if (!validateInitialConnection(kind)) {
     throw new Error("Completa los campos obligatorios.");
   }
-  const storeName = storeNameInput ? storeNameInput.value.trim() : "";
+  const selectedStore = getSelectedStore();
+  if (!selectedStore) {
+    throw new Error("Selecciona una tienda.");
+  }
+  const storeName = selectedStore.name || "";
   const shopDomainValue = shopifyDomain?.value.trim() || activeStoreDomain || "";
   const normalizedActive = normalizeShopDomain(activeStoreDomain || "");
   const normalizedInput = normalizeShopDomain(shopDomainValue || "");
   const sameStore = normalizedActive && normalizedActive === normalizedInput;
   const resolvedStoreName = storeName || (sameStore ? activeStoreName : "") || "";
   const hasShopifyContext = Boolean(normalizedInput || normalizedActive);
-  if (kind === "alegra" && !hasShopifyContext) {
-    if (alegraAccountSelect && alegraAccountSelect.value !== "new") {
-      throw new Error("Selecciona una cuenta nueva para conectar Alegra sin tienda.");
-    }
-    await saveCredentials("alegra");
-    showToast("Alegra conectado.", "is-ok");
-    closeConnectionModal();
-    clearConnectionForm();
-    setConnectionsSetupOpen(true);
-    setSettingsPane("connections", { persist: false });
-    await loadSettings({ preserveUi: true });
-    updateConnectionPills();
-    return;
-  }
-  if (!shopDomainValue) {
-    throw new Error("Dominio Shopify requerido");
-  }
   const payload = {
+    storeId: selectedStore.id,
     storeName: resolvedStoreName,
     shopify: {
       shopDomain: normalizedInput || shopDomainValue,
     },
   };
   if (kind === "alegra") {
+    const alegraEmailValue = alegraEmail ? alegraEmail.value.trim() : "";
+    const alegraKeyValue = alegraKey ? alegraKey.value.trim() : "";
+    if (!hasShopifyContext && !alegraEmailValue && !alegraKeyValue) {
+      throw new Error("Credenciales Alegra requeridas");
+    }
     payload.alegra = {};
     if (alegraAccountSelect && alegraAccountSelect.value !== "new") {
       payload.alegra.accountId = Number(alegraAccountSelect.value);
@@ -11803,8 +12582,8 @@ async function connectStore(kind) {
         payload.alegra.apiKey = apiKey;
       }
     } else {
-      const email = alegraEmail ? alegraEmail.value.trim() : "";
-      const apiKey = alegraKey ? alegraKey.value.trim() : "";
+      const email = alegraEmailValue;
+      const apiKey = alegraKeyValue;
       if (!email || !apiKey) {
         throw new Error("Credenciales Alegra requeridas");
       }
@@ -11812,6 +12591,32 @@ async function connectStore(kind) {
       payload.alegra.apiKey = apiKey;
       payload.alegra.environment = alegraEnvSelect ? alegraEnvSelect.value : "prod";
     }
+    const shouldTestAlegra =
+      (alegraAccountSelect && alegraAccountSelect.value === "new" && alegraEmailValue && alegraKeyValue) ||
+      (alegraAccountSelect && alegraAccountSelect.value !== "new" && Boolean(alegraKeyValue));
+    if (shouldTestAlegra) {
+      const testPayload = {
+        alegra: {
+          email: alegraEmailValue,
+          apiKey: alegraKeyValue,
+          environment: alegraEnvSelect ? alegraEnvSelect.value : "prod",
+        },
+      };
+      const testResult = await fetchJson("/api/settings/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(testPayload),
+      });
+      if (!String(testResult?.alegra || "").startsWith("ok")) {
+        throw new Error(String(testResult?.alegra || "No se pudo validar Alegra."));
+      }
+    }
+  }
+  if (!shopDomainValue) {
+    delete payload.shopify;
+  }
+  if (!shopDomainValue && kind !== "alegra") {
+    throw new Error("Dominio Shopify requerido");
   }
   const response = await fetchJson("/api/connections", {
     method: "POST",
@@ -12129,21 +12934,17 @@ if (alegraAccountSelect) {
 }
 		  if (storeActiveSelect) {
 		    storeActiveSelect.addEventListener("change", () => {
-	      const nextDomain = storeActiveSelect.value || "";
-	      activeStoreDomain = nextDomain;
-	      activeStoreName =
-	        storesCache.find((store) => store.shopDomain === nextDomain)?.storeName || "";
+	      const nextId = storeActiveSelect.value || "";
+	      setActiveStoreId(nextId);
+	      const activeStore = getStoreByIdFromCatalog(nextId);
+	      activeStoreName = activeStore?.name || activeStore?.storeName || "";
+	      activeStoreDomain = getStoreShopDomainFromCatalog(activeStore);
 	    if (storeNameInput) {
 	      storeNameInput.placeholder = getActiveStoreLabel() || "Tienda de ejemplo";
 	    }
-	    shopifyAdminBase = nextDomain ? `https://${nextDomain}/admin` : "";
-	    try {
-	      localStorage.setItem("apiflujos-active-store", nextDomain);
-	    } catch {
-	      // ignore storage errors
-	    }
+	    shopifyAdminBase = activeStoreDomain ? `https://${activeStoreDomain}/admin` : "";
 		      updateStoreModuleTitles();
-		      renderStoreActiveList(storesCache);
+		      renderStoreActiveList(storesCatalog);
 		      renderConnections({ stores: storesCache, wooStores: wooStoresCache });
 		      renderStoreContextSelects(storesCache);
 		      setShopifyWebhooksStatus("Sin configurar");
@@ -12188,21 +12989,26 @@ if (alegraAccountSelect) {
 		    storeActiveList.addEventListener("click", (event) => {
 		      const target = event.target;
 		      if (!(target instanceof HTMLElement)) return;
-		      const button = target.closest("[data-store-domain]");
+		      const button = target.closest("[data-store-id]");
 		      if (!(button instanceof HTMLElement)) return;
-		      const nextDomain = button.getAttribute("data-store-domain") || "";
-		      if (!nextDomain || storeActiveSelect.value === nextDomain) return;
-		      storeActiveSelect.value = nextDomain;
+		      const nextId = button.getAttribute("data-store-id") || "";
+		      if (!nextId || storeActiveSelect.value === nextId) return;
+		      storeActiveSelect.value = nextId;
 		      storeActiveSelect.dispatchEvent(new Event("change"));
 		    });
 		  }
 
   const bindStoreContextSelect = (select) => {
-    if (!select || !storeActiveSelect) return;
-    select.addEventListener("change", () => {
+  if (!select || !storeActiveSelect) return;
+  select.addEventListener("change", () => {
       const nextDomain = select.value || "";
-      if (!nextDomain || storeActiveSelect.value === nextDomain) return;
-      storeActiveSelect.value = nextDomain;
+      if (!nextDomain) return;
+      const candidate =
+        storesCatalog.find((store) => normalizeShopDomain(getStoreShopDomainFromCatalog(store)) === normalizeShopDomain(nextDomain)) ||
+        null;
+      const nextId = candidate ? String(candidate.id || "") : "";
+      if (!nextId || storeActiveSelect.value === nextId) return;
+      storeActiveSelect.value = nextId;
       storeActiveSelect.dispatchEvent(new Event("change"));
     });
   };
@@ -12798,14 +13604,20 @@ if (storeSyncSourceSelect) {
     ensureStoreSyncDistinct();
   });
 }
+if (storeSyncSourceProviderSelect) {
+  storeSyncSourceProviderSelect.addEventListener("change", updateStoreSyncTitle);
+}
+if (storeSyncTargetProviderSelect) {
+  storeSyncTargetProviderSelect.addEventListener("change", updateStoreSyncTitle);
+}
 if (connectionModalOpen) {
   connectionModalOpen.addEventListener("click", () => {
     connectionWizardChoice = "shopify";
     openConnectionModal();
   });
 }
-if (connectionModal) {
-  connectionModal.addEventListener("click", (event) => {
+  if (connectionModal) {
+    connectionModal.addEventListener("click", (event) => {
     const target = event.target instanceof HTMLElement ? event.target : null;
     if (!target) return;
     if (target.closest("[data-connection-modal-close]")) {
@@ -12815,9 +13627,25 @@ if (connectionModal) {
     if (target.closest("[data-connection-modal-back]")) {
       if (connectionWizardStep === "form") {
         setConnectionWizardStep("platform");
+      } else if (connectionWizardStep === "platform") {
+        setConnectionWizardStep("group");
       } else {
         setConnectionWizardStep("name");
       }
+      return;
+    }
+    const quickGroup = target.closest("[data-connection-group-open]");
+    if (quickGroup instanceof HTMLElement) {
+      const group = quickGroup.getAttribute("data-connection-group-open") || "commerce";
+      openConnectionModal();
+      setConnectionGroup(group);
+      setConnectionWizardStep("name");
+      return;
+    }
+    const groupChoice = target.closest("[data-connection-group-choice]");
+    if (groupChoice instanceof HTMLElement) {
+      const group = groupChoice.getAttribute("data-connection-group-choice") || "commerce";
+      setConnectionGroup(group);
       return;
     }
     const choice = target.closest("[data-connection-choice]");
@@ -12832,16 +13660,199 @@ if (connectionModal) {
 }
 if (connectionNameNext) {
   connectionNameNext.addEventListener("click", () => {
-    const nameValue = storeNameInput ? storeNameInput.value.trim() : "";
-    if (!nameValue) {
-      if (storeNameInput) markFieldError(storeNameInput, "Nombre requerido.");
-      if (storeNameInput) focusFieldWithContext(storeNameInput);
-      showToast("Completa el nombre de la tienda.", "is-warn");
+    const store = getSelectedStore();
+    if (!store) {
+      if (connectionStoreSelect) markFieldError(connectionStoreSelect, "Selecciona una tienda.");
+      if (connectionStoreSelect) focusFieldWithContext(connectionStoreSelect);
+      showToast("Selecciona una tienda antes de continuar.", "is-warn");
       return;
     }
-    setConnectionWizardStep("platform");
+    setActiveStoreId(store.id);
+    setConnectionWizardStep("group");
   });
 }
+
+if (storeCreateOpen) {
+  storeCreateOpen.addEventListener("click", () => openStoreCreateModal());
+}
+if (connectionStoreCreate) {
+  connectionStoreCreate.addEventListener("click", () => openStoreCreateModal());
+}
+if (storeCreateClose) {
+  storeCreateClose.addEventListener("click", () => closeStoreCreateModal());
+}
+if (storeCreateModal) {
+  storeCreateModal.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (target && target === storeCreateModal) {
+      closeStoreCreateModal();
+    }
+  });
+}
+if (storeCreateSave) {
+  storeCreateSave.addEventListener("click", async () => {
+    try {
+      const nameValue = storeCreateName ? storeCreateName.value.trim() : "";
+      if (!nameValue) {
+        if (storeCreateName) markFieldError(storeCreateName, "Nombre requerido.");
+        if (storeCreateName) focusFieldWithContext(storeCreateName);
+        showToast("Completa el nombre de la tienda.", "is-warn");
+        return;
+      }
+      setButtonLoading(storeCreateSave, true, "Creando...");
+      const result = await fetchJson("/api/stores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nameValue }),
+      });
+      closeStoreCreateModal();
+      await loadStoresCatalog();
+      if (result?.created?.id && connectionStoreSelect instanceof HTMLSelectElement) {
+        connectionStoreSelect.value = String(result.created.id);
+        setActiveStoreId(result.created.id);
+      }
+      updateConnectionButtonsState();
+      showToast("Tienda creada.", "is-ok");
+    } catch (error) {
+      showToast(error?.message || "No se pudo crear la tienda.", "is-error");
+    } finally {
+      setButtonLoading(storeCreateSave, false);
+    }
+  });
+}
+if (connectionStoreSelect instanceof HTMLSelectElement) {
+  connectionStoreSelect.addEventListener("change", () => {
+    setActiveStoreId(connectionStoreSelect.value);
+    const selectedStore = getSelectedStore();
+    if (storeNameInput) storeNameInput.value = selectedStore ? selectedStore.name : "";
+    updateConnectionStoreHints();
+    updateConnectionButtonsState();
+  });
+}
+if (storesList) {
+  storesList.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) return;
+    const actionButton = target.closest("[data-store-action]");
+    if (actionButton instanceof HTMLElement) {
+      const action = actionButton.getAttribute("data-store-action") || "";
+      const storeIdRaw = actionButton.getAttribute("data-store-id") || "";
+      const storeId = Number(storeIdRaw);
+      const provider = actionButton.getAttribute("data-provider") || "";
+      const shopDomain = actionButton.getAttribute("data-shop-domain") || "";
+      if (!Number.isFinite(storeId)) return;
+      if (action === "delete") {
+        if (!confirm("Eliminar la tienda y desconectar sus plataformas?")) return;
+        if (!confirm("Esta acción es irreversible. ¿Confirmas eliminar la tienda?")) return;
+        showToast("Eliminando tienda...", "is-warn");
+        fetchJson(`/api/stores/${storeId}`, { method: "DELETE" })
+          .then(() => {
+            showToast("Tienda eliminada.", "is-ok");
+            return Promise.all([loadConnections(), loadStoresCatalog()]);
+          })
+          .catch((error) => {
+            showToast(error?.message || "No se pudo eliminar la tienda.", "is-error");
+          });
+        return;
+      }
+      if (action === "disconnect") {
+        if (!provider) return;
+        const label =
+          provider === "shopify"
+            ? "Shopify"
+            : provider === "woocommerce"
+              ? "WooCommerce"
+              : "Alegra";
+        if (!confirm(`Desconectar ${label} de esta tienda?`)) return;
+        if (!confirm(`Confirmas desconectar ${label}?`)) return;
+        let promise;
+        if (provider === "shopify") {
+          if (!shopDomain) {
+            showToast("Dominio Shopify faltante.", "is-error");
+            return;
+          }
+          promise = fetchJson(`/api/connections/domain/${encodeURIComponent(shopDomain)}`, {
+            method: "DELETE",
+          });
+        } else if (provider === "woocommerce") {
+          if (!shopDomain) {
+            showToast("Dominio WooCommerce faltante.", "is-error");
+            return;
+          }
+          promise = fetchJson(`/api/woocommerce/connections/${encodeURIComponent(shopDomain)}`, {
+            method: "DELETE",
+          });
+        } else {
+          promise = fetchJson(`/api/connections/alegra/${storeId}`, { method: "DELETE" });
+        }
+        showToast(`Desconectando ${label}...`, "is-warn");
+        promise
+          .then(() => {
+            showToast(`${label} desconectado.`, "is-ok");
+            return Promise.all([loadConnections(), loadStoresCatalog()]);
+          })
+          .catch((error) => {
+            showToast(error?.message || `No se pudo desconectar ${label}.`, "is-error");
+          });
+        return;
+      }
+      if (action === "reconnect") {
+        if (!provider) return;
+        openConnectionModal();
+        const store = getStoreByIdFromCatalog(storeId);
+        if (store && connectionStoreSelect instanceof HTMLSelectElement) {
+          connectionStoreSelect.value = String(store.id);
+          setActiveStoreId(store.id);
+        }
+        if (provider === "shopify" || provider === "woocommerce") {
+          const domain = shopDomain || "";
+          if (provider === "shopify" && shopifyDomain) shopifyDomain.value = domain;
+          if (provider === "woocommerce" && wooDomain) wooDomain.value = domain;
+        }
+        setConnectionChoice(provider === "woocommerce" ? "woocommerce" : provider);
+        setConnectionWizardStep("form");
+        return;
+      }
+      if (action === "associate-alegra") {
+        openConnectionModal();
+        const store = getStoreByIdFromCatalog(storeId);
+        if (store && connectionStoreSelect instanceof HTMLSelectElement) {
+          connectionStoreSelect.value = String(store.id);
+          setActiveStoreId(store.id);
+        }
+        setConnectionChoice("alegra");
+        setConnectionWizardStep("form");
+        showToast("Selecciona la cuenta Alegra y presiona Conectar.", "is-warn");
+        return;
+      }
+    }
+    const card = target.closest("[data-store-card]");
+    if (!(card instanceof HTMLElement)) return;
+    const id = card.getAttribute("data-store-card") || "";
+    if (!id) return;
+    setActiveStoreId(id);
+    renderStoresList();
+    renderConnectionStoreSelect();
+    updateConnectionButtonsState();
+  });
+}
+
+[
+  storeNameInput,
+  connectionStoreSelect,
+  shopifyDomain,
+  shopifyToken,
+  alegraEmail,
+  alegraKey,
+  alegraAccountSelect,
+  wooDomain,
+  wooConsumerKey,
+  wooConsumerSecret,
+  shopifyConnectPicker,
+].filter(Boolean).forEach((node) => {
+  node.addEventListener("input", updateConnectionButtonsState);
+  node.addEventListener("change", updateConnectionButtonsState);
+});
 
 if (storeSyncSourceProviderSelect) {
   storeSyncSourceProviderSelect.addEventListener("change", () => {
@@ -13596,13 +14607,13 @@ if (productsSyncPublish) {
 
 async function saveUpdateExistingRuleFromMassProducts() {
   if (!(productsSyncUpdateExisting instanceof HTMLInputElement)) return;
-  const domain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
-  if (!domain) return;
-  if (!activeStoreConfig || normalizeShopDomain(activeStoreConfig.shopDomain || "") !== domain) {
+  const storeId = normalizeStoreId(getActiveStoreId() || storeActiveSelect?.value || "");
+  if (!storeId) return;
+  if (!activeStoreConfig || normalizeStoreId(activeStoreConfig.storeId || "") !== storeId) {
     // Best-effort: ensure we have the latest config loaded.
     await loadLegacyStoreConfig();
   }
-  if (!activeStoreConfig || normalizeShopDomain(activeStoreConfig.shopDomain || "") !== domain) {
+  if (!activeStoreConfig || normalizeStoreId(activeStoreConfig.storeId || "") !== storeId) {
     return;
   }
   const nextValue = Boolean(productsSyncUpdateExisting.checked);
@@ -13613,7 +14624,7 @@ async function saveUpdateExistingRuleFromMassProducts() {
     invoice: activeStoreConfig.invoice || {},
     sync: activeStoreConfig.sync || {},
   };
-  await fetchJson(`/api/store-configs/${encodeURIComponent(domain)}`, {
+  await fetchJson(`/api/store-configs/${encodeURIComponent(storeId)}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
