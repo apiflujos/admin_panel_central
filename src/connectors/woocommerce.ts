@@ -38,6 +38,9 @@ export type WooProduct = {
   price?: string;
   regular_price?: string;
   sale_price?: string;
+  stock_quantity?: number | null;
+  manage_stock?: boolean | null;
+  stock_status?: string | null;
   images?: WooProductImage[];
   attributes?: WooProductAttribute[];
   tags?: WooProductTag[];
@@ -50,6 +53,8 @@ export type WooVariation = {
   price?: string;
   regular_price?: string;
   sale_price?: string;
+  stock_quantity?: number | null;
+  manage_stock?: boolean | null;
   attributes?: Array<{ id?: number; name?: string; option?: string }>;
 };
 
@@ -178,6 +183,13 @@ export class WooCommerceClient {
   async createVariation(productId: number, payload: Record<string, unknown>) {
     return this.request<WooVariation>(`/products/${productId}/variations`, {
       method: "POST",
+      body: payload,
+    });
+  }
+
+  async updateVariation(productId: number, variationId: number, payload: Record<string, unknown>) {
+    return this.request<WooVariation>(`/products/${productId}/variations/${variationId}`, {
+      method: "PUT",
       body: payload,
     });
   }

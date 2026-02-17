@@ -274,7 +274,22 @@ export class ShopifyClient {
     sku?: string;
     price: string;
     publish: boolean;
+    trackInventory?: boolean;
   }) {
+    const trackInventory = typeof input.trackInventory === "boolean" ? input.trackInventory : undefined;
+    const variant = {
+      price: input.price,
+      sku: input.sku,
+    } as {
+      price: string;
+      sku?: string;
+      inventoryItem?: { tracked?: boolean };
+      inventoryManagement?: "SHOPIFY" | "NOT_MANAGED";
+    };
+    if (typeof trackInventory === "boolean") {
+      variant.inventoryItem = { tracked: trackInventory };
+      variant.inventoryManagement = trackInventory ? "SHOPIFY" : "NOT_MANAGED";
+    }
     return this.request<{ productCreate: ShopifyProductCreateResult }>(
       <GraphQlRequest>{
         query: PRODUCT_CREATE_MUTATION,
@@ -282,12 +297,41 @@ export class ShopifyClient {
           input: {
             title: input.title,
             status: input.publish ? "ACTIVE" : "DRAFT",
-            variants: [
-              {
-                price: input.price,
-                sku: input.sku,
-              },
-            ],
+            variants: [variant],
+          },
+        },
+      }
+    );
+  }
+
+  async updateVariantInventoryPolicy(
+    variantId: string,
+    policy: "CONTINUE" | "DENY"
+  ) {
+    return this.request<{ productVariantUpdate: ShopifyMutationResult }>(
+      <GraphQlRequest>{
+        query: VARIANT_INVENTORY_POLICY_MUTATION,
+        variables: {
+          input: {
+            id: variantId,
+            inventoryPolicy: policy,
+          },
+        },
+      }
+    );
+  }
+
+  async updateInventoryItemTracking(
+    inventoryItemId: string,
+    tracked: boolean
+  ) {
+    return this.request<{ inventoryItemUpdate: ShopifyMutationResult }>(
+      <GraphQlRequest>{
+        query: INVENTORY_ITEM_TRACKING_MUTATION,
+        variables: {
+          id: inventoryItemId,
+          input: {
+            tracked,
           },
         },
       }
@@ -307,8 +351,23 @@ export class ShopifyClient {
       sku?: string;
       barcode?: string;
       options?: string[];
+      inventoryItem?: { tracked?: boolean };
+      inventoryManagement?: "SHOPIFY" | "NOT_MANAGED";
     }>;
+    trackInventory?: boolean;
   }) {
+    const trackInventory =
+      typeof input.trackInventory === "boolean" ? input.trackInventory : undefined;
+    const variants = Array.isArray(input.variants)
+      ? input.variants.map((variant) => {
+          if (typeof trackInventory !== "boolean") return variant;
+          return {
+            ...variant,
+            inventoryItem: { tracked: trackInventory },
+            inventoryManagement: trackInventory ? "SHOPIFY" : "NOT_MANAGED",
+          };
+        })
+      : input.variants;
     const response = await this.request<{ productCreate: ShopifyProductCreateResult }>(
       <GraphQlRequest>{
         query: PRODUCT_CREATE_MUTATION,
@@ -321,7 +380,7 @@ export class ShopifyClient {
             productType: input.productType,
             tags: input.tags,
             options: input.options,
-            variants: input.variants,
+            variants,
           },
         },
       }
@@ -459,7 +518,8 @@ export class ShopifyClient {
             id: string;
             sku?: string | null;
             barcode?: string | null;
-            inventoryItem?: { id: string } | null;
+            inventoryPolicy?: string | null;
+            inventoryItem?: { id: string; tracked?: boolean } | null;
             product?: { id: string; status?: string | null } | null;
           };
         }>;
@@ -511,6 +571,16 @@ export class ShopifyClient {
         },
       }
     );
+  }
+
+  async getPrimaryLocationId() {
+    const response = await this.request<{
+      locations: { edges: Array<{ node?: { id?: string } }> };
+    }>(<GraphQlRequest>{
+      query: LOCATIONS_FIRST_QUERY,
+    });
+    const edges = response?.locations?.edges || [];
+    return String(edges[0]?.node?.id || "").trim();
   }
 
 }
@@ -980,6 +1050,22 @@ const VARIANT_PRICE_MUTATION = `
   }
 `;
 
+const VARIANT_INVENTORY_POLICY_MUTATION = `
+  mutation UpdateVariantInventoryPolicy($input: ProductVariantInput!) {
+    productVariantUpdate(input: $input) {
+      userErrors { field message }
+    }
+  }
+`;
+
+const INVENTORY_ITEM_TRACKING_MUTATION = `
+  mutation UpdateInventoryItemTracking($id: ID!, $input: InventoryItemInput!) {
+    inventoryItemUpdate(id: $id, input: $input) {
+      userErrors { field message }
+    }
+  }
+`;
+
 const TAGS_ADD_MUTATION = `
   mutation tagsAdd($id: ID!, $tags: [String!]!) {
     tagsAdd(id: $id, tags: $tags) {
@@ -1082,9 +1168,20 @@ const PRODUCT_VARIANT_BY_IDENTIFIER_QUERY = `
           id
           sku
           barcode
-          inventoryItem { id }
-            product { id status }
+          inventoryPolicy
+          inventoryItem { id tracked }
+          product { id status }
         }
+      }
+    }
+  }
+`;
+
+const LOCATIONS_FIRST_QUERY = `
+  query LocationsFirst {
+    locations(first: 1) {
+      edges {
+        node { id }
       }
     }
   }

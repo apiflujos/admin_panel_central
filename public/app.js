@@ -66,6 +66,7 @@ const storesList = document.getElementById("stores-list");
 const storesPanel = document.getElementById("stores-panel");
 const connectionStoreSelect = document.getElementById("connection-store-select");
 const connectionStoreCreate = document.getElementById("connection-store-create");
+const connectionStoreCreateTop = document.getElementById("connection-store-create-top");
 const connectionStoreSelected = document.getElementById("connection-store-selected");
 const connectionStoreSelectedPlatform = document.getElementById("connection-store-selected-platform");
 const einvoiceModal = document.getElementById("einvoice-modal");
@@ -1086,11 +1087,19 @@ function renderConnectionStoreSelect() {
   if (!list.length) {
     connectionStoreSelect.innerHTML = `<option value="">Sin tiendas</option>`;
     connectionStoreSelect.disabled = true;
-    if (connectionStoreSelected) connectionStoreSelected.textContent = "";
+    if (connectionStoreSelected) {
+      connectionStoreSelected.textContent = "No hay tiendas. Crea la primera para continuar.";
+    }
     if (connectionStoreSelectedPlatform) connectionStoreSelectedPlatform.textContent = "";
+    if (connectionNameNext instanceof HTMLButtonElement) {
+      connectionNameNext.disabled = true;
+    }
     return;
   }
   connectionStoreSelect.disabled = false;
+  if (connectionNameNext instanceof HTMLButtonElement) {
+    connectionNameNext.disabled = false;
+  }
   connectionStoreSelect.innerHTML = list
     .map((store) => `<option value="${store.id}">${escapeHtml(store.name)}</option>`)
     .join("");
@@ -14195,6 +14204,9 @@ if (storeCreateOpen) {
 }
 if (connectionStoreCreate) {
   connectionStoreCreate.addEventListener("click", () => openStoreCreateModal());
+}
+if (connectionStoreCreateTop) {
+  connectionStoreCreateTop.addEventListener("click", () => openStoreCreateModal());
 }
 if (storeCreateClose) {
   storeCreateClose.addEventListener("click", () => closeStoreCreateModal());

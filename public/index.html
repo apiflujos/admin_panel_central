@@ -1116,6 +1116,7 @@
                   </div>
                 </div>
                 <div class="connection-modal-actions">
+                  <button class="ghost tiny" id="connection-store-create-top" type="button">Crear tienda</button>
                   <button class="ghost" type="button" data-connection-modal-back="1">Volver</button>
                   <button class="modal-close" type="button" data-connection-modal-close="1" aria-label="Cerrar">×</button>
                 </div>
@@ -1126,10 +1127,7 @@
                     <div class="field">
                       <label>Tienda</label>
                       <select id="connection-store-select" name="connection_store_select"></select>
-                      <span class="field-hint">Asocia esta conexion a una tienda existente.</span>
-                    </div>
-                    <div class="field-actions">
-                      <button class="ghost" id="connection-store-create" type="button">Crear tienda</button>
+                      <span class="field-hint">Asocia esta conexion a una tienda existente o crea una nueva.</span>
                     </div>
                   </div>
                   <div class="connection-step-actions">
@@ -1523,7 +1521,10 @@
             </div>
           </div>
           <div class="settings-pane is-active" data-settings-pane="connections">
-                <div class="settings-group-title" id="settings-connections">Conexiones</div>
+                <div class="settings-group-title settings-group-title-row" id="settings-connections">
+                  <button class="primary is-solid tiny" id="store-create-open" type="button">Crear tienda</button>
+                  <span>Conexiones</span>
+                </div>
                     <div class="connections-module-grid">
                 <div class="connections-module-card" data-connection-group-open="commerce">
                   <div class="module-card-icon is-commerce">

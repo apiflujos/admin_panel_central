@@ -69,6 +69,8 @@ import {
   listItemWarehouseSummaryHandler,
   proxyAlegraImageHandler,
   lookupShopifyHandler,
+  updateProductOversellHandler,
+  updateProductTrackingHandler,
   publishShopifyHandler,
   syncInventoryAdjustmentsHandler,
   stopProductsSyncHandler,
@@ -248,6 +250,8 @@ router.post("/assistant/query", wrap(assistantQueryHandler));
 router.post("/assistant/execute", wrap(assistantExecuteHandler));
 router.post("/shopify/publish", wrap(publishShopifyHandler));
 router.post("/shopify/lookup-batch", wrap(lookupShopifyHandler));
+router.post("/products/oversell", requireAdmin, wrap(updateProductOversellHandler));
+router.post("/products/tracking", requireAdmin, wrap(updateProductTrackingHandler));
 router.post("/shopify/webhooks", requireAdmin, wrap(createShopifyWebhooksHandler));
 router.post("/shopify/webhooks/delete", requireAdmin, wrap(deleteShopifyWebhooksHandler));
 router.get("/shopify/webhooks/status", requireAdmin, wrap(getShopifyWebhooksStatusHandler));

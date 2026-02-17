@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import net from "net";
 import { getAlegraCredential, getShopifyCredential } from "../services/settings.service";
 import { ShopifyClient } from "../connectors/shopify";
+import { AlegraClient } from "../connectors/alegra";
 import { getAlegraBaseUrl } from "../utils/alegra-env";
 import { resolveShopifyApiVersion } from "../utils/shopify";
 import { syncInventoryAdjustments } from "../services/inventory-adjustments.service";
@@ -107,6 +108,24 @@ async function getAlegraConfigForStore(shopDomain?: string) {
     }
   }
   return getAlegraConfig();
+}
+
+async function getAlegraClientForStore(shopDomain?: string) {
+  const normalized = shopDomain ? String(shopDomain).trim() : "";
+  if (normalized) {
+    const conn = await getAlegraConnectionByDomain(normalized);
+    return new AlegraClient({
+      email: conn.email,
+      apiKey: conn.apiKey,
+      baseUrl: getAlegraBaseUrl(conn.environment || "prod"),
+    });
+  }
+  const alegra = await getAlegraCredential();
+  return new AlegraClient({
+    email: alegra.email,
+    apiKey: alegra.apiKey,
+    baseUrl: getAlegraBaseUrl(alegra.environment || "prod"),
+  });
 }
 
 async function fetchAlegra(path: string, query?: URLSearchParams, shopDomain?: string) {
@@ -661,8 +680,10 @@ const buildShopifyPayload = (
   settings: { status?: string; includeImages?: boolean; vendor?: string },
   warehouseIds: string[],
   includeInventory: boolean,
-  priceConfig?: PriceListConfig
+  priceConfig?: PriceListConfig,
+  trackInventory: boolean = true
 ) => {
+  const inventoryManagement = trackInventory ? "shopify" : null;
   const images = normalizeImageUrls(alegraItem.images || []);
   const itemVariants = Array.isArray(alegraItem.itemVariants) ? alegraItem.itemVariants : [];
   const optionLabels = collectOptionLabels(itemVariants);
@@ -680,8 +701,8 @@ const buildShopifyPayload = (
       "",
     price: pickPriceForStore(alegraItem.price, priceConfig)?.toString() ?? "0",
     inventory_policy: "deny",
-    inventory_management: "shopify",
-    inventory_quantity: includeInventory
+    inventory_management: inventoryManagement,
+    inventory_quantity: includeInventory && trackInventory
       ? resolveInventoryQuantity(alegraItem.inventory, warehouseIds)
       : 0,
   };
@@ -698,8 +719,8 @@ const buildShopifyPayload = (
             "",
           price: pickPriceForStore(variant.price, priceConfig)?.toString() ?? "0",
           inventory_policy: "deny",
-          inventory_management: "shopify",
-          inventory_quantity: includeInventory
+          inventory_management: inventoryManagement,
+          inventory_quantity: includeInventory && trackInventory
             ? resolveInventoryQuantity(variant.inventory, warehouseIds)
             : 0,
           barcode: variant.id ? `ALT-${variant.id}` : undefined,
@@ -1240,12 +1261,26 @@ export async function publishShopifyHandler(req: Request, res: Response) {
       res.status(400).json({ error: "Producto fuera de las bodegas seleccionadas." });
       return;
     }
-    const payload = buildShopifyPayload(item, settings, warehouseIds, true, {
-      generalId: storeConfig?.priceListGeneralId,
-      discountId: storeConfig?.priceListDiscountId,
-      wholesaleId: storeConfig?.priceListWholesaleId,
-      currency: storeConfig?.currency,
-    });
+    const trackInventory =
+      settings &&
+      typeof settings === "object" &&
+      (settings as Record<string, unknown>).trackInventory !== undefined
+        ? String((settings as Record<string, unknown>).trackInventory).toLowerCase() === "true" ||
+          String((settings as Record<string, unknown>).trackInventory).toLowerCase() === "1"
+        : true;
+    const payload = buildShopifyPayload(
+      item,
+      settings,
+      warehouseIds,
+      true,
+      {
+        generalId: storeConfig?.priceListGeneralId,
+        discountId: storeConfig?.priceListDiscountId,
+        wholesaleId: storeConfig?.priceListWholesaleId,
+        currency: storeConfig?.currency,
+      },
+      trackInventory
+    );
     const published = await fetchShopify("/products.json", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1295,7 +1330,17 @@ export async function lookupShopifyHandler(req: Request, res: Response) {
     res.json({ results: {} });
     return;
   }
-  const results: Record<string, { published: boolean; status: string; productId?: string; title?: string }> = {};
+  const results: Record<
+    string,
+    {
+      published: boolean;
+      status: string;
+      productId?: string;
+      title?: string;
+      inventoryPolicy?: string | null;
+      tracked?: boolean;
+    }
+  > = {};
   const seenProducts = new Map<string, { id?: string; status?: string; title?: string }>();
 
   try {
@@ -1331,6 +1376,10 @@ export async function lookupShopifyHandler(req: Request, res: Response) {
         status: product?.status || "active",
         productId: product?.id ? String(product.id) : undefined,
         title: product?.title,
+        inventoryPolicy: variantNode?.inventoryPolicy || null,
+        tracked: typeof variantNode?.inventoryItem?.tracked === "boolean"
+          ? variantNode.inventoryItem.tracked
+          : undefined,
       };
     }
     res.json({ results });
@@ -1350,6 +1399,150 @@ export async function lookupShopifyHandler(req: Request, res: Response) {
       message: error instanceof Error ? error.message : "Shopify lookup error",
       request: { skus, shopDomain: shopDomain || null },
     });
+  }
+}
+
+export async function updateProductOversellHandler(req: Request, res: Response) {
+  const alegraId = typeof req.body?.alegraId === "string" ? req.body.alegraId.trim() : "";
+  const sku = typeof req.body?.sku === "string" ? req.body.sku.trim() : "";
+  const shopDomain = typeof req.body?.shopDomain === "string" ? req.body.shopDomain.trim() : "";
+  const allowOversellAlegra =
+    typeof req.body?.allowOversellAlegra === "boolean" ? req.body.allowOversellAlegra : undefined;
+  const allowOversellShopify =
+    typeof req.body?.allowOversellShopify === "boolean" ? req.body.allowOversellShopify : undefined;
+
+  if (allowOversellAlegra === undefined && allowOversellShopify === undefined) {
+    res.status(400).json({ error: "Nada para actualizar." });
+    return;
+  }
+
+  try {
+    const result: Record<string, unknown> = {};
+
+    if (allowOversellAlegra !== undefined) {
+      if (!alegraId) {
+        res.status(400).json({ error: "alegraId requerido." });
+        return;
+      }
+      const alegraClient = await getAlegraClientForStore(shopDomain);
+      await alegraClient.updateItem(alegraId, {
+        inventory: {
+          negativeSale: allowOversellAlegra,
+        },
+      });
+      result.alegra = { id: alegraId, negativeSale: allowOversellAlegra };
+    }
+
+    if (allowOversellShopify !== undefined) {
+      if (!sku) {
+        res.status(400).json({ error: "sku requerido." });
+        return;
+      }
+      const shopifyCredential = shopDomain
+        ? await getShopifyConnectionByDomain(shopDomain)
+        : await getShopifyCredential();
+      const client = new ShopifyClient({
+        shopDomain: shopifyCredential.shopDomain,
+        accessToken: shopifyCredential.accessToken,
+        apiVersion: resolveShopifyApiVersion((shopifyCredential as { apiVersion?: string }).apiVersion),
+      });
+      const lookup = await client.findVariantByIdentifier(sku);
+      const variantNode = lookup.productVariants?.edges?.[0]?.node;
+      if (!variantNode?.id) {
+        throw new Error("Variante Shopify no encontrada para el SKU.");
+      }
+      await client.updateVariantInventoryPolicy(
+        variantNode.id,
+        allowOversellShopify ? "CONTINUE" : "DENY"
+      );
+      result.shopify = {
+        sku,
+        inventoryPolicy: allowOversellShopify ? "CONTINUE" : "DENY",
+      };
+    }
+
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Update error" });
+  }
+}
+
+export async function updateProductTrackingHandler(req: Request, res: Response) {
+  const alegraId = typeof req.body?.alegraId === "string" ? req.body.alegraId.trim() : "";
+  const sku = typeof req.body?.sku === "string" ? req.body.sku.trim() : "";
+  const shopDomain = typeof req.body?.shopDomain === "string" ? req.body.shopDomain.trim() : "";
+  const trackInventoryAlegra =
+    typeof req.body?.trackInventoryAlegra === "boolean" ? req.body.trackInventoryAlegra : undefined;
+  const trackInventoryShopify =
+    typeof req.body?.trackInventoryShopify === "boolean" ? req.body.trackInventoryShopify : undefined;
+  const inventoryQuantityRaw =
+    typeof req.body?.inventoryQuantity === "number"
+      ? req.body.inventoryQuantity
+      : typeof req.body?.inventoryQuantity === "string" && req.body.inventoryQuantity.trim() !== ""
+        ? Number(req.body.inventoryQuantity)
+        : null;
+  const inventoryQuantity =
+    typeof inventoryQuantityRaw === "number" && Number.isFinite(inventoryQuantityRaw)
+      ? inventoryQuantityRaw
+      : null;
+  const inventoryUnit = typeof req.body?.inventoryUnit === "string" ? req.body.inventoryUnit.trim() : "u";
+  const allowOversellAlegra =
+    typeof req.body?.allowOversellAlegra === "boolean" ? req.body.allowOversellAlegra : undefined;
+
+  if (trackInventoryAlegra === undefined && trackInventoryShopify === undefined) {
+    res.status(400).json({ error: "Nada para actualizar." });
+    return;
+  }
+
+  try {
+    const result: Record<string, unknown> = {};
+
+    if (trackInventoryAlegra !== undefined) {
+      if (!alegraId) {
+        res.status(400).json({ error: "alegraId requerido." });
+        return;
+      }
+      const alegraClient = await getAlegraClientForStore(shopDomain);
+      const payload: Record<string, unknown> = {};
+      if (trackInventoryAlegra) {
+        payload.inventory = {
+          unit: inventoryUnit || "u",
+          initialQuantity: inventoryQuantity ?? 0,
+          ...(allowOversellAlegra !== undefined ? { negativeSale: allowOversellAlegra } : {}),
+        };
+      } else {
+        payload.inventory = null;
+      }
+      await alegraClient.updateItem(alegraId, payload);
+      result.alegra = { id: alegraId, tracked: trackInventoryAlegra };
+    }
+
+    if (trackInventoryShopify !== undefined) {
+      if (!sku) {
+        res.status(400).json({ error: "sku requerido." });
+        return;
+      }
+      const shopifyCredential = shopDomain
+        ? await getShopifyConnectionByDomain(shopDomain)
+        : await getShopifyCredential();
+      const client = new ShopifyClient({
+        shopDomain: shopifyCredential.shopDomain,
+        accessToken: shopifyCredential.accessToken,
+        apiVersion: resolveShopifyApiVersion((shopifyCredential as { apiVersion?: string }).apiVersion),
+      });
+      const lookup = await client.findVariantByIdentifier(sku);
+      const variantNode = lookup.productVariants?.edges?.[0]?.node;
+      const inventoryItemId = variantNode?.inventoryItem?.id || "";
+      if (!inventoryItemId) {
+        throw new Error("InventoryItem no encontrado para el SKU.");
+      }
+      await client.updateInventoryItemTracking(inventoryItemId, trackInventoryShopify);
+      result.shopify = { sku, tracked: trackInventoryShopify };
+    }
+
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Update error" });
   }
 }
 
@@ -1465,6 +1658,10 @@ export async function syncProductsHandler(req: Request, res: Response) {
         : null;
     const updateExisting = parseBooleanLike(
       (settings as Record<string, unknown>).updateExisting,
+      true
+    );
+    const trackInventory = parseBooleanLike(
+      (settings as Record<string, unknown>).trackInventory,
       true
     );
     const updateExistingInShopify =
@@ -1631,7 +1828,8 @@ export async function syncProductsHandler(req: Request, res: Response) {
                   discountId: storeConfig?.priceListDiscountId,
                   wholesaleId: storeConfig?.priceListWholesaleId,
                   currency: storeConfig?.currency,
-                }
+                },
+                trackInventory
               );
               const desiredVariants = Array.isArray((desiredPayload as any)?.product?.variants)
                 ? ((desiredPayload as any).product.variants as Array<{ sku?: string; price?: string }>)
@@ -1688,7 +1886,8 @@ export async function syncProductsHandler(req: Request, res: Response) {
                 discountId: storeConfig?.priceListDiscountId,
                 wholesaleId: storeConfig?.priceListWholesaleId,
                 currency: storeConfig?.currency,
-              }
+              },
+              trackInventory
             );
             const publishedResult = await fetchShopify(
               "/products.json",
