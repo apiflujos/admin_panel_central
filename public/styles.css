@@ -2653,6 +2653,32 @@ body.force-settings #settings {
   margin: 2px 0 10px;
 }
 
+.settings-title-with-logos {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.settings-title-logos {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(15, 23, 42, 0.03);
+}
+
+.settings-title-logos .provider-logo {
+  width: 18px;
+  height: 18px;
+}
+
+.settings-title-logos .group-arrow {
+  font-size: 12px;
+}
+
 
 .connections-layout {
   display: grid;

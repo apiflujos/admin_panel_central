@@ -4901,15 +4901,19 @@ function setModuleBridgeTag(moduleKey, text) {
 }
 
 function applyEcommerceLogo(label) {
-  const logo = document.querySelector('.provider-logo.is-shopify');
-  if (!logo) return;
-  if (label.startsWith("WooCommerce")) {
-    logo.setAttribute("src", "/brands/woocommerce.png?v=20260201s");
-    logo.setAttribute("alt", "WooCommerce");
-  } else {
-    logo.setAttribute("src", "/brands/shopify.png?v=20260201s");
-    logo.setAttribute("alt", "Shopify");
-  }
+  const logos = document.querySelectorAll('.provider-logo.is-shopify');
+  if (!logos.length) return;
+  const useWoo = label.startsWith("WooCommerce");
+  logos.forEach((logo) => {
+    if (!(logo instanceof HTMLImageElement)) return;
+    if (useWoo) {
+      logo.setAttribute("src", "/brands/woocommerce.png?v=20260201s");
+      logo.setAttribute("alt", "WooCommerce");
+    } else {
+      logo.setAttribute("src", "/brands/shopify.png?v=20260201s");
+      logo.setAttribute("alt", "Shopify");
+    }
+  });
 }
 
 function updateDynamicGroupTitles(context) {
@@ -4960,6 +4964,21 @@ function updateDynamicModuleTitles(context) {
   setModuleTitle("alegra-invoice", `Facturación en ${accountingLabel} (para pedidos)`);
 }
 
+function updateSettingsStoreHeading(context) {
+  const heading = document.getElementById("settings-stores");
+  if (!heading) return;
+  const titleText = heading.querySelector(".settings-title-text") || heading;
+  const commerceLabel = getCommerceLabel(context);
+  const accountingLabel = getAccountingLabel(context);
+  const hasCommerce = commerceLabel !== "E‑commerce";
+  const hasAccounting = accountingLabel !== "Contable";
+  if (hasCommerce && hasAccounting) {
+    titleText.textContent = `Configuraciones por tienda · ${commerceLabel} + ${accountingLabel}`;
+  } else {
+    titleText.textContent = "Configuraciones por tienda";
+  }
+}
+
 function updateStoreSyncTitle() {
   const title = document.querySelector('[data-module-toggle="store-sync-products"]');
   if (!title) return;
@@ -4998,6 +5017,11 @@ function updateConnectionScopedVisibility(storeConnections) {
     wooConnected: wooOk,
   });
   updateDynamicModuleTitles({
+    shopifyConnected: shopifyOk,
+    alegraConnected: alegraOk,
+    wooConnected: wooOk,
+  });
+  updateSettingsStoreHeading({
     shopifyConnected: shopifyOk,
     alegraConnected: alegraOk,
     wooConnected: wooOk,
@@ -6321,11 +6345,16 @@ function renderStoreActiveSelect(stores, options = {}) {
     if (storeActiveNameLabel) {
       storeActiveNameLabel.textContent = "-";
     }
+    if (settingsStoreActiveLabel) settingsStoreActiveLabel.textContent = "";
+    const switcherPanel = document.getElementById("stores-switcher-panel");
+    if (switcherPanel) switcherPanel.classList.add("is-hidden");
     shopifyAdminBase = "";
     updateConnectionPills();
     return;
   }
   storeActiveField.style.display = "";
+  const switcherPanel = document.getElementById("stores-switcher-panel");
+  if (switcherPanel) switcherPanel.classList.remove("is-hidden");
   storeActiveSelect.disabled = stores.length <= 1;
   storeActiveSelect.innerHTML = stores
     .map(
