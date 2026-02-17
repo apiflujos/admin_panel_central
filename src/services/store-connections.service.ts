@@ -151,16 +151,67 @@ export async function listStoreConnections() {
     [orgId]
   );
 
-  const singleStoreId =
-    storesCatalogRows.rows.length === 1 ? Number(storesCatalogRows.rows[0].id) : null;
-  if (Number.isFinite(singleStoreId)) {
+  const fallbackStoreId = storesCatalogRows.rows[0]?.id ? Number(storesCatalogRows.rows[0].id) : null;
+  const resolveOrCreateStoreId = async (name: string) => {
+    const trimmed = String(name || "").trim();
+    if (!trimmed) return null;
+    const existing = await pool.query<{ id: number }>(
+      `
+      SELECT id
+      FROM stores
+      WHERE organization_id = $1 AND name = $2
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+      [orgId, trimmed]
+    );
+    if (existing.rows.length) return existing.rows[0].id;
+    const created = await pool.query<{ id: number }>(
+      `
+      INSERT INTO stores (organization_id, name)
+      VALUES ($1, $2)
+      RETURNING id
+      `,
+      [orgId, trimmed]
+    );
+    return created.rows[0]?.id || null;
+  };
+  if (Number.isFinite(fallbackStoreId)) {
     await pool.query(
       `
       UPDATE alegra_accounts
       SET store_id = $1
       WHERE organization_id = $2 AND store_id IS NULL
       `,
-      [singleStoreId, orgId]
+      [fallbackStoreId, orgId]
+    );
+  }
+  const missingShopify = await pool.query<{
+    id: number;
+    store_name: string | null;
+    shop_domain: string;
+  }>(
+    `
+    SELECT id, store_name, shop_domain
+    FROM shopify_stores
+    WHERE organization_id = $1 AND store_id IS NULL
+    `,
+    [orgId]
+  );
+  for (const row of missingShopify.rows) {
+    const resolved =
+      (await resolveOrCreateStoreId(row.store_name || "")) ||
+      (await resolveOrCreateStoreId(row.shop_domain || "")) ||
+      fallbackStoreId ||
+      null;
+    if (!resolved) continue;
+    await pool.query(
+      `
+      UPDATE shopify_stores
+      SET store_id = $1
+      WHERE id = $2
+      `,
+      [resolved, row.id]
     );
   }
 
@@ -373,8 +424,6 @@ export async function listStoreConnections() {
   });
 
   const alegraByStore = new Map<number, (typeof mappedAlegraAccounts)[number]>();
-  const fallbackStoreId =
-    storesCatalogRows.rows.length === 1 ? Number(storesCatalogRows.rows[0].id) : null;
   mappedAlegraAccounts.forEach((account) => {
     let storeId = Number(account.storeId);
     if (!Number.isFinite(storeId) && fallbackStoreId) {
@@ -1056,6 +1105,21 @@ async function resolveAlegraAccountId(
   if (!input) return undefined;
   const storeId = Number.isFinite(input.storeId as number) ? Number(input.storeId) : null;
   if (input.accountId) {
+    if (!storeId) {
+      const existing = await pool.query<{ store_id: number | null }>(
+        `
+        SELECT store_id
+        FROM alegra_accounts
+        WHERE organization_id = $1 AND id = $2
+        LIMIT 1
+        `,
+        [orgId, input.accountId]
+      );
+      const currentStoreId = existing.rows[0]?.store_id || null;
+      if (!currentStoreId) {
+        throw new Error("Alegra debe estar asociado a una tienda.");
+      }
+    }
     const apiKey = input.apiKey?.trim();
     if (apiKey) {
       const encrypted = encryptString(JSON.stringify({ apiKey }));
@@ -1083,6 +1147,9 @@ async function resolveAlegraAccountId(
   const email = input.email?.trim();
   const apiKey = input.apiKey?.trim();
   if (!email || !apiKey) return undefined;
+  if (!storeId) {
+    throw new Error("Selecciona una tienda para conectar Alegra.");
+  }
   const environment = input.environment === "sandbox" ? "sandbox" : "prod";
 
   const existing = await pool.query<{ id: number; api_key_encrypted: string }>(
