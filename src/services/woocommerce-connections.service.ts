@@ -104,8 +104,53 @@ async function upsertWooCredential(payload: WooCommerceCredentialPayload) {
 export async function listWooConnections() {
   const credential = await readWooCredential();
   const stores = credential?.stores || [];
+  if (!stores.length) {
+    return { stores: [] };
+  }
+  const pool = getPool();
+  const orgId = getOrgId();
+  await ensureOrganization(pool, orgId);
+  const resolveOrCreateStoreId = async (name: string) => {
+    const trimmed = String(name || "").trim();
+    if (!trimmed) return null;
+    const existing = await pool.query<{ id: number }>(
+      `
+      SELECT id
+      FROM stores
+      WHERE organization_id = $1 AND name = $2
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+      [orgId, trimmed]
+    );
+    if (existing.rows.length) return existing.rows[0].id;
+    const created = await pool.query<{ id: number }>(
+      `
+      INSERT INTO stores (organization_id, name)
+      VALUES ($1, $2)
+      RETURNING id
+      `,
+      [orgId, trimmed]
+    );
+    return created.rows[0]?.id || null;
+  };
+  let mutated = false;
+  const normalized = await Promise.all(
+    stores.map(async (store) => {
+      if (Number.isFinite(store.storeId as number)) return store;
+      const fallback =
+        (await resolveOrCreateStoreId(store.storeName || "")) ||
+        (await resolveOrCreateStoreId(store.shopDomain || ""));
+      if (!fallback) return store;
+      mutated = true;
+      return { ...store, storeId: fallback };
+    })
+  );
+  if (mutated) {
+    await upsertWooCredential({ stores: normalized });
+  }
   return {
-    stores: stores.map((store) => ({
+    stores: normalized.map((store) => ({
       shopDomain: store.shopDomain,
       storeName: store.storeName || "",
       storeId: store.storeId,
@@ -147,6 +192,9 @@ export async function upsertWooConnection(input: WooCommerceStoreInput) {
   const consumerSecret = String(input.consumerSecret || "").trim();
   if (!consumerKey || !consumerSecret) {
     throw new Error("Consumer key y secret requeridos");
+  }
+  if (!Number.isFinite(input.storeId as number)) {
+    throw new Error("Selecciona una tienda para conectar WooCommerce.");
   }
 
   const credential = (await readWooCredential()) || { stores: [] };
