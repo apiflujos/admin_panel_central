@@ -946,6 +946,7 @@ function setupViewportDebug() {
 let connectionWizardStep = "name";
 let connectionWizardChoice = "";
 let connectionWizardGroup = "commerce";
+let pendingConnectionGroup = "";
 const STORE_ACTIVE_KEY = "apiflujos-active-store-id";
 let storesCatalog = [];
 let activeStoreId = "";
@@ -1255,14 +1256,35 @@ function updateConnectionChoiceCount() {
   connectionModal.setAttribute("data-connection-count", String(Math.min(count, 4)));
 }
 
-function openConnectionModal() {
+function openConnectionModal(presetGroup) {
   if (!connectionModal) return;
   if (connectionModalBody) {
     resetConnectionFormVisibility(connectionModalBody);
   }
-  connectionWizardGroup = "commerce";
+  pendingConnectionGroup = presetGroup ? String(presetGroup) : "";
+  const hasPreset = Boolean(pendingConnectionGroup);
+  connectionWizardGroup = hasPreset ? pendingConnectionGroup : "";
   connectionWizardChoice = "";
-  connectionModal.setAttribute("data-connection-group", connectionWizardGroup);
+  if (hasPreset) {
+    connectionModal.setAttribute("data-connection-group", connectionWizardGroup);
+    connectionModal.querySelectorAll("[data-connection-group-choice]").forEach((button) => {
+      const isActive = button.getAttribute("data-connection-group-choice") === connectionWizardGroup;
+      button.classList.toggle("is-active", isActive);
+    });
+    connectionModal.querySelectorAll("[data-connection-choice]").forEach((button) => {
+      const groupKey = button.getAttribute("data-connection-group") || "";
+      const show = !groupKey || groupKey === connectionWizardGroup;
+      button.classList.toggle("is-hidden", !show);
+    });
+  } else {
+    connectionModal.removeAttribute("data-connection-group");
+    connectionModal.querySelectorAll("[data-connection-group-choice]").forEach((button) => {
+      button.classList.remove("is-active");
+    });
+    connectionModal.querySelectorAll("[data-connection-choice]").forEach((button) => {
+      button.classList.remove("is-hidden");
+    });
+  }
   renderConnectionStoreSelect();
   connectionModal.classList.add("is-open");
   connectionModal.setAttribute("aria-hidden", "false");
@@ -1292,6 +1314,7 @@ function closeConnectionModal() {
   }
   connectionWizardGroup = "commerce";
   connectionWizardChoice = "";
+  pendingConnectionGroup = "";
   const title = connectionModal.querySelector("#connection-modal-title");
   if (title) title.textContent = "Nueva conexion";
   if (connectionModalPlatformPill) {
@@ -1582,8 +1605,7 @@ document.addEventListener("click", (event) => {
   const quickGroup = target.closest("[data-connection-group-open]");
   if (quickGroup instanceof HTMLElement) {
     const group = quickGroup.getAttribute("data-connection-group-open") || "commerce";
-    openConnectionModal();
-    setConnectionGroup(group);
+    openConnectionModal(group);
     return;
   }
   const button = target.closest("[data-settings-tab]");
@@ -14129,9 +14151,7 @@ if (connectionModalOpen) {
     const quickGroup = target.closest("[data-connection-group-open]");
     if (quickGroup instanceof HTMLElement) {
       const group = quickGroup.getAttribute("data-connection-group-open") || "commerce";
-      openConnectionModal();
-      setConnectionGroup(group);
-      setConnectionWizardStep("name");
+      openConnectionModal(group);
       return;
     }
     const groupChoice = target.closest("[data-connection-group-choice]");
@@ -14160,6 +14180,12 @@ if (connectionNameNext) {
       return;
     }
     setActiveStoreId(store.id);
+    if (pendingConnectionGroup) {
+      const group = pendingConnectionGroup;
+      pendingConnectionGroup = "";
+      setConnectionGroup(group);
+      return;
+    }
     setConnectionWizardStep("group");
   });
 }
@@ -14198,7 +14224,7 @@ if (storeCreateSave) {
         body: JSON.stringify({ name: nameValue }),
       });
       closeStoreCreateModal();
-      await loadStoresCatalog();
+      await loadConnections({ preserveUi: true });
       if (result?.created?.id && connectionStoreSelect instanceof HTMLSelectElement) {
         connectionStoreSelect.value = String(result.created.id);
         setActiveStoreId(result.created.id);
