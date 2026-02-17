@@ -1641,6 +1641,19 @@ button {
   margin-top: 16px;
 }
 
+.settings-group-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-group-title-row .ghost.tiny,
+.settings-group-title-row .primary.tiny {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 .settings-group {
   border: 2px solid rgba(15, 23, 42, 0.12);
   border-radius: 16px;
@@ -2719,9 +2732,9 @@ body.force-settings #settings {
 }
 
 .store-list {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .connection-actions {
