@@ -15,6 +15,9 @@ type CrossStoreProductsSyncSettings = {
   includeImages?: boolean;
   includeTags?: boolean;
   includeProductType?: boolean;
+  trackInventory?: boolean;
+  includeInventory?: boolean;
+  inventorySource?: "accounting" | "commerce";
 };
 
 type CrossStoreProductsSyncParams = {
@@ -29,6 +32,7 @@ type CrossStoreProductsSyncResult = {
   ok: boolean;
   total: number;
   created: number;
+  updated: number;
   skipped: number;
   failed: number;
   errors?: Array<{ title?: string; message: string }>;
@@ -68,6 +72,39 @@ const resolvePriceListId = (price: Record<string, unknown>) => {
     normalizePriceListId(raw.id)
   );
 };
+
+const resolveAlegraInventoryQuantity = (inventory?: Record<string, unknown> | null) => {
+  if (!inventory) return null;
+  const warehouses = (inventory as { warehouses?: Array<{ availableQuantity?: unknown; quantity?: unknown }> })
+    .warehouses;
+  if (Array.isArray(warehouses) && warehouses.length) {
+    return warehouses.reduce((total, entry) => {
+      const raw = Number((entry?.availableQuantity ?? entry?.quantity ?? 0) as number);
+      return total + (Number.isFinite(raw) ? raw : 0);
+    }, 0);
+  }
+  const available = Number(
+    (inventory as { availableQuantity?: unknown; quantity?: unknown }).availableQuantity ??
+      (inventory as { availableQuantity?: unknown; quantity?: unknown }).quantity
+  );
+  return Number.isFinite(available) ? available : null;
+};
+
+async function loadAlegraInventoryByIdentifier(client: AlegraClient, identifier: string) {
+  const base = await findAlegraItemByIdentifier(client, identifier);
+  if (!base) return null;
+  const id = String((base as { id?: string | number; _id?: string | number }).id || (base as any)._id || "");
+  const inventoryPayload =
+    id && id !== "undefined"
+      ? ((await client.getItemWithParams(id, {
+          fields: "inventory",
+          metadata: true,
+        })) as Record<string, unknown>)
+      : (base as Record<string, unknown>);
+  return resolveAlegraInventoryQuantity(
+    (inventoryPayload as { inventory?: Record<string, unknown> }).inventory || null
+  );
+}
 
 const resolveAlegraItemPrice = (item: Record<string, unknown>, listId?: string) => {
   if (!item) return null;
@@ -152,6 +189,16 @@ function resolveShopifyProductImages(product: ShopifyProduct) {
     .filter((url) => url.length > 0);
 }
 
+const coerceQuantity = (value?: unknown) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
+const resolveWooStockQuantity = (product: WooProduct, variation?: WooVariation) => {
+  if (variation) return coerceQuantity(variation.stock_quantity);
+  return coerceQuantity(product.stock_quantity);
+};
+
 async function buildShopifyInputFromWoo(
   product: WooProduct,
   variations: WooVariation[],
@@ -162,6 +209,7 @@ async function buildShopifyInputFromWoo(
   const includeProductType = settings.includeProductType !== false;
   const includeTags = settings.includeTags !== false;
   const status: "ACTIVE" | "DRAFT" = settings.status === "active" ? "ACTIVE" : "DRAFT";
+  const trackInventory = settings.trackInventory !== false;
   const priceListId = settings.priceListId;
   const priceFallback = settings.priceFallback || "shopify";
 
@@ -253,6 +301,7 @@ async function buildShopifyInputFromWoo(
     tags: includeTags ? (product.tags || []).map((tag) => String(tag?.name || "").trim()).filter(Boolean) : undefined,
     options: optionNames.length ? optionNames : undefined,
     variants,
+    trackInventory,
   };
 }
 
@@ -265,6 +314,9 @@ async function buildWooInputFromShopify(
   const includeProductType = settings.includeProductType !== false;
   const includeTags = settings.includeTags !== false;
   const status = settings.status === "active" ? "publish" : "draft";
+  const includeInventory = settings.includeInventory !== false;
+  const trackInventory = settings.trackInventory !== false;
+  const inventorySource = settings.inventorySource === "commerce" ? "commerce" : "accounting";
   const priceListId = settings.priceListId;
   const priceFallback = settings.priceFallback || "shopify";
 
@@ -277,10 +329,11 @@ async function buildWooInputFromShopify(
     price?: string;
     sku?: string;
     attributes?: Array<{ name: string; option: string }>;
+    stockQuantity?: number | null;
   }>;
 
   for (const { node } of product?.variants?.edges || []) {
-    const variant: { price?: string; sku?: string; attributes?: Array<{ name: string; option: string }> } = {
+    const variant: { price?: string; sku?: string; attributes?: Array<{ name: string; option: string }>; stockQuantity?: number | null } = {
       sku: node?.sku ? String(node.sku).trim() : undefined,
     };
 
@@ -324,6 +377,15 @@ async function buildWooInputFromShopify(
       }
     }
 
+    if (includeInventory && trackInventory) {
+      if (inventorySource === "commerce") {
+        const raw = Number(node?.inventoryQuantity ?? 0);
+        variant.stockQuantity = Number.isFinite(raw) ? raw : null;
+      } else {
+        variant.stockQuantity = await loadAlegraInventoryByIdentifier(alegra, identifier);
+      }
+    }
+
     variants.push(variant);
   }
 
@@ -347,6 +409,170 @@ async function buildWooInputFromShopify(
       ...base,
       sku: single?.sku,
       regular_price: single?.price,
+      manage_stock: includeInventory && trackInventory ? true : undefined,
+      stock_quantity:
+        includeInventory && trackInventory && Number.isFinite(single?.stockQuantity as number)
+          ? Math.max(0, Math.trunc(single?.stockQuantity as number))
+          : undefined,
+    };
+  }
+
+  const attributes = optionNames.map((name, index) => {
+    const values = new Set<string>();
+    variants.forEach((variant) => {
+      const value = variant.attributes?.[index]?.option;
+      if (value) values.add(value);
+    });
+    return {
+      name,
+      variation: true,
+      visible: true,
+      options: Array.from(values),
+    };
+  });
+
+  return {
+    ...base,
+    attributes,
+    _variations: variants,
+  };
+}
+
+async function buildWooInputFromWoo(
+  product: WooProduct,
+  variations: WooVariation[],
+  settings: CrossStoreProductsSyncSettings,
+  alegra: AlegraClient
+) {
+  const includeDescriptions = settings.includeDescriptions !== false;
+  const includeProductType = settings.includeProductType !== false;
+  const includeTags = settings.includeTags !== false;
+  const status = settings.status === "active" ? "publish" : "draft";
+  const includeInventory = settings.includeInventory !== false;
+  const trackInventory = settings.trackInventory !== false;
+  const inventorySource = settings.inventorySource === "commerce" ? "commerce" : "accounting";
+  const priceListId = settings.priceListId;
+  const priceFallback = settings.priceFallback || "shopify";
+
+  const optionNames =
+    (product.attributes || [])
+      .filter((attr) => Boolean(attr?.variation))
+      .map((attr) => String(attr?.name || "").trim())
+      .filter(Boolean);
+
+  const sourceVariations = variations.length
+    ? variations
+    : [
+        {
+          id: product.id,
+          sku: product.sku,
+          price: product.price || product.regular_price,
+          regular_price: product.regular_price,
+          sale_price: product.sale_price,
+          attributes: [],
+          stock_quantity: product.stock_quantity,
+        },
+      ];
+
+  const variants = [] as Array<{
+    price?: string;
+    sku?: string;
+    attributes?: Array<{ name: string; option: string }>;
+    stockQuantity?: number | null;
+  }>;
+
+  for (const variation of sourceVariations) {
+    const variant: {
+      price?: string;
+      sku?: string;
+      attributes?: Array<{ name: string; option: string }>;
+      stockQuantity?: number | null;
+    } = {
+      sku: variation?.sku ? String(variation.sku).trim() : undefined,
+    };
+
+    if (optionNames.length) {
+      const selected = Array.isArray(variation?.attributes) ? variation.attributes : [];
+      const optionValues = optionNames.map((name) => {
+        const match = selected.find((entry) => entry?.name === name);
+        if (match?.option) return String(match.option);
+        return "Default";
+      });
+      variant.attributes = optionNames.map((name, index) => ({
+        name,
+        option: optionValues[index] || "Default",
+      }));
+    }
+
+    const identifier = String(variation?.sku || "").trim();
+    if (identifier) {
+      const alegraItem = await findAlegraItemByIdentifier(alegra, identifier);
+      const price = resolveAlegraItemPrice(alegraItem || {}, priceListId);
+      if (price === null) {
+        if (priceFallback === "skip") {
+          return null;
+        }
+        if (priceFallback === "none") {
+          variant.price = "0";
+        } else {
+          const sourcePrice =
+            variation?.regular_price || variation?.price || product?.regular_price || product?.price || "0";
+          variant.price = String(sourcePrice).trim() || "0";
+        }
+      } else {
+        variant.price = String(price);
+      }
+    } else {
+      if (priceFallback === "skip") {
+        return null;
+      }
+      if (priceFallback === "none") {
+        variant.price = "0";
+      } else {
+        const sourcePrice =
+          variation?.regular_price || variation?.price || product?.regular_price || product?.price || "0";
+        variant.price = String(sourcePrice).trim() || "0";
+      }
+    }
+
+    if (includeInventory && trackInventory) {
+      if (inventorySource === "commerce") {
+        variant.stockQuantity = resolveWooStockQuantity(product, variation);
+      } else if (identifier) {
+        variant.stockQuantity = await loadAlegraInventoryByIdentifier(alegra, identifier);
+      }
+    }
+
+    variants.push(variant);
+  }
+
+  if (!variants.length) {
+    return null;
+  }
+
+  const isVariable = optionNames.length > 0 || variants.length > 1;
+  const base: Record<string, unknown> = {
+    name: String(product.name || "").trim(),
+    status,
+    description: includeDescriptions ? String(product.description || "").trim() : undefined,
+    type: isVariable ? "variable" : "simple",
+    tags: includeTags ? (product.tags || []).map((tag) => ({ name: String(tag?.name || "").trim() })) : undefined,
+    categories: includeProductType
+      ? (product.categories || []).map((cat) => ({ name: String(cat?.name || "").trim() }))
+      : undefined,
+  };
+
+  if (!isVariable) {
+    const single = variants[0];
+    return {
+      ...base,
+      sku: single?.sku,
+      regular_price: single?.price,
+      manage_stock: includeInventory && trackInventory ? true : undefined,
+      stock_quantity:
+        includeInventory && trackInventory && Number.isFinite(single?.stockQuantity as number)
+          ? Math.max(0, Math.trunc(single?.stockQuantity as number))
+          : undefined,
     };
   }
 
@@ -385,6 +611,9 @@ export async function syncProductsAcrossProviders(
   }
 
   const settings: CrossStoreProductsSyncSettings = params.settings || {};
+  const includeInventory = settings.includeInventory !== false;
+  const trackInventory = settings.trackInventory !== false;
+  const inventorySource = settings.inventorySource === "commerce" ? "commerce" : "accounting";
   const alegraAccountId = Number(settings.alegraAccountId || 0);
   if (!Number.isFinite(alegraAccountId) || alegraAccountId <= 0) {
     throw new Error("Cuenta Alegra requerida.");
@@ -434,6 +663,7 @@ export async function syncProductsAcrossProviders(
     ok: true,
     total: sourceProducts.length,
     created: 0,
+    updated: 0,
     skipped: 0,
     failed: 0,
     errors: [],
@@ -456,6 +686,8 @@ export async function syncProductsAcrossProviders(
       consumerSecret: targetConnection.consumerSecret,
     });
   }
+  const targetLocationId =
+    targetShopify && includeInventory && trackInventory ? await targetShopify.getPrimaryLocationId() : "";
 
   for (const entry of sourceProducts) {
     try {
@@ -471,6 +703,7 @@ export async function syncProductsAcrossProviders(
           continue;
         }
         let exists = false;
+        let wooMatch: WooProduct | null = null;
         if (params.targetProvider === "shopify" && targetShopify) {
           for (const identifier of identifiers) {
             const match = await targetShopify.findVariantByIdentifier(identifier);
@@ -486,15 +719,11 @@ export async function syncProductsAcrossProviders(
             const matches = await targetWoo.findProductsBySku(identifier);
             if (matches.length) {
               exists = true;
+              wooMatch = matches[0];
               break;
             }
           }
         }
-        if (exists) {
-          result.skipped += 1;
-          continue;
-        }
-
         if (params.targetProvider === "woocommerce" && targetWoo) {
           const input = await buildWooInputFromShopify(product, settings, alegraClient);
           if (!input) {
@@ -511,24 +740,65 @@ export async function syncProductsAcrossProviders(
                 sku?: string;
                 price?: string;
                 attributes?: Array<{ name: string; option: string }>;
+                stockQuantity?: number | null;
               }>
             | undefined;
           if (rawPayload._variations) {
             delete rawPayload._variations;
           }
-          const created = await targetWoo.createProduct(rawPayload);
-          if (variationsPayload && created?.id) {
-            const variations = variationsPayload;
-            for (const variation of variations) {
-              await targetWoo.createVariation(created.id, {
-                sku: variation.sku,
-                regular_price: variation.price,
-                attributes: variation.attributes,
-              });
+          if (exists && wooMatch) {
+            await targetWoo.updateProduct(wooMatch.id, rawPayload);
+            if (variationsPayload) {
+              const existing = await targetWoo.listAllProductVariations(wooMatch.id);
+              for (const variation of variationsPayload) {
+                const match = existing.find((item) => String(item.sku || "") === String(variation.sku || ""));
+                const payload: Record<string, unknown> = {
+                  sku: variation.sku,
+                  regular_price: variation.price,
+                  attributes: variation.attributes,
+                  manage_stock: settings.includeInventory !== false && settings.trackInventory !== false,
+                  stock_quantity:
+                    settings.includeInventory !== false &&
+                    settings.trackInventory !== false &&
+                    Number.isFinite(variation.stockQuantity as number)
+                      ? Math.max(0, Math.trunc(variation.stockQuantity as number))
+                      : undefined,
+                };
+                if (match?.id) {
+                  await targetWoo.updateVariation(wooMatch.id, match.id, payload);
+                } else {
+                  await targetWoo.createVariation(wooMatch.id, payload);
+                }
+              }
             }
+            result.updated += 1;
+          } else {
+            const created = await targetWoo.createProduct(rawPayload);
+            if (variationsPayload && created?.id) {
+              const variations = variationsPayload;
+              for (const variation of variations) {
+                await targetWoo.createVariation(created.id, {
+                  sku: variation.sku,
+                  regular_price: variation.price,
+                  attributes: variation.attributes,
+                  manage_stock: settings.includeInventory !== false && settings.trackInventory !== false,
+                  stock_quantity:
+                    settings.includeInventory !== false &&
+                    settings.trackInventory !== false &&
+                    Number.isFinite(variation.stockQuantity as number)
+                      ? Math.max(0, Math.trunc(variation.stockQuantity as number))
+                      : undefined,
+                });
+              }
+            }
+            result.created += 1;
           }
-          result.created += 1;
           await delay(150);
+          continue;
+        }
+        if (exists) {
+          result.skipped += 1;
+          continue;
         }
       } else {
         const product = entry.product as WooProduct;
@@ -543,6 +813,7 @@ export async function syncProductsAcrossProviders(
           continue;
         }
         let exists = false;
+        let wooMatch: WooProduct | null = null;
         if (params.targetProvider === "shopify" && targetShopify) {
           for (const identifier of identifiers) {
             const match = await targetShopify.findVariantByIdentifier(identifier);
@@ -558,9 +829,82 @@ export async function syncProductsAcrossProviders(
             const matches = await targetWoo.findProductsBySku(identifier);
             if (matches.length) {
               exists = true;
+              wooMatch = matches[0];
               break;
             }
           }
+        }
+        if (params.targetProvider === "woocommerce" && targetWoo) {
+          const input = await buildWooInputFromWoo(product, variations, settings, alegraClient);
+          if (!input) {
+            result.skipped += 1;
+            continue;
+          }
+          const images = settings.includeImages !== false ? resolveWooProductImages(product) : [];
+          if (images.length && typeof input === "object") {
+            (input as Record<string, unknown>).images = images.map((src) => ({ src }));
+          }
+          const rawPayload = input as Record<string, unknown>;
+          const variationsPayload = rawPayload._variations as
+            | Array<{
+                sku?: string;
+                price?: string;
+                attributes?: Array<{ name: string; option: string }>;
+                stockQuantity?: number | null;
+              }>
+            | undefined;
+          if (rawPayload._variations) {
+            delete rawPayload._variations;
+          }
+          if (exists && wooMatch) {
+            await targetWoo.updateProduct(wooMatch.id, rawPayload);
+            if (variationsPayload) {
+              const existing = await targetWoo.listAllProductVariations(wooMatch.id);
+              for (const variation of variationsPayload) {
+                const match = existing.find((item) => String(item.sku || "") === String(variation.sku || ""));
+                const payload: Record<string, unknown> = {
+                  sku: variation.sku,
+                  regular_price: variation.price,
+                  attributes: variation.attributes,
+                  manage_stock: settings.includeInventory !== false && settings.trackInventory !== false,
+                  stock_quantity:
+                    settings.includeInventory !== false &&
+                    settings.trackInventory !== false &&
+                    Number.isFinite(variation.stockQuantity as number)
+                      ? Math.max(0, Math.trunc(variation.stockQuantity as number))
+                      : undefined,
+                };
+                if (match?.id) {
+                  await targetWoo.updateVariation(wooMatch.id, match.id, payload);
+                } else {
+                  await targetWoo.createVariation(wooMatch.id, payload);
+                }
+              }
+            }
+            result.updated += 1;
+          } else {
+            const created = await targetWoo.createProduct(rawPayload);
+            if (variationsPayload && created?.id) {
+              const variationsList = variationsPayload;
+              for (const variation of variationsList) {
+                await targetWoo.createVariation(created.id, {
+                  sku: variation.sku,
+                  regular_price: variation.price,
+                  attributes: variation.attributes,
+                  manage_stock: settings.includeInventory !== false && settings.trackInventory !== false,
+                  stock_quantity:
+                    settings.includeInventory !== false &&
+                    settings.trackInventory !== false &&
+                    Number.isFinite(variation.stockQuantity as number)
+                      ? Math.max(0, Math.trunc(variation.stockQuantity as number))
+                      : undefined,
+                });
+              }
+            }
+            result.created += 1;
+          }
+          await delay(150);
+          continue;
         }
         if (exists) {
           result.skipped += 1;
@@ -579,6 +923,47 @@ export async function syncProductsAcrossProviders(
             const images = resolveWooProductImages(product);
             if (images.length) {
               await targetShopify.addProductImagesByUrl(productId, images);
+            }
+          }
+          if (includeInventory && trackInventory && targetLocationId) {
+            const inventoryPairs: Array<{ identifier: string; quantity: number }> = [];
+            if (variations.length) {
+              for (const variation of variations) {
+                const identifier = String(variation?.sku || "").trim();
+                if (!identifier) continue;
+                let quantity: number | null = null;
+                if (inventorySource === "commerce") {
+                  quantity = resolveWooStockQuantity(product, variation);
+                } else {
+                  quantity = await loadAlegraInventoryByIdentifier(alegraClient, identifier);
+                }
+                if (!Number.isFinite(quantity as number)) continue;
+                inventoryPairs.push({ identifier, quantity: quantity as number });
+              }
+            } else {
+              const identifier = String(product?.sku || "").trim();
+              if (identifier) {
+                let quantity: number | null = null;
+                if (inventorySource === "commerce") {
+                  quantity = resolveWooStockQuantity(product);
+                } else {
+                  quantity = await loadAlegraInventoryByIdentifier(alegraClient, identifier);
+                }
+                if (Number.isFinite(quantity as number)) {
+                  inventoryPairs.push({ identifier, quantity: quantity as number });
+                }
+              }
+            }
+            for (const pair of inventoryPairs) {
+              const match = await targetShopify.findVariantByIdentifier(pair.identifier);
+              const edge = match?.productVariants?.edges?.[0];
+              const inventoryItemId = edge?.node?.inventoryItem?.id || "";
+              if (!inventoryItemId) continue;
+              await targetShopify.setInventoryOnHand(
+                inventoryItemId,
+                targetLocationId,
+                Math.max(0, Math.trunc(pair.quantity))
+              );
             }
           }
           result.created += 1;

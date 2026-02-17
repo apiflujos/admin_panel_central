@@ -257,6 +257,10 @@ export async function listStoreConfigs() {
           (rules as Record<string, unknown>).includeImages,
           true
         ),
+        trackInventory: normalizeBoolean(
+          (rules as Record<string, unknown>).trackInventory,
+          true
+        ),
         onlyActiveItems: normalizeBoolean(
           (rules as Record<string, unknown>).onlyActiveItems,
           Boolean((defaults.rules as Record<string, unknown>)?.onlyActiveItems)
@@ -496,10 +500,14 @@ async function getStoreConfigForStoreId(storeId: number) {
           (rules as Record<string, unknown>).includeImages,
           true
         ),
+        trackInventory: normalizeBoolean(
+          (rules as Record<string, unknown>).trackInventory,
+          true
+        ),
         onlyActiveItems: normalizeBoolean(
           (rules as Record<string, unknown>).onlyActiveItems,
-        Boolean((defaults.rules as Record<string, unknown>)?.onlyActiveItems)
-      ),
+          Boolean((defaults.rules as Record<string, unknown>)?.onlyActiveItems)
+        ),
       webhookItemsEnabled: normalizeBoolean(
         (rules as Record<string, unknown>).webhookItemsEnabled,
         true

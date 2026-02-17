@@ -13,6 +13,9 @@ type ShopifyStoreProductsSyncSettings = {
   includeImages?: boolean;
   includeTags?: boolean;
   includeProductType?: boolean;
+  trackInventory?: boolean;
+  includeInventory?: boolean;
+  inventorySource?: "accounting" | "commerce";
 };
 
 type ShopifyStoreProductsSyncParams = {
@@ -25,6 +28,7 @@ type ShopifyStoreProductsSyncResult = {
   ok: boolean;
   total: number;
   created: number;
+  updated: number;
   skipped: number;
   failed: number;
   errors?: Array<{ title?: string; message: string }>;
@@ -64,6 +68,39 @@ const resolvePriceListId = (price: Record<string, unknown>) => {
     normalizePriceListId(raw.id)
   );
 };
+
+const resolveAlegraInventoryQuantity = (inventory?: Record<string, unknown> | null) => {
+  if (!inventory) return null;
+  const warehouses = (inventory as { warehouses?: Array<{ availableQuantity?: unknown; quantity?: unknown }> })
+    .warehouses;
+  if (Array.isArray(warehouses) && warehouses.length) {
+    return warehouses.reduce((total, entry) => {
+      const raw = Number((entry?.availableQuantity ?? entry?.quantity ?? 0) as number);
+      return total + (Number.isFinite(raw) ? raw : 0);
+    }, 0);
+  }
+  const available = Number(
+    (inventory as { availableQuantity?: unknown; quantity?: unknown }).availableQuantity ??
+      (inventory as { availableQuantity?: unknown; quantity?: unknown }).quantity
+  );
+  return Number.isFinite(available) ? available : null;
+};
+
+async function loadAlegraInventoryByIdentifier(client: AlegraClient, identifier: string) {
+  const base = await findAlegraItemByIdentifier(client, identifier);
+  if (!base) return null;
+  const id = String((base as { id?: string | number; _id?: string | number }).id || (base as any)._id || "");
+  const inventoryPayload =
+    id && id !== "undefined"
+      ? ((await client.getItemWithParams(id, {
+          fields: "inventory",
+          metadata: true,
+        })) as Record<string, unknown>)
+      : (base as Record<string, unknown>);
+  return resolveAlegraInventoryQuantity(
+    (inventoryPayload as { inventory?: Record<string, unknown> }).inventory || null
+  );
+}
 
 const resolveAlegraItemPrice = (item: Record<string, unknown>, listId?: string) => {
   if (!item) return null;
@@ -133,6 +170,7 @@ async function buildProductCreateInput(
   const includeProductType = settings.includeProductType !== false;
   const includeTags = settings.includeTags !== false;
   const status: "ACTIVE" | "DRAFT" = settings.status === "active" ? "ACTIVE" : "DRAFT";
+  const trackInventory = settings.trackInventory !== false;
   const priceListId = settings.priceListId;
   const priceFallback = settings.priceFallback || "shopify";
 
@@ -205,6 +243,7 @@ async function buildProductCreateInput(
     tags: includeTags && Array.isArray(product.tags) ? product.tags : undefined,
     options: optionNames.length ? optionNames : undefined,
     variants,
+    trackInventory,
   };
 }
 
@@ -248,6 +287,11 @@ export async function syncShopifyProductsBetweenStores(
     accessToken: targetConnection.accessToken,
   });
   const alegraClient = await getAlegraClient(alegraAccountId);
+  const trackInventory = settings.trackInventory !== false;
+  const includeInventory = settings.includeInventory !== false;
+  const inventorySource = settings.inventorySource === "commerce" ? "commerce" : "accounting";
+  const targetLocationId =
+    includeInventory && trackInventory ? await targetClient.getPrimaryLocationId() : "";
 
   const onlyActive = settings.onlyActive !== false;
   const query = onlyActive ? "status:active" : "status:any";
@@ -257,6 +301,7 @@ export async function syncShopifyProductsBetweenStores(
     ok: true,
     total: products.length,
     created: 0,
+    updated: 0,
     skipped: 0,
     failed: 0,
     errors: [],
@@ -291,6 +336,30 @@ export async function syncShopifyProductsBetweenStores(
         const images = resolveProductImages(product);
         if (images.length) {
           await targetClient.addProductImagesByUrl(productId, images);
+        }
+      }
+
+      if (includeInventory && trackInventory && targetLocationId) {
+        for (const { node } of product?.variants?.edges || []) {
+          const identifier = String(node?.sku || node?.barcode || "").trim();
+          if (!identifier) continue;
+          let quantity: number | null = null;
+          if (inventorySource === "commerce") {
+            const raw = Number(node?.inventoryQuantity ?? 0);
+            quantity = Number.isFinite(raw) ? raw : null;
+          } else {
+            quantity = await loadAlegraInventoryByIdentifier(alegraClient, identifier);
+          }
+          if (!Number.isFinite(quantity as number)) continue;
+          const match = await targetClient.findVariantByIdentifier(identifier);
+          const edge = match?.productVariants?.edges?.[0];
+          const inventoryItemId = edge?.node?.inventoryItem?.id || "";
+          if (!inventoryItemId) continue;
+          await targetClient.setInventoryOnHand(
+            inventoryItemId,
+            targetLocationId,
+            Math.max(0, Math.trunc(quantity as number))
+          );
         }
       }
 

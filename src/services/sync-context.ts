@@ -32,6 +32,7 @@ type SyncContext = {
   autoPublishOnWebhook: boolean;
   autoPublishStatus: "draft" | "active";
   includeImages: boolean;
+  trackInventory: boolean;
   alegraWarehouseId?: string;
   alegraWarehouseIds?: string[];
   priceListGeneralId?: string;
@@ -47,6 +48,7 @@ type InventoryRules = {
   updateInShopify?: boolean;
   publishOnStock: boolean;
   includeImages?: boolean;
+  trackInventory?: boolean;
   onlyActiveItems?: boolean;
   autoPublishOnWebhook: boolean;
   autoPublishStatus: "draft" | "active";
@@ -99,6 +101,7 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
     updateInShopify: (rules as InventoryRules).updateInShopify !== false,
     publishOnStock: rules.publishOnStock,
     includeImages: (rules as InventoryRules).includeImages !== false,
+    trackInventory: (rules as InventoryRules).trackInventory !== false,
     onlyActiveItems: Boolean(rules.onlyActiveItems),
     autoPublishOnWebhook: rules.autoPublishOnWebhook,
     autoPublishStatus: normalizeAutoStatus(rules.autoPublishStatus),
