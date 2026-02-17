@@ -5459,15 +5459,13 @@ function setSetupMode(mode, options = {}) {
 }
 
 function initSetupMode(storesCount = 0) {
-  const stored = getSavedSetupMode();
-  const defaultMode = "guided";
-  setSetupMode(stored || defaultMode, { persist: false });
+  setSetupMode("manual", { persist: false });
+  clearWizardState();
+  closeCoach({ persistDismiss: false });
   const panel = getModulePanel("connections");
-  const alreadyOpen = panel?.getAttribute("data-setup-open") === "1";
   const activePane =
     document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
-  const wizardActive = isWizardStateActive(getWizardState());
-  const shouldOpen = alreadyOpen || wizardActive || activePane === "connections";
+  const shouldOpen = activePane === "connections";
   setConnectionsSetupOpen(shouldOpen);
 }
 

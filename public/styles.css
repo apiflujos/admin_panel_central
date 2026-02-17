@@ -1717,6 +1717,12 @@ button {
   gap: 8px;
 }
 
+.store-sync-logos {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .group-arrow {
   font-size: 13px;
   color: var(--muted);
@@ -3199,6 +3205,22 @@ body.no-alegra .provider-logo.is-alegra {
   border-color: rgba(15, 23, 42, 0.18);
 }
 
+.toggle.toggle-mini {
+  width: 28px;
+  height: 14px;
+}
+
+.toggle.toggle-mini::after {
+  top: 1px;
+  left: 1px;
+  width: 12px;
+  height: 12px;
+}
+
+.toggle.toggle-mini:checked::after {
+  transform: translateX(14px);
+}
+
 .toggle-field {
   display: flex;
   align-items: center;
@@ -3225,6 +3247,15 @@ body.no-alegra .provider-logo.is-alegra {
 .toggle-row span {
   color: var(--muted);
   font-weight: 600;
+}
+
+.products-table .toggle-field {
+  justify-content: center;
+  width: auto;
+}
+
+.product-toggle-cell {
+  text-align: center;
 }
 
 .panel-meta {
@@ -3520,6 +3551,53 @@ body.no-alegra .provider-logo.is-alegra {
   border-color: rgba(15, 23, 42, 0.12);
   color: var(--text);
   box-shadow: 0 8px 16px rgba(15, 23, 42, 0.06);
+}
+
+.setup-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.04), rgba(236, 72, 153, 0.04));
+  margin-bottom: 12px;
+}
+
+.setup-flow-step {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  min-width: 180px;
+}
+
+.setup-flow-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.setup-flow-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.setup-flow-desc {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.setup-flow-arrow {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
 }
 
 .setup-guided {
