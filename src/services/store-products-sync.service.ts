@@ -22,6 +22,15 @@ type ShopifyStoreProductsSyncParams = {
   sourceShopDomain: string;
   targetShopDomain: string;
   settings?: ShopifyStoreProductsSyncSettings;
+  onProgress?: (payload: {
+    total: number;
+    processed: number;
+    created: number;
+    updated: number;
+    skipped: number;
+    failed: number;
+  }) => void;
+  onStart?: (payload: { total: number }) => void;
 };
 
 type ShopifyStoreProductsSyncResult = {
@@ -306,7 +315,9 @@ export async function syncShopifyProductsBetweenStores(
     failed: 0,
     errors: [],
   };
+  params.onStart?.({ total: result.total });
 
+  let processed = 0;
   for (const product of products) {
     try {
       const identifiers = resolveVariantIdentifiers(product);
@@ -372,6 +383,15 @@ export async function syncShopifyProductsBetweenStores(
         message: error instanceof Error ? error.message : "Error copiando producto",
       });
     }
+    processed += 1;
+    params.onProgress?.({
+      total: result.total,
+      processed,
+      created: result.created,
+      updated: result.updated,
+      skipped: result.skipped,
+      failed: result.failed,
+    });
   }
 
   if (!result.errors?.length) {

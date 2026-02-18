@@ -9857,7 +9857,7 @@ async function runStoreProductsSync() {
   if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Sincronizando...";
   try {
     const isShopifyOnly = sourceProvider === "shopify" && targetProvider === "shopify";
-    const result = await fetchJson("/api/sync/stores/products", {
+    const response = await fetch("/api/sync/stores/products?stream=1", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -9880,18 +9880,79 @@ async function runStoreProductsSync() {
           includeInventory,
           inventorySource,
         },
+        stream: true,
       }),
     });
-    const total = Number(result?.total) || 0;
-    const created = Number(result?.created) || 0;
-    const updated = Number(result?.updated) || 0;
-    const skipped = Number(result?.skipped) || 0;
-    const failed = Number(result?.failed) || 0;
-    if (storeSyncStatusLabel) {
-      storeSyncStatusLabel.textContent =
-        total > 0
-          ? `Total ${total} · Creados ${created} · Actualizados ${updated} · Omitidos ${skipped} · Fallidos ${failed}`
-          : "Sin productos para sincronizar.";
+    if (!response.ok || !response.body) {
+      const text = await response.text();
+      throw new Error(text || "No se pudo sincronizar productos entre tiendas.");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let totals = {
+      total: null,
+      processed: 0,
+      created: 0,
+      updated: 0,
+      skipped: 0,
+      failed: 0,
+    };
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        let payload;
+        try {
+          payload = JSON.parse(trimmed);
+        } catch {
+          continue;
+        }
+        if (payload.type === "start") {
+          totals.total = payload.total ?? totals.total;
+        }
+        if (payload.type === "progress") {
+          totals = {
+            ...totals,
+            total: payload.total ?? totals.total,
+            processed: payload.processed ?? totals.processed,
+            created: payload.created ?? totals.created,
+            updated: payload.updated ?? totals.updated,
+            skipped: payload.skipped ?? totals.skipped,
+            failed: payload.failed ?? totals.failed,
+          };
+          if (storeSyncStatusLabel) {
+            storeSyncStatusLabel.textContent =
+              `Procesados ${totals.processed}/${totals.total || "?"}` +
+              ` · Creados ${totals.created}` +
+              ` · Actualizados ${totals.updated}` +
+              ` · Omitidos ${totals.skipped}` +
+              ` · Fallidos ${totals.failed}`;
+          }
+        }
+        if (payload.type === "complete") {
+          const total = Number(payload?.total) || 0;
+          const created = Number(payload?.created) || 0;
+          const updated = Number(payload?.updated) || 0;
+          const skipped = Number(payload?.skipped) || 0;
+          const failed = Number(payload?.failed) || 0;
+          if (storeSyncStatusLabel) {
+            storeSyncStatusLabel.textContent =
+              total > 0
+                ? `Total ${total} · Creados ${created} · Actualizados ${updated} · Omitidos ${skipped} · Fallidos ${failed}`
+                : "Sin productos para sincronizar.";
+          }
+          return;
+        }
+        if (payload.type === "error") {
+          throw new Error(payload.error || "No se pudo sincronizar productos entre tiendas.");
+        }
+      }
     }
   } catch (error) {
     const message = error?.message || "No se pudo sincronizar productos entre tiendas.";

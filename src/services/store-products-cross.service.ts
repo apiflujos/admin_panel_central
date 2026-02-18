@@ -26,6 +26,15 @@ type CrossStoreProductsSyncParams = {
   sourceShopDomain: string;
   targetShopDomain: string;
   settings?: CrossStoreProductsSyncSettings;
+  onProgress?: (payload: {
+    total: number;
+    processed: number;
+    created: number;
+    updated: number;
+    skipped: number;
+    failed: number;
+  }) => void;
+  onStart?: (payload: { total: number }) => void;
 };
 
 type CrossStoreProductsSyncResult = {
@@ -39,6 +48,31 @@ type CrossStoreProductsSyncResult = {
 };
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const shouldRetryWoo = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error || "");
+  return message.includes("503") || message.toLowerCase().includes("service unavailable");
+};
+async function listWooVariationsWithRetry(
+  client: WooCommerceClient,
+  productId: number,
+  retries = 2
+) {
+  let attempt = 0;
+  while (true) {
+    try {
+      return await client.listAllProductVariations(productId);
+    } catch (error) {
+      if (!shouldRetryWoo(error) || attempt >= retries) {
+        throw error;
+      }
+      const waitMs = 800 * Math.pow(2, attempt);
+      await wait(waitMs);
+      attempt += 1;
+    }
+  }
+}
 
 const normalizeDomain = (value: string) =>
   String(value || "")
@@ -625,7 +659,11 @@ export async function syncProductsAcrossProviders(
 
   const alegraClient = await getAlegraClient(alegraAccountId);
 
-  let sourceProducts: Array<{ product: ShopifyProduct | WooProduct; variations?: WooVariation[] }> = [];
+  let sourceProducts: Array<{
+    product: ShopifyProduct | WooProduct;
+    variations?: WooVariation[];
+    variationError?: string;
+  }> = [];
 
   if (params.sourceProvider === "shopify") {
     const sourceConnection = await getShopifyConnectionByDomain(sourceDomain);
@@ -647,11 +685,19 @@ export async function syncProductsAcrossProviders(
     const onlyActive = settings.onlyActive !== false;
     const status = onlyActive ? "publish" : undefined;
     const products = await sourceClient.listAllProducts({ status });
-    const enriched = [] as Array<{ product: WooProduct; variations?: WooVariation[] }>;
+    const enriched = [] as Array<{ product: WooProduct; variations?: WooVariation[]; variationError?: string }>;
     for (const product of products) {
       if (product.type === "variable") {
-        const variations = await sourceClient.listAllProductVariations(product.id);
-        enriched.push({ product, variations });
+        try {
+          const variations = await listWooVariationsWithRetry(sourceClient, product.id);
+          enriched.push({ product, variations });
+        } catch (error) {
+          enriched.push({
+            product,
+            variations: [],
+            variationError: error instanceof Error ? error.message : "Error cargando variaciones",
+          });
+        }
       } else {
         enriched.push({ product, variations: [] });
       }
@@ -668,6 +714,7 @@ export async function syncProductsAcrossProviders(
     failed: 0,
     errors: [],
   };
+  params.onStart?.({ total: result.total });
 
   let targetShopify: ShopifyClient | null = null;
   let targetWoo: WooCommerceClient | null = null;
@@ -689,8 +736,21 @@ export async function syncProductsAcrossProviders(
   const targetLocationId =
     targetShopify && includeInventory && trackInventory ? await targetShopify.getPrimaryLocationId() : "";
 
+  let processed = 0;
   for (const entry of sourceProducts) {
     try {
+      if (entry.variationError) {
+        result.failed += 1;
+        const title =
+          params.sourceProvider === "shopify"
+            ? (entry.product as ShopifyProduct)?.title
+            : (entry.product as WooProduct)?.name;
+        result.errors?.push({
+          title: title || undefined,
+          message: entry.variationError,
+        });
+        continue;
+      }
       if (params.sourceProvider === "shopify") {
         const product = entry.product as ShopifyProduct;
         const identifiers = resolveShopifyVariantIdentifiers(product);
@@ -981,6 +1041,15 @@ export async function syncProductsAcrossProviders(
         message: error instanceof Error ? error.message : "Error copiando producto",
       });
     }
+    processed += 1;
+    params.onProgress?.({
+      total: result.total,
+      processed,
+      created: result.created,
+      updated: result.updated,
+      skipped: result.skipped,
+      failed: result.failed,
+    });
   }
 
   if (!result.errors?.length) {
