@@ -134,7 +134,7 @@ const resolveAlegraInventoryQuantity = (inventory?: Record<string, unknown> | nu
   }
   const available = Number(
     (inventory as { availableQuantity?: unknown; quantity?: unknown }).availableQuantity ??
-    (inventory as { availableQuantity?: unknown; quantity?: unknown }).quantity
+      (inventory as { availableQuantity?: unknown; quantity?: unknown }).quantity
   );
   return Number.isFinite(available) ? available : null;
 };
@@ -146,9 +146,9 @@ async function loadAlegraInventoryByIdentifier(client: AlegraClient, identifier:
   const inventoryPayload =
     id && id !== "undefined"
       ? ((await client.getItemWithParams(id, {
-        fields: "inventory",
-        metadata: true,
-      })) as Record<string, unknown>)
+          fields: "inventory",
+          metadata: true,
+        })) as Record<string, unknown>)
       : (base as Record<string, unknown>);
   return resolveAlegraInventoryQuantity(
     (inventoryPayload as { inventory?: Record<string, unknown> }).inventory || null
@@ -272,15 +272,15 @@ async function buildShopifyInputFromWoo(
   const sourceVariations = variations.length
     ? variations
     : [
-      {
-        id: product.id,
-        sku: product.sku,
-        price: product.price || product.regular_price,
-        regular_price: product.regular_price,
-        sale_price: product.sale_price,
-        attributes: [],
-      },
-    ];
+        {
+          id: product.id,
+          sku: product.sku,
+          price: product.price || product.regular_price,
+          regular_price: product.regular_price,
+          sale_price: product.sale_price,
+          attributes: [],
+        },
+      ];
 
   for (const variation of sourceVariations) {
     const variant: {
@@ -524,16 +524,16 @@ async function buildWooInputFromWoo(
   const sourceVariations = variations.length
     ? variations
     : [
-      {
-        id: product.id,
-        sku: product.sku,
-        price: product.price || product.regular_price,
-        regular_price: product.regular_price,
-        sale_price: product.sale_price,
-        attributes: [],
-        stock_quantity: product.stock_quantity,
-      },
-    ];
+        {
+          id: product.id,
+          sku: product.sku,
+          price: product.price || product.regular_price,
+          regular_price: product.regular_price,
+          sale_price: product.sale_price,
+          attributes: [],
+          stock_quantity: product.stock_quantity,
+        },
+      ];
 
   const variants = [] as Array<{
     price?: string;
@@ -839,11 +839,11 @@ export async function syncProductsAcrossProviders(
           const rawPayload = input as Record<string, unknown>;
           const variationsPayload = rawPayload._variations as
             | Array<{
-              sku?: string;
-              price?: string;
-              attributes?: Array<{ name: string; option: string }>;
-              stockQuantity?: number | null;
-            }>
+                sku?: string;
+                price?: string;
+                attributes?: Array<{ name: string; option: string }>;
+                stockQuantity?: number | null;
+              }>
             | undefined;
           if (rawPayload._variations) {
             delete rawPayload._variations;
@@ -867,8 +867,8 @@ export async function syncProductsAcrossProviders(
                       : undefined,
                   stock_quantity:
                     settings.includeInventory !== false &&
-                      settings.trackInventory !== false &&
-                      Number.isFinite(variation.stockQuantity as number)
+                    settings.trackInventory !== false &&
+                    Number.isFinite(variation.stockQuantity as number)
                       ? Math.max(0, Math.trunc(variation.stockQuantity as number))
                       : undefined,
                 };
@@ -898,8 +898,8 @@ export async function syncProductsAcrossProviders(
                       : undefined,
                   stock_quantity:
                     settings.includeInventory !== false &&
-                      settings.trackInventory !== false &&
-                      Number.isFinite(variation.stockQuantity as number)
+                    settings.trackInventory !== false &&
+                    Number.isFinite(variation.stockQuantity as number)
                       ? Math.max(0, Math.trunc(variation.stockQuantity as number))
                       : undefined,
                 });
@@ -961,11 +961,11 @@ export async function syncProductsAcrossProviders(
           const rawPayload = input as Record<string, unknown>;
           const variationsPayload = rawPayload._variations as
             | Array<{
-              sku?: string;
-              price?: string;
-              attributes?: Array<{ name: string; option: string }>;
-              stockQuantity?: number | null;
-            }>
+                sku?: string;
+                price?: string;
+                attributes?: Array<{ name: string; option: string }>;
+                stockQuantity?: number | null;
+              }>
             | undefined;
           if (rawPayload._variations) {
             delete rawPayload._variations;
@@ -989,8 +989,8 @@ export async function syncProductsAcrossProviders(
                       : undefined,
                   stock_quantity:
                     settings.includeInventory !== false &&
-                      settings.trackInventory !== false &&
-                      Number.isFinite(variation.stockQuantity as number)
+                    settings.trackInventory !== false &&
+                    Number.isFinite(variation.stockQuantity as number)
                       ? Math.max(0, Math.trunc(variation.stockQuantity as number))
                       : undefined,
                 };
@@ -1020,8 +1020,8 @@ export async function syncProductsAcrossProviders(
                       : undefined,
                   stock_quantity:
                     settings.includeInventory !== false &&
-                      settings.trackInventory !== false &&
-                      Number.isFinite(variation.stockQuantity as number)
+                    settings.trackInventory !== false &&
+                    Number.isFinite(variation.stockQuantity as number)
                       ? Math.max(0, Math.trunc(variation.stockQuantity as number))
                       : undefined,
                 });

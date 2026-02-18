@@ -193,7 +193,7 @@ export async function syncShopifyVariantToAlegra(params: {
 
   const existingMapping = await getMappingByShopifyId("item", variantId);
   let alegraItemId = existingMapping?.alegraId ? String(existingMapping.alegraId) : "";
-  let alegraItem: Record<string, unknown> | null = null;
+  let alegraItem: Record<string, unknown> | null;
 
   if (alegraItemId) {
     try {
@@ -229,7 +229,7 @@ export async function syncShopifyVariantToAlegra(params: {
     ...(price !== null ? { price } : {}),
   };
 
-  let action: "created" | "updated" | "skipped" = "skipped";
+  let action: "created" | "updated" | "skipped";
   if (alegraItemId) {
     if (config.updateInAlegra) {
       await ctx.alegra.updateItem(alegraItemId, payload);

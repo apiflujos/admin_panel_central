@@ -122,10 +122,10 @@ export class ShopifyClient {
     while (hasNextPage) {
       const data: { orders: ShopifyOrderConnection } = await this.request<{ orders: ShopifyOrderConnection }>(<
         GraphQlRequest
-        >{
-          query: ORDERS_PAGED_QUERY,
-          variables: { query, cursor },
-        });
+      >{
+        query: ORDERS_PAGED_QUERY,
+        variables: { query, cursor },
+      });
       const page = data.orders?.edges?.map((edge: { node: ShopifyOrder }) => edge.node) || [];
       orders.push(...page);
       if (limit && orders.length >= limit) {
@@ -147,10 +147,10 @@ export class ShopifyClient {
     while (hasNextPage) {
       const data: { products: ShopifyProductConnection } = await this.request<{ products: ShopifyProductConnection }>(<
         GraphQlRequest
-        >{
-          query: PRODUCTS_PAGED_QUERY,
-          variables: { query, cursor },
-        });
+      >{
+        query: PRODUCTS_PAGED_QUERY,
+        variables: { query, cursor },
+      });
       const page = data.products?.edges?.map((edge: { node: ShopifyProduct }) => edge.node) || [];
       products.push(...page);
       if (limit && products.length >= limit) {
@@ -341,13 +341,13 @@ export class ShopifyClient {
     const trackInventory = typeof input.trackInventory === "boolean" ? input.trackInventory : undefined;
     const variants = Array.isArray(input.variants)
       ? input.variants.map((variant) => {
-        if (typeof trackInventory !== "boolean") return variant;
-        return {
-          ...variant,
-          inventoryItem: { tracked: trackInventory },
-          inventoryManagement: trackInventory ? "SHOPIFY" : "NOT_MANAGED",
-        };
-      })
+          if (typeof trackInventory !== "boolean") return variant;
+          return {
+            ...variant,
+            inventoryItem: { tracked: trackInventory },
+            inventoryManagement: trackInventory ? "SHOPIFY" : "NOT_MANAGED",
+          };
+        })
       : input.variants;
     const response = await this.request<{ productCreate: ShopifyProductCreateResult }>(<GraphQlRequest>{
       query: PRODUCT_CREATE_MUTATION,

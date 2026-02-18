@@ -268,8 +268,8 @@ const resolveItemSku = (item: AlegraItem) => {
   const firstVariant = variants[0];
   return normalizeText(
     firstVariant?.reference ||
-    firstVariant?.barcode ||
-    extractCustomFieldValue(item, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"])
+      firstVariant?.barcode ||
+      extractCustomFieldValue(item, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"])
   );
 };
 
@@ -715,27 +715,27 @@ const buildShopifyPayload = (
   const variants =
     itemVariants.length > 0
       ? itemVariants.map((variant) => ({
-        sku:
-          variant.reference ||
-          variant.barcode ||
-          alegraItem.reference ||
-          alegraItem.barcode ||
-          extractCustomFieldValue(alegraItem, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"]) ||
-          "",
-        price: pickPriceForStore(variant.price, priceConfig)?.toString() ?? "0",
-        inventory_policy: inventoryPolicy,
-        inventory_management: inventoryManagement,
-        inventory_quantity:
-          includeInventory && trackInventory ? resolveInventoryQuantity(variant.inventory, warehouseIds) : 0,
-        barcode: variant.id ? `ALT-${variant.id}` : undefined,
-        ...mapVariantOptions(variant.variantAttributes || [], optionLabels),
-      }))
+          sku:
+            variant.reference ||
+            variant.barcode ||
+            alegraItem.reference ||
+            alegraItem.barcode ||
+            extractCustomFieldValue(alegraItem, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"]) ||
+            "",
+          price: pickPriceForStore(variant.price, priceConfig)?.toString() ?? "0",
+          inventory_policy: inventoryPolicy,
+          inventory_management: inventoryManagement,
+          inventory_quantity:
+            includeInventory && trackInventory ? resolveInventoryQuantity(variant.inventory, warehouseIds) : 0,
+          barcode: variant.id ? `ALT-${variant.id}` : undefined,
+          ...mapVariantOptions(variant.variantAttributes || [], optionLabels),
+        }))
       : [
-        {
-          ...baseVariant,
-          barcode: alegraItem.id ? `ALT-${alegraItem.id}` : undefined,
-        },
-      ];
+          {
+            ...baseVariant,
+            barcode: alegraItem.id ? `ALT-${alegraItem.id}` : undefined,
+          },
+        ];
 
   return {
     product: {
@@ -1222,7 +1222,7 @@ export async function publishShopifyHandler(req: Request, res: Response) {
     const onlyActive =
       settings && typeof settings === "object" && (settings as Record<string, unknown>).onlyActive !== undefined
         ? String((settings as Record<string, unknown>).onlyActive).toLowerCase() === "true" ||
-        String((settings as Record<string, unknown>).onlyActive).toLowerCase() === "1"
+          String((settings as Record<string, unknown>).onlyActive).toLowerCase() === "1"
         : false;
     if (onlyActive) {
       const statusValue = String(item.status || "").toLowerCase();
@@ -1245,7 +1245,7 @@ export async function publishShopifyHandler(req: Request, res: Response) {
     const trackInventory =
       settings && typeof settings === "object" && (settings as Record<string, unknown>).trackInventory !== undefined
         ? String((settings as Record<string, unknown>).trackInventory).toLowerCase() === "true" ||
-        String((settings as Record<string, unknown>).trackInventory).toLowerCase() === "1"
+          String((settings as Record<string, unknown>).trackInventory).toLowerCase() === "1"
         : true;
     const payload = buildShopifyPayload(
       item,
@@ -1689,10 +1689,10 @@ export async function syncProductsHandler(req: Request, res: Response) {
     const shopifyClient =
       publishOnSync && shopifyConfig
         ? new ShopifyClient({
-          shopDomain: storeDomain,
-          accessToken: shopifyConfig.accessToken,
-          apiVersion: shopifyConfig.apiVersion,
-        })
+            shopDomain: storeDomain,
+            accessToken: shopifyConfig.accessToken,
+            apiVersion: shopifyConfig.apiVersion,
+          })
         : null;
     const identifierCache = new Map<
       string,

@@ -1678,7 +1678,7 @@ async function buildLogComparison(filters: {
     params.push(filters.entity);
   }
   if (filters.direction) {
-    conditions.push(`direction = $${idx++}`);
+    conditions.push(`direction = $${idx}`);
     params.push(filters.direction);
   }
 
