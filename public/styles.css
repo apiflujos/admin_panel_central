@@ -2552,7 +2552,7 @@ body.force-settings #settings {
 .store-switcher {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .store-switcher-items {
@@ -2560,12 +2560,12 @@ body.force-settings #settings {
   gap: 6px;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   overflow: auto;
-  max-height: 220px;
+  max-height: 160px;
   padding-right: 4px;
 }
 
 .store-switcher-items.is-wide {
-  max-height: 260px;
+  max-height: 190px;
 }
 
 .store-item {
@@ -2575,7 +2575,7 @@ body.force-settings #settings {
   border: 1px solid var(--stroke);
   background: #fff;
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -2592,26 +2592,26 @@ body.force-settings #settings {
 
 .store-item-title {
   font-weight: 800;
-  font-size: 10.8px;
+  font-size: 10px;
   color: #0f172a;
   line-height: 1.15;
 }
 
 .store-item-sub {
-  font-size: 8.5px;
+  font-size: 8px;
   color: var(--muted);
 }
 
 .store-item-meta {
   display: inline-flex;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .store-item-pill {
-  font-size: 8.2px;
-  padding: 2px 8px;
+  font-size: 7.6px;
+  padding: 2px 6px;
   border-radius: 999px;
   border: 1px solid var(--stroke);
   background: rgba(15, 23, 42, 0.04);
@@ -2633,17 +2633,17 @@ body.force-settings #settings {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .store-switcher-kicker {
-  font-size: 8.5px;
+  font-size: 8px;
   color: var(--muted);
 }
 
 .store-switcher-name {
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 900;
   color: #0f172a;
 }
@@ -2741,7 +2741,7 @@ body.force-settings #settings {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 4px;
   justify-content: flex-end;
 }
 
@@ -3768,11 +3768,11 @@ body.no-alegra .provider-logo.is-alegra {
 .connection-card {
   border: 1px solid var(--stroke);
   border-radius: 12px;
-  padding: 10px;
+  padding: 6px 8px;
   background: var(--panel);
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
   display: grid;
-  gap: 6px;
+  gap: 4px;
   min-height: 0;
 }
 
@@ -3784,7 +3784,7 @@ body.no-alegra .provider-logo.is-alegra {
 }
 
 .connection-store-title {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 800;
   color: var(--text);
   margin: 0;
@@ -3793,25 +3793,25 @@ body.no-alegra .provider-logo.is-alegra {
 .connection-pill-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .connection-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: 4px;
+  padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid var(--stroke);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   background: rgba(15, 23, 42, 0.04);
   color: var(--text);
 }
 
 .connection-pill .connection-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 999px;
   background: #94a3b8;
   display: inline-block;
