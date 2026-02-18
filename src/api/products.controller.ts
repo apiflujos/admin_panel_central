@@ -22,7 +22,7 @@ import {
 } from "../services/alegra-items-cache.service";
 import { resolveStoreConfig } from "../services/store-config.service";
 import { getStoreConfigForDomain } from "../services/store-configs.service";
-import { getAlegraConnectionByDomain, getShopifyConnectionByDomain } from "../services/store-connections.service";
+import { getAlegraConnectionByDomain, getAlegraConnectionByStoreId, getShopifyConnectionByDomain } from "../services/store-connections.service";
 import { upsertProduct, listProducts } from "../services/products.service";
 import { upsertOrder } from "../services/orders.service";
 
@@ -94,8 +94,14 @@ async function getAlegraConfig() {
   return { baseUrl, auth };
 }
 
-async function getAlegraConfigForStore(shopDomain?: string) {
+async function getAlegraConfigForStore(shopDomain?: string, storeId?: number) {
   const normalized = shopDomain ? String(shopDomain).trim() : "";
+  if (Number.isFinite(storeId)) {
+    const conn = await getAlegraConnectionByStoreId(Number(storeId));
+    const baseUrl = getAlegraBaseUrl(conn.environment || "prod");
+    const auth = Buffer.from(`${conn.email}:${conn.apiKey}`).toString("base64");
+    return { baseUrl, auth };
+  }
   if (normalized) {
     try {
       const conn = await getAlegraConnectionByDomain(normalized);
@@ -110,8 +116,16 @@ async function getAlegraConfigForStore(shopDomain?: string) {
   return getAlegraConfig();
 }
 
-async function getAlegraClientForStore(shopDomain?: string) {
+async function getAlegraClientForStore(shopDomain?: string, storeId?: number) {
   const normalized = shopDomain ? String(shopDomain).trim() : "";
+  if (Number.isFinite(storeId)) {
+    const conn = await getAlegraConnectionByStoreId(Number(storeId));
+    return new AlegraClient({
+      email: conn.email,
+      apiKey: conn.apiKey,
+      baseUrl: getAlegraBaseUrl(conn.environment || "prod"),
+    });
+  }
   if (normalized) {
     const conn = await getAlegraConnectionByDomain(normalized);
     return new AlegraClient({
@@ -128,8 +142,8 @@ async function getAlegraClientForStore(shopDomain?: string) {
   });
 }
 
-async function fetchAlegra(path: string, query?: URLSearchParams, shopDomain?: string) {
-  const { baseUrl, auth } = await getAlegraConfigForStore(shopDomain);
+async function fetchAlegra(path: string, query?: URLSearchParams, shopDomain?: string, storeId?: number) {
+  const { baseUrl, auth } = await getAlegraConfigForStore(shopDomain, storeId);
   const url = query ? `${baseUrl}${path}?${query.toString()}` : `${baseUrl}${path}`;
   const response = await fetch(url, {
     headers: {
@@ -677,13 +691,14 @@ const shouldSyncByWarehouse = (
 
 const buildShopifyPayload = (
   alegraItem: AlegraItem,
-  settings: { status?: string; includeImages?: boolean; vendor?: string },
+  settings: { status?: string; includeImages?: boolean; vendor?: string; allowOversell?: boolean },
   warehouseIds: string[],
   includeInventory: boolean,
   priceConfig?: PriceListConfig,
   trackInventory: boolean = true
 ) => {
   const inventoryManagement = trackInventory ? "shopify" : null;
+  const inventoryPolicy = settings.allowOversell ? "continue" : "deny";
   const images = normalizeImageUrls(alegraItem.images || []);
   const itemVariants = Array.isArray(alegraItem.itemVariants) ? alegraItem.itemVariants : [];
   const optionLabels = collectOptionLabels(itemVariants);
@@ -700,7 +715,7 @@ const buildShopifyPayload = (
       extractCustomFieldValue(alegraItem, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"]) ||
       "",
     price: pickPriceForStore(alegraItem.price, priceConfig)?.toString() ?? "0",
-    inventory_policy: "deny",
+    inventory_policy: inventoryPolicy,
     inventory_management: inventoryManagement,
     inventory_quantity: includeInventory && trackInventory
       ? resolveInventoryQuantity(alegraItem.inventory, warehouseIds)
@@ -718,7 +733,7 @@ const buildShopifyPayload = (
             extractCustomFieldValue(alegraItem, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"]) ||
             "",
           price: pickPriceForStore(variant.price, priceConfig)?.toString() ?? "0",
-          inventory_policy: "deny",
+          inventory_policy: inventoryPolicy,
           inventory_management: inventoryManagement,
           inventory_quantity: includeInventory && trackInventory
             ? resolveInventoryQuantity(variant.inventory, warehouseIds)
@@ -1406,6 +1421,10 @@ export async function updateProductOversellHandler(req: Request, res: Response) 
   const alegraId = typeof req.body?.alegraId === "string" ? req.body.alegraId.trim() : "";
   const sku = typeof req.body?.sku === "string" ? req.body.sku.trim() : "";
   const shopDomain = typeof req.body?.shopDomain === "string" ? req.body.shopDomain.trim() : "";
+  const storeIdRaw = typeof req.body?.storeId === "string" || typeof req.body?.storeId === "number"
+    ? Number(req.body.storeId)
+    : NaN;
+  const storeId = Number.isFinite(storeIdRaw) ? Number(storeIdRaw) : undefined;
   const allowOversellAlegra =
     typeof req.body?.allowOversellAlegra === "boolean" ? req.body.allowOversellAlegra : undefined;
   const allowOversellShopify =
@@ -1424,7 +1443,7 @@ export async function updateProductOversellHandler(req: Request, res: Response) 
         res.status(400).json({ error: "alegraId requerido." });
         return;
       }
-      const alegraClient = await getAlegraClientForStore(shopDomain);
+      const alegraClient = await getAlegraClientForStore(shopDomain, storeId);
       await alegraClient.updateItem(alegraId, {
         inventory: {
           negativeSale: allowOversellAlegra,
@@ -1471,6 +1490,10 @@ export async function updateProductTrackingHandler(req: Request, res: Response) 
   const alegraId = typeof req.body?.alegraId === "string" ? req.body.alegraId.trim() : "";
   const sku = typeof req.body?.sku === "string" ? req.body.sku.trim() : "";
   const shopDomain = typeof req.body?.shopDomain === "string" ? req.body.shopDomain.trim() : "";
+  const storeIdRaw = typeof req.body?.storeId === "string" || typeof req.body?.storeId === "number"
+    ? Number(req.body.storeId)
+    : NaN;
+  const storeId = Number.isFinite(storeIdRaw) ? Number(storeIdRaw) : undefined;
   const trackInventoryAlegra =
     typeof req.body?.trackInventoryAlegra === "boolean" ? req.body.trackInventoryAlegra : undefined;
   const trackInventoryShopify =
@@ -1502,7 +1525,7 @@ export async function updateProductTrackingHandler(req: Request, res: Response) 
         res.status(400).json({ error: "alegraId requerido." });
         return;
       }
-      const alegraClient = await getAlegraClientForStore(shopDomain);
+      const alegraClient = await getAlegraClientForStore(shopDomain, storeId);
       const payload: Record<string, unknown> = {};
       if (trackInventoryAlegra) {
         payload.inventory = {
@@ -1825,6 +1848,9 @@ export async function syncProductsHandler(req: Request, res: Response) {
                 {
                   status: settings.status || "draft",
                   includeImages: false,
+                  allowOversell:
+                    (settings as Record<string, unknown>).allowOversell === true ||
+                    String((settings as Record<string, unknown>).allowOversell || "").toLowerCase() === "true",
                   vendor: settings.vendor || "",
                 },
                 warehouseIds,
@@ -1883,6 +1909,9 @@ export async function syncProductsHandler(req: Request, res: Response) {
               {
                 status: settings.status || "draft",
                 includeImages: settings.includeImages ?? true,
+                allowOversell:
+                  (settings as Record<string, unknown>).allowOversell === true ||
+                  String((settings as Record<string, unknown>).allowOversell || "").toLowerCase() === "true",
                 vendor: settings.vendor || "",
               },
               warehouseIds,

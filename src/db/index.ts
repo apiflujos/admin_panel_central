@@ -128,6 +128,7 @@ export async function ensureInventoryRulesColumns(poolInstance: Pool) {
     "inventory_adjustments_interval_minutes",
     "inventory_adjustments_autopublish",
     "only_active_items",
+    "allow_oversell",
   ]);
 }
 

@@ -108,6 +108,7 @@ export async function startShopifyOAuth(req: Request, res: Response) {
     const shopParam = String(req.query.shop || "").trim();
     const storeNameParam = String(req.query.storeName || "").trim();
     const storeIdParam = Number(req.query.storeId || "");
+    const alegraAccountIdParam = Number(req.query.alegraAccountId || "");
     if (!shopParam || !isValidShopDomain(shopParam)) {
       return res.status(400).send("Shop domain invalido");
     }
@@ -115,11 +116,12 @@ export async function startShopifyOAuth(req: Request, res: Response) {
     const nonce = crypto.randomBytes(16).toString("hex");
     let resolvedStoreName = storeNameParam || null;
     const storeId = Number.isFinite(storeIdParam) ? storeIdParam : null;
+    const alegraAccountId = Number.isFinite(alegraAccountIdParam) ? alegraAccountIdParam : null;
     if (!resolvedStoreName && storeId) {
       const store = await getStoreById(storeId);
       resolvedStoreName = store?.name || null;
     }
-    await createOAuthState(shop, nonce, resolvedStoreName || null, storeId);
+    await createOAuthState(shop, nonce, resolvedStoreName || null, storeId, alegraAccountId);
     const redirectUri = `${env.appHost}/auth/callback`;
     const authorizeUrl =
       `https://${shop}/admin/oauth/authorize` +
@@ -189,6 +191,7 @@ export async function shopifyOAuthCallback(req: Request, res: Response) {
       storeName,
       storeId: stateResult.storeId || undefined,
       scopes: tokenPayload.scope || env.scopes,
+      alegra: stateResult.alegraAccountId ? { accountId: stateResult.alegraAccountId } : undefined,
     });
     const client = new ShopifyClient({
       shopDomain: normalizedShop,

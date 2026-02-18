@@ -132,6 +132,53 @@ export async function getAlegraConnectionByDomain(shopDomain: string) {
   } as { email: string; apiKey: string; environment: "sandbox" | "prod" };
 }
 
+export async function getAlegraConnectionByStoreId(storeId: number) {
+  if (!Number.isFinite(storeId)) {
+    throw new Error("ID de tienda requerido");
+  }
+  const pool = getPool();
+  const orgId = getOrgId();
+  const result = await pool.query<{
+    user_email: string | null;
+    api_key_encrypted: string | null;
+    environment: string | null;
+  }>(
+    `
+    SELECT user_email, api_key_encrypted, environment
+    FROM alegra_accounts
+    WHERE organization_id = $1 AND store_id = $2
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId, storeId]
+  );
+  if (!result.rows.length) {
+    throw new Error("Alegra no conectado para esta tienda.");
+  }
+  const row = result.rows[0];
+  if (!row?.user_email || !row?.api_key_encrypted) {
+    throw new Error("Alegra no conectado para esta tienda.");
+  }
+  let decrypted: unknown;
+  try {
+    decrypted = JSON.parse(decryptString(row.api_key_encrypted));
+  } catch (error) {
+    if (isCryptoKeyMisconfigured(error)) {
+      throw new Error("Configuracion de seguridad invalida. Revisa CRYPTO_KEY_BASE64 en el servidor.");
+    }
+    throw new Error("Reconecta Alegra para esta tienda. (Clave guardada antigua o invalida)");
+  }
+  const apiKey = String((decrypted as { apiKey?: string } | null)?.apiKey || "").trim();
+  if (!apiKey) {
+    throw new Error("Reconecta Alegra para esta tienda. (Clave vacia)");
+  }
+  return {
+    email: String(row.user_email).trim(),
+    apiKey,
+    environment: row.environment === "sandbox" ? "sandbox" : "prod",
+  } as { email: string; apiKey: string; environment: "sandbox" | "prod" };
+}
+
 export async function listStoreConnections() {
   const pool = getPool();
   const orgId = getOrgId();

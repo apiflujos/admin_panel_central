@@ -33,6 +33,7 @@ type SyncContext = {
   autoPublishStatus: "draft" | "active";
   includeImages: boolean;
   trackInventory: boolean;
+  allowOversell: boolean;
   alegraWarehouseId?: string;
   alegraWarehouseIds?: string[];
   priceListGeneralId?: string;
@@ -49,6 +50,7 @@ type InventoryRules = {
   publishOnStock: boolean;
   includeImages?: boolean;
   trackInventory?: boolean;
+  allowOversell?: boolean;
   onlyActiveItems?: boolean;
   autoPublishOnWebhook: boolean;
   autoPublishStatus: "draft" | "active";
@@ -102,6 +104,7 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
     publishOnStock: rules.publishOnStock,
     includeImages: (rules as InventoryRules).includeImages !== false,
     trackInventory: (rules as InventoryRules).trackInventory !== false,
+    allowOversell: (rules as InventoryRules).allowOversell === true,
     onlyActiveItems: Boolean(rules.onlyActiveItems),
     autoPublishOnWebhook: rules.autoPublishOnWebhook,
     autoPublishStatus: normalizeAutoStatus(rules.autoPublishStatus),

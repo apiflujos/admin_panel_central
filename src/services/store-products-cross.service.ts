@@ -16,6 +16,7 @@ type CrossStoreProductsSyncSettings = {
   includeTags?: boolean;
   includeProductType?: boolean;
   trackInventory?: boolean;
+  allowOversell?: boolean;
   includeInventory?: boolean;
   inventorySource?: "accounting" | "commerce";
 };
@@ -63,6 +64,26 @@ async function listWooVariationsWithRetry(
   while (true) {
     try {
       return await client.listAllProductVariations(productId);
+    } catch (error) {
+      if (!shouldRetryWoo(error) || attempt >= retries) {
+        throw error;
+      }
+      const waitMs = 800 * Math.pow(2, attempt);
+      await wait(waitMs);
+      attempt += 1;
+    }
+  }
+}
+
+async function listWooProductsWithRetry(
+  client: WooCommerceClient,
+  params: { status?: string; limit?: number },
+  retries = 2
+) {
+  let attempt = 0;
+  while (true) {
+    try {
+      return await client.listAllProducts(params);
     } catch (error) {
       if (!shouldRetryWoo(error) || attempt >= retries) {
         throw error;
@@ -244,6 +265,7 @@ async function buildShopifyInputFromWoo(
   const includeTags = settings.includeTags !== false;
   const status: "ACTIVE" | "DRAFT" = settings.status === "active" ? "ACTIVE" : "DRAFT";
   const trackInventory = settings.trackInventory !== false;
+  const allowOversell = settings.allowOversell === true;
   const priceListId = settings.priceListId;
   const priceFallback = settings.priceFallback || "shopify";
 
@@ -257,6 +279,7 @@ async function buildShopifyInputFromWoo(
     sku?: string;
     barcode?: string;
     options?: string[];
+    inventoryPolicy?: string;
   }>;
 
   const sourceVariations = variations.length
@@ -273,8 +296,9 @@ async function buildShopifyInputFromWoo(
       ];
 
   for (const variation of sourceVariations) {
-    const variant: { price?: string; sku?: string; barcode?: string; options?: string[] } = {
+    const variant: { price?: string; sku?: string; barcode?: string; options?: string[]; inventoryPolicy?: string } = {
       sku: variation?.sku ? String(variation.sku).trim() : undefined,
+      inventoryPolicy: allowOversell ? "CONTINUE" : "DENY",
     };
 
     if (optionNames.length) {
@@ -351,6 +375,7 @@ async function buildWooInputFromShopify(
   const includeInventory = settings.includeInventory !== false;
   const trackInventory = settings.trackInventory !== false;
   const inventorySource = settings.inventorySource === "commerce" ? "commerce" : "accounting";
+  const allowOversell = settings.allowOversell === true;
   const priceListId = settings.priceListId;
   const priceFallback = settings.priceFallback || "shopify";
 
@@ -364,10 +389,11 @@ async function buildWooInputFromShopify(
     sku?: string;
     attributes?: Array<{ name: string; option: string }>;
     stockQuantity?: number | null;
+    backorders?: "yes" | "no";
   }>;
 
   for (const { node } of product?.variants?.edges || []) {
-    const variant: { price?: string; sku?: string; attributes?: Array<{ name: string; option: string }>; stockQuantity?: number | null } = {
+    const variant: { price?: string; sku?: string; attributes?: Array<{ name: string; option: string }>; stockQuantity?: number | null; backorders?: "yes" | "no" } = {
       sku: node?.sku ? String(node.sku).trim() : undefined,
     };
 
@@ -419,6 +445,9 @@ async function buildWooInputFromShopify(
         variant.stockQuantity = await loadAlegraInventoryByIdentifier(alegra, identifier);
       }
     }
+    if (trackInventory) {
+      variant.backorders = allowOversell ? "yes" : "no";
+    }
 
     variants.push(variant);
   }
@@ -444,6 +473,7 @@ async function buildWooInputFromShopify(
       sku: single?.sku,
       regular_price: single?.price,
       manage_stock: includeInventory && trackInventory ? true : undefined,
+      backorders: includeInventory && trackInventory ? (allowOversell ? "yes" : "no") : undefined,
       stock_quantity:
         includeInventory && trackInventory && Number.isFinite(single?.stockQuantity as number)
           ? Math.max(0, Math.trunc(single?.stockQuantity as number))
@@ -485,6 +515,7 @@ async function buildWooInputFromWoo(
   const includeInventory = settings.includeInventory !== false;
   const trackInventory = settings.trackInventory !== false;
   const inventorySource = settings.inventorySource === "commerce" ? "commerce" : "accounting";
+  const allowOversell = settings.allowOversell === true;
   const priceListId = settings.priceListId;
   const priceFallback = settings.priceFallback || "shopify";
 
@@ -513,6 +544,7 @@ async function buildWooInputFromWoo(
     sku?: string;
     attributes?: Array<{ name: string; option: string }>;
     stockQuantity?: number | null;
+    backorders?: "yes" | "no";
   }>;
 
   for (const variation of sourceVariations) {
@@ -521,6 +553,7 @@ async function buildWooInputFromWoo(
       sku?: string;
       attributes?: Array<{ name: string; option: string }>;
       stockQuantity?: number | null;
+      backorders?: "yes" | "no";
     } = {
       sku: variation?.sku ? String(variation.sku).trim() : undefined,
     };
@@ -576,6 +609,9 @@ async function buildWooInputFromWoo(
         variant.stockQuantity = await loadAlegraInventoryByIdentifier(alegra, identifier);
       }
     }
+    if (trackInventory) {
+      variant.backorders = allowOversell ? "yes" : "no";
+    }
 
     variants.push(variant);
   }
@@ -603,6 +639,7 @@ async function buildWooInputFromWoo(
       sku: single?.sku,
       regular_price: single?.price,
       manage_stock: includeInventory && trackInventory ? true : undefined,
+      backorders: includeInventory && trackInventory ? (allowOversell ? "yes" : "no") : undefined,
       stock_quantity:
         includeInventory && trackInventory && Number.isFinite(single?.stockQuantity as number)
           ? Math.max(0, Math.trunc(single?.stockQuantity as number))
@@ -684,7 +721,7 @@ export async function syncProductsAcrossProviders(
     });
     const onlyActive = settings.onlyActive !== false;
     const status = onlyActive ? "publish" : undefined;
-    const products = await sourceClient.listAllProducts({ status });
+    const products = await listWooProductsWithRetry(sourceClient, { status });
     const enriched = [] as Array<{ product: WooProduct; variations?: WooVariation[]; variationError?: string }>;
     for (const product of products) {
       if (product.type === "variable") {
@@ -748,6 +785,15 @@ export async function syncProductsAcrossProviders(
         result.errors?.push({
           title: title || undefined,
           message: entry.variationError,
+        });
+        processed += 1;
+        params.onProgress?.({
+          total: result.total,
+          processed,
+          created: result.created,
+          updated: result.updated,
+          skipped: result.skipped,
+          failed: result.failed,
         });
         continue;
       }
@@ -817,6 +863,12 @@ export async function syncProductsAcrossProviders(
                   regular_price: variation.price,
                   attributes: variation.attributes,
                   manage_stock: settings.includeInventory !== false && settings.trackInventory !== false,
+                  backorders:
+                    settings.includeInventory !== false && settings.trackInventory !== false
+                      ? settings.allowOversell === true
+                        ? "yes"
+                        : "no"
+                      : undefined,
                   stock_quantity:
                     settings.includeInventory !== false &&
                     settings.trackInventory !== false &&
@@ -842,6 +894,12 @@ export async function syncProductsAcrossProviders(
                   regular_price: variation.price,
                   attributes: variation.attributes,
                   manage_stock: settings.includeInventory !== false && settings.trackInventory !== false,
+                  backorders:
+                    settings.includeInventory !== false && settings.trackInventory !== false
+                      ? settings.allowOversell === true
+                        ? "yes"
+                        : "no"
+                      : undefined,
                   stock_quantity:
                     settings.includeInventory !== false &&
                     settings.trackInventory !== false &&
@@ -927,6 +985,12 @@ export async function syncProductsAcrossProviders(
                   regular_price: variation.price,
                   attributes: variation.attributes,
                   manage_stock: settings.includeInventory !== false && settings.trackInventory !== false,
+                  backorders:
+                    settings.includeInventory !== false && settings.trackInventory !== false
+                      ? settings.allowOversell === true
+                        ? "yes"
+                        : "no"
+                      : undefined,
                   stock_quantity:
                     settings.includeInventory !== false &&
                     settings.trackInventory !== false &&
@@ -952,6 +1016,12 @@ export async function syncProductsAcrossProviders(
                   regular_price: variation.price,
                   attributes: variation.attributes,
                   manage_stock: settings.includeInventory !== false && settings.trackInventory !== false,
+                  backorders:
+                    settings.includeInventory !== false && settings.trackInventory !== false
+                      ? settings.allowOversell === true
+                        ? "yes"
+                        : "no"
+                      : undefined,
                   stock_quantity:
                     settings.includeInventory !== false &&
                     settings.trackInventory !== false &&

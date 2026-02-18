@@ -275,6 +275,7 @@ export class ShopifyClient {
     price: string;
     publish: boolean;
     trackInventory?: boolean;
+    allowOversell?: boolean;
   }) {
     const trackInventory = typeof input.trackInventory === "boolean" ? input.trackInventory : undefined;
     const variant = {
@@ -283,12 +284,16 @@ export class ShopifyClient {
     } as {
       price: string;
       sku?: string;
+      inventoryPolicy?: "CONTINUE" | "DENY";
       inventoryItem?: { tracked?: boolean };
       inventoryManagement?: "SHOPIFY" | "NOT_MANAGED";
     };
     if (typeof trackInventory === "boolean") {
       variant.inventoryItem = { tracked: trackInventory };
       variant.inventoryManagement = trackInventory ? "SHOPIFY" : "NOT_MANAGED";
+    }
+    if (input.allowOversell === true) {
+      variant.inventoryPolicy = "CONTINUE";
     }
     return this.request<{ productCreate: ShopifyProductCreateResult }>(
       <GraphQlRequest>{
@@ -351,6 +356,7 @@ export class ShopifyClient {
       sku?: string;
       barcode?: string;
       options?: string[];
+      inventoryPolicy?: "CONTINUE" | "DENY" | null;
       inventoryItem?: { tracked?: boolean };
       inventoryManagement?: "SHOPIFY" | "NOT_MANAGED";
     }>;

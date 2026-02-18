@@ -157,6 +157,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem) {
       price: itemPrice ? String(itemPrice) : "0",
       publish: ctx.autoPublishOnWebhook ? desiredPublish : false,
       trackInventory: ctx.trackInventory,
+      allowOversell: ctx.allowOversell,
     });
 
     const productId = created.productCreate?.product?.id;

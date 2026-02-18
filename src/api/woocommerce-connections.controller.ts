@@ -7,6 +7,7 @@ import {
   listWooConnections,
   upsertWooConnection,
 } from "../services/woocommerce-connections.service";
+import { upsertAlegraAccount } from "../services/store-connections.service";
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "No disponible";
@@ -51,13 +52,20 @@ export async function createWooConnectionHandler(req: Request, res: Response) {
   try {
     await assertModuleEnabled("woocommerce");
     const payload = req.body || {};
+    const storeId = Number.isFinite(payload?.storeId) ? payload.storeId : undefined;
+    const alegraAccountId = Number.isFinite(payload?.alegraAccountId)
+      ? payload.alegraAccountId
+      : undefined;
     const result = await upsertWooConnection({
       storeName: payload?.storeName || "",
-      storeId: Number.isFinite(payload?.storeId) ? payload.storeId : undefined,
+      storeId,
       shopDomain: payload?.woocommerce?.shopDomain || payload?.shopDomain || "",
       consumerKey: payload?.woocommerce?.consumerKey || payload?.consumerKey || "",
       consumerSecret: payload?.woocommerce?.consumerSecret || payload?.consumerSecret || "",
     });
+    if (storeId && alegraAccountId) {
+      await upsertAlegraAccount({ accountId: alegraAccountId, storeId });
+    }
     const list = await listWooConnections();
     res.status(200).json({ created: result, ...list });
     await createSyncLog({

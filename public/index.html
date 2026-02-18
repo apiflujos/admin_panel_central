@@ -1693,10 +1693,14 @@
                               <label for="products-sync-track-inventory"><span data-label-template="Seguimiento de inventarios ({accounting})">Seguimiento de inventarios</span> <span class="tip" data-tip="Si está ON, los productos se crean con seguimiento de inventario activo. Esto requiere que “Sincronizar inventario en E‑commerce” esté encendido. Si un producto no tiene seguimiento en Shopify (o se permite sobreventa), ese comportamiento se respeta. Las reglas de inventario de Contable rigen este seguimiento.">?</span></label>
                               <input type="checkbox" id="products-sync-track-inventory" name="products_sync_track_inventory" class="toggle" checked />
                             </div>
-		                            <div class="mode-toggle">
-		                              <label for="products-sync-include-inventory">Publicar existencias <span class="tip" data-tip="ON: trae inventario desde Contable (y lo guarda en la base de datos).&#10;Si además “Publicar en E‑commerce” está ON, también sincroniza existencias en E‑commerce usando las bodegas configuradas en “Inventario y bodegas”.">?</span></label>
-		                              <input type="checkbox" id="products-sync-include-inventory" name="products_sync_include_inventory" class="toggle" checked />
-		                            </div>
+                            <div class="mode-toggle">
+                              <label for="products-sync-oversell"><span data-label-template="Permitir sobreventa ({accounting})">Permitir sobreventa</span> <span class="tip" data-tip="Si está ON, los productos se crean con política de sobreventa. Solo aplica cuando el seguimiento de inventario está activo.">?</span></label>
+                              <input type="checkbox" id="products-sync-oversell" name="products_sync_oversell" class="toggle" />
+                            </div>
+                            <div class="mode-toggle">
+                              <label for="products-sync-include-inventory">Publicar existencias <span class="tip" data-tip="ON: trae inventario desde Contable (y lo guarda en la base de datos).&#10;Si además “Publicar en E‑commerce” está ON, también sincroniza existencias en E‑commerce usando las bodegas configuradas en “Inventario y bodegas”.">?</span></label>
+                              <input type="checkbox" id="products-sync-include-inventory" name="products_sync_include_inventory" class="toggle" checked />
+                            </div>
 	                          </div>
 	                          <div class="mode-actions">
 	                            <button class="primary" id="products-sync-filtered" type="button">Sincronizar masivo</button>
@@ -1753,6 +1757,10 @@
                             <div class="mode-toggle">
                               <label for="rules-auto-track-inventory">Seguimiento de inventarios <span class="tip" data-tip="Si está ON, los productos se crean con seguimiento de inventario activo. Esto requiere que “Sincronizar inventario en E‑commerce” esté encendido. Si un producto no tiene seguimiento en Shopify (o se permite sobreventa), ese comportamiento se respeta. Las reglas de inventario de Contable rigen este seguimiento.">?</span></label>
                               <input type="checkbox" id="rules-auto-track-inventory" name="rules_auto_track_inventory" class="toggle" checked />
+                            </div>
+                            <div class="mode-toggle">
+                              <label for="rules-auto-oversell">Permitir sobreventa <span class="tip" data-tip="Si está ON, los productos automáticos se crean con política de sobreventa. Solo aplica cuando el seguimiento de inventario está activo.">?</span></label>
+                              <input type="checkbox" id="rules-auto-oversell" name="rules_auto_oversell" class="toggle" />
                             </div>
 	                      </div>
 		                      <p class="field-hint module-warning is-hidden" data-module-warning="shopify-rules"></p>
@@ -2359,20 +2367,26 @@
 		                  <div class="mode-head">
 		                    <div class="mode-head-left">
 		                      <h4>Reglas de facturación</h4>
-		                      <span class="tip" data-tip="Estas reglas se usan cuando en Pedidos seleccionas “Crear factura”. La bodega se toma desde Logística e inventario (Bodega destino).">?</span>
+		                      <span class="tip" data-tip="Paso 1: decide si vas a facturar pedidos. Paso 2: elige tipo de factura. Paso 3: si usas factura electrónica, define la resolución DIAN.">?</span>
 		                    </div>
 		                  </div>
 				                  <div class="mode-grid">
 			                    <div class="field is-toggle mode-field">
-			                      <label>Factura electrónica (opcional) <span class="tip" data-tip="Actívala solo si necesitas capturar datos de factura electrónica por pedido (NIT/razón social, etc.). No bloquea la factura estándar.">?</span></label>
-			                      <input type="checkbox" id="cfg-einvoice-enabled" name="cfg_einvoice_enabled" class="toggle" />
+			                      <label>Crear factura en Contable <span class="tip" data-tip="Si está OFF, solo guardamos pedidos en la base (no crea factura).">?</span></label>
+			                      <input type="checkbox" id="cfg-generate-invoice" name="cfg_generate_invoice" class="toggle" />
 			                    </div>
+			                  </div>
+				                  <div class="mode-grid" data-depends-on="cfg-generate-invoice">
 				                    <div class="field mode-field">
 				                      <label>Tipo de factura</label>
 				                      <select id="cfg-invoice-status" name="cfg_invoice_status">
 				                        <option value="draft">Borrador</option>
 			                        <option value="active">Activa</option>
 			                      </select>
+			                    </div>
+			                    <div class="field is-toggle mode-field">
+			                      <label>Factura electrónica (opcional) <span class="tip" data-tip="Actívala solo si necesitas capturar datos de factura electrónica por pedido (NIT/razón social, etc.).">?</span></label>
+			                      <input type="checkbox" id="cfg-einvoice-enabled" name="cfg_einvoice_enabled" class="toggle" />
 			                    </div>
 				                    <div class="field mode-field" data-depends-on="cfg-einvoice-enabled">
 					                      <label>Resolución DIAN <span class="tip" data-tip="Solo aplica si activas Factura electrónica.">?</span></label>
@@ -2515,6 +2529,8 @@
                         <div class="mode-field">
                           <label for="store-sync-track-inventory"><span data-label-template="Seguimiento de inventarios ({accounting})">Seguimiento de inventarios (Alegra)</span> <span class="tip" data-tip="Si está ON, los productos se crean con seguimiento de inventario activo. Esto requiere que “Sincronizar inventario en E‑commerce” esté encendido. Si un producto no tiene seguimiento en Shopify (o se permite sobreventa), ese comportamiento se respeta. Las reglas de inventario de Alegra rigen este seguimiento.">?</span></label>
                           <input type="checkbox" id="store-sync-track-inventory" name="store_sync_track_inventory" class="toggle" checked />
+                          <label for="store-sync-oversell"><span data-label-template="Permitir sobreventa ({accounting})">Permitir sobreventa (Alegra)</span> <span class="tip" data-tip="Si está ON, los productos creados quedan con política de sobreventa. Solo aplica cuando el seguimiento de inventario está activo.">?</span></label>
+                          <input type="checkbox" id="store-sync-oversell" name="store_sync_oversell" class="toggle" />
                         </div>
                         <div class="mode-field">
                           <label for="store-sync-inventory-source"><span data-label-template="Inventario desde {accounting}/{commerce}">Inventario desde Contable</span> <span class="tip" data-tip="Define la fuente de inventario cuando “Publicar existencias” está ON. Solo una fuente puede estar activa.">?</span></label>

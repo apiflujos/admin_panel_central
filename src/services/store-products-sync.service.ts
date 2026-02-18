@@ -14,6 +14,7 @@ type ShopifyStoreProductsSyncSettings = {
   includeTags?: boolean;
   includeProductType?: boolean;
   trackInventory?: boolean;
+  allowOversell?: boolean;
   includeInventory?: boolean;
   inventorySource?: "accounting" | "commerce";
 };
@@ -180,6 +181,7 @@ async function buildProductCreateInput(
   const includeTags = settings.includeTags !== false;
   const status: "ACTIVE" | "DRAFT" = settings.status === "active" ? "ACTIVE" : "DRAFT";
   const trackInventory = settings.trackInventory !== false;
+  const allowOversell = settings.allowOversell === true;
   const priceListId = settings.priceListId;
   const priceFallback = settings.priceFallback || "shopify";
 
@@ -195,9 +197,11 @@ async function buildProductCreateInput(
       sku?: string;
       barcode?: string;
       options?: string[];
+      inventoryPolicy?: string;
     } = {
       sku: node?.sku ? String(node.sku).trim() : undefined,
       barcode: node?.barcode ? String(node.barcode).trim() : undefined,
+      inventoryPolicy: allowOversell ? "CONTINUE" : "DENY",
     };
 
     if (optionNames.length) {

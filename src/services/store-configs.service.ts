@@ -261,6 +261,10 @@ export async function listStoreConfigs() {
           (rules as Record<string, unknown>).trackInventory,
           true
         ),
+        allowOversell: normalizeBoolean(
+          (rules as Record<string, unknown>).allowOversell,
+          false
+        ),
         onlyActiveItems: normalizeBoolean(
           (rules as Record<string, unknown>).onlyActiveItems,
           Boolean((defaults.rules as Record<string, unknown>)?.onlyActiveItems)
@@ -503,6 +507,10 @@ async function getStoreConfigForStoreId(storeId: number) {
         trackInventory: normalizeBoolean(
           (rules as Record<string, unknown>).trackInventory,
           true
+        ),
+        allowOversell: normalizeBoolean(
+          (rules as Record<string, unknown>).allowOversell,
+          false
         ),
         onlyActiveItems: normalizeBoolean(
           (rules as Record<string, unknown>).onlyActiveItems,
