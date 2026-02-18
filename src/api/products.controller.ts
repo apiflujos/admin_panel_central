@@ -1551,6 +1551,12 @@ export async function syncProductsHandler(req: Request, res: Response) {
     const maxItems = Number.isFinite(Number(filters.limit)) ? Number(filters.limit) : null;
     const onlyActive = filters.onlyActive !== false;
     const includeInventory = filters.includeInventory !== false;
+    const onlyWithImages =
+      filters.onlyWithImages === true ||
+      String(filters.onlyWithImages ?? "").trim().toLowerCase() === "true" ||
+      String(filters.onlyWithImages ?? "").trim().toLowerCase() === "1" ||
+      String(filters.onlyWithImages ?? "").trim().toLowerCase() === "yes" ||
+      String(filters.onlyWithImages ?? "").trim().toLowerCase() === "on";
   const requestedWarehouseIds = Array.isArray((filters as any).warehouseIds)
     ? (filters as any).warehouseIds.map((id: unknown) => String(id || "").trim()).filter(Boolean)
     : [];
@@ -2144,6 +2150,13 @@ export async function syncProductsHandler(req: Request, res: Response) {
             searchMessage = `No se encontraron productos para "${filters.query}".`;
           }
         }
+      }
+
+      if (onlyWithImages) {
+        items = items.filter((item: AlegraItem) => {
+          if (item?.variantParent_id || item?.idItemParent) return true;
+          return normalizeImageUrls(item.images || []).length > 0;
+        });
       }
       items.forEach((item) => {
         if (item?.type === "variantParent") {

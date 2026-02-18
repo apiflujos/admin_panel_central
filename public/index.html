@@ -1670,6 +1670,10 @@
 		                              <label for="products-sync-only-active"><span data-label-template="Solo activos en {accounting}">Solo activos en Contable</span> <span class="tip" data-tip="Si está activo, el masivo ignora productos inactivos en Contable. Recomendado para evitar crear productos descontinuados en E‑commerce.">?</span></label>
 		                              <input type="checkbox" id="products-sync-only-active" name="products_sync_only_active" class="toggle" checked />
 		                            </div>
+	                            <div class="mode-toggle">
+	                              <label for="products-sync-only-images"><span data-label-template="Solo con fotos ({accounting})">Solo con fotos</span> <span class="tip" data-tip="Si está ON, solo sincroniza productos que tienen al menos una foto en Contable. Los ítems sin imágenes se omiten del masivo.">?</span></label>
+	                              <input type="checkbox" id="products-sync-only-images" name="products_sync_only_images" class="toggle" />
+	                            </div>
 				                            <div class="mode-toggle">
 				                              <label for="products-sync-update-existing"><span data-label-template="Actualizar existentes en {commerce}">Actualizar existentes</span> <span class="tip" data-tip="ON: si el producto ya existe, lo actualiza en la base de datos.&#10;Si además “Publicar en E‑commerce” está ON, también actualiza el producto existente en E‑commerce (por SKU/Barcode): precio de variantes y estado (draft/active).&#10;OFF: no modifica productos existentes (ni en la base de datos, ni en E‑commerce); solo guarda productos nuevos.">?</span></label>
 				                              <input type="checkbox" id="products-sync-update-existing" name="products_sync_update_existing" class="toggle" checked />

@@ -467,6 +467,7 @@ const productsDateEnd = document.getElementById("products-date-end");
 const productsSyncLimitInput = document.getElementById("products-sync-limit");
 const productsSyncQuery = document.getElementById("products-sync-query");
 const productsSyncOnlyActive = document.getElementById("products-sync-only-active");
+const productsSyncOnlyImages = document.getElementById("products-sync-only-images");
 const productsSyncPublish = document.getElementById("products-sync-publish");
 const productsSyncUpdateExisting = document.getElementById("products-sync-update-existing");
 const productsSyncOnlyPublished = document.getElementById("products-sync-only-published");
@@ -626,6 +627,7 @@ const DEFAULT_PRODUCT_SETTINGS = {
       onlyPublishedInShopify: true,
       includeInventory: true,
       onlyActive: true,
+      onlyWithImages: false,
       updateExisting: true,
     },
   orders: {
@@ -3862,6 +3864,9 @@ function loadProductSettings() {
     if (typeof nextSync.onlyActive !== "boolean") {
       nextSync.onlyActive = true;
     }
+    if (typeof nextSync.onlyWithImages !== "boolean") {
+      nextSync.onlyWithImages = false;
+    }
     if (!Array.isArray(nextSync.warehouseIds)) {
       nextSync.warehouseIds = [];
     }
@@ -5981,6 +5986,9 @@ function applyProductSettings() {
   if (productsSyncOnlyActive) {
     productsSyncOnlyActive.checked = productSettings.sync.onlyActive !== false;
   }
+  if (productsSyncOnlyImages) {
+    productsSyncOnlyImages.checked = productSettings.sync.onlyWithImages === true;
+  }
   if (productsSyncPublish) productsSyncPublish.checked = productSettings.sync.publishOnSync !== false;
   if (productsSyncUpdateExisting) {
     productsSyncUpdateExisting.checked = productSettings.sync.updateExisting !== false;
@@ -6034,6 +6042,7 @@ function refreshProductSettingsFromInputs() {
       query: productsSyncQuery ? productsSyncQuery.value.trim() : "",
       warehouseIds: getSelectedSyncWarehouseIds(),
       onlyActive: productsSyncOnlyActive ? productsSyncOnlyActive.checked : true,
+      onlyWithImages: productsSyncOnlyImages ? productsSyncOnlyImages.checked : false,
       publishOnSync: productsSyncPublish ? productsSyncPublish.checked : true,
       updateExisting: productsSyncUpdateExisting ? productsSyncUpdateExisting.checked : true,
       onlyPublishedInShopify: productsSyncOnlyPublished
@@ -9430,6 +9439,7 @@ async function runProductsSync(mode) {
             : [],
           includeInventory: productSettings.sync.includeInventory !== false,
           onlyActive: productSettings.sync.onlyActive !== false,
+          onlyWithImages: productSettings.sync.onlyWithImages === true,
         },
         settings: {
           status: productSettings.publish.status,
@@ -15324,6 +15334,7 @@ if (rulesAutoPublish && rulesAutoStatus) {
       if (productsSyncLimitInput) productsSyncLimitInput.value = "";
       if (productsSyncQuery) productsSyncQuery.value = "";
       if (productsSyncOnlyActive) productsSyncOnlyActive.checked = true;
+      if (productsSyncOnlyImages) productsSyncOnlyImages.checked = false;
       if (productsSyncPublish) productsSyncPublish.checked = true;
       if (productsSyncUpdateExisting) productsSyncUpdateExisting.checked = true;
       if (productsSyncOnlyPublished) productsSyncOnlyPublished.checked = true;
@@ -15347,6 +15358,7 @@ if (rulesAutoPublish && rulesAutoStatus) {
 		  productsSyncLimitInput,
 		  productsSyncQuery,
 		  productsSyncOnlyActive,
+      productsSyncOnlyImages,
 	  productsSyncPublish,
 	  productsSyncUpdateExisting,
 	  productsSyncOnlyPublished,
