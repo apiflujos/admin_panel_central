@@ -2576,11 +2576,18 @@
                           <input type="checkbox" id="store-sync-include-tags" name="store_sync_include_tags" class="toggle" checked />
                         </div>
 	                      </div>
-	                      <div class="mode-actions">
-	                        <button class="primary" id="store-sync-run" type="button">Sincronizar productos</button>
-	                        <button class="ghost" id="store-sync-clear" type="button">Limpiar</button>
-	                        <span class="kpi-sub" id="store-sync-status-label">Sin datos</span>
-	                      </div>
+                        <div class="mode-actions">
+                          <button class="primary" id="store-sync-run" type="button">Sincronizar productos</button>
+                          <button class="ghost danger" id="store-sync-stop" type="button" hidden>Detener</button>
+                          <button class="ghost" id="store-sync-clear" type="button">Limpiar</button>
+                          <span class="kpi-sub" id="store-sync-status-label">Sin datos</span>
+                        </div>
+                        <div class="sync-progress" id="store-sync-progress" aria-hidden="true">
+                          <div class="sync-progress-track">
+                            <div class="sync-progress-bar" id="store-sync-progress-bar"></div>
+                          </div>
+                          <span class="sync-progress-label" id="store-sync-progress-label">Sincronizando 0%</span>
+                        </div>
 	                    </div>
 	                  </div>
 	                </div>

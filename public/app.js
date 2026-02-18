@@ -271,9 +271,13 @@ const storeSyncIncludeImages = document.getElementById("store-sync-include-image
 const storeSyncIncludeProductType = document.getElementById("store-sync-include-product-type");
 const storeSyncIncludeTags = document.getElementById("store-sync-include-tags");
 const storeSyncRun = document.getElementById("store-sync-run");
+const storeSyncStop = document.getElementById("store-sync-stop");
 const storeSyncClear = document.getElementById("store-sync-clear");
 const storeSyncStatusLabel = document.getElementById("store-sync-status-label");
 const storeSyncIncludeInventoryLabel = document.getElementById("store-sync-include-inventory-label");
+const storeSyncProgress = document.getElementById("store-sync-progress");
+const storeSyncProgressBar = document.getElementById("store-sync-progress-bar");
+const storeSyncProgressLabel = document.getElementById("store-sync-progress-label");
 const shopifyDomain = document.getElementById("shopify-domain");
 const shopifyToken = document.getElementById("shopify-token");
 const shopifyTokenField = document.getElementById("shopify-token-field");
@@ -694,6 +698,7 @@ let invoicesBackfillRunning = false;
 let productsShopifyBulkAbort = null;
 let productsShopifyBulkRunning = false;
 let activeProductsShopifyBulkSyncId = "";
+let storeSyncAbort = null;
 let operationsView = "orders";
 let csrfToken = "";
 
@@ -4955,6 +4960,27 @@ function updateConnectionModuleCards(context) {
     if (title) title.textContent = "Ads";
     const subtitle = adsCard.querySelector(".module-card-subtitle");
     if (subtitle) subtitle.textContent = "Google · Meta · TikTok";
+  }
+}
+
+function updateStoreSyncProgress(percent, labelText) {
+  const normalized = Math.min(100, Math.max(0, percent));
+  if (storeSyncProgress && storeSyncProgressBar && storeSyncProgressLabel) {
+    storeSyncProgress.classList.add("is-active");
+    storeSyncProgressBar.style.width = `${normalized}%`;
+    storeSyncProgressLabel.textContent = labelText;
+  }
+}
+
+function finishStoreSyncProgress(labelText) {
+  const finalText = labelText || "Sincronizador 100%";
+  if (storeSyncProgress && storeSyncProgressBar && storeSyncProgressLabel) {
+    storeSyncProgressBar.style.width = "100%";
+    storeSyncProgressLabel.textContent = finalText;
+    setTimeout(() => {
+      storeSyncProgress.classList.remove("is-active");
+      storeSyncProgressBar.style.width = "0%";
+    }, 800);
   }
 }
 
@@ -9792,6 +9818,23 @@ async function runProductsShopifyBulkSync() {
 }
 
 async function runStoreProductsSync() {
+  if (storeSyncAbort) {
+    try {
+      storeSyncAbort.abort();
+    } catch {
+      // ignore
+    }
+  }
+  const controller = new AbortController();
+  storeSyncAbort = controller;
+  if (storeSyncRun instanceof HTMLButtonElement) {
+    storeSyncRun.hidden = true;
+    storeSyncRun.disabled = true;
+  }
+  if (storeSyncStop instanceof HTMLButtonElement) {
+    storeSyncStop.hidden = false;
+    storeSyncStop.disabled = false;
+  }
   const sourceProvider = storeSyncSourceProviderSelect?.value || "shopify";
   const targetProvider = storeSyncTargetProviderSelect?.value || "shopify";
   const source = normalizeShopDomain(storeSyncSourceSelect?.value || "");
@@ -9855,6 +9898,16 @@ async function runStoreProductsSync() {
   const inventorySource = getStoreSyncInventorySource();
 
   if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Sincronizando...";
+  updateStoreSyncProgress(0, "Sincronizando 0% · ETA --:--");
+  let startedAt = Date.now();
+  let latestTotals = {
+    total: null,
+    processed: 0,
+    created: 0,
+    updated: 0,
+    skipped: 0,
+    failed: 0,
+  };
   try {
     const isShopifyOnly = sourceProvider === "shopify" && targetProvider === "shopify";
     const response = await fetch("/api/sync/stores/products?stream=1", {
@@ -9882,6 +9935,7 @@ async function runStoreProductsSync() {
         },
         stream: true,
       }),
+      signal: controller.signal,
     });
     if (!response.ok || !response.body) {
       const text = await response.text();
@@ -9890,14 +9944,6 @@ async function runStoreProductsSync() {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
-    let totals = {
-      total: null,
-      processed: 0,
-      created: 0,
-      updated: 0,
-      skipped: 0,
-      failed: 0,
-    };
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -9914,25 +9960,34 @@ async function runStoreProductsSync() {
           continue;
         }
         if (payload.type === "start") {
-          totals.total = payload.total ?? totals.total;
+          startedAt = Date.now();
+          latestTotals.total = payload.total ?? latestTotals.total;
         }
         if (payload.type === "progress") {
-          totals = {
-            ...totals,
-            total: payload.total ?? totals.total,
-            processed: payload.processed ?? totals.processed,
-            created: payload.created ?? totals.created,
-            updated: payload.updated ?? totals.updated,
-            skipped: payload.skipped ?? totals.skipped,
-            failed: payload.failed ?? totals.failed,
+          latestTotals = {
+            ...latestTotals,
+            total: payload.total ?? latestTotals.total,
+            processed: payload.processed ?? latestTotals.processed,
+            created: payload.created ?? latestTotals.created,
+            updated: payload.updated ?? latestTotals.updated,
+            skipped: payload.skipped ?? latestTotals.skipped,
+            failed: payload.failed ?? latestTotals.failed,
           };
+          const total = Number(latestTotals.total) || 0;
+          const processed = Number(latestTotals.processed) || 0;
+          const percent = total > 0 ? (processed / total) * 100 : 0;
+          const elapsedMs = Date.now() - startedAt;
+          const rate = processed > 0 ? elapsedMs / processed : 0;
+          const remainingMs = total > 0 && rate > 0 ? rate * Math.max(0, total - processed) : 0;
+          const etaText = total > 0 ? formatDuration(remainingMs) : "--:--";
+          updateStoreSyncProgress(percent, `Sincronizando ${Math.round(percent)}% · ETA ${etaText}`);
           if (storeSyncStatusLabel) {
             storeSyncStatusLabel.textContent =
-              `Procesados ${totals.processed}/${totals.total || "?"}` +
-              ` · Creados ${totals.created}` +
-              ` · Actualizados ${totals.updated}` +
-              ` · Omitidos ${totals.skipped}` +
-              ` · Fallidos ${totals.failed}`;
+              `Procesados ${processed}/${total || "?"}` +
+              ` · Creados ${latestTotals.created}` +
+              ` · Actualizados ${latestTotals.updated}` +
+              ` · Omitidos ${latestTotals.skipped}` +
+              ` · Fallidos ${latestTotals.failed}`;
           }
         }
         if (payload.type === "complete") {
@@ -9947,6 +10002,7 @@ async function runStoreProductsSync() {
                 ? `Total ${total} · Creados ${created} · Actualizados ${updated} · Omitidos ${skipped} · Fallidos ${failed}`
                 : "Sin productos para sincronizar.";
           }
+          finishStoreSyncProgress("Sincronizador 100%");
           return;
         }
         if (payload.type === "error") {
@@ -9956,7 +10012,23 @@ async function runStoreProductsSync() {
     }
   } catch (error) {
     const message = error?.message || "No se pudo sincronizar productos entre tiendas.";
+    if (message.includes("aborted") || message.includes("AbortError")) {
+      if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Sincronizacion detenida.";
+      finishStoreSyncProgress("Sincronizador detenido");
+    } else {
     if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = message;
+      finishStoreSyncProgress("Error en sincronizador");
+    }
+  } finally {
+    storeSyncAbort = null;
+    if (storeSyncRun instanceof HTMLButtonElement) {
+      storeSyncRun.hidden = false;
+      storeSyncRun.disabled = false;
+    }
+    if (storeSyncStop instanceof HTMLButtonElement) {
+      storeSyncStop.hidden = true;
+      storeSyncStop.disabled = false;
+    }
   }
 }
 
@@ -14605,6 +14677,18 @@ if (storeSyncClear) {
     ensureStoreSyncDistinct();
     if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Sin datos";
     applyStoreSyncInventoryGuard();
+  });
+}
+
+if (storeSyncStop) {
+  storeSyncStop.addEventListener("click", () => {
+    if (storeSyncAbort) {
+      try {
+        storeSyncAbort.abort();
+      } catch {
+        // ignore
+      }
+    }
   });
 }
 
