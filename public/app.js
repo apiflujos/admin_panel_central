@@ -307,6 +307,8 @@ const copyConfigSelect = document.getElementById("copy-config-select");
 const DEFAULT_WIZARD_HINT = wizardHint ? wizardHint.textContent : "";
 
 const alegraAccountSelect = document.getElementById("alegra-account-select");
+const commerceAlegraSelect = document.getElementById("commerce-alegra-select");
+const commerceAlegraHint = document.getElementById("commerce-alegra-hint");
 const alegraEnvSelect = document.getElementById("alegra-env-select");
 const alegraEnvField = document.getElementById("alegra-env-field");
 const alegraEmail = document.getElementById("alegra-email");
@@ -1115,6 +1117,7 @@ function renderConnectionStoreSelect() {
   const selectedStore = getSelectedStore();
   if (storeNameInput) storeNameInput.value = selectedStore ? selectedStore.name : "";
   updateConnectionStoreHints();
+  syncCommerceAlegraSelection();
 }
 
 async function loadStoresCatalog() {
@@ -1158,6 +1161,12 @@ function updateConnectionButtonsState() {
   const nameValue = selectedStore ? selectedStore.name : "";
   if (storeNameInput) storeNameInput.value = nameValue;
   const hasStore = Boolean(selectedStore);
+  const commerceAlegraValue =
+    commerceAlegraSelect instanceof HTMLSelectElement ? commerceAlegraSelect.value : "";
+  const hasCommerceAlegra =
+    commerceAlegraSelect instanceof HTMLSelectElement
+      ? !commerceAlegraSelect.disabled && Boolean(commerceAlegraValue)
+      : true;
   const shopifyDomainValue = normalizeShopDomain(shopifyDomain?.value || "");
   const shopifyTokenValue = shopifyToken ? shopifyToken.value.trim() : "";
   const wooDomainValue = normalizeShopDomain(wooDomain?.value || "");
@@ -1169,10 +1178,12 @@ function updateConnectionButtonsState() {
 
   const shopifyReady =
     hasStore &&
+    hasCommerceAlegra &&
     Boolean(shopifyDomainValue) &&
     (method !== "token" || Boolean(shopifyTokenValue));
   const wooReady =
     hasStore &&
+    hasCommerceAlegra &&
     Boolean(wooDomainValue) &&
     Boolean(wooKeyValue) &&
     Boolean(wooSecretValue);
@@ -1295,6 +1306,9 @@ function openConnectionModal(presetGroup) {
     });
   }
   renderConnectionStoreSelect();
+  if (!Array.isArray(storesCatalog) || storesCatalog.length === 0) {
+    loadStoresCatalog();
+  }
   connectionModal.classList.add("is-open");
   connectionModal.setAttribute("aria-hidden", "false");
   updateConnectionChoiceCount();
@@ -4903,6 +4917,8 @@ function setConnectionContextClasses({ shopifyConnected, alegraConnected, wooCon
 function updateConnectionModuleCards(context) {
   const commerceCard = document.querySelector('[data-connection-group-open="commerce"]');
   if (commerceCard) {
+    const title = commerceCard.querySelector(".module-card-title");
+    if (title) title.textContent = "E‑commerce";
     const subtitle = commerceCard.querySelector(".module-card-subtitle");
     if (subtitle) {
       subtitle.textContent = "Shopify · WooCommerce";
@@ -4910,10 +4926,19 @@ function updateConnectionModuleCards(context) {
   }
   const accountingCard = document.querySelector('[data-connection-group-open="accounting"]');
   if (accountingCard) {
+    const title = accountingCard.querySelector(".module-card-title");
+    if (title) title.textContent = "Contabilidad";
     const subtitle = accountingCard.querySelector(".module-card-subtitle");
     if (subtitle) {
       subtitle.textContent = "Alegra";
     }
+  }
+  const adsCard = document.querySelector('[data-connection-group-open="ads"]');
+  if (adsCard) {
+    const title = adsCard.querySelector(".module-card-title");
+    if (title) title.textContent = "Ads";
+    const subtitle = adsCard.querySelector(".module-card-subtitle");
+    if (subtitle) subtitle.textContent = "Google · Meta · TikTok";
   }
 }
 
@@ -7042,6 +7067,55 @@ function renderAlegraAccountOptions(accounts) {
   alegraAccountSelect.innerHTML = options.join("");
   alegraAccountSelect.value = accounts.some((a) => String(a.id) === current) ? current : "new";
   toggleAlegraAccountFields();
+  renderCommerceAlegraOptions(accounts);
+}
+
+function renderCommerceAlegraOptions(accounts) {
+  if (!commerceAlegraSelect) return;
+  const previous = commerceAlegraSelect.value || "";
+  const items = Array.isArray(accounts) ? accounts : [];
+  if (!items.length) {
+    commerceAlegraSelect.innerHTML = `<option value="">Conecta una cuenta Alegra primero</option>`;
+    commerceAlegraSelect.disabled = true;
+    if (commerceAlegraHint) {
+      commerceAlegraHint.textContent = "Necesitas una cuenta contable para asociar esta tienda.";
+    }
+    updateConnectionButtonsState();
+    return;
+  }
+  const options = [
+    `<option value="">Seleccionar plataforma contable</option>`,
+    ...items.map(
+      (account) =>
+        `<option value="${account.id}">${account.email} (${account.environment || "prod"})</option>`
+    ),
+  ];
+  commerceAlegraSelect.innerHTML = options.join("");
+  commerceAlegraSelect.disabled = false;
+  if (commerceAlegraHint) {
+    commerceAlegraHint.textContent = "Selecciona la cuenta contable asociada a esta tienda.";
+  }
+  if (items.some((account) => String(account.id) === previous)) {
+    commerceAlegraSelect.value = previous;
+  } else if (items.length === 1) {
+    commerceAlegraSelect.value = String(items[0].id);
+  } else {
+    commerceAlegraSelect.value = "";
+  }
+  syncCommerceAlegraSelection();
+  updateConnectionButtonsState();
+}
+
+function syncCommerceAlegraSelection() {
+  if (!(commerceAlegraSelect instanceof HTMLSelectElement)) return;
+  const selectedStore = getSelectedStore();
+  const alegraId = selectedStore?.alegra?.id;
+  if (!alegraId) return;
+  const value = String(alegraId);
+  const hasOption = Array.from(commerceAlegraSelect.options).some((opt) => opt.value === value);
+  if (hasOption) {
+    commerceAlegraSelect.value = value;
+  }
 }
 
 function toggleAlegraAccountFields() {
@@ -12889,6 +12963,11 @@ async function connectShopifyWithToken(params) {
   if (!store) {
     throw new Error("Selecciona una tienda.");
   }
+  const commerceAlegraId =
+    commerceAlegraSelect instanceof HTMLSelectElement ? commerceAlegraSelect.value : "";
+  if (commerceAlegraSelect instanceof HTMLSelectElement && commerceAlegraSelect.options.length > 1 && !commerceAlegraId) {
+    throw new Error("Selecciona la cuenta contable.");
+  }
   const response = await fetchJson("/api/connections", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -12899,6 +12978,7 @@ async function connectShopifyWithToken(params) {
         shopDomain: params.shopDomain,
         accessToken: tokenValue,
       },
+      alegra: commerceAlegraId ? { accountId: Number(commerceAlegraId) } : undefined,
     }),
   });
   if (shopifyToken) shopifyToken.value = "";
@@ -12925,6 +13005,11 @@ async function connectWooCommerceStore() {
   if (!store) {
     throw new Error("Selecciona una tienda.");
   }
+  const commerceAlegraId =
+    commerceAlegraSelect instanceof HTMLSelectElement ? commerceAlegraSelect.value : "";
+  if (commerceAlegraSelect instanceof HTMLSelectElement && commerceAlegraSelect.options.length > 1 && !commerceAlegraId) {
+    throw new Error("Selecciona la cuenta contable.");
+  }
   const testResult = await fetchJson("/api/settings/test", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -12949,6 +13034,7 @@ async function connectWooCommerceStore() {
       shopDomain: domain,
       consumerKey,
       consumerSecret,
+      alegraAccountId: commerceAlegraId ? Number(commerceAlegraId) : undefined,
     }),
   });
   if (wooConsumerKey) wooConsumerKey.value = "";
@@ -12977,6 +13063,11 @@ async function startShopifyOAuthFlow() {
     (sameStore ? activeStoreName : "") ||
     "";
   const storeId = selectedStore?.id;
+  const commerceAlegraId =
+    commerceAlegraSelect instanceof HTMLSelectElement ? commerceAlegraSelect.value : "";
+  if (commerceAlegraSelect instanceof HTMLSelectElement && commerceAlegraSelect.options.length > 1 && !commerceAlegraId) {
+    throw new Error("Selecciona la cuenta contable.");
+  }
   if (!normalizedInput) {
     throw new Error("Dominio Shopify requerido");
   }
@@ -12997,6 +13088,9 @@ async function startShopifyOAuthFlow() {
   }
   if (storeId) {
     params.set("storeId", String(storeId));
+  }
+  if (commerceAlegraId) {
+    params.set("alegraAccountId", String(commerceAlegraId));
   }
   const copyFrom = normalizeStoreId(copyConfigSelect?.value || "");
   if (copyFrom && storeId && copyFrom !== String(storeId)) {
@@ -13429,6 +13523,9 @@ if (logRetry) {
 }
 if (alegraAccountSelect) {
   alegraAccountSelect.addEventListener("change", toggleAlegraAccountFields);
+}
+if (commerceAlegraSelect) {
+  commerceAlegraSelect.addEventListener("change", () => updateConnectionButtonsState());
 }
 		  if (storeActiveSelect) {
 		    storeActiveSelect.addEventListener("change", () => {
@@ -14241,6 +14338,7 @@ if (connectionStoreSelect instanceof HTMLSelectElement) {
     const selectedStore = getSelectedStore();
     if (storeNameInput) storeNameInput.value = selectedStore ? selectedStore.name : "";
     updateConnectionStoreHints();
+    syncCommerceAlegraSelection();
     updateConnectionButtonsState();
   });
 }
