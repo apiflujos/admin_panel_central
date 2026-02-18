@@ -4914,6 +4914,17 @@ function setConnectionContextClasses({ shopifyConnected, alegraConnected, wooCon
   document.body.classList.toggle("no-alegra", !alegraConnected);
 }
 
+function getCommerceLabel({ shopifyConnected, wooConnected }) {
+  if (shopifyConnected && wooConnected) return "Shopify + WooCommerce";
+  if (wooConnected) return "WooCommerce";
+  if (shopifyConnected) return "Shopify";
+  return "E‑commerce";
+}
+
+function getAccountingLabel({ alegraConnected }) {
+  return alegraConnected ? "Alegra" : "Contable";
+}
+
 function updateConnectionModuleCards(context) {
   const commerceCard = document.querySelector('[data-connection-group-open="commerce"]');
   if (commerceCard) {
@@ -4955,7 +4966,9 @@ function setModuleBridgeTag(moduleKey, text) {
 }
 
 function applyEcommerceLogo(label) {
-  const logos = document.querySelectorAll('.provider-logo.is-shopify');
+  const logos = document.querySelectorAll(
+    '.settings-title-logos .provider-logo.is-shopify, .settings-group .provider-logo.is-shopify'
+  );
   if (!logos.length) return;
   const useWoo = label.startsWith("WooCommerce");
   logos.forEach((logo) => {
