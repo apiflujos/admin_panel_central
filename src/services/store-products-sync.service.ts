@@ -73,9 +73,7 @@ const normalizePriceListId = (value?: unknown) => {
 const resolvePriceListId = (price: Record<string, unknown>) => {
   const raw = price as { priceListId?: unknown; priceList?: { id?: unknown }; id?: unknown };
   return (
-    normalizePriceListId(raw.priceListId) ||
-    normalizePriceListId(raw.priceList?.id) ||
-    normalizePriceListId(raw.id)
+    normalizePriceListId(raw.priceListId) || normalizePriceListId(raw.priceList?.id) || normalizePriceListId(raw.id)
   );
 };
 
@@ -149,10 +147,7 @@ async function findAlegraItemByIdentifier(client: AlegraClient, identifier: stri
     { name: identifier },
   ];
   for (const params of candidates) {
-    const payload = (await client.searchItems({ ...params, limit: 1, metadata: true })) as Record<
-      string,
-      unknown
-    >;
+    const payload = (await client.searchItems({ ...params, limit: 1, metadata: true })) as Record<string, unknown>;
     const items = extractAlegraItems(payload);
     if (items.length) return items[0];
   }
@@ -197,7 +192,7 @@ async function buildProductCreateInput(
       sku?: string;
       barcode?: string;
       options?: string[];
-      inventoryPolicy?: string;
+      inventoryPolicy?: "CONTINUE" | "DENY" | null;
     } = {
       sku: node?.sku ? String(node.sku).trim() : undefined,
       barcode: node?.barcode ? String(node.barcode).trim() : undefined,
@@ -262,9 +257,7 @@ async function buildProductCreateInput(
 
 function resolveProductImages(product: ShopifyProduct) {
   const edges = product?.images?.edges || [];
-  return edges
-    .map((edge) => String(edge?.node?.url || "").trim())
-    .filter((url) => url.length > 0);
+  return edges.map((edge) => String(edge?.node?.url || "").trim()).filter((url) => url.length > 0);
 }
 
 export async function syncShopifyProductsBetweenStores(
@@ -303,8 +296,7 @@ export async function syncShopifyProductsBetweenStores(
   const trackInventory = settings.trackInventory !== false;
   const includeInventory = settings.includeInventory !== false;
   const inventorySource = settings.inventorySource === "commerce" ? "commerce" : "accounting";
-  const targetLocationId =
-    includeInventory && trackInventory ? await targetClient.getPrimaryLocationId() : "";
+  const targetLocationId = includeInventory && trackInventory ? await targetClient.getPrimaryLocationId() : "";
 
   const onlyActive = settings.onlyActive !== false;
   const query = onlyActive ? "status:active" : "status:any";

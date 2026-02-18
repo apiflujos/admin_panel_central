@@ -15,10 +15,7 @@ export function verifyShopifyHmac(rawBody: Buffer, signature: string) {
   if (!normalizedSignature) {
     return false;
   }
-  const digest = crypto
-    .createHmac("sha256", secret)
-    .update(rawBody)
-    .digest("base64");
+  const digest = crypto.createHmac("sha256", secret).update(rawBody).digest("base64");
 
   const digestBuffer = Buffer.from(digest, "utf8");
   const signatureBuffer = Buffer.from(normalizedSignature, "utf8");
@@ -40,10 +37,7 @@ export function verifyAlegraSignature(rawBody: Buffer, signature: string) {
   if (!normalizedSignature) {
     return false;
   }
-  const digest = crypto
-    .createHmac("sha256", secret)
-    .update(rawBody)
-    .digest("hex");
+  const digest = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
   const digestBuffer = Buffer.from(digest, "utf8");
   const signatureBuffer = Buffer.from(normalizedSignature, "utf8");
   if (digestBuffer.length !== signatureBuffer.length) {

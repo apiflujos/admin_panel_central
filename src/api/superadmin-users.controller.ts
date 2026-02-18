@@ -10,7 +10,10 @@ type SaUserRow = {
   created_at: Date;
 };
 
-const normalizeEmail = (value?: string) => String(value || "").trim().toLowerCase();
+const normalizeEmail = (value?: string) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
 
 function getCurrentUserId(req: Request) {
   return Number((req as { user?: { id?: number } }).user?.id || 0);

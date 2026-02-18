@@ -22,7 +22,11 @@ import {
 } from "../services/alegra-items-cache.service";
 import { resolveStoreConfig } from "../services/store-config.service";
 import { getStoreConfigForDomain } from "../services/store-configs.service";
-import { getAlegraConnectionByDomain, getAlegraConnectionByStoreId, getShopifyConnectionByDomain } from "../services/store-connections.service";
+import {
+  getAlegraConnectionByDomain,
+  getAlegraConnectionByStoreId,
+  getShopifyConnectionByDomain,
+} from "../services/store-connections.service";
 import { upsertProduct, listProducts } from "../services/products.service";
 import { upsertOrder } from "../services/orders.service";
 
@@ -86,7 +90,6 @@ type ShopifyConfig = {
   locationId: string;
 };
 
-
 async function getAlegraConfig() {
   const alegra = await getAlegraCredential();
   const baseUrl = getAlegraBaseUrl(alegra.environment || "prod");
@@ -103,15 +106,10 @@ async function getAlegraConfigForStore(shopDomain?: string, storeId?: number) {
     return { baseUrl, auth };
   }
   if (normalized) {
-    try {
-      const conn = await getAlegraConnectionByDomain(normalized);
-      const baseUrl = getAlegraBaseUrl(conn.environment || "prod");
-      const auth = Buffer.from(`${conn.email}:${conn.apiKey}`).toString("base64");
-      return { baseUrl, auth };
-    } catch (error) {
-      // Si no hay Alegra conectado para esa tienda, queremos que el mensaje sea accionable.
-      throw error;
-    }
+    const conn = await getAlegraConnectionByDomain(normalized);
+    const baseUrl = getAlegraBaseUrl(conn.environment || "prod");
+    const auth = Buffer.from(`${conn.email}:${conn.apiKey}`).toString("base64");
+    return { baseUrl, auth };
   }
   return getAlegraConfig();
 }
@@ -160,8 +158,7 @@ let activeProductsShopifyToAlegraSync: { id: string; canceled: boolean; startedA
 
 const createSyncId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-const isSyncCanceled = (syncId: string) =>
-  Boolean(activeProductsSync?.id === syncId && activeProductsSync.canceled);
+const isSyncCanceled = (syncId: string) => Boolean(activeProductsSync?.id === syncId && activeProductsSync.canceled);
 
 const isProductImagesSyncCanceled = (syncId: string) =>
   Boolean(activeProductImagesSync?.id === syncId && activeProductImagesSync.canceled);
@@ -271,8 +268,8 @@ const resolveItemSku = (item: AlegraItem) => {
   const firstVariant = variants[0];
   return normalizeText(
     firstVariant?.reference ||
-      firstVariant?.barcode ||
-      extractCustomFieldValue(item, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"])
+    firstVariant?.barcode ||
+    extractCustomFieldValue(item, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"])
   );
 };
 
@@ -288,7 +285,11 @@ const persistProductsFromAlegra = async (
   options?: { updateExisting?: boolean }
 ) => {
   if (!Array.isArray(items) || items.length === 0) return;
-  const normalize = (value: string) => value.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  const normalize = (value: string) =>
+    value
+      .trim()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/.*$/, "");
   let shopDomain = "";
   shopDomain = normalize(String(shopDomainInput || ""));
   if (!shopDomain) {
@@ -304,9 +305,7 @@ const persistProductsFromAlegra = async (
       const sourceUpdatedAt = resolveItemDate(item);
       const inventoryQuantity = resolveItemQuantityForFilter(item, []);
       const warehouseIds = Array.isArray(item.inventory?.warehouses)
-        ? item.inventory?.warehouses
-            .map((warehouse) => String(warehouse?.id || ""))
-            .filter(Boolean)
+        ? item.inventory?.warehouses.map((warehouse) => String(warehouse?.id || "")).filter(Boolean)
         : [];
       await upsertProduct(
         {
@@ -376,8 +375,7 @@ const resolveOrderTotal = (order: ShopifyOrder) => {
   return Number.isFinite(parsed as number) ? Number(parsed) : null;
 };
 
-const resolveOrderCurrency = (order: ShopifyOrder) =>
-  order.totalPriceSet?.shopMoney?.currencyCode || null;
+const resolveOrderCurrency = (order: ShopifyOrder) => order.totalPriceSet?.shopMoney?.currencyCode || null;
 
 const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
   try {
@@ -389,7 +387,10 @@ const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
 
 async function getShopifyConfig(shopDomain?: string): Promise<ShopifyConfig> {
   const normalize = (value: string) =>
-    value.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    value
+      .trim()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/.*$/, "");
   const normalized = shopDomain ? normalize(String(shopDomain)) : "";
   const connection = normalized ? await getShopifyConnectionByDomain(normalized) : null;
   const shopify = connection ? null : await getShopifyCredential();
@@ -423,11 +424,7 @@ async function fetchShopify(path: string, options: RequestInit = {}, configOverr
   return response.json();
 }
 
-async function fetchShopifyResponse(
-  path: string,
-  options: RequestInit = {},
-  configOverride?: ShopifyConfig
-) {
+async function fetchShopifyResponse(path: string, options: RequestInit = {}, configOverride?: ShopifyConfig) {
   const config = configOverride || (await getShopifyConfig());
   const url = `${config.baseAdmin}/api/${config.apiVersion}${path}`;
   const response = await fetch(url, {
@@ -464,11 +461,7 @@ const normalizePriceId = (value?: string | number) => {
 
 const resolvePriceListId = (price?: AlegraPrice) => {
   if (!price) return "";
-  return (
-    normalizePriceId(price.priceListId) ||
-    normalizePriceId(price.priceList?.id) ||
-    normalizePriceId(price.id)
-  );
+  return normalizePriceId(price.priceListId) || normalizePriceId(price.priceList?.id) || normalizePriceId(price.id);
 };
 
 const parsePriceValue = (value?: string | number) => {
@@ -517,9 +510,12 @@ const pickPriceForStore = (prices: AlegraPrice[] = [], config?: PriceListConfig)
     const value = parsePriceValue(byName?.price);
     if (value !== null) return value;
   }
-  const fallback = prices.find((price) =>
-    String(price?.name || "").toLowerCase().includes("general")
-  ) || prices[0];
+  const fallback =
+    prices.find((price) =>
+      String(price?.name || "")
+        .toLowerCase()
+        .includes("general")
+    ) || prices[0];
   return parsePriceValue(fallback?.price);
 };
 
@@ -599,9 +595,7 @@ const resolveInventoryQuantity = (
       .filter((warehouse) => warehouseIds.includes(String(warehouse.id)))
       .reduce((acc, warehouse) => acc + Number(warehouse.availableQuantity || 0), 0);
   }
-  return (
-    Number(inventory.quantity ?? inventory.availableQuantity ?? 0) || 0
-  );
+  return Number(inventory.quantity ?? inventory.availableQuantity ?? 0) || 0;
 };
 
 const parseQuantityValue = (value: unknown) => {
@@ -637,8 +631,7 @@ const resolveInventoryQuantityForFilter = (
     );
     return totals.count ? totals.sum : null;
   }
-  const initialQuantity =
-    inventory && "initialQuantity" in inventory ? (inventory as any).initialQuantity : undefined;
+  const initialQuantity = inventory && "initialQuantity" in inventory ? (inventory as any).initialQuantity : undefined;
   const raw = inventory.quantity ?? inventory.availableQuantity ?? initialQuantity;
   if (raw === null || raw === undefined || raw === "") return null;
   const qty = parseQuantityValue(raw);
@@ -672,9 +665,7 @@ const matchesItemWarehouses = (item: AlegraItem, warehouseIds: string[]) => {
   const variants = Array.isArray(item.itemVariants) ? item.itemVariants : [];
   return variants.some((variant) =>
     Array.isArray(variant.inventory?.warehouses)
-      ? variant.inventory.warehouses.some((warehouse) =>
-          warehouseIds.includes(String(warehouse.id))
-        )
+      ? variant.inventory.warehouses.some((warehouse) => warehouseIds.includes(String(warehouse.id)))
       : false
   );
 };
@@ -717,44 +708,40 @@ const buildShopifyPayload = (
     price: pickPriceForStore(alegraItem.price, priceConfig)?.toString() ?? "0",
     inventory_policy: inventoryPolicy,
     inventory_management: inventoryManagement,
-    inventory_quantity: includeInventory && trackInventory
-      ? resolveInventoryQuantity(alegraItem.inventory, warehouseIds)
-      : 0,
+    inventory_quantity:
+      includeInventory && trackInventory ? resolveInventoryQuantity(alegraItem.inventory, warehouseIds) : 0,
   };
 
   const variants =
     itemVariants.length > 0
       ? itemVariants.map((variant) => ({
-          sku:
-            variant.reference ||
-            variant.barcode ||
-            alegraItem.reference ||
-            alegraItem.barcode ||
-            extractCustomFieldValue(alegraItem, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"]) ||
-            "",
-          price: pickPriceForStore(variant.price, priceConfig)?.toString() ?? "0",
-          inventory_policy: inventoryPolicy,
-          inventory_management: inventoryManagement,
-          inventory_quantity: includeInventory && trackInventory
-            ? resolveInventoryQuantity(variant.inventory, warehouseIds)
-            : 0,
-          barcode: variant.id ? `ALT-${variant.id}` : undefined,
-          ...mapVariantOptions(variant.variantAttributes || [], optionLabels),
-        }))
+        sku:
+          variant.reference ||
+          variant.barcode ||
+          alegraItem.reference ||
+          alegraItem.barcode ||
+          extractCustomFieldValue(alegraItem, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"]) ||
+          "",
+        price: pickPriceForStore(variant.price, priceConfig)?.toString() ?? "0",
+        inventory_policy: inventoryPolicy,
+        inventory_management: inventoryManagement,
+        inventory_quantity:
+          includeInventory && trackInventory ? resolveInventoryQuantity(variant.inventory, warehouseIds) : 0,
+        barcode: variant.id ? `ALT-${variant.id}` : undefined,
+        ...mapVariantOptions(variant.variantAttributes || [], optionLabels),
+      }))
       : [
-          {
-            ...baseVariant,
-            barcode: alegraItem.id ? `ALT-${alegraItem.id}` : undefined,
-          },
-        ];
+        {
+          ...baseVariant,
+          barcode: alegraItem.id ? `ALT-${alegraItem.id}` : undefined,
+        },
+      ];
 
   return {
     product: {
       title: alegraItem.name || "Producto Alegra",
-      body_html: alegraItem.description
-        ? `<strong>Descripcion tecnica:</strong> ${alegraItem.description}`
-        : undefined,
-      vendor: settings.vendor || (process.env.SHOPIFY_VENDOR || "") || "Alegra",
+      body_html: alegraItem.description ? `<strong>Descripcion tecnica:</strong> ${alegraItem.description}` : undefined,
+      vendor: settings.vendor || process.env.SHOPIFY_VENDOR || "" || "Alegra",
       product_type: categoryName || undefined,
       status: settings.status || "draft",
       published_scope: "web",
@@ -830,8 +817,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
           if (shouldFilter) {
             filtered = cachedBatch.filter((item) => {
               const matchesWarehouse =
-                warehouseFilterIds.length === 0 ||
-                matchesItemWarehouses(item, warehouseFilterIds);
+                warehouseFilterIds.length === 0 || matchesItemWarehouses(item, warehouseFilterIds);
               if (!matchesWarehouse) return false;
               if (!inStockOnly) return true;
               const qty = resolveItemQuantityForFilter(item, warehouseFilterIds);
@@ -852,7 +838,9 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         const wantsImages = requestedFields.includes("images");
         const cacheHasImagesKey =
           sliced.length > 0 &&
-          sliced.some((item) => item && typeof item === "object" && Object.prototype.hasOwnProperty.call(item, "images"));
+          sliced.some(
+            (item) => item && typeof item === "object" && Object.prototype.hasOwnProperty.call(item, "images")
+          );
 
         // If this is a legacy cache (items stored without `images`) and the caller expects images,
         // fall back to Alegra so the cache can be refreshed with full fields.
@@ -891,11 +879,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         input.map(async (item) => {
           if (!item?.id) return item;
           if (!needsInventoryForFilter(item)) return item;
-          const detailResponse = await fetchAlegraWithRetry(
-            `/items/${item.id}`,
-            detailQuery,
-            shopDomain || undefined
-          );
+          const detailResponse = await fetchAlegraWithRetry(`/items/${item.id}`, detailQuery, shopDomain || undefined);
           if (!detailResponse.ok) return item;
           return (await detailResponse.json()) as AlegraItem;
         })
@@ -905,8 +889,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
     const filterItems = (input: AlegraItem[]) => {
       if (!shouldFilter) return input;
       return input.filter((item) => {
-        const matchesWarehouse =
-          warehouseFilterIds.length === 0 || matchesItemWarehouses(item, warehouseFilterIds);
+        const matchesWarehouse = warehouseFilterIds.length === 0 || matchesItemWarehouses(item, warehouseFilterIds);
         if (!matchesWarehouse) return false;
         if (!inStockOnly) return true;
         const qty = resolveItemQuantityForFilter(item, warehouseFilterIds);
@@ -928,8 +911,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
       const filtered = filterItems(batch);
       items = items.concat(filtered);
       if (total === null) {
-        const metaTotal =
-          (payload as any)?.metadata?.total ?? (payload as any)?.metadata?.totalItems;
+        const metaTotal = (payload as any)?.metadata?.total ?? (payload as any)?.metadata?.totalItems;
         total = typeof metaTotal === "number" ? metaTotal : null;
       }
       if (batch.length < scanLimit) {
@@ -950,9 +932,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
       const inv = item?.inventory;
       if (!inv) return true;
       const hasWarehouses = Array.isArray(inv.warehouses) && inv.warehouses.length > 0;
-      const hasQty =
-        typeof inv.availableQuantity === "number" ||
-        typeof inv.quantity === "number";
+      const hasQty = typeof inv.availableQuantity === "number" || typeof inv.quantity === "number";
       return !hasWarehouses && !hasQty;
     });
     let resolvedItems = items;
@@ -967,26 +947,17 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         items.map(async (item) => {
           if (!item?.id) return item;
           const inv = item.inventory;
-          const hasWarehouses =
-            Array.isArray(inv?.warehouses) && inv?.warehouses.length > 0;
-          const hasQty =
-            typeof inv?.availableQuantity === "number" ||
-            typeof inv?.quantity === "number";
+          const hasWarehouses = Array.isArray(inv?.warehouses) && inv?.warehouses.length > 0;
+          const hasQty = typeof inv?.availableQuantity === "number" || typeof inv?.quantity === "number";
           if (hasWarehouses || hasQty) return item;
-          const detailResponse = await fetchAlegraWithRetry(
-            `/items/${item.id}`,
-            detailQuery,
-            shopDomain || undefined
-          );
+          const detailResponse = await fetchAlegraWithRetry(`/items/${item.id}`, detailQuery, shopDomain || undefined);
           if (!detailResponse.ok) return item;
           return (await detailResponse.json()) as AlegraItem;
         })
       );
     }
     if (rawQueryValue && looksLikeIdentifier(identifierQuery)) {
-      const matched = resolvedItems.filter((item: AlegraItem) =>
-        matchesIdentifier(item, identifierQuery)
-      );
+      const matched = resolvedItems.filter((item: AlegraItem) => matchesIdentifier(item, identifierQuery));
       if (items.length === 0 || matched.length === 0) {
         const scanItems = await scanAlegraItemsByIdentifier(identifierQuery, {}, shopDomain || undefined);
         const detailQuery = new URLSearchParams();
@@ -998,11 +969,7 @@ export async function listAlegraItemsHandler(req: Request, res: Response) {
         const hydrated = await Promise.all(
           scanItems.map(async (item) => {
             if (!item?.id) return null;
-            const detailResponse = await fetchAlegra(
-              `/items/${item.id}`,
-              detailQuery,
-              shopDomain || undefined
-            );
+            const detailResponse = await fetchAlegra(`/items/${item.id}`, detailQuery, shopDomain || undefined);
             if (!detailResponse.ok) return null;
             return (await detailResponse.json()) as AlegraItem;
           })
@@ -1105,11 +1072,7 @@ async function scanAlegraItemsByIdentifier(
       data?: AlegraItem[];
       metadata?: { total?: number; totalItems?: number };
     };
-    const items = Array.isArray(payload?.items)
-      ? payload.items
-      : Array.isArray(payload?.data)
-        ? payload.data
-        : [];
+    const items = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload?.data) ? payload.data : [];
     scanTotal = payload?.metadata?.total ?? payload?.metadata?.totalItems ?? scanTotal;
     for (const item of items) {
       if (matchesIdentifier(item, normalized)) {
@@ -1173,7 +1136,10 @@ export async function listItemWarehouseSummaryHandler(req: Request, res: Respons
     }
     const payload = (await response.json()) as {
       id?: string | number;
-      inventory?: { availableQuantity?: number | string; warehouses?: Array<{ id?: string | number; name?: string; availableQuantity?: number | string }> };
+      inventory?: {
+        availableQuantity?: number | string;
+        warehouses?: Array<{ id?: string | number; name?: string; availableQuantity?: number | string }>;
+      };
     };
     const warehouses = Array.isArray(payload?.inventory?.warehouses) ? payload.inventory.warehouses : [];
     res.json({
@@ -1254,16 +1220,16 @@ export async function publishShopifyHandler(req: Request, res: Response) {
       return;
     }
     const onlyActive =
-      settings &&
-      typeof settings === "object" &&
-      (settings as Record<string, unknown>).onlyActive !== undefined
+      settings && typeof settings === "object" && (settings as Record<string, unknown>).onlyActive !== undefined
         ? String((settings as Record<string, unknown>).onlyActive).toLowerCase() === "true" ||
-          String((settings as Record<string, unknown>).onlyActive).toLowerCase() === "1"
+        String((settings as Record<string, unknown>).onlyActive).toLowerCase() === "1"
         : false;
     if (onlyActive) {
       const statusValue = String(item.status || "").toLowerCase();
       if (statusValue === "inactive") {
-        res.status(400).json({ error: "Producto inactivo en Alegra. (Desactiva 'Solo activos en Alegra' si quieres forzarlo.)" });
+        res
+          .status(400)
+          .json({ error: "Producto inactivo en Alegra. (Desactiva 'Solo activos en Alegra' si quieres forzarlo.)" });
         return;
       }
     }
@@ -1277,11 +1243,9 @@ export async function publishShopifyHandler(req: Request, res: Response) {
       return;
     }
     const trackInventory =
-      settings &&
-      typeof settings === "object" &&
-      (settings as Record<string, unknown>).trackInventory !== undefined
+      settings && typeof settings === "object" && (settings as Record<string, unknown>).trackInventory !== undefined
         ? String((settings as Record<string, unknown>).trackInventory).toLowerCase() === "true" ||
-          String((settings as Record<string, unknown>).trackInventory).toLowerCase() === "1"
+        String((settings as Record<string, unknown>).trackInventory).toLowerCase() === "1"
         : true;
     const payload = buildShopifyPayload(
       item,
@@ -1296,11 +1260,15 @@ export async function publishShopifyHandler(req: Request, res: Response) {
       },
       trackInventory
     );
-    const published = await fetchShopify("/products.json", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }, shopifyConfig);
+    const published = await fetchShopify(
+      "/products.json",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+      shopifyConfig
+    );
     const shopifyProductId = (published as any)?.product?.id;
     const sourceUpdatedAt = resolveItemDate(item);
     await upsertProduct({
@@ -1392,9 +1360,8 @@ export async function lookupShopifyHandler(req: Request, res: Response) {
         productId: product?.id ? String(product.id) : undefined,
         title: product?.title,
         inventoryPolicy: variantNode?.inventoryPolicy || null,
-        tracked: typeof variantNode?.inventoryItem?.tracked === "boolean"
-          ? variantNode.inventoryItem.tracked
-          : undefined,
+        tracked:
+          typeof variantNode?.inventoryItem?.tracked === "boolean" ? variantNode.inventoryItem.tracked : undefined,
       };
     }
     res.json({ results });
@@ -1421,9 +1388,8 @@ export async function updateProductOversellHandler(req: Request, res: Response) 
   const alegraId = typeof req.body?.alegraId === "string" ? req.body.alegraId.trim() : "";
   const sku = typeof req.body?.sku === "string" ? req.body.sku.trim() : "";
   const shopDomain = typeof req.body?.shopDomain === "string" ? req.body.shopDomain.trim() : "";
-  const storeIdRaw = typeof req.body?.storeId === "string" || typeof req.body?.storeId === "number"
-    ? Number(req.body.storeId)
-    : NaN;
+  const storeIdRaw =
+    typeof req.body?.storeId === "string" || typeof req.body?.storeId === "number" ? Number(req.body.storeId) : NaN;
   const storeId = Number.isFinite(storeIdRaw) ? Number(storeIdRaw) : undefined;
   const allowOversellAlegra =
     typeof req.body?.allowOversellAlegra === "boolean" ? req.body.allowOversellAlegra : undefined;
@@ -1470,10 +1436,7 @@ export async function updateProductOversellHandler(req: Request, res: Response) 
       if (!variantNode?.id) {
         throw new Error("Variante Shopify no encontrada para el SKU.");
       }
-      await client.updateVariantInventoryPolicy(
-        variantNode.id,
-        allowOversellShopify ? "CONTINUE" : "DENY"
-      );
+      await client.updateVariantInventoryPolicy(variantNode.id, allowOversellShopify ? "CONTINUE" : "DENY");
       result.shopify = {
         sku,
         inventoryPolicy: allowOversellShopify ? "CONTINUE" : "DENY",
@@ -1490,9 +1453,8 @@ export async function updateProductTrackingHandler(req: Request, res: Response) 
   const alegraId = typeof req.body?.alegraId === "string" ? req.body.alegraId.trim() : "";
   const sku = typeof req.body?.sku === "string" ? req.body.sku.trim() : "";
   const shopDomain = typeof req.body?.shopDomain === "string" ? req.body.shopDomain.trim() : "";
-  const storeIdRaw = typeof req.body?.storeId === "string" || typeof req.body?.storeId === "number"
-    ? Number(req.body.storeId)
-    : NaN;
+  const storeIdRaw =
+    typeof req.body?.storeId === "string" || typeof req.body?.storeId === "number" ? Number(req.body.storeId) : NaN;
   const storeId = Number.isFinite(storeIdRaw) ? Number(storeIdRaw) : undefined;
   const trackInventoryAlegra =
     typeof req.body?.trackInventoryAlegra === "boolean" ? req.body.trackInventoryAlegra : undefined;
@@ -1505,9 +1467,7 @@ export async function updateProductTrackingHandler(req: Request, res: Response) 
         ? Number(req.body.inventoryQuantity)
         : null;
   const inventoryQuantity =
-    typeof inventoryQuantityRaw === "number" && Number.isFinite(inventoryQuantityRaw)
-      ? inventoryQuantityRaw
-      : null;
+    typeof inventoryQuantityRaw === "number" && Number.isFinite(inventoryQuantityRaw) ? inventoryQuantityRaw : null;
   const inventoryUnit = typeof req.body?.inventoryUnit === "string" ? req.body.inventoryUnit.trim() : "u";
   const allowOversellAlegra =
     typeof req.body?.allowOversellAlegra === "boolean" ? req.body.allowOversellAlegra : undefined;
@@ -1571,15 +1531,23 @@ export async function updateProductTrackingHandler(req: Request, res: Response) 
 
 export async function syncProductsHandler(req: Request, res: Response) {
   const { mode = "full", batchSize = 5, filters = {}, settings = {} } = req.body || {};
-    const maxItems = Number.isFinite(Number(filters.limit)) ? Number(filters.limit) : null;
-    const onlyActive = filters.onlyActive !== false;
-    const includeInventory = filters.includeInventory !== false;
-    const onlyWithImages =
-      filters.onlyWithImages === true ||
-      String(filters.onlyWithImages ?? "").trim().toLowerCase() === "true" ||
-      String(filters.onlyWithImages ?? "").trim().toLowerCase() === "1" ||
-      String(filters.onlyWithImages ?? "").trim().toLowerCase() === "yes" ||
-      String(filters.onlyWithImages ?? "").trim().toLowerCase() === "on";
+  const maxItems = Number.isFinite(Number(filters.limit)) ? Number(filters.limit) : null;
+  const onlyActive = filters.onlyActive !== false;
+  const includeInventory = filters.includeInventory !== false;
+  const onlyWithImages =
+    filters.onlyWithImages === true ||
+    String(filters.onlyWithImages ?? "")
+      .trim()
+      .toLowerCase() === "true" ||
+    String(filters.onlyWithImages ?? "")
+      .trim()
+      .toLowerCase() === "1" ||
+    String(filters.onlyWithImages ?? "")
+      .trim()
+      .toLowerCase() === "yes" ||
+    String(filters.onlyWithImages ?? "")
+      .trim()
+      .toLowerCase() === "on";
   const requestedWarehouseIds = Array.isArray((filters as any).warehouseIds)
     ? (filters as any).warehouseIds.map((id: unknown) => String(id || "").trim()).filter(Boolean)
     : [];
@@ -1588,8 +1556,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
   const hasDateFilter = Boolean(filters.dateStart || filters.dateEnd);
   const rawQuery = filters.query ? extractIdentifier(String(filters.query)) : "";
   const hasIdentifierQuery = looksLikeIdentifier(rawQuery);
-  const effectiveMode =
-    mode === "filtered" && !hasDateFilter && !filters.query ? "full" : mode;
+  const effectiveMode = mode === "filtered" && !hasDateFilter && !filters.query ? "full" : mode;
   const publishOnSync =
     settings.publishOnSync !== false &&
     settings.publishOnSync !== "false" &&
@@ -1604,11 +1571,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
   const batchLimit = 30;
   const batchDelayMs = 500;
   const usesCheckpoint =
-    effectiveMode === "full" &&
-    !filters.query &&
-    !filters.dateStart &&
-    !filters.dateEnd &&
-    !maxItems;
+    effectiveMode === "full" && !filters.query && !filters.dateStart && !filters.dateEnd && !maxItems;
   let start = 0;
   let processed = 0;
   let scanned = 0;
@@ -1622,10 +1585,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
   let parentCount = 0;
   let variantCount = 0;
   const events: string[] = [];
-  const stream =
-    req.query.stream === "1" ||
-    req.query.stream === "true" ||
-    req.body?.stream === true;
+  const stream = req.query.stream === "1" || req.query.stream === "true" || req.body?.stream === true;
   let streamOpen = stream;
   const sendStream = (payload: Record<string, unknown>) => {
     if (!streamOpen || res.writableEnded || res.destroyed) return;
@@ -1660,12 +1620,17 @@ export async function syncProductsHandler(req: Request, res: Response) {
       }
     }
     const normalizeDomain = (value: string) =>
-      value.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+      value
+        .trim()
+        .replace(/^https?:\/\//, "")
+        .replace(/\/.*$/, "");
     const normalizedShopDomain = shopDomainInput ? normalizeDomain(shopDomainInput) : "";
     const storeDomainInput = normalizedShopDomain;
     const parseBooleanLike = (value: unknown, fallback: boolean) => {
       if (typeof value === "boolean") return value;
-      const lowered = String(value ?? "").trim().toLowerCase();
+      const lowered = String(value ?? "")
+        .trim()
+        .toLowerCase();
       if (!lowered) return fallback;
       if (lowered === "1" || lowered === "true" || lowered === "yes" || lowered === "on") return true;
       if (lowered === "0" || lowered === "false" || lowered === "no" || lowered === "off") return false;
@@ -1685,27 +1650,17 @@ export async function syncProductsHandler(req: Request, res: Response) {
       : storeDomainInput
         ? await getStoreConfigForDomain(storeDomainInput)
         : null;
-    const updateExisting = parseBooleanLike(
-      (settings as Record<string, unknown>).updateExisting,
-      true
-    );
-    const trackInventory = parseBooleanLike(
-      (settings as Record<string, unknown>).trackInventory,
-      true
-    );
+    const updateExisting = parseBooleanLike((settings as Record<string, unknown>).updateExisting, true);
+    const trackInventory = parseBooleanLike((settings as Record<string, unknown>).trackInventory, true);
     const updateExistingInShopify =
-      Boolean(publishOnSync) &&
-      Boolean(updateExisting) &&
-      storeConfigFull?.rules?.updateInShopify !== false;
+      Boolean(publishOnSync) && Boolean(updateExisting) && storeConfigFull?.rules?.updateInShopify !== false;
     const storeConfig = storeDomain ? await resolveStoreConfig(storeDomain) : await resolveStoreConfig(null);
-    const withShopifyRetry = async <T,>(
+    const withShopifyRetry = async <T>(
       fn: () => Promise<T>,
       options: { label: string; retries?: number } = { label: "shopify_call" }
     ) => {
       const retries =
-        typeof options.retries === "number" && Number.isFinite(options.retries)
-          ? Math.max(0, options.retries)
-          : 2;
+        typeof options.retries === "number" && Number.isFinite(options.retries) ? Math.max(0, options.retries) : 2;
       let attempt = 0;
       while (true) {
         try {
@@ -1726,19 +1681,18 @@ export async function syncProductsHandler(req: Request, res: Response) {
         }
       }
     };
-    const warehouseIds =
-      requestedWarehouseIds.length
-        ? requestedWarehouseIds
-        : storeConfigFull?.rules?.warehouseIds && storeConfigFull.rules.warehouseIds.length
-          ? storeConfigFull.rules.warehouseIds
-          : await loadWarehouseIdsForSync();
+    const warehouseIds = requestedWarehouseIds.length
+      ? requestedWarehouseIds
+      : storeConfigFull?.rules?.warehouseIds && storeConfigFull.rules.warehouseIds.length
+        ? storeConfigFull.rules.warehouseIds
+        : await loadWarehouseIdsForSync();
     const shopifyClient =
       publishOnSync && shopifyConfig
         ? new ShopifyClient({
-            shopDomain: storeDomain,
-            accessToken: shopifyConfig.accessToken,
-            apiVersion: shopifyConfig.apiVersion,
-          })
+          shopDomain: storeDomain,
+          accessToken: shopifyConfig.accessToken,
+          apiVersion: shopifyConfig.apiVersion,
+        })
         : null;
     const identifierCache = new Map<
       string,
@@ -1807,9 +1761,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
       logEvent(`429 Alegra, reintento en ${Math.round(waitMs / 1000)}s...`);
       sendStream({ type: "rate_limit", waitMs, retries: rateLimitRetries });
     };
-    const processQueue = async (
-      queueItems: Array<{ item: AlegraItem; priority: number; parentId?: string }>
-    ) => {
+    const processQueue = async (queueItems: Array<{ item: AlegraItem; priority: number; parentId?: string }>) => {
       if (!queueItems.length) return;
       const sorted = queueItems.sort((a, b) => a.priority - b.priority);
       let cursor = 0;
@@ -1979,7 +1931,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
             detailQuery,
             storeDomain || shopDomainInput || undefined,
             {
-            onRetry: onRateLimit,
+              onRetry: onRateLimit,
             }
           );
           if (!response.ok) return null;
@@ -2004,19 +1956,12 @@ export async function syncProductsHandler(req: Request, res: Response) {
         const attempt = new URLSearchParams(base);
         attempt.set("query", variant);
         searchAttempts.push(`query=${variant}`);
-        const response = await fetchAlegraWithRetry(
-          "/items",
-          attempt,
-          storeDomain || shopDomainInput || undefined,
-          { onRetry: onRateLimit }
-        );
+        const response = await fetchAlegraWithRetry("/items", attempt, storeDomain || shopDomainInput || undefined, {
+          onRetry: onRateLimit,
+        });
         if (!response.ok) continue;
         const payload = (await response.json()) as { items?: AlegraItem[]; data?: AlegraItem[] };
-        const items = Array.isArray(payload?.items)
-          ? payload.items
-          : Array.isArray(payload?.data)
-            ? payload.data
-            : [];
+        const items = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload?.data) ? payload.data : [];
         if (items.length) return hydrateItems(items);
       }
       const paramVariants: Array<[string, string]> = [
@@ -2029,19 +1974,12 @@ export async function syncProductsHandler(req: Request, res: Response) {
         const attempt = new URLSearchParams(base);
         attempt.set(key, value);
         searchAttempts.push(`${key}=${value}`);
-        const response = await fetchAlegraWithRetry(
-          "/items",
-          attempt,
-          storeDomain || shopDomainInput || undefined,
-          { onRetry: onRateLimit }
-        );
+        const response = await fetchAlegraWithRetry("/items", attempt, storeDomain || shopDomainInput || undefined, {
+          onRetry: onRateLimit,
+        });
         if (!response.ok) continue;
         const payload = (await response.json()) as { items?: AlegraItem[]; data?: AlegraItem[] };
-        const items = Array.isArray(payload?.items)
-          ? payload.items
-          : Array.isArray(payload?.data)
-            ? payload.data
-            : [];
+        const items = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload?.data) ? payload.data : [];
         if (items.length) return hydrateItems(items);
       }
       return [];
@@ -2115,12 +2053,9 @@ export async function syncProductsHandler(req: Request, res: Response) {
         query.set("query", filters.query);
       }
 
-      const response = await fetchAlegraWithRetry(
-        "/items",
-        query,
-        storeDomain || shopDomainInput || undefined,
-        { onRetry: onRateLimit }
-      );
+      const response = await fetchAlegraWithRetry("/items", query, storeDomain || shopDomainInput || undefined, {
+        onRetry: onRateLimit,
+      });
       if (response.status === 429) {
         logEvent("Límite Alegra persistente, reintentando batch...");
         sendStream({ type: "batch_retry", start });
@@ -2137,7 +2072,11 @@ export async function syncProductsHandler(req: Request, res: Response) {
         await sleep(batchDelayMs);
         continue;
       }
-      const payload = (await response.json()) as { items?: AlegraItem[]; data?: AlegraItem[]; metadata?: { total?: number; totalItems?: number } };
+      const payload = (await response.json()) as {
+        items?: AlegraItem[];
+        data?: AlegraItem[];
+        metadata?: { total?: number; totalItems?: number };
+      };
       let items = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload?.data) ? payload.data : [];
       if (onlyActive) {
         items = items.filter((item) => String(item?.status || "active").toLowerCase() !== "inactive");
@@ -2239,9 +2178,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
         const totalBatches = total ? Math.ceil(total / batchLimit) : null;
         const rangeStart = start + 1;
         const rangeEnd = start + items.length;
-        logEvent(
-          `Procesando batch ${batchNumber}/${totalBatches || "?"} (Items ${rangeStart}-${rangeEnd})...`
-        );
+        logEvent(`Procesando batch ${batchNumber}/${totalBatches || "?"} (Items ${rangeStart}-${rangeEnd})...`);
         sendStream({
           type: "batch_start",
           batchNumber,
@@ -2455,10 +2392,7 @@ export async function syncOrdersHandler(req: Request, res: Response) {
       : typeof filters?.shopDomain === "string"
         ? String(filters.shopDomain).trim()
         : "";
-  const stream =
-    req.query.stream === "1" ||
-    req.query.stream === "true" ||
-    req.body?.stream === true;
+  const stream = req.query.stream === "1" || req.query.stream === "true" || req.body?.stream === true;
   let streamOpen = stream;
   const sendStream = (payload: Record<string, unknown>) => {
     if (!streamOpen || res.writableEnded || res.destroyed) return;
@@ -2491,7 +2425,9 @@ export async function syncOrdersHandler(req: Request, res: Response) {
     });
     let orders: ShopifyOrder[] = [];
     const limit = Number(filters.limit || 0);
-    const orderNumber = String(filters.orderNumber || "").replace(/^#/, "").trim();
+    const orderNumber = String(filters.orderNumber || "")
+      .replace(/^#/, "")
+      .trim();
     if (orderNumber) {
       const query = `name:${orderNumber}`;
       orders = await client.listAllOrdersByQuery(query);
@@ -2630,9 +2566,7 @@ export async function backfillProductsHandler(req: Request, res: Response) {
     const dateEnd = body.dateEnd ? String(body.dateEnd) : "";
     const useCache = body.useCache !== false;
     const alegraStatusInput = body.alegraStatus ? String(body.alegraStatus).trim() : "";
-    const alegraStatusFilter = (
-      alegraStatusInput || (body.alegraActiveOnly ? "active" : "")
-    ).toLowerCase();
+    const alegraStatusFilter = (alegraStatusInput || (body.alegraActiveOnly ? "active" : "")).toLowerCase();
     const shopifyPublishedOnly = Boolean(body.shopifyPublishedOnly);
     const results: Record<string, unknown> = {};
 
@@ -2648,16 +2582,13 @@ export async function backfillProductsHandler(req: Request, res: Response) {
         usedCache = true;
         while (true) {
           if (limit !== null && processed >= limit) break;
-          const batchLimit =
-            limit !== null ? Math.min(pageSize, Math.max(0, limit - processed)) : pageSize;
+          const batchLimit = limit !== null ? Math.min(pageSize, Math.max(0, limit - processed)) : pageSize;
           if (batchLimit <= 0) break;
           const cached = await listAlegraItemsCache({ start, limit: batchLimit });
           const batch = (cached.items as unknown as AlegraItem[]) || [];
           if (!batch.length) break;
           const filteredBatch = alegraStatusFilter
-            ? batch.filter(
-                (item) => String(item?.status || "").toLowerCase() === alegraStatusFilter
-              )
+            ? batch.filter((item) => String(item?.status || "").toLowerCase() === alegraStatusFilter)
             : batch;
           if (filteredBatch.length) {
             await persistProductsFromAlegra(filteredBatch);
@@ -2676,8 +2607,7 @@ export async function backfillProductsHandler(req: Request, res: Response) {
         pages = 0;
         while (true) {
           if (limit !== null && processed >= limit) break;
-          const batchLimit =
-            limit !== null ? Math.min(pageSize, Math.max(0, limit - processed)) : pageSize;
+          const batchLimit = limit !== null ? Math.min(pageSize, Math.max(0, limit - processed)) : pageSize;
           if (batchLimit <= 0) break;
           const query = new URLSearchParams();
           query.set("start", String(start));
@@ -2693,16 +2623,10 @@ export async function backfillProductsHandler(req: Request, res: Response) {
           const response = await fetchAlegraWithRetry("/items", query, undefined);
           if (!response.ok) break;
           const payload = (await response.json()) as { items?: AlegraItem[]; data?: AlegraItem[] };
-          const batch = Array.isArray(payload.items)
-            ? payload.items
-            : Array.isArray(payload.data)
-              ? payload.data
-              : [];
+          const batch = Array.isArray(payload.items) ? payload.items : Array.isArray(payload.data) ? payload.data : [];
           if (!batch.length) break;
           const filteredBatch = alegraStatusFilter
-            ? batch.filter(
-                (item) => String(item?.status || "").toLowerCase() === alegraStatusFilter
-              )
+            ? batch.filter((item) => String(item?.status || "").toLowerCase() === alegraStatusFilter)
             : batch;
           if (filteredBatch.length) {
             await persistProductsFromAlegra(filteredBatch);
@@ -2723,9 +2647,7 @@ export async function backfillProductsHandler(req: Request, res: Response) {
         accessToken: shopifyCredential.accessToken,
         apiVersion: resolveShopifyApiVersion(shopifyCredential.apiVersion),
       });
-      const parts = shopifyPublishedOnly
-        ? ["status:active", "published_status:published"]
-        : ["status:any"];
+      const parts = shopifyPublishedOnly ? ["status:active", "published_status:published"] : ["status:any"];
       if (dateStart) parts.push(`updated_at:>='${dateStart}'`);
       if (dateEnd) parts.push(`updated_at:<='${dateEnd}'`);
       const query = parts.join(" ");
@@ -2781,10 +2703,7 @@ export async function syncProductImagesHandler(req: Request, res: Response) {
     })
     .filter((row) => Boolean(row.identifier));
 
-  const stream =
-    req.query.stream === "1" ||
-    req.query.stream === "true" ||
-    body.stream === true;
+  const stream = req.query.stream === "1" || req.query.stream === "true" || body.stream === true;
   let streamOpen = stream;
   const sendStream = (payload: Record<string, unknown>) => {
     if (!streamOpen || res.writableEnded || res.destroyed) return;
@@ -2974,12 +2893,7 @@ export async function syncProductImagesHandler(req: Request, res: Response) {
           } catch {
             continue;
           }
-          await uploadProductImage(
-            productId,
-            url,
-            row.alt,
-            attachVariant && variantId ? variantId : undefined
-          );
+          await uploadProductImage(productId, url, row.alt, attachVariant && variantId ? variantId : undefined);
           imagesUploaded += 1;
         }
 
@@ -3088,10 +3002,7 @@ export async function syncProductsShopifyToAlegraHandler(req: Request, res: Resp
   const matchPriority: Array<"sku" | "barcode"> =
     matchPriorityKey === "barcode_sku" ? ["barcode", "sku"] : ["sku", "barcode"];
 
-  const stream =
-    req.query.stream === "1" ||
-    req.query.stream === "true" ||
-    req.body?.stream === true;
+  const stream = req.query.stream === "1" || req.query.stream === "true" || req.body?.stream === true;
   let streamOpen = stream;
   const sendStream = (payload: Record<string, unknown>) => {
     if (!streamOpen || res.writableEnded || res.destroyed) return;

@@ -14,7 +14,7 @@ export async function processRetryQueue(limit = 50) {
   const orgId = getOrgId();
 
   const client = await pool.connect();
-  let rows: RetryRow[] = [];
+  let rows: RetryRow[];
   try {
     await client.query("BEGIN");
     const result = await client.query<RetryRow>(
@@ -33,10 +33,9 @@ export async function processRetryQueue(limit = 50) {
     );
     rows = result.rows;
     if (rows.length) {
-      await client.query(
-        `UPDATE retry_queue SET status = 'processing' WHERE id = ANY($1::int[])`,
-        [rows.map((row) => row.id)]
-      );
+      await client.query(`UPDATE retry_queue SET status = 'processing' WHERE id = ANY($1::int[])`, [
+        rows.map((row) => row.id),
+      ]);
     }
     await client.query("COMMIT");
   } catch (error) {
@@ -56,9 +55,7 @@ export async function processRetryQueue(limit = 50) {
   for (const row of rows) {
     const orderId = row.request_json?.orderId;
     if (row.entity !== "order" || (typeof orderId !== "string" && typeof orderId !== "number")) {
-      await pool.query(`UPDATE retry_queue SET status = 'skipped' WHERE id = $1`, [
-        row.id,
-      ]);
+      await pool.query(`UPDATE retry_queue SET status = 'skipped' WHERE id = $1`, [row.id]);
       continue;
     }
 
@@ -68,10 +65,7 @@ export async function processRetryQueue(limit = 50) {
     } catch (error) {
       const nextRetryCount = row.retry_count + 1;
       if (nextRetryCount >= maxRetries) {
-        await pool.query(
-          `UPDATE retry_queue SET status = 'failed' WHERE id = $1`,
-          [row.id]
-        );
+        await pool.query(`UPDATE retry_queue SET status = 'failed' WHERE id = $1`, [row.id]);
         continue;
       }
       const delaySec = baseDelaySec * Math.pow(2, Math.min(nextRetryCount, 4));

@@ -4,9 +4,7 @@ import { getAlegraBaseUrl } from "../utils/alegra-env";
 import { syncAlegraInventoryById } from "./alegra-to-shopify.service";
 
 const fetchAlegraAdjustments = async (query: URLSearchParams, shopDomain?: string) => {
-  const alegra = shopDomain
-    ? await getAlegraConnectionByDomain(shopDomain)
-    : await getAlegraCredential();
+  const alegra = shopDomain ? await getAlegraConnectionByDomain(shopDomain) : await getAlegraCredential();
   const baseUrl = getAlegraBaseUrl(alegra.environment || "prod");
   const auth = Buffer.from(`${alegra.email}:${alegra.apiKey}`).toString("base64");
   const url = `${baseUrl}/inventory-adjustments?${query.toString()}`;
@@ -89,9 +87,7 @@ export async function syncInventoryAdjustments(
   });
   const ids = Array.from(itemIds);
   const autoPublish = options?.autoPublish !== false;
-  const results = autoPublish
-    ? await Promise.allSettled(ids.map((id) => syncAlegraInventoryById(id)))
-    : [];
+  const results = autoPublish ? await Promise.allSettled(ids.map((id) => syncAlegraInventoryById(id))) : [];
   const synced = results.filter((r) => r.status === "fulfilled").length;
   const failed = results.length - synced;
 

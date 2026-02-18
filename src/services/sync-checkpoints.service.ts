@@ -41,11 +41,7 @@ export async function getSyncCheckpoint(entity: string): Promise<SyncCheckpoint 
   };
 }
 
-export async function saveSyncCheckpoint(input: {
-  entity: string;
-  lastStart: number;
-  total: number | null;
-}) {
+export async function saveSyncCheckpoint(input: { entity: string; lastStart: number; total: number | null }) {
   const { pool, orgId } = await ensureReady();
   await pool.query(
     `

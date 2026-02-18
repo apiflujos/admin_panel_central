@@ -71,10 +71,10 @@ export async function createStore(name: string) {
   } catch (error: any) {
     const code = typeof error?.code === "string" ? error.code : "";
     if (code === "23505") {
-      throw new Error("Ya existe una tienda con ese nombre.");
+      throw new Error("Ya existe una tienda con ese nombre.", { cause: error });
     }
     if (code === "42P01") {
-      throw new Error("Falta migración de tiendas. Ejecuta npm run db:migrate.");
+      throw new Error("Falta migración de tiendas. Ejecuta npm run db:migrate.", { cause: error });
     }
     throw error;
   }

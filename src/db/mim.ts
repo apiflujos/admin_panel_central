@@ -8,8 +8,7 @@ export function getMimPool() {
     if (!connectionString) {
       throw new Error("MIM_DATABASE_URL is required");
     }
-    const ssl =
-      process.env.MIM_DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined;
+    const ssl = process.env.MIM_DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined;
     mimPool = new Pool({
       connectionString,
       ssl,

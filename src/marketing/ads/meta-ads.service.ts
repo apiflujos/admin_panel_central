@@ -12,12 +12,7 @@ function normalizeAdAccountId(value: string) {
   return String(value || "").replace(/\D/g, "");
 }
 
-async function fetchMetaAdsSpend(input: {
-  adAccountId: string;
-  accessToken: string;
-  from: string;
-  to: string;
-}) {
+async function fetchMetaAdsSpend(input: { adAccountId: string; accessToken: string; from: string; to: string }) {
   const accountId = normalizeAdAccountId(input.adAccountId);
   const params = new URLSearchParams({
     access_token: input.accessToken,

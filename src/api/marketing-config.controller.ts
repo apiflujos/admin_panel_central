@@ -190,7 +190,12 @@ export async function marketingWebhooksDeleteHandler(req: Request, res: Response
           const errors = response.webhookSubscriptionDelete?.userErrors || [];
           return { id, topic, ok: errors.length === 0, errors };
         } catch (error) {
-          return { id: edge.node?.id, topic: edge.node?.topic, ok: false, errors: [{ message: (error as any)?.message || "error" }] };
+          return {
+            id: edge.node?.id,
+            topic: edge.node?.topic,
+            ok: false,
+            errors: [{ message: (error as any)?.message || "error" }],
+          };
         }
       })
     );

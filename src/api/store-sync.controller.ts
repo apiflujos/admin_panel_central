@@ -4,12 +4,11 @@ import { syncProductsAcrossProviders } from "../services/store-products-cross.se
 
 export async function syncStoreProductsHandler(req: Request, res: Response) {
   const payload = req.body || {};
-  const provider = String(payload.provider || "shopify").trim().toLowerCase();
+  const provider = String(payload.provider || "shopify")
+    .trim()
+    .toLowerCase();
   const settings = typeof payload.settings === "object" && payload.settings ? payload.settings : {};
-  const stream =
-    req.query.stream === "1" ||
-    req.query.stream === "true" ||
-    req.body?.stream === true;
+  const stream = req.query.stream === "1" || req.query.stream === "true" || req.body?.stream === true;
   let streamOpen = stream;
   const sendStream = (data: Record<string, unknown>) => {
     if (!streamOpen || res.writableEnded || res.destroyed) return;
@@ -49,8 +48,12 @@ export async function syncStoreProductsHandler(req: Request, res: Response) {
       return;
     }
 
-    const sourceProvider = String(payload.sourceProvider || payload.source || "").trim().toLowerCase();
-    const targetProvider = String(payload.targetProvider || payload.target || "").trim().toLowerCase();
+    const sourceProvider = String(payload.sourceProvider || payload.source || "")
+      .trim()
+      .toLowerCase();
+    const targetProvider = String(payload.targetProvider || payload.target || "")
+      .trim()
+      .toLowerCase();
 
     if (!sourceProvider || !targetProvider) {
       res.status(400).json({ error: "sourceProvider y targetProvider requeridos." });

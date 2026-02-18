@@ -45,9 +45,7 @@ const parseQuantity = (value: unknown) => {
 
 const resolveInventoryQuantity = (inventory: CacheInventory | undefined) => {
   if (!inventory) return null;
-  const warehouses: CacheInventoryWarehouse[] = Array.isArray(inventory.warehouses)
-    ? inventory.warehouses
-    : [];
+  const warehouses: CacheInventoryWarehouse[] = Array.isArray(inventory.warehouses) ? inventory.warehouses : [];
   if (warehouses.length) {
     const totals = warehouses.reduce(
       (acc, warehouse: CacheInventoryWarehouse) => {
@@ -62,8 +60,7 @@ const resolveInventoryQuantity = (inventory: CacheInventory | undefined) => {
     );
     return totals.count ? totals.sum : null;
   }
-  const qty =
-    parseQuantity(inventory.availableQuantity) ?? parseQuantity(inventory.quantity);
+  const qty = parseQuantity(inventory.availableQuantity) ?? parseQuantity(inventory.quantity);
   return qty === null ? null : qty;
 };
 
@@ -139,9 +136,7 @@ export async function ensureAlegraItemsCacheTable() {
     )
     `
   );
-  await pool.query(
-    "CREATE INDEX IF NOT EXISTS alegra_items_cache_org_idx ON alegra_items_cache (organization_id)"
-  );
+  await pool.query("CREATE INDEX IF NOT EXISTS alegra_items_cache_org_idx ON alegra_items_cache (organization_id)");
   await pool.query(
     "CREATE INDEX IF NOT EXISTS alegra_items_cache_org_updated_idx ON alegra_items_cache (organization_id, updated_at DESC)"
   );

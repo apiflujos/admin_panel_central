@@ -2,8 +2,7 @@ import type { Request, Response } from "express";
 import { createSyncLog } from "../services/logs.service";
 import { listStoreConfigs, saveStoreConfig } from "../services/store-configs.service";
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "No disponible";
+const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : "No disponible");
 
 export async function listStoreConfigsHandler(_req: Request, res: Response) {
   try {

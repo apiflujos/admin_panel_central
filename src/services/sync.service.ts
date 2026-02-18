@@ -4,18 +4,11 @@ import {
   type AlegraItem,
 } from "./alegra-to-shopify.service";
 import { upsertAlegraItemCacheIfTracked } from "./alegra-items-cache.service";
-import {
-  syncShopifyOrderToAlegra,
-  createInventoryAdjustmentFromRefund,
-} from "./shopify-to-alegra.service";
+import { syncShopifyOrderToAlegra, createInventoryAdjustmentFromRefund } from "./shopify-to-alegra.service";
 import { createSyncLog } from "./logs.service";
 import { buildSyncContext } from "./sync-context";
 import { upsertProduct } from "./products.service";
-import {
-  getMappingByShopifyId,
-  getMappingByShopifyInventoryItemId,
-  updateMappingMetadata,
-} from "./mapping.service";
+import { getMappingByShopifyId, getMappingByShopifyInventoryItemId, updateMappingMetadata } from "./mapping.service";
 import { resolveStoreConfig } from "./store-config.service";
 import { syncAlegraInvoiceToShopifyFromWebhook } from "./alegra-invoices-to-shopify-orders.service";
 import { syncShopifyProductToAlegraFromWebhook } from "./shopify-products-to-alegra-items.service";
@@ -31,7 +24,7 @@ export async function enqueueWebhookEvent(event: WebhookEvent) {
   // TODO: persist webhook event and enqueue a background job.
   try {
     let result: unknown;
-    let meta = buildLogMeta(event);
+    const meta = buildLogMeta(event);
     if (event.source === "shopify") {
       result = await processShopifyWebhook(event.eventType, event.payload);
     }
@@ -86,9 +79,7 @@ function extractShopDomain(payload: unknown) {
 
 async function handleShopifyOrder(payload: unknown) {
   // TODO: map order to Alegra contact + invoice sync workflow.
-  const result = await syncShopifyOrderToAlegra(
-    (payload || {}) as Record<string, unknown>
-  );
+  const result = await syncShopifyOrderToAlegra((payload || {}) as Record<string, unknown>);
   return { handled: true, type: "order", result };
 }
 
@@ -97,11 +88,7 @@ async function handleShopifyRefund(payload: unknown) {
   const ctx = await buildSyncContext(shopDomain);
   const data = (payload || {}) as Record<string, unknown>;
   try {
-    const result = await createInventoryAdjustmentFromRefund(
-      data,
-      ctx.alegraWarehouseId,
-      ctx
-    );
+    const result = await createInventoryAdjustmentFromRefund(data, ctx.alegraWarehouseId, ctx);
     await createSyncLog({
       entity: "refund",
       direction: "shopify->alegra",
@@ -128,16 +115,12 @@ async function handleShopifyInventory(payload: unknown) {
   const shopDomain = extractShopDomain(payload);
   const inventoryItemId = data.inventory_item_id || data.inventoryItemId;
   const availableRaw = data.available ?? data.availableQuantity;
-  const available =
-    typeof availableRaw === "number" ? availableRaw : Number(availableRaw);
+  const available = typeof availableRaw === "number" ? availableRaw : Number(availableRaw);
   if (!inventoryItemId || !Number.isFinite(available)) {
     return { handled: false, reason: "missing_inventory_payload" };
   }
 
-  const mapping = await getMappingByShopifyInventoryItemId(
-    "item",
-    String(inventoryItemId)
-  );
+  const mapping = await getMappingByShopifyInventoryItemId("item", String(inventoryItemId));
   if (!mapping) {
     await createSyncLog({
       entity: "inventory",
@@ -195,9 +178,7 @@ async function handleShopifyProduct(payload: unknown) {
   for (const variant of variants) {
     const record = variant as Record<string, unknown>;
     const variantId = record.id ? String(record.id) : "";
-    const inventoryItemId = record.inventory_item_id
-      ? String(record.inventory_item_id)
-      : "";
+    const inventoryItemId = record.inventory_item_id ? String(record.inventory_item_id) : "";
     if (!variantId || !inventoryItemId) continue;
     const mapping = await getMappingByShopifyId("item", variantId);
     if (mapping?.alegraId) {
@@ -222,7 +203,11 @@ export async function processAlegraWebhook(eventType: string, payload: unknown) 
     case "invoice.updated":
       return handleAlegraInvoice(payload);
     default:
-      if (String(eventType || "").toLowerCase().includes("invoice")) {
+      if (
+        String(eventType || "")
+          .toLowerCase()
+          .includes("invoice")
+      ) {
         return handleAlegraInvoice(payload);
       }
       return { ignored: true, eventType };
@@ -310,10 +295,7 @@ function buildLogMeta(event: WebhookEvent) {
 
   if (event.source === "shopify") {
     const payload = event.payload as Record<string, unknown> | undefined;
-    const orderId =
-      typeof payload?.id === "number" || typeof payload?.id === "string"
-        ? String(payload.id)
-        : undefined;
+    const orderId = typeof payload?.id === "number" || typeof payload?.id === "string" ? String(payload.id) : undefined;
     if (orderId) {
       base.request.orderId = orderId;
     }
@@ -350,10 +332,7 @@ function buildLogMeta(event: WebhookEvent) {
   }
 
   const alegraData = extractAlegraData(event.payload);
-  const alegraItemId =
-    alegraData && (alegraData.id as string | number | undefined)
-      ? String(alegraData.id)
-      : undefined;
+  const alegraItemId = alegraData && (alegraData.id as string | number | undefined) ? String(alegraData.id) : undefined;
   if (alegraItemId) {
     base.request.alegraItemId = alegraItemId;
   }

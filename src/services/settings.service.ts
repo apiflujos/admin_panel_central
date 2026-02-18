@@ -1,5 +1,11 @@
 import { encryptString, decryptString } from "../utils/crypto";
-import { ensureInvoiceSettingsColumns, ensureInventoryRulesColumns, ensureOrganization, getOrgId, getPool } from "../db";
+import {
+  ensureInvoiceSettingsColumns,
+  ensureInventoryRulesColumns,
+  ensureOrganization,
+  getOrgId,
+  getPool,
+} from "../db";
 import { AlegraClient } from "../connectors/alegra";
 import { getAlegraBaseUrl } from "../utils/alegra-env";
 
@@ -80,9 +86,7 @@ const normalizeShopDomain = (value?: string) => {
   const trimmed = value.trim();
   const noProtocol = trimmed.replace(/^https?:\/\//, "");
   const withoutPath = noProtocol.replace(/\/.*$/, "");
-  return withoutPath.includes("@")
-    ? withoutPath.slice(withoutPath.lastIndexOf("@") + 1)
-    : withoutPath;
+  return withoutPath.includes("@") ? withoutPath.slice(withoutPath.lastIndexOf("@") + 1) : withoutPath;
 };
 
 const normalizeInventoryInterval = (value?: number | null) => {
@@ -537,7 +541,6 @@ async function upsertRules(
       ]
     );
   }
-
 }
 
 async function upsertInvoiceSettings(
@@ -646,11 +649,7 @@ async function replaceTaxRules(
   }
 }
 
-async function readCredential(
-  pool: ReturnType<typeof getPool>,
-  orgId: number,
-  provider: string
-) {
+async function readCredential(pool: ReturnType<typeof getPool>, orgId: number, provider: string) {
   const result = await pool.query<{ data_encrypted: string }>(
     `
     SELECT data_encrypted
@@ -872,9 +871,7 @@ async function readRules(pool: ReturnType<typeof getPool>, orgId: number) {
     inventoryAdjustmentsAutoPublish: inventory.rows.length
       ? inventory.rows[0].inventory_adjustments_autopublish !== false
       : true,
-    warehouseIds: inventory.rows.length
-      ? normalizeWarehouseIds(inventory.rows[0].warehouse_ids)
-      : [],
+    warehouseIds: inventory.rows.length ? normalizeWarehouseIds(inventory.rows[0].warehouse_ids) : [],
   };
 }
 
@@ -1011,7 +1008,15 @@ async function replacePaymentMappings(
       INSERT INTO payment_mappings (organization_id, method_id, account_id, method_label, account_label, payment_method, payment_method_label)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       `,
-      [orgId, sourceMethod, accountId, sourceLabel || null, accountLabel || null, paymentMethod || null, paymentMethodLabel || null]
+      [
+        orgId,
+        sourceMethod,
+        accountId,
+        sourceLabel || null,
+        accountLabel || null,
+        paymentMethod || null,
+        paymentMethodLabel || null,
+      ]
     );
   }
 }
@@ -1041,12 +1046,12 @@ async function readPaymentMappings(pool: ReturnType<typeof getPool>, orgId: numb
       payment_method: string | null;
       payment_method_label: string | null;
     }) => ({
-    sourceMethod: row.method_id,
-    paymentMethod: row.payment_method || "",
-    accountId: row.account_id,
-    sourceLabel: row.method_label || "",
-    paymentMethodLabel: row.payment_method_label || "",
-    accountLabel: row.account_label || "",
+      sourceMethod: row.method_id,
+      paymentMethod: row.payment_method || "",
+      accountId: row.account_id,
+      sourceLabel: row.method_label || "",
+      paymentMethodLabel: row.payment_method_label || "",
+      accountLabel: row.account_label || "",
     })
   );
 }

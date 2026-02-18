@@ -3,7 +3,9 @@
 Starter scaffolding for the integration middleware and dashboard API.
 
 ## AI agents (required reading)
+
 If you are an AI agent (Codex/Gemini/Claude/etc), **read these files before coding**:
+
 - `AGENTS.md`
 - `docs/DEPLOY.md`
 - `docs/INTEGRATIONS.md`
@@ -11,15 +13,18 @@ If you are an AI agent (Codex/Gemini/Claude/etc), **read these files before codi
 - `.env.example`
 
 Before changing any code, **ask the human** if the change is for:
+
 - `main` (base comun), or
 - a specific client branch (`client/<cliente>`).
 
 ## Quick start
-1) Copy `.env.example` to `.env` and fill the values (use it as source of truth).
-2) Install dependencies: `npm install`
-3) Run dev server: `npm run dev`
+
+1. Copy `.env.example` to `.env` and fill the values (use it as source of truth).
+2. Install dependencies: `npm install`
+3. Run dev server: `npm run dev`
 
 ## Deploy (Render)
+
 - Blueprint: `render.yaml` (web + Postgres).
 - Health check: `GET /health`
 - Important env vars to set in Render:
@@ -33,6 +38,7 @@ Before changing any code, **ask the human** if the change is for:
   - `REDIS_URL` (obligatorio)
 
 ## Database migrations
+
 - After filling `.env`, run:
   - Prod/CI: `npm run build && npm run db:migrate`
   - Local: `npm run db:migrate:dev`
@@ -40,23 +46,27 @@ Before changing any code, **ask the human** if the change is for:
 - The app does not auto-apply schema changes at runtime.
 
 ## External datastores
+
 - Postgres (principal): `DATABASE_URL` (required).
 - Postgres (MIM): `MIM_DATABASE_URL` (optional, used when called).
 - MongoDB: `MONGO_URL` (optional, used when called).
 - Redis cache/queues: `REDIS_URL` (required; app fails to start if missing).
 
 ## Postgres pool (optional)
+
 - `DB_POOL_MAX` (default: 5)
 - `DB_POOL_IDLE_TIMEOUT_MS` (default: 30000)
 - `DB_POOL_CONNECTION_TIMEOUT_MS` (default: 5000)
 - `DB_APP_NAME` (identificador visible en `pg_stat_activity`)
 
 ## Public files / uploads
+
 - Folder: `public/data/`
 - Se usa para archivos que el cliente sube o consume vía rutas públicas.
 - El contenido se ignora en Git (`public/data/*`), solo se versiona la carpeta.
 
 ### MIM Postgres + MongoDB (sin migraciones)
+
 - **No se ejecutan migraciones** sobre MIM ni Mongo. Se asume que **las estructuras ya existen**.
 - Uso previsto: **consultas** y **ediciones puntuales** sobre datos existentes (ej: aprobaciones).
 - Cuando se creen modelos/servicios para estas conexiones, deben:
@@ -64,6 +74,7 @@ Before changing any code, **ask the human** if the change is for:
   - Documentar claramente qué tablas/colecciones se leen o actualizan.
 
 ## Per-client database naming
+
 - Base DB name pattern: `admin-central-<CLIENTE>`
 - For each cliente:
   - Create a Postgres DB named `admin-central-<CLIENTE>`.
@@ -71,11 +82,13 @@ Before changing any code, **ask the human** if the change is for:
   - Keep `APP_ORG_ID` consistent with the tenant record if you use it.
 
 ## QA (smoke)
+
 - Checklist: `docs/QA.md`
 - Script (requiere `QA_TOKEN` o `ADMIN_EMAIL`/`ADMIN_PASSWORD`):
   - `BASE_URL=https://<tu-servicio>.onrender.com QA_TOKEN=<token> SHOP_DOMAIN=<tu-tienda.myshopify.com> npm run qa:smoke`
 
 ## Notes
+
 - Webhook endpoint: `POST /api/webhooks/shopify`
 - Webhook endpoint: `POST /api/webhooks/alegra`
 - Mass sync (Alegra → Shopify): `POST /api/sync/invoices` (crea pedidos/borradores desde facturas Alegra)
@@ -91,6 +104,7 @@ Before changing any code, **ask the human** if the change is for:
 - Solo super admin ApiFlujos puede asignar/cambiar roles de usuarios.
 
 ## Marketing & Analytics (Enterprise)
+
 - Shopify webhooks (HMAC): `POST /api/marketing/webhooks/shopify`
   - Topics soportados: `orders/create`, `orders/paid`, `checkouts/create`, `checkouts/update`, `customers/create`
 - Pixel (key-gated):
@@ -105,20 +119,24 @@ Before changing any code, **ask the human** if the change is for:
 - GraphQL interno (authed): `POST /api/marketing/graphql` query: `executiveDashboard(shopDomain, from, to)`
 
 ## Required env vars for sync
+
 - `APP_ORG_ID`, `DATABASE_URL`, `CRYPTO_KEY_BASE64`
 - `SHOPIFY_WEBHOOK_SECRET` (required for Shopify webhook validation; si no lo pones, se usa `SHOPIFY_API_SECRET`)
 - `ALEGRA_WEBHOOK_SECRET` (optional, for signature validation)
   - Debug only: `ALLOW_UNVERIFIED_SHOPIFY_WEBHOOKS=true` (acepta webhooks sin firma incluso en production; no recomendado)
 
 ## Credential storage
+
 - Shopify and Alegra credentials are stored encrypted in `credentials.data_encrypted`.
 - Use the dashboard endpoint `PUT /api/settings` to save credentials.
   - Payload: `{ shopify: { shopDomain, accessToken, locationId, apiVersion }, alegra: { email, apiKey, warehouseId } }`
 
 ## Current limitations
+
 - Mapping service uses Postgres (`sync_mappings`); apply migrations before running sync.
 
 ## Integration docs
+
 - `docs/INTEGRATIONS.md`
 - `docs/DEPLOY.md`
 - `docs/QA.md`

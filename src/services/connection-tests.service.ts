@@ -31,14 +31,7 @@ export async function saveConnectionTest(record: ConnectionTestRecord) {
       response_json = EXCLUDED.response_json,
       checked_at = NOW()
     `,
-    [
-      orgId,
-      provider,
-      record.status,
-      record.message || null,
-      record.request || null,
-      record.response || null,
-    ]
+    [orgId, provider, record.status, record.message || null, record.request || null, record.response || null]
   );
 }
 

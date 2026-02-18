@@ -6,8 +6,16 @@ import { getTenantMonthlySummary, listModules, resetTenantCounters, setTenantMod
 
 const TenantId = z.number().int().positive();
 const PeriodKey = z.string().regex(/^\d{4}-\d{2}$/);
-const ServiceKey = z.string().min(1).max(80).regex(/^[a-z0-9_]+$/i);
-const PlanKey = z.string().min(1).max(80).regex(/^[a-z0-9_]+$/i);
+const ServiceKey = z
+  .string()
+  .min(1)
+  .max(80)
+  .regex(/^[a-z0-9_]+$/i);
+const PlanKey = z
+  .string()
+  .min(1)
+  .max(80)
+  .regex(/^[a-z0-9_]+$/i);
 
 export async function saListPlansHandler(_req: Request, res: Response) {
   const pool = getPool();

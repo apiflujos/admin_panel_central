@@ -56,11 +56,13 @@ export function decryptString(payload: string) {
       normalized.includes("authentication tag")
     ) {
       throw new Error(
-        "No se pudo leer credenciales guardadas. Puede que CRYPTO_KEY_BASE64 haya cambiado. Fija CRYPTO_KEY_BASE64 en el servidor y reconecta la tienda."
+        "No se pudo leer credenciales guardadas. Puede que CRYPTO_KEY_BASE64 haya cambiado. Fija CRYPTO_KEY_BASE64 en el servidor y reconecta la tienda.",
+        { cause: error }
       );
     }
     throw new Error(
-      "No se pudo leer credenciales guardadas (probablemente son antiguas). Vuelve a conectar la tienda."
+      "No se pudo leer credenciales guardadas (probablemente son antiguas). Vuelve a conectar la tienda.",
+      { cause: error }
     );
   }
 }

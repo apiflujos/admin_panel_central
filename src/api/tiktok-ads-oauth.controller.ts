@@ -100,20 +100,17 @@ export async function tiktokAdsOAuthCallback(req: Request, res: Response) {
     }
 
     const redirectUri = `${env.appHost}/auth/tiktok-ads/callback`;
-    const tokenResponse = await fetch(
-      "https://business-api.tiktok.com/open_api/v1.3/oauth2/access_token/",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          app_id: env.appId,
-          secret: env.appSecret,
-          code,
-          grant_type: "authorization_code",
-          redirect_uri: redirectUri,
-        }),
-      }
-    );
+    const tokenResponse = await fetch("https://business-api.tiktok.com/open_api/v1.3/oauth2/access_token/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        app_id: env.appId,
+        secret: env.appSecret,
+        code,
+        grant_type: "authorization_code",
+        redirect_uri: redirectUri,
+      }),
+    });
     const tokenPayload = (await tokenResponse.json()) as {
       code?: number;
       message?: string;
@@ -128,7 +125,9 @@ export async function tiktokAdsOAuthCallback(req: Request, res: Response) {
     }
     const accessToken = String(tokenPayload.data.access_token || "").trim();
     const refreshToken = String(tokenPayload.data.refresh_token || "").trim();
-    const expiresAt = new Date(Date.now() + Math.max(1, Number(tokenPayload.data.expires_in || 0)) * 1000).toISOString();
+    const expiresAt = new Date(
+      Date.now() + Math.max(1, Number(tokenPayload.data.expires_in || 0)) * 1000
+    ).toISOString();
     await upsertTikTokAdsCredentials({
       accessToken,
       advertiserId,

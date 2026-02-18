@@ -16,8 +16,7 @@ const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
 };
 
 export async function syncInvoicesToShopifyHandler(req: Request, res: Response) {
-  const stream =
-    req.query.stream === "1" || req.query.stream === "true" || req.body?.stream === true;
+  const stream = req.query.stream === "1" || req.query.stream === "true" || req.body?.stream === true;
   let streamOpen = stream;
   const sendStream = (payload: Record<string, unknown>) => {
     if (!streamOpen || res.writableEnded || res.destroyed) return;

@@ -75,23 +75,16 @@ export async function validateConnections(payload: ConnectionPayload) {
   return results;
 }
 
-async function testShopify(config: {
-  shopDomain: string;
-  accessToken: string;
-  apiVersion?: string;
-}) {
+async function testShopify(config: { shopDomain: string; accessToken: string; apiVersion?: string }) {
   const version = resolveShopifyApiVersion(config.apiVersion);
-  const response = await fetch(
-    `https://${config.shopDomain}/admin/api/${version}/graphql.json`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Access-Token": config.accessToken,
-      },
-      body: JSON.stringify({ query: "{ shop { name } }" }),
-    }
-  );
+  const response = await fetch(`https://${config.shopDomain}/admin/api/${version}/graphql.json`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Shopify-Access-Token": config.accessToken,
+    },
+    body: JSON.stringify({ query: "{ shop { name } }" }),
+  });
   if (!response.ok) {
     const text = await response.text();
     throw new Error(text || "Shopify connection failed");
@@ -102,11 +95,7 @@ async function testShopify(config: {
   }
 }
 
-async function testAlegra(config: {
-  email: string;
-  apiKey: string;
-  environment?: string;
-}) {
+async function testAlegra(config: { email: string; apiKey: string; environment?: string }) {
   const auth = Buffer.from(`${config.email}:${config.apiKey}`).toString("base64");
   const baseUrl = getAlegraBaseUrl(config.environment);
   const response = await fetch(`${baseUrl}/items?limit=1`, {
@@ -128,22 +117,15 @@ const normalizeShopDomain = (value: string) =>
     .replace(/\/.*$/, "")
     .toLowerCase();
 
-async function testWooCommerce(config: {
-  shopDomain: string;
-  consumerKey: string;
-  consumerSecret: string;
-}) {
+async function testWooCommerce(config: { shopDomain: string; consumerKey: string; consumerSecret: string }) {
   const domain = normalizeShopDomain(config.shopDomain);
   const token = Buffer.from(`${config.consumerKey}:${config.consumerSecret}`).toString("base64");
-  const response = await fetch(
-    `https://${domain}/wp-json/wc/v3/products?per_page=1`,
-    {
-      headers: {
-        Authorization: `Basic ${token}`,
-        Accept: "application/json",
-      },
-    }
-  );
+  const response = await fetch(`https://${domain}/wp-json/wc/v3/products?per_page=1`, {
+    headers: {
+      Authorization: `Basic ${token}`,
+      Accept: "application/json",
+    },
+  });
   if (!response.ok) {
     const text = await response.text();
     throw new Error(text || "WooCommerce connection failed");

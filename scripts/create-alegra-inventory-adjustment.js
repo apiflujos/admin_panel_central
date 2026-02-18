@@ -31,9 +31,7 @@ async function run() {
     }));
   } else {
     if (!itemId || !qty) {
-      console.error(
-        "Faltan ALEGRA_ITEM_ID y/o ALEGRA_QTY (o usa ALEGRA_ITEMS_JSON)."
-      );
+      console.error("Faltan ALEGRA_ITEM_ID y/o ALEGRA_QTY (o usa ALEGRA_ITEMS_JSON).");
       process.exit(1);
     }
     payload.items = [

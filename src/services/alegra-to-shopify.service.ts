@@ -1,9 +1,5 @@
 import { buildSyncContext } from "./sync-context";
-import {
-  saveMapping,
-  getMappingByAlegraId,
-  updateMappingMetadata,
-} from "./mapping.service";
+import { saveMapping, getMappingByAlegraId, updateMappingMetadata } from "./mapping.service";
 import { upsertProduct } from "./products.service";
 import { createSyncLog } from "./logs.service";
 
@@ -40,18 +36,14 @@ const normalizeImageUrls = (images: Array<{ url?: string } | string> = []) =>
 export async function syncAlegraItemToShopify(alegraItemId: string) {
   const ctx = await buildSyncContext();
   const item = (await ctx.alegra.getItem(alegraItemId)) as AlegraItem;
-  const allowedWarehouseIds = Array.isArray(ctx.alegraWarehouseIds)
-    ? ctx.alegraWarehouseIds
-    : [];
-  await upsertProduct(
-    {
-      ...buildAlegraProductInput(item, {
-        warehouseIds: allowedWarehouseIds,
-        source: "alegra",
-      }),
-      shopDomain: ctx.shopDomain,
-    }
-  );
+  const allowedWarehouseIds = Array.isArray(ctx.alegraWarehouseIds) ? ctx.alegraWarehouseIds : [];
+  await upsertProduct({
+    ...buildAlegraProductInput(item, {
+      warehouseIds: allowedWarehouseIds,
+      source: "alegra",
+    }),
+    shopDomain: ctx.shopDomain,
+  });
   if (!ctx.syncEnabled) {
     return { skipped: true, reason: "sync_disabled" };
   }
@@ -67,9 +59,7 @@ export async function syncAlegraItemToShopify(alegraItemId: string) {
 export async function syncAlegraItemPayloadToShopify(item: AlegraItem) {
   const ctx = await buildSyncContext();
   const alegraItemId = String(item.id);
-  const allowedWarehouseIds = Array.isArray(ctx.alegraWarehouseIds)
-    ? ctx.alegraWarehouseIds
-    : [];
+  const allowedWarehouseIds = Array.isArray(ctx.alegraWarehouseIds) ? ctx.alegraWarehouseIds : [];
 
   if (shouldSkipByWarehouse(item, allowedWarehouseIds)) {
     return { skipped: true, reason: "warehouse_filtered" };
@@ -77,10 +67,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem) {
 
   const mapped = await getMappingByAlegraId("item", alegraItemId);
   const identifiers = extractIdentifiers(item);
-  const availableQuantity = resolveAvailableQuantity(
-    item.inventory,
-    allowedWarehouseIds
-  );
+  const availableQuantity = resolveAvailableQuantity(item.inventory, allowedWarehouseIds);
   const effectiveQuantity = availableQuantity ?? 0;
   const statusInactive = item.status && item.status.toLowerCase() === "inactive";
   const baseProductInput = buildAlegraProductInput(item, {
@@ -95,15 +82,9 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem) {
   if (ctx.onlyActiveItems && statusInactive) {
     return { skipped: true, reason: "inactive_item" };
   }
-  const publishEligible =
-    !statusInactive && (ctx.publishOnStock ? effectiveQuantity > 0 : true);
-  const desiredPublish =
-    ctx.autoPublishStatus === "active" ? publishEligible : false;
-  const resolvedShopifyStatus = ctx.autoPublishOnWebhook
-    ? desiredPublish
-      ? "active"
-      : "draft"
-    : null;
+  const publishEligible = !statusInactive && (ctx.publishOnStock ? effectiveQuantity > 0 : true);
+  const desiredPublish = ctx.autoPublishStatus === "active" ? publishEligible : false;
+  const resolvedShopifyStatus = ctx.autoPublishOnWebhook ? (desiredPublish ? "active" : "draft") : null;
   const itemPrice = resolvePrice(item.price, ctx);
 
   if (!mapped) {
@@ -121,19 +102,14 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem) {
         metadata: { sku: matched.sku },
       });
       const result = await withRetry(
-        () =>
-          ctx.shopify.updateVariantPrice(
-            matched.variantId,
-            itemPrice ? String(itemPrice) : "0"
-          ),
+        () => ctx.shopify.updateVariantPrice(matched.variantId, itemPrice ? String(itemPrice) : "0"),
         { label: "updateVariantPrice" }
       );
       if (matched.productId && ctx.autoPublishOnWebhook) {
         const productId = matched.productId;
-        await withRetry(
-          () => ctx.shopify.updateProductStatus(productId, desiredPublish),
-          { label: "updateProductStatus" }
-        );
+        await withRetry(() => ctx.shopify.updateProductStatus(productId, desiredPublish), {
+          label: "updateProductStatus",
+        });
       }
       await upsertProduct({
         ...baseProductInput,
@@ -213,17 +189,13 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem) {
   }
 
   const variantId = mapped.shopifyId;
-  const result = await withRetry(
-    () => ctx.shopify.updateVariantPrice(variantId, itemPrice ? String(itemPrice) : "0"),
-    { label: "updateVariantPrice" }
-  );
+  const result = await withRetry(() => ctx.shopify.updateVariantPrice(variantId, itemPrice ? String(itemPrice) : "0"), {
+    label: "updateVariantPrice",
+  });
 
   if (mapped.shopifyProductId && ctx.autoPublishOnWebhook) {
     const productId = mapped.shopifyProductId;
-    await withRetry(
-      () => ctx.shopify.updateProductStatus(productId, desiredPublish),
-      { label: "updateProductStatus" }
-    );
+    await withRetry(() => ctx.shopify.updateProductStatus(productId, desiredPublish), { label: "updateProductStatus" });
   }
   await upsertProduct({
     ...baseProductInput,
@@ -246,22 +218,15 @@ export async function syncAlegraInventoryToShopify(payload: AlegraInventoryPaylo
   });
 }
 
-export async function syncAlegraInventoryPayloadToShopify(
-  payload: AlegraInventoryPayload
-) {
+export async function syncAlegraInventoryPayloadToShopify(payload: AlegraInventoryPayload) {
   const alegraItemId = payload.id ? String(payload.id) : undefined;
   if (!alegraItemId) {
     return { handled: false, reason: "missing_item_id" };
   }
 
   const ctx = await buildSyncContext();
-  const allowedWarehouseIds = Array.isArray(ctx.alegraWarehouseIds)
-    ? ctx.alegraWarehouseIds
-    : [];
-  const availableQuantity = resolveAvailableQuantity(
-    payload.inventory,
-    allowedWarehouseIds
-  );
+  const allowedWarehouseIds = Array.isArray(ctx.alegraWarehouseIds) ? ctx.alegraWarehouseIds : [];
+  const availableQuantity = resolveAvailableQuantity(payload.inventory, allowedWarehouseIds);
   if (!ctx.updateInShopify) {
     await upsertProduct({
       shopDomain: ctx.shopDomain,
@@ -348,10 +313,9 @@ export async function syncAlegraInventoryPayloadToShopify(
     }
   }
 
-  const result = await withRetry(
-    () => ctx.shopify.setInventoryOnHand(inventoryItemId, locationId, availableQuantity),
-    { label: "setInventoryOnHand" }
-  );
+  const result = await withRetry(() => ctx.shopify.setInventoryOnHand(inventoryItemId, locationId, availableQuantity), {
+    label: "setInventoryOnHand",
+  });
 
   if (mapped.shopifyProductId && ctx.autoPublishOnWebhook) {
     const productId = mapped.shopifyProductId;
@@ -359,16 +323,10 @@ export async function syncAlegraInventoryPayloadToShopify(
       const item = (await ctx.alegra.getItem(alegraItemId)) as AlegraItem;
       itemStatus = item?.status;
     }
-    const statusInactive =
-      itemStatus && String(itemStatus).toLowerCase() === "inactive";
-    const publishEligible =
-      !statusInactive && (ctx.publishOnStock ? availableQuantity > 0 : true);
-    const desiredPublish =
-      ctx.autoPublishStatus === "active" ? publishEligible : false;
-    await withRetry(
-      () => ctx.shopify.updateProductStatus(productId, desiredPublish),
-      { label: "updateProductStatus" }
-    );
+    const statusInactive = itemStatus && String(itemStatus).toLowerCase() === "inactive";
+    const publishEligible = !statusInactive && (ctx.publishOnStock ? availableQuantity > 0 : true);
+    const desiredPublish = ctx.autoPublishStatus === "active" ? publishEligible : false;
+    await withRetry(() => ctx.shopify.updateProductStatus(productId, desiredPublish), { label: "updateProductStatus" });
   }
 
   await upsertProduct({
@@ -467,10 +425,7 @@ function buildAlegraProductInput(
   };
 }
 
-async function resolveVariantByIdentifiers(
-  ctx: Awaited<ReturnType<typeof buildSyncContext>>,
-  identifiers: string[]
-) {
+async function resolveVariantByIdentifiers(ctx: Awaited<ReturnType<typeof buildSyncContext>>, identifiers: string[]) {
   for (const identifier of identifiers) {
     const result = await ctx.shopify.findVariantByIdentifier(identifier);
     const node = result.productVariants.edges[0]?.node;
@@ -486,10 +441,7 @@ async function resolveVariantByIdentifiers(
   return null;
 }
 
-function resolvePrice(
-  price: AlegraItem["price"],
-  ctx: Awaited<ReturnType<typeof buildSyncContext>>
-): number | null {
+function resolvePrice(price: AlegraItem["price"], ctx: Awaited<ReturnType<typeof buildSyncContext>>): number | null {
   if (typeof price === "number") {
     return price;
   }
@@ -497,9 +449,7 @@ function resolvePrice(
     const matchByList = (listId?: string) => {
       if (!listId) return null;
       const normalized = String(listId);
-      return (
-        price.find((entry) => String(entry?.idPriceList || "") === normalized) || null
-      );
+      return price.find((entry) => String(entry?.idPriceList || "") === normalized) || null;
     };
     const discount = matchByList(ctx.priceListDiscountId);
     if (discount && typeof discount.price === "number") return discount.price;
@@ -522,9 +472,7 @@ function resolveAvailableQuantity(
   }
   if (inventory.warehouses) {
     const total = inventory.warehouses
-      .filter((warehouse) =>
-        warehouseIds.length ? warehouseIds.includes(String(warehouse.id)) : true
-      )
+      .filter((warehouse) => (warehouseIds.length ? warehouseIds.includes(String(warehouse.id)) : true))
       .reduce((acc, warehouse) => {
         const rawQty = Number(warehouse.availableQuantity || 0);
         const qty = Number.isFinite(rawQty) ? rawQty : 0;

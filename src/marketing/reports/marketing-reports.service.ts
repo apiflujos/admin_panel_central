@@ -12,11 +12,7 @@ function isDateKey(value: unknown) {
   return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : "";
 }
 
-export async function getMarketingExecutiveDashboard(input: {
-  shopDomain: string;
-  from: string;
-  to: string;
-}) {
+export async function getMarketingExecutiveDashboard(input: { shopDomain: string; from: string; to: string }) {
   const pool = getPool();
   const orgId = getOrgId();
   const shopDomain = normalizeShopDomain(input.shopDomain);
@@ -161,10 +157,12 @@ export async function getMarketingExecutiveDashboard(input: {
      AND o.shopify_order_gid = oi.shopify_order_gid
     WHERE oi.organization_id = $1
       AND oi.shop_domain = $2
-      AND ${safeOrderDateSql.replace(/processed_at_shopify/g, "o.processed_at_shopify")
+      AND ${safeOrderDateSql
+        .replace(/processed_at_shopify/g, "o.processed_at_shopify")
         .replace(/created_at_shopify/g, "o.created_at_shopify")
         .replace(/\bcreated_at\b/g, "o.created_at")} >= $3::date
-      AND ${safeOrderDateSql.replace(/processed_at_shopify/g, "o.processed_at_shopify")
+      AND ${safeOrderDateSql
+        .replace(/processed_at_shopify/g, "o.processed_at_shopify")
         .replace(/created_at_shopify/g, "o.created_at_shopify")
         .replace(/\bcreated_at\b/g, "o.created_at")} <= $4::date
       AND LOWER(COALESCE(o.financial_status,'')) IN ('paid','partially_paid','authorized')

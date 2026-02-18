@@ -74,10 +74,10 @@ export class ShopifyClient {
   }
 
   async createOrderRest(order: Record<string, unknown>) {
-    return this.requestRest<{ order: { id: number; name?: string; order_number?: number } }>(
-      `/orders.json`,
-      { method: "POST", body: { order } }
-    );
+    return this.requestRest<{ order: { id: number; name?: string; order_number?: number } }>(`/orders.json`, {
+      method: "POST",
+      body: { order },
+    });
   }
 
   async createDraftOrderRest(draftOrder: Record<string, unknown>) {
@@ -120,15 +120,13 @@ export class ShopifyClient {
     let hasNextPage = true;
     const orders: ShopifyOrder[] = [];
     while (hasNextPage) {
-      const data: { orders: ShopifyOrderConnection } =
-        await this.request<{ orders: ShopifyOrderConnection }>(
-        <GraphQlRequest>{
+      const data: { orders: ShopifyOrderConnection } = await this.request<{ orders: ShopifyOrderConnection }>(<
+        GraphQlRequest
+        >{
           query: ORDERS_PAGED_QUERY,
           variables: { query, cursor },
-        }
-      );
-      const page =
-        data.orders?.edges?.map((edge: { node: ShopifyOrder }) => edge.node) || [];
+        });
+      const page = data.orders?.edges?.map((edge: { node: ShopifyOrder }) => edge.node) || [];
       orders.push(...page);
       if (limit && orders.length >= limit) {
         return orders.slice(0, limit);
@@ -147,15 +145,13 @@ export class ShopifyClient {
     let hasNextPage = true;
     const products: ShopifyProduct[] = [];
     while (hasNextPage) {
-      const data: { products: ShopifyProductConnection } =
-        await this.request<{ products: ShopifyProductConnection }>(
-        <GraphQlRequest>{
+      const data: { products: ShopifyProductConnection } = await this.request<{ products: ShopifyProductConnection }>(<
+        GraphQlRequest
+        >{
           query: PRODUCTS_PAGED_QUERY,
           variables: { query, cursor },
-        }
-      );
-      const page =
-        data.products?.edges?.map((edge: { node: ShopifyProduct }) => edge.node) || [];
+        });
+      const page = data.products?.edges?.map((edge: { node: ShopifyProduct }) => edge.node) || [];
       products.push(...page);
       if (limit && products.length >= limit) {
         return products.slice(0, limit);
@@ -174,15 +170,13 @@ export class ShopifyClient {
     let hasNextPage = true;
     const customers: ShopifyCustomer[] = [];
     while (hasNextPage) {
-      const data: { customers: ShopifyCustomerConnection } =
-        await this.request<{ customers: ShopifyCustomerConnection }>(
-        <GraphQlRequest>{
-          query: CUSTOMERS_PAGED_QUERY,
-          variables: { cursor },
-        }
-      );
-      const page =
-        data.customers?.edges?.map((edge: { node: ShopifyCustomer }) => edge.node) || [];
+      const data: { customers: ShopifyCustomerConnection } = await this.request<{
+        customers: ShopifyCustomerConnection;
+      }>(<GraphQlRequest>{
+        query: CUSTOMERS_PAGED_QUERY,
+        variables: { cursor },
+      });
+      const page = data.customers?.edges?.map((edge: { node: ShopifyCustomer }) => edge.node) || [];
       customers.push(...page);
       if (limit && customers.length >= limit) {
         return customers.slice(0, limit);
@@ -202,15 +196,13 @@ export class ShopifyClient {
     const customers: ShopifyCustomer[] = [];
     const cleanedQuery = String(query || "").trim();
     while (hasNextPage) {
-      const data: { customers: ShopifyCustomerConnection } =
-        await this.request<{ customers: ShopifyCustomerConnection }>(
-        <GraphQlRequest>{
-          query: CUSTOMERS_PAGED_QUERY,
-          variables: { query: cleanedQuery || null, cursor },
-        }
-      );
-      const page =
-        data.customers?.edges?.map((edge: { node: ShopifyCustomer }) => edge.node) || [];
+      const data: { customers: ShopifyCustomerConnection } = await this.request<{
+        customers: ShopifyCustomerConnection;
+      }>(<GraphQlRequest>{
+        query: CUSTOMERS_PAGED_QUERY,
+        variables: { query: cleanedQuery || null, cursor },
+      });
+      const page = data.customers?.edges?.map((edge: { node: ShopifyCustomer }) => edge.node) || [];
       customers.push(...page);
       if (limit && customers.length >= limit) {
         return customers.slice(0, limit);
@@ -225,12 +217,10 @@ export class ShopifyClient {
   }
 
   async searchCustomers(query: string) {
-    const data = await this.request<{ customers: ShopifyCustomerConnection }>(
-      <GraphQlRequest>{
-        query: CUSTOMERS_PAGED_QUERY,
-        variables: { query },
-      }
-    );
+    const data = await this.request<{ customers: ShopifyCustomerConnection }>(<GraphQlRequest>{
+      query: CUSTOMERS_PAGED_QUERY,
+      variables: { query },
+    });
     return data.customers?.edges?.map((edge) => edge.node) || [];
   }
 
@@ -249,17 +239,15 @@ export class ShopifyClient {
   }
 
   async updateVariantPrice(variantId: string, price: string) {
-    return this.request<{ productVariantUpdate: ShopifyMutationResult }>(
-      <GraphQlRequest>{
-        query: VARIANT_PRICE_MUTATION,
-        variables: {
-          input: {
-            id: variantId,
-            price,
-          },
+    return this.request<{ productVariantUpdate: ShopifyMutationResult }>(<GraphQlRequest>{
+      query: VARIANT_PRICE_MUTATION,
+      variables: {
+        input: {
+          id: variantId,
+          price,
         },
-      }
-    );
+      },
+    });
   }
 
   async addOrderTag(orderId: string, tag: string) {
@@ -295,52 +283,40 @@ export class ShopifyClient {
     if (input.allowOversell === true) {
       variant.inventoryPolicy = "CONTINUE";
     }
-    return this.request<{ productCreate: ShopifyProductCreateResult }>(
-      <GraphQlRequest>{
-        query: PRODUCT_CREATE_MUTATION,
-        variables: {
-          input: {
-            title: input.title,
-            status: input.publish ? "ACTIVE" : "DRAFT",
-            variants: [variant],
-          },
+    return this.request<{ productCreate: ShopifyProductCreateResult }>(<GraphQlRequest>{
+      query: PRODUCT_CREATE_MUTATION,
+      variables: {
+        input: {
+          title: input.title,
+          status: input.publish ? "ACTIVE" : "DRAFT",
+          variants: [variant],
         },
-      }
-    );
+      },
+    });
   }
 
-  async updateVariantInventoryPolicy(
-    variantId: string,
-    policy: "CONTINUE" | "DENY"
-  ) {
-    return this.request<{ productVariantUpdate: ShopifyMutationResult }>(
-      <GraphQlRequest>{
-        query: VARIANT_INVENTORY_POLICY_MUTATION,
-        variables: {
-          input: {
-            id: variantId,
-            inventoryPolicy: policy,
-          },
+  async updateVariantInventoryPolicy(variantId: string, policy: "CONTINUE" | "DENY") {
+    return this.request<{ productVariantUpdate: ShopifyMutationResult }>(<GraphQlRequest>{
+      query: VARIANT_INVENTORY_POLICY_MUTATION,
+      variables: {
+        input: {
+          id: variantId,
+          inventoryPolicy: policy,
         },
-      }
-    );
+      },
+    });
   }
 
-  async updateInventoryItemTracking(
-    inventoryItemId: string,
-    tracked: boolean
-  ) {
-    return this.request<{ inventoryItemUpdate: ShopifyMutationResult }>(
-      <GraphQlRequest>{
-        query: INVENTORY_ITEM_TRACKING_MUTATION,
-        variables: {
-          id: inventoryItemId,
-          input: {
-            tracked,
-          },
+  async updateInventoryItemTracking(inventoryItemId: string, tracked: boolean) {
+    return this.request<{ inventoryItemUpdate: ShopifyMutationResult }>(<GraphQlRequest>{
+      query: INVENTORY_ITEM_TRACKING_MUTATION,
+      variables: {
+        id: inventoryItemId,
+        input: {
+          tracked,
         },
-      }
-    );
+      },
+    });
   }
 
   async createProduct(input: {
@@ -362,35 +338,32 @@ export class ShopifyClient {
     }>;
     trackInventory?: boolean;
   }) {
-    const trackInventory =
-      typeof input.trackInventory === "boolean" ? input.trackInventory : undefined;
+    const trackInventory = typeof input.trackInventory === "boolean" ? input.trackInventory : undefined;
     const variants = Array.isArray(input.variants)
       ? input.variants.map((variant) => {
-          if (typeof trackInventory !== "boolean") return variant;
-          return {
-            ...variant,
-            inventoryItem: { tracked: trackInventory },
-            inventoryManagement: trackInventory ? "SHOPIFY" : "NOT_MANAGED",
-          };
-        })
+        if (typeof trackInventory !== "boolean") return variant;
+        return {
+          ...variant,
+          inventoryItem: { tracked: trackInventory },
+          inventoryManagement: trackInventory ? "SHOPIFY" : "NOT_MANAGED",
+        };
+      })
       : input.variants;
-    const response = await this.request<{ productCreate: ShopifyProductCreateResult }>(
-      <GraphQlRequest>{
-        query: PRODUCT_CREATE_MUTATION,
-        variables: {
-          input: {
-            title: input.title,
-            status: input.status,
-            descriptionHtml: input.descriptionHtml,
-            vendor: input.vendor,
-            productType: input.productType,
-            tags: input.tags,
-            options: input.options,
-            variants,
-          },
+    const response = await this.request<{ productCreate: ShopifyProductCreateResult }>(<GraphQlRequest>{
+      query: PRODUCT_CREATE_MUTATION,
+      variables: {
+        input: {
+          title: input.title,
+          status: input.status,
+          descriptionHtml: input.descriptionHtml,
+          vendor: input.vendor,
+          productType: input.productType,
+          tags: input.tags,
+          options: input.options,
+          variants,
         },
-      }
-    );
+      },
+    });
     const errors = response.productCreate?.userErrors || [];
     if (errors.length) {
       throw new Error(`Shopify productCreate: ${JSON.stringify(errors)}`);
@@ -410,13 +383,7 @@ export class ShopifyClient {
       return { added: 0, skipped: urls.length };
     }
     const list = Array.isArray(urls) ? urls : [];
-    const unique = Array.from(
-      new Set(
-        list
-          .map((url) => String(url || "").trim())
-          .filter((url) => url.length > 0)
-      )
-    );
+    const unique = Array.from(new Set(list.map((url) => String(url || "").trim()).filter((url) => url.length > 0)));
     if (!unique.length) {
       return { added: 0, skipped: 0 };
     }
@@ -440,26 +407,22 @@ export class ShopifyClient {
   }
 
   async updateProductStatus(productId: string, publish: boolean) {
-    return this.request<{ productUpdate: ShopifyMutationResult }>(
-      <GraphQlRequest>{
-        query: PRODUCT_STATUS_MUTATION,
-        variables: {
-          input: {
-            id: productId,
-            status: publish ? "ACTIVE" : "DRAFT",
-          },
+    return this.request<{ productUpdate: ShopifyMutationResult }>(<GraphQlRequest>{
+      query: PRODUCT_STATUS_MUTATION,
+      variables: {
+        input: {
+          id: productId,
+          status: publish ? "ACTIVE" : "DRAFT",
         },
-      }
-    );
+      },
+    });
   }
 
   async createCustomer(input: Record<string, unknown>) {
-    const data = await this.request<{ customerCreate: ShopifyCustomerMutationResult }>(
-      <GraphQlRequest>{
-        query: CUSTOMER_CREATE_MUTATION,
-        variables: { input },
-      }
-    );
+    const data = await this.request<{ customerCreate: ShopifyCustomerMutationResult }>(<GraphQlRequest>{
+      query: CUSTOMER_CREATE_MUTATION,
+      variables: { input },
+    });
     const errors = data.customerCreate?.userErrors || [];
     if (errors.length) {
       throw new Error(`Shopify customerCreate: ${JSON.stringify(errors)}`);
@@ -468,12 +431,10 @@ export class ShopifyClient {
   }
 
   async updateCustomer(id: string, input: Record<string, unknown>) {
-    const data = await this.request<{ customerUpdate: ShopifyCustomerMutationResult }>(
-      <GraphQlRequest>{
-        query: CUSTOMER_UPDATE_MUTATION,
-        variables: { input: { id, ...input } },
-      }
-    );
+    const data = await this.request<{ customerUpdate: ShopifyCustomerMutationResult }>(<GraphQlRequest>{
+      query: CUSTOMER_UPDATE_MUTATION,
+      variables: { input: { id, ...input } },
+    });
     const errors = data.customerUpdate?.userErrors || [];
     if (errors.length) {
       throw new Error(`Shopify customerUpdate: ${JSON.stringify(errors)}`);
@@ -482,18 +443,16 @@ export class ShopifyClient {
   }
 
   async createWebhookSubscription(topic: string, callbackUrl: string) {
-    return this.request<{ webhookSubscriptionCreate: WebhookSubscriptionCreateResult }>(
-      <GraphQlRequest>{
-        query: WEBHOOK_SUBSCRIPTION_CREATE_MUTATION,
-        variables: {
-          topic,
-          webhookSubscription: {
-            callbackUrl,
-            format: "JSON",
-          },
+    return this.request<{ webhookSubscriptionCreate: WebhookSubscriptionCreateResult }>(<GraphQlRequest>{
+      query: WEBHOOK_SUBSCRIPTION_CREATE_MUTATION,
+      variables: {
+        topic,
+        webhookSubscription: {
+          callbackUrl,
+          format: "JSON",
         },
-      }
-    );
+      },
+    });
   }
 
   async listWebhookSubscriptions(first = 50) {
@@ -506,17 +465,15 @@ export class ShopifyClient {
   }
 
   async deleteWebhookSubscription(id: string) {
-    return this.request<{ webhookSubscriptionDelete: WebhookSubscriptionDeleteResult }>(
-      <GraphQlRequest>{
-        query: WEBHOOK_SUBSCRIPTION_DELETE_MUTATION,
-        variables: { id },
-      }
-    );
+    return this.request<{ webhookSubscriptionDelete: WebhookSubscriptionDeleteResult }>(<GraphQlRequest>{
+      query: WEBHOOK_SUBSCRIPTION_DELETE_MUTATION,
+      variables: { id },
+    });
   }
 
   async findVariantByIdentifier(identifier: string) {
     const escaped = identifier.replace(/"/g, '\\"');
-    const query = `sku:\"${escaped}\" OR barcode:\"${escaped}\"`;
+    const query = `sku:"${escaped}" OR barcode:"${escaped}"`;
     return this.request<{
       productVariants: {
         edges: Array<{
@@ -536,47 +493,35 @@ export class ShopifyClient {
     });
   }
 
-  async adjustInventory(
-    inventoryItemId: string,
-    locationId: string,
-    availableDelta: number
-  ) {
-    return this.request<{ inventoryAdjustQuantity: ShopifyMutationResult }>(
-      <GraphQlRequest>{
-        query: INVENTORY_ADJUST_MUTATION,
-        variables: {
-          input: {
-            inventoryItemId,
-            locationId,
-            availableDelta,
-          },
+  async adjustInventory(inventoryItemId: string, locationId: string, availableDelta: number) {
+    return this.request<{ inventoryAdjustQuantity: ShopifyMutationResult }>(<GraphQlRequest>{
+      query: INVENTORY_ADJUST_MUTATION,
+      variables: {
+        input: {
+          inventoryItemId,
+          locationId,
+          availableDelta,
         },
-      }
-    );
+      },
+    });
   }
 
-  async setInventoryOnHand(
-    inventoryItemId: string,
-    locationId: string,
-    quantity: number
-  ) {
-    return this.request<{ inventorySetOnHandQuantities: ShopifyMutationResult }>(
-      <GraphQlRequest>{
-        query: INVENTORY_SET_ON_HAND_MUTATION,
-        variables: {
-          input: {
-            reason: "correction",
-            setQuantities: [
-              {
-                inventoryItemId,
-                locationId,
-                quantity,
-              },
-            ],
-          },
+  async setInventoryOnHand(inventoryItemId: string, locationId: string, quantity: number) {
+    return this.request<{ inventorySetOnHandQuantities: ShopifyMutationResult }>(<GraphQlRequest>{
+      query: INVENTORY_SET_ON_HAND_MUTATION,
+      variables: {
+        input: {
+          reason: "correction",
+          setQuantities: [
+            {
+              inventoryItemId,
+              locationId,
+              quantity,
+            },
+          ],
         },
-      }
-    );
+      },
+    });
   }
 
   async getPrimaryLocationId() {
@@ -588,7 +533,6 @@ export class ShopifyClient {
     const edges = response?.locations?.edges || [];
     return String(edges[0]?.node?.id || "").trim();
   }
-
 }
 
 export type ShopifyOrder = {
@@ -749,7 +693,6 @@ type WebhookSubscriptionNode = {
   topic: string;
   endpoint?: { __typename?: string; callbackUrl?: string | null } | null;
 };
-
 
 const ORDER_BY_ID_QUERY = `
   query OrderById($id: ID!) {

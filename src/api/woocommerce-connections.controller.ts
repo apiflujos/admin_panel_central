@@ -9,8 +9,7 @@ import {
 } from "../services/woocommerce-connections.service";
 import { upsertAlegraAccount } from "../services/store-connections.service";
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "No disponible";
+const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : "No disponible");
 
 const moduleError = (moduleKey: string) => {
   const err = new Error(`Modulo ${moduleKey} desactivado por ApiFlujos.`);
@@ -53,9 +52,7 @@ export async function createWooConnectionHandler(req: Request, res: Response) {
     await assertModuleEnabled("woocommerce");
     const payload = req.body || {};
     const storeId = Number.isFinite(payload?.storeId) ? payload.storeId : undefined;
-    const alegraAccountId = Number.isFinite(payload?.alegraAccountId)
-      ? payload.alegraAccountId
-      : undefined;
+    const alegraAccountId = Number.isFinite(payload?.alegraAccountId) ? payload.alegraAccountId : undefined;
     const result = await upsertWooConnection({
       storeName: payload?.storeName || "",
       storeId,

@@ -57,8 +57,7 @@ type InventoryRules = {
   warehouseIds: string[];
 };
 
-const normalizeAutoStatus = (value: unknown): "draft" | "active" =>
-  value === "active" ? "active" : "draft";
+const normalizeAutoStatus = (value: unknown): "draft" | "active" => (value === "active" ? "active" : "draft");
 
 export async function buildSyncContext(shopDomain?: string): Promise<SyncContext> {
   const pool = getPool();
@@ -145,16 +144,13 @@ async function loadCredential(
     throw new Error(
       provider === "shopify"
         ? "Credenciales Shopify antiguas. Ve a Configuracion → Conexiones y reconecta Shopify."
-        : "Credenciales Alegra antiguas. Ve a Configuracion → Conexiones y reconecta Alegra."
+        : "Credenciales Alegra antiguas. Ve a Configuracion → Conexiones y reconecta Alegra.",
+      { cause: error }
     );
   }
 }
 
-async function loadShopifySettings(
-  pool: ReturnType<typeof getPool>,
-  orgId: number,
-  shopDomain?: string
-) {
+async function loadShopifySettings(pool: ReturnType<typeof getPool>, orgId: number, shopDomain?: string) {
   if (shopDomain) {
     const domain = normalizeShopDomain(shopDomain);
     const store = await pool.query<{
@@ -183,7 +179,7 @@ async function loadShopifySettings(
         } as ProviderSettings;
       } catch (error) {
         if (isCryptoKeyMisconfigured(error)) throw error;
-        throw new Error(`Reconecta Shopify para ${domain}. (Token guardado antiguo o invalido)`);
+        throw new Error(`Reconecta Shopify para ${domain}. (Token guardado antiguo o invalido)`, { cause: error });
       }
     }
     throw new Error(`Shopify no conectado para ${domain}. Ve a Configuracion → Conexiones y conecta Shopify.`);
@@ -191,11 +187,7 @@ async function loadShopifySettings(
   return loadCredential(pool, orgId, "shopify");
 }
 
-async function loadAlegraSettings(
-  pool: ReturnType<typeof getPool>,
-  orgId: number,
-  shopDomain?: string
-) {
+async function loadAlegraSettings(pool: ReturnType<typeof getPool>, orgId: number, shopDomain?: string) {
   if (shopDomain) {
     const domain = normalizeShopDomain(shopDomain);
     const result = await pool.query<{
@@ -233,7 +225,7 @@ async function loadAlegraSettings(
         } as ProviderSettings;
       } catch (error) {
         if (isCryptoKeyMisconfigured(error)) throw error;
-        throw new Error(`Reconecta Alegra para ${domain}. (Clave guardada antigua o invalida)`);
+        throw new Error(`Reconecta Alegra para ${domain}. (Clave guardada antigua o invalida)`, { cause: error });
       }
     }
     throw new Error(`Alegra no conectado para ${domain}. Ve a Configuracion → Conexiones y conecta Alegra.`);
@@ -241,10 +233,7 @@ async function loadAlegraSettings(
   return loadCredential(pool, orgId, "alegra");
 }
 
-async function loadInventoryRules(
-  pool: ReturnType<typeof getPool>,
-  orgId: number
-): Promise<InventoryRules> {
+async function loadInventoryRules(pool: ReturnType<typeof getPool>, orgId: number): Promise<InventoryRules> {
   await ensureInventoryRulesColumns(pool);
   const result = await pool.query<{
     publish_on_stock: boolean;

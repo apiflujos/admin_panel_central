@@ -28,9 +28,7 @@ async function ensureMigrationsTable(pool: ReturnType<typeof getPool>) {
 }
 
 async function getAppliedMigrations(pool: ReturnType<typeof getPool>) {
-  const result = await pool.query<{ filename: string }>(
-    "SELECT filename FROM schema_migrations"
-  );
+  const result = await pool.query<{ filename: string }>("SELECT filename FROM schema_migrations");
   return new Set(result.rows.map((row) => row.filename));
 }
 

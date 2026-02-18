@@ -308,7 +308,12 @@ export function inferChannel(input: {
 
   if (medium.includes("cpc") || medium.includes("paid") || medium.includes("ppc")) return "paid";
   if (medium.includes("email")) return "email";
-  if (medium.includes("social") || source.includes("facebook") || source.includes("instagram") || source.includes("tiktok"))
+  if (
+    medium.includes("social") ||
+    source.includes("facebook") ||
+    source.includes("instagram") ||
+    source.includes("tiktok")
+  )
     return "paid_social";
   if (source.includes("google") && medium.includes("organic")) return "organic_search";
   if (ref && (ref.includes("google.") || ref.includes("bing.") || ref.includes("yahoo."))) return "referral_search";

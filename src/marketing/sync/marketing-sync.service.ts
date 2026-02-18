@@ -67,10 +67,7 @@ export async function syncMarketingOrders(shopDomain: string, options: SyncOptio
       const lastVisit = journey?.lastVisit || null;
       const firstVisit = journey?.firstVisit || null;
       const landingSite = String(
-        lastVisit?.landingPage ||
-          firstVisit?.landingPage ||
-          (node as any)?.registeredSourceUrl ||
-          ""
+        lastVisit?.landingPage || firstVisit?.landingPage || (node as any)?.registeredSourceUrl || ""
       ).trim();
       const referrer = String(lastVisit?.referrerUrl || firstVisit?.referrerUrl || "").trim();
 
@@ -88,10 +85,7 @@ export async function syncMarketingOrders(shopDomain: string, options: SyncOptio
         if (!utm_source && !utm_medium && !utm_campaign && !utm_content) return null;
         return { utm_source, utm_medium, utm_campaign, utm_content };
       };
-      const utm =
-        fromParams(lastVisit) ||
-        fromParams(firstVisit) ||
-        parseUtmFromUrl(landingSite);
+      const utm = fromParams(lastVisit) || fromParams(firstVisit) || parseUtmFromUrl(landingSite);
       const channel = inferChannel({
         utmSource: utm.utm_source,
         utmMedium: utm.utm_medium,
@@ -197,7 +191,9 @@ export async function syncMarketingOrders(shopDomain: string, options: SyncOptio
         const qty = Number(li.quantity || 0);
         const title = String(li.product?.title || li.title || "").trim();
         const productGid = li.product?.id || null;
-        const unit = Number(li.discountedUnitPriceSet?.shopMoney?.amount || li.originalUnitPriceSet?.shopMoney?.amount || 0);
+        const unit = Number(
+          li.discountedUnitPriceSet?.shopMoney?.amount || li.originalUnitPriceSet?.shopMoney?.amount || 0
+        );
         const lineAmount = Number.isFinite(unit) ? unit * Math.max(0, qty) : null;
         await pool.query(
           `
@@ -205,7 +201,16 @@ export async function syncMarketingOrders(shopDomain: string, options: SyncOptio
             (organization_id, shop_domain, shopify_order_gid, shopify_product_gid, product_title, quantity, unit_price, line_amount)
           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
           `,
-          [organizationId, domain, orderGid, productGid, title || null, qty, Number.isFinite(unit) ? unit : null, lineAmount]
+          [
+            organizationId,
+            domain,
+            orderGid,
+            productGid,
+            title || null,
+            qty,
+            Number.isFinite(unit) ? unit : null,
+            lineAmount,
+          ]
         );
       }
 

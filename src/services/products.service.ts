@@ -272,9 +272,7 @@ export async function listProducts(options: {
   }
   if (options.query) {
     const q = `%${options.query}%`;
-    where.push(
-      `(name ILIKE $${idx} OR reference ILIKE $${idx} OR sku ILIKE $${idx})`
-    );
+    where.push(`(name ILIKE $${idx} OR reference ILIKE $${idx} OR sku ILIKE $${idx})`);
     params.push(q);
     idx += 1;
   }
@@ -288,7 +286,10 @@ export async function listProducts(options: {
     where.push("(inventory_quantity IS NULL OR inventory_quantity > 0)");
   }
   if (options.warehouseIds && options.warehouseIds.length) {
-    add("warehouse_ids && $idx::text[]", options.warehouseIds.map((id) => String(id)));
+    add(
+      "warehouse_ids && $idx::text[]",
+      options.warehouseIds.map((id) => String(id))
+    );
   }
   if (options.from) {
     add("COALESCE(source_updated_at, updated_at) >= $idx", options.from);

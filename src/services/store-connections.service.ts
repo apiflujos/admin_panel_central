@@ -69,9 +69,13 @@ export async function getShopifyConnectionByDomain(shopDomain: string) {
     decrypted = JSON.parse(decryptString(row.access_token_encrypted));
   } catch (error) {
     if (isCryptoKeyMisconfigured(error)) {
-      throw new Error("Configuracion de seguridad invalida. Revisa CRYPTO_KEY_BASE64 en el servidor.");
+      throw new Error("Configuracion de seguridad invalida. Revisa CRYPTO_KEY_BASE64 en el servidor.", {
+        cause: error,
+      });
     }
-    throw new Error("No se pudo validar la conexion de Shopify. Vuelve a conectar Shopify para esta tienda.");
+    throw new Error("No se pudo validar la conexion de Shopify. Vuelve a conectar Shopify para esta tienda.", {
+      cause: error,
+    });
   }
   const token = String((decrypted as { accessToken?: string } | null)?.accessToken || "").trim();
   if (!token) {
@@ -117,9 +121,11 @@ export async function getAlegraConnectionByDomain(shopDomain: string) {
     decrypted = JSON.parse(decryptString(row.api_key_encrypted));
   } catch (error) {
     if (isCryptoKeyMisconfigured(error)) {
-      throw new Error("Configuracion de seguridad invalida. Revisa CRYPTO_KEY_BASE64 en el servidor.");
+      throw new Error("Configuracion de seguridad invalida. Revisa CRYPTO_KEY_BASE64 en el servidor.", {
+        cause: error,
+      });
     }
-    throw new Error(`Reconecta Alegra para ${normalized}. (Clave guardada antigua o invalida)`);
+    throw new Error(`Reconecta Alegra para ${normalized}. (Clave guardada antigua o invalida)`, { cause: error });
   }
   const apiKey = String((decrypted as { apiKey?: string } | null)?.apiKey || "").trim();
   if (!apiKey) {
@@ -164,9 +170,11 @@ export async function getAlegraConnectionByStoreId(storeId: number) {
     decrypted = JSON.parse(decryptString(row.api_key_encrypted));
   } catch (error) {
     if (isCryptoKeyMisconfigured(error)) {
-      throw new Error("Configuracion de seguridad invalida. Revisa CRYPTO_KEY_BASE64 en el servidor.");
+      throw new Error("Configuracion de seguridad invalida. Revisa CRYPTO_KEY_BASE64 en el servidor.", {
+        cause: error,
+      });
     }
-    throw new Error("Reconecta Alegra para esta tienda. (Clave guardada antigua o invalida)");
+    throw new Error("Reconecta Alegra para esta tienda. (Clave guardada antigua o invalida)", { cause: error });
   }
   const apiKey = String((decrypted as { apiKey?: string } | null)?.apiKey || "").trim();
   if (!apiKey) {
@@ -353,87 +361,87 @@ export async function listStoreConnections() {
   );
 
   const mappedStores = stores.rows.map((row) => ({
-      id: row.id,
-      shopDomain: row.shop_domain,
-      storeName: row.store_name || "",
-      storeId: row.store_id || undefined,
-      ...(() => {
-        let shopifyConnected = false;
-        let shopifyNeedsReconnect = false;
-        if (row.access_token_encrypted) {
-          try {
-            const decrypted = JSON.parse(decryptString(row.access_token_encrypted)) as {
-              accessToken?: string;
-            };
-            shopifyConnected = Boolean(String(decrypted?.accessToken || "").trim());
-          } catch (error) {
-            if (isCryptoKeyMisconfigured(error)) {
-              securityMisconfigured = true;
-              shopifyConnected = false;
-              shopifyNeedsReconnect = true;
-            } else {
-              shopifyConnected = false;
-              shopifyNeedsReconnect = true;
-            }
-          }
-        }
-
-        let alegraConnected = false;
-        let alegraNeedsReconnect = false;
-        if (row.alegra_account_id) {
-          if (row.alegra_api_key_encrypted) {
-            try {
-              const decrypted = JSON.parse(decryptString(row.alegra_api_key_encrypted)) as {
-                apiKey?: string;
-              };
-              alegraConnected = Boolean(String(decrypted?.apiKey || "").trim());
-            } catch (error) {
-              if (isCryptoKeyMisconfigured(error)) {
-                securityMisconfigured = true;
-                alegraConnected = false;
-                alegraNeedsReconnect = true;
-              } else {
-                alegraConnected = false;
-                alegraNeedsReconnect = true;
-              }
-            }
-          } else {
-            alegraConnected = false;
-            alegraNeedsReconnect = true;
-          }
-        }
-
-        const status = !row.access_token_encrypted
-          ? "Pendiente"
-          : shopifyNeedsReconnect
-            ? "Reconectar Shopify"
-            : "Conectado";
-
-        return { status, shopifyConnected, shopifyNeedsReconnect, alegraConnected, alegraNeedsReconnect };
-      })(),
-      alegraAccountId: row.alegra_account_id || undefined,
-      alegraEmail: row.user_email || "",
-      alegraEnvironment: row.environment || "prod",
-    }));
-
-  const mappedAlegraAccounts = alegraAccounts.rows.map((row) => ({
-      id: row.id,
-      email: row.user_email,
-      environment: row.environment || "prod",
-      storeId: row.store_id || undefined,
-      needsReconnect: (() => {
-        if (!row.api_key_encrypted) return true;
+    id: row.id,
+    shopDomain: row.shop_domain,
+    storeName: row.store_name || "",
+    storeId: row.store_id || undefined,
+    ...(() => {
+      let shopifyConnected = false;
+      let shopifyNeedsReconnect = false;
+      if (row.access_token_encrypted) {
         try {
-          const decrypted = JSON.parse(decryptString(row.api_key_encrypted)) as { apiKey?: string };
-          return !String(decrypted?.apiKey || "").trim();
+          const decrypted = JSON.parse(decryptString(row.access_token_encrypted)) as {
+            accessToken?: string;
+          };
+          shopifyConnected = Boolean(String(decrypted?.accessToken || "").trim());
         } catch (error) {
           if (isCryptoKeyMisconfigured(error)) {
             securityMisconfigured = true;
-            return true;
+            shopifyConnected = false;
+            shopifyNeedsReconnect = true;
+          } else {
+            shopifyConnected = false;
+            shopifyNeedsReconnect = true;
           }
+        }
+      }
+
+      let alegraConnected = false;
+      let alegraNeedsReconnect = false;
+      if (row.alegra_account_id) {
+        if (row.alegra_api_key_encrypted) {
+          try {
+            const decrypted = JSON.parse(decryptString(row.alegra_api_key_encrypted)) as {
+              apiKey?: string;
+            };
+            alegraConnected = Boolean(String(decrypted?.apiKey || "").trim());
+          } catch (error) {
+            if (isCryptoKeyMisconfigured(error)) {
+              securityMisconfigured = true;
+              alegraConnected = false;
+              alegraNeedsReconnect = true;
+            } else {
+              alegraConnected = false;
+              alegraNeedsReconnect = true;
+            }
+          }
+        } else {
+          alegraConnected = false;
+          alegraNeedsReconnect = true;
+        }
+      }
+
+      const status = !row.access_token_encrypted
+        ? "Pendiente"
+        : shopifyNeedsReconnect
+          ? "Reconectar Shopify"
+          : "Conectado";
+
+      return { status, shopifyConnected, shopifyNeedsReconnect, alegraConnected, alegraNeedsReconnect };
+    })(),
+    alegraAccountId: row.alegra_account_id || undefined,
+    alegraEmail: row.user_email || "",
+    alegraEnvironment: row.environment || "prod",
+  }));
+
+  const mappedAlegraAccounts = alegraAccounts.rows.map((row) => ({
+    id: row.id,
+    email: row.user_email,
+    environment: row.environment || "prod",
+    storeId: row.store_id || undefined,
+    needsReconnect: (() => {
+      if (!row.api_key_encrypted) return true;
+      try {
+        const decrypted = JSON.parse(decryptString(row.api_key_encrypted)) as { apiKey?: string };
+        return !String(decrypted?.apiKey || "").trim();
+      } catch (error) {
+        if (isCryptoKeyMisconfigured(error)) {
+          securityMisconfigured = true;
           return true;
         }
-      })(),
+        return true;
+      }
+    })(),
   }));
 
   const googleAds = await readGoogleAdsSummary(pool, orgId).catch((error: unknown) => {
@@ -837,9 +845,7 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
     storeName = desiredName;
   }
   const trimmedToken = input.accessToken?.trim() || "";
-  const accessTokenEncrypted = trimmedToken
-    ? encryptString(JSON.stringify({ accessToken: trimmedToken }))
-    : null;
+  const accessTokenEncrypted = trimmedToken ? encryptString(JSON.stringify({ accessToken: trimmedToken })) : null;
 
   const existingStore = await pool.query<{ id: number }>(
     `
@@ -1145,11 +1151,7 @@ export async function deleteStoreConnection(storeId: number, options: DeleteStor
   }
 }
 
-async function resolveAlegraAccountId(
-  pool: ReturnType<typeof getPool>,
-  orgId: number,
-  input?: AlegraAccountInput
-) {
+async function resolveAlegraAccountId(pool: ReturnType<typeof getPool>, orgId: number, input?: AlegraAccountInput) {
   if (!input) return undefined;
   const storeId = Number.isFinite(input.storeId as number) ? Number(input.storeId) : null;
   if (input.accountId) {

@@ -99,10 +99,7 @@ app.get("/health/db", async (_req, res) => {
   } catch (error) {
     console.error("[health] db check failed:", error);
     const message = error instanceof Error ? error.message : "unknown_error";
-    const safe =
-      process.env.NODE_ENV === "production"
-        ? "db_unavailable"
-        : message;
+    const safe = process.env.NODE_ENV === "production" ? "db_unavailable" : message;
     res.status(500).json({ status: "error", error: safe });
   }
 });
@@ -116,18 +113,15 @@ const indexHtmlPath = path.join(publicDir, "index.html");
 const renderIndexWithBodyClass = (res: express.Response, className: string) => {
   try {
     const html = fs.readFileSync(indexHtmlPath, "utf8");
-    const withClass = html.replace(
-      /<body(\s[^>]*)?>/i,
-      (match, attrs = "") => {
-        if (/class=/.test(attrs)) {
-          return match.replace(/class=("|')([^"']*)("|')/i, (full, quote, value) => {
-            const next = value.includes(className) ? value : `${value} ${className}`.trim();
-            return `class=${quote}${next}${quote}`;
-          });
-        }
-        return `<body${attrs} class=\"${className}\">`;
+    const withClass = html.replace(/<body(\s[^>]*)?>/i, (match, attrs = "") => {
+      if (/class=/.test(attrs)) {
+        return match.replace(/class=("|')([^"']*)("|')/i, (full, quote, value) => {
+          const next = value.includes(className) ? value : `${value} ${className}`.trim();
+          return `class=${quote}${next}${quote}`;
+        });
       }
-    );
+      return `<body${attrs} class="${className}">`;
+    });
     res.send(withClass);
   } catch (error) {
     console.error("[settings] failed to render index:", error);

@@ -15,9 +15,7 @@ export async function listLogs(req: Request, res: Response) {
     res.status(200).json({ ...data, error: null });
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo cargar logs";
-    res
-      .status(200)
-      .json({ items: [], filters: { status, orderId, entity, direction, from, to }, error: message });
+    res.status(200).json({ items: [], filters: { status, orderId, entity, direction, from, to }, error: message });
   }
 }
 

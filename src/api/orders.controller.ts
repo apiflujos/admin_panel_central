@@ -93,9 +93,7 @@ export async function listOrdersHandler(req: Request, res: Response) {
       offset: Number.isFinite(offset) && offset > 0 ? offset : 0,
     });
 
-    const orderIds = result.items
-      .map((row) => row.shopify_order_id)
-      .filter(Boolean) as string[];
+    const orderIds = result.items.map((row) => row.shopify_order_id).filter(Boolean) as string[];
     const overrides = await listOrderInvoiceOverrides(orderIds);
     const einvoiceEnabled = await loadEinvoiceEnabled();
 
@@ -103,9 +101,7 @@ export async function listOrdersHandler(req: Request, res: Response) {
       const shopifyId = row.shopify_order_id ? String(row.shopify_order_id) : "";
       const override = shopifyId ? overrides.get(shopifyId) || null : null;
       const missing = einvoiceEnabled ? validateEinvoiceData(override) : [];
-      const alegraStatus =
-        row.alegra_status ||
-        (row.alegra_invoice_id ? "facturado" : "pendiente");
+      const alegraStatus = row.alegra_status || (row.alegra_invoice_id ? "facturado" : "pendiente");
       return {
         id: shopifyId || "",
         shopifyId: shopifyId || null,
@@ -138,12 +134,8 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
       days?: number;
       shopDomain?: string;
     };
-    const shopDomainInput =
-      typeof req.body?.shopDomain === "string" ? String(req.body.shopDomain).trim() : "";
-    const stream =
-      req.query.stream === "1" ||
-      req.query.stream === "true" ||
-      req.body?.stream === true;
+    const shopDomainInput = typeof req.body?.shopDomain === "string" ? String(req.body.shopDomain).trim() : "";
+    const stream = req.query.stream === "1" || req.query.stream === "true" || req.body?.stream === true;
     let streamOpen = stream;
     const sendStream = (payload: Record<string, unknown>) => {
       if (!streamOpen || res.writableEnded || res.destroyed) return;
@@ -194,9 +186,7 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
       for (const order of orders) {
         const mapping = await getMappingByShopifyId("order", String(order.id));
         const alegraId = mapping?.alegraId || null;
-        const invoiceNumber = mapping?.metadata?.invoiceNumber
-          ? String(mapping.metadata.invoiceNumber)
-          : null;
+        const invoiceNumber = mapping?.metadata?.invoiceNumber ? String(mapping.metadata.invoiceNumber) : null;
         const alegraStatus = alegraId ? "facturado" : "pendiente";
         await upsertOrder({
           shopDomain: shopifyCredential.shopDomain,
@@ -243,13 +233,9 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
       let pages = 0;
       while (true) {
         if (limit !== null && processed >= limit) break;
-        const batchLimit =
-          limit !== null ? Math.min(pageSize, Math.max(0, limit - processed)) : pageSize;
+        const batchLimit = limit !== null ? Math.min(pageSize, Math.max(0, limit - processed)) : pageSize;
         if (batchLimit <= 0) break;
-        const invoices = (await client.listInvoices({ limit: batchLimit, start })) as Array<Record<
-          string,
-          unknown
-        >>;
+        const invoices = (await client.listInvoices({ limit: batchLimit, start })) as Array<Record<string, unknown>>;
         if (!Array.isArray(invoices) || !invoices.length) break;
         for (const invoice of invoices) {
           const alegraId = invoice.id ? String(invoice.id) : null;
@@ -296,8 +282,7 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
     }
 
     try {
-      const amount =
-        Number((results.shopify as any)?.processed || 0) + Number((results.alegra as any)?.processed || 0);
+      const amount = Number((results.shopify as any)?.processed || 0) + Number((results.alegra as any)?.processed || 0);
       if (amount > 0) {
         await consumeLimitOrBlock("orders", {
           tenant_id: getOrgId(),

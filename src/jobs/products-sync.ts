@@ -1,6 +1,11 @@
 import { AlegraClient } from "../connectors/alegra";
 import { createSyncLog } from "../services/logs.service";
-import { syncAlegraInventoryPayloadToShopify, syncAlegraItemPayloadToShopify, type AlegraInventoryPayload, type AlegraItem } from "../services/alegra-to-shopify.service";
+import {
+  syncAlegraInventoryPayloadToShopify,
+  syncAlegraItemPayloadToShopify,
+  type AlegraInventoryPayload,
+  type AlegraItem,
+} from "../services/alegra-to-shopify.service";
 import { upsertAlegraItemCacheIfTracked } from "../services/alegra-items-cache.service";
 import { buildSyncContext } from "../services/sync-context";
 import { getAlegraCredential } from "../services/settings.service";
@@ -56,10 +61,7 @@ const safeCreateSyncLog = async (payload: Parameters<typeof createSyncLog>[0]) =
 
 export function startProductsSyncPoller() {
   const intervalSeconds = Number(process.env.PRODUCTS_SYNC_POLL_SECONDS || 900);
-  const intervalMs =
-    intervalSeconds > 0
-      ? intervalSeconds * 1000
-      : Number(process.env.PRODUCTS_SYNC_POLL_MS || 0);
+  const intervalMs = intervalSeconds > 0 ? intervalSeconds * 1000 : Number(process.env.PRODUCTS_SYNC_POLL_MS || 0);
   if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
     return;
   }
@@ -70,18 +72,18 @@ export function startProductsSyncPoller() {
 
   let running = false;
 
-	  const run = async () => {
-	    if (running) return;
-	    running = true;
-	    try {
-	      const ctx = await buildSyncContext();
-	      if (!ctx.webhookItemsEnabled) {
-	        return;
-	      }
-	      const credential = await getAlegraCredential();
-	      const alegra = new AlegraClient({
-	        email: credential.email,
-	        apiKey: credential.apiKey,
+  const run = async () => {
+    if (running) return;
+    running = true;
+    try {
+      const ctx = await buildSyncContext();
+      if (!ctx.webhookItemsEnabled) {
+        return;
+      }
+      const credential = await getAlegraCredential();
+      const alegra = new AlegraClient({
+        email: credential.email,
+        apiKey: credential.apiKey,
         baseUrl: getAlegraBaseUrl(credential.environment),
       });
 

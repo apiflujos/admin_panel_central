@@ -17,8 +17,7 @@ const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
   }
 };
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "No disponible";
+const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : "No disponible");
 
 const summarizeSettingsPayload = (payload: Record<string, unknown>) => ({
   hasShopify: Boolean((payload.shopify as Record<string, unknown> | undefined)?.accessToken),
@@ -121,8 +120,7 @@ export async function getSettings(_req: Request, res: Response) {
 export async function listResolutions(req: Request, res: Response) {
   try {
     const accountId = req.query.accountId ? Number(req.query.accountId) : undefined;
-    const shopDomain =
-      typeof req.query.shopDomain === "string" ? req.query.shopDomain.trim() : undefined;
+    const shopDomain = typeof req.query.shopDomain === "string" ? req.query.shopDomain.trim() : undefined;
     const result = await listInvoiceResolutions(
       Number.isFinite(accountId as number) ? (accountId as number) : undefined,
       shopDomain
@@ -151,8 +149,7 @@ export async function listAlegraCatalog(req: Request, res: Response) {
   try {
     const catalog = req.params.catalog;
     const accountId = req.query.accountId ? Number(req.query.accountId) : undefined;
-    const shopDomain =
-      typeof req.query.shopDomain === "string" ? req.query.shopDomain.trim() : undefined;
+    const shopDomain = typeof req.query.shopDomain === "string" ? req.query.shopDomain.trim() : undefined;
     const result = await listAlegraCatalogItems(
       catalog,
       Number.isFinite(accountId as number) ? (accountId as number) : undefined,

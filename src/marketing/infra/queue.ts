@@ -21,11 +21,7 @@ export function buildMarketingQueues(redis: Redis): MarketingQueues {
   };
 }
 
-export function buildWorker(
-  name: string,
-  redis: Redis,
-  processor: Processor
-) {
+export function buildWorker(name: string, redis: Redis, processor: Processor) {
   return new Worker(name, processor, {
     connection: redis,
     concurrency: Math.max(1, Number(process.env.MARKETING_WORKER_CONCURRENCY || 3)),

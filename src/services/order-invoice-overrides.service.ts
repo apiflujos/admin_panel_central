@@ -100,35 +100,37 @@ export async function listOrderInvoiceOverrides(orderIds: string[]) {
     [orgId, orderIds]
   );
   const map = new Map<string, OrderInvoiceOverride>();
-  result.rows.forEach((row: {
-    order_id: string;
-    einvoice_requested: boolean;
-    id_type: string | null;
-    id_number: string | null;
-    fiscal_name: string | null;
-    email: string | null;
-    phone: string | null;
-    address: string | null;
-    city: string | null;
-    state: string | null;
-    country: string | null;
-    zip: string | null;
-  }) => {
-    map.set(row.order_id, {
-      orderId: row.order_id,
-      einvoiceRequested: Boolean(row.einvoice_requested),
-      idType: row.id_type || undefined,
-      idNumber: row.id_number || undefined,
-      fiscalName: row.fiscal_name || undefined,
-      email: row.email || undefined,
-      phone: row.phone || undefined,
-      address: row.address || undefined,
-      city: row.city || undefined,
-      state: row.state || undefined,
-      country: row.country || undefined,
-      zip: row.zip || undefined,
-    });
-  });
+  result.rows.forEach(
+    (row: {
+      order_id: string;
+      einvoice_requested: boolean;
+      id_type: string | null;
+      id_number: string | null;
+      fiscal_name: string | null;
+      email: string | null;
+      phone: string | null;
+      address: string | null;
+      city: string | null;
+      state: string | null;
+      country: string | null;
+      zip: string | null;
+    }) => {
+      map.set(row.order_id, {
+        orderId: row.order_id,
+        einvoiceRequested: Boolean(row.einvoice_requested),
+        idType: row.id_type || undefined,
+        idNumber: row.id_number || undefined,
+        fiscalName: row.fiscal_name || undefined,
+        email: row.email || undefined,
+        phone: row.phone || undefined,
+        address: row.address || undefined,
+        city: row.city || undefined,
+        state: row.state || undefined,
+        country: row.country || undefined,
+        zip: row.zip || undefined,
+      });
+    }
+  );
   return map;
 }
 

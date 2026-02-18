@@ -27,9 +27,7 @@ async function loadBranding() {
     const appTitle = String(brand.appTitle || "").trim() || "Admin Central";
     const clientName = String(brand.clientName || "").trim();
     const suffix = "Usuarios";
-    document.title = clientName
-      ? `${appTitle} · ${clientName} - ${suffix}`
-      : `${appTitle} - ${suffix}`;
+    document.title = clientName ? `${appTitle} · ${clientName} - ${suffix}` : `${appTitle} - ${suffix}`;
   } catch {
     // ignore
   }

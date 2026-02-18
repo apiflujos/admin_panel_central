@@ -12,12 +12,7 @@ function normalizeAdvertiserId(value: string) {
   return String(value || "").replace(/\D/g, "");
 }
 
-async function fetchTikTokAdsSpend(input: {
-  advertiserId: string;
-  accessToken: string;
-  from: string;
-  to: string;
-}) {
+async function fetchTikTokAdsSpend(input: { advertiserId: string; accessToken: string; from: string; to: string }) {
   const advertiserId = normalizeAdvertiserId(input.advertiserId);
   const response = await fetch("https://business-api.tiktok.com/open_api/v1.3/report/integrated/get/", {
     method: "POST",

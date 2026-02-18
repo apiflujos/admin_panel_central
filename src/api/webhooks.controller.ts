@@ -47,14 +47,9 @@ export async function handleShopifyWebhook(req: Request, res: Response) {
 
 export async function handleAlegraWebhook(req: Request, res: Response) {
   const signature = req.header("X-Alegra-Signature");
-  const shopDomain =
-    typeof req.query.shopDomain === "string" ? String(req.query.shopDomain).trim() : "";
+  const shopDomain = typeof req.query.shopDomain === "string" ? String(req.query.shopDomain).trim() : "";
   const rawBody = req.body || {};
-  const eventType =
-    rawBody?.event ||
-    rawBody?.subject ||
-    req.header("X-Alegra-Event") ||
-    "unknown";
+  const eventType = rawBody?.event || rawBody?.subject || req.header("X-Alegra-Event") || "unknown";
 
   if (shopDomain && !(await shopifyStoreExists(shopDomain))) {
     return res.status(410).json({ status: "gone" });
@@ -74,9 +69,7 @@ export async function handleAlegraWebhook(req: Request, res: Response) {
     return res.status(401).json({ error: "invalid_signature" });
   }
   const normalizedPayload =
-    rawBody?.data ||
-    rawBody?.message?.data ||
-    rawBody?.message?.item
+    rawBody?.data || rawBody?.message?.data || rawBody?.message?.item
       ? {
           data: rawBody?.data || rawBody?.message?.data || rawBody?.message?.item,
           __shopDomain: shopDomain || undefined,

@@ -5,9 +5,7 @@ import type { ShopifyOrder } from "../connectors/shopify";
 type MetricItem = Record<string, unknown>;
 export type MetricsRange = "day" | "week" | "month";
 
-export async function getMetrics(
-  options: { range?: MetricsRange; days?: number; shopDomain?: string } = {}
-) {
+export async function getMetrics(options: { range?: MetricsRange; days?: number; shopDomain?: string } = {}) {
   const range = normalizeRange(options.range);
   const { current, previous } = resolveCalendarRanges(range);
   const rangeDays = diffDays(current.from, current.to);
@@ -118,22 +116,19 @@ export async function getMetrics(
     const metricsTimeoutMs = Math.max(1000, Number(process.env.METRICS_TIMEOUT_MS || 8000));
     const [payments, invoices, contacts] = await Promise.all([
       fetchAllPages<MetricItem>(
-        (start) =>
-          ctx.alegra.listPayments({ limit: pageSize, start }) as Promise<Array<MetricItem>>,
+        (start) => ctx.alegra.listPayments({ limit: pageSize, start }) as Promise<Array<MetricItem>>,
         pageSize,
         maxPages,
         metricsTimeoutMs
       ),
       fetchAllPages<MetricItem>(
-        (start) =>
-          ctx.alegra.listInvoices({ limit: pageSize, start }) as Promise<Array<MetricItem>>,
+        (start) => ctx.alegra.listInvoices({ limit: pageSize, start }) as Promise<Array<MetricItem>>,
         pageSize,
         maxPages,
         metricsTimeoutMs
       ),
       fetchAllPages<MetricItem>(
-        (start) =>
-          ctx.alegra.listContacts({ limit: pageSize, start }) as Promise<Array<MetricItem>>,
+        (start) => ctx.alegra.listContacts({ limit: pageSize, start }) as Promise<Array<MetricItem>>,
         pageSize,
         maxPages,
         metricsTimeoutMs
@@ -159,29 +154,17 @@ export async function getMetrics(
     const salesRangePrevValue = sumShopifyOrders(shopifyOrdersPrev);
     const salesRangeDeltaValue = salesRangeValue - salesRangePrevValue;
     const salesRangePct =
-      salesRangePrevValue > 0
-        ? Math.round((salesRangeDeltaValue / salesRangePrevValue) * 100)
-        : null;
+      salesRangePrevValue > 0 ? Math.round((salesRangeDeltaValue / salesRangePrevValue) * 100) : null;
     const billingRangeValue = sumInvoices(invoicesInRange);
     const invoicesPrev = filterByRange(invoices, previous.from, previous.to);
     const billingRangePrevValue = sumInvoices(invoicesPrev);
     const billingRangeDeltaValue = billingRangeValue - billingRangePrevValue;
     const billingRangePct =
-      billingRangePrevValue > 0
-        ? Math.round((billingRangeDeltaValue / billingRangePrevValue) * 100)
-        : null;
+      billingRangePrevValue > 0 ? Math.round((billingRangeDeltaValue / billingRangePrevValue) * 100) : null;
     const weeklyRevenue = buildDailyShopifySeriesRange(shopifyOrders, current.from, current.to);
-    const weeklyRevenuePrev = buildDailyShopifySeriesRange(
-      shopifyOrdersPrev,
-      previous.from,
-      previous.to
-    );
+    const weeklyRevenuePrev = buildDailyShopifySeriesRange(shopifyOrdersPrev, previous.from, previous.to);
     const billingSeries = buildDailyInvoiceSeriesRange(invoicesInRange, current.from, current.to);
-    const billingSeriesPrev = buildDailyInvoiceSeriesRange(
-      invoicesPrev,
-      previous.from,
-      previous.to
-    );
+    const billingSeriesPrev = buildDailyInvoiceSeriesRange(invoicesPrev, previous.from, previous.to);
     const invoiceSeries = buildDailyCountSeriesRange(invoicesInRange, current.from, current.to);
     const orderSeries = await buildOrderSeriesRange(current.from, current.to);
     const ordersVsInvoices = buildOrdersVsInvoices(
@@ -279,7 +262,9 @@ function parseProductsSummary(summary: string) {
 async function getDbCommerceMetrics(from: Date, to: Date, shopDomain?: string) {
   const pool = getPool();
   const orgId = getOrgId();
-  const domain = String(shopDomain || "").trim().toLowerCase();
+  const domain = String(shopDomain || "")
+    .trim()
+    .toLowerCase();
   const result = await pool.query<DbOrderMetricRow>(
     `
     SELECT
@@ -402,7 +387,9 @@ async function getDbCommerceMetrics(from: Date, to: Date, shopDomain?: string) {
 async function getDbOrderSummary(from: Date, to: Date, shopDomain?: string) {
   const pool = getPool();
   const orgId = getOrgId();
-  const domain = String(shopDomain || "").trim().toLowerCase();
+  const domain = String(shopDomain || "")
+    .trim()
+    .toLowerCase();
   const result = await pool.query<{
     orders: string;
     invoiced: string;
@@ -481,8 +468,7 @@ function sumByDate(items: Array<MetricItem>, date: string) {
 }
 
 function countByDate(items: Array<MetricItem>, date: string) {
-  return items.filter((item) => String(item.date || item.createdAt || "").startsWith(date))
-    .length;
+  return items.filter((item) => String(item.date || item.createdAt || "").startsWith(date)).length;
 }
 
 function sumPending(invoices: Array<MetricItem>) {
@@ -615,9 +601,7 @@ function endOfWeek(date: Date) {
 
 function sumByDateRange(items: Array<MetricItem>, days: number) {
   const dates = buildDateSet(days);
-  return items
-    .filter((item) => dates.has(extractDate(item)))
-    .reduce((acc, item) => acc + Number(item.amount || 0), 0);
+  return items.filter((item) => dates.has(extractDate(item))).reduce((acc, item) => acc + Number(item.amount || 0), 0);
 }
 
 function countByDateRange(items: Array<MetricItem>, days: number) {
@@ -657,8 +641,7 @@ function countByRange(items: Array<MetricItem>, from: Date, to: Date) {
 function groupPaymentsByMethod(items: Array<MetricItem>) {
   const totals = new Map<string, number>();
   for (const item of items) {
-    const method =
-      String(item.paymentMethod || item.payment_method || item.method || "Otros");
+    const method = String(item.paymentMethod || item.payment_method || item.method || "Otros");
     const amount = Number(item.amount || 0);
     totals.set(method, (totals.get(method) || 0) + amount);
   }
@@ -714,10 +697,7 @@ function buildDailySeriesRange(items: Array<MetricItem>, from: Date, to: Date) {
 }
 
 function sumShopifyOrders(orders: ShopifyOrder[]) {
-  return orders.reduce(
-    (acc, order) => acc + Number(order.totalPriceSet?.shopMoney.amount || 0),
-    0
-  );
+  return orders.reduce((acc, order) => acc + Number(order.totalPriceSet?.shopMoney.amount || 0), 0);
 }
 
 function sumInvoices(invoices: Array<MetricItem>) {
@@ -817,13 +797,7 @@ function extractDate(item: MetricItem) {
 
 function extractInvoiceTotal(item: MetricItem) {
   const value =
-    item.total ??
-    item.totalAmount ??
-    item.total_amount ??
-    item.totalValue ??
-    item.total_value ??
-    item.amount ??
-    0;
+    item.total ?? item.totalAmount ?? item.total_amount ?? item.totalValue ?? item.total_value ?? item.amount ?? 0;
   return Number(value || 0);
 }
 
@@ -857,11 +831,7 @@ async function getOrderEffectiveness(from: Date, to: Date) {
   };
 }
 
-async function listShopifyOrdersInRange(
-  ctx: Awaited<ReturnType<typeof buildSyncContext>>,
-  from: Date,
-  to: Date
-) {
+async function listShopifyOrdersInRange(ctx: Awaited<ReturnType<typeof buildSyncContext>>, from: Date, to: Date) {
   const fromKey = formatDateKey(from);
   const toKey = formatDateKey(to);
   const query = `status:any processed_at:>='${fromKey}' processed_at:<='${toKey}'`;
@@ -872,17 +842,11 @@ async function listShopifyOrdersInRange(
 function buildShopifyAggregations(orders: ShopifyOrder[]) {
   const products = new Map<string, { name: string; units: number; amount: number }>();
   const cities = new Map<string, number>();
-  const customers = new Map<
-    string,
-    { name: string; total: number; count: number; email?: string | null }
-  >();
+  const customers = new Map<string, { name: string; total: number; count: number; email?: string | null }>();
 
   orders.forEach((order) => {
     const orderAmount = Number(order.totalPriceSet?.shopMoney.amount || 0);
-    const customerName = [order.customer?.firstName, order.customer?.lastName]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
+    const customerName = [order.customer?.firstName, order.customer?.lastName].filter(Boolean).join(" ").trim();
     const customerEmail = order.customer?.email || order.email || null;
     const customerKey = order.customer?.id || customerEmail || order.id;
     if (customerKey) {
@@ -906,9 +870,7 @@ function buildShopifyAggregations(orders: ShopifyOrder[]) {
       const item = edge.node;
       const name = item.title || "Producto";
       const unitPrice = Number(
-        item.discountedUnitPriceSet?.shopMoney.amount ||
-          item.originalUnitPriceSet?.shopMoney.amount ||
-          0
+        item.discountedUnitPriceSet?.shopMoney.amount || item.originalUnitPriceSet?.shopMoney.amount || 0
       );
       const amount = unitPrice * Number(item.quantity || 0);
       const existing = products.get(name) || { name, units: 0, amount: 0 };

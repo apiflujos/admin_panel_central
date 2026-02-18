@@ -18,7 +18,10 @@ type SuperAdminRow = {
   created_at: Date;
 };
 
-const normalizeEmail = (value?: string) => String(value || "").trim().toLowerCase();
+const normalizeEmail = (value?: string) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
 
 export async function listSuperAdmins() {
   const pool = getPool();

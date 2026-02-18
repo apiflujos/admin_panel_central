@@ -65,11 +65,7 @@ const normalizeMinStock = (value: unknown): number => {
 
 const normalizeMatchPriority = (value: unknown): ContactMatchRule[] => {
   const fallback: ContactMatchRule[] = ["document", "phone", "email"];
-  const raw = Array.isArray(value)
-    ? value
-    : typeof value === "string"
-      ? value.split("_")
-      : fallback;
+  const raw = Array.isArray(value) ? value : typeof value === "string" ? value.split("_") : fallback;
   const allowed = new Set(["document", "phone", "email"]);
   const cleaned = raw
     .map((item) => String(item).toLowerCase())
@@ -157,53 +153,31 @@ export async function getStoreConfigByDomain(shopDomain: string): Promise<StoreC
   const ordersShopifyEnabledRaw = (orderSync as Record<string, unknown>).shopifyEnabled;
   const ordersAlegraEnabledRaw = (orderSync as Record<string, unknown>).alegraEnabled;
   const ordersShopifyEnabled =
-    typeof ordersShopifyEnabledRaw === "boolean"
-      ? ordersShopifyEnabledRaw
-      : orderShopifyMode !== "off";
+    typeof ordersShopifyEnabledRaw === "boolean" ? ordersShopifyEnabledRaw : orderShopifyMode !== "off";
   const ordersAlegraEnabled =
-    typeof ordersAlegraEnabledRaw === "boolean"
-      ? ordersAlegraEnabledRaw
-      : orderAlegraMode !== "off";
+    typeof ordersAlegraEnabledRaw === "boolean" ? ordersAlegraEnabledRaw : orderAlegraMode !== "off";
   const effectiveOrderShopifyMode: ShopifyOrderMode =
-    contactsEnabled || orderShopifyMode === "db_only" || orderShopifyMode === "off"
-      ? orderShopifyMode
-      : "db_only";
+    contactsEnabled || orderShopifyMode === "db_only" || orderShopifyMode === "off" ? orderShopifyMode : "db_only";
   return {
     shopDomain: row.shop_domain,
     transferEnabled: transfers.enabled !== false,
     transferDestinationMode: normalizeDestinationMode(transfers.destinationMode),
     transferDestinationRequired: transfers.destinationRequired !== false,
     transferDestinationWarehouseId:
-      (transfers.destinationWarehouseId as string | undefined) ||
-      row.transfer_destination_warehouse_id ||
-      undefined,
-    transferOriginWarehouseIds:
-      Array.isArray(transfers.originWarehouseIds)
-        ? (transfers.originWarehouseIds as string[])
-        : parseIdList(row.transfer_origin_warehouse_ids),
+      (transfers.destinationWarehouseId as string | undefined) || row.transfer_destination_warehouse_id || undefined,
+    transferOriginWarehouseIds: Array.isArray(transfers.originWarehouseIds)
+      ? (transfers.originWarehouseIds as string[])
+      : parseIdList(row.transfer_origin_warehouse_ids),
     transferPriorityWarehouseId:
-      (transfers.priorityWarehouseId as string | undefined) ||
-      row.transfer_priority_warehouse_id ||
-      undefined,
-    transferStrategy: normalizeTransferStrategy(
-      (transfers.strategy as string | undefined) || row.transfer_strategy
-    ),
+      (transfers.priorityWarehouseId as string | undefined) || row.transfer_priority_warehouse_id || undefined,
+    transferStrategy: normalizeTransferStrategy((transfers.strategy as string | undefined) || row.transfer_strategy),
     transferFallbackStrategy: normalizeFallbackStrategy(transfers.fallbackStrategy),
     transferTieBreakRule: normalizeTieBreakRule(transfers.tieBreakRule),
     transferSplitEnabled: transfers.splitEnabled === true,
     transferMinStock: normalizeMinStock(transfers.minStock),
-    priceListGeneralId:
-      (priceLists.generalId as string | undefined) ||
-      row.price_list_general_id ||
-      undefined,
-    priceListDiscountId:
-      (priceLists.discountId as string | undefined) ||
-      row.price_list_discount_id ||
-      undefined,
-    priceListWholesaleId:
-      (priceLists.wholesaleId as string | undefined) ||
-      row.price_list_wholesale_id ||
-      undefined,
+    priceListGeneralId: (priceLists.generalId as string | undefined) || row.price_list_general_id || undefined,
+    priceListDiscountId: (priceLists.discountId as string | undefined) || row.price_list_discount_id || undefined,
+    priceListWholesaleId: (priceLists.wholesaleId as string | undefined) || row.price_list_wholesale_id || undefined,
     currency: (priceLists.currency as string | undefined) || row.currency || undefined,
     syncContactsFromShopify: contactsEnabled && contactSync.fromShopify !== false,
     syncContactsFromAlegra: contactsEnabled && contactSync.fromAlegra !== false,

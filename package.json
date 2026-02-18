@@ -11,7 +11,10 @@
     "db:migrate": "node dist/scripts/db-migrate.js",
     "db:migrate:dev": "ts-node-dev --transpile-only --exit-child src/scripts/db-migrate.ts",
     "check:frontend": "node --check public/app.js && node --check public/company.js && node --check public/login.js && node --check public/users.js",
-    "qa:smoke": "node scripts/qa-smoke.js"
+    "qa:smoke": "node scripts/qa-smoke.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "bullmq": "^5.67.3",
@@ -28,9 +31,17 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/express": "^4.17.21",
     "@types/node": "^20.11.30",
+    "@typescript-eslint/eslint-plugin": "^8.56.0",
+    "@typescript-eslint/parser": "^8.56.0",
+    "eslint": "^10.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "prettier": "^3.8.1",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.4.3"
+    "typescript": "^5.4.3",
+    "typescript-eslint": "^8.56.0"
   }
 }

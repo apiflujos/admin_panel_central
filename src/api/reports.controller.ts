@@ -22,7 +22,9 @@ function isMetricsRange(value: unknown): value is MetricsRange {
 }
 
 function normalizeReportType(value: unknown): ReportType {
-  const raw = String(value || "").trim().toLowerCase();
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
   if (
     raw === "orders" ||
     raw === "invoices" ||
@@ -203,13 +205,7 @@ export async function downloadCommerceReportCsvHandler(req: Request, res: Respon
       const items = Array.isArray(metrics.repeatCustomers) ? metrics.repeatCustomers : [];
       out += csvRow(["Cliente", "Email", "Pedidos", "Total", "TicketPromedio"]);
       items.forEach((item) => {
-        out += csvRow([
-          item.name || "",
-          item.email || "",
-          item.count ?? "",
-          item.total ?? "",
-          item.avgTicket ?? "",
-        ]);
+        out += csvRow([item.name || "", item.email || "", item.count ?? "", item.total ?? "", item.avgTicket ?? ""]);
       });
       res.status(200).send(out);
       return;
@@ -226,4 +222,3 @@ export async function downloadCommerceReportCsvHandler(req: Request, res: Respon
     res.status(400).json({ error: error instanceof Error ? error.message : "Reporte no disponible" });
   }
 }
-

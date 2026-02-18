@@ -20,7 +20,9 @@ type UserRecord = {
 };
 
 function normalizeUserRole(role: unknown): "admin" | "agent" | "super_admin" {
-  const raw = String(role || "").trim().toLowerCase();
+  const raw = String(role || "")
+    .trim()
+    .toLowerCase();
   if (raw === "admin") return "admin";
   if (raw === "super_admin" || raw === "superadmin") return "super_admin";
   return "agent";
@@ -167,9 +169,7 @@ export async function getSessionUser(token: string | undefined | null) {
   if (!token) return null;
   const pool = getPool();
   await ensureUsersTables(pool);
-  const result = await pool.query<
-    UserRecord & { expires_at: Date | null }
-  >(
+  const result = await pool.query<UserRecord & { expires_at: Date | null }>(
     `
     SELECT u.id, u.organization_id, u.email, u.password_hash, u.role, u.is_super_admin, u.name, u.phone, u.photo_base64, s.expires_at
     FROM user_sessions s
@@ -248,9 +248,7 @@ async function ensureDefaultAdmin(pool: ReturnType<typeof getPool>, orgId: numbe
   const adminEmail = String(process.env.ADMIN_EMAIL || "").trim();
   const adminPassword = String(process.env.ADMIN_PASSWORD || "");
   if (!adminEmail || !adminPassword) {
-    console.warn(
-      "WARNING: Falta ADMIN_EMAIL/ADMIN_PASSWORD para bootstrap de admin. Se omite creación de admin."
-    );
+    console.warn("WARNING: Falta ADMIN_EMAIL/ADMIN_PASSWORD para bootstrap de admin. Se omite creación de admin.");
     return;
   }
   const passwordHash = hashPassword(adminPassword);
@@ -319,9 +317,7 @@ async function ensureSuperAdmin(pool: ReturnType<typeof getPool>) {
 
 export function hashPassword(password: string) {
   const salt = crypto.randomBytes(16).toString("hex");
-  const derived = crypto
-    .pbkdf2Sync(password, salt, PASSWORD_ITERATIONS, 64, PASSWORD_DIGEST)
-    .toString("hex");
+  const derived = crypto.pbkdf2Sync(password, salt, PASSWORD_ITERATIONS, 64, PASSWORD_DIGEST).toString("hex");
   return `pbkdf2$${PASSWORD_ITERATIONS}$${salt}$${derived}`;
 }
 
@@ -334,9 +330,7 @@ export function verifyPassword(password: string, stored: string) {
   if (!Number.isFinite(iterations) || iterations <= 0) {
     return false;
   }
-  const derived = crypto
-    .pbkdf2Sync(password, salt, iterations, 64, PASSWORD_DIGEST)
-    .toString("hex");
+  const derived = crypto.pbkdf2Sync(password, salt, iterations, 64, PASSWORD_DIGEST).toString("hex");
   const derivedBuffer = Buffer.from(derived, "utf8");
   const hashBuffer = Buffer.from(hash, "utf8");
   if (derivedBuffer.length !== hashBuffer.length) {

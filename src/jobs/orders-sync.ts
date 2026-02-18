@@ -31,10 +31,7 @@ const safeCreateSyncLog = async (payload: Parameters<typeof createSyncLog>[0]) =
 
 export function startOrdersSyncPoller() {
   const intervalSeconds = Number(process.env.ORDERS_SYNC_POLL_SECONDS || 300);
-  const intervalMs =
-    intervalSeconds > 0
-      ? intervalSeconds * 1000
-      : Number(process.env.ORDERS_SYNC_POLL_MS || 0);
+  const intervalMs = intervalSeconds > 0 ? intervalSeconds * 1000 : Number(process.env.ORDERS_SYNC_POLL_MS || 0);
   if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
     return;
   }

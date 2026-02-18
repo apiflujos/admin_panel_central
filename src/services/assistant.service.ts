@@ -96,7 +96,7 @@ const WRITE_ACTIONS = new Set<AssistantAction["type"]>([
   "update_rules",
 ]);
 
-let lastLogFilters: {
+const lastLogFilters: {
   status?: string;
   orderId?: string;
   from?: string;
@@ -124,9 +124,7 @@ export async function handleAssistantQuery(
   if (attachments.length) {
     const names = attachments.map((file) => file.name || "archivo").join(", ");
     return {
-      reply: withIntro(
-        `Recibi ${attachments.length} archivo(s): ${names}. Indica que deseas analizar.`
-      ),
+      reply: withIntro(`Recibi ${attachments.length} archivo(s): ${names}. Indica que deseas analizar.`),
     };
   }
   const aiResult = await handleAssistantWithAi(cleaned, withIntro, role);
@@ -265,12 +263,14 @@ export async function executeAssistantAction(action: AssistantAction) {
       reply: `Logs encontrados: ${data.items.length}`,
       items: data.items,
       itemsHeaders: ["Fecha", "Entidad", "Estado", "Mensaje"],
-      itemsRows: data.items.slice(0, 20).map((item) => [
-        String(item.created_at || "-"),
-        String(item.entity || "-"),
-        String(item.status || "-"),
-        String(item.message || "-"),
-      ]),
+      itemsRows: data.items
+        .slice(0, 20)
+        .map((item) => [
+          String(item.created_at || "-"),
+          String(item.entity || "-"),
+          String(item.status || "-"),
+          String(item.message || "-"),
+        ]),
       report: data as Record<string, unknown>,
     };
   }
@@ -361,23 +361,14 @@ function formatOverviewReport(report: {
   return parts.join(" ");
 }
 
-async function buildEntityReport(
-  entities: string[],
-  label: string,
-  range: RangeKind = "month",
-  offset = 0
-) {
+async function buildEntityReport(entities: string[], label: string, range: RangeKind = "month", offset = 0) {
   const { current, previous } = resolveCalendarRanges(range, offset);
   const summary = await buildEntitySummaryRange(entities, current.from, current.to);
   const prev = await buildEntitySummaryRange(entities, previous.from, previous.to);
   return formatEntitySummary(label, summary, current, previous, prev);
 }
 
-async function buildEntitySummaryRange(
-  entities: string[],
-  from: Date,
-  to: Date
-): Promise<EntitySummary> {
+async function buildEntitySummaryRange(entities: string[], from: Date, to: Date): Promise<EntitySummary> {
   const pool = getPool();
   const orgId = getOrgId();
   const since = from.toISOString();
@@ -469,9 +460,7 @@ function formatEntitySummary(
     parts.push(`Registros mapeados: ${summary.mappingCount}`);
   }
   if (summary.topFailures.length) {
-    const failures = summary.topFailures
-      .map((item) => `${item.message} (${item.total})`)
-      .join("; ");
+    const failures = summary.topFailures.map((item) => `${item.message} (${item.total})`).join("; ");
     parts.push(`Errores frecuentes: ${failures}`);
   }
   return parts.join(". ");
@@ -681,12 +670,11 @@ async function searchAlegraItems(query: string) {
   if (!response.ok) {
     throw new Error(`Alegra HTTP ${response.status}`);
   }
-  const payload = (await response.json()) as { items?: Array<Record<string, unknown>>; data?: Array<Record<string, unknown>> };
-  const items = Array.isArray(payload.items)
-    ? payload.items
-    : Array.isArray(payload.data)
-      ? payload.data
-      : [];
+  const payload = (await response.json()) as {
+    items?: Array<Record<string, unknown>>;
+    data?: Array<Record<string, unknown>>;
+  };
+  const items = Array.isArray(payload.items) ? payload.items : Array.isArray(payload.data) ? payload.data : [];
   const normalized = query.toLowerCase();
   return items
     .filter((item) => {
@@ -729,7 +717,11 @@ function parseLogQuery(cleaned: string, normalized: string) {
     entity?: string;
     direction?: string;
   } = {};
-  if (normalized.includes("mismos filtros") || normalized.includes("igual que antes") || normalized.includes("repetir filtro")) {
+  if (
+    normalized.includes("mismos filtros") ||
+    normalized.includes("igual que antes") ||
+    normalized.includes("repetir filtro")
+  ) {
     if (lastLogFilters) {
       return { filters: lastLogFilters };
     }
@@ -742,7 +734,12 @@ function parseLogQuery(cleaned: string, normalized: string) {
   if (direction) {
     filters.direction = direction;
   }
-  if (normalized.includes("exitoso") || normalized.includes("exitosos") || normalized.includes("exito") || normalized.includes("exitosa")) {
+  if (
+    normalized.includes("exitoso") ||
+    normalized.includes("exitosos") ||
+    normalized.includes("exito") ||
+    normalized.includes("exitosa")
+  ) {
     filters.status = "success";
   } else if (
     normalized.includes("error") ||
@@ -916,7 +913,9 @@ async function inferIntent(cleaned: string, normalized: string, introPrefix: str
     if (normalized.includes("ultimo") || normalized.includes("último")) {
       const latestOrder = await getLatestOrderSync();
       if (!latestOrder) {
-        return { reply: withIntro("No encuentro pedidos sincronizados recientemente. Quieres iniciar una sincronizacion?") };
+        return {
+          reply: withIntro("No encuentro pedidos sincronizados recientemente. Quieres iniciar una sincronizacion?"),
+        };
       }
       const when = latestOrder.createdAt
         ? new Date(latestOrder.createdAt).toLocaleString("es-CO")
@@ -948,16 +947,16 @@ async function inferIntent(cleaned: string, normalized: string, introPrefix: str
     if (normalized.includes("ultimo") || normalized.includes("último")) {
       const latest = await getLatestProductSync();
       if (!latest) {
-        return { reply: withIntro("No encuentro productos sincronizados recientemente. Quieres iniciar una sincronizacion?") };
+        return {
+          reply: withIntro("No encuentro productos sincronizados recientemente. Quieres iniciar una sincronizacion?"),
+        };
       }
       const detail = latest.name
         ? `${latest.name}${latest.reference ? ` · ${latest.reference}` : ""}`
         : latest.alegraItemId
           ? `Item ${latest.alegraItemId}`
           : "Producto sin ID";
-      const when = latest.createdAt
-        ? new Date(latest.createdAt).toLocaleString("es-CO")
-        : "fecha desconocida";
+      const when = latest.createdAt ? new Date(latest.createdAt).toLocaleString("es-CO") : "fecha desconocida";
       return { reply: withIntro(`El ultimo producto sincronizado es: ${detail} (${when}).`) };
     }
     const query = extractProductQuery(cleaned);
@@ -1023,9 +1022,7 @@ async function handleAssistantWithAi(
   } catch {
     return { reply: withIntro("Configura la API key de IA en Ajustes para activar el asistente.") };
   }
-  const systemPrompt = [
-    ASSISTANT_MASTER_PROMPT,
-  ].join("\n");
+  const systemPrompt = [ASSISTANT_MASTER_PROMPT].join("\n");
 
   const body = {
     model: OPENAI_MODEL,
@@ -1219,7 +1216,13 @@ function inferReportAction(message: string): AssistantAction | null {
     normalized.includes("análisis") ||
     normalized.includes("estado general") ||
     normalized.includes("dashboard");
-  if (!wantsReport && !looksLikeOrdersQuestion(message) && !normalized.includes("producto") && !normalized.includes("inventario") && !normalized.includes("operacion")) {
+  if (
+    !wantsReport &&
+    !looksLikeOrdersQuestion(message) &&
+    !normalized.includes("producto") &&
+    !normalized.includes("inventario") &&
+    !normalized.includes("operacion")
+  ) {
     return null;
   }
   const inferred = inferRangeFromMessage(normalized);
@@ -1234,7 +1237,13 @@ function inferReportAction(message: string): AssistantAction | null {
   if (normalized.includes("producto") || normalized.includes("productos") || normalized.includes("item")) {
     return { type: "get_products_report", payload: buildRangePayload(range, offset) };
   }
-  if (normalized.includes("pedido") || normalized.includes("pedidos") || normalized.includes("orden") || normalized.includes("ordenes") || normalized.includes("órdenes")) {
+  if (
+    normalized.includes("pedido") ||
+    normalized.includes("pedidos") ||
+    normalized.includes("orden") ||
+    normalized.includes("ordenes") ||
+    normalized.includes("órdenes")
+  ) {
     return { type: "get_orders_report", payload: buildRangePayload(range, offset) };
   }
   return { type: "get_overview", payload: buildRangePayload(range, offset) };
@@ -1291,12 +1300,11 @@ function resolveDateRange(payload: Record<string, unknown>) {
   return { from, to: new Date(), label: "mes actual" };
 }
 
-async function getSalesSummary(
-  range: { from: Date; to: Date; label: string },
-  payload: Record<string, unknown> = {}
-) {
+async function getSalesSummary(range: { from: Date; to: Date; label: string }, payload: Record<string, unknown> = {}) {
   const ctx = await buildSyncContext();
-  const methodFilter = String(payload.paymentMethod || "").trim().toLowerCase();
+  const methodFilter = String(payload.paymentMethod || "")
+    .trim()
+    .toLowerCase();
   if (methodFilter) {
     const payments = await listAlegraPaymentsInRange(ctx, range);
     const filtered = payments.filter((payment) => {
@@ -1319,13 +1327,7 @@ async function getSalesSummary(
   }
   const invoices = await listAlegraInvoicesInRange(ctx, range);
   const total = invoices.reduce((acc, invoice) => {
-    const amount = Number(
-      invoice.total ||
-        invoice.totalTaxed ||
-        invoice.subtotal ||
-        invoice.amount ||
-        0
-    );
+    const amount = Number(invoice.total || invoice.totalTaxed || invoice.subtotal || invoice.amount || 0);
     return acc + (Number.isFinite(amount) ? amount : 0);
   }, 0);
   return {
@@ -1343,17 +1345,13 @@ function formatSettingsSummary(settings: Awaited<ReturnType<typeof getSettings>>
   const parts: string[] = [];
   if (settings.shopify) {
     const token = settings.shopify.hasAccessToken ? "token activo" : "sin token";
-    parts.push(
-      `Shopify: ${settings.shopify.shopDomain || "-"} · ${token} · api ${settings.shopify.apiVersion || "-"}`
-    );
+    parts.push(`Shopify: ${settings.shopify.shopDomain || "-"} · ${token} · api ${settings.shopify.apiVersion || "-"}`);
   } else {
     parts.push("Shopify: no configurado.");
   }
   if (settings.alegra) {
     const token = settings.alegra.hasApiKey ? "token activo" : "sin token";
-    parts.push(
-      `Alegra: ${settings.alegra.email || "-"} · ${token} · entorno ${settings.alegra.environment || "prod"}`
-    );
+    parts.push(`Alegra: ${settings.alegra.email || "-"} · ${token} · entorno ${settings.alegra.environment || "prod"}`);
   } else {
     parts.push("Alegra: no configurado.");
   }
@@ -1414,8 +1412,7 @@ async function listAlegraInvoicesInRange(
     }
   }
   return invoices.filter((invoice) => {
-    const date =
-      String(invoice.date || invoice.datetime || invoice.createdAt || "").slice(0, 10);
+    const date = String(invoice.date || invoice.datetime || invoice.createdAt || "").slice(0, 10);
     if (!date) return false;
     const invoiceDate = Date.parse(`${date}T00:00:00.000Z`);
     return invoiceDate >= range.from.getTime() && invoiceDate <= range.to.getTime();
@@ -1443,8 +1440,7 @@ async function listAlegraPaymentsInRange(
     }
   }
   return payments.filter((payment) => {
-    const date =
-      String(payment.date || payment.datetime || payment.createdAt || "").slice(0, 10);
+    const date = String(payment.date || payment.datetime || payment.createdAt || "").slice(0, 10);
     if (!date) return false;
     const paymentDate = Date.parse(`${date}T00:00:00.000Z`);
     return paymentDate >= range.from.getTime() && paymentDate <= range.to.getTime();
@@ -1452,9 +1448,7 @@ async function listAlegraPaymentsInRange(
 }
 
 function resolvePaymentMethodLabel(payment: Record<string, unknown>) {
-  const method = (payment.paymentMethod || payment.method || payment.type) as
-    | string
-    | { name?: string };
+  const method = (payment.paymentMethod || payment.method || payment.type) as string | { name?: string };
   if (typeof method === "string") return method;
   if (method && typeof method === "object" && "name" in method) {
     return String(method.name || "");

@@ -55,11 +55,7 @@ const shouldRetryWoo = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error || "");
   return message.includes("503") || message.toLowerCase().includes("service unavailable");
 };
-async function listWooVariationsWithRetry(
-  client: WooCommerceClient,
-  productId: number,
-  retries = 2
-) {
+async function listWooVariationsWithRetry(client: WooCommerceClient, productId: number, retries = 2) {
   let attempt = 0;
   while (true) {
     try {
@@ -122,9 +118,7 @@ const normalizePriceListId = (value?: unknown) => {
 const resolvePriceListId = (price: Record<string, unknown>) => {
   const raw = price as { priceListId?: unknown; priceList?: { id?: unknown }; id?: unknown };
   return (
-    normalizePriceListId(raw.priceListId) ||
-    normalizePriceListId(raw.priceList?.id) ||
-    normalizePriceListId(raw.id)
+    normalizePriceListId(raw.priceListId) || normalizePriceListId(raw.priceList?.id) || normalizePriceListId(raw.id)
   );
 };
 
@@ -140,7 +134,7 @@ const resolveAlegraInventoryQuantity = (inventory?: Record<string, unknown> | nu
   }
   const available = Number(
     (inventory as { availableQuantity?: unknown; quantity?: unknown }).availableQuantity ??
-      (inventory as { availableQuantity?: unknown; quantity?: unknown }).quantity
+    (inventory as { availableQuantity?: unknown; quantity?: unknown }).quantity
   );
   return Number.isFinite(available) ? available : null;
 };
@@ -152,9 +146,9 @@ async function loadAlegraInventoryByIdentifier(client: AlegraClient, identifier:
   const inventoryPayload =
     id && id !== "undefined"
       ? ((await client.getItemWithParams(id, {
-          fields: "inventory",
-          metadata: true,
-        })) as Record<string, unknown>)
+        fields: "inventory",
+        metadata: true,
+      })) as Record<string, unknown>)
       : (base as Record<string, unknown>);
   return resolveAlegraInventoryQuantity(
     (inventoryPayload as { inventory?: Record<string, unknown> }).inventory || null
@@ -198,10 +192,7 @@ async function findAlegraItemByIdentifier(client: AlegraClient, identifier: stri
     { name: identifier },
   ];
   for (const params of candidates) {
-    const payload = (await client.searchItems({ ...params, limit: 1, metadata: true })) as Record<
-      string,
-      unknown
-    >;
+    const payload = (await client.searchItems({ ...params, limit: 1, metadata: true })) as Record<string, unknown>;
     const items = extractAlegraItems(payload);
     if (items.length) return items[0];
   }
@@ -232,16 +223,12 @@ function resolveWooIdentifiers(product: WooProduct, variations: WooVariation[]) 
 }
 
 function resolveWooProductImages(product: WooProduct) {
-  return (product.images || [])
-    .map((image) => String(image?.src || "").trim())
-    .filter((url) => url.length > 0);
+  return (product.images || []).map((image) => String(image?.src || "").trim()).filter((url) => url.length > 0);
 }
 
 function resolveShopifyProductImages(product: ShopifyProduct) {
   const edges = product?.images?.edges || [];
-  return edges
-    .map((edge) => String(edge?.node?.url || "").trim())
-    .filter((url) => url.length > 0);
+  return edges.map((edge) => String(edge?.node?.url || "").trim()).filter((url) => url.length > 0);
 }
 
 const coerceQuantity = (value?: unknown) => {
@@ -279,24 +266,30 @@ async function buildShopifyInputFromWoo(
     sku?: string;
     barcode?: string;
     options?: string[];
-    inventoryPolicy?: string;
+    inventoryPolicy?: "CONTINUE" | "DENY" | null;
   }>;
 
   const sourceVariations = variations.length
     ? variations
     : [
-        {
-          id: product.id,
-          sku: product.sku,
-          price: product.price || product.regular_price,
-          regular_price: product.regular_price,
-          sale_price: product.sale_price,
-          attributes: [],
-        },
-      ];
+      {
+        id: product.id,
+        sku: product.sku,
+        price: product.price || product.regular_price,
+        regular_price: product.regular_price,
+        sale_price: product.sale_price,
+        attributes: [],
+      },
+    ];
 
   for (const variation of sourceVariations) {
-    const variant: { price?: string; sku?: string; barcode?: string; options?: string[]; inventoryPolicy?: string } = {
+    const variant: {
+      price?: string;
+      sku?: string;
+      barcode?: string;
+      options?: string[];
+      inventoryPolicy?: "CONTINUE" | "DENY" | null;
+    } = {
       sku: variation?.sku ? String(variation.sku).trim() : undefined,
       inventoryPolicy: allowOversell ? "CONTINUE" : "DENY",
     };
@@ -353,9 +346,7 @@ async function buildShopifyInputFromWoo(
     title: String(product.name || "").trim(),
     status,
     descriptionHtml: includeDescriptions ? String(product.description || "").trim() : undefined,
-    productType: includeProductType
-      ? String(product.categories?.[0]?.name || "").trim() || undefined
-      : undefined,
+    productType: includeProductType ? String(product.categories?.[0]?.name || "").trim() || undefined : undefined,
     tags: includeTags ? (product.tags || []).map((tag) => String(tag?.name || "").trim()).filter(Boolean) : undefined,
     options: optionNames.length ? optionNames : undefined,
     variants,
@@ -393,7 +384,13 @@ async function buildWooInputFromShopify(
   }>;
 
   for (const { node } of product?.variants?.edges || []) {
-    const variant: { price?: string; sku?: string; attributes?: Array<{ name: string; option: string }>; stockQuantity?: number | null; backorders?: "yes" | "no" } = {
+    const variant: {
+      price?: string;
+      sku?: string;
+      attributes?: Array<{ name: string; option: string }>;
+      stockQuantity?: number | null;
+      backorders?: "yes" | "no";
+    } = {
       sku: node?.sku ? String(node.sku).trim() : undefined,
     };
 
@@ -519,25 +516,24 @@ async function buildWooInputFromWoo(
   const priceListId = settings.priceListId;
   const priceFallback = settings.priceFallback || "shopify";
 
-  const optionNames =
-    (product.attributes || [])
-      .filter((attr) => Boolean(attr?.variation))
-      .map((attr) => String(attr?.name || "").trim())
-      .filter(Boolean);
+  const optionNames = (product.attributes || [])
+    .filter((attr) => Boolean(attr?.variation))
+    .map((attr) => String(attr?.name || "").trim())
+    .filter(Boolean);
 
   const sourceVariations = variations.length
     ? variations
     : [
-        {
-          id: product.id,
-          sku: product.sku,
-          price: product.price || product.regular_price,
-          regular_price: product.regular_price,
-          sale_price: product.sale_price,
-          attributes: [],
-          stock_quantity: product.stock_quantity,
-        },
-      ];
+      {
+        id: product.id,
+        sku: product.sku,
+        price: product.price || product.regular_price,
+        regular_price: product.regular_price,
+        sale_price: product.sale_price,
+        attributes: [],
+        stock_quantity: product.stock_quantity,
+      },
+    ];
 
   const variants = [] as Array<{
     price?: string;
@@ -700,7 +696,7 @@ export async function syncProductsAcrossProviders(
     product: ShopifyProduct | WooProduct;
     variations?: WooVariation[];
     variationError?: string;
-  }> = [];
+  }>;
 
   if (params.sourceProvider === "shopify") {
     const sourceConnection = await getShopifyConnectionByDomain(sourceDomain);
@@ -843,11 +839,11 @@ export async function syncProductsAcrossProviders(
           const rawPayload = input as Record<string, unknown>;
           const variationsPayload = rawPayload._variations as
             | Array<{
-                sku?: string;
-                price?: string;
-                attributes?: Array<{ name: string; option: string }>;
-                stockQuantity?: number | null;
-              }>
+              sku?: string;
+              price?: string;
+              attributes?: Array<{ name: string; option: string }>;
+              stockQuantity?: number | null;
+            }>
             | undefined;
           if (rawPayload._variations) {
             delete rawPayload._variations;
@@ -871,8 +867,8 @@ export async function syncProductsAcrossProviders(
                       : undefined,
                   stock_quantity:
                     settings.includeInventory !== false &&
-                    settings.trackInventory !== false &&
-                    Number.isFinite(variation.stockQuantity as number)
+                      settings.trackInventory !== false &&
+                      Number.isFinite(variation.stockQuantity as number)
                       ? Math.max(0, Math.trunc(variation.stockQuantity as number))
                       : undefined,
                 };
@@ -902,8 +898,8 @@ export async function syncProductsAcrossProviders(
                       : undefined,
                   stock_quantity:
                     settings.includeInventory !== false &&
-                    settings.trackInventory !== false &&
-                    Number.isFinite(variation.stockQuantity as number)
+                      settings.trackInventory !== false &&
+                      Number.isFinite(variation.stockQuantity as number)
                       ? Math.max(0, Math.trunc(variation.stockQuantity as number))
                       : undefined,
                 });
@@ -965,11 +961,11 @@ export async function syncProductsAcrossProviders(
           const rawPayload = input as Record<string, unknown>;
           const variationsPayload = rawPayload._variations as
             | Array<{
-                sku?: string;
-                price?: string;
-                attributes?: Array<{ name: string; option: string }>;
-                stockQuantity?: number | null;
-              }>
+              sku?: string;
+              price?: string;
+              attributes?: Array<{ name: string; option: string }>;
+              stockQuantity?: number | null;
+            }>
             | undefined;
           if (rawPayload._variations) {
             delete rawPayload._variations;
@@ -993,8 +989,8 @@ export async function syncProductsAcrossProviders(
                       : undefined,
                   stock_quantity:
                     settings.includeInventory !== false &&
-                    settings.trackInventory !== false &&
-                    Number.isFinite(variation.stockQuantity as number)
+                      settings.trackInventory !== false &&
+                      Number.isFinite(variation.stockQuantity as number)
                       ? Math.max(0, Math.trunc(variation.stockQuantity as number))
                       : undefined,
                 };
@@ -1024,8 +1020,8 @@ export async function syncProductsAcrossProviders(
                       : undefined,
                   stock_quantity:
                     settings.includeInventory !== false &&
-                    settings.trackInventory !== false &&
-                    Number.isFinite(variation.stockQuantity as number)
+                      settings.trackInventory !== false &&
+                      Number.isFinite(variation.stockQuantity as number)
                       ? Math.max(0, Math.trunc(variation.stockQuantity as number))
                       : undefined,
                 });

@@ -153,9 +153,15 @@ async function main() {
   }
 
   {
-    const { response, payload } = await httpJson(baseUrl, "/api/checkpoints/inventory-adjustments", { headers: buildAuthHeaders() });
+    const { response, payload } = await httpJson(baseUrl, "/api/checkpoints/inventory-adjustments", {
+      headers: buildAuthHeaders(),
+    });
     const ok = response.ok && payload && typeof payload.intervalMs === "number";
-    record("GET /api/checkpoints/inventory-adjustments", ok, ok ? `intervalMs=${payload.intervalMs}` : `status=${response.status}`);
+    record(
+      "GET /api/checkpoints/inventory-adjustments",
+      ok,
+      ok ? `intervalMs=${payload.intervalMs}` : `status=${response.status}`
+    );
   }
 
   {
@@ -177,4 +183,3 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
-

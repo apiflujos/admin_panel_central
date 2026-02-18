@@ -21,10 +21,7 @@ export async function shopifyMarketingWebhookHandler(req: Request, res: Response
   const topic = header(req, "x-shopify-topic");
   const shopDomain = header(req, "x-shopify-shop-domain");
   const webhookId =
-    header(req, "x-shopify-webhook-id") ||
-    header(req, "x-shopify-delivery-id") ||
-    header(req, "x-request-id") ||
-    "";
+    header(req, "x-shopify-webhook-id") || header(req, "x-shopify-delivery-id") || header(req, "x-request-id") || "";
 
   if (shopDomain && !(await shopifyStoreExists(shopDomain))) {
     res.status(410).json({ status: "gone" });

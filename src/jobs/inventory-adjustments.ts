@@ -3,8 +3,7 @@ import { createSyncLog } from "../services/logs.service";
 import { getInventoryAdjustmentsSettings } from "../services/settings.service";
 import { getSyncCheckpoint, saveSyncCheckpoint } from "../services/sync-checkpoints.service";
 
-const toIsoDate = (value: Date | number) =>
-  new Date(value).toISOString().slice(0, 10);
+const toIsoDate = (value: Date | number) => new Date(value).toISOString().slice(0, 10);
 
 const resolveStartDate = async () => {
   try {
@@ -96,18 +95,21 @@ export function startInventoryAdjustmentsPoller() {
     if (intervalMinutes <= 0) {
       return;
     }
-    setTimeout(async () => {
-      try {
-        await run();
-      } catch (error) {
-        console.error("Inventory adjustments poll failed:", error);
-      }
-      try {
-        await scheduleNext();
-      } catch (error) {
-        console.error("Inventory adjustments schedule failed:", error);
-      }
-    }, intervalMinutes * 60 * 1000);
+    setTimeout(
+      async () => {
+        try {
+          await run();
+        } catch (error) {
+          console.error("Inventory adjustments poll failed:", error);
+        }
+        try {
+          await scheduleNext();
+        } catch (error) {
+          console.error("Inventory adjustments schedule failed:", error);
+        }
+      },
+      intervalMinutes * 60 * 1000
+    );
   };
 
   void (async () => {

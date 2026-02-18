@@ -66,19 +66,16 @@ async function fetchGoogleAdsSpend(input: {
     FROM campaign
     WHERE segments.date BETWEEN '${input.from}' AND '${input.to}'
   `;
-  const response = await fetch(
-    `https://googleads.googleapis.com/v14/customers/${customerId}/googleAds:searchStream`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${input.accessToken}`,
-        "developer-token": developerToken,
-        ...(input.loginCustomerId ? { "login-customer-id": input.loginCustomerId } : {}),
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query }),
-    }
-  );
+  const response = await fetch(`https://googleads.googleapis.com/v14/customers/${customerId}/googleAds:searchStream`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${input.accessToken}`,
+      "developer-token": developerToken,
+      ...(input.loginCustomerId ? { "login-customer-id": input.loginCustomerId } : {}),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query }),
+  });
   if (!response.ok) {
     const text = await response.text();
     throw new Error(text || "Google Ads API error");

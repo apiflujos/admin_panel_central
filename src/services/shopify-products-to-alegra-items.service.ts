@@ -25,7 +25,9 @@ const DEFAULT_CONFIG: ProductSyncConfig = {
 };
 
 function parseMatchPriority(value: unknown): Array<"sku" | "barcode"> {
-  const raw = String(value || "").trim().toLowerCase();
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
   if (raw === "barcode_sku") return ["barcode", "sku"];
   return ["sku", "barcode"];
 }
@@ -38,7 +40,8 @@ function resolveConfigFromStore(store: any): ProductSyncConfig {
     createInAlegra: products.createInAlegra !== false && Boolean(products.createInAlegra),
     updateInAlegra: products.updateInAlegra !== false,
     includeInventory: Boolean(products.includeInventory),
-    warehouseId: typeof products.warehouseId === "string" && products.warehouseId.trim() ? products.warehouseId : undefined,
+    warehouseId:
+      typeof products.warehouseId === "string" && products.warehouseId.trim() ? products.warehouseId : undefined,
     matchPriority: parseMatchPriority(products.matchPriority),
   };
 }
@@ -78,10 +81,7 @@ function extractAlegraListItems(payload: unknown) {
   return items as Array<Record<string, unknown>>;
 }
 
-async function findAlegraItemByIdentifier(
-  ctx: Awaited<ReturnType<typeof buildSyncContext>>,
-  identifier: string
-) {
+async function findAlegraItemByIdentifier(ctx: Awaited<ReturnType<typeof buildSyncContext>>, identifier: string) {
   const value = String(identifier || "").trim();
   if (!value) return null;
   const baseParams = {
@@ -147,7 +147,13 @@ async function maybeAdjustInventory(params: {
   if (desired === null) {
     return { adjusted: false, reason: "missing_desired" as const };
   }
-  const item = params.alegraItem || (await ctx.alegra.getItemWithParams(alegraItemId, { mode: "advanced", fields: "inventory", metadata: true }) as any);
+  const item =
+    params.alegraItem ||
+    ((await ctx.alegra.getItemWithParams(alegraItemId, {
+      mode: "advanced",
+      fields: "inventory",
+      metadata: true,
+    })) as any);
   const current = resolveAlegraWarehouseQuantity(item as any, resolvedWarehouseId);
   const delta = Math.round((desired - current) * 1000) / 1000;
   if (!Number.isFinite(delta) || Math.abs(delta) < 0.0001) {
@@ -394,7 +400,17 @@ export async function syncShopifyProductsToAlegraBulk(params: {
     for (const edge of variants) {
       if (isCanceled()) {
         onEvent({ type: "canceled", processed, created, updated, skipped, failed });
-        return { ok: false, canceled: true, processed, created, updated, skipped, failed, totalProducts, totalVariants };
+        return {
+          ok: false,
+          canceled: true,
+          processed,
+          created,
+          updated,
+          skipped,
+          failed,
+          totalProducts,
+          totalVariants,
+        };
       }
       const variant = edge?.node;
       if (!variant) continue;

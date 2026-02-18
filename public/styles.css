@@ -310,7 +310,6 @@ body {
   transform: none;
 }
 
-
 .bot-card {
   display: grid;
   grid-template-columns: 40px 1fr;
@@ -1409,13 +1408,22 @@ button {
   margin: 0;
 }
 
-.settings-group.provider-group[data-group="products"] .panel.module[data-module="shopify-rules"] .mode-section + .mode-section,
-.settings-group.provider-group[data-group="products"] .panel.module[data-module="alegra-inventory"] .mode-section + .mode-section {
+.settings-group.provider-group[data-group="products"]
+  .panel.module[data-module="shopify-rules"]
+  .mode-section
+  + .mode-section,
+.settings-group.provider-group[data-group="products"]
+  .panel.module[data-module="alegra-inventory"]
+  .mode-section
+  + .mode-section {
   border-top: 1px solid rgba(15, 23, 42, 0.12);
   margin-top: 10px;
 }
 
-.settings-group.provider-group[data-group="contacts"] .panel.module[data-module="sync-contacts"] .mode-section + .mode-section {
+.settings-group.provider-group[data-group="contacts"]
+  .panel.module[data-module="sync-contacts"]
+  .mode-section
+  + .mode-section {
   border-top: 1px solid rgba(15, 23, 42, 0.12);
   margin-top: 10px;
 }
@@ -2000,7 +2008,6 @@ button {
 .connection-modal[data-connection-count="4"] .connection-modal-card {
   width: min(900px, calc(100vw - 32px));
 }
-
 
 .connection-modal-header {
   display: flex;
@@ -2698,7 +2705,6 @@ body.force-settings #settings {
   font-size: 12px;
 }
 
-
 .connections-layout {
   display: grid;
   grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
@@ -2777,7 +2783,10 @@ body.force-settings #settings {
   justify-items: start;
   box-shadow: var(--shadow);
   cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    border-color 120ms ease;
 }
 
 .connections-module-card:hover {
@@ -3166,7 +3175,9 @@ body.no-alegra .provider-logo.is-alegra {
   background: rgba(15, 23, 42, 0.1);
   border-radius: 999px;
   position: relative;
-  transition: background 160ms ease, border-color 160ms ease;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
   border: 1px solid rgba(15, 23, 42, 0.16);
   cursor: pointer;
 }
@@ -3180,7 +3191,10 @@ body.no-alegra .provider-logo.is-alegra {
   height: 13px;
   background: #ffffff;
   border-radius: 50%;
-  transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.26);
 }
 
@@ -4500,7 +4514,7 @@ textarea::placeholder {
   font-size: 12.8px;
   font-weight: 800;
   color: #0f172a;
-} 
+}
 
 .mode-title-toggle {
   display: inline-flex;
@@ -4796,7 +4810,6 @@ textarea::placeholder {
   width: 100%;
   max-width: 220px;
 }
-
 
 .panel.module .mode-grid .field.field-span select,
 .panel.module .mode-grid .field.field-span input:not([type="checkbox"]),
@@ -5475,7 +5488,9 @@ textarea::placeholder {
   box-shadow: var(--shadow);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 120ms ease, transform 120ms ease;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
   z-index: 40;
   text-transform: none;
   letter-spacing: 0;
@@ -5594,13 +5609,13 @@ textarea::placeholder {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-.settings-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
+  .settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 
-.settings-grid.connection-fields {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
+  .settings-grid.connection-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 
   .products-grid {
     grid-template-columns: 1fr;
@@ -5651,32 +5666,31 @@ textarea::placeholder {
     grid-template-columns: 1fr;
   }
 
-.settings-grid {
-  grid-template-columns: 1fr;
-}
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
 
-.settings-grid.store-meta,
-.settings-grid.products-settings {
-  grid-template-columns: 1fr;
-}
+  .settings-grid.store-meta,
+  .settings-grid.products-settings {
+    grid-template-columns: 1fr;
+  }
 
-.connections-compact {
-  grid-template-columns: 1fr;
-}
+  .connections-compact {
+    grid-template-columns: 1fr;
+  }
 
-.connections-compact .connection-block:last-child {
-  grid-column: auto;
-}
+  .connections-compact .connection-block:last-child {
+    grid-column: auto;
+  }
 
-.settings-grid.connection-fields {
-  grid-template-columns: 1fr;
-}
+  .settings-grid.connection-fields {
+    grid-template-columns: 1fr;
+  }
 
-
-.toolbar {
-  flex-direction: column;
-  align-items: flex-start;
-}
+  .toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 
   .module-footer {
     flex-direction: column;

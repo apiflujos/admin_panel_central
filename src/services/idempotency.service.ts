@@ -2,9 +2,7 @@ import { getOrgId, getPool } from "../db";
 
 export type IdempotencyStatus = "processing" | "completed" | "failed";
 
-export async function acquireIdempotencyKey(
-  key: string
-): Promise<{ status: IdempotencyStatus; acquired: boolean }> {
+export async function acquireIdempotencyKey(key: string): Promise<{ status: IdempotencyStatus; acquired: boolean }> {
   const pool = getPool();
   const orgId = getOrgId();
 
@@ -47,11 +45,7 @@ export async function acquireIdempotencyKey(
   return { status: update.rows[0]?.status || "processing", acquired: update.rows.length > 0 };
 }
 
-export async function markIdempotencyKey(
-  key: string,
-  status: IdempotencyStatus,
-  lastError?: string
-) {
+export async function markIdempotencyKey(key: string, status: IdempotencyStatus, lastError?: string) {
   const pool = getPool();
   const orgId = getOrgId();
   await pool.query(

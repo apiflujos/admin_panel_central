@@ -8,4 +8,3 @@ export function monthKeyBogota(date = new Date()) {
   const month = parts.find((p) => p.type === "month")?.value || "01";
   return `${year}-${month}`;
 }
-

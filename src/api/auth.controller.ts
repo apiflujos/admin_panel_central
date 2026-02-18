@@ -96,15 +96,23 @@ export async function loginHandler(req: Request, res: Response) {
     const rawMessage = error instanceof Error ? error.message : "";
     const lower = rawMessage.toLowerCase();
     const code =
-      lower.includes("database_url is required") || lower.includes("database_url") ? "AUTH_DB_MISSING" : //
-      lower.includes("permission denied") ? "AUTH_DB_PERMS" : //
-      lower.includes("connect econnrefused") || lower.includes("econnrefused") ? "AUTH_DB_REFUSED" : //
-      lower.includes("getaddrinfo enotfound") || lower.includes("enotfound") ? "AUTH_DB_DNS" : //
-      lower.includes("password authentication failed") ? "AUTH_DB_AUTH" : //
-      lower.includes("no pg_hba.conf entry") ? "AUTH_DB_HBA" : //
-      lower.includes("self signed certificate") || lower.includes("certificate") ? "AUTH_DB_SSL" : //
-      lower.includes("does not exist") && (lower.includes("relation") || lower.includes("column")) ? "AUTH_DB_SCHEMA" : //
-      "AUTH_LOGIN_FAILED";
+      lower.includes("database_url is required") || lower.includes("database_url")
+        ? "AUTH_DB_MISSING" //
+        : lower.includes("permission denied")
+          ? "AUTH_DB_PERMS" //
+          : lower.includes("connect econnrefused") || lower.includes("econnrefused")
+            ? "AUTH_DB_REFUSED" //
+            : lower.includes("getaddrinfo enotfound") || lower.includes("enotfound")
+              ? "AUTH_DB_DNS" //
+              : lower.includes("password authentication failed")
+                ? "AUTH_DB_AUTH" //
+                : lower.includes("no pg_hba.conf entry")
+                  ? "AUTH_DB_HBA" //
+                  : lower.includes("self signed certificate") || lower.includes("certificate")
+                    ? "AUTH_DB_SSL" //
+                    : lower.includes("does not exist") && (lower.includes("relation") || lower.includes("column"))
+                      ? "AUTH_DB_SCHEMA" //
+                      : "AUTH_LOGIN_FAILED";
 
     const isProd = process.env.NODE_ENV === "production";
     const message =
@@ -221,11 +229,7 @@ export async function createAuthTokenHandler(req: Request, res: Response) {
   }
   const rawMinutes = req.body?.ttlMinutes;
   const rawNumber = Number(rawMinutes);
-  const wantsNever =
-    rawMinutes === "never" ||
-    rawMinutes === "0" ||
-    rawMinutes === 0 ||
-    rawNumber === 0;
+  const wantsNever = rawMinutes === "never" || rawMinutes === "0" || rawMinutes === 0 || rawNumber === 0;
   const ttlMinutes = Number.isFinite(rawNumber) ? rawNumber : 30;
   const clamped = wantsNever ? null : Math.min(120, Math.max(5, Math.round(ttlMinutes)));
   const scopes =

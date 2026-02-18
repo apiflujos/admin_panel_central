@@ -86,12 +86,7 @@ const sanitizeTag = (value: string) =>
     .slice(0, 60);
 
 function normalizeInvoiceItems(invoice: Record<string, unknown>) {
-  const candidates = [
-    invoice.items,
-    invoice.lines,
-    invoice.products,
-    (invoice as any)?.data?.items,
-  ];
+  const candidates = [invoice.items, invoice.lines, invoice.products, (invoice as any)?.data?.items];
   for (const candidate of candidates) {
     if (Array.isArray(candidate)) return candidate as Array<Record<string, unknown>>;
   }
@@ -110,9 +105,7 @@ function buildItemsSummary(items: Array<Record<string, unknown>>) {
     .join(", ");
 }
 
-async function buildShopifyLineItems(
-  items: Array<Record<string, unknown>>
-): Promise<Array<Record<string, unknown>>> {
+async function buildShopifyLineItems(items: Array<Record<string, unknown>>): Promise<Array<Record<string, unknown>>> {
   const lineItems: Array<Record<string, unknown>> = [];
   for (const item of items) {
     const quantity = Math.max(1, Math.round(Number(item.quantity ?? item.qty ?? 1) || 1));
@@ -143,11 +136,7 @@ async function buildShopifyLineItems(
   return lineItems;
 }
 
-async function syncSingleInvoice(params: {
-  shopDomain?: string;
-  alegraInvoiceId: string;
-  mode: InvoiceToShopifyMode;
-}) {
+async function syncSingleInvoice(params: { shopDomain?: string; alegraInvoiceId: string; mode: InvoiceToShopifyMode }) {
   const shopDomain = params.shopDomain ? normalizeShopDomain(params.shopDomain) : "";
   const alegraInvoiceId = String(params.alegraInvoiceId || "").trim();
   if (!alegraInvoiceId) {
@@ -209,7 +198,12 @@ async function syncSingleInvoice(params: {
         source_name: "Alegra",
       };
       const response = await ctx.shopify.createOrderRest(payload);
-      created = { entity: "order", id: response.order.id, name: response.order.name, order_number: response.order.order_number };
+      created = {
+        entity: "order",
+        id: response.order.id,
+        name: response.order.name,
+        order_number: response.order.order_number,
+      };
       await saveMapping({
         entity: "order",
         alegraId: alegraInvoiceId,
@@ -246,7 +240,12 @@ async function syncSingleInvoice(params: {
         line_items: lineItems,
       };
       const response = await ctx.shopify.createDraftOrderRest(payload);
-      created = { entity: "draft_order", id: response.draft_order.id, name: response.draft_order.name, invoice_url: response.draft_order.invoice_url };
+      created = {
+        entity: "draft_order",
+        id: response.draft_order.id,
+        name: response.draft_order.name,
+        invoice_url: response.draft_order.invoice_url,
+      };
       await saveMapping({
         entity: "draft_order",
         alegraId: alegraInvoiceId,

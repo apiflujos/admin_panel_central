@@ -52,9 +52,7 @@ export async function listLatestOrderLogs(orderIds: string[]) {
   return map;
 }
 
-export async function getLatestInvoicePayload(
-  orderId: string
-): Promise<Record<string, unknown> | null> {
+export async function getLatestInvoicePayload(orderId: string): Promise<Record<string, unknown> | null> {
   const { getOrgId, getPool } = await import("../db");
   const pool = getPool();
   const orgId = getOrgId();
@@ -84,9 +82,7 @@ export async function getLatestInvoicePayload(
   return null;
 }
 
-export async function listSyncLogs(
-  filters: LogFilters
-): Promise<{ items: SyncLogListItem[]; filters: LogFilters }> {
+export async function listSyncLogs(filters: LogFilters): Promise<{ items: SyncLogListItem[]; filters: LogFilters }> {
   const { getOrgId, getPool } = await import("../db");
   const pool = getPool();
   const orgId = getOrgId();
@@ -116,7 +112,7 @@ export async function listSyncLogs(
     params.push(filters.from);
   }
   if (filters.to) {
-    conditions.push(`created_at <= $${idx++}`);
+    conditions.push(`created_at <= $${idx}`);
     params.push(filters.to);
   }
 
@@ -149,19 +145,18 @@ export async function listSyncLogs(
       response_json: Record<string, unknown> | null;
       created_at: string;
     }) => ({
-    id: row.id,
-    entity: row.entity,
-    direction: row.direction,
-    status: row.status,
-    message: row.message,
-    created_at: row.created_at,
-    order_id:
-      typeof row.request_json?.orderId === "string" ||
-      typeof row.request_json?.orderId === "number"
-        ? String(row.request_json.orderId)
-        : null,
-    request_json: row.request_json || null,
-    response_json: row.response_json || null,
+      id: row.id,
+      entity: row.entity,
+      direction: row.direction,
+      status: row.status,
+      message: row.message,
+      created_at: row.created_at,
+      order_id:
+        typeof row.request_json?.orderId === "string" || typeof row.request_json?.orderId === "number"
+          ? String(row.request_json.orderId)
+          : null,
+      request_json: row.request_json || null,
+      response_json: row.response_json || null,
     })
   );
 

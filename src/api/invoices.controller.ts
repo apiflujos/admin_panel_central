@@ -55,4 +55,3 @@ export async function downloadInvoicePdfHandler(req: Request, res: Response) {
     res.status(400).json({ error: error instanceof Error ? error.message : "Invoice pdf error" });
   }
 }
-

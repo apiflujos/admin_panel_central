@@ -18,8 +18,7 @@ type ContactRecord = {
 
 const isEmail = (value: string) => value.includes("@");
 
-const normalizePhone = (value?: string) =>
-  value ? value.replace(/[^\d+]/g, "").trim() : "";
+const normalizePhone = (value?: string) => (value ? value.replace(/[^\d+]/g, "").trim() : "");
 
 const normalizeIsoDate = (value?: string) => {
   const raw = String(value || "").trim();
@@ -114,9 +113,7 @@ async function scanAlegraContacts(
   const limit = 50;
   let start = 0;
   for (let page = 0; page < 8; page += 1) {
-    const data = (await ctx.alegra.listContacts({ limit, start })) as Array<
-      Record<string, unknown>
-    >;
+    const data = (await ctx.alegra.listContacts({ limit, start })) as Array<Record<string, unknown>>;
     if (!Array.isArray(data) || !data.length) return null;
     const match = data.find((item) => predicate(item));
     if (match) return match;
@@ -158,9 +155,7 @@ async function syncShopifyCustomerToAlegra(
     return { skipped: true, reason: "missing_contact_data" };
   }
 
-  const existingMapping = normalized.id
-    ? await getMappingByShopifyId("contact", normalized.id)
-    : null;
+  const existingMapping = normalized.id ? await getMappingByShopifyId("contact", normalized.id) : null;
   let alegraContactId = existingMapping?.alegraId || "";
 
   if (!alegraContactId) {
@@ -233,9 +228,7 @@ async function syncAlegraContactToShopify(
     return { skipped: true, reason: "missing_contact_data" };
   }
 
-  const existingMapping = normalized.id
-    ? await getMappingByAlegraId("contact", normalized.id)
-    : null;
+  const existingMapping = normalized.id ? await getMappingByAlegraId("contact", normalized.id) : null;
   let shopifyCustomerId = existingMapping?.shopifyId || "";
 
   if (!shopifyCustomerId) {
@@ -321,7 +314,7 @@ export async function syncSingleContact(options: {
       return { skipped: true, reason: "sync_disabled" };
     }
     const identifier = options.identifier.trim();
-    let customer: ShopifyCustomer | null = null;
+    let customer: ShopifyCustomer | null;
     if (identifier.startsWith("gid://")) {
       const data = await ctx.shopify.getCustomerById(identifier);
       customer = data?.customer || null;
@@ -348,13 +341,11 @@ export async function syncSingleContact(options: {
     return { skipped: true, reason: "sync_disabled" };
   }
   const identifier = options.identifier.trim();
-  let alegraContact: Record<string, unknown> | null = null;
+  let alegraContact: Record<string, unknown> | null;
   if (/^\d+$/.test(identifier)) {
     alegraContact = (await ctx.alegra.getContact(identifier)) as Record<string, unknown>;
   } else if (isEmail(identifier)) {
-    const matches = (await ctx.alegra.findContactByEmail(identifier)) as Array<
-      Record<string, unknown>
-    >;
+    const matches = (await ctx.alegra.findContactByEmail(identifier)) as Array<Record<string, unknown>>;
     alegraContact = matches[0] || null;
   } else {
     alegraContact = await scanAlegraContacts(ctx, (item) => {
@@ -491,14 +482,7 @@ export async function syncContactsBulk(options: {
   const fromDate = parseIsoDay(from);
   const toDate = parseIsoDay(to);
   const resolveAlegraTimestamp = (item: Record<string, unknown>) => {
-    const candidates = [
-      item.dateCreated,
-      item.createdAt,
-      item.created_at,
-      item.updatedAt,
-      item.updated_at,
-      item.date,
-    ];
+    const candidates = [item.dateCreated, item.createdAt, item.created_at, item.updatedAt, item.updated_at, item.date];
     for (const candidate of candidates) {
       if (!candidate) continue;
       const parsed = Date.parse(String(candidate));

@@ -12,8 +12,7 @@ const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
   }
 };
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "No disponible";
+const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : "No disponible");
 
 export async function listOperationsHandler(req: Request, res: Response) {
   try {

@@ -150,4 +150,3 @@ async function notify(rule: AlertRuleRow, message: string, payload: Record<strin
     console.log("[ALERT][WHATSAPP]", rule.notify_whatsapp, message);
   }
 }
-

@@ -19,8 +19,7 @@ export class AlegraClient {
     const query = new URLSearchParams();
     Object.entries(params || {}).forEach(([key, value]) => {
       if (value === undefined || value === null) return;
-      const normalized =
-        typeof value === "boolean" ? (value ? "true" : "false") : String(value);
+      const normalized = typeof value === "boolean" ? (value ? "true" : "false") : String(value);
       if (normalized.trim() === "") return;
       query.set(key, normalized);
     });
@@ -29,9 +28,7 @@ export class AlegraClient {
   }
 
   async listItemsUpdatedSince(queryOrDate: string) {
-    const query = queryOrDate.includes("=")
-      ? queryOrDate
-      : `updated_at_start=${encodeURIComponent(queryOrDate)}`;
+    const query = queryOrDate.includes("=") ? queryOrDate : `updated_at_start=${encodeURIComponent(queryOrDate)}`;
     return this.request(`/items?${query}`);
   }
 
@@ -39,8 +36,7 @@ export class AlegraClient {
     const query = new URLSearchParams();
     Object.entries(params || {}).forEach(([key, value]) => {
       if (value === undefined || value === null) return;
-      const normalized =
-        typeof value === "boolean" ? (value ? "true" : "false") : String(value);
+      const normalized = typeof value === "boolean" ? (value ? "true" : "false") : String(value);
       if (normalized.trim() === "") return;
       query.set(key, normalized);
     });
@@ -182,11 +178,11 @@ export class AlegraClient {
       const json = await response.json().catch(() => null);
       const url =
         json && typeof json === "object"
-          ? (typeof (json as any).pdfUrl === "string"
-              ? (json as any).pdfUrl
-              : typeof (json as any).url === "string"
-                ? (json as any).url
-                : "")
+          ? typeof (json as any).pdfUrl === "string"
+            ? (json as any).pdfUrl
+            : typeof (json as any).url === "string"
+              ? (json as any).url
+              : ""
           : "";
       if (url) {
         const fallback = await fetch(url);
@@ -203,13 +199,8 @@ export class AlegraClient {
     return { contentType, content: buffer };
   }
 
-  private async request(
-    path: string,
-    options: { method?: string; body?: Record<string, unknown> } = {}
-  ) {
-    const auth = Buffer.from(`${this.config.email}:${this.config.apiKey}`).toString(
-      "base64"
-    );
+  private async request(path: string, options: { method?: string; body?: Record<string, unknown> } = {}) {
+    const auth = Buffer.from(`${this.config.email}:${this.config.apiKey}`).toString("base64");
     const controller = new AbortController();
     const timeoutMs = Number(process.env.ALEGRA_TIMEOUT_MS || 30000);
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);

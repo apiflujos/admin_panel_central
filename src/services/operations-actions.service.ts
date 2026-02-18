@@ -35,8 +35,7 @@ export async function emitPaymentForOrder(orderId: string) {
   const sourceMapping = await resolvePaymentMappingBySource(pool, orgId, orderInfo.gateways);
   const paymentMethod = sourceMapping?.paymentMethod || invoiceSettings.paymentMethod;
   const bankAccountId =
-    sourceMapping?.accountId ||
-    (await resolveBankAccountId(pool, orgId, paymentMethod, invoiceSettings.bankAccountId));
+    sourceMapping?.accountId || (await resolveBankAccountId(pool, orgId, paymentMethod, invoiceSettings.bankAccountId));
 
   const paymentPayload = {
     date: new Date().toISOString().slice(0, 10),
@@ -50,12 +49,9 @@ export async function emitPaymentForOrder(orderId: string) {
         amount,
       },
     ],
-    observations: interpolateObservations(
-      invoiceSettings.observationsTemplate,
-      orderId,
-      orderInfo.orderName,
-      orderInfo.email
-    ) || undefined,
+    observations:
+      interpolateObservations(invoiceSettings.observationsTemplate, orderId, orderInfo.orderName, orderInfo.email) ||
+      undefined,
     type: "received",
   };
 
@@ -134,18 +130,13 @@ async function resolveBankAccountId(
   return defaultBankAccountId;
 }
 
-async function resolveOrderPaymentGateways(
-  ctx: Awaited<ReturnType<typeof buildSyncContext>>,
-  orderId: string
-) {
+async function resolveOrderPaymentGateways(ctx: Awaited<ReturnType<typeof buildSyncContext>>, orderId: string) {
   try {
     const data = (await ctx.shopify.getOrderById(orderId)) as { order: ShopifyOrder };
     const order = data?.order;
     if (!order) return { gateways: [], orderName: "", email: "" };
     return {
-      gateways: Array.isArray(order.paymentGatewayNames)
-        ? order.paymentGatewayNames.filter(Boolean)
-        : [],
+      gateways: Array.isArray(order.paymentGatewayNames) ? order.paymentGatewayNames.filter(Boolean) : [],
       orderName: order.name || "",
       email: order.email || order.customer?.email || "",
     };
@@ -154,11 +145,7 @@ async function resolveOrderPaymentGateways(
   }
 }
 
-async function resolvePaymentMappingBySource(
-  pool: ReturnType<typeof getPool>,
-  orgId: number,
-  sourceMethods: string[]
-) {
+async function resolvePaymentMappingBySource(pool: ReturnType<typeof getPool>, orgId: number, sourceMethods: string[]) {
   if (!sourceMethods.length) return null;
   const normalized = sourceMethods.map((method) => method.trim().toLowerCase());
   const result = await pool.query<{
@@ -189,12 +176,7 @@ async function resolvePaymentMappingBySource(
   };
 }
 
-function interpolateObservations(
-  template: string,
-  orderId: string,
-  orderName?: string,
-  email?: string
-) {
+function interpolateObservations(template: string, orderId: string, orderName?: string, email?: string) {
   if (!template) return undefined;
   return template
     .replace("{{order.id}}", orderId)

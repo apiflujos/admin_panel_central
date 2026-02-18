@@ -374,24 +374,24 @@ const cfgResolution = document.getElementById("cfg-resolution");
 const cfgCostCenter = document.getElementById("cfg-cost-center");
 const cfgWarehouse = document.getElementById("cfg-warehouse");
 const cfgSeller = document.getElementById("cfg-seller");
-	const cfgPaymentMethod = document.getElementById("cfg-payment-method");
-	const cfgBankAccount = document.getElementById("cfg-bank-account");
-	const cfgApplyPayment = document.getElementById("cfg-apply-payment");
-	const cfgObservations = document.getElementById("cfg-observations");
-	const cfgObservationsExtra = document.getElementById("cfg-observations-extra");
-	const cfgObservationsFields = document.getElementById("cfg-observations-fields");
-	const cfgObservationsFieldsSummary = document.getElementById("cfg-observations-fields-summary");
-	const cfgObservationsPreview = document.getElementById("cfg-observations-preview");
-	const cfgGenerateInvoice = document.getElementById("cfg-generate-invoice");
-	const cfgEinvoiceEnabled = document.getElementById("cfg-einvoice-enabled");
-	const cfgInvoiceStatus = document.getElementById("cfg-invoice-status");
-	const cfgTransferDestMode = document.getElementById("cfg-transfer-dest-mode");
-	const cfgTransferDest = document.getElementById("cfg-transfer-dest");
-	const cfgTransferDestRequired = document.getElementById("cfg-transfer-dest-required");
-	const cfgTransferEnabled = document.getElementById("cfg-transfer-enabled");
-	const cfgTransferStrategy = document.getElementById("cfg-transfer-strategy");
-	const cfgTransferFallback = document.getElementById("cfg-transfer-fallback");
-	const cfgTransferTieBreak = document.getElementById("cfg-transfer-tiebreak");
+const cfgPaymentMethod = document.getElementById("cfg-payment-method");
+const cfgBankAccount = document.getElementById("cfg-bank-account");
+const cfgApplyPayment = document.getElementById("cfg-apply-payment");
+const cfgObservations = document.getElementById("cfg-observations");
+const cfgObservationsExtra = document.getElementById("cfg-observations-extra");
+const cfgObservationsFields = document.getElementById("cfg-observations-fields");
+const cfgObservationsFieldsSummary = document.getElementById("cfg-observations-fields-summary");
+const cfgObservationsPreview = document.getElementById("cfg-observations-preview");
+const cfgGenerateInvoice = document.getElementById("cfg-generate-invoice");
+const cfgEinvoiceEnabled = document.getElementById("cfg-einvoice-enabled");
+const cfgInvoiceStatus = document.getElementById("cfg-invoice-status");
+const cfgTransferDestMode = document.getElementById("cfg-transfer-dest-mode");
+const cfgTransferDest = document.getElementById("cfg-transfer-dest");
+const cfgTransferDestRequired = document.getElementById("cfg-transfer-dest-required");
+const cfgTransferEnabled = document.getElementById("cfg-transfer-enabled");
+const cfgTransferStrategy = document.getElementById("cfg-transfer-strategy");
+const cfgTransferFallback = document.getElementById("cfg-transfer-fallback");
+const cfgTransferTieBreak = document.getElementById("cfg-transfer-tiebreak");
 const cfgTransferPriority = document.getElementById("cfg-transfer-priority");
 const cfgTransferOrigin = document.getElementById("cfg-transfer-origin");
 const cfgTransferOriginSummary = document.getElementById("cfg-transfer-origin-summary");
@@ -541,7 +541,9 @@ const productsShopifyBulkProgressLabel = document.getElementById("products-shopi
 const cfgProductsShopifyToAlegraEnabled = document.getElementById("cfg-products-shopify-to-alegra-enabled");
 const cfgProductsShopifyToAlegraCreate = document.getElementById("cfg-products-shopify-to-alegra-create");
 const cfgProductsShopifyToAlegraUpdate = document.getElementById("cfg-products-shopify-to-alegra-update");
-const cfgProductsShopifyToAlegraIncludeInventory = document.getElementById("cfg-products-shopify-to-alegra-include-inventory");
+const cfgProductsShopifyToAlegraIncludeInventory = document.getElementById(
+  "cfg-products-shopify-to-alegra-include-inventory"
+);
 const cfgProductsShopifyToAlegraMatch = document.getElementById("cfg-products-shopify-to-alegra-match");
 const cfgProductsShopifyToAlegraWarehouse = document.getElementById("cfg-products-shopify-to-alegra-warehouse");
 
@@ -626,19 +628,19 @@ const DEFAULT_PRODUCT_SETTINGS = {
     trackInventory: true,
     allowOversell: false,
   },
-    sync: {
-      dateStart: "",
-      dateEnd: "",
-      limit: "",
-      query: "",
-      warehouseIds: [],
-      publishOnSync: true,
-      onlyPublishedInShopify: true,
-      includeInventory: true,
-      onlyActive: true,
-      onlyWithImages: false,
-      updateExisting: true,
-    },
+  sync: {
+    dateStart: "",
+    dateEnd: "",
+    limit: "",
+    query: "",
+    warehouseIds: [],
+    publishOnSync: true,
+    onlyPublishedInShopify: true,
+    includeInventory: true,
+    onlyActive: true,
+    onlyWithImages: false,
+    updateExisting: true,
+  },
   orders: {
     dateStart: "",
     dateEnd: "",
@@ -844,8 +846,7 @@ function showSection(target) {
 
 function activateNav(target) {
   const pathname = window?.location?.pathname || "";
-  const allowSettings =
-    document.body.classList.contains("force-settings") || isSettingsPath(pathname);
+  const allowSettings = document.body.classList.contains("force-settings") || isSettingsPath(pathname);
   if (target === "settings" && !allowSettings) {
     target = "dashboard";
   }
@@ -936,16 +937,13 @@ function setupViewportDebug() {
   overlay.style.padding = "8px 10px";
   overlay.style.borderRadius = "10px";
   overlay.style.fontSize = "11px";
-  overlay.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace";
+  overlay.style.fontFamily =
+    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
   overlay.style.boxShadow = "0 8px 18px rgba(15, 23, 42, 0.25)";
   const update = () => {
-    const intent =
-      (typeof sessionStorage !== "undefined" &&
-        sessionStorage.getItem(SETTINGS_INTENT_KEY)) ||
-      "";
+    const intent = (typeof sessionStorage !== "undefined" && sessionStorage.getItem(SETTINGS_INTENT_KEY)) || "";
     const ref = typeof document !== "undefined" ? document.referrer : "";
-    const active =
-      document.querySelector(".section.is-active")?.id || "none";
+    const active = document.querySelector(".section.is-active")?.id || "none";
     const line1 = `viewport: ${window.innerWidth}x${window.innerHeight} · dpr ${window.devicePixelRatio}`;
     const line2 = `path: ${window.location.pathname} · force: ${document.body.classList.contains("force-settings") ? "1" : "0"}`;
     const line3 = `intent: ${intent ? "1" : "0"} · ref: ${ref ? "1" : "0"}`;
@@ -1034,9 +1032,7 @@ function renderStoresList() {
         platforms.push({ key: "alegra", label: `Alegra · ${envLabel}`, ok });
       }
       const canAssociateAlegra =
-        !store?.alegra &&
-        Array.isArray(unassignedAlegraAccounts) &&
-        unassignedAlegraAccounts.length > 0;
+        !store?.alegra && Array.isArray(unassignedAlegraAccounts) && unassignedAlegraAccounts.length > 0;
       const hasPlatforms = platforms.length > 0;
       const actions = platforms
         .filter((tile) => tile.key !== "none")
@@ -1167,14 +1163,12 @@ function closeStoreCreateModal() {
 function updateConnectionButtonsState() {
   if (!connectionModal || !connectionModal.classList.contains("is-open")) return;
   const method = getShopifyConnectMethod();
-  const selectedStoreId =
-    connectionStoreSelect instanceof HTMLSelectElement ? connectionStoreSelect.value : "";
+  const selectedStoreId = connectionStoreSelect instanceof HTMLSelectElement ? connectionStoreSelect.value : "";
   const selectedStore = getStoreByIdFromCatalog(selectedStoreId);
   const nameValue = selectedStore ? selectedStore.name : "";
   if (storeNameInput) storeNameInput.value = nameValue;
   const hasStore = Boolean(selectedStore);
-  const commerceAlegraValue =
-    commerceAlegraSelect instanceof HTMLSelectElement ? commerceAlegraSelect.value : "";
+  const commerceAlegraValue = commerceAlegraSelect instanceof HTMLSelectElement ? commerceAlegraSelect.value : "";
   const hasCommerceAlegra =
     commerceAlegraSelect instanceof HTMLSelectElement
       ? !commerceAlegraSelect.disabled && Boolean(commerceAlegraValue)
@@ -1189,19 +1183,11 @@ function updateConnectionButtonsState() {
   const alegraAccountValue = alegraAccountSelect ? alegraAccountSelect.value : "new";
 
   const shopifyReady =
-    hasStore &&
-    hasCommerceAlegra &&
-    Boolean(shopifyDomainValue) &&
-    (method !== "token" || Boolean(shopifyTokenValue));
+    hasStore && hasCommerceAlegra && Boolean(shopifyDomainValue) && (method !== "token" || Boolean(shopifyTokenValue));
   const wooReady =
-    hasStore &&
-    hasCommerceAlegra &&
-    Boolean(wooDomainValue) &&
-    Boolean(wooKeyValue) &&
-    Boolean(wooSecretValue);
+    hasStore && hasCommerceAlegra && Boolean(wooDomainValue) && Boolean(wooKeyValue) && Boolean(wooSecretValue);
   const alegraReady =
-    hasStore &&
-    (alegraAccountValue && alegraAccountValue !== "new")
+    hasStore && alegraAccountValue && alegraAccountValue !== "new"
       ? true
       : Boolean(alegraEmailValue) && Boolean(alegraKeyValue);
 
@@ -1273,9 +1259,7 @@ function setConnectionWizardStep(step) {
 function updateConnectionChoiceCount() {
   if (!connectionModal) return;
   const activeGroup = connectionModal.getAttribute("data-connection-group") || "";
-  const choices = Array.from(
-    connectionModal.querySelectorAll("[data-connection-choice]")
-  ).filter((button) => {
+  const choices = Array.from(connectionModal.querySelectorAll("[data-connection-choice]")).filter((button) => {
     if (!(button instanceof HTMLElement)) return true;
     if (button.classList.contains("is-hidden")) return false;
     if (activeGroup) {
@@ -1512,7 +1496,10 @@ function setSettingsPane(paneKey, options = {}) {
   if (settingsSection && !settingsSection.classList.contains("is-active")) {
     activateNav("settings");
   }
-  if (settingsPaneConnectionsToggle instanceof HTMLInputElement && settingsPaneStoresToggle instanceof HTMLInputElement) {
+  if (
+    settingsPaneConnectionsToggle instanceof HTMLInputElement &&
+    settingsPaneStoresToggle instanceof HTMLInputElement
+  ) {
     if (next === "stores") {
       settingsPaneStoresToggle.checked = true;
     } else {
@@ -1528,10 +1515,7 @@ function setSettingsPane(paneKey, options = {}) {
   });
   if (settingsSubmenu) {
     settingsSubmenu.querySelectorAll("[data-settings-pane-link]").forEach((button) => {
-      button.classList.toggle(
-        "is-active",
-        button.getAttribute("data-settings-pane-link") === next
-      );
+      button.classList.toggle("is-active", button.getAttribute("data-settings-pane-link") === next);
     });
   }
   if (settingsSubnav) {
@@ -1542,10 +1526,7 @@ function setSettingsPane(paneKey, options = {}) {
   const settingsTopnav = document.getElementById("settings-topnav");
   if (settingsTopnav) {
     settingsTopnav.querySelectorAll("[data-settings-pane-link]").forEach((button) => {
-      button.classList.toggle(
-        "is-active",
-        button.getAttribute("data-settings-pane-link") === next
-      );
+      button.classList.toggle("is-active", button.getAttribute("data-settings-pane-link") === next);
     });
   }
   if (settingsPaneIndicator) {
@@ -1634,18 +1615,18 @@ function initSettingsSubmenu() {
       ensureSettingsVisibility();
     });
   }
-document.addEventListener("click", (event) => {
-  const target = event.target instanceof HTMLElement ? event.target : null;
-  if (!target) return;
-  const quickGroup = target.closest("[data-connection-group-open]");
-  if (quickGroup instanceof HTMLElement) {
-    const group = quickGroup.getAttribute("data-connection-group-open") || "commerce";
-    openConnectionModal(group);
-    return;
-  }
-  const button = target.closest("[data-settings-tab]");
-  if (!(button instanceof HTMLElement)) return;
-  const key = button.getAttribute("data-settings-tab") || "";
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (!target) return;
+    const quickGroup = target.closest("[data-connection-group-open]");
+    if (quickGroup instanceof HTMLElement) {
+      const group = quickGroup.getAttribute("data-connection-group-open") || "commerce";
+      openConnectionModal(group);
+      return;
+    }
+    const button = target.closest("[data-settings-tab]");
+    if (!(button instanceof HTMLElement)) return;
+    const key = button.getAttribute("data-settings-tab") || "";
     if (key !== "stores" && key !== "connections" && key !== "marketing") return;
     setSettingsPane(key, { updateUrl: isSettingsPath(window.location?.pathname || "") });
     ensureSettingsVisibility();
@@ -1725,7 +1706,8 @@ function cleanupLegacyConnectionsUi() {
     const node = document.getElementById(id);
     if (node) node.remove();
   });
-  document.querySelectorAll(".setup-guided, .setup-manual, [data-setup-panel=\"guided\"], [data-setup-panel=\"manual\"]")
+  document
+    .querySelectorAll('.setup-guided, .setup-manual, [data-setup-panel="guided"], [data-setup-panel="manual"]')
     .forEach((node) => node.remove());
 }
 
@@ -1817,7 +1799,6 @@ document.addEventListener("click", (event) => {
   }
   activateNav(navTarget);
 });
-
 
 function openModal(payload) {
   modalBody.textContent = payload || "Sin datos";
@@ -1938,7 +1919,7 @@ function showToast(message, state, options = {}) {
 
   stack.appendChild(toast);
 
-  const timeoutMs = typeof options.timeoutMs === "number" ? options.timeoutMs : (state === "is-error" ? 6500 : 3500);
+  const timeoutMs = typeof options.timeoutMs === "number" ? options.timeoutMs : state === "is-error" ? 6500 : 3500;
   if (timeoutMs > 0) {
     window.setTimeout(() => toast.remove(), timeoutMs);
   }
@@ -1958,10 +1939,7 @@ function setPhotosRunning(running) {
 }
 
 function updatePhotosPublishUi() {
-  const enabled =
-    photosPublishEnabled instanceof HTMLInputElement
-      ? Boolean(photosPublishEnabled.checked)
-      : false;
+  const enabled = photosPublishEnabled instanceof HTMLInputElement ? Boolean(photosPublishEnabled.checked) : false;
   if (photosPublishStatusField instanceof HTMLElement) {
     photosPublishStatusField.hidden = !enabled;
   }
@@ -2054,7 +2032,11 @@ async function parsePhotosFileToRows() {
     throw new Error("El archivo está vacío.");
   }
   const delimiter = detectCsvDelimiter(lines[0]);
-  const headers = parseCsvLine(lines[0], delimiter).map((h) => String(h || "").trim().toLowerCase());
+  const headers = parseCsvLine(lines[0], delimiter).map((h) =>
+    String(h || "")
+      .trim()
+      .toLowerCase()
+  );
   const idx = (name) => headers.indexOf(name);
   const matchBy = photosMatchBy instanceof HTMLSelectElement ? String(photosMatchBy.value || "sku") : "sku";
   const idCandidates =
@@ -2137,8 +2119,7 @@ async function runPhotosBulkUpload() {
   }
 
   const matchBy = photosMatchBy instanceof HTMLSelectElement ? String(photosMatchBy.value || "sku") : "sku";
-  const attachVariant =
-    photosAttachVariant instanceof HTMLInputElement ? photosAttachVariant.checked !== false : true;
+  const attachVariant = photosAttachVariant instanceof HTMLInputElement ? photosAttachVariant.checked !== false : true;
   const mode = photosMode instanceof HTMLSelectElement ? String(photosMode.value || "append") : "append";
   const publishEnabled =
     photosPublishEnabled instanceof HTMLInputElement ? photosPublishEnabled.checked === true : false;
@@ -2421,12 +2402,7 @@ function positionCoach(panel, anchor) {
   const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
   const intersects = (a, b) => {
-    return !(
-      b.right <= a.left ||
-      b.left >= a.right ||
-      b.bottom <= a.top ||
-      b.top >= a.bottom
-    );
+    return !(b.right <= a.left || b.left >= a.right || b.bottom <= a.top || b.top >= a.bottom);
   };
 
   const makeRect = (x, y) => ({
@@ -2438,10 +2414,7 @@ function positionCoach(panel, anchor) {
 
   const withinViewport = (rect) => {
     return (
-      rect.left >= margin &&
-      rect.top >= margin &&
-      rect.right <= viewportW - margin &&
-      rect.bottom <= viewportH - margin
+      rect.left >= margin && rect.top >= margin && rect.right <= viewportW - margin && rect.bottom <= viewportH - margin
     );
   };
 
@@ -2488,15 +2461,23 @@ function positionCoach(panel, anchor) {
 
   const fitting = candidates.filter((candidate) => withinViewport(candidate.rect));
   const nonOverlapping = fitting.filter((candidate) => !intersects(expandedAnchor, candidate.rect));
-  const best = (nonOverlapping[0] || fitting[0] || candidates[0]) || null;
+  const best = nonOverlapping[0] || fitting[0] || candidates[0] || null;
   if (!best) return;
 
   // If nothing fits without overlap, force above/below as last resort (still keep within viewport).
   let finalLeft = best.left;
   let finalTop = best.top;
   if (intersects(expandedAnchor, best.rect)) {
-    const belowTop = clamp(expandedAnchor.bottom + gap, margin, Math.max(margin, viewportH - panelRect.height - margin));
-    const aboveTop = clamp(expandedAnchor.top - gap - panelRect.height, margin, Math.max(margin, viewportH - panelRect.height - margin));
+    const belowTop = clamp(
+      expandedAnchor.bottom + gap,
+      margin,
+      Math.max(margin, viewportH - panelRect.height - margin)
+    );
+    const aboveTop = clamp(
+      expandedAnchor.top - gap - panelRect.height,
+      margin,
+      Math.max(margin, viewportH - panelRect.height - margin)
+    );
     const belowRect = makeRect(finalLeft, belowTop);
     const aboveRect = makeRect(finalLeft, aboveTop);
     if (withinViewport(belowRect) && !intersects(expandedAnchor, belowRect)) {
@@ -2720,10 +2701,7 @@ function formatControlLabelText(label) {
       parts.push(node.textContent || "");
     }
   });
-  return parts
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
 function getControlLabelById(id) {
@@ -2747,9 +2725,7 @@ function setDependentEnabled(element, enabled) {
   const shouldDisable = !enabled;
   const nodes = [];
   const controllerIds =
-    element instanceof HTMLElement
-      ? parseDependsOn(element.getAttribute("data-depends-on") || "")
-      : [];
+    element instanceof HTMLElement ? parseDependsOn(element.getAttribute("data-depends-on") || "") : [];
   const isStandaloneContainer =
     element instanceof HTMLElement &&
     element.matches(".mode-grid, .mode-toggle-grid, .settings-grid, .toolbar, details.multi-select");
@@ -2759,15 +2735,18 @@ function setDependentEnabled(element, enabled) {
       : element instanceof HTMLElement
         ? element
         : null;
-  const visualTarget = element instanceof HTMLElement ? element : (container instanceof HTMLElement ? container : null);
+  const visualTarget = element instanceof HTMLElement ? element : container instanceof HTMLElement ? container : null;
   const wasDisabled = visualTarget instanceof HTMLElement ? visualTarget.classList.contains("is-dep-disabled") : false;
 
-  if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement || element instanceof HTMLButtonElement) {
+  if (
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLSelectElement ||
+    element instanceof HTMLTextAreaElement ||
+    element instanceof HTMLButtonElement
+  ) {
     nodes.push(element);
   } else if (element instanceof HTMLElement) {
-    element
-      .querySelectorAll("input, select, textarea, button")
-      .forEach((node) => nodes.push(node));
+    element.querySelectorAll("input, select, textarea, button").forEach((node) => nodes.push(node));
   }
 
   nodes.forEach((node) => {
@@ -2798,7 +2777,8 @@ function setDependentEnabled(element, enabled) {
     });
   }
 
-  const isDisabledNow = visualTarget instanceof HTMLElement ? visualTarget.classList.contains("is-dep-disabled") : false;
+  const isDisabledNow =
+    visualTarget instanceof HTMLElement ? visualTarget.classList.contains("is-dep-disabled") : false;
   return wasDisabled !== isDisabledNow;
 }
 
@@ -2843,7 +2823,7 @@ function setupMultiSelectDropdowns() {
         updateMultiSelectDropdownDirection(node);
       });
     },
-    { passive: true },
+    { passive: true }
   );
 }
 
@@ -2863,7 +2843,7 @@ function openTransferOriginPicker() {
 
 function applyToggleDependencies() {
   const dependents = Array.from(document.querySelectorAll("[data-depends-on]")).filter(
-    (element) => element instanceof HTMLElement,
+    (element) => element instanceof HTMLElement
   );
 
   // Puede haber dependencias en cadena (A depende de X y B depende de A).
@@ -2927,7 +2907,7 @@ function initDependencyDisabledToasts() {
       event.stopPropagation();
       showToast(message, "is-warn", { timeoutMs: 4500 });
     },
-    true,
+    true
   );
 }
 
@@ -3148,9 +3128,7 @@ function initSetupModeControls() {
     closeCoach({ persistDismiss: false });
     if (isManual) {
       const focusTarget =
-        (storeNameInput && !storeNameInput.value.trim() ? storeNameInput : null) ||
-        shopifyDomain ||
-        storeNameInput;
+        (storeNameInput && !storeNameInput.value.trim() ? storeNameInput : null) || shopifyDomain || storeNameInput;
       if (focusTarget) focusFieldWithContext(focusTarget);
       return;
     }
@@ -3385,7 +3363,7 @@ async function loadCurrentUser() {
     currentUserId = user.id || null;
     currentUserIsSuperAdmin = Boolean(user.isSuperAdmin);
     const resolvedRole = resolveUserRole(user.role, user.isSuperAdmin);
-    const roleLabel = resolvedRole === "super_admin" ? "Super Admin" : (resolvedRole === "admin" ? "Admin" : "Agente");
+    const roleLabel = resolvedRole === "super_admin" ? "Super Admin" : resolvedRole === "admin" ? "Admin" : "Agente";
     if (userName) userName.textContent = user.name || user.email || "Usuario";
     if (userRole) userRole.textContent = roleLabel;
     if (userAvatar) {
@@ -3402,7 +3380,7 @@ async function loadCurrentUser() {
       currentUserId = user.id || null;
       currentUserIsSuperAdmin = Boolean(user.isSuperAdmin);
       const resolvedRole = resolveUserRole(user.role, user.isSuperAdmin);
-      const roleLabel = resolvedRole === "super_admin" ? "Super Admin" : (resolvedRole === "admin" ? "Admin" : "Agente");
+      const roleLabel = resolvedRole === "super_admin" ? "Super Admin" : resolvedRole === "admin" ? "Admin" : "Agente";
       if (userName) userName.textContent = user.name || user.email || "Usuario";
       if (userRole) userRole.textContent = roleLabel;
       if (userAvatar) {
@@ -3681,12 +3659,7 @@ function renderLogs(items) {
   queueStatus.classList.toggle("is-off", failedCount > 0);
   logTableBody.innerHTML = items
     .map((item) => {
-      const statusLabel =
-        item.status === "success"
-          ? "Exitoso"
-          : item.status === "retrying"
-          ? "Reintentando"
-          : "Error";
+      const statusLabel = item.status === "success" ? "Exitoso" : item.status === "retrying" ? "Reintentando" : "Error";
       return `
         <tr>
           <td>${formatDate(item.created_at)}</td>
@@ -3846,10 +3819,7 @@ function loadProductSettings() {
       };
     }
     const parsed = JSON.parse(raw);
-    const hasListLimit =
-      parsed &&
-      parsed.filters &&
-      Object.prototype.hasOwnProperty.call(parsed.filters, "listLimit");
+    const hasListLimit = parsed && parsed.filters && Object.prototype.hasOwnProperty.call(parsed.filters, "listLimit");
     const nextSync = { ...DEFAULT_PRODUCT_SETTINGS.sync, ...(parsed.sync || {}) };
     const nextFilters = { ...DEFAULT_PRODUCT_SETTINGS.filters, ...(parsed.filters || {}) };
     if (!Array.isArray(nextFilters.warehouseIds)) {
@@ -4072,7 +4042,7 @@ function setModuleReadonly(panel, readonly) {
   const controls = panel.querySelectorAll("input, select, textarea");
   controls.forEach((control) => {
     if (control.closest(".panel-actions") || control.closest(".module-footer")) return;
-    if (control.closest("[data-readonly-free=\"1\"]")) return;
+    if (control.closest('[data-readonly-free="1"]')) return;
     // Los toggles/controladores de dependencias deben poder cambiarse aun en modo readonly.
     // Ej: toggles padre en encabezados (Activar automático / Procesar pedidos / etc.).
     if (control instanceof HTMLElement && control.getAttribute("data-dep-controller") === "1") {
@@ -4087,7 +4057,7 @@ function setModuleReadonly(panel, readonly) {
   });
   panel.querySelectorAll("details").forEach((details) => {
     if (!readonly) return;
-    if (details.closest("[data-readonly-free=\"1\"]")) return;
+    if (details.closest('[data-readonly-free="1"]')) return;
     // UX: mantener el estado visual; solo bloqueamos interacciones por CSS.
   });
 }
@@ -4222,31 +4192,31 @@ function setModulePrereqWarning(moduleKey, message) {
   }
 }
 
-	function clearInvoiceErrors() {
-	  clearFieldError(cfgResolution);
-	  clearFieldError(cfgWarehouse);
-	  clearFieldError(cfgPaymentMethod);
-	  clearFieldError(cfgBankAccount);
-	  clearFieldError(cfgApplyPayment);
-	  clearFieldError(cfgEinvoiceEnabled);
-	  clearFieldError(cfgObservationsExtra);
-	  clearFieldWarning(cfgResolution);
-	  clearFieldWarning(cfgWarehouse);
-	  clearFieldWarning(cfgPaymentMethod);
-	  clearFieldWarning(cfgBankAccount);
-	  clearFieldWarning(cfgApplyPayment);
-	  clearFieldWarning(cfgEinvoiceEnabled);
-	  setModuleWarning("alegra-invoice", "");
-	}
+function clearInvoiceErrors() {
+  clearFieldError(cfgResolution);
+  clearFieldError(cfgWarehouse);
+  clearFieldError(cfgPaymentMethod);
+  clearFieldError(cfgBankAccount);
+  clearFieldError(cfgApplyPayment);
+  clearFieldError(cfgEinvoiceEnabled);
+  clearFieldError(cfgObservationsExtra);
+  clearFieldWarning(cfgResolution);
+  clearFieldWarning(cfgWarehouse);
+  clearFieldWarning(cfgPaymentMethod);
+  clearFieldWarning(cfgBankAccount);
+  clearFieldWarning(cfgApplyPayment);
+  clearFieldWarning(cfgEinvoiceEnabled);
+  setModuleWarning("alegra-invoice", "");
+}
 
-	function clearTransferErrors() {
-	  clearFieldError(cfgTransferDestMode);
-	  clearFieldWarning(cfgTransferDestMode);
-	  clearFieldError(cfgTransferDest);
-	  clearFieldWarning(cfgTransferDest);
-	  if (cfgTransferOriginField) {
-	    const target = cfgTransferOriginField.querySelector("details") || cfgTransferOriginField;
-	    clearFieldError(target);
+function clearTransferErrors() {
+  clearFieldError(cfgTransferDestMode);
+  clearFieldWarning(cfgTransferDestMode);
+  clearFieldError(cfgTransferDest);
+  clearFieldWarning(cfgTransferDest);
+  if (cfgTransferOriginField) {
+    const target = cfgTransferOriginField.querySelector("details") || cfgTransferOriginField;
+    clearFieldError(target);
     clearFieldWarning(target);
   }
   setModuleWarning("alegra-logistics", "");
@@ -4255,8 +4225,7 @@ function setModulePrereqWarning(moduleKey, message) {
 function focusFieldWithContext(field) {
   if (!(field instanceof HTMLElement)) return;
   const pathname = window?.location?.pathname || "";
-  const allowSettingsFocus =
-    document.body.classList.contains("force-settings") || isSettingsPath(pathname);
+  const allowSettingsFocus = document.body.classList.contains("force-settings") || isSettingsPath(pathname);
   if (!allowSettingsFocus) {
     return;
   }
@@ -4283,13 +4252,7 @@ function resolveWizardFocusableTarget(target) {
 
   // If it is already a focusable control, use it.
   const tag = target.tagName;
-  if (
-    tag === "INPUT" ||
-    tag === "SELECT" ||
-    tag === "TEXTAREA" ||
-    tag === "BUTTON" ||
-    tag === "SUMMARY"
-  ) {
+  if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || tag === "BUTTON" || tag === "SUMMARY") {
     return target;
   }
 
@@ -4325,8 +4288,7 @@ function validateInitialConnection(kind) {
   const activeDomain = normalizeShopDomain(activeStoreDomain || "");
   const resolvedDomain = domainInput || activeDomain;
   const hasActiveContext = Boolean(activeDomain);
-  const selectedStoreId =
-    connectionStoreSelect instanceof HTMLSelectElement ? connectionStoreSelect.value : "";
+  const selectedStoreId = connectionStoreSelect instanceof HTMLSelectElement ? connectionStoreSelect.value : "";
   const selectedStore = getStoreByIdFromCatalog(selectedStoreId);
   const resolvedName = selectedStore ? selectedStore.name : "";
   const hasShopifyContext = Boolean(resolvedDomain);
@@ -4374,47 +4336,41 @@ function validateInitialConnection(kind) {
 
 function validateInvoiceModule() {
   clearInvoiceErrors();
-  const einvoiceOn =
-    cfgEinvoiceEnabled instanceof HTMLInputElement ? Boolean(cfgEinvoiceEnabled.checked) : false;
+  const einvoiceOn = cfgEinvoiceEnabled instanceof HTMLInputElement ? Boolean(cfgEinvoiceEnabled.checked) : false;
   const ordersShopifyEnabled =
-    syncOrdersShopifyEnabled instanceof HTMLInputElement
-      ? Boolean(syncOrdersShopifyEnabled.checked)
-      : true;
-	  const orderMode =
-	    ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
-	  const generateInvoice =
-	    cfgGenerateInvoice instanceof HTMLInputElement
-	      ? Boolean(cfgGenerateInvoice.checked)
-	      : orderMode === "invoice";
-	  const invoiceRequired = orderMode === "invoice" && generateInvoice;
-	  if (!generateInvoice) {
-	    setModuleWarning("alegra-invoice", "");
-	    return true;
-	  }
-	  const errors = [];
-	  const recommendations = [];
-		  if (cfgApplyPayment && cfgApplyPayment.checked) {
-		    if (!cfgPaymentMethod || !String(cfgPaymentMethod.value || "").trim()) {
-		      if (invoiceRequired) {
-		        errors.push({
-		          field: cfgPaymentMethod,
-		          message: "Método de pago requerido (o apaga “Aplicar pago”).",
-		        });
-		      } else {
-		        recommendations.push("Método de pago");
-		      }
-		    }
-		    if (!cfgBankAccount || !String(cfgBankAccount.value || "").trim()) {
-		      if (invoiceRequired) {
-		        errors.push({
-		          field: cfgBankAccount,
-		          message: "Cuenta bancaria requerida (o apaga “Aplicar pago”).",
-		        });
-		      } else {
-		        recommendations.push("Cuenta bancaria");
-		      }
-		    }
-		  }
+    syncOrdersShopifyEnabled instanceof HTMLInputElement ? Boolean(syncOrdersShopifyEnabled.checked) : true;
+  const orderMode = ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
+  const generateInvoice =
+    cfgGenerateInvoice instanceof HTMLInputElement ? Boolean(cfgGenerateInvoice.checked) : orderMode === "invoice";
+  const invoiceRequired = orderMode === "invoice" && generateInvoice;
+  if (!generateInvoice) {
+    setModuleWarning("alegra-invoice", "");
+    return true;
+  }
+  const errors = [];
+  const recommendations = [];
+  if (cfgApplyPayment && cfgApplyPayment.checked) {
+    if (!cfgPaymentMethod || !String(cfgPaymentMethod.value || "").trim()) {
+      if (invoiceRequired) {
+        errors.push({
+          field: cfgPaymentMethod,
+          message: "Método de pago requerido (o apaga “Aplicar pago”).",
+        });
+      } else {
+        recommendations.push("Método de pago");
+      }
+    }
+    if (!cfgBankAccount || !String(cfgBankAccount.value || "").trim()) {
+      if (invoiceRequired) {
+        errors.push({
+          field: cfgBankAccount,
+          message: "Cuenta bancaria requerida (o apaga “Aplicar pago”).",
+        });
+      } else {
+        recommendations.push("Cuenta bancaria");
+      }
+    }
+  }
 
   if (einvoiceOn) {
     if (!cfgResolution || !String(cfgResolution.value || "").trim()) {
@@ -4425,10 +4381,10 @@ function validateInvoiceModule() {
       }
     }
   }
-	  if (errors.length) {
-	    errors.forEach((item) => {
-	      if (item.field) markFieldError(item.field, item.message);
-	    });
+  if (errors.length) {
+    errors.forEach((item) => {
+      if (item.field) markFieldError(item.field, item.message);
+    });
     const first = errors.find((item) => item.field)?.field;
     if (first) focusFieldWithContext(first);
     return false;
@@ -4437,10 +4393,10 @@ function validateInvoiceModule() {
     if (einvoiceOn && (!cfgResolution || !String(cfgResolution.value || "").trim())) {
       markFieldWarning(cfgResolution, "Recomendado: Resolución DIAN.");
     }
-		    const message = `Recomendado: ${recommendations.join(", ")}.`;
-		    setModuleWarning("alegra-invoice", message);
-		    if (orderMode === "invoice") {
-		      setModuleWarning("sync-orders", "Recomendado: completa Facturacion y Logistica.");
+    const message = `Recomendado: ${recommendations.join(", ")}.`;
+    setModuleWarning("alegra-invoice", message);
+    if (orderMode === "invoice") {
+      setModuleWarning("sync-orders", "Recomendado: completa Facturacion y Logistica.");
     } else {
       setModuleWarning("sync-orders", "");
     }
@@ -4452,32 +4408,32 @@ function validateInvoiceModule() {
   return true;
 }
 
-	function validateLogisticsModule() {
-	  clearTransferErrors();
-	  if (!cfgTransferEnabled || !cfgTransferEnabled.checked) {
-	    return true;
-	  }
-	  const errors = [];
-	  const destinationMode = getTransferDestinationMode();
-	  const destinationRequired = isTransferDestinationRequired();
-	  const strategy = cfgTransferStrategy ? cfgTransferStrategy.value || "manual" : "manual";
-	  const selectedOrigins = getSelectedTransferOriginIds();
-	  if (destinationRequired) {
-	    if (!cfgTransferDest || !String(cfgTransferDest.value || "").trim()) {
-	      errors.push({
-	        field: destinationMode === "auto" ? cfgTransferDestMode : cfgTransferDest,
-	        message:
-	          destinationMode === "auto"
-	            ? "Define el destino automático (usa Bodega prioritaria o cambia a Fija)."
-	            : "Bodega destino requerida.",
-	      });
-	    }
-	  }
-	  if (strategy === "manual" && !selectedOrigins.length) {
-	    const target = cfgTransferOriginField || cfgTransferOrigin;
-	    errors.push({ field: target, message: "Selecciona bodegas origen." });
-	  }
-	  if (errors.length) {
+function validateLogisticsModule() {
+  clearTransferErrors();
+  if (!cfgTransferEnabled || !cfgTransferEnabled.checked) {
+    return true;
+  }
+  const errors = [];
+  const destinationMode = getTransferDestinationMode();
+  const destinationRequired = isTransferDestinationRequired();
+  const strategy = cfgTransferStrategy ? cfgTransferStrategy.value || "manual" : "manual";
+  const selectedOrigins = getSelectedTransferOriginIds();
+  if (destinationRequired) {
+    if (!cfgTransferDest || !String(cfgTransferDest.value || "").trim()) {
+      errors.push({
+        field: destinationMode === "auto" ? cfgTransferDestMode : cfgTransferDest,
+        message:
+          destinationMode === "auto"
+            ? "Define el destino automático (usa Bodega prioritaria o cambia a Fija)."
+            : "Bodega destino requerida.",
+      });
+    }
+  }
+  if (strategy === "manual" && !selectedOrigins.length) {
+    const target = cfgTransferOriginField || cfgTransferOrigin;
+    errors.push({ field: target, message: "Selecciona bodegas origen." });
+  }
+  if (errors.length) {
     errors.forEach((item) => {
       if (item.field) markFieldError(item.field, item.message);
     });
@@ -4491,11 +4447,8 @@ function validateInvoiceModule() {
 
 function validateOrdersModule() {
   const ordersShopifyEnabled =
-    syncOrdersShopifyEnabled instanceof HTMLInputElement
-      ? Boolean(syncOrdersShopifyEnabled.checked)
-      : true;
-  const orderMode =
-    ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
+    syncOrdersShopifyEnabled instanceof HTMLInputElement ? Boolean(syncOrdersShopifyEnabled.checked) : true;
+  const orderMode = ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
   if (orderMode === "invoice") {
     validateInvoiceModule();
     validateLogisticsModule();
@@ -4590,16 +4543,11 @@ function shouldSkipWizardStep(moduleKey) {
     return Boolean(targetDomain && isAlegraConnectedForDomain(targetDomain));
   }
   const ordersShopifyEnabled =
-    syncOrdersShopifyEnabled instanceof HTMLInputElement
-      ? Boolean(syncOrdersShopifyEnabled.checked)
-      : true;
-  const orderMode =
-    ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
+    syncOrdersShopifyEnabled instanceof HTMLInputElement ? Boolean(syncOrdersShopifyEnabled.checked) : true;
+  const orderMode = ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
   if (moduleKey === "alegra-invoice") {
     const generateInvoice =
-      cfgGenerateInvoice instanceof HTMLInputElement
-        ? Boolean(cfgGenerateInvoice.checked)
-        : orderMode === "invoice";
+      cfgGenerateInvoice instanceof HTMLInputElement ? Boolean(cfgGenerateInvoice.checked) : orderMode === "invoice";
     return !generateInvoice;
   }
   if (moduleKey === "alegra-logistics") {
@@ -4729,11 +4677,8 @@ function getWizardModuleStatus(moduleKey) {
     return { complete: false, focusTarget: null };
   }
   const ordersShopifyEnabled =
-    syncOrdersShopifyEnabled instanceof HTMLInputElement
-      ? Boolean(syncOrdersShopifyEnabled.checked)
-      : true;
-  const orderMode =
-    ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
+    syncOrdersShopifyEnabled instanceof HTMLInputElement ? Boolean(syncOrdersShopifyEnabled.checked) : true;
+  const orderMode = ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
   if (moduleKey === "sync-orders") {
     const needsAutomation = Boolean(syncOrdersShopifyEnabled?.checked);
     if (needsAutomation && !shopifyWebhooksStatus?.classList.contains("is-ok")) {
@@ -4743,12 +4688,9 @@ function getWizardModuleStatus(moduleKey) {
   }
   if (moduleKey === "alegra-invoice") {
     const generateInvoice =
-      cfgGenerateInvoice instanceof HTMLInputElement
-        ? Boolean(cfgGenerateInvoice.checked)
-        : orderMode === "invoice";
+      cfgGenerateInvoice instanceof HTMLInputElement ? Boolean(cfgGenerateInvoice.checked) : orderMode === "invoice";
     if (!generateInvoice) return { complete: true, focusTarget: null };
-    const einvoiceOn =
-      cfgEinvoiceEnabled instanceof HTMLInputElement ? Boolean(cfgEinvoiceEnabled.checked) : false;
+    const einvoiceOn = cfgEinvoiceEnabled instanceof HTMLInputElement ? Boolean(cfgEinvoiceEnabled.checked) : false;
     if (einvoiceOn && (!cfgResolution || !String(cfgResolution.value || "").trim())) {
       return { complete: false, focusTarget: cfgResolution };
     }
@@ -4756,12 +4698,12 @@ function getWizardModuleStatus(moduleKey) {
       if (!cfgPaymentMethod || !String(cfgPaymentMethod.value || "").trim()) {
         return { complete: false, focusTarget: cfgPaymentMethod };
       }
-	      if (!cfgBankAccount || !String(cfgBankAccount.value || "").trim()) {
-	        return { complete: false, focusTarget: cfgBankAccount };
-	      }
-	    }
-		    return { complete: true, focusTarget: null };
-		  }
+      if (!cfgBankAccount || !String(cfgBankAccount.value || "").trim()) {
+        return { complete: false, focusTarget: cfgBankAccount };
+      }
+    }
+    return { complete: true, focusTarget: null };
+  }
   if (moduleKey === "alegra-logistics") {
     if (orderMode === "off" || orderMode === "db_only") return { complete: true, focusTarget: null };
     if (cfgTransferEnabled && !cfgTransferEnabled.checked) {
@@ -4774,9 +4716,7 @@ function getWizardModuleStatus(moduleKey) {
     const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
     const requiresOrigins = strategy === "manual" || fallback === "manual";
     if (requiresOrigins && !getSelectedTransferOriginIds().length) {
-      const summary = cfgTransferOriginField
-        ? cfgTransferOriginField.querySelector("summary")
-        : null;
+      const summary = cfgTransferOriginField ? cfgTransferOriginField.querySelector("summary") : null;
       return { complete: false, focusTarget: summary || cfgTransferOriginField };
     }
     return { complete: true, focusTarget: null };
@@ -4820,7 +4760,7 @@ function setModuleEnabled(panel, enabled) {
     if (button.classList.contains("module-action")) return;
     if (button.closest(".module-footer")) return;
     if (button.hasAttribute("data-nav-to")) return;
-    if (button.closest("[data-readonly-free=\"1\"]")) return;
+    if (button.closest('[data-readonly-free="1"]')) return;
     button.disabled = !enabled;
   });
 }
@@ -4830,7 +4770,7 @@ function setModulePrereqButtons(panel, disabled) {
   panel.querySelectorAll("button").forEach((button) => {
     if (!(button instanceof HTMLButtonElement)) return;
     if (button.closest(".panel-header")) return;
-    if (button.closest("[data-readonly-free=\"1\"]")) return;
+    if (button.closest('[data-readonly-free="1"]')) return;
     if (disabled) {
       if (!button.dataset.prereqDisabled) {
         button.dataset.prereqDisabled = "true";
@@ -4853,11 +4793,7 @@ function getActiveStore() {
   }
   const domain = normalizeShopDomain(activeStoreDomain || "");
   if (!domain) return null;
-  return (
-    storesCache.find(
-      (store) => normalizeShopDomain(store.shopDomain || "") === domain
-    ) || null
-  );
+  return storesCache.find((store) => normalizeShopDomain(store.shopDomain || "") === domain) || null;
 }
 
 function getStoreConnections(store) {
@@ -4869,7 +4805,9 @@ function getStoreConnections(store) {
     const wooOk =
       Boolean(store?.woo?.ok) ||
       (Array.isArray(wooStoresCache) &&
-        wooStoresCache.some((wooStore) => String(wooStore.storeId || wooStore.store_id || "") === String(store?.id || "")));
+        wooStoresCache.some(
+          (wooStore) => String(wooStore.storeId || wooStore.store_id || "") === String(store?.id || "")
+        ));
     return { shopifyConnected: shopifyOk, alegraConnected: alegraOk, wooConnected: wooOk };
   }
   return {
@@ -4877,7 +4815,9 @@ function getStoreConnections(store) {
     alegraConnected: Boolean(store?.alegraConnected ?? store?.alegraAccountId),
     wooConnected:
       Array.isArray(wooStoresCache) &&
-      wooStoresCache.some((wooStore) => String(wooStore.storeId || wooStore.store_id || "") === String(store?.id || "")),
+      wooStoresCache.some(
+        (wooStore) => String(wooStore.storeId || wooStore.store_id || "") === String(store?.id || "")
+      ),
   };
 }
 
@@ -4889,7 +4829,10 @@ function resolvePrereqState(requirements, context) {
   }
   if (requirements.shopify && requirements.alegra) {
     if (!commerceConnected && !alegraConnected) {
-    return { enabled: false, message: "Conecta una plataforma de e‑commerce y una contable para activar este modulo." };
+      return {
+        enabled: false,
+        message: "Conecta una plataforma de e‑commerce y una contable para activar este modulo.",
+      };
     }
     if (!commerceConnected) {
       return { enabled: false, message: "Conecta una plataforma de e‑commerce para activar este modulo." };
@@ -5019,7 +4962,7 @@ function setModuleBridgeTag(moduleKey, text) {
 
 function applyEcommerceLogo(label) {
   const logos = document.querySelectorAll(
-    '.settings-title-logos .provider-logo.is-shopify, .settings-group .provider-logo.is-shopify'
+    ".settings-title-logos .provider-logo.is-shopify, .settings-group .provider-logo.is-shopify"
   );
   if (!logos.length) return;
   const useWoo = label.startsWith("WooCommerce");
@@ -5091,16 +5034,12 @@ function applyDynamicLabelTemplates({ commerceLabel, accountingLabel }) {
   document.querySelectorAll("[data-label-template]").forEach((node) => {
     const template = node.getAttribute("data-label-template") || "";
     if (!template) return;
-    node.textContent = template
-      .replaceAll("{commerce}", commerceLabel)
-      .replaceAll("{accounting}", accountingLabel);
+    node.textContent = template.replaceAll("{commerce}", commerceLabel).replaceAll("{accounting}", accountingLabel);
   });
   document.querySelectorAll("[data-title-template]").forEach((node) => {
     const template = node.getAttribute("data-title-template") || "";
     if (!template) return;
-    node.textContent = template
-      .replaceAll("{commerce}", commerceLabel)
-      .replaceAll("{accounting}", accountingLabel);
+    node.textContent = template.replaceAll("{commerce}", commerceLabel).replaceAll("{accounting}", accountingLabel);
   });
 }
 
@@ -5153,9 +5092,7 @@ function replacePlatformLabelsInSettings({ commerceLabel, accountingLabel }) {
       node.__apiflujosPlatformTemplate = node.nodeValue;
     }
     const template = node.__apiflujosPlatformTemplate;
-    const next = template
-      .replaceAll("E‑commerce", commerceLabel)
-      .replaceAll("Contable", accountingLabel);
+    const next = template.replaceAll("E‑commerce", commerceLabel).replaceAll("Contable", accountingLabel);
     if (next !== node.nodeValue) {
       node.nodeValue = next;
     }
@@ -5197,14 +5134,10 @@ function updateStoreSyncTitle() {
     return current || "shopify";
   };
   const source = resolveProvider(
-    storeSyncSourceProviderSelect instanceof HTMLSelectElement
-      ? storeSyncSourceProviderSelect.value
-      : ""
+    storeSyncSourceProviderSelect instanceof HTMLSelectElement ? storeSyncSourceProviderSelect.value : ""
   );
   const target = resolveProvider(
-    storeSyncTargetProviderSelect instanceof HTMLSelectElement
-      ? storeSyncTargetProviderSelect.value
-      : ""
+    storeSyncTargetProviderSelect instanceof HTMLSelectElement ? storeSyncTargetProviderSelect.value : ""
   );
   if (storeSyncSourceProviderSelect instanceof HTMLSelectElement) {
     storeSyncSourceProviderSelect.value = source;
@@ -5354,11 +5287,8 @@ function updatePrerequisites() {
   const hasStore = Boolean(store);
   const storeConnections = getStoreConnections(store);
   const ordersShopifyEnabled =
-    syncOrdersShopifyEnabled instanceof HTMLInputElement
-      ? Boolean(syncOrdersShopifyEnabled.checked)
-      : true;
-  const orderMode =
-    ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
+    syncOrdersShopifyEnabled instanceof HTMLInputElement ? Boolean(syncOrdersShopifyEnabled.checked) : true;
+  const orderMode = ordersShopifyEnabled && syncOrdersShopify ? syncOrdersShopify.value : "off";
   const storeContext = {
     hasStore,
     shopifyConnected: storeConnections.shopifyConnected,
@@ -5388,9 +5318,7 @@ function updatePrerequisites() {
 
 function updateInvoicesBackfillUi() {
   const createShopify =
-    invoicesBackfillCreateShopify instanceof HTMLInputElement
-      ? Boolean(invoicesBackfillCreateShopify.checked)
-      : false;
+    invoicesBackfillCreateShopify instanceof HTMLInputElement ? Boolean(invoicesBackfillCreateShopify.checked) : false;
   if (invoicesBackfillModeField instanceof HTMLElement) {
     invoicesBackfillModeField.hidden = !createShopify;
   }
@@ -5401,9 +5329,7 @@ function updateInvoicesBackfillUi() {
 
 function updateAlegraOrdersAutoUi() {
   const enabled =
-    syncOrdersAlegraEnabled instanceof HTMLInputElement
-      ? Boolean(syncOrdersAlegraEnabled.checked)
-      : false;
+    syncOrdersAlegraEnabled instanceof HTMLInputElement ? Boolean(syncOrdersAlegraEnabled.checked) : false;
   if (syncOrdersAlegraModeField instanceof HTMLElement) {
     syncOrdersAlegraModeField.hidden = !enabled;
   }
@@ -5433,54 +5359,52 @@ function applyOrderToggle(select, toggle, fallbackValue) {
 }
 
 function isInvoiceSetupComplete() {
-  const einvoiceOn =
-    cfgEinvoiceEnabled instanceof HTMLInputElement ? Boolean(cfgEinvoiceEnabled.checked) : false;
+  const einvoiceOn = cfgEinvoiceEnabled instanceof HTMLInputElement ? Boolean(cfgEinvoiceEnabled.checked) : false;
   const resolutionOk = Boolean(cfgResolution && String(cfgResolution.value || "").trim());
   if (einvoiceOn && !resolutionOk) return false;
   if (cfgApplyPayment instanceof HTMLInputElement && cfgApplyPayment.checked) {
     const paymentMethodOk = Boolean(cfgPaymentMethod && String(cfgPaymentMethod.value || "").trim());
     if (!paymentMethodOk) return false;
     const bankOk = Boolean(cfgBankAccount && String(cfgBankAccount.value || "").trim());
-	    if (!bankOk) return false;
-	  }
-	  return true;
-	}
+    if (!bankOk) return false;
+  }
+  return true;
+}
 
 function focusInvoiceSetupFirstMissing() {
-  const einvoiceOn =
-    cfgEinvoiceEnabled instanceof HTMLInputElement ? Boolean(cfgEinvoiceEnabled.checked) : false;
+  const einvoiceOn = cfgEinvoiceEnabled instanceof HTMLInputElement ? Boolean(cfgEinvoiceEnabled.checked) : false;
   const resolutionOk = Boolean(cfgResolution && String(cfgResolution.value || "").trim());
   if (einvoiceOn && !resolutionOk && cfgResolution) {
     focusFieldWithContext(cfgResolution);
     return;
   }
-	  if (cfgApplyPayment instanceof HTMLInputElement && cfgApplyPayment.checked) {
-	    const paymentMethodOk = Boolean(cfgPaymentMethod && String(cfgPaymentMethod.value || "").trim());
-	    if (!paymentMethodOk && cfgPaymentMethod) {
-	      focusFieldWithContext(cfgPaymentMethod);
-	      return;
-	    }
-	    const bankOk = Boolean(cfgBankAccount && String(cfgBankAccount.value || "").trim());
-	    if (!bankOk && cfgBankAccount) {
-	      focusFieldWithContext(cfgBankAccount);
-	    }
-	  }
-	}
+  if (cfgApplyPayment instanceof HTMLInputElement && cfgApplyPayment.checked) {
+    const paymentMethodOk = Boolean(cfgPaymentMethod && String(cfgPaymentMethod.value || "").trim());
+    if (!paymentMethodOk && cfgPaymentMethod) {
+      focusFieldWithContext(cfgPaymentMethod);
+      return;
+    }
+    const bankOk = Boolean(cfgBankAccount && String(cfgBankAccount.value || "").trim());
+    if (!bankOk && cfgBankAccount) {
+      focusFieldWithContext(cfgBankAccount);
+    }
+  }
+}
 
-	function isTransferSetupComplete() {
-	  if (!(cfgTransferEnabled instanceof HTMLInputElement) || !cfgTransferEnabled.checked) {
-	    return false;
-	  }
-	  const destinationMode = getTransferDestinationMode();
-	  const destinationRequired = isTransferDestinationRequired();
-	  const destinationOk = !destinationRequired
-	    ? true
-	    : Boolean(cfgTransferDest && String(cfgTransferDest.value || "").trim());
-	  if (!destinationOk) return false;
-	  const strategy = cfgTransferStrategy ? cfgTransferStrategy.value || "manual" : "manual";
-	  const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
-	  const requiresOrigins = strategy === "manual" || fallback === "manual";
-	  if (!requiresOrigins) return true;
+function isTransferSetupComplete() {
+  if (!(cfgTransferEnabled instanceof HTMLInputElement) || !cfgTransferEnabled.checked) {
+    return false;
+  }
+  const destinationMode = getTransferDestinationMode();
+  const destinationRequired = isTransferDestinationRequired();
+  const destinationOk = !destinationRequired
+    ? true
+    : Boolean(cfgTransferDest && String(cfgTransferDest.value || "").trim());
+  if (!destinationOk) return false;
+  const strategy = cfgTransferStrategy ? cfgTransferStrategy.value || "manual" : "manual";
+  const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
+  const requiresOrigins = strategy === "manual" || fallback === "manual";
+  if (!requiresOrigins) return true;
   const originSelectAll = cfgTransferOrigin
     ? cfgTransferOrigin.querySelector('input[data-select-all="transfer-origin"]')
     : null;
@@ -5488,23 +5412,23 @@ function focusInvoiceSetupFirstMissing() {
   return getSelectedTransferOriginIds().length > 0;
 }
 
-	function focusTransferSetupFirstMissing() {
-	  if (cfgTransferEnabled instanceof HTMLInputElement && !cfgTransferEnabled.checked) {
-	    focusFieldWithContext(cfgTransferEnabled);
-	    return;
-	  }
-	  const destinationMode = getTransferDestinationMode();
-	  const destinationRequired = isTransferDestinationRequired();
-	  if (destinationRequired) {
-	    if (cfgTransferDest && !String(cfgTransferDest.value || "").trim()) {
-	      focusFieldWithContext(destinationMode === "auto" ? cfgTransferDestMode : cfgTransferDest);
-	      return;
-	    }
-	  }
-	  const strategy = cfgTransferStrategy ? cfgTransferStrategy.value || "manual" : "manual";
-	  const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
-	  const requiresOrigins = strategy === "manual" || fallback === "manual";
-	  if (!requiresOrigins) return;
+function focusTransferSetupFirstMissing() {
+  if (cfgTransferEnabled instanceof HTMLInputElement && !cfgTransferEnabled.checked) {
+    focusFieldWithContext(cfgTransferEnabled);
+    return;
+  }
+  const destinationMode = getTransferDestinationMode();
+  const destinationRequired = isTransferDestinationRequired();
+  if (destinationRequired) {
+    if (cfgTransferDest && !String(cfgTransferDest.value || "").trim()) {
+      focusFieldWithContext(destinationMode === "auto" ? cfgTransferDestMode : cfgTransferDest);
+      return;
+    }
+  }
+  const strategy = cfgTransferStrategy ? cfgTransferStrategy.value || "manual" : "manual";
+  const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
+  const requiresOrigins = strategy === "manual" || fallback === "manual";
+  if (!requiresOrigins) return;
   const originSelectAll = cfgTransferOrigin
     ? cfgTransferOrigin.querySelector('input[data-select-all="transfer-origin"]')
     : null;
@@ -5516,25 +5440,22 @@ function focusInvoiceSetupFirstMissing() {
   focusFieldWithContext(summary || cfgTransferOriginField || cfgTransferOrigin);
 }
 
-	function warnIfShopifyOrdersInvoiceNotReady() {
-	  if (!(syncOrdersShopify instanceof HTMLSelectElement)) return true;
-	  if (syncOrdersShopify.value !== "invoice") return true;
-	  if (!isTransferSetupComplete()) {
-	    showToast(
-	      "Antes de crear factura, configura Logistica e inventario (Traslados + Destino + Bodegas origen).",
-	      "is-warn",
-	    );
-	    focusTransferSetupFirstMissing();
-	    return false;
-	  }
-	  if (isInvoiceSetupComplete()) return true;
-	  showToast(
-	    "Para crear facturas en Alegra, completa Facturacion (Resolucion + pagos si aplica).",
-	    "is-warn",
-	  );
-	  focusInvoiceSetupFirstMissing();
-	  return false;
-	}
+function warnIfShopifyOrdersInvoiceNotReady() {
+  if (!(syncOrdersShopify instanceof HTMLSelectElement)) return true;
+  if (syncOrdersShopify.value !== "invoice") return true;
+  if (!isTransferSetupComplete()) {
+    showToast(
+      "Antes de crear factura, configura Logistica e inventario (Traslados + Destino + Bodegas origen).",
+      "is-warn"
+    );
+    focusTransferSetupFirstMissing();
+    return false;
+  }
+  if (isInvoiceSetupComplete()) return true;
+  showToast("Para crear facturas en Alegra, completa Facturacion (Resolucion + pagos si aplica).", "is-warn");
+  focusInvoiceSetupFirstMissing();
+  return false;
+}
 
 function applySetupModeUI(mode) {
   const panel = getModulePanel("connections");
@@ -5581,8 +5502,7 @@ function initSetupMode(storesCount = 0) {
   clearWizardState();
   closeCoach({ persistDismiss: false });
   const panel = getModulePanel("connections");
-  const activePane =
-    document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
+  const activePane = document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
   const shouldOpen = activePane === "connections";
   setConnectionsSetupOpen(shouldOpen);
 }
@@ -5694,7 +5614,7 @@ async function openWizardStep() {
   const focusTarget =
     next.focusTarget ||
     getWizardModuleStatus(next.moduleKey).focusTarget ||
-    panel.querySelector("input:not([type=\"hidden\"]), select, textarea, summary, button");
+    panel.querySelector('input:not([type="hidden"]), select, textarea, summary, button');
   if (focusTarget instanceof HTMLElement) {
     // En wizard el foco debe quedar EXACTO en el campo/toggle/selector.
     focusWizardTarget(focusTarget);
@@ -5702,8 +5622,7 @@ async function openWizardStep() {
   if (!isCoachDismissed()) {
     const stepTitle = getWizardModuleTitle(next.moduleKey);
     const defaultTextMap = {
-      "shopify-rules":
-        "Elige los 3 modos: masivo, automatico y manual.\nLuego guarda para continuar.",
+      "shopify-rules": "Elige los 3 modos: masivo, automatico y manual.\nLuego guarda para continuar.",
       "alegra-inventory":
         "Configura inventario/bodegas (bodegas fuente y sincronizacion automatica).\nLuego guarda para continuar.",
       "sync-orders":
@@ -5766,7 +5685,7 @@ async function handleModuleSave(moduleKey, options = {}) {
   if (!moduleKey) return;
   const { silentValidation = false, showStatus = true } = options || {};
   const panel = getModulePanel(moduleKey);
-	  const saveActions = {
+  const saveActions = {
     ai: async () => {
       await saveSettings({ includeAi: true });
     },
@@ -5784,19 +5703,19 @@ async function handleModuleSave(moduleKey, options = {}) {
     "alegra-logistics": async () => {
       await saveStoreConfigFromSettings();
     },
-	    "shopify-rules": async () => {
-	      await saveStoreConfigFromSettings();
-	    },
-      "shopify-products-to-alegra": async () => {
-        await saveStoreConfigFromSettings();
-      },
-	    "sync-contacts": async () => {
-	      await saveStoreConfigFromSettings();
-	    },
-	    "sync-orders": async () => {
-	      await saveStoreConfigFromSettings();
-	    },
-	  };
+    "shopify-rules": async () => {
+      await saveStoreConfigFromSettings();
+    },
+    "shopify-products-to-alegra": async () => {
+      await saveStoreConfigFromSettings();
+    },
+    "sync-contacts": async () => {
+      await saveStoreConfigFromSettings();
+    },
+    "sync-orders": async () => {
+      await saveStoreConfigFromSettings();
+    },
+  };
   const action = saveActions[moduleKey];
   if (!action) return;
   try {
@@ -5812,48 +5731,48 @@ async function handleModuleSave(moduleKey, options = {}) {
       throw new Error("Completa los campos obligatorios.");
     }
     await action();
-	    if (
-	      showStatus &&
-	      (moduleKey === "alegra-invoice" ||
-	        moduleKey === "alegra-inventory" ||
-	        moduleKey === "alegra-logistics" ||
-	        moduleKey === "shopify-rules" ||
-          moduleKey === "shopify-products-to-alegra" ||
-	        moduleKey === "sync-contacts" ||
-	        moduleKey === "sync-orders")
-	    ) {
+    if (
+      showStatus &&
+      (moduleKey === "alegra-invoice" ||
+        moduleKey === "alegra-inventory" ||
+        moduleKey === "alegra-logistics" ||
+        moduleKey === "shopify-rules" ||
+        moduleKey === "shopify-products-to-alegra" ||
+        moduleKey === "sync-contacts" ||
+        moduleKey === "sync-orders")
+    ) {
       if (hadWarning) setStoreConfigStatus("Guardado con recomendaciones pendientes.", "is-warn");
       else setStoreConfigStatus("Configuracion guardada.", "is-ok");
     }
     setModuleSaved(panel, true);
     advanceWizardStep(moduleKey);
   } catch (error) {
-	    if (
-	      showStatus &&
-	      (moduleKey === "alegra-invoice" ||
-	        moduleKey === "alegra-inventory" ||
-	        moduleKey === "alegra-logistics" ||
-	        moduleKey === "shopify-rules" ||
-          moduleKey === "shopify-products-to-alegra" ||
-	        moduleKey === "sync-contacts" ||
-	        moduleKey === "sync-orders")
-	    ) {
-	      setStoreConfigStatus(error?.message || "No se pudo guardar.", "is-error");
-	    }
+    if (
+      showStatus &&
+      (moduleKey === "alegra-invoice" ||
+        moduleKey === "alegra-inventory" ||
+        moduleKey === "alegra-logistics" ||
+        moduleKey === "shopify-rules" ||
+        moduleKey === "shopify-products-to-alegra" ||
+        moduleKey === "sync-contacts" ||
+        moduleKey === "sync-orders")
+    ) {
+      setStoreConfigStatus(error?.message || "No se pudo guardar.", "is-error");
+    }
     throw error;
   }
 }
 
-	function initModuleControls() {
-	  const autosaveKeys = new Set([
-	    "shopify-rules",
-      "shopify-products-to-alegra",
-	    "alegra-inventory",
-	    "sync-contacts",
-	    "sync-orders",
-	    "alegra-logistics",
-	    "alegra-invoice",
-	  ]);
+function initModuleControls() {
+  const autosaveKeys = new Set([
+    "shopify-rules",
+    "shopify-products-to-alegra",
+    "alegra-inventory",
+    "sync-contacts",
+    "sync-orders",
+    "alegra-logistics",
+    "alegra-invoice",
+  ]);
   const autosaveTimers = new Map();
   const autosaveInFlight = new Set();
 
@@ -5862,18 +5781,18 @@ async function handleModuleSave(moduleKey, options = {}) {
     if (!(target instanceof HTMLElement)) return false;
     const id = target.id || "";
 
-	    if (moduleKey === "shopify-rules") {
-	      return Boolean(id && id.startsWith("rules-"));
-	    }
-      if (moduleKey === "shopify-products-to-alegra") {
-        return Boolean(id && id.startsWith("cfg-products-shopify-to-alegra-"));
-      }
-	    if (moduleKey === "alegra-inventory") {
-	      if (target.closest("#cfg-inventory-warehouses")) return true;
-	      if (id === "rules-sync-enabled") return true;
-	      if (id && id.startsWith("inventory-")) return true;
-	      return false;
-	    }
+    if (moduleKey === "shopify-rules") {
+      return Boolean(id && id.startsWith("rules-"));
+    }
+    if (moduleKey === "shopify-products-to-alegra") {
+      return Boolean(id && id.startsWith("cfg-products-shopify-to-alegra-"));
+    }
+    if (moduleKey === "alegra-inventory") {
+      if (target.closest("#cfg-inventory-warehouses")) return true;
+      if (id === "rules-sync-enabled") return true;
+      if (id && id.startsWith("inventory-")) return true;
+      return false;
+    }
     if (moduleKey === "sync-contacts") {
       if (!id || !id.startsWith("sync-contacts-")) return false;
       return !id.startsWith("sync-contacts-bulk-");
@@ -5947,7 +5866,13 @@ async function handleModuleSave(moduleKey, options = {}) {
     if (shouldAutosaveTarget(key, target)) scheduleAutosave(key, { delayMs: 300 });
   });
   const clearErrorIfValid = (target) => {
-    if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) {
+    if (
+      !(
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLSelectElement ||
+        target instanceof HTMLTextAreaElement
+      )
+    ) {
       return;
     }
     if (target.value && String(target.value).trim() !== "") {
@@ -6028,10 +5953,7 @@ function setAllowOversellValue(nextValue) {
 
 function isAnyInventoryTrackingEnabled() {
   const productTracking = getTrackInventoryValue();
-  const storeTracking =
-    storeSyncTrackInventory instanceof HTMLInputElement
-      ? storeSyncTrackInventory.checked
-      : false;
+  const storeTracking = storeSyncTrackInventory instanceof HTMLInputElement ? storeSyncTrackInventory.checked : false;
   return Boolean(productTracking || storeTracking);
 }
 
@@ -6098,13 +6020,13 @@ function applyProductSettings() {
     productSettings.publish.trackInventory = trackInventoryValue;
     productSettings.publish.allowOversell = trackInventoryValue ? allowOversellValue : false;
   }
-	updateSyncWarehouseState();
-	if (productsLimitInput) productsLimitInput.value = productSettings.filters.listLimit || "30";
-	if (productsDateFilter) productsDateFilter.value = productSettings.filters.productsDate || "";
-	if (productsSort) productsSort.value = productSettings.filters.productsSort || "date_desc";
-	if (productsInStockOnly) {
-	  productsInStockOnly.checked = Boolean(productSettings.filters.inStockOnly);
-	}
+  updateSyncWarehouseState();
+  if (productsLimitInput) productsLimitInput.value = productSettings.filters.listLimit || "30";
+  if (productsDateFilter) productsDateFilter.value = productSettings.filters.productsDate || "";
+  if (productsSort) productsSort.value = productSettings.filters.productsSort || "date_desc";
+  if (productsInStockOnly) {
+    productsInStockOnly.checked = Boolean(productSettings.filters.inStockOnly);
+  }
   if (productsStatusFilter) {
     productsStatusFilter.value = productSettings.filters.statusFilter || "all";
   }
@@ -6137,12 +6059,8 @@ function refreshProductSettingsFromInputs() {
       onlyWithImages: productsSyncOnlyImages ? productsSyncOnlyImages.checked : false,
       publishOnSync: productsSyncPublish ? productsSyncPublish.checked : true,
       updateExisting: productsSyncUpdateExisting ? productsSyncUpdateExisting.checked : true,
-      onlyPublishedInShopify: productsSyncOnlyPublished
-        ? productsSyncOnlyPublished.checked
-        : true,
-      includeInventory: productsSyncIncludeInventory
-        ? productsSyncIncludeInventory.checked
-        : true,
+      onlyPublishedInShopify: productsSyncOnlyPublished ? productsSyncOnlyPublished.checked : true,
+      includeInventory: productsSyncIncludeInventory ? productsSyncIncludeInventory.checked : true,
     },
     orders: {
       dateStart: ordersSyncDateStart ? ordersSyncDateStart.value : "",
@@ -6150,19 +6068,19 @@ function refreshProductSettingsFromInputs() {
       limit: ordersSyncLimitInput ? ordersSyncLimitInput.value : "",
       search: opsSearch ? opsSearch.value.trim() : "",
       orderNumber: ordersSyncNumber ? ordersSyncNumber.value.trim() : "",
-		    },
-		    filters: {
-	      publishStatus: "all",
-	      productsDate: productsDateFilter ? productsDateFilter.value : "",
-	      productsSort: productsSort ? productsSort.value : "date_desc",
-	      listLimit: productsLimitInput ? productsLimitInput.value : "",
-	      warehouseIds: getSelectedWarehouseIds(),
+    },
+    filters: {
+      publishStatus: "all",
+      productsDate: productsDateFilter ? productsDateFilter.value : "",
+      productsSort: productsSort ? productsSort.value : "date_desc",
+      listLimit: productsLimitInput ? productsLimitInput.value : "",
+      warehouseIds: getSelectedWarehouseIds(),
       inStockOnly: productsInStockOnly ? productsInStockOnly.checked : false,
       statusFilter: productsStatusFilter ? productsStatusFilter.value : "all",
-	    ordersDate: ordersDateFilter ? ordersDateFilter.value : "",
-	    ordersDateTouched: Boolean(ordersDateFilter ? ordersDateFilter.value : ""),
-	    ordersDays: ordersDaysSelect ? ordersDaysSelect.value : DEFAULT_PRODUCT_SETTINGS.filters.ordersDays,
-	    ordersSort: ordersSort ? ordersSort.value : "date_desc",
+      ordersDate: ordersDateFilter ? ordersDateFilter.value : "",
+      ordersDateTouched: Boolean(ordersDateFilter ? ordersDateFilter.value : ""),
+      ordersDays: ordersDaysSelect ? ordersDaysSelect.value : DEFAULT_PRODUCT_SETTINGS.filters.ordersDays,
+      ordersSort: ordersSort ? ordersSort.value : "date_desc",
     },
   };
   saveProductSettings(productSettings);
@@ -6226,7 +6144,9 @@ async function loadSettings(options = {}) {
       adsAppHost.value = data.adsApps.appHost || "";
     }
     if (googleAdsClientId) {
-      googleAdsClientId.placeholder = data.adsApps.googleAds?.hasClientId ? "Guardado" : "xxxx.apps.googleusercontent.com";
+      googleAdsClientId.placeholder = data.adsApps.googleAds?.hasClientId
+        ? "Guardado"
+        : "xxxx.apps.googleusercontent.com";
       googleAdsClientId.value = "";
     }
     if (googleAdsClientSecret) {
@@ -6254,53 +6174,53 @@ async function loadSettings(options = {}) {
       tiktokAdsAppSecret.value = "";
     }
   }
-	  if (data.invoice) {
-	    globalInvoiceSettings = {
-	      generateInvoice: Boolean(data.invoice.generateInvoice),
-	      einvoiceEnabled: Boolean(data.invoice.einvoiceEnabled),
-	      resolutionId: data.invoice.resolutionId || "",
-	      costCenterId: data.invoice.costCenterId || "",
-	      warehouseId: data.invoice.warehouseId || "",
-	      sellerId: data.invoice.sellerId || "",
-	      paymentMethod: data.invoice.paymentMethod || "",
-	      bankAccountId: data.invoice.bankAccountId || "",
-	      applyPayment: Boolean(data.invoice.applyPayment),
-	      observationsTemplate: data.invoice.observationsTemplate || "",
-	    };
-	    if (cfgGenerateInvoice) {
-	      cfgGenerateInvoice.checked = Boolean(data.invoice.generateInvoice);
-	    }
-	    if (cfgEinvoiceEnabled) {
-	      cfgEinvoiceEnabled.checked = Boolean(data.invoice.einvoiceEnabled);
-	    }
-	    if (cfgInvoiceStatus instanceof HTMLSelectElement && !cfgInvoiceStatus.value) {
-	      cfgInvoiceStatus.value = "draft";
-	    }
-	    cfgApplyPayment.checked = Boolean(data.invoice.applyPayment);
-	    cfgObservations.value = data.invoice.observationsTemplate || "";
-	    cfgResolution.dataset.selected = data.invoice.resolutionId || "";
-	    cfgCostCenter.dataset.selected = data.invoice.costCenterId || "";
-	    cfgWarehouse.dataset.selected = data.invoice.warehouseId || "";
+  if (data.invoice) {
+    globalInvoiceSettings = {
+      generateInvoice: Boolean(data.invoice.generateInvoice),
+      einvoiceEnabled: Boolean(data.invoice.einvoiceEnabled),
+      resolutionId: data.invoice.resolutionId || "",
+      costCenterId: data.invoice.costCenterId || "",
+      warehouseId: data.invoice.warehouseId || "",
+      sellerId: data.invoice.sellerId || "",
+      paymentMethod: data.invoice.paymentMethod || "",
+      bankAccountId: data.invoice.bankAccountId || "",
+      applyPayment: Boolean(data.invoice.applyPayment),
+      observationsTemplate: data.invoice.observationsTemplate || "",
+    };
+    if (cfgGenerateInvoice) {
+      cfgGenerateInvoice.checked = Boolean(data.invoice.generateInvoice);
+    }
+    if (cfgEinvoiceEnabled) {
+      cfgEinvoiceEnabled.checked = Boolean(data.invoice.einvoiceEnabled);
+    }
+    if (cfgInvoiceStatus instanceof HTMLSelectElement && !cfgInvoiceStatus.value) {
+      cfgInvoiceStatus.value = "draft";
+    }
+    cfgApplyPayment.checked = Boolean(data.invoice.applyPayment);
+    cfgObservations.value = data.invoice.observationsTemplate || "";
+    cfgResolution.dataset.selected = data.invoice.resolutionId || "";
+    cfgCostCenter.dataset.selected = data.invoice.costCenterId || "";
+    cfgWarehouse.dataset.selected = data.invoice.warehouseId || "";
     cfgSeller.dataset.selected = data.invoice.sellerId || "";
     cfgPaymentMethod.dataset.selected = data.invoice.paymentMethod || "";
     cfgBankAccount.dataset.selected = data.invoice.bankAccountId || "";
   }
-    if (data.rules) {
-      inventoryRules = {
-        publishOnStock: data.rules.publishOnStock !== false,
-        autoPublishOnWebhook: Boolean(data.rules.autoPublishOnWebhook),
-        autoPublishStatus: data.rules.autoPublishStatus === "active" ? "active" : "draft",
-        inventoryAdjustmentsEnabled: data.rules.inventoryAdjustmentsEnabled !== false,
-        inventoryAdjustmentsIntervalMinutes: Number(data.rules.inventoryAdjustmentsIntervalMinutes || 5),
-        inventoryAdjustmentsAutoPublish: data.rules.inventoryAdjustmentsAutoPublish !== false,
-        onlyActiveItems: Boolean(data.rules.onlyActiveItems),
-        includeImages: data.rules.includeImages !== false,
-        syncEnabled: data.rules.syncEnabled !== false,
-        trackInventory: data.rules.trackInventory !== false,
-        allowOversell: data.rules.allowOversell === true,
-        warehouseIds: Array.isArray(data.rules.warehouseIds) ? data.rules.warehouseIds : [],
-      };
-    }
+  if (data.rules) {
+    inventoryRules = {
+      publishOnStock: data.rules.publishOnStock !== false,
+      autoPublishOnWebhook: Boolean(data.rules.autoPublishOnWebhook),
+      autoPublishStatus: data.rules.autoPublishStatus === "active" ? "active" : "draft",
+      inventoryAdjustmentsEnabled: data.rules.inventoryAdjustmentsEnabled !== false,
+      inventoryAdjustmentsIntervalMinutes: Number(data.rules.inventoryAdjustmentsIntervalMinutes || 5),
+      inventoryAdjustmentsAutoPublish: data.rules.inventoryAdjustmentsAutoPublish !== false,
+      onlyActiveItems: Boolean(data.rules.onlyActiveItems),
+      includeImages: data.rules.includeImages !== false,
+      syncEnabled: data.rules.syncEnabled !== false,
+      trackInventory: data.rules.trackInventory !== false,
+      allowOversell: data.rules.allowOversell === true,
+      warehouseIds: Array.isArray(data.rules.warehouseIds) ? data.rules.warehouseIds : [],
+    };
+  }
   if (rulesAutoPublish) rulesAutoPublish.checked = inventoryRules.autoPublishOnWebhook;
   if (rulesAutoStatus) rulesAutoStatus.value = inventoryRules.autoPublishStatus;
   if (rulesOnlyActive) rulesOnlyActive.checked = Boolean(inventoryRules.onlyActiveItems);
@@ -6315,9 +6235,7 @@ async function loadSettings(options = {}) {
     inventoryCronEnabled.checked = inventoryRules.inventoryAdjustmentsEnabled !== false;
   }
   if (inventoryCronIntervalSelect) {
-    inventoryCronIntervalSelect.value = String(
-      inventoryRules.inventoryAdjustmentsIntervalMinutes || 5
-    );
+    inventoryCronIntervalSelect.value = String(inventoryRules.inventoryAdjustmentsIntervalMinutes || 5);
   }
   setMetricsStatusPills(data.shopify?.hasAccessToken, data.alegra?.hasApiKey);
   await loadConnections({ preserveUi });
@@ -6400,9 +6318,7 @@ function getPendingConfigCopy() {
 
 function getStoreLabelById(storeId) {
   const normalized = normalizeStoreId(storeId || "");
-  const match = storesCache.find(
-    (store) => normalizeStoreId(store?.id || store?.storeId) === normalized
-  );
+  const match = storesCache.find((store) => normalizeStoreId(store?.id || store?.storeId) === normalized);
   return match?.storeName || match?.shopDomain || normalized;
 }
 
@@ -6417,17 +6333,14 @@ async function maybeApplyPendingStoreConfigCopy() {
     clearPendingConfigCopy();
     return;
   }
-  const toExists = storesCache.some(
-    (store) => normalizeStoreId(store?.id || store?.storeId) === toId
-  );
+  const toExists = storesCache.some((store) => normalizeStoreId(store?.id || store?.storeId) === toId);
   if (!toExists) return;
 
   pendingCopyInProgress = true;
   try {
     const data = await fetchJson("/api/store-configs");
     const items = Array.isArray(data.items) ? data.items : [];
-    const source =
-      items.find((item) => normalizeStoreId(item.storeId || "") === fromId) || null;
+    const source = items.find((item) => normalizeStoreId(item.storeId || "") === fromId) || null;
     if (!source) {
       showToast("No se encontro configuracion para copiar en la tienda origen.", "is-warn");
       clearPendingConfigCopy();
@@ -6445,10 +6358,7 @@ async function maybeApplyPendingStoreConfigCopy() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    showToast(
-      `Configuracion copiada: ${getStoreLabelById(fromId)} → ${getStoreLabelById(toId)}`,
-      "is-ok"
-    );
+    showToast(`Configuracion copiada: ${getStoreLabelById(fromId)} → ${getStoreLabelById(toId)}`, "is-ok");
     clearPendingConfigCopy();
   } catch (error) {
     showToast(error?.message || "No se pudo copiar la configuracion.", "is-error");
@@ -6583,19 +6493,13 @@ function getWizardTargetDomain() {
 function getStoreConnectionByDomain(domain) {
   const normalized = normalizeShopDomain(domain || "");
   if (!normalized) return null;
-  return (
-    storesCache.find((store) => normalizeShopDomain(store?.shopDomain || "") === normalized) ||
-    null
-  );
+  return storesCache.find((store) => normalizeShopDomain(store?.shopDomain || "") === normalized) || null;
 }
 
 function getWooConnectionByDomain(domain) {
   const normalized = normalizeShopDomain(domain || "");
   if (!normalized) return null;
-  return (
-    wooStoresCache.find((store) => normalizeShopDomain(store?.shopDomain || "") === normalized) ||
-    null
-  );
+  return wooStoresCache.find((store) => normalizeShopDomain(store?.shopDomain || "") === normalized) || null;
 }
 
 function isShopifyConnectedForDomain(domain) {
@@ -6620,8 +6524,8 @@ function updateConnectionPills() {
   const store = domain ? getStoreConnectionByDomain(domain) : null;
   const shopifyOk = Boolean(store?.shopifyConnected);
   const alegraOk = Boolean(store?.alegraConnected);
-  const shopifyLabel = store?.shopifyNeedsReconnect ? "Reconectar" : (shopifyOk ? "Conectado" : "Pendiente");
-  const alegraLabel = store?.alegraNeedsReconnect ? "Reconectar" : (alegraOk ? "Conectado" : "Pendiente");
+  const shopifyLabel = store?.shopifyNeedsReconnect ? "Reconectar" : shopifyOk ? "Conectado" : "Pendiente";
+  const alegraLabel = store?.alegraNeedsReconnect ? "Reconectar" : alegraOk ? "Conectado" : "Pendiente";
   applyConnectionPill(shopifyConnectionPill, shopifyOk && !store?.shopifyNeedsReconnect, shopifyLabel);
   applyConnectionPill(alegraConnectionPill, alegraOk && !store?.alegraNeedsReconnect, alegraLabel);
 
@@ -6637,7 +6541,7 @@ function updateGoogleAdsStatus(payload) {
   const google = payload?.googleAds || {};
   const connected = Boolean(google.connected);
   const needsReconnect = Boolean(google.needsReconnect);
-  const label = needsReconnect ? "Reconectar" : (connected ? "Conectado" : "Sin conectar");
+  const label = needsReconnect ? "Reconectar" : connected ? "Conectado" : "Sin conectar";
   applyConnectionPill(googleAdsConnectionPill, connected && !needsReconnect, label);
   if (googleAdsCustomerId && google.customerId && !googleAdsCustomerId.value) {
     googleAdsCustomerId.value = google.customerId;
@@ -6649,7 +6553,7 @@ function updateMetaAdsStatus(payload) {
   const meta = payload?.metaAds || {};
   const connected = Boolean(meta.connected);
   const needsReconnect = Boolean(meta.needsReconnect);
-  const label = needsReconnect ? "Reconectar" : (connected ? "Conectado" : "Sin conectar");
+  const label = needsReconnect ? "Reconectar" : connected ? "Conectado" : "Sin conectar";
   applyConnectionPill(metaAdsConnectionPill, connected && !needsReconnect, label);
   if (metaAdsAccountId && meta.adAccountId && !metaAdsAccountId.value) {
     metaAdsAccountId.value = meta.adAccountId;
@@ -6661,7 +6565,7 @@ function updateTikTokAdsStatus(payload) {
   const tt = payload?.tiktokAds || {};
   const connected = Boolean(tt.connected);
   const needsReconnect = Boolean(tt.needsReconnect);
-  const label = needsReconnect ? "Reconectar" : (connected ? "Conectado" : "Sin conectar");
+  const label = needsReconnect ? "Reconectar" : connected ? "Conectado" : "Sin conectar";
   applyConnectionPill(tiktokAdsConnectionPill, connected && !needsReconnect, label);
   if (tiktokAdsAdvertiserId && tt.advertiserId && !tiktokAdsAdvertiserId.value) {
     tiktokAdsAdvertiserId.value = tt.advertiserId;
@@ -6725,15 +6629,13 @@ function renderStoreActiveSelect(stores, options = {}) {
   if (switcherPanel) switcherPanel.classList.remove("is-hidden");
   storeActiveSelect.disabled = stores.length <= 1;
   storeActiveSelect.innerHTML = stores
-    .map(
-      (store) => {
-        const storeId = String(store.id || "");
-        const storeName = store.name || store.storeName || "Tienda";
-        const shopDomain = getStoreShopDomainFromCatalog(store);
-        const domainAttr = shopDomain ? `data-shop-domain="${escapeHtml(shopDomain)}"` : "";
-        return `<option value="${escapeHtml(storeId)}" ${domainAttr}>${escapeHtml(storeName)}</option>`;
-      }
-    )
+    .map((store) => {
+      const storeId = String(store.id || "");
+      const storeName = store.name || store.storeName || "Tienda";
+      const shopDomain = getStoreShopDomainFromCatalog(store);
+      const domainAttr = shopDomain ? `data-shop-domain="${escapeHtml(shopDomain)}"` : "";
+      return `<option value="${escapeHtml(storeId)}" ${domainAttr}>${escapeHtml(storeName)}</option>`;
+    })
     .join("");
   const stored = (() => {
     try {
@@ -6742,10 +6644,7 @@ function renderStoreActiveSelect(stores, options = {}) {
       return "";
     }
   })();
-  const nextId =
-    stores.find((store) => String(store.id || "") === String(stored))?.id ||
-    stores[0]?.id ||
-    "";
+  const nextId = stores.find((store) => String(store.id || "") === String(stored))?.id || stores[0]?.id || "";
   setActiveStoreId(nextId);
   const activeStore = stores.find((store) => String(store.id || "") === String(nextId)) || null;
   activeStoreName = activeStore?.name || activeStore?.storeName || "";
@@ -6761,8 +6660,7 @@ function renderStoreActiveSelect(stores, options = {}) {
   renderStoreSyncSelects();
   renderMarketingConfigStoreSelects(stores);
   setShopifyWebhooksStatus("Sin configurar");
-  const activePane =
-    document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
+  const activePane = document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
   const keepConnectionsOpen =
     activePane === "connections" || getModulePanel("connections")?.getAttribute("data-setup-open") === "1";
   const preserveUi = options && options.preserveUi === true;
@@ -7069,7 +6967,8 @@ function renderStoreSyncSelects() {
       : sourceList[0]?.shopDomain || "";
   if (defaultSource) storeSyncSourceSelect.value = defaultSource;
   if (!storeSyncTargetSelect.value || storeSyncTargetSelect.value === defaultSource) {
-    const fallback = targetList.find((store) => store.shopDomain !== defaultSource)?.shopDomain || targetList[0]?.shopDomain || "";
+    const fallback =
+      targetList.find((store) => store.shopDomain !== defaultSource)?.shopDomain || targetList[0]?.shopDomain || "";
     if (fallback) storeSyncTargetSelect.value = fallback;
   }
   ensureStoreSyncDistinct();
@@ -7204,8 +7103,7 @@ function renderCommerceAlegraOptions(accounts) {
   const options = [
     `<option value="">Seleccionar plataforma contable</option>`,
     ...items.map(
-      (account) =>
-        `<option value="${account.id}">${account.email} (${account.environment || "prod"})</option>`
+      (account) => `<option value="${account.id}">${account.email} (${account.environment || "prod"})</option>`
     ),
   ];
   commerceAlegraSelect.innerHTML = options.join("");
@@ -7281,11 +7179,7 @@ function escapeHtml(value) {
 
 function getStoreShopDomainFromCatalog(store) {
   if (!store) return "";
-  return (
-    store.shopify?.shopDomain ||
-    store.shopDomain ||
-    ""
-  );
+  return store.shopify?.shopDomain || store.shopDomain || "";
 }
 
 function renderStoreActiveList(stores) {
@@ -7350,10 +7244,7 @@ function applyShopifyConnectMethod(method) {
     }
     shopifyConnectPicker.querySelectorAll("[data-shopify-connect]").forEach((button) => {
       if (!(button instanceof HTMLButtonElement)) return;
-      button.classList.toggle(
-        "is-active",
-        button.getAttribute("data-shopify-connect") === resolved
-      );
+      button.classList.toggle("is-active", button.getAttribute("data-shopify-connect") === resolved);
     });
   }
   const isToken = resolved === "token";
@@ -7399,8 +7290,7 @@ function updateWizardStartAvailability() {
   if (!wizardStart) return;
   const hasActiveStore = Boolean(normalizeShopDomain(activeStoreDomain || ""));
   const hasName = Boolean(storeNameInput && storeNameInput.value.trim()) || Boolean(activeStoreName);
-  const hasDomain =
-    Boolean(shopifyDomain && normalizeShopDomain(shopifyDomain.value)) || hasActiveStore;
+  const hasDomain = Boolean(shopifyDomain && normalizeShopDomain(shopifyDomain.value)) || hasActiveStore;
   const ready = hasName && hasDomain;
   wizardStart.disabled = !hasActiveStore && !hasDomain;
   wizardStart.setAttribute(
@@ -7483,129 +7373,128 @@ async function startWizardFlow() {
   return true;
 }
 
-	function applyInvoiceSettings(settings) {
-	  if (!settings) return;
-	  if (cfgGenerateInvoice) {
-	    cfgGenerateInvoice.checked = settings.generateInvoice !== false;
-	  }
-	  if (cfgEinvoiceEnabled) cfgEinvoiceEnabled.checked = Boolean(settings.einvoiceEnabled);
-	  if (cfgInvoiceStatus instanceof HTMLSelectElement) {
-	    const raw = String(settings.invoiceStatus || "draft").trim().toLowerCase();
-	    cfgInvoiceStatus.value = raw === "active" ? "active" : "draft";
-	  }
-	  if (cfgApplyPayment) cfgApplyPayment.checked = Boolean(settings.applyPayment);
-	  if (cfgObservations) cfgObservations.value = settings.observationsTemplate || "";
-	  applyObservationSettings(settings);
-	  if (cfgResolution) cfgResolution.dataset.selected = settings.resolutionId || "";
-	  if (cfgCostCenter) cfgCostCenter.dataset.selected = settings.costCenterId || "";
-	  if (cfgWarehouse) cfgWarehouse.dataset.selected = settings.warehouseId || "";
-	  if (cfgSeller) cfgSeller.dataset.selected = settings.sellerId || "";
-	  if (cfgPaymentMethod) cfgPaymentMethod.dataset.selected = settings.paymentMethod || "";
-	  if (cfgBankAccount) cfgBankAccount.dataset.selected = settings.bankAccountId || "";
-	}
+function applyInvoiceSettings(settings) {
+  if (!settings) return;
+  if (cfgGenerateInvoice) {
+    cfgGenerateInvoice.checked = settings.generateInvoice !== false;
+  }
+  if (cfgEinvoiceEnabled) cfgEinvoiceEnabled.checked = Boolean(settings.einvoiceEnabled);
+  if (cfgInvoiceStatus instanceof HTMLSelectElement) {
+    const raw = String(settings.invoiceStatus || "draft")
+      .trim()
+      .toLowerCase();
+    cfgInvoiceStatus.value = raw === "active" ? "active" : "draft";
+  }
+  if (cfgApplyPayment) cfgApplyPayment.checked = Boolean(settings.applyPayment);
+  if (cfgObservations) cfgObservations.value = settings.observationsTemplate || "";
+  applyObservationSettings(settings);
+  if (cfgResolution) cfgResolution.dataset.selected = settings.resolutionId || "";
+  if (cfgCostCenter) cfgCostCenter.dataset.selected = settings.costCenterId || "";
+  if (cfgWarehouse) cfgWarehouse.dataset.selected = settings.warehouseId || "";
+  if (cfgSeller) cfgSeller.dataset.selected = settings.sellerId || "";
+  if (cfgPaymentMethod) cfgPaymentMethod.dataset.selected = settings.paymentMethod || "";
+  if (cfgBankAccount) cfgBankAccount.dataset.selected = settings.bankAccountId || "";
+}
 
-	function applyObservationSettings(settings) {
-	  if (!(cfgObservations instanceof HTMLInputElement)) return;
-	  const template = String(settings?.observationsTemplate || "").trim();
-	  const rawFields = settings?.observationsFields;
-	  const fields = Array.isArray(rawFields) ? rawFields.map((item) => String(item)) : [];
-	  const extra = typeof settings?.observationsExtra === "string" ? settings.observationsExtra : "";
+function applyObservationSettings(settings) {
+  if (!(cfgObservations instanceof HTMLInputElement)) return;
+  const template = String(settings?.observationsTemplate || "").trim();
+  const rawFields = settings?.observationsFields;
+  const fields = Array.isArray(rawFields) ? rawFields.map((item) => String(item)) : [];
+  const extra = typeof settings?.observationsExtra === "string" ? settings.observationsExtra : "";
 
-	  if (cfgObservationsExtra instanceof HTMLInputElement) {
-	    cfgObservationsExtra.value = extra;
-	  }
+  if (cfgObservationsExtra instanceof HTMLInputElement) {
+    cfgObservationsExtra.value = extra;
+  }
 
-	  const optionsRoot = cfgObservationsFields
-	    ? cfgObservationsFields.querySelector("#cfg-observations-fields-options")
-	    : null;
-	  const inputs = optionsRoot
-	    ? Array.from(optionsRoot.querySelectorAll("input[type=\"checkbox\"][data-observation-key]"))
-	    : [];
+  const optionsRoot = cfgObservationsFields
+    ? cfgObservationsFields.querySelector("#cfg-observations-fields-options")
+    : null;
+  const inputs = optionsRoot
+    ? Array.from(optionsRoot.querySelectorAll('input[type="checkbox"][data-observation-key]'))
+    : [];
 
-	  if (inputs.length) {
-	    if (fields.length) {
-	      inputs.forEach((input) => {
-	        const key = input.getAttribute("data-observation-key") || "";
-	        input.checked = Boolean(key && fields.includes(key));
-	      });
-	    } else if (template) {
-	      // Fallback: intenta mapear el template a checks + extra.
-	      const knownLines = new Map(
-	        inputs.map((input) => [
-	          input.getAttribute("data-observation-line") || "",
-	          input.getAttribute("data-observation-key") || "",
-	        ]),
-	      );
-	      const remaining = [];
-	      template.split("\n").forEach((line) => {
-	        const trimmed = line.trim();
-	        if (!trimmed) return;
-	        const key = knownLines.get(trimmed);
-	        if (key) {
-	          const match = inputs.find((input) => input.getAttribute("data-observation-key") === key);
-	          if (match) match.checked = true;
-	        } else {
-	          remaining.push(trimmed);
-	        }
-	      });
-	      if (cfgObservationsExtra instanceof HTMLInputElement && remaining.length) {
-	        cfgObservationsExtra.value = remaining.join("\n");
-	      }
-	    } else {
-	      inputs.forEach((input) => {
-	        input.checked = false;
-	      });
-	    }
-	  }
+  if (inputs.length) {
+    if (fields.length) {
+      inputs.forEach((input) => {
+        const key = input.getAttribute("data-observation-key") || "";
+        input.checked = Boolean(key && fields.includes(key));
+      });
+    } else if (template) {
+      // Fallback: intenta mapear el template a checks + extra.
+      const knownLines = new Map(
+        inputs.map((input) => [
+          input.getAttribute("data-observation-line") || "",
+          input.getAttribute("data-observation-key") || "",
+        ])
+      );
+      const remaining = [];
+      template.split("\n").forEach((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        const key = knownLines.get(trimmed);
+        if (key) {
+          const match = inputs.find((input) => input.getAttribute("data-observation-key") === key);
+          if (match) match.checked = true;
+        } else {
+          remaining.push(trimmed);
+        }
+      });
+      if (cfgObservationsExtra instanceof HTMLInputElement && remaining.length) {
+        cfgObservationsExtra.value = remaining.join("\n");
+      }
+    } else {
+      inputs.forEach((input) => {
+        input.checked = false;
+      });
+    }
+  }
 
-	  updateObservationsTemplateFromUi();
-	}
+  updateObservationsTemplateFromUi();
+}
 
-	function getSelectedObservationKeys() {
-	  const optionsRoot = cfgObservationsFields
-	    ? cfgObservationsFields.querySelector("#cfg-observations-fields-options")
-	    : null;
-	  if (!optionsRoot) return [];
-	  return Array.from(optionsRoot.querySelectorAll("input[type=\"checkbox\"][data-observation-key]"))
-	    .filter((input) => input.checked)
-	    .map((input) => String(input.getAttribute("data-observation-key") || ""))
-	    .filter(Boolean);
-	}
+function getSelectedObservationKeys() {
+  const optionsRoot = cfgObservationsFields
+    ? cfgObservationsFields.querySelector("#cfg-observations-fields-options")
+    : null;
+  if (!optionsRoot) return [];
+  return Array.from(optionsRoot.querySelectorAll('input[type="checkbox"][data-observation-key]'))
+    .filter((input) => input.checked)
+    .map((input) => String(input.getAttribute("data-observation-key") || ""))
+    .filter(Boolean);
+}
 
-	function updateObservationsSummary() {
-	  if (!(cfgObservationsFieldsSummary instanceof HTMLElement)) return;
-	  const keys = getSelectedObservationKeys();
-	  cfgObservationsFieldsSummary.textContent = keys.length ? `${keys.length} seleccionados` : "Ninguno";
-	}
+function updateObservationsSummary() {
+  if (!(cfgObservationsFieldsSummary instanceof HTMLElement)) return;
+  const keys = getSelectedObservationKeys();
+  cfgObservationsFieldsSummary.textContent = keys.length ? `${keys.length} seleccionados` : "Ninguno";
+}
 
-	function updateObservationsTemplateFromUi() {
-	  if (!(cfgObservations instanceof HTMLInputElement)) return;
-	  const lines = [];
-	  const optionsRoot = cfgObservationsFields
-	    ? cfgObservationsFields.querySelector("#cfg-observations-fields-options")
-	    : null;
-	  if (optionsRoot) {
-	    optionsRoot
-	      .querySelectorAll("input[type=\"checkbox\"][data-observation-line]")
-	      .forEach((input) => {
-	        if (!(input instanceof HTMLInputElement)) return;
-	        if (!input.checked) return;
-	        const line = String(input.getAttribute("data-observation-line") || "").trim();
-	        if (line) lines.push(line);
-	      });
-	  }
-	  const extra =
-	    cfgObservationsExtra instanceof HTMLInputElement ? cfgObservationsExtra.value.trim() : "";
-	  if (extra) {
-	    lines.push(extra);
-	  }
-	  const template = lines.join("\n").trim();
-	  cfgObservations.value = template;
-	  updateObservationsSummary();
-	  if (cfgObservationsPreview instanceof HTMLElement) {
-	    cfgObservationsPreview.textContent = template || "-";
-	  }
-	}
+function updateObservationsTemplateFromUi() {
+  if (!(cfgObservations instanceof HTMLInputElement)) return;
+  const lines = [];
+  const optionsRoot = cfgObservationsFields
+    ? cfgObservationsFields.querySelector("#cfg-observations-fields-options")
+    : null;
+  if (optionsRoot) {
+    optionsRoot.querySelectorAll('input[type="checkbox"][data-observation-line]').forEach((input) => {
+      if (!(input instanceof HTMLInputElement)) return;
+      if (!input.checked) return;
+      const line = String(input.getAttribute("data-observation-line") || "").trim();
+      if (line) lines.push(line);
+    });
+  }
+  const extra = cfgObservationsExtra instanceof HTMLInputElement ? cfgObservationsExtra.value.trim() : "";
+  if (extra) {
+    lines.push(extra);
+  }
+  const template = lines.join("\n").trim();
+  cfgObservations.value = template;
+  updateObservationsSummary();
+  if (cfgObservationsPreview instanceof HTMLElement) {
+    cfgObservationsPreview.textContent = template || "-";
+  }
+}
 
 function applyRuleSettings(settings, options = {}) {
   if (!settings) return;
@@ -7671,29 +7560,31 @@ function applyLegacyStoreConfig(config) {
   const priceLists = config?.priceLists || {};
   const rules = config?.rules || null;
   const invoice = config?.invoice || null;
-	  transferOriginIds = Array.isArray(transfers.originWarehouseIds)
-	    ? transfers.originWarehouseIds.map((id) => String(id))
-	    : [];
-	  if (cfgTransferEnabled) {
-	    cfgTransferEnabled.checked = transfers.enabled !== false;
-	  }
-	  if (cfgTransferDestMode) {
-	    const raw = String(transfers.destinationMode || "fixed").trim().toLowerCase();
-	    cfgTransferDestMode.value = raw === "auto" || raw === "rule" ? raw : "fixed";
-	  }
-	  if (cfgTransferDest) {
-	    const value = String(transfers.destinationWarehouseId || "");
-	    cfgTransferDest.dataset.selected = value;
-	    if (cfgTransferDest.options.length) cfgTransferDest.value = value;
-	  }
-	  if (cfgTransferDestRequired) {
-	    cfgTransferDestRequired.checked = transfers.destinationRequired !== false;
-	  }
-	  if (cfgTransferPriority) {
-	    const value = String(transfers.priorityWarehouseId || "");
-	    cfgTransferPriority.dataset.selected = value;
-	    if (cfgTransferPriority.options.length) cfgTransferPriority.value = value;
-	  }
+  transferOriginIds = Array.isArray(transfers.originWarehouseIds)
+    ? transfers.originWarehouseIds.map((id) => String(id))
+    : [];
+  if (cfgTransferEnabled) {
+    cfgTransferEnabled.checked = transfers.enabled !== false;
+  }
+  if (cfgTransferDestMode) {
+    const raw = String(transfers.destinationMode || "fixed")
+      .trim()
+      .toLowerCase();
+    cfgTransferDestMode.value = raw === "auto" || raw === "rule" ? raw : "fixed";
+  }
+  if (cfgTransferDest) {
+    const value = String(transfers.destinationWarehouseId || "");
+    cfgTransferDest.dataset.selected = value;
+    if (cfgTransferDest.options.length) cfgTransferDest.value = value;
+  }
+  if (cfgTransferDestRequired) {
+    cfgTransferDestRequired.checked = transfers.destinationRequired !== false;
+  }
+  if (cfgTransferPriority) {
+    const value = String(transfers.priorityWarehouseId || "");
+    cfgTransferPriority.dataset.selected = value;
+    if (cfgTransferPriority.options.length) cfgTransferPriority.value = value;
+  }
   if (cfgTransferStrategy) {
     cfgTransferStrategy.value = String(transfers.strategy || "manual");
   }
@@ -7706,16 +7597,16 @@ function applyLegacyStoreConfig(config) {
   if (cfgTransferSplit) {
     cfgTransferSplit.checked = Boolean(transfers.splitEnabled);
   }
-	  if (cfgTransferMinStock) {
-	    const minStock = Number(transfers.minStock);
-	    cfgTransferMinStock.value = Number.isFinite(minStock) && minStock > 0 ? String(minStock) : "";
-	  }
-	  updateTransferDestinationState();
-	  if (cfgPriceGeneral) {
-	    const value = String(priceLists.generalId || "");
-	    cfgPriceGeneral.dataset.selected = value;
-	    if (cfgPriceGeneral.options.length) cfgPriceGeneral.value = value;
-	  }
+  if (cfgTransferMinStock) {
+    const minStock = Number(transfers.minStock);
+    cfgTransferMinStock.value = Number.isFinite(minStock) && minStock > 0 ? String(minStock) : "";
+  }
+  updateTransferDestinationState();
+  if (cfgPriceGeneral) {
+    const value = String(priceLists.generalId || "");
+    cfgPriceGeneral.dataset.selected = value;
+    if (cfgPriceGeneral.options.length) cfgPriceGeneral.value = value;
+  }
   if (cfgPriceDiscount) {
     const value = String(priceLists.discountId || "");
     cfgPriceDiscount.dataset.selected = value;
@@ -7742,16 +7633,11 @@ function applyLegacyStoreConfig(config) {
     applyInvoiceSettings(invoice);
     storeInvoiceOverrides = invoice;
   }
-	const sync =
-	  config && typeof config === "object" && config.sync && typeof config.sync === "object"
-	    ? config.sync
-	    : {};
-	const contactSync =
-	  sync.contacts && typeof sync.contacts === "object" ? sync.contacts : {};
-	const orderSync =
-	  sync.orders && typeof sync.orders === "object" ? sync.orders : {};
-  const productSync =
-    sync.products && typeof sync.products === "object" ? sync.products : {};
+  const sync =
+    config && typeof config === "object" && config.sync && typeof config.sync === "object" ? config.sync : {};
+  const contactSync = sync.contacts && typeof sync.contacts === "object" ? sync.contacts : {};
+  const orderSync = sync.orders && typeof sync.orders === "object" ? sync.orders : {};
+  const productSync = sync.products && typeof sync.products === "object" ? sync.products : {};
   const matchPriority = Array.isArray(contactSync.matchPriority)
     ? contactSync.matchPriority.map((item) => String(item).toLowerCase())
     : typeof contactSync.matchPriority === "string"
@@ -7812,25 +7698,17 @@ function applyLegacyStoreConfig(config) {
   if (syncOrdersShopifyEnabled) {
     const enabledRaw = orderSync.shopifyEnabled;
     const enabled =
-      typeof enabledRaw === "boolean"
-        ? enabledRaw
-        : syncOrdersShopify
-          ? syncOrdersShopify.value !== "off"
-          : true;
+      typeof enabledRaw === "boolean" ? enabledRaw : syncOrdersShopify ? syncOrdersShopify.value !== "off" : true;
     syncOrdersShopifyEnabled.checked = Boolean(enabled);
     applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, defaultShopifyMode);
   }
-	if (syncOrdersAlegraEnabled) {
-	  const enabledRaw = orderSync.alegraEnabled;
-	  const enabled =
-	    typeof enabledRaw === "boolean"
-	      ? enabledRaw
-        : syncOrdersAlegra
-          ? syncOrdersAlegra.value !== "off"
-          : true;
+  if (syncOrdersAlegraEnabled) {
+    const enabledRaw = orderSync.alegraEnabled;
+    const enabled =
+      typeof enabledRaw === "boolean" ? enabledRaw : syncOrdersAlegra ? syncOrdersAlegra.value !== "off" : true;
     syncOrdersAlegraEnabled.checked = Boolean(enabled);
     applyOrderToggle(syncOrdersAlegra, syncOrdersAlegraEnabled, "draft");
-	  }
+  }
   if (cfgProductsShopifyToAlegraEnabled instanceof HTMLInputElement) {
     cfgProductsShopifyToAlegraEnabled.checked = Boolean(productSync.shopifyEnabled);
   }
@@ -7855,28 +7733,28 @@ function applyLegacyStoreConfig(config) {
       cfgProductsShopifyToAlegraWarehouse.value = value;
     }
   }
-	renderTransferOriginFilters();
-	updateTransferOriginState();
-	updateOrderSyncDependencies();
+  renderTransferOriginFilters();
+  updateTransferOriginState();
+  updateOrderSyncDependencies();
 }
 
-	function clearLegacyStoreConfig() {
-	  transferOriginIds = [];
-	  if (cfgTransferEnabled) cfgTransferEnabled.checked = true;
-	  if (cfgTransferDestMode) cfgTransferDestMode.value = "fixed";
-	  if (cfgTransferDest) cfgTransferDest.dataset.selected = "";
-	  if (cfgTransferDestRequired) cfgTransferDestRequired.checked = true;
-	  if (cfgTransferStrategy) cfgTransferStrategy.value = "manual";
-	  if (cfgTransferFallback) cfgTransferFallback.value = "";
-	  if (cfgTransferTieBreak) cfgTransferTieBreak.value = "";
-	  if (cfgTransferPriority) cfgTransferPriority.dataset.selected = "";
-	  if (cfgTransferMinStock) cfgTransferMinStock.value = "";
-	  if (cfgTransferSplit) cfgTransferSplit.checked = false;
-	  updateTransferDestinationState();
-	  if (cfgPriceGeneral) cfgPriceGeneral.dataset.selected = "";
-	  if (cfgPriceDiscount) cfgPriceDiscount.dataset.selected = "";
-	  if (cfgPriceWholesale) cfgPriceWholesale.dataset.selected = "";
-	  if (cfgPriceCurrency) cfgPriceCurrency.value = "";
+function clearLegacyStoreConfig() {
+  transferOriginIds = [];
+  if (cfgTransferEnabled) cfgTransferEnabled.checked = true;
+  if (cfgTransferDestMode) cfgTransferDestMode.value = "fixed";
+  if (cfgTransferDest) cfgTransferDest.dataset.selected = "";
+  if (cfgTransferDestRequired) cfgTransferDestRequired.checked = true;
+  if (cfgTransferStrategy) cfgTransferStrategy.value = "manual";
+  if (cfgTransferFallback) cfgTransferFallback.value = "";
+  if (cfgTransferTieBreak) cfgTransferTieBreak.value = "";
+  if (cfgTransferPriority) cfgTransferPriority.dataset.selected = "";
+  if (cfgTransferMinStock) cfgTransferMinStock.value = "";
+  if (cfgTransferSplit) cfgTransferSplit.checked = false;
+  updateTransferDestinationState();
+  if (cfgPriceGeneral) cfgPriceGeneral.dataset.selected = "";
+  if (cfgPriceDiscount) cfgPriceDiscount.dataset.selected = "";
+  if (cfgPriceWholesale) cfgPriceWholesale.dataset.selected = "";
+  if (cfgPriceCurrency) cfgPriceCurrency.value = "";
   if (cfgPriceEnabled) cfgPriceEnabled.checked = true;
   updatePriceListState();
   storeRuleOverrides = null;
@@ -7942,8 +7820,7 @@ async function loadLegacyStoreConfig() {
     const data = await fetchJson("/api/store-configs");
     const items = Array.isArray(data.items) ? data.items : [];
     const match =
-      items.find((item) => normalizeStoreId(item.storeId || "") === storeId) ||
-      (items.length === 1 ? items[0] : null);
+      items.find((item) => normalizeStoreId(item.storeId || "") === storeId) || (items.length === 1 ? items[0] : null);
     if (match) {
       activeStoreConfig = match;
       applyLegacyStoreConfig(match);
@@ -7980,7 +7857,8 @@ function renderConnections(settings) {
         const woo = store.woo;
         const platforms = [];
         if (shopify) {
-          const ok = Boolean(shopify.shopifyConnected ?? shopify.status === "Conectado") && !shopify.shopifyNeedsReconnect;
+          const ok =
+            Boolean(shopify.shopifyConnected ?? shopify.status === "Conectado") && !shopify.shopifyNeedsReconnect;
           platforms.push({ key: "shopify", label: "Shopify", ok, fail: !ok });
         }
         if (woo) {
@@ -8024,10 +7902,8 @@ function renderConnections(settings) {
   ]
     .slice()
     .sort((a, b) => {
-      const aIsActive =
-        a?.provider === "shopify" && normalizeShopDomain(a?.shopDomain || "") === activeDomain;
-      const bIsActive =
-        b?.provider === "shopify" && normalizeShopDomain(b?.shopDomain || "") === activeDomain;
+      const aIsActive = a?.provider === "shopify" && normalizeShopDomain(a?.shopDomain || "") === activeDomain;
+      const bIsActive = b?.provider === "shopify" && normalizeShopDomain(b?.shopDomain || "") === activeDomain;
       if (aIsActive === bIsActive) return 0;
       return aIsActive ? -1 : 1;
     });
@@ -8051,16 +7927,13 @@ function renderConnections(settings) {
       } else if (store?.provider === "alegra") {
         const alegraOk = !store.needsReconnect;
         const envLabel = store.environment === "sandbox" ? "Sandbox" : "Produccion";
-        platforms = [
-          { key: "alegra", label: `Alegra · ${envLabel}`, ok: alegraOk, fail: !alegraOk },
-        ];
+        platforms = [{ key: "alegra", label: `Alegra · ${envLabel}`, ok: alegraOk, fail: !alegraOk }];
       } else {
         const shopifyNeedsReconnect = Boolean(store.shopifyNeedsReconnect);
         const alegraNeedsReconnect = Boolean(store.alegraNeedsReconnect);
         const shopifyConnected =
           Boolean(store.shopifyConnected ?? store.status === "Conectado") && !shopifyNeedsReconnect;
-        const alegraConnected =
-          Boolean(store.alegraConnected ?? store.alegraAccountId) && !alegraNeedsReconnect;
+        const alegraConnected = Boolean(store.alegraConnected ?? store.alegraAccountId) && !alegraNeedsReconnect;
         const marketingState = getMarketingReadyState(domain);
         const marketingReady = marketingState === "ready";
         const marketingKnown = marketingState !== "";
@@ -8068,9 +7941,24 @@ function renderConnections(settings) {
           { key: "shopify", label: "Shopify", ok: shopifyConnected, fail: shopifyNeedsReconnect },
           { key: "alegra", label: "Alegra", ok: alegraConnected, fail: alegraNeedsReconnect },
           { key: "marketing", label: "Marketing", ok: marketingReady, fail: marketingKnown && !marketingReady },
-          { key: "google", label: "Google Ads", ok: Boolean(googleAds.connected), fail: Boolean(googleAds.needsReconnect) },
-          { key: "meta", label: "Meta Ads", ok: Boolean(settings?.metaAds?.connected), fail: Boolean(settings?.metaAds?.needsReconnect) },
-          { key: "tiktok", label: "TikTok Ads", ok: Boolean(settings?.tiktokAds?.connected), fail: Boolean(settings?.tiktokAds?.needsReconnect) },
+          {
+            key: "google",
+            label: "Google Ads",
+            ok: Boolean(googleAds.connected),
+            fail: Boolean(googleAds.needsReconnect),
+          },
+          {
+            key: "meta",
+            label: "Meta Ads",
+            ok: Boolean(settings?.metaAds?.connected),
+            fail: Boolean(settings?.metaAds?.needsReconnect),
+          },
+          {
+            key: "tiktok",
+            label: "TikTok Ads",
+            ok: Boolean(settings?.tiktokAds?.connected),
+            fail: Boolean(settings?.tiktokAds?.needsReconnect),
+          },
         ].filter((item) => item.ok || item.fail);
       }
       return `
@@ -8128,9 +8016,7 @@ async function loadInventoryCheckpoint() {
       return;
     }
     inventoryCronStatus.textContent = "Activo";
-    inventoryCronCheckpoint.textContent = checkpoint.updatedAt
-      ? formatDate(checkpoint.updatedAt)
-      : "-";
+    inventoryCronCheckpoint.textContent = checkpoint.updatedAt ? formatDate(checkpoint.updatedAt) : "-";
   } catch (error) {
     inventoryCronStatus.textContent = error?.message || "No disponible";
     inventoryCronCheckpoint.textContent = "-";
@@ -8166,10 +8052,7 @@ function buildProductRows(items) {
     }
   });
 
-  const allParentIds = new Set([
-    ...Array.from(parentMap.keys()),
-    ...Array.from(childMap.keys()),
-  ]);
+  const allParentIds = new Set([...Array.from(parentMap.keys()), ...Array.from(childMap.keys())]);
 
   const rows = [];
   allParentIds.forEach((parentId) => {
@@ -8188,12 +8071,8 @@ function buildProductRows(items) {
       variantBarcodes: [],
     };
 
-    const variantSkus = variants.flatMap((variant) =>
-      variant.sku ? [variant.sku] : []
-    );
-    const mergedVariantBarcodes = Array.from(
-      new Set([...(baseParent.variantBarcodes || []), ...variantSkus])
-    );
+    const variantSkus = variants.flatMap((variant) => (variant.sku ? [variant.sku] : []));
+    const mergedVariantBarcodes = Array.from(new Set([...(baseParent.variantBarcodes || []), ...variantSkus]));
     const variantTotals = variants.reduce(
       (acc, variant) => {
         const qty = Number(variant.inventoryQuantity);
@@ -8248,17 +8127,23 @@ function extractAlegraItems(payload) {
         ? payload
         : [];
   const total =
-    (data.metadata && (data.metadata.total ?? data.metadata.totalItems ?? data.metadata.count)) ||
-    data.total ||
-    null;
+    (data.metadata && (data.metadata.total ?? data.metadata.totalItems ?? data.metadata.count)) || data.total || null;
   return { items, total };
 }
 
 function pickAlegraPrice(prices) {
   if (!Array.isArray(prices) || prices.length === 0) return null;
   const general =
-    prices.find((price) => String(price?.name || "").toLowerCase().includes("general")) ||
-    prices.find((price) => String(price?.type || "").toLowerCase().includes("general")) ||
+    prices.find((price) =>
+      String(price?.name || "")
+        .toLowerCase()
+        .includes("general")
+    ) ||
+    prices.find((price) =>
+      String(price?.type || "")
+        .toLowerCase()
+        .includes("general")
+    ) ||
     prices[0];
   if (!general) return null;
   const parsed = typeof general.price === "string" ? Number(general.price) : general.price;
@@ -8319,9 +8204,7 @@ function normalizeProduct(item) {
     return String(match?.value || "").trim();
   })();
   const images = Array.isArray(item.images)
-    ? item.images
-        .map((image) => (typeof image === "string" ? image : image?.url))
-        .filter(Boolean)
+    ? item.images.map((image) => (typeof image === "string" ? image : image?.url)).filter(Boolean)
     : [];
   const variantList = Array.isArray(item.itemVariants) ? item.itemVariants : [];
   const variantBarcodes = variantList
@@ -8336,15 +8219,12 @@ function normalizeProduct(item) {
     return null;
   };
   const warehouses = Array.isArray(item.inventory?.warehouses) ? item.inventory.warehouses : [];
-  const warehouseIds = warehouses
-    .map((warehouse) => String(warehouse?.id || ""))
-    .filter((id) => Boolean(id));
+  const warehouseIds = warehouses.map((warehouse) => String(warehouse?.id || "")).filter((id) => Boolean(id));
   const warehouseSum = warehouses.reduce((total, warehouse) => {
     const qty = parseNumber(warehouse?.availableQuantity);
     return qty !== null ? total + qty : total;
   }, 0);
-  const defaultWarehouse =
-    warehouses.find((warehouse) => warehouse?.isDefault) || warehouses[0];
+  const defaultWarehouse = warehouses.find((warehouse) => warehouse?.isDefault) || warehouses[0];
   const warehouseLabel = defaultWarehouse?.name || "";
   const warehouseBreakdown = warehouses
     .map((warehouse) => {
@@ -8363,8 +8243,7 @@ function normalizeProduct(item) {
   const alegraOverSell = resolveAlegraOverSell(item.inventory);
   const alegraTrackable = resolveAlegraTrackable(item.inventory);
   const primarySku = item.reference || item.barcode || customSku || "";
-  const variantParentId =
-    item.variantParent_id || item.variantParentId || item.idItemParent || null;
+  const variantParentId = item.variantParent_id || item.variantParentId || item.idItemParent || null;
   const resolvedVariants = Array.isArray(item.itemVariants) ? item.itemVariants : [];
   const variantSkus = resolvedVariants
     .map((variant) => variant?.reference || variant?.barcode || customSku)
@@ -8387,13 +8266,9 @@ function normalizeProduct(item) {
   const variants = resolvedVariants.map((variant) => {
     const variantCreatedAt = variant?.createdAt || variant?.created_at || createdAt || "";
     const variantImages = Array.isArray(variant?.images)
-      ? variant.images
-          .map((image) => (typeof image === "string" ? image : image?.url))
-          .filter(Boolean)
+      ? variant.images.map((image) => (typeof image === "string" ? image : image?.url)).filter(Boolean)
       : images;
-    const variantWarehouses = Array.isArray(variant?.inventory?.warehouses)
-      ? variant.inventory.warehouses
-      : [];
+    const variantWarehouses = Array.isArray(variant?.inventory?.warehouses) ? variant.inventory.warehouses : [];
     const variantWarehouseIds = variantWarehouses
       .map((warehouse) => String(warehouse?.id || ""))
       .filter((id) => Boolean(id));
@@ -8402,9 +8277,7 @@ function normalizeProduct(item) {
       return qty !== null ? total + qty : total;
     }, 0);
     const variantDefaultWarehouse =
-      variantWarehouses.find((warehouse) => warehouse?.isDefault) ||
-      variantWarehouses[0] ||
-      defaultWarehouse;
+      variantWarehouses.find((warehouse) => warehouse?.isDefault) || variantWarehouses[0] || defaultWarehouse;
     const variantWarehouseLabel = variantDefaultWarehouse?.name || "";
     const variantWarehouseBreakdown = variantWarehouses
       .map((warehouse) => {
@@ -8492,9 +8365,7 @@ function getSelectedSyncWarehouseIds() {
   if (!cfgWarehouseSync) return productSettings.sync?.warehouseIds || [];
   const inputs = Array.from(cfgWarehouseSync.querySelectorAll("input[data-warehouse-id]"));
   if (!inputs.length) return productSettings.sync?.warehouseIds || [];
-  return inputs
-    .filter((input) => input.checked)
-    .map((input) => String(input.dataset.warehouseId || ""));
+  return inputs.filter((input) => input.checked).map((input) => String(input.dataset.warehouseId || ""));
 }
 
 function getSelectedInventoryWarehouseIds() {
@@ -8502,9 +8373,7 @@ function getSelectedInventoryWarehouseIds() {
   const inputs = Array.from(cfgInventoryWarehouses.querySelectorAll("input[data-warehouse-id]"));
   const fallback = storeRuleOverrides?.warehouseIds || inventoryRules.warehouseIds || [];
   if (!inputs.length) return fallback;
-  return inputs
-    .filter((input) => input.checked)
-    .map((input) => String(input.dataset.warehouseId || ""));
+  return inputs.filter((input) => input.checked).map((input) => String(input.dataset.warehouseId || ""));
 }
 
 function renderSyncWarehouseFilters() {
@@ -8581,9 +8450,9 @@ function renderInventoryWarehouseFilters() {
   applyToggleDependencies();
 }
 
-	async function loadSettingsWarehouses() {
-	  if (!cfgWarehouseSync && !cfgInventoryWarehouses) return;
-	  try {
+async function loadSettingsWarehouses() {
+  if (!cfgWarehouseSync && !cfgInventoryWarehouses) return;
+  try {
     const params = new URLSearchParams();
     const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
     if (shopDomain) params.set("shopDomain", shopDomain);
@@ -8591,17 +8460,15 @@ function renderInventoryWarehouseFilters() {
     const query = params.toString() ? `?${params.toString()}` : "";
     const data = await fetchJson(`/api/alegra/warehouses${query}`);
     settingsWarehousesCatalog = Array.isArray(data.items) ? data.items : [];
-    settingsWarehousesCatalog.sort((a, b) =>
-      String(a?.name || "").localeCompare(String(b?.name || ""), "es")
-    );
+    settingsWarehousesCatalog.sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "es"));
   } catch {
     settingsWarehousesCatalog = [];
   }
-	  renderSyncWarehouseFilters();
-	  renderInventoryWarehouseFilters();
-	  renderTransferOriginFilters();
-	  updateTransferDestinationState();
-	}
+  renderSyncWarehouseFilters();
+  renderInventoryWarehouseFilters();
+  renderTransferOriginFilters();
+  updateTransferDestinationState();
+}
 
 function updateSyncWarehouseSummary() {
   if (!cfgWarehouseSyncSummary) return;
@@ -8635,9 +8502,7 @@ function getSelectedTransferOriginIds() {
   if (!cfgTransferOrigin) return transferOriginIds || [];
   const inputs = Array.from(cfgTransferOrigin.querySelectorAll("input[data-warehouse-id]"));
   if (!inputs.length) return transferOriginIds || [];
-  return inputs
-    .filter((input) => input.checked)
-    .map((input) => String(input.dataset.warehouseId || ""));
+  return inputs.filter((input) => input.checked).map((input) => String(input.dataset.warehouseId || ""));
 }
 
 function renderTransferOriginFilters() {
@@ -8685,142 +8550,135 @@ function renderTransferOriginFilters() {
 
 function updateSyncWarehouseState() {
   if (!cfgWarehouseSyncField) return;
-  const includeInventory = productsSyncIncludeInventory
-    ? productsSyncIncludeInventory.checked !== false
-    : true;
+  const includeInventory = productsSyncIncludeInventory ? productsSyncIncludeInventory.checked !== false : true;
   cfgWarehouseSyncField.style.display = includeInventory ? "" : "none";
 }
 
-	function updateTransferOriginSummary() {
-	  if (!cfgTransferOriginSummary) return;
-	  if (!settingsWarehousesCatalog.length) {
-	    cfgTransferOriginSummary.textContent = "Sin bodegas";
-	    return;
+function updateTransferOriginSummary() {
+  if (!cfgTransferOriginSummary) return;
+  if (!settingsWarehousesCatalog.length) {
+    cfgTransferOriginSummary.textContent = "Sin bodegas";
+    return;
   }
   const selected = getSelectedTransferOriginIds();
   if (!selected.length || selected.length === settingsWarehousesCatalog.length) {
     cfgTransferOriginSummary.textContent = "Todas";
     return;
   }
-	  cfgTransferOriginSummary.textContent = `${selected.length} seleccionadas`;
-	}
+  cfgTransferOriginSummary.textContent = `${selected.length} seleccionadas`;
+}
 
-	function getTransferDestinationMode() {
-	  if (!(cfgTransferDestMode instanceof HTMLSelectElement)) return "fixed";
-	  const raw = String(cfgTransferDestMode.value || "").trim().toLowerCase();
-	  if (raw === "auto" || raw === "rule") return raw;
-	  return "fixed";
-	}
+function getTransferDestinationMode() {
+  if (!(cfgTransferDestMode instanceof HTMLSelectElement)) return "fixed";
+  const raw = String(cfgTransferDestMode.value || "")
+    .trim()
+    .toLowerCase();
+  if (raw === "auto" || raw === "rule") return raw;
+  return "fixed";
+}
 
-	function isTransferDestinationRequired() {
-	  if (cfgTransferDestRequired instanceof HTMLInputElement) {
-	    return cfgTransferDestRequired.checked !== false;
-	  }
-	  return true;
-	}
+function isTransferDestinationRequired() {
+  if (cfgTransferDestRequired instanceof HTMLInputElement) {
+    return cfgTransferDestRequired.checked !== false;
+  }
+  return true;
+}
 
-		function updateTransferDestinationState() {
-		  if (!(cfgTransferDest instanceof HTMLSelectElement)) return;
-		  const mode = getTransferDestinationMode();
-		  const transferEnabled =
-		    cfgTransferEnabled instanceof HTMLInputElement ? cfgTransferEnabled.checked !== false : true;
+function updateTransferDestinationState() {
+  if (!(cfgTransferDest instanceof HTMLSelectElement)) return;
+  const mode = getTransferDestinationMode();
+  const transferEnabled = cfgTransferEnabled instanceof HTMLInputElement ? cfgTransferEnabled.checked !== false : true;
 
-		  const field = cfgTransferDest.closest(".mode-field") || cfgTransferDest;
-		  const pickFirstOptionValue = () => {
-		    const options = Array.from(cfgTransferDest.options || []);
-		    const found = options.find((option) => option && option.value && !option.disabled);
-		    return found ? String(found.value) : "";
-		  };
+  const field = cfgTransferDest.closest(".mode-field") || cfgTransferDest;
+  const pickFirstOptionValue = () => {
+    const options = Array.from(cfgTransferDest.options || []);
+    const found = options.find((option) => option && option.value && !option.disabled);
+    return found ? String(found.value) : "";
+  };
 
-		  if (!transferEnabled) {
-		    cfgTransferDest.disabled = true;
-		    if (field instanceof HTMLElement && field.getAttribute("data-mode-disabled") === "1") {
-		      field.classList.remove("is-dep-disabled");
-		      field.removeAttribute("data-disabled-reason");
-		      field.removeAttribute("data-mode-disabled");
-		    }
-		    return;
-		  }
+  if (!transferEnabled) {
+    cfgTransferDest.disabled = true;
+    if (field instanceof HTMLElement && field.getAttribute("data-mode-disabled") === "1") {
+      field.classList.remove("is-dep-disabled");
+      field.removeAttribute("data-disabled-reason");
+      field.removeAttribute("data-mode-disabled");
+    }
+    return;
+  }
 
-		  if (mode === "auto") {
-		    const priorityValue =
-		      cfgTransferPriority instanceof HTMLSelectElement
-		        ? String(cfgTransferPriority.value || "").trim()
-		        : "";
-		    const remembered = String(cfgTransferDest.dataset.selected || "").trim();
-		    const resolved = priorityValue || remembered || pickFirstOptionValue();
-		    if (resolved) {
-		      cfgTransferDest.value = resolved;
-		      cfgTransferDest.dataset.selected = resolved;
-		    }
-		    cfgTransferDest.disabled = true;
-		  } else {
-		    cfgTransferDest.disabled = false;
-		  }
-		  if (field instanceof HTMLElement) {
-		    if (mode === "auto") {
-		      field.classList.add("is-dep-disabled");
-		      field.setAttribute(
-		        "data-disabled-reason",
-		        "Automática: usamos la Bodega prioritaria (o la primera disponible) como destino.",
-		      );
-		      field.setAttribute("data-mode-disabled", "1");
-		    } else if (field.getAttribute("data-mode-disabled") === "1") {
-		      field.classList.remove("is-dep-disabled");
-		      field.removeAttribute("data-disabled-reason");
-		      field.removeAttribute("data-mode-disabled");
-		    }
-		  }
-		  updateInvoiceWarehouseFromTransfer();
-		}
+  if (mode === "auto") {
+    const priorityValue =
+      cfgTransferPriority instanceof HTMLSelectElement ? String(cfgTransferPriority.value || "").trim() : "";
+    const remembered = String(cfgTransferDest.dataset.selected || "").trim();
+    const resolved = priorityValue || remembered || pickFirstOptionValue();
+    if (resolved) {
+      cfgTransferDest.value = resolved;
+      cfgTransferDest.dataset.selected = resolved;
+    }
+    cfgTransferDest.disabled = true;
+  } else {
+    cfgTransferDest.disabled = false;
+  }
+  if (field instanceof HTMLElement) {
+    if (mode === "auto") {
+      field.classList.add("is-dep-disabled");
+      field.setAttribute(
+        "data-disabled-reason",
+        "Automática: usamos la Bodega prioritaria (o la primera disponible) como destino."
+      );
+      field.setAttribute("data-mode-disabled", "1");
+    } else if (field.getAttribute("data-mode-disabled") === "1") {
+      field.classList.remove("is-dep-disabled");
+      field.removeAttribute("data-disabled-reason");
+      field.removeAttribute("data-mode-disabled");
+    }
+  }
+  updateInvoiceWarehouseFromTransfer();
+}
 
-		function updateInvoiceWarehouseFromTransfer() {
-		  if (!(cfgWarehouse instanceof HTMLSelectElement)) return;
-		  const createInvoice =
-		    syncOrdersShopifyInvoice instanceof HTMLInputElement
-		      ? Boolean(syncOrdersShopifyInvoice.checked)
-		      : syncOrdersShopify instanceof HTMLSelectElement
-		        ? syncOrdersShopify.value === "invoice"
-		        : false;
-		  const transferEnabled =
-		    cfgTransferEnabled instanceof HTMLInputElement ? cfgTransferEnabled.checked !== false : true;
-		  const destinationId =
-		    cfgTransferDest instanceof HTMLSelectElement
-		      ? String(cfgTransferDest.value || "").trim()
-		      : "";
-		  const field = cfgWarehouse.closest(".mode-field") || cfgWarehouse;
-		  const shouldLock = createInvoice && transferEnabled && Boolean(destinationId);
+function updateInvoiceWarehouseFromTransfer() {
+  if (!(cfgWarehouse instanceof HTMLSelectElement)) return;
+  const createInvoice =
+    syncOrdersShopifyInvoice instanceof HTMLInputElement
+      ? Boolean(syncOrdersShopifyInvoice.checked)
+      : syncOrdersShopify instanceof HTMLSelectElement
+        ? syncOrdersShopify.value === "invoice"
+        : false;
+  const transferEnabled = cfgTransferEnabled instanceof HTMLInputElement ? cfgTransferEnabled.checked !== false : true;
+  const destinationId = cfgTransferDest instanceof HTMLSelectElement ? String(cfgTransferDest.value || "").trim() : "";
+  const field = cfgWarehouse.closest(".mode-field") || cfgWarehouse;
+  const shouldLock = createInvoice && transferEnabled && Boolean(destinationId);
 
-		  if (shouldLock) {
-		    cfgWarehouse.dataset.selected = destinationId;
-		    if (cfgWarehouse.options.length) {
-		      cfgWarehouse.value = destinationId;
-		    }
-		    cfgWarehouse.disabled = true;
-		    if (field instanceof HTMLElement) {
-		      field.classList.add("is-dep-disabled");
-		      field.setAttribute(
-		        "data-disabled-reason",
-		        "La factura usa la bodega destino definida en Logistica e inventario.",
-		      );
-		      field.setAttribute("data-transfer-locked", "1");
-		    }
-		    return;
-		  }
+  if (shouldLock) {
+    cfgWarehouse.dataset.selected = destinationId;
+    if (cfgWarehouse.options.length) {
+      cfgWarehouse.value = destinationId;
+    }
+    cfgWarehouse.disabled = true;
+    if (field instanceof HTMLElement) {
+      field.classList.add("is-dep-disabled");
+      field.setAttribute(
+        "data-disabled-reason",
+        "La factura usa la bodega destino definida en Logistica e inventario."
+      );
+      field.setAttribute("data-transfer-locked", "1");
+    }
+    return;
+  }
 
-		  if (field instanceof HTMLElement && field.getAttribute("data-transfer-locked") === "1") {
-		    field.classList.remove("is-dep-disabled");
-		    field.removeAttribute("data-disabled-reason");
-		    field.removeAttribute("data-transfer-locked");
-		  }
-		  cfgWarehouse.disabled = false;
-		}
+  if (field instanceof HTMLElement && field.getAttribute("data-transfer-locked") === "1") {
+    field.classList.remove("is-dep-disabled");
+    field.removeAttribute("data-disabled-reason");
+    field.removeAttribute("data-transfer-locked");
+  }
+  cfgWarehouse.disabled = false;
+}
 
-	function updateTransferOriginState() {
-	  if (!cfgTransferStrategy) return;
-	  const strategy = cfgTransferStrategy.value || "manual";
-	  const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
-	  const transferEnabled = cfgTransferEnabled ? cfgTransferEnabled.checked !== false : true;
+function updateTransferOriginState() {
+  if (!cfgTransferStrategy) return;
+  const strategy = cfgTransferStrategy.value || "manual";
+  const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
+  const transferEnabled = cfgTransferEnabled ? cfgTransferEnabled.checked !== false : true;
   const enableOrigins = transferEnabled && (strategy === "manual" || fallback === "manual");
   const details = getTransferOriginDetails();
   if (details) {
@@ -8830,11 +8688,9 @@ function updateSyncWarehouseState() {
     cfgTransferOriginField.style.display = enableOrigins ? "" : "none";
   }
   if (cfgTransferOrigin) {
-    cfgTransferOrigin
-      .querySelectorAll("input[data-warehouse-id], input[data-select-all]")
-      .forEach((input) => {
-        input.disabled = !enableOrigins;
-      });
+    cfgTransferOrigin.querySelectorAll("input[data-warehouse-id], input[data-select-all]").forEach((input) => {
+      input.disabled = !enableOrigins;
+    });
   }
   if (!enableOrigins && cfgTransferOriginSummary) {
     cfgTransferOriginSummary.textContent = transferEnabled ? "Automatico" : "Desactivado";
@@ -8855,9 +8711,7 @@ function updatePriceListState() {
 
 function getSelectedWarehouseIds() {
   if (!productsWarehouseFilter) return [];
-  return Array.from(
-    productsWarehouseFilter.querySelectorAll("input[data-warehouse-id]")
-  )
+  return Array.from(productsWarehouseFilter.querySelectorAll("input[data-warehouse-id]"))
     .filter((input) => input.checked)
     .map((input) => String(input.dataset.warehouseId || ""));
 }
@@ -8914,9 +8768,7 @@ async function loadWarehouseFilters() {
     const query = params.toString() ? `?${params.toString()}` : "";
     const data = await fetchJson(`/api/alegra/warehouses${query}`);
     warehousesCatalog = Array.isArray(data.items) ? data.items : [];
-    warehousesCatalog.sort((a, b) =>
-      String(a?.name || "").localeCompare(String(b?.name || ""), "es")
-    );
+    warehousesCatalog.sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "es"));
   } catch {
     warehousesCatalog = [];
   }
@@ -8972,9 +8824,7 @@ function matchesWarehouseFilter(product, selected) {
   const direct = Array.isArray(product.warehouseIds) ? product.warehouseIds : [];
   if (direct.some((id) => selected.has(String(id)))) return true;
   if (Array.isArray(product.variants)) {
-    return product.variants.some((variant) =>
-      (variant.warehouseIds || []).some((id) => selected.has(String(id)))
-    );
+    return product.variants.some((variant) => (variant.warehouseIds || []).some((id) => selected.has(String(id))));
   }
   return false;
 }
@@ -9043,11 +8893,7 @@ function renderProducts() {
     const matchesWarehouse = matchesWarehouseFilter(product, selectedWarehouses);
     return matchesStatus && matchesStock && matchesWarehouse;
   });
-  const useFilteredCount =
-    Boolean(dateFilter) ||
-    inStockOnly ||
-    statusFilter !== "all" ||
-    selectedWarehouses.size > 0;
+  const useFilteredCount = Boolean(dateFilter) || inStockOnly || statusFilter !== "all" || selectedWarehouses.size > 0;
 
   const pageParents = [...fullyFilteredParents].sort((a, b) => {
     if (sortMode === "ref_asc") {
@@ -9097,19 +8943,17 @@ function renderProducts() {
       const alegraTrackable = product.alegraTrackable !== false && Boolean(alegraIdValue);
       const canToggleAlegra = alegraEnabled && Boolean(alegraIdValue);
       const canToggleShopify = shopifyEnabled && hasSku;
-      const shopifyUrl = resolvedLookup?.productId && shopifyAdminBase
-        ? `${shopifyAdminBase}/products/${resolvedLookup.productId}`
-        : "";
+      const shopifyUrl =
+        resolvedLookup?.productId && shopifyAdminBase ? `${shopifyAdminBase}/products/${resolvedLookup.productId}` : "";
       const rawShopifyId = resolvedLookup?.productId ? String(resolvedLookup.productId) : "";
       const shopifyId = rawShopifyId.match(/(\d+)/)?.[1] || "-";
-      const imageSource = row.type === "variant" && row.parent?.images?.[0]
-        ? row.parent.images[0]
-        : product.images && product.images[0]
-          ? product.images[0]
-          : "";
-      const imageUrl = imageSource
-        ? `/api/alegra/image?url=${encodeURIComponent(imageSource)}`
-        : "";
+      const imageSource =
+        row.type === "variant" && row.parent?.images?.[0]
+          ? row.parent.images[0]
+          : product.images && product.images[0]
+            ? product.images[0]
+            : "";
+      const imageUrl = imageSource ? `/api/alegra/image?url=${encodeURIComponent(imageSource)}` : "";
       const imageHtml = imageUrl
         ? `<img class="product-thumb" src="${imageUrl}" alt="${product.name}" loading="lazy" referrerpolicy="no-referrer" />`
         : `<div class="product-thumb"></div>`;
@@ -9270,9 +9114,7 @@ function renderProducts() {
       const nextValue = input.checked;
       try {
         input.disabled = true;
-        const alegraItem = alegraId
-          ? productsList.find((item) => String(item.id) === String(alegraId))
-          : null;
+        const alegraItem = alegraId ? productsList.find((item) => String(item.id) === String(alegraId)) : null;
         await updateProductTracking({
           target,
           alegraId,
@@ -9311,7 +9153,6 @@ function renderProducts() {
       }
     }
   };
-
 }
 
 async function updateProductOversell({ target, alegraId, sku, value }) {
@@ -9409,16 +9250,16 @@ async function loadProducts() {
   productsLoading = true;
   renderProducts();
   setProductsStatus("Cargando productos...");
-	try {
-	  const limit = productsLimitInput ? clampProductsLimit(Number(productsLimitInput.value)) : 30;
-	  const params = new URLSearchParams();
-	  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
-	  if (shopDomain) params.set("shopDomain", shopDomain);
-	  params.set("start", String(productsStart));
-	  params.set("limit", String(limit));
-	  if (productsQuery) params.set("query", productsQuery);
-	  const inStockOnly = Boolean(productSettings.filters?.inStockOnly);
-	  if (inStockOnly) params.set("inStockOnly", "1");
+  try {
+    const limit = productsLimitInput ? clampProductsLimit(Number(productsLimitInput.value)) : 30;
+    const params = new URLSearchParams();
+    const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+    if (shopDomain) params.set("shopDomain", shopDomain);
+    params.set("start", String(productsStart));
+    params.set("limit", String(limit));
+    if (productsQuery) params.set("query", productsQuery);
+    const inStockOnly = Boolean(productSettings.filters?.inStockOnly);
+    if (inStockOnly) params.set("inStockOnly", "1");
     const warehouseIds = Array.isArray(productSettings.filters?.warehouseIds)
       ? productSettings.filters.warehouseIds
       : [];
@@ -9534,8 +9375,8 @@ async function runProductsSync(mode) {
   const stopProgress = startSyncProgress("Productos");
   updateProductsProgress(0, "Productos 0% · ETA --:--");
   let syncStartTime = Date.now();
-		let currentSyncId = "";
-		let latestTotals = {
+  let currentSyncId = "";
+  let latestTotals = {
     total: null,
     scanned: 0,
     processed: 0,
@@ -9547,24 +9388,22 @@ async function runProductsSync(mode) {
     rateLimitRetries: 0,
     parents: 0,
     variants: 0,
-	};
-		try {
-		  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
-		  const response = await fetch("/api/sync/products?stream=1", {
-	    method: "POST",
-	    headers: { "Content-Type": "application/json" },
-	    body: JSON.stringify({
-	      shopDomain,
-	      mode: resolvedMode,
-	      batchSize: 5,
-	      filters: {
-	        dateStart: productSettings.sync.dateStart || null,
-	        dateEnd: productSettings.sync.dateEnd || null,
+  };
+  try {
+    const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+    const response = await fetch("/api/sync/products?stream=1", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        shopDomain,
+        mode: resolvedMode,
+        batchSize: 5,
+        filters: {
+          dateStart: productSettings.sync.dateStart || null,
+          dateEnd: productSettings.sync.dateEnd || null,
           limit: productSettings.sync.limit ? Number(productSettings.sync.limit) : null,
           query: productSettings.sync.query || null,
-          warehouseIds: Array.isArray(productSettings.sync.warehouseIds)
-            ? productSettings.sync.warehouseIds
-            : [],
+          warehouseIds: Array.isArray(productSettings.sync.warehouseIds) ? productSettings.sync.warehouseIds : [],
           includeInventory: productSettings.sync.includeInventory !== false,
           onlyActive: productSettings.sync.onlyActive !== false,
           onlyWithImages: productSettings.sync.onlyWithImages === true,
@@ -9633,29 +9472,25 @@ async function runProductsSync(mode) {
           const remainingMs = total > 0 && rate > 0 ? rate * Math.max(0, total - scanned) : 0;
           const percent = total > 0 ? (scanned / total) * 100 : 0;
           const etaText = total > 0 ? formatDuration(remainingMs) : "--:--";
-	          updateProductsProgress(
-	            percent,
-	            `Productos ${Math.round(percent)}% · ETA ${etaText}`
-	          );
-	          if (productsSyncStatus) {
-	            const publishOnSync = productSettings?.sync?.publishOnSync !== false;
-	            if (!publishOnSync) {
-	              productsSyncStatus.textContent =
-	                `Revisados ${scanned}/${total || "?"} · Base de datos: sincronizando... · Shopify: OFF`;
-	            } else {
-	              productsSyncStatus.textContent =
-	                `Revisados ${scanned}/${total || "?"}` +
-	                ` · Procesados ${latestTotals.processed}` +
-	                ` · Shopify actualizados ${latestTotals.updated || 0}` +
-	                ` · Shopify publicados ${latestTotals.published}` +
-	                ` · Existentes ${latestTotals.skipped}` +
-	                ` · No publicados ${latestTotals.skippedUnpublished || 0}` +
-	                ` · Reintentos ${latestTotals.rateLimitRetries}`;
-	            }
-	          }
-	          continue;
-	        }
-	        if (payload.type === "complete") {
+          updateProductsProgress(percent, `Productos ${Math.round(percent)}% · ETA ${etaText}`);
+          if (productsSyncStatus) {
+            const publishOnSync = productSettings?.sync?.publishOnSync !== false;
+            if (!publishOnSync) {
+              productsSyncStatus.textContent = `Revisados ${scanned}/${total || "?"} · Base de datos: sincronizando... · Shopify: OFF`;
+            } else {
+              productsSyncStatus.textContent =
+                `Revisados ${scanned}/${total || "?"}` +
+                ` · Procesados ${latestTotals.processed}` +
+                ` · Shopify actualizados ${latestTotals.updated || 0}` +
+                ` · Shopify publicados ${latestTotals.published}` +
+                ` · Existentes ${latestTotals.skipped}` +
+                ` · No publicados ${latestTotals.skippedUnpublished || 0}` +
+                ` · Reintentos ${latestTotals.rateLimitRetries}`;
+            }
+          }
+          continue;
+        }
+        if (payload.type === "complete") {
           const parents = payload.parentCount ?? 0;
           const variants = payload.variantCount ?? 0;
           const total = payload.total ?? payload.scanned ?? payload.processed ?? 0;
@@ -9666,38 +9501,38 @@ async function runProductsSync(mode) {
           const skipped = payload.skipped ?? 0;
           const failed = payload.failed ?? 0;
           const rateLimitRetries = payload.rateLimitRetries ?? 0;
-	          const publishOnSync = payload.publishOnSync !== false;
-	          const updateExisting = payload.updateExisting !== false;
-	          const publishStatus = payload.publishStatus || "draft";
-	          const skippedUnpublished = payload.skippedUnpublished ?? 0;
-	          const summary =
-	            total > 0
-	              ? !publishOnSync
-	                ? `Total: ${total} · Revisados: ${scanned} · Base de datos: OK · Fallidos: ${failed} · Padres: ${parents} · Variantes: ${variants} · Actualizar existentes: ${updateExisting ? "Si" : "No"} · Shopify: OFF`
-	                : `Total: ${total} · Revisados: ${scanned} · Procesados: ${processed} · Shopify actualizados: ${updated} · Shopify publicados: ${published} · Existentes: ${skipped} · No publicados: ${skippedUnpublished} · Reintentos: ${rateLimitRetries} · Fallidos: ${failed} · Padres: ${parents} · Variantes: ${variants} · Publicar: ${publishOnSync ? "Si" : "No"} · Estado: ${publishStatus} · Actualizar existentes: ${updateExisting ? "Si" : "No"}`
-	              : payload?.message
-	                ? payload.message
-	                : "Sin productos para sincronizar con esos filtros.";
+          const publishOnSync = payload.publishOnSync !== false;
+          const updateExisting = payload.updateExisting !== false;
+          const publishStatus = payload.publishStatus || "draft";
+          const skippedUnpublished = payload.skippedUnpublished ?? 0;
+          const summary =
+            total > 0
+              ? !publishOnSync
+                ? `Total: ${total} · Revisados: ${scanned} · Base de datos: OK · Fallidos: ${failed} · Padres: ${parents} · Variantes: ${variants} · Actualizar existentes: ${updateExisting ? "Si" : "No"} · Shopify: OFF`
+                : `Total: ${total} · Revisados: ${scanned} · Procesados: ${processed} · Shopify actualizados: ${updated} · Shopify publicados: ${published} · Existentes: ${skipped} · No publicados: ${skippedUnpublished} · Reintentos: ${rateLimitRetries} · Fallidos: ${failed} · Padres: ${parents} · Variantes: ${variants} · Publicar: ${publishOnSync ? "Si" : "No"} · Estado: ${publishStatus} · Actualizar existentes: ${updateExisting ? "Si" : "No"}`
+              : payload?.message
+                ? payload.message
+                : "Sin productos para sincronizar con esos filtros.";
           if (productsSyncStatus) {
             productsSyncStatus.textContent = summary;
           }
-	          finishProductsProgress("Productos 100%");
-	          stopProgress("Productos 100%");
-	          activeProductsSyncId = "";
-	          return;
-	        }
-	        if (payload.type === "canceled") {
+          finishProductsProgress("Productos 100%");
+          stopProgress("Productos 100%");
+          activeProductsSyncId = "";
+          return;
+        }
+        if (payload.type === "canceled") {
           const summary = "Sincronizacion detenida por el usuario.";
           if (productsSyncStatus) {
             productsSyncStatus.textContent = summary;
           }
-	          finishProductsProgress("Productos detenido");
-	          stopProgress("Productos detenido");
-	          activeProductsSyncId = "";
-	          return;
-	        }
-	        if (payload.type === "error") {
-	          throw new Error(payload.error || "No se pudo sincronizar productos.");
+          finishProductsProgress("Productos detenido");
+          stopProgress("Productos detenido");
+          activeProductsSyncId = "";
+          return;
+        }
+        if (payload.type === "error") {
+          throw new Error(payload.error || "No se pudo sincronizar productos.");
         }
       }
     }
@@ -9707,34 +9542,34 @@ async function runProductsSync(mode) {
     const updated = Number(latestTotals.updated) || 0;
     const published = Number(latestTotals.published) || 0;
     const skipped = Number(latestTotals.skipped) || 0;
-	    const skippedUnpublished = Number(latestTotals.skippedUnpublished) || 0;
-	    const failed = Number(latestTotals.failed) || 0;
-	    const rateLimitRetries = Number(latestTotals.rateLimitRetries) || 0;
-	    const publishOnSync = productSettings?.sync?.publishOnSync !== false;
-	    const summary =
-	      total > 0
-	        ? !publishOnSync
-	          ? `Total: ${total} · Revisados: ${scanned} · Base de datos: OK · Fallidos: ${failed}`
-	          : `Total: ${total} · Revisados: ${scanned} · Procesados: ${processed} · Shopify actualizados: ${updated} · Shopify publicados: ${published} · Existentes: ${skipped} · No publicados: ${skippedUnpublished} · Reintentos: ${rateLimitRetries} · Fallidos: ${failed}`
-	        : "Sin productos para sincronizar con esos filtros.";
-	    if (productsSyncStatus) {
-	      productsSyncStatus.textContent = summary;
-	    }
-	    finishProductsProgress("Productos 100%");
-	    stopProgress("Productos 100%");
-	    activeProductsSyncId = "";
-	  } catch (error) {
-	    const message = error?.message || "No se pudo sincronizar productos.";
+    const skippedUnpublished = Number(latestTotals.skippedUnpublished) || 0;
+    const failed = Number(latestTotals.failed) || 0;
+    const rateLimitRetries = Number(latestTotals.rateLimitRetries) || 0;
+    const publishOnSync = productSettings?.sync?.publishOnSync !== false;
+    const summary =
+      total > 0
+        ? !publishOnSync
+          ? `Total: ${total} · Revisados: ${scanned} · Base de datos: OK · Fallidos: ${failed}`
+          : `Total: ${total} · Revisados: ${scanned} · Procesados: ${processed} · Shopify actualizados: ${updated} · Shopify publicados: ${published} · Existentes: ${skipped} · No publicados: ${skippedUnpublished} · Reintentos: ${rateLimitRetries} · Fallidos: ${failed}`
+        : "Sin productos para sincronizar con esos filtros.";
+    if (productsSyncStatus) {
+      productsSyncStatus.textContent = summary;
+    }
+    finishProductsProgress("Productos 100%");
+    stopProgress("Productos 100%");
+    activeProductsSyncId = "";
+  } catch (error) {
+    const message = error?.message || "No se pudo sincronizar productos.";
     if (productsSyncStatus) {
       productsSyncStatus.textContent = message;
     }
-	    stopProgress("Error en productos");
-	    finishProductsProgress("Error en productos");
-	    activeProductsSyncId = "";
-	  } finally {
-	    setProductsBulkSyncRunning(false);
-	  }
-		}
+    stopProgress("Error en productos");
+    finishProductsProgress("Error en productos");
+    activeProductsSyncId = "";
+  } finally {
+    setProductsBulkSyncRunning(false);
+  }
+}
 
 async function runProductsShopifyBulkSync() {
   const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
@@ -9742,12 +9577,9 @@ async function runProductsShopifyBulkSync() {
     setProductsShopifyBulkStatus("Selecciona una tienda.", "is-warn");
     return;
   }
-  const dateStart =
-    productsShopifyBulkDateStart instanceof HTMLInputElement ? productsShopifyBulkDateStart.value : "";
-  const dateEnd =
-    productsShopifyBulkDateEnd instanceof HTMLInputElement ? productsShopifyBulkDateEnd.value : "";
-  const limitRaw =
-    productsShopifyBulkLimit instanceof HTMLInputElement ? Number(productsShopifyBulkLimit.value) : 0;
+  const dateStart = productsShopifyBulkDateStart instanceof HTMLInputElement ? productsShopifyBulkDateStart.value : "";
+  const dateEnd = productsShopifyBulkDateEnd instanceof HTMLInputElement ? productsShopifyBulkDateEnd.value : "";
+  const limitRaw = productsShopifyBulkLimit instanceof HTMLInputElement ? Number(productsShopifyBulkLimit.value) : 0;
   const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : null;
 
   const createInAlegra =
@@ -9944,11 +9776,8 @@ async function runStoreProductsSync() {
   const target = normalizeShopDomain(storeSyncTargetSelect?.value || "");
   const scope = storeSyncScopeSelect instanceof HTMLSelectElement ? storeSyncScopeSelect.value : "products";
   const alegraAccountId =
-    storeSyncAlegraAccountSelect instanceof HTMLSelectElement
-      ? Number(storeSyncAlegraAccountSelect.value || 0)
-      : 0;
-  const priceListId =
-    storeSyncPriceListSelect instanceof HTMLSelectElement ? storeSyncPriceListSelect.value : "";
+    storeSyncAlegraAccountSelect instanceof HTMLSelectElement ? Number(storeSyncAlegraAccountSelect.value || 0) : 0;
+  const priceListId = storeSyncPriceListSelect instanceof HTMLSelectElement ? storeSyncPriceListSelect.value : "";
   if (scope !== "products") {
     if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Inventario: proximo modulo. Selecciona Productos.";
     return;
@@ -9970,36 +9799,22 @@ async function runStoreProductsSync() {
     return;
   }
 
-  const statusValue =
-    storeSyncStatusSelect instanceof HTMLSelectElement ? storeSyncStatusSelect.value : "draft";
+  const statusValue = storeSyncStatusSelect instanceof HTMLSelectElement ? storeSyncStatusSelect.value : "draft";
   const priceFallback =
-    storeSyncPriceFallbackSelect instanceof HTMLSelectElement
-      ? storeSyncPriceFallbackSelect.value
-      : "shopify";
-  const onlyActive =
-    storeSyncOnlyActive instanceof HTMLInputElement ? Boolean(storeSyncOnlyActive.checked) : true;
+    storeSyncPriceFallbackSelect instanceof HTMLSelectElement ? storeSyncPriceFallbackSelect.value : "shopify";
+  const onlyActive = storeSyncOnlyActive instanceof HTMLInputElement ? Boolean(storeSyncOnlyActive.checked) : true;
   const includeDescriptions =
-    storeSyncIncludeDescriptions instanceof HTMLInputElement
-      ? Boolean(storeSyncIncludeDescriptions.checked)
-      : true;
+    storeSyncIncludeDescriptions instanceof HTMLInputElement ? Boolean(storeSyncIncludeDescriptions.checked) : true;
   const includeImages =
     storeSyncIncludeImages instanceof HTMLInputElement ? Boolean(storeSyncIncludeImages.checked) : true;
   const includeProductType =
-    storeSyncIncludeProductType instanceof HTMLInputElement
-      ? Boolean(storeSyncIncludeProductType.checked)
-      : true;
-  const includeTags =
-    storeSyncIncludeTags instanceof HTMLInputElement ? Boolean(storeSyncIncludeTags.checked) : true;
+    storeSyncIncludeProductType instanceof HTMLInputElement ? Boolean(storeSyncIncludeProductType.checked) : true;
+  const includeTags = storeSyncIncludeTags instanceof HTMLInputElement ? Boolean(storeSyncIncludeTags.checked) : true;
   const trackInventory =
-    storeSyncTrackInventory instanceof HTMLInputElement
-      ? Boolean(storeSyncTrackInventory.checked)
-      : true;
-  const allowOversell =
-    storeSyncOversell instanceof HTMLInputElement ? Boolean(storeSyncOversell.checked) : false;
+    storeSyncTrackInventory instanceof HTMLInputElement ? Boolean(storeSyncTrackInventory.checked) : true;
+  const allowOversell = storeSyncOversell instanceof HTMLInputElement ? Boolean(storeSyncOversell.checked) : false;
   const includeInventory =
-    storeSyncIncludeInventory instanceof HTMLInputElement
-      ? Boolean(storeSyncIncludeInventory.checked)
-      : true;
+    storeSyncIncludeInventory instanceof HTMLInputElement ? Boolean(storeSyncIncludeInventory.checked) : true;
   const inventorySource = getStoreSyncInventorySource();
 
   if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Sincronizando...";
@@ -10124,7 +9939,7 @@ async function runStoreProductsSync() {
       if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = "Sincronizacion detenida.";
       finishStoreSyncProgress("Sincronizador detenido");
     } else {
-    if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = message;
+      if (storeSyncStatusLabel) storeSyncStatusLabel.textContent = message;
       finishStoreSyncProgress("Error en sincronizador");
     }
   } finally {
@@ -10149,10 +9964,10 @@ async function runStoreProductsSync() {
   }
 }
 
-	async function runOrdersSync() {
-	  refreshProductSettingsFromInputs();
-	  if (ordersSyncStatus) {
-	    ordersSyncStatus.textContent = "Sincronizando...";
+async function runOrdersSync() {
+  refreshProductSettingsFromInputs();
+  if (ordersSyncStatus) {
+    ordersSyncStatus.textContent = "Sincronizando...";
   }
   const stopProgress = startSyncProgress("Pedidos");
   updateOrdersProgress(0, "Pedidos 0% · ETA --:--");
@@ -10161,40 +9976,38 @@ async function runStoreProductsSync() {
     total: null,
     processed: 0,
   };
-	try {
-	  const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
-	  const orderNumber = productSettings.orders.orderNumber
-	    ? productSettings.orders.orderNumber.replace(/^#/, "")
-	    : "";
-	  if (ordersBulkSyncAbort) {
-	    try {
-	      ordersBulkSyncAbort.abort();
-	    } catch {
-	      // ignore abort failures
-	    }
-	  }
-	  const controller = new AbortController();
-	  ordersBulkSyncAbort = controller;
-	  setOrdersBulkSyncRunning(true);
-	  const response = await fetch("/api/sync/orders?stream=1", {
-	    method: "POST",
-	    headers: { "Content-Type": "application/json" },
-	    body: JSON.stringify({
-	      shopDomain,
-	      filters: {
-	        dateStart: productSettings.orders.dateStart || null,
-	        dateEnd: productSettings.orders.dateEnd || null,
-	        limit: productSettings.orders.limit ? Number(productSettings.orders.limit) : null,
-	        orderNumber: orderNumber || null,
-	      },
-	      stream: true,
-	    }),
-	    signal: controller.signal,
-	  });
-	    if (!response.ok || !response.body) {
-	      const text = await response.text();
-	      throw new Error(text || "No se pudo sincronizar pedidos.");
-	    }
+  try {
+    const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
+    const orderNumber = productSettings.orders.orderNumber ? productSettings.orders.orderNumber.replace(/^#/, "") : "";
+    if (ordersBulkSyncAbort) {
+      try {
+        ordersBulkSyncAbort.abort();
+      } catch {
+        // ignore abort failures
+      }
+    }
+    const controller = new AbortController();
+    ordersBulkSyncAbort = controller;
+    setOrdersBulkSyncRunning(true);
+    const response = await fetch("/api/sync/orders?stream=1", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        shopDomain,
+        filters: {
+          dateStart: productSettings.orders.dateStart || null,
+          dateEnd: productSettings.orders.dateEnd || null,
+          limit: productSettings.orders.limit ? Number(productSettings.orders.limit) : null,
+          orderNumber: orderNumber || null,
+        },
+        stream: true,
+      }),
+      signal: controller.signal,
+    });
+    if (!response.ok || !response.body) {
+      const text = await response.text();
+      throw new Error(text || "No se pudo sincronizar pedidos.");
+    }
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
@@ -10220,58 +10033,55 @@ async function runStoreProductsSync() {
           }
           continue;
         }
-	        if (payload.type === "progress") {
-	          latestTotals = {
-	            ...latestTotals,
-	            total: payload.total ?? latestTotals.total,
-	            processed: payload.processed ?? latestTotals.processed,
-	          };
-	          const total = Number(latestTotals.total) || 0;
-	          const processed = Number(latestTotals.processed) || 0;
+        if (payload.type === "progress") {
+          latestTotals = {
+            ...latestTotals,
+            total: payload.total ?? latestTotals.total,
+            processed: payload.processed ?? latestTotals.processed,
+          };
+          const total = Number(latestTotals.total) || 0;
+          const processed = Number(latestTotals.processed) || 0;
           const elapsedMs = Date.now() - syncStartTime;
           const rate = processed > 0 ? elapsedMs / processed : 0;
           const remainingMs = total > 0 && rate > 0 ? rate * Math.max(0, total - processed) : 0;
           const percent = total > 0 ? (processed / total) * 100 : 0;
           const etaText = total > 0 ? formatDuration(remainingMs) : "--:--";
-	          updateOrdersProgress(
-	            percent,
-	            `Pedidos ${Math.round(percent)}% · ETA ${etaText}`
-	          );
-	          if (ordersSyncStatus) {
-	            const synced = Number(payload.synced) || 0;
-	            const skipped = Number(payload.skipped) || 0;
-	            const failed = Number(payload.failed) || 0;
-	            ordersSyncStatus.textContent =
-	              `Procesados ${processed}/${total || "?"}` +
-	              ` · Facturados ${synced}` +
-	              ` · Existentes ${skipped}` +
-	              ` · Fallidos ${failed}`;
-	          }
-	          continue;
-	        }
-	        if (payload.type === "complete") {
-	          const total = Number(payload.total ?? payload.processed ?? 0) || 0;
-	          const processed = Number(payload.processed ?? 0) || 0;
-	          const synced = Number(payload.synced ?? 0) || 0;
-	          const skipped = Number(payload.skipped ?? 0) || 0;
-	          const failed = Number(payload.failed ?? 0) || 0;
-	          const summary =
-	            total > 0
-	              ? `Total: ${total} · Procesados: ${processed} · Facturados: ${synced} · Existentes: ${skipped} · Fallidos: ${failed}`
-	              : "Sin pedidos para sincronizar con esos filtros.";
-	          if (ordersSyncStatus) {
-	            ordersSyncStatus.textContent = summary;
-	          }
-	          finishOrdersProgress("Pedidos 100%");
-	          stopProgress("Pedidos 100%");
-	          await loadOperationsView();
-	          return;
-	        }
-	        if (payload.type === "error") {
-	          throw new Error(payload.error || "No se pudo sincronizar pedidos.");
-	        }
-	      }
-	    }
+          updateOrdersProgress(percent, `Pedidos ${Math.round(percent)}% · ETA ${etaText}`);
+          if (ordersSyncStatus) {
+            const synced = Number(payload.synced) || 0;
+            const skipped = Number(payload.skipped) || 0;
+            const failed = Number(payload.failed) || 0;
+            ordersSyncStatus.textContent =
+              `Procesados ${processed}/${total || "?"}` +
+              ` · Facturados ${synced}` +
+              ` · Existentes ${skipped}` +
+              ` · Fallidos ${failed}`;
+          }
+          continue;
+        }
+        if (payload.type === "complete") {
+          const total = Number(payload.total ?? payload.processed ?? 0) || 0;
+          const processed = Number(payload.processed ?? 0) || 0;
+          const synced = Number(payload.synced ?? 0) || 0;
+          const skipped = Number(payload.skipped ?? 0) || 0;
+          const failed = Number(payload.failed ?? 0) || 0;
+          const summary =
+            total > 0
+              ? `Total: ${total} · Procesados: ${processed} · Facturados: ${synced} · Existentes: ${skipped} · Fallidos: ${failed}`
+              : "Sin pedidos para sincronizar con esos filtros.";
+          if (ordersSyncStatus) {
+            ordersSyncStatus.textContent = summary;
+          }
+          finishOrdersProgress("Pedidos 100%");
+          stopProgress("Pedidos 100%");
+          await loadOperationsView();
+          return;
+        }
+        if (payload.type === "error") {
+          throw new Error(payload.error || "No se pudo sincronizar pedidos.");
+        }
+      }
+    }
     const total = Number(latestTotals.total) || 0;
     const processed = Number(latestTotals.processed) || 0;
     const summary = total > 0 ? `Pedidos: ${processed}/${total}` : "Pedidos sincronizados.";
@@ -10280,33 +10090,29 @@ async function runStoreProductsSync() {
     }
     finishOrdersProgress("Pedidos 100%");
     stopProgress("Pedidos 100%");
-		    await loadOperationsView();
-		  } catch (error) {
-	    const message = error?.message || "No se pudo sincronizar pedidos.";
-	    if (ordersSyncStatus) {
-	      ordersSyncStatus.textContent = message;
-	    }
-	    stopProgress("Error en pedidos");
-	    finishOrdersProgress("Error en pedidos");
-	  } finally {
-	    ordersBulkSyncAbort = null;
-	    setOrdersBulkSyncRunning(false);
-	}
+    await loadOperationsView();
+  } catch (error) {
+    const message = error?.message || "No se pudo sincronizar pedidos.";
+    if (ordersSyncStatus) {
+      ordersSyncStatus.textContent = message;
+    }
+    stopProgress("Error en pedidos");
+    finishOrdersProgress("Error en pedidos");
+  } finally {
+    ordersBulkSyncAbort = null;
+    setOrdersBulkSyncRunning(false);
+  }
 }
 
 async function runInvoicesBackfill() {
   const shopDomain = normalizeShopDomain(shopifyDomain?.value || activeStoreDomain || "");
   const limit = invoicesBackfillLimit instanceof HTMLInputElement ? Number(invoicesBackfillLimit.value || 0) : 0;
   const createShopify =
-    invoicesBackfillCreateShopify instanceof HTMLInputElement
-      ? Boolean(invoicesBackfillCreateShopify.checked)
-      : false;
+    invoicesBackfillCreateShopify instanceof HTMLInputElement ? Boolean(invoicesBackfillCreateShopify.checked) : false;
   const modeRaw = invoicesBackfillMode ? String(invoicesBackfillMode.value || "draft") : "draft";
   const mode = modeRaw === "active" ? "active" : "draft";
-  const dateStart =
-    invoicesBackfillDateStart instanceof HTMLInputElement ? invoicesBackfillDateStart.value : "";
-  const dateEnd =
-    invoicesBackfillDateEnd instanceof HTMLInputElement ? invoicesBackfillDateEnd.value : "";
+  const dateStart = invoicesBackfillDateStart instanceof HTMLInputElement ? invoicesBackfillDateStart.value : "";
+  const dateEnd = invoicesBackfillDateEnd instanceof HTMLInputElement ? invoicesBackfillDateEnd.value : "";
 
   setInvoicesBackfillStatus(createShopify ? "Sincronizando..." : "Cargando...", "");
   const stop = (finalLabel) => {
@@ -10341,9 +10147,7 @@ async function runInvoicesBackfill() {
   let startedAt = Date.now();
 
   try {
-    const response = await fetch(
-      createShopify ? "/api/sync/invoices?stream=1" : "/api/backfill/orders?stream=1",
-      {
+    const response = await fetch(createShopify ? "/api/sync/invoices?stream=1" : "/api/backfill/orders?stream=1", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -10366,8 +10170,7 @@ async function runInvoicesBackfill() {
         stream: true,
       }),
       signal: controller.signal,
-    }
-    );
+    });
     if (!response.ok || !response.body) {
       const text = await response.text();
       throw new Error(
@@ -10433,10 +10236,7 @@ async function runInvoicesBackfill() {
               ""
             );
           } else {
-            setInvoicesBackfillStatus(
-              `Procesadas ${processed}/${total || "?"} · Paginas ${latestTotals.pages}`,
-              ""
-            );
+            setInvoicesBackfillStatus(`Procesadas ${processed}/${total || "?"} · Paginas ${latestTotals.pages}`, "");
           }
           continue;
         }
@@ -10473,9 +10273,14 @@ async function runInvoicesBackfill() {
       }
     }
     const processed = Number(latestTotals.processed) || 0;
-    const summary = processed > 0
-      ? (createShopify ? `Facturas procesadas: ${processed}` : `Facturas cargadas: ${processed}`)
-      : (createShopify ? "Facturas sincronizadas." : "Facturas cargadas.");
+    const summary =
+      processed > 0
+        ? createShopify
+          ? `Facturas procesadas: ${processed}`
+          : `Facturas cargadas: ${processed}`
+        : createShopify
+          ? "Facturas sincronizadas."
+          : "Facturas cargadas.";
     setInvoicesBackfillStatus(summary, "is-ok");
     stop("Facturas 100%");
     await loadOperationsView();
@@ -10622,7 +10427,9 @@ async function loadSaUsage() {
   }
   try {
     setSaStatus("Cargando...", "");
-    const data = await fetchJson(`/api/sa/usage?tenantId=${tenantId}&period=${encodeURIComponent(period)}&t=${Date.now()}`);
+    const data = await fetchJson(
+      `/api/sa/usage?tenantId=${tenantId}&period=${encodeURIComponent(period)}&t=${Date.now()}`
+    );
     const services = Array.isArray(data.services) ? data.services : [];
     if (!services.length) {
       saUsageBody.innerHTML = `<tr><td colspan="4" class="empty">Sin datos</td></tr>`;
@@ -10997,10 +10804,7 @@ function ensureMarketingDefaults() {
 }
 
 function getMarketingQuery() {
-  const preferredDomain =
-    marketingStoreSelect instanceof HTMLSelectElement
-      ? marketingStoreSelect.value
-      : "";
+  const preferredDomain = marketingStoreSelect instanceof HTMLSelectElement ? marketingStoreSelect.value : "";
   const shopDomain = normalizeShopDomain(preferredDomain || shopifyDomain?.value || activeStoreDomain || "");
   const from = marketingFrom instanceof HTMLInputElement ? String(marketingFrom.value || "") : "";
   const to = marketingTo instanceof HTMLInputElement ? String(marketingTo.value || "") : "";
@@ -11019,10 +10823,12 @@ function renderMarketingDashboard(data) {
   if (mkKpiRevenue) mkKpiRevenue.textContent = formatCurrencyValue(Number(kpis.revenue || 0));
   if (mkKpiSpend) mkKpiSpend.textContent = formatCurrencyValue(Number(kpis.spend || 0));
   if (mkKpiRoas) {
-    mkKpiRoas.textContent = kpis.roas === null || kpis.roas === undefined ? "--" : String(Math.round(Number(kpis.roas || 0) * 10) / 10);
+    mkKpiRoas.textContent =
+      kpis.roas === null || kpis.roas === undefined ? "--" : String(Math.round(Number(kpis.roas || 0) * 10) / 10);
   }
   if (mkKpiAov) {
-    mkKpiAov.textContent = kpis.aov === null || kpis.aov === undefined ? "--" : formatCurrencyValue(Number(kpis.aov || 0));
+    mkKpiAov.textContent =
+      kpis.aov === null || kpis.aov === undefined ? "--" : formatCurrencyValue(Number(kpis.aov || 0));
   }
 
   const funnel = kpis?.funnel || {};
@@ -11156,17 +10962,13 @@ async function loadMetrics() {
       metricsRange.value = data.range;
     }
     const growthLabel =
-      data.range === "day"
-        ? "Pedidos del día"
-        : data.range === "week"
-        ? "Pedidos semanales"
-        : "Pedidos mensuales";
+      data.range === "day" ? "Pedidos del día" : data.range === "week" ? "Pedidos semanales" : "Pedidos mensuales";
     const billingLabel =
       data.range === "day"
         ? "Facturacion del día"
         : data.range === "week"
-        ? "Facturacion semanal"
-        : "Facturacion mensual";
+          ? "Facturacion semanal"
+          : "Facturacion mensual";
     if (weeklyGrowthLabel) {
       weeklyGrowthLabel.textContent = growthLabel;
     }
@@ -11182,16 +10984,10 @@ async function loadMetrics() {
       }
     }
     if (kpiSalesTodaySub) {
-      const prevLabel =
-        data.range === "day"
-          ? "ayer"
-          : data.range === "week"
-          ? "semana pasada"
-          : "mes pasado";
+      const prevLabel = data.range === "day" ? "ayer" : data.range === "week" ? "semana pasada" : "mes pasado";
       const pct = typeof data.salesRangePct === "number" ? `${Math.abs(data.salesRangePct)}%` : "--";
       const sign = data.salesRangeTrend === "down" ? "-" : "+";
-      const delta =
-        typeof data.salesRangeDelta === "string" ? `${sign}${data.salesRangeDelta}` : "--";
+      const delta = typeof data.salesRangeDelta === "string" ? `${sign}${data.salesRangeDelta}` : "--";
       kpiSalesTodaySub.textContent = `Vs ${prevLabel} ${delta} (${pct})`;
     }
     if (kpiBillingAlegra) {
@@ -11203,16 +10999,10 @@ async function loadMetrics() {
       }
     }
     if (kpiBillingAlegraSub) {
-      const prevLabel =
-        data.range === "day"
-          ? "ayer"
-          : data.range === "week"
-          ? "semana pasada"
-          : "mes pasado";
+      const prevLabel = data.range === "day" ? "ayer" : data.range === "week" ? "semana pasada" : "mes pasado";
       const pct = typeof data.billingRangePct === "number" ? `${Math.abs(data.billingRangePct)}%` : "--";
       const sign = data.billingRangeTrend === "down" ? "-" : "+";
-      const delta =
-        typeof data.billingRangeDelta === "string" ? `${sign}${data.billingRangeDelta}` : "--";
+      const delta = typeof data.billingRangeDelta === "string" ? `${sign}${data.billingRangeDelta}` : "--";
       kpiBillingAlegraSub.textContent = `Vs ${prevLabel} ${delta} (${pct})`;
     }
     renderLineChart(chartWeekly, data.weeklyRevenue || [], data.weeklyRevenuePrev || []);
@@ -11359,10 +11149,8 @@ function renderOperations(items) {
 
   opsTableBody.innerHTML = items
     .map((item) => {
-      const statusLabel =
-        item.alegraStatus === "facturado" ? "Facturado" : "Pendiente/Fallo";
-      const statusClass =
-        item.alegraStatus === "facturado" ? "status-chip is-success" : "status-chip is-error";
+      const statusLabel = item.alegraStatus === "facturado" ? "Facturado" : "Pendiente/Fallo";
+      const statusClass = item.alegraStatus === "facturado" ? "status-chip is-success" : "status-chip is-error";
       const einvoiceLabel = item.einvoiceRequested
         ? item.einvoiceMissing && item.einvoiceMissing.length
           ? `<span class="status-chip is-warning">E-Factura incompleta</span>`
@@ -11390,26 +11178,26 @@ function renderOperations(items) {
     .join("");
 
   opsTableBody.querySelectorAll("button[data-invoice]").forEach((button) => {
-	    button.addEventListener("click", async () => {
-	      const orderId = encodeURIComponent(String(button.dataset.invoice || ""));
-	      try {
-	        await fetchJson(`/api/operations/${orderId}/invoice`, { method: "POST" });
-	        await loadLogs();
-	        await loadOperationsView();
-	      } catch (error) {
-	        showToast(error?.message || "No se pudo facturar.", "is-error");
-	      }
-	    });
-	  });
+    button.addEventListener("click", async () => {
+      const orderId = encodeURIComponent(String(button.dataset.invoice || ""));
+      try {
+        await fetchJson(`/api/operations/${orderId}/invoice`, { method: "POST" });
+        await loadLogs();
+        await loadOperationsView();
+      } catch (error) {
+        showToast(error?.message || "No se pudo facturar.", "is-error");
+      }
+    });
+  });
 
-	  opsTableBody.querySelectorAll("button[data-einvoice]").forEach((button) => {
-	    button.addEventListener("click", () => {
-	      const orderId = String(button.dataset.einvoice || "");
-	      if (!orderId) return;
-	      openEinvoiceModal(orderId);
-	    });
-	  });
-	}
+  opsTableBody.querySelectorAll("button[data-einvoice]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const orderId = String(button.dataset.einvoice || "");
+      if (!orderId) return;
+      openEinvoiceModal(orderId);
+    });
+  });
+}
 
 async function loadInvoices() {
   try {
@@ -11550,12 +11338,7 @@ function renderContacts(items) {
 
   contactsTableBody.innerHTML = items
     .map((item) => {
-      const source =
-        item.source === "shopify"
-          ? "Shopify"
-          : item.source === "alegra"
-            ? "Alegra"
-            : "-";
+      const source = item.source === "shopify" ? "Shopify" : item.source === "alegra" ? "Alegra" : "-";
       const status = item.sync_status === "synced" ? "Sincronizado" : "Pendiente";
       return `
         <tr>
@@ -11614,12 +11397,8 @@ function renderLineChart(container, items, prevItems = []) {
     container.innerHTML = `<div class="empty">Sin datos</div>`;
     return;
   }
-  const sliceItems = container.classList.contains("chart-compact")
-    ? items.slice(-7)
-    : items;
-  const prevSlice = container.classList.contains("chart-compact")
-    ? prevItems.slice(-sliceItems.length)
-    : prevItems;
+  const sliceItems = container.classList.contains("chart-compact") ? items.slice(-7) : items;
+  const prevSlice = container.classList.contains("chart-compact") ? prevItems.slice(-sliceItems.length) : prevItems;
   const values = sliceItems.map((item) => Number(item.amount || 0));
   const prevValues = prevSlice.map((item) => Number(item.amount || 0));
   const maxValue = Math.max(...values, 1);
@@ -11638,9 +11417,7 @@ function renderLineChart(container, items, prevItems = []) {
     const ratio = (value - minAll) / (maxAll - minAll);
     return height - padY - ratio * (height - padY * 2);
   };
-  const points = sliceItems
-    .map((item, index) => `${padX + index * step},${scale(Number(item.amount || 0))}`)
-    .join(" ");
+  const points = sliceItems.map((item, index) => `${padX + index * step},${scale(Number(item.amount || 0))}`).join(" ");
   const prevPoints = prevSlice
     .map((item, index) => `${padX + index * step},${scale(Number(item.amount || 0))}`)
     .join(" ");
@@ -11664,12 +11441,16 @@ function renderLineChart(container, items, prevItems = []) {
           <span>${minLabel}</span>
         </div>
       </div>
-      ${prevPoints ? `
+      ${
+        prevPoints
+          ? `
         <div class="line-chart-legend">
           <span><i></i>Actual: ${formatCurrencyValue(currentTotal)}</span>
           <span><i class="is-prev"></i>Anterior: ${formatCurrencyValue(prevTotal)}</span>
         </div>
-      ` : ""}
+      `
+          : ""
+      }
       <div class="line-chart-meta">
         <span>${lastLabel}</span>
         <strong>${formatCurrencyValue(Number(lastValue || 0))}</strong>
@@ -11687,9 +11468,7 @@ function renderBarChart(container, items, options = {}) {
   const labelKey = options.labelKey || "name";
   const valueKey = options.valueKey || "value";
   const valueFormatter =
-    typeof options.valueFormatter === "function"
-      ? options.valueFormatter
-      : (value) => String(value);
+    typeof options.valueFormatter === "function" ? options.valueFormatter : (value) => String(value);
   const maxValue = Math.max(...items.map((item) => Number(item[valueKey] || 0)), 1);
   container.innerHTML = `
     <div class="chart-bars">
@@ -12011,13 +11790,10 @@ async function sendAssistantMessage() {
     if (!container) return;
     if (Array.isArray(result.items) && result.items.length) {
       const headers = result.itemsHeaders || ["ID", "Nombre", "Referencia"];
-      const rows = Array.isArray(result.itemsRows) && result.itemsRows.length
-        ? result.itemsRows
-        : result.items.map((item) => [
-            item.id || "-",
-            item.name || "-",
-            item.reference || item.code || "-",
-          ]);
+      const rows =
+        Array.isArray(result.itemsRows) && result.itemsRows.length
+          ? result.itemsRows
+          : result.items.map((item) => [item.id || "-", item.name || "-", item.reference || item.code || "-"]);
       appendAssistantTable(container, headers, rows);
     }
     if (result.clientAction) {
@@ -12144,7 +11920,6 @@ async function loadResolutions() {
   }
 }
 
-
 if (aiSave) {
   aiSave.addEventListener("click", async () => {
     setButtonLoading(aiSave, true, "Guardando...");
@@ -12181,21 +11956,24 @@ if (aiKey) {
     const value = aiKey.value.trim();
     if (!value) return;
     if (aiTokenTimer) clearTimeout(aiTokenTimer);
-    aiTokenTimer = setTimeout(async () => {
-      aiTokenTimer = null;
-      if (aiTokenInFlight) return;
-      const current = aiKey.value.trim();
-      if (!current) return;
-      aiTokenInFlight = true;
-      try {
-        await saveSettings({ includeAi: true });
-        showToast("Token guardado.", "is-ok");
-      } catch (error) {
-        showToast(error?.message || "No se pudo guardar.", "is-error");
-      } finally {
-        aiTokenInFlight = false;
-      }
-    }, Math.max(0, Number(delayMs) || 0));
+    aiTokenTimer = setTimeout(
+      async () => {
+        aiTokenTimer = null;
+        if (aiTokenInFlight) return;
+        const current = aiKey.value.trim();
+        if (!current) return;
+        aiTokenInFlight = true;
+        try {
+          await saveSettings({ includeAi: true });
+          showToast("Token guardado.", "is-ok");
+        } catch (error) {
+          showToast(error?.message || "No se pudo guardar.", "is-error");
+        } finally {
+          aiTokenInFlight = false;
+        }
+      },
+      Math.max(0, Number(delayMs) || 0)
+    );
   };
 
   aiKey.addEventListener("input", () => scheduleAiTokenSave(900));
@@ -12293,37 +12071,37 @@ if (syncOrdersShopifyEnabled) {
   });
 }
 
-	if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
-	  syncOrdersShopifyInvoice.addEventListener("change", () => {
-	    if (!(syncOrdersShopify instanceof HTMLSelectElement)) return;
-	    const next = Boolean(syncOrdersShopifyInvoice.checked);
-	    if (cfgGenerateInvoice instanceof HTMLInputElement) {
-	      cfgGenerateInvoice.checked = next;
-	    }
-	    if (next) {
-	      const previous = syncOrdersShopify.value;
-	      syncOrdersShopify.value = "invoice";
-	      if (cfgGenerateInvoice instanceof HTMLInputElement) cfgGenerateInvoice.checked = true;
-	      if (cfgTransferEnabled instanceof HTMLInputElement) cfgTransferEnabled.checked = true;
-	      updateTransferDestinationState();
-	      updateInvoiceWarehouseFromTransfer();
-	      const ready = warnIfShopifyOrdersInvoiceNotReady();
-	      if (!ready) {
-	        // No permitir activar "Crear factura" si falta configurar logistica/facturacion.
-	        syncOrdersShopifyInvoice.checked = false;
-	        if (cfgGenerateInvoice instanceof HTMLInputElement) {
-	          cfgGenerateInvoice.checked = false;
-	        }
-	        syncOrdersShopify.value = previous && previous !== "invoice" ? previous : "db_only";
-	      }
-	    } else {
-	      syncOrdersShopify.value = "db_only";
-	      updateInvoiceWarehouseFromTransfer();
-	    }
-	    updateOrderSyncDependencies();
-	    applyToggleDependencies();
-	  });
-	}
+if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
+  syncOrdersShopifyInvoice.addEventListener("change", () => {
+    if (!(syncOrdersShopify instanceof HTMLSelectElement)) return;
+    const next = Boolean(syncOrdersShopifyInvoice.checked);
+    if (cfgGenerateInvoice instanceof HTMLInputElement) {
+      cfgGenerateInvoice.checked = next;
+    }
+    if (next) {
+      const previous = syncOrdersShopify.value;
+      syncOrdersShopify.value = "invoice";
+      if (cfgGenerateInvoice instanceof HTMLInputElement) cfgGenerateInvoice.checked = true;
+      if (cfgTransferEnabled instanceof HTMLInputElement) cfgTransferEnabled.checked = true;
+      updateTransferDestinationState();
+      updateInvoiceWarehouseFromTransfer();
+      const ready = warnIfShopifyOrdersInvoiceNotReady();
+      if (!ready) {
+        // No permitir activar "Crear factura" si falta configurar logistica/facturacion.
+        syncOrdersShopifyInvoice.checked = false;
+        if (cfgGenerateInvoice instanceof HTMLInputElement) {
+          cfgGenerateInvoice.checked = false;
+        }
+        syncOrdersShopify.value = previous && previous !== "invoice" ? previous : "db_only";
+      }
+    } else {
+      syncOrdersShopify.value = "db_only";
+      updateInvoiceWarehouseFromTransfer();
+    }
+    updateOrderSyncDependencies();
+    applyToggleDependencies();
+  });
+}
 
 if (syncOrdersAlegraEnabled) {
   syncOrdersAlegraEnabled.addEventListener("change", () => {
@@ -12332,30 +12110,30 @@ if (syncOrdersAlegraEnabled) {
   });
 }
 
-	if (syncOrdersShopify) {
-	  syncOrdersShopify.addEventListener("change", () => {
-	    if (syncOrdersShopify.value === "invoice" && !warnIfShopifyOrdersInvoiceNotReady()) {
-	      syncOrdersShopify.value = "db_only";
-	    }
-	    if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
-	      syncOrdersShopifyInvoice.checked = syncOrdersShopify.value === "invoice";
-	    }
-	    if (cfgGenerateInvoice instanceof HTMLInputElement) {
-	      cfgGenerateInvoice.checked = syncOrdersShopify.value === "invoice";
-	    }
-	    if (syncOrdersShopify.value === "invoice" && cfgTransferEnabled instanceof HTMLInputElement) {
-	      cfgTransferEnabled.checked = true;
-	    }
-	    updateTransferDestinationState();
-	    updateInvoiceWarehouseFromTransfer();
-	    if (syncOrdersShopifyEnabled) {
-	      syncOrdersShopifyEnabled.checked = syncOrdersShopify.value !== "off";
-	      applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, "db_only");
-	    }
-	    updateOrderSyncDependencies();
-	    applyToggleDependencies();
-	  });
-	}
+if (syncOrdersShopify) {
+  syncOrdersShopify.addEventListener("change", () => {
+    if (syncOrdersShopify.value === "invoice" && !warnIfShopifyOrdersInvoiceNotReady()) {
+      syncOrdersShopify.value = "db_only";
+    }
+    if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
+      syncOrdersShopifyInvoice.checked = syncOrdersShopify.value === "invoice";
+    }
+    if (cfgGenerateInvoice instanceof HTMLInputElement) {
+      cfgGenerateInvoice.checked = syncOrdersShopify.value === "invoice";
+    }
+    if (syncOrdersShopify.value === "invoice" && cfgTransferEnabled instanceof HTMLInputElement) {
+      cfgTransferEnabled.checked = true;
+    }
+    updateTransferDestinationState();
+    updateInvoiceWarehouseFromTransfer();
+    if (syncOrdersShopifyEnabled) {
+      syncOrdersShopifyEnabled.checked = syncOrdersShopify.value !== "off";
+      applyOrderToggle(syncOrdersShopify, syncOrdersShopifyEnabled, "db_only");
+    }
+    updateOrderSyncDependencies();
+    applyToggleDependencies();
+  });
+}
 
 if (syncOrdersAlegra) {
   syncOrdersAlegra.addEventListener("change", () => {
@@ -12455,9 +12233,7 @@ async function loadShopifyWebhooksStatus() {
   }
   setShopifyWebhooksStatus("Consultando estado...");
   try {
-    const result = await fetchJson(
-      `/api/shopify/webhooks/status?shopDomain=${encodeURIComponent(shopDomain)}`
-    );
+    const result = await fetchJson(`/api/shopify/webhooks/status?shopDomain=${encodeURIComponent(shopDomain)}`);
     const total = Number(result?.total || 0);
     const connected = Number(result?.connected || 0);
     const missing = Array.isArray(result?.missing) ? result.missing : [];
@@ -12493,8 +12269,7 @@ async function createShopifyWebhooks() {
     const items = Array.isArray(result?.items) ? result.items : [];
     const okCount = items.filter((item) => item.ok).length;
     const total = items.length || 0;
-    const statusText =
-      total > 0 ? `Activados ${okCount}/${total}` : result?.message || "Webhooks activados.";
+    const statusText = total > 0 ? `Activados ${okCount}/${total}` : result?.message || "Webhooks activados.";
     setShopifyWebhooksStatus(statusText, okCount === total ? "is-ok" : "is-error");
     await loadShopifyWebhooksStatus();
     advanceWizardStep("sync-orders");
@@ -12520,8 +12295,7 @@ async function deleteShopifyWebhooks() {
     });
     const deleted = Number(result?.deleted || 0);
     const total = Number(result?.total || 0);
-    const statusText =
-      total > 0 ? `Desactivados ${deleted}/${total}` : "Webhooks desactivados.";
+    const statusText = total > 0 ? `Desactivados ${deleted}/${total}` : "Webhooks desactivados.";
     setShopifyWebhooksStatus(statusText, deleted === total ? "is-ok" : "is-error");
     await loadShopifyWebhooksStatus();
     return deleted === total;
@@ -12576,19 +12350,11 @@ async function runBulkContactSync() {
   const from = syncContactsBulkDateStart instanceof HTMLInputElement ? syncContactsBulkDateStart.value : "";
   const to = syncContactsBulkDateEnd instanceof HTMLInputElement ? syncContactsBulkDateEnd.value : "";
   const createInAlegra =
-    syncContactsBulkCreateAlegra instanceof HTMLInputElement
-      ? syncContactsBulkCreateAlegra.checked !== false
-      : true;
+    syncContactsBulkCreateAlegra instanceof HTMLInputElement ? syncContactsBulkCreateAlegra.checked !== false : true;
   const createInShopify =
-    syncContactsBulkCreateShopify instanceof HTMLInputElement
-      ? syncContactsBulkCreateShopify.checked !== false
-      : true;
+    syncContactsBulkCreateShopify instanceof HTMLInputElement ? syncContactsBulkCreateShopify.checked !== false : true;
   const directionLabel =
-    shopifyToAlegra && alegraToShopify
-      ? "Bidireccional"
-      : shopifyToAlegra
-        ? "Shopify → Alegra"
-        : "Alegra → Shopify";
+    shopifyToAlegra && alegraToShopify ? "Bidireccional" : shopifyToAlegra ? "Shopify → Alegra" : "Alegra → Shopify";
   setContactsSyncStatus("Sincronizando masivo...");
   setContactsBulkSyncRunning(true);
   updateContactsActionVisibility();
@@ -12609,7 +12375,12 @@ async function runBulkContactSync() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        direction: shopifyToAlegra && alegraToShopify ? "bidirectional" : (shopifyToAlegra ? "shopify_to_alegra" : "alegra_to_shopify"),
+        direction:
+          shopifyToAlegra && alegraToShopify
+            ? "bidirectional"
+            : shopifyToAlegra
+              ? "shopify_to_alegra"
+              : "alegra_to_shopify",
         directions: {
           shopifyToAlegra,
           alegraToShopify,
@@ -12679,9 +12450,7 @@ async function runBulkContactSync() {
           const rate = processed > 0 ? elapsedMs / processed : 0;
           const remainingMs = total > 0 && rate > 0 ? rate * Math.max(0, total - processed) : 0;
           const percent =
-            phaseTotal > 0
-              ? ((Math.max(0, phaseIndex - 1) + (phasePercent / 100)) / phaseTotal) * 100
-              : phasePercent;
+            phaseTotal > 0 ? ((Math.max(0, phaseIndex - 1) + phasePercent / 100) / phaseTotal) * 100 : phasePercent;
           const etaText = total > 0 ? formatDuration(remainingMs) : "--:--";
           updateContactsProgress(percent, `Contactos ${Math.round(percent)}% · ETA ${etaText}`);
           if (syncContactsStatus) {
@@ -12769,152 +12538,115 @@ async function saveStoreConfigFromSettings() {
   }
   const shopifyOrderMode = syncOrdersShopify ? syncOrdersShopify.value : "";
   const alegraOrderMode = syncOrdersAlegra ? syncOrdersAlegra.value : "";
-  const contactsEnabled =
-    syncContactsEnabled instanceof HTMLInputElement ? Boolean(syncContactsEnabled.checked) : true;
+  const contactsEnabled = syncContactsEnabled instanceof HTMLInputElement ? Boolean(syncContactsEnabled.checked) : true;
   const matchPriorityKey = syncContactsPriority ? syncContactsPriority.value : "document_phone_email";
   const matchPriority = matchPriorityKey.split("_").filter(Boolean);
-  const generateInvoiceValue =
-    cfgGenerateInvoice instanceof HTMLInputElement ? cfgGenerateInvoice.checked : true;
-	  const payload = {
-      storeId,
-	    transfers: {
-	      enabled: cfgTransferEnabled ? cfgTransferEnabled.checked : true,
-	      destinationMode: cfgTransferDestMode ? cfgTransferDestMode.value : "fixed",
-	      destinationRequired: cfgTransferDestRequired
-	        ? cfgTransferDestRequired.checked !== false
-	        : true,
-	      destinationWarehouseId: cfgTransferDest ? cfgTransferDest.value : "",
-	      priorityWarehouseId: cfgTransferPriority ? cfgTransferPriority.value : "",
-	      strategy: cfgTransferStrategy ? cfgTransferStrategy.value : "manual",
-	      fallbackStrategy: cfgTransferFallback ? cfgTransferFallback.value : "",
+  const generateInvoiceValue = cfgGenerateInvoice instanceof HTMLInputElement ? cfgGenerateInvoice.checked : true;
+  const payload = {
+    storeId,
+    transfers: {
+      enabled: cfgTransferEnabled ? cfgTransferEnabled.checked : true,
+      destinationMode: cfgTransferDestMode ? cfgTransferDestMode.value : "fixed",
+      destinationRequired: cfgTransferDestRequired ? cfgTransferDestRequired.checked !== false : true,
+      destinationWarehouseId: cfgTransferDest ? cfgTransferDest.value : "",
+      priorityWarehouseId: cfgTransferPriority ? cfgTransferPriority.value : "",
+      strategy: cfgTransferStrategy ? cfgTransferStrategy.value : "manual",
+      fallbackStrategy: cfgTransferFallback ? cfgTransferFallback.value : "",
       tieBreakRule: cfgTransferTieBreak ? cfgTransferTieBreak.value : "",
       splitEnabled: cfgTransferSplit ? cfgTransferSplit.checked : false,
-      minStock: cfgTransferMinStock
-        ? Math.max(0, Number(cfgTransferMinStock.value || 0))
-        : 0,
+      minStock: cfgTransferMinStock ? Math.max(0, Number(cfgTransferMinStock.value || 0)) : 0,
       originWarehouseIds: getSelectedTransferOriginIds(),
     },
     priceLists: {
       enabled: cfgPriceEnabled ? cfgPriceEnabled.checked !== false : true,
       generalId:
-        cfgPriceEnabled && cfgPriceEnabled.checked === false
-          ? ""
-          : cfgPriceGeneral
-            ? cfgPriceGeneral.value
-            : "",
+        cfgPriceEnabled && cfgPriceEnabled.checked === false ? "" : cfgPriceGeneral ? cfgPriceGeneral.value : "",
       discountId:
-        cfgPriceEnabled && cfgPriceEnabled.checked === false
-          ? ""
-          : cfgPriceDiscount
-            ? cfgPriceDiscount.value
-            : "",
+        cfgPriceEnabled && cfgPriceEnabled.checked === false ? "" : cfgPriceDiscount ? cfgPriceDiscount.value : "",
       wholesaleId:
-        cfgPriceEnabled && cfgPriceEnabled.checked === false
-          ? ""
-          : cfgPriceWholesale
-            ? cfgPriceWholesale.value
-            : "",
+        cfgPriceEnabled && cfgPriceEnabled.checked === false ? "" : cfgPriceWholesale ? cfgPriceWholesale.value : "",
       currency:
-        cfgPriceEnabled && cfgPriceEnabled.checked === false
-          ? ""
-          : cfgPriceCurrency
-            ? cfgPriceCurrency.value
-            : "",
+        cfgPriceEnabled && cfgPriceEnabled.checked === false ? "" : cfgPriceCurrency ? cfgPriceCurrency.value : "",
     },
-	    invoice: {
-	      generateInvoice: generateInvoiceValue,
-	      invoiceStatus:
-	        cfgInvoiceStatus instanceof HTMLSelectElement ? cfgInvoiceStatus.value || "draft" : "draft",
-	      resolutionId: cfgResolution ? cfgResolution.value : "",
-	      costCenterId: cfgCostCenter ? cfgCostCenter.value : "",
-	      warehouseId: cfgWarehouse ? cfgWarehouse.value : "",
-	      sellerId: cfgSeller ? cfgSeller.value : "",
-	      paymentMethod: cfgPaymentMethod ? cfgPaymentMethod.value : "",
-	      bankAccountId: cfgBankAccount ? cfgBankAccount.value : "",
-	      applyPayment: cfgApplyPayment ? cfgApplyPayment.checked : false,
-	      observationsTemplate: cfgObservations ? cfgObservations.value : "",
-	      observationsFields: getSelectedObservationKeys(),
-	      observationsExtra:
-	        cfgObservationsExtra instanceof HTMLInputElement ? cfgObservationsExtra.value.trim() : "",
-	      einvoiceEnabled: cfgEinvoiceEnabled ? cfgEinvoiceEnabled.checked : false,
-	    },
-	    rules: {
-	      publishOnStock: cfgInventoryPublishStock ? cfgInventoryPublishStock.checked : true,
-	      onlyActiveItems: rulesOnlyActive ? rulesOnlyActive.checked : false,
-	      autoPublishOnWebhook: rulesAutoPublish ? rulesAutoPublish.checked : false,
-	      autoPublishStatus:
-	        rulesAutoStatus && rulesAutoStatus.value === "active" ? "active" : "draft",
-        createInShopify:
-          rulesAutoCreateShopify instanceof HTMLInputElement
-            ? rulesAutoCreateShopify.checked !== false
-            : true,
-        updateInShopify:
-          rulesAutoUpdateShopify instanceof HTMLInputElement
-            ? rulesAutoUpdateShopify.checked !== false
-            : true,
+    invoice: {
+      generateInvoice: generateInvoiceValue,
+      invoiceStatus: cfgInvoiceStatus instanceof HTMLSelectElement ? cfgInvoiceStatus.value || "draft" : "draft",
+      resolutionId: cfgResolution ? cfgResolution.value : "",
+      costCenterId: cfgCostCenter ? cfgCostCenter.value : "",
+      warehouseId: cfgWarehouse ? cfgWarehouse.value : "",
+      sellerId: cfgSeller ? cfgSeller.value : "",
+      paymentMethod: cfgPaymentMethod ? cfgPaymentMethod.value : "",
+      bankAccountId: cfgBankAccount ? cfgBankAccount.value : "",
+      applyPayment: cfgApplyPayment ? cfgApplyPayment.checked : false,
+      observationsTemplate: cfgObservations ? cfgObservations.value : "",
+      observationsFields: getSelectedObservationKeys(),
+      observationsExtra: cfgObservationsExtra instanceof HTMLInputElement ? cfgObservationsExtra.value.trim() : "",
+      einvoiceEnabled: cfgEinvoiceEnabled ? cfgEinvoiceEnabled.checked : false,
+    },
+    rules: {
+      publishOnStock: cfgInventoryPublishStock ? cfgInventoryPublishStock.checked : true,
+      onlyActiveItems: rulesOnlyActive ? rulesOnlyActive.checked : false,
+      autoPublishOnWebhook: rulesAutoPublish ? rulesAutoPublish.checked : false,
+      autoPublishStatus: rulesAutoStatus && rulesAutoStatus.value === "active" ? "active" : "draft",
+      createInShopify:
+        rulesAutoCreateShopify instanceof HTMLInputElement ? rulesAutoCreateShopify.checked !== false : true,
+      updateInShopify:
+        rulesAutoUpdateShopify instanceof HTMLInputElement ? rulesAutoUpdateShopify.checked !== false : true,
       includeImages: rulesAutoImages ? rulesAutoImages.checked !== false : true,
       trackInventory: getTrackInventoryValue(),
       allowOversell: getAllowOversellValue(),
-      syncEnabled: getTrackInventoryValue()
-        ? true
-        : rulesSyncEnabled
-          ? rulesSyncEnabled.checked
-          : true,
+      syncEnabled: getTrackInventoryValue() ? true : rulesSyncEnabled ? rulesSyncEnabled.checked : true,
       webhookItemsEnabled: rulesAutoEnabled ? rulesAutoEnabled.checked !== false : true,
       warehouseIds: getSelectedInventoryWarehouseIds(),
     },
-	    sync: {
-	      contacts: {
-	        enabled: contactsEnabled,
-	        fromShopify: syncContactsShopify ? syncContactsShopify.checked !== false : true,
-	        fromAlegra: syncContactsAlegra ? syncContactsAlegra.checked !== false : true,
-	        createInAlegra: syncContactsCreateAlegra ? syncContactsCreateAlegra.checked !== false : true,
-	        createInShopify: syncContactsCreateShopify ? syncContactsCreateShopify.checked !== false : true,
-	        matchPriority,
-	      },
-	      orders: {
-	        shopifyEnabled:
-	          syncOrdersShopifyEnabled instanceof HTMLInputElement
-	            ? Boolean(syncOrdersShopifyEnabled.checked)
-	            : false,
-	        alegraEnabled:
-	          syncOrdersAlegraEnabled instanceof HTMLInputElement
-	            ? Boolean(syncOrdersAlegraEnabled.checked)
-	            : false,
-	        shopifyToAlegra: shopifyOrderMode || "db_only",
-	        alegraToShopify: alegraOrderMode || "off",
-	      },
-        products: {
-          shopifyEnabled:
-            cfgProductsShopifyToAlegraEnabled instanceof HTMLInputElement
-              ? Boolean(cfgProductsShopifyToAlegraEnabled.checked)
-              : false,
-          createInAlegra:
-            cfgProductsShopifyToAlegraCreate instanceof HTMLInputElement
-              ? Boolean(cfgProductsShopifyToAlegraCreate.checked)
-              : false,
-          updateInAlegra:
-            cfgProductsShopifyToAlegraUpdate instanceof HTMLInputElement
-              ? Boolean(cfgProductsShopifyToAlegraUpdate.checked)
-              : true,
-          includeInventory:
-            cfgProductsShopifyToAlegraIncludeInventory instanceof HTMLInputElement
-              ? Boolean(cfgProductsShopifyToAlegraIncludeInventory.checked)
-              : false,
-          matchPriority:
-            cfgProductsShopifyToAlegraMatch instanceof HTMLSelectElement
-              ? cfgProductsShopifyToAlegraMatch.value || "sku_barcode"
-              : "sku_barcode",
-          warehouseId:
-            cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
-              ? cfgProductsShopifyToAlegraWarehouse.value || ""
-              : "",
-        },
-	    },
-	  };
-	  await fetchJson(`/api/store-configs/${encodeURIComponent(storeId)}`, {
-	    method: "PUT",
-	    headers: { "Content-Type": "application/json" },
+    sync: {
+      contacts: {
+        enabled: contactsEnabled,
+        fromShopify: syncContactsShopify ? syncContactsShopify.checked !== false : true,
+        fromAlegra: syncContactsAlegra ? syncContactsAlegra.checked !== false : true,
+        createInAlegra: syncContactsCreateAlegra ? syncContactsCreateAlegra.checked !== false : true,
+        createInShopify: syncContactsCreateShopify ? syncContactsCreateShopify.checked !== false : true,
+        matchPriority,
+      },
+      orders: {
+        shopifyEnabled:
+          syncOrdersShopifyEnabled instanceof HTMLInputElement ? Boolean(syncOrdersShopifyEnabled.checked) : false,
+        alegraEnabled:
+          syncOrdersAlegraEnabled instanceof HTMLInputElement ? Boolean(syncOrdersAlegraEnabled.checked) : false,
+        shopifyToAlegra: shopifyOrderMode || "db_only",
+        alegraToShopify: alegraOrderMode || "off",
+      },
+      products: {
+        shopifyEnabled:
+          cfgProductsShopifyToAlegraEnabled instanceof HTMLInputElement
+            ? Boolean(cfgProductsShopifyToAlegraEnabled.checked)
+            : false,
+        createInAlegra:
+          cfgProductsShopifyToAlegraCreate instanceof HTMLInputElement
+            ? Boolean(cfgProductsShopifyToAlegraCreate.checked)
+            : false,
+        updateInAlegra:
+          cfgProductsShopifyToAlegraUpdate instanceof HTMLInputElement
+            ? Boolean(cfgProductsShopifyToAlegraUpdate.checked)
+            : true,
+        includeInventory:
+          cfgProductsShopifyToAlegraIncludeInventory instanceof HTMLInputElement
+            ? Boolean(cfgProductsShopifyToAlegraIncludeInventory.checked)
+            : false,
+        matchPriority:
+          cfgProductsShopifyToAlegraMatch instanceof HTMLSelectElement
+            ? cfgProductsShopifyToAlegraMatch.value || "sku_barcode"
+            : "sku_barcode",
+        warehouseId:
+          cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
+            ? cfgProductsShopifyToAlegraWarehouse.value || ""
+            : "",
+      },
+    },
+  };
+  await fetchJson(`/api/store-configs/${encodeURIComponent(storeId)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 }
@@ -12970,11 +12702,7 @@ async function saveSettings(options = {}) {
   }
   const alegraEmailValue = alegraEmail ? alegraEmail.value.trim() : "";
   const alegraKeyValue = alegraKey ? alegraKey.value.trim() : "";
-  if (
-    alegraAccountSelect &&
-    alegraAccountSelect.value !== "new" &&
-    (alegraEmailValue || alegraKeyValue)
-  ) {
+  if (alegraAccountSelect && alegraAccountSelect.value !== "new" && (alegraEmailValue || alegraKeyValue)) {
     throw new Error("No edites credenciales Alegra cuando usas una cuenta guardada.");
   }
   if (alegraEmailValue || alegraKeyValue) {
@@ -13245,9 +12973,12 @@ async function connectShopifyWithToken(params) {
   if (!store) {
     throw new Error("Selecciona una tienda.");
   }
-  const commerceAlegraId =
-    commerceAlegraSelect instanceof HTMLSelectElement ? commerceAlegraSelect.value : "";
-  if (commerceAlegraSelect instanceof HTMLSelectElement && commerceAlegraSelect.options.length > 1 && !commerceAlegraId) {
+  const commerceAlegraId = commerceAlegraSelect instanceof HTMLSelectElement ? commerceAlegraSelect.value : "";
+  if (
+    commerceAlegraSelect instanceof HTMLSelectElement &&
+    commerceAlegraSelect.options.length > 1 &&
+    !commerceAlegraId
+  ) {
     throw new Error("Selecciona la cuenta contable.");
   }
   const response = await fetchJson("/api/connections", {
@@ -13287,9 +13018,12 @@ async function connectWooCommerceStore() {
   if (!store) {
     throw new Error("Selecciona una tienda.");
   }
-  const commerceAlegraId =
-    commerceAlegraSelect instanceof HTMLSelectElement ? commerceAlegraSelect.value : "";
-  if (commerceAlegraSelect instanceof HTMLSelectElement && commerceAlegraSelect.options.length > 1 && !commerceAlegraId) {
+  const commerceAlegraId = commerceAlegraSelect instanceof HTMLSelectElement ? commerceAlegraSelect.value : "";
+  if (
+    commerceAlegraSelect instanceof HTMLSelectElement &&
+    commerceAlegraSelect.options.length > 1 &&
+    !commerceAlegraId
+  ) {
     throw new Error("Selecciona la cuenta contable.");
   }
   const testResult = await fetchJson("/api/settings/test", {
@@ -13340,14 +13074,14 @@ async function startShopifyOAuthFlow() {
   const normalizedInput = normalizeShopDomain(shopDomainValue || "");
   const sameStore = normalizedActive && normalizedActive === normalizedInput;
   const selectedStore = getSelectedStore();
-  const resolvedStoreName =
-    selectedStore?.name ||
-    (sameStore ? activeStoreName : "") ||
-    "";
+  const resolvedStoreName = selectedStore?.name || (sameStore ? activeStoreName : "") || "";
   const storeId = selectedStore?.id;
-  const commerceAlegraId =
-    commerceAlegraSelect instanceof HTMLSelectElement ? commerceAlegraSelect.value : "";
-  if (commerceAlegraSelect instanceof HTMLSelectElement && commerceAlegraSelect.options.length > 1 && !commerceAlegraId) {
+  const commerceAlegraId = commerceAlegraSelect instanceof HTMLSelectElement ? commerceAlegraSelect.value : "";
+  if (
+    commerceAlegraSelect instanceof HTMLSelectElement &&
+    commerceAlegraSelect.options.length > 1 &&
+    !commerceAlegraId
+  ) {
     throw new Error("Selecciona la cuenta contable.");
   }
   if (!normalizedInput) {
@@ -13513,10 +13247,7 @@ async function connectStore(kind) {
     try {
       await saveCredentials(kind);
     } catch (error) {
-      showToast(
-        error?.message || "Alegra conectado, pero no se pudo guardar credenciales auxiliares.",
-        "is-warn"
-      );
+      showToast(error?.message || "Alegra conectado, pero no se pudo guardar credenciales auxiliares.", "is-warn");
     }
   }
   clearConnectionForm();
@@ -13669,7 +13400,8 @@ if (saServiceSave) {
     try {
       const key = saServiceKey instanceof HTMLInputElement ? String(saServiceKey.value || "").trim() : "";
       const name = saServiceName instanceof HTMLInputElement ? String(saServiceName.value || "").trim() : "";
-      const periodType = saServicePeriod instanceof HTMLSelectElement ? String(saServicePeriod.value || "monthly") : "monthly";
+      const periodType =
+        saServicePeriod instanceof HTMLSelectElement ? String(saServicePeriod.value || "monthly") : "monthly";
       const active = saServiceActive instanceof HTMLInputElement ? Boolean(saServiceActive.checked) : true;
       if (!key || !name) {
         showToast("Key y nombre requeridos.", "is-warn");
@@ -13809,113 +13541,115 @@ if (alegraAccountSelect) {
 if (commerceAlegraSelect) {
   commerceAlegraSelect.addEventListener("change", () => updateConnectionButtonsState());
 }
-		  if (storeActiveSelect) {
-		    storeActiveSelect.addEventListener("change", () => {
-	      const nextId = storeActiveSelect.value || "";
-	      setActiveStoreId(nextId);
-	      const activeStore = getStoreByIdFromCatalog(nextId);
-	      activeStoreName = activeStore?.name || activeStore?.storeName || "";
-	      activeStoreDomain = getStoreShopDomainFromCatalog(activeStore);
-	    if (storeNameInput) {
-	      storeNameInput.placeholder = getActiveStoreLabel() || "Tienda de ejemplo";
-	    }
-	    shopifyAdminBase = activeStoreDomain ? `https://${activeStoreDomain}/admin` : "";
-		      updateStoreModuleTitles();
-		      renderStoreActiveList(storesCatalog);
-		      renderConnections({ stores: storesCache, wooStores: wooStoresCache });
-		      renderStoreContextSelects(storesCache);
-		      setShopifyWebhooksStatus("Sin configurar");
-		      const activePane =
-		        document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
-		      const keepConnectionsOpen = activePane === "connections" || getModulePanel("connections")?.getAttribute("data-setup-open") === "1";
-		      collapseAllGroupsAndModules();
-		      openDefaultGroups();
-		      const storeGroup = getGroupPanel("store");
-		      if (storeGroup) setGroupCollapsed(storeGroup, false);
-		      if (keepConnectionsOpen) {
-		        const panel = getModulePanel("connections");
-		        if (panel) setModuleCollapsed(panel, false);
-		        const summary = getModulePanel("connections-summary");
-	        if (summary) setModuleCollapsed(summary, false);
-	        setConnectionsSetupOpen(true);
-	      }
-		      loadLegacyStoreConfig().catch(() => null);
-		      // Refrescar catálogos dependientes de la tienda (bodegas, listas, etc.)
-		      loadSettingsWarehouses().catch(() => null);
-		      loadResolutions().catch(() => null);
-		      loadCatalog(cfgCostCenter, "cost-centers").catch(() => null);
-		      loadCatalog(cfgWarehouse, "warehouses").catch(() => null);
-		      loadCatalog(cfgSeller, "sellers").catch(() => null);
-		      loadCatalog(cfgPaymentMethod, "payment-methods").catch(() => null);
-		      loadCatalog(cfgBankAccount, "bank-accounts").catch(() => null);
-		      loadCatalog(cfgPriceGeneral, "price-lists").catch(() => null);
-		      loadCatalog(cfgPriceDiscount, "price-lists").catch(() => null);
-		      loadCatalog(cfgPriceWholesale, "price-lists").catch(() => null);
-		      loadCatalog(cfgTransferDest, "warehouses").catch(() => null);
-		      loadCatalog(cfgTransferPriority, "warehouses").catch(() => null);
-		      openWizardStep();
-		      updateConnectionPills();
-		      loadProducts().catch(() => null);
-	      loadOperations().catch(() => null);
-	      loadContacts().catch(() => null);
-	      scheduleMarketingLoad();
-		    });
-		  }
+if (storeActiveSelect) {
+  storeActiveSelect.addEventListener("change", () => {
+    const nextId = storeActiveSelect.value || "";
+    setActiveStoreId(nextId);
+    const activeStore = getStoreByIdFromCatalog(nextId);
+    activeStoreName = activeStore?.name || activeStore?.storeName || "";
+    activeStoreDomain = getStoreShopDomainFromCatalog(activeStore);
+    if (storeNameInput) {
+      storeNameInput.placeholder = getActiveStoreLabel() || "Tienda de ejemplo";
+    }
+    shopifyAdminBase = activeStoreDomain ? `https://${activeStoreDomain}/admin` : "";
+    updateStoreModuleTitles();
+    renderStoreActiveList(storesCatalog);
+    renderConnections({ stores: storesCache, wooStores: wooStoresCache });
+    renderStoreContextSelects(storesCache);
+    setShopifyWebhooksStatus("Sin configurar");
+    const activePane =
+      document.querySelector("[data-settings-pane].is-active")?.getAttribute("data-settings-pane") || "";
+    const keepConnectionsOpen =
+      activePane === "connections" || getModulePanel("connections")?.getAttribute("data-setup-open") === "1";
+    collapseAllGroupsAndModules();
+    openDefaultGroups();
+    const storeGroup = getGroupPanel("store");
+    if (storeGroup) setGroupCollapsed(storeGroup, false);
+    if (keepConnectionsOpen) {
+      const panel = getModulePanel("connections");
+      if (panel) setModuleCollapsed(panel, false);
+      const summary = getModulePanel("connections-summary");
+      if (summary) setModuleCollapsed(summary, false);
+      setConnectionsSetupOpen(true);
+    }
+    loadLegacyStoreConfig().catch(() => null);
+    // Refrescar catálogos dependientes de la tienda (bodegas, listas, etc.)
+    loadSettingsWarehouses().catch(() => null);
+    loadResolutions().catch(() => null);
+    loadCatalog(cfgCostCenter, "cost-centers").catch(() => null);
+    loadCatalog(cfgWarehouse, "warehouses").catch(() => null);
+    loadCatalog(cfgSeller, "sellers").catch(() => null);
+    loadCatalog(cfgPaymentMethod, "payment-methods").catch(() => null);
+    loadCatalog(cfgBankAccount, "bank-accounts").catch(() => null);
+    loadCatalog(cfgPriceGeneral, "price-lists").catch(() => null);
+    loadCatalog(cfgPriceDiscount, "price-lists").catch(() => null);
+    loadCatalog(cfgPriceWholesale, "price-lists").catch(() => null);
+    loadCatalog(cfgTransferDest, "warehouses").catch(() => null);
+    loadCatalog(cfgTransferPriority, "warehouses").catch(() => null);
+    openWizardStep();
+    updateConnectionPills();
+    loadProducts().catch(() => null);
+    loadOperations().catch(() => null);
+    loadContacts().catch(() => null);
+    scheduleMarketingLoad();
+  });
+}
 
-		  if (storeActiveList && storeActiveSelect) {
-		    storeActiveList.addEventListener("click", (event) => {
-		      const target = event.target;
-		      if (!(target instanceof HTMLElement)) return;
-		      const button = target.closest("[data-store-id]");
-		      if (!(button instanceof HTMLElement)) return;
-		      const nextId = button.getAttribute("data-store-id") || "";
-		      if (!nextId || storeActiveSelect.value === nextId) return;
-		      storeActiveSelect.value = nextId;
-		      storeActiveSelect.dispatchEvent(new Event("change"));
-		    });
-		  }
+if (storeActiveList && storeActiveSelect) {
+  storeActiveList.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const button = target.closest("[data-store-id]");
+    if (!(button instanceof HTMLElement)) return;
+    const nextId = button.getAttribute("data-store-id") || "";
+    if (!nextId || storeActiveSelect.value === nextId) return;
+    storeActiveSelect.value = nextId;
+    storeActiveSelect.dispatchEvent(new Event("change"));
+  });
+}
 
-  const bindStoreContextSelect = (select) => {
+const bindStoreContextSelect = (select) => {
   if (!select || !storeActiveSelect) return;
   select.addEventListener("change", () => {
-      const nextDomain = select.value || "";
-      if (!nextDomain) return;
-      const candidate =
-        storesCatalog.find((store) => normalizeShopDomain(getStoreShopDomainFromCatalog(store)) === normalizeShopDomain(nextDomain)) ||
-        null;
-      const nextId = candidate ? String(candidate.id || "") : "";
-      if (!nextId || storeActiveSelect.value === nextId) return;
-      storeActiveSelect.value = nextId;
-      storeActiveSelect.dispatchEvent(new Event("change"));
-    });
-  };
-  bindStoreContextSelect(ordersStoreSelect);
-  bindStoreContextSelect(productsStoreSelect);
-  bindStoreContextSelect(contactsStoreSelect);
-  bindStoreContextSelect(marketingStoreSelect);
+    const nextDomain = select.value || "";
+    if (!nextDomain) return;
+    const candidate =
+      storesCatalog.find(
+        (store) => normalizeShopDomain(getStoreShopDomainFromCatalog(store)) === normalizeShopDomain(nextDomain)
+      ) || null;
+    const nextId = candidate ? String(candidate.id || "") : "";
+    if (!nextId || storeActiveSelect.value === nextId) return;
+    storeActiveSelect.value = nextId;
+    storeActiveSelect.dispatchEvent(new Event("change"));
+  });
+};
+bindStoreContextSelect(ordersStoreSelect);
+bindStoreContextSelect(productsStoreSelect);
+bindStoreContextSelect(contactsStoreSelect);
+bindStoreContextSelect(marketingStoreSelect);
 
-  if (marketingStoreSelect) {
-    marketingStoreSelect.addEventListener("change", scheduleMarketingLoad);
-  }
-  if (marketingFrom) {
-    marketingFrom.addEventListener("change", scheduleMarketingLoad);
-  }
-  if (marketingTo) {
-    marketingTo.addEventListener("change", scheduleMarketingLoad);
-  }
+if (marketingStoreSelect) {
+  marketingStoreSelect.addEventListener("change", scheduleMarketingLoad);
+}
+if (marketingFrom) {
+  marketingFrom.addEventListener("change", scheduleMarketingLoad);
+}
+if (marketingTo) {
+  marketingTo.addEventListener("change", scheduleMarketingLoad);
+}
 
-	if (connectShopify) {
-	  connectShopify.addEventListener("click", async () => {
-	    try {
-	      setButtonLoading(connectShopify, true, "Conectando...");
-	      await startShopifyOAuthFlow();
-	    } catch (error) {
-	      showToast(error?.message || "No se pudo conectar Shopify.", "is-error");
-	    } finally {
-	      setButtonLoading(connectShopify, false);
-	    }
-	  });
-	}
+if (connectShopify) {
+  connectShopify.addEventListener("click", async () => {
+    try {
+      setButtonLoading(connectShopify, true, "Conectando...");
+      await startShopifyOAuthFlow();
+    } catch (error) {
+      showToast(error?.message || "No se pudo conectar Shopify.", "is-error");
+    } finally {
+      setButtonLoading(connectShopify, false);
+    }
+  });
+}
 if (connectAlegra) {
   connectAlegra.addEventListener("click", () => {
     setButtonLoading(connectAlegra, true, "Conectando...");
@@ -14045,9 +13779,9 @@ if (cfgWarehouseSync) {
       });
     } else if (selectAllInput) {
       const total = cfgWarehouseSync.querySelectorAll("input[data-warehouse-id]").length;
-      const selected = Array.from(
-        cfgWarehouseSync.querySelectorAll("input[data-warehouse-id]")
-      ).filter((input) => input.checked).length;
+      const selected = Array.from(cfgWarehouseSync.querySelectorAll("input[data-warehouse-id]")).filter(
+        (input) => input.checked
+      ).length;
       selectAllInput.checked = selected === 0 || selected === total;
     }
     updateSyncWarehouseSummary();
@@ -14059,23 +13793,21 @@ if (cfgInventoryWarehouses) {
     const selectAllInput = cfgInventoryWarehouses.querySelector("input[data-select-all]");
     if (selectAllInput && event?.target === selectAllInput) {
       const nextChecked = selectAllInput.checked;
-      cfgInventoryWarehouses
-        .querySelectorAll("input[data-warehouse-id]")
-        .forEach((input) => {
-          input.checked = nextChecked;
-        });
+      cfgInventoryWarehouses.querySelectorAll("input[data-warehouse-id]").forEach((input) => {
+        input.checked = nextChecked;
+      });
     } else if (selectAllInput) {
       const total = cfgInventoryWarehouses.querySelectorAll("input[data-warehouse-id]").length;
-      const selected = Array.from(
-        cfgInventoryWarehouses.querySelectorAll("input[data-warehouse-id]")
-      ).filter((input) => input.checked).length;
+      const selected = Array.from(cfgInventoryWarehouses.querySelectorAll("input[data-warehouse-id]")).filter(
+        (input) => input.checked
+      ).length;
       selectAllInput.checked = selected === 0 || selected === total;
     }
     updateInventoryWarehouseSummary();
   });
 }
-	if (cfgTransferOrigin) {
-	  cfgTransferOrigin.addEventListener("change", (event) => {
+if (cfgTransferOrigin) {
+  cfgTransferOrigin.addEventListener("change", (event) => {
     const selectAllInput = cfgTransferOrigin.querySelector("input[data-select-all]");
     if (selectAllInput && event?.target === selectAllInput) {
       const nextChecked = selectAllInput.checked;
@@ -14084,9 +13816,9 @@ if (cfgInventoryWarehouses) {
       });
     } else if (selectAllInput) {
       const total = cfgTransferOrigin.querySelectorAll("input[data-warehouse-id]").length;
-      const selected = Array.from(
-        cfgTransferOrigin.querySelectorAll("input[data-warehouse-id]")
-      ).filter((input) => input.checked).length;
+      const selected = Array.from(cfgTransferOrigin.querySelectorAll("input[data-warehouse-id]")).filter(
+        (input) => input.checked
+      ).length;
       selectAllInput.checked = selected === 0 || selected === total;
     }
     transferOriginIds = getSelectedTransferOriginIds();
@@ -14095,132 +13827,132 @@ if (cfgInventoryWarehouses) {
       const target = cfgTransferOriginField || cfgTransferOrigin;
       clearFieldError(target);
     }
-	  });
-	}
-		if (cfgTransferDest) {
-		  cfgTransferDest.addEventListener("change", () => {
-		    cfgTransferDest.dataset.selected = cfgTransferDest.value || "";
-		    updateInvoiceWarehouseFromTransfer();
-		    clearTransferErrors();
-		    if (cfgTransferEnabled?.checked && String(cfgTransferDest.value || "").trim()) {
-		      if (cfgTransferStrategy) focusFieldWithContext(cfgTransferStrategy);
-		    }
-		  });
-		}
-		if (cfgTransferPriority) {
-		  cfgTransferPriority.addEventListener("change", () => {
-		    updateTransferDestinationState();
-		    updateInvoiceWarehouseFromTransfer();
-		    clearTransferErrors();
-		    if (cfgTransferEnabled?.checked && String(cfgTransferPriority.value || "").trim()) {
-		      if (cfgTransferStrategy) focusFieldWithContext(cfgTransferStrategy);
-		    }
-		  });
-		}
-		if (cfgTransferStrategy) {
-		  cfgTransferStrategy.addEventListener("change", () => {
-		    updateTransferOriginState();
-		    clearTransferErrors();
-		    const strategy = cfgTransferStrategy.value || "manual";
-		    const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
-		    const requiresOrigins = strategy === "manual" || fallback === "manual";
-		    if (cfgTransferEnabled?.checked && requiresOrigins) {
-		      openTransferOriginPicker();
-		    }
-		  });
-		}
-		if (cfgTransferDestMode) {
-		  cfgTransferDestMode.addEventListener("change", () => {
-		    updateTransferDestinationState();
-		    clearTransferErrors();
-		    if (!cfgTransferEnabled?.checked) return;
-		    const mode = cfgTransferDestMode.value || "fixed";
-		    if (mode === "fixed") {
-		      if (cfgTransferDest) focusFieldWithContext(cfgTransferDest);
-		      return;
-		    }
-		    if (mode === "auto") {
-		      if (cfgTransferPriority) focusFieldWithContext(cfgTransferPriority);
-		      return;
-		    }
-		  });
-		}
-	if (cfgTransferDestRequired) {
-	  cfgTransferDestRequired.addEventListener("change", () => {
-	    clearTransferErrors();
-	  });
-	}
-		if (cfgTransferFallback) {
-		  cfgTransferFallback.addEventListener("change", () => {
-		    updateTransferOriginState();
-		    clearTransferErrors();
-		    const strategy = cfgTransferStrategy ? cfgTransferStrategy.value || "manual" : "manual";
-		    const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
-		    const requiresOrigins = strategy === "manual" || fallback === "manual";
-		    if (cfgTransferEnabled?.checked && requiresOrigins) {
-		      openTransferOriginPicker();
-		    }
-		  });
-	}
-		if (cfgTransferEnabled) {
-		  cfgTransferEnabled.addEventListener("change", () => {
-		    updateTransferDestinationState();
-		    updateTransferOriginState();
-		    if (!cfgTransferEnabled.checked) {
-		      clearTransferErrors();
-		    } else {
-		      if (cfgTransferDestMode) {
-		        focusFieldWithContext(cfgTransferDestMode);
-		      } else if (cfgTransferDest) {
-		        focusFieldWithContext(cfgTransferDest);
-		      }
-		    }
-		  });
-	}
+  });
+}
+if (cfgTransferDest) {
+  cfgTransferDest.addEventListener("change", () => {
+    cfgTransferDest.dataset.selected = cfgTransferDest.value || "";
+    updateInvoiceWarehouseFromTransfer();
+    clearTransferErrors();
+    if (cfgTransferEnabled?.checked && String(cfgTransferDest.value || "").trim()) {
+      if (cfgTransferStrategy) focusFieldWithContext(cfgTransferStrategy);
+    }
+  });
+}
+if (cfgTransferPriority) {
+  cfgTransferPriority.addEventListener("change", () => {
+    updateTransferDestinationState();
+    updateInvoiceWarehouseFromTransfer();
+    clearTransferErrors();
+    if (cfgTransferEnabled?.checked && String(cfgTransferPriority.value || "").trim()) {
+      if (cfgTransferStrategy) focusFieldWithContext(cfgTransferStrategy);
+    }
+  });
+}
+if (cfgTransferStrategy) {
+  cfgTransferStrategy.addEventListener("change", () => {
+    updateTransferOriginState();
+    clearTransferErrors();
+    const strategy = cfgTransferStrategy.value || "manual";
+    const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
+    const requiresOrigins = strategy === "manual" || fallback === "manual";
+    if (cfgTransferEnabled?.checked && requiresOrigins) {
+      openTransferOriginPicker();
+    }
+  });
+}
+if (cfgTransferDestMode) {
+  cfgTransferDestMode.addEventListener("change", () => {
+    updateTransferDestinationState();
+    clearTransferErrors();
+    if (!cfgTransferEnabled?.checked) return;
+    const mode = cfgTransferDestMode.value || "fixed";
+    if (mode === "fixed") {
+      if (cfgTransferDest) focusFieldWithContext(cfgTransferDest);
+      return;
+    }
+    if (mode === "auto") {
+      if (cfgTransferPriority) focusFieldWithContext(cfgTransferPriority);
+      return;
+    }
+  });
+}
+if (cfgTransferDestRequired) {
+  cfgTransferDestRequired.addEventListener("change", () => {
+    clearTransferErrors();
+  });
+}
+if (cfgTransferFallback) {
+  cfgTransferFallback.addEventListener("change", () => {
+    updateTransferOriginState();
+    clearTransferErrors();
+    const strategy = cfgTransferStrategy ? cfgTransferStrategy.value || "manual" : "manual";
+    const fallback = cfgTransferFallback ? cfgTransferFallback.value || "" : "";
+    const requiresOrigins = strategy === "manual" || fallback === "manual";
+    if (cfgTransferEnabled?.checked && requiresOrigins) {
+      openTransferOriginPicker();
+    }
+  });
+}
+if (cfgTransferEnabled) {
+  cfgTransferEnabled.addEventListener("change", () => {
+    updateTransferDestinationState();
+    updateTransferOriginState();
+    if (!cfgTransferEnabled.checked) {
+      clearTransferErrors();
+    } else {
+      if (cfgTransferDestMode) {
+        focusFieldWithContext(cfgTransferDestMode);
+      } else if (cfgTransferDest) {
+        focusFieldWithContext(cfgTransferDest);
+      }
+    }
+  });
+}
 if (cfgPriceEnabled) {
   cfgPriceEnabled.addEventListener("change", () => {
     updatePriceListState();
   });
 }
-	if (cfgGenerateInvoice) {
-	  cfgGenerateInvoice.addEventListener("change", () => {
-	    const next = Boolean(cfgGenerateInvoice.checked);
-	    if (syncOrdersShopify instanceof HTMLSelectElement) {
-	      if (next) {
-	        const previous = syncOrdersShopify.value;
-	        syncOrdersShopify.value = "invoice";
-	        if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
-	          syncOrdersShopifyInvoice.checked = true;
-	        }
-	        if (cfgTransferEnabled instanceof HTMLInputElement) {
-	          cfgTransferEnabled.checked = true;
-	        }
-	        updateTransferDestinationState();
-	        updateInvoiceWarehouseFromTransfer();
-	        const ready = warnIfShopifyOrdersInvoiceNotReady();
-	        if (!ready) {
-	          cfgGenerateInvoice.checked = false;
-	          if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
-	            syncOrdersShopifyInvoice.checked = false;
-	          }
-	          syncOrdersShopify.value = previous && previous !== "invoice" ? previous : "db_only";
-	        }
-	      } else {
-	        syncOrdersShopify.value = "db_only";
-	        if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
-	          syncOrdersShopifyInvoice.checked = false;
-	        }
-	      }
-	      updateOrderSyncDependencies();
-	      applyToggleDependencies();
-	    }
-	    updateTransferDestinationState();
-	    updateInvoiceWarehouseFromTransfer();
-	    if (!next) {
-	      clearInvoiceErrors();
-	    }
-	  });
-	}
+if (cfgGenerateInvoice) {
+  cfgGenerateInvoice.addEventListener("change", () => {
+    const next = Boolean(cfgGenerateInvoice.checked);
+    if (syncOrdersShopify instanceof HTMLSelectElement) {
+      if (next) {
+        const previous = syncOrdersShopify.value;
+        syncOrdersShopify.value = "invoice";
+        if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
+          syncOrdersShopifyInvoice.checked = true;
+        }
+        if (cfgTransferEnabled instanceof HTMLInputElement) {
+          cfgTransferEnabled.checked = true;
+        }
+        updateTransferDestinationState();
+        updateInvoiceWarehouseFromTransfer();
+        const ready = warnIfShopifyOrdersInvoiceNotReady();
+        if (!ready) {
+          cfgGenerateInvoice.checked = false;
+          if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
+            syncOrdersShopifyInvoice.checked = false;
+          }
+          syncOrdersShopify.value = previous && previous !== "invoice" ? previous : "db_only";
+        }
+      } else {
+        syncOrdersShopify.value = "db_only";
+        if (syncOrdersShopifyInvoice instanceof HTMLInputElement) {
+          syncOrdersShopifyInvoice.checked = false;
+        }
+      }
+      updateOrderSyncDependencies();
+      applyToggleDependencies();
+    }
+    updateTransferDestinationState();
+    updateInvoiceWarehouseFromTransfer();
+    if (!next) {
+      clearInvoiceErrors();
+    }
+  });
+}
 if (cfgEinvoiceEnabled) {
   cfgEinvoiceEnabled.addEventListener("change", () => {
     clearFieldWarning(cfgEinvoiceEnabled);
@@ -14228,35 +13960,35 @@ if (cfgEinvoiceEnabled) {
     applyToggleDependencies();
   });
 }
-  if (cfgApplyPayment) {
-    cfgApplyPayment.addEventListener("change", () => {
-      if (!cfgApplyPayment.checked) {
-        clearFieldError(cfgPaymentMethod);
-        clearFieldError(cfgBankAccount);
-        clearFieldWarning(cfgApplyPayment);
-      } else {
-        clearFieldWarning(cfgApplyPayment);
-      }
-    });
-  }
-  if (cfgObservationsFields) {
-    cfgObservationsFields.addEventListener("change", () => {
-      updateObservationsTemplateFromUi();
-    });
-  }
-  if (cfgObservationsExtra) {
-    cfgObservationsExtra.addEventListener("input", () => {
-      updateObservationsTemplateFromUi();
-    });
-    cfgObservationsExtra.addEventListener("change", () => {
-      updateObservationsTemplateFromUi();
-    });
-  }
-	if (profileSave) {
-	  profileSave.addEventListener("click", () => {
-	    saveProfile();
-	  });
-	}
+if (cfgApplyPayment) {
+  cfgApplyPayment.addEventListener("change", () => {
+    if (!cfgApplyPayment.checked) {
+      clearFieldError(cfgPaymentMethod);
+      clearFieldError(cfgBankAccount);
+      clearFieldWarning(cfgApplyPayment);
+    } else {
+      clearFieldWarning(cfgApplyPayment);
+    }
+  });
+}
+if (cfgObservationsFields) {
+  cfgObservationsFields.addEventListener("change", () => {
+    updateObservationsTemplateFromUi();
+  });
+}
+if (cfgObservationsExtra) {
+  cfgObservationsExtra.addEventListener("input", () => {
+    updateObservationsTemplateFromUi();
+  });
+  cfgObservationsExtra.addEventListener("change", () => {
+    updateObservationsTemplateFromUi();
+  });
+}
+if (profileSave) {
+  profileSave.addEventListener("click", () => {
+    saveProfile();
+  });
+}
 if (profilePhoto) {
   profilePhoto.addEventListener("change", async () => {
     try {
@@ -14311,12 +14043,12 @@ if (userMenuToggle) {
     toggleUserMenu();
   });
 }
-  if (userMenu) {
-    userMenu.addEventListener("click", (event) => {
-      const target = event.target instanceof HTMLElement ? event.target.closest("button") : null;
-      if (!target) return;
-      const action = target.getAttribute("data-user-action");
-      toggleUserMenu(false);
+if (userMenu) {
+  userMenu.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target.closest("button") : null;
+    if (!target) return;
+    const action = target.getAttribute("data-user-action");
+    toggleUserMenu(false);
     if (action === "profile") {
       openPanelInSection("profile", "profile-panel");
       return;
@@ -14329,15 +14061,15 @@ if (userMenuToggle) {
       window.location.href = "/users.html";
       return;
     }
-      if (action === "logout") {
-        fetchJson("/api/auth/logout", { method: "POST" })
-          .catch(() => null)
-          .finally(() => {
-            window.location.href = "/login.html";
-          });
-      }
-    });
-  }
+    if (action === "logout") {
+      fetchJson("/api/auth/logout", { method: "POST" })
+        .catch(() => null)
+        .finally(() => {
+          window.location.href = "/login.html";
+        });
+    }
+  });
+}
 document.addEventListener("click", (event) => {
   if (!userMenu || !userMenuToggle) return;
   if (event.target instanceof HTMLElement && event.target.closest("#topbar-user")) {
@@ -14409,9 +14141,9 @@ if (productsWarehouseFilter) {
       });
     } else if (selectAllInput) {
       const total = productsWarehouseFilter.querySelectorAll("input[data-warehouse-id]").length;
-      const selected = Array.from(
-        productsWarehouseFilter.querySelectorAll("input[data-warehouse-id]")
-      ).filter((input) => input.checked).length;
+      const selected = Array.from(productsWarehouseFilter.querySelectorAll("input[data-warehouse-id]")).filter(
+        (input) => input.checked
+      ).length;
       selectAllInput.checked = selected === 0 || selected === total;
     }
     updateProductsWarehouseSummary();
@@ -14437,19 +14169,19 @@ if (productsStatusFilter) {
   });
 }
 
-  if (productsLimitInput) {
-    productsLimitInput.addEventListener("change", () => {
-      const nextLimit = clampProductsLimit(Number(productsLimitInput.value || 30));
-      productsLimitInput.value = String(nextLimit);
-      productsStart = 0;
-      refreshProductSettingsFromInputs();
-      loadProducts();
-    });
-  }
+if (productsLimitInput) {
+  productsLimitInput.addEventListener("change", () => {
+    const nextLimit = clampProductsLimit(Number(productsLimitInput.value || 30));
+    productsLimitInput.value = String(nextLimit);
+    productsStart = 0;
+    refreshProductSettingsFromInputs();
+    loadProducts();
+  });
+}
 
 if (productsPrevBtn) {
   productsPrevBtn.addEventListener("click", () => {
-      const limit = productsLimitInput ? Number(productsLimitInput.value) : 20;
+    const limit = productsLimitInput ? Number(productsLimitInput.value) : 20;
     productsStart = Math.max(0, productsStart - limit);
     loadProducts();
   });
@@ -14458,7 +14190,9 @@ if (productsPrevBtn) {
 if (productsNextBtn) {
   productsNextBtn.addEventListener("click", () => {
     const limit = productsLimitInput ? Number(productsLimitInput.value) : 20;
-    const maxStart = productsTotal ? Math.max(0, (Math.ceil(productsTotal / limit) - 1) * limit) : productsStart + limit;
+    const maxStart = productsTotal
+      ? Math.max(0, (Math.ceil(productsTotal / limit) - 1) * limit)
+      : productsStart + limit;
     productsStart = Math.min(productsStart + limit, maxStart);
     loadProducts();
   });
@@ -14533,8 +14267,8 @@ if (connectionModalOpen) {
     openConnectionModal();
   });
 }
-  if (connectionModal) {
-    connectionModal.addEventListener("click", (event) => {
+if (connectionModal) {
+  connectionModal.addEventListener("click", (event) => {
     const target = event.target instanceof HTMLElement ? event.target : null;
     if (!target) return;
     if (target.closest("[data-connection-modal-close]")) {
@@ -14682,12 +14416,7 @@ if (storesList) {
       }
       if (action === "disconnect") {
         if (!provider) return;
-        const label =
-          provider === "shopify"
-            ? "Shopify"
-            : provider === "woocommerce"
-              ? "WooCommerce"
-              : "Alegra";
+        const label = provider === "shopify" ? "Shopify" : provider === "woocommerce" ? "WooCommerce" : "Alegra";
         if (!confirm(`Desconectar ${label} de esta tienda?`)) return;
         if (!confirm(`Confirmas desconectar ${label}?`)) return;
         let promise;
@@ -14774,10 +14503,12 @@ if (storesList) {
   wooConsumerKey,
   wooConsumerSecret,
   shopifyConnectPicker,
-].filter(Boolean).forEach((node) => {
-  node.addEventListener("input", updateConnectionButtonsState);
-  node.addEventListener("change", updateConnectionButtonsState);
-});
+]
+  .filter(Boolean)
+  .forEach((node) => {
+    node.addEventListener("input", updateConnectionButtonsState);
+    node.addEventListener("change", updateConnectionButtonsState);
+  });
 
 if (storeSyncSourceProviderSelect) {
   storeSyncSourceProviderSelect.addEventListener("change", () => {
@@ -14807,13 +14538,11 @@ if (storeSyncClear) {
   storeSyncClear.addEventListener("click", () => {
     if (storeSyncStatusSelect instanceof HTMLSelectElement) storeSyncStatusSelect.value = "draft";
     if (storeSyncScopeSelect instanceof HTMLSelectElement) storeSyncScopeSelect.value = "products";
-    if (storeSyncPriceFallbackSelect instanceof HTMLSelectElement)
-      storeSyncPriceFallbackSelect.value = "shopify";
+    if (storeSyncPriceFallbackSelect instanceof HTMLSelectElement) storeSyncPriceFallbackSelect.value = "shopify";
     if (storeSyncSourceProviderSelect instanceof HTMLSelectElement) storeSyncSourceProviderSelect.value = "shopify";
     if (storeSyncTargetProviderSelect instanceof HTMLSelectElement) storeSyncTargetProviderSelect.value = "shopify";
     if (storeSyncInventorySource instanceof HTMLSelectElement) storeSyncInventorySource.value = "accounting";
-    if (storeSyncAlegraAccountSelect instanceof HTMLSelectElement)
-      storeSyncAlegraAccountSelect.value = "";
+    if (storeSyncAlegraAccountSelect instanceof HTMLSelectElement) storeSyncAlegraAccountSelect.value = "";
     if (storeSyncPriceListSelect instanceof HTMLSelectElement) {
       storeSyncPriceListSelect.innerHTML = "";
       const option = document.createElement("option");
@@ -14872,10 +14601,7 @@ if (rulesSyncEnabled instanceof HTMLInputElement) {
   rulesSyncEnabled.addEventListener("change", () => {
     if (!rulesSyncEnabled.checked) {
       setTrackInventoryValue(false);
-      showToast(
-        "Desactivaste inventario: el seguimiento queda apagado en todos los sincronizadores.",
-        "is-warn"
-      );
+      showToast("Desactivaste inventario: el seguimiento queda apagado en todos los sincronizadores.", "is-warn");
     }
     applyInventoryTrackingGuard();
   });
@@ -14998,12 +14724,9 @@ if (qaTokenGenerate) {
       qaTokenHint.textContent = "Generando clave...";
     }
     try {
-      const ttlMinutes =
-        qaTokenTtl instanceof HTMLSelectElement ? Number(qaTokenTtl.value || 30) : 30;
+      const ttlMinutes = qaTokenTtl instanceof HTMLSelectElement ? Number(qaTokenTtl.value || 30) : 30;
       const scopes =
-        qaTokenScope instanceof HTMLSelectElement
-          ? [String(qaTokenScope.value || "general")]
-          : ["general"];
+        qaTokenScope instanceof HTMLSelectElement ? [String(qaTokenScope.value || "general")] : ["general"];
       const result = await fetchJson("/api/auth/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -15022,14 +14745,11 @@ if (qaTokenGenerate) {
       }
       if (qaTokenHint) {
         const expiresAt = result?.expiresAt ? new Date(result.expiresAt) : null;
-        qaTokenHint.textContent = expiresAt
-          ? `Vence: ${expiresAt.toLocaleString()}`
-          : "No expira.";
+        qaTokenHint.textContent = expiresAt ? `Vence: ${expiresAt.toLocaleString()}` : "No expira.";
       }
     } catch (error) {
       if (qaTokenHint) {
-        qaTokenHint.textContent =
-          (error && error.message) || "No se pudo generar la clave.";
+        qaTokenHint.textContent = (error && error.message) || "No se pudo generar la clave.";
       }
       showToast(error?.message || "No se pudo generar la clave.", "is-error");
     } finally {
@@ -15167,294 +14887,299 @@ document.addEventListener("DOMContentLoaded", () => {
     loadMarketingConfig();
   }
 });
-  if (syncContactsBulkRun) {
-    syncContactsBulkRun.addEventListener("click", () => {
-      runBulkContactSync();
-    });
-  }
+if (syncContactsBulkRun) {
+  syncContactsBulkRun.addEventListener("click", () => {
+    runBulkContactSync();
+  });
+}
 
-	  const bindContactsBulkToggle = (el) => {
-	    if (!(el instanceof HTMLInputElement)) return;
-	    el.addEventListener("change", () => {
-	      applyToggleDependencies();
-	      updateContactsActionVisibility();
-	    });
-	  };
-	  bindContactsBulkToggle(syncContactsBulkShopify);
-	  bindContactsBulkToggle(syncContactsBulkAlegra);
+const bindContactsBulkToggle = (el) => {
+  if (!(el instanceof HTMLInputElement)) return;
+  el.addEventListener("change", () => {
+    applyToggleDependencies();
+    updateContactsActionVisibility();
+  });
+};
+bindContactsBulkToggle(syncContactsBulkShopify);
+bindContactsBulkToggle(syncContactsBulkAlegra);
 
-	  if (syncContactsBulkStop) {
-	    syncContactsBulkStop.addEventListener("click", () => {
-	      if (contactsBulkSyncAbort) {
-	        try {
-          contactsBulkSyncAbort.abort();
-        } catch {
-          // ignore abort failures
-        }
+if (syncContactsBulkStop) {
+  syncContactsBulkStop.addEventListener("click", () => {
+    if (contactsBulkSyncAbort) {
+      try {
+        contactsBulkSyncAbort.abort();
+      } catch {
+        // ignore abort failures
       }
-      setContactsBulkSyncRunning(false);
-      updateContactsActionVisibility();
-    });
-  }
+    }
+    setContactsBulkSyncRunning(false);
+    updateContactsActionVisibility();
+  });
+}
 
-  if (syncContactsBulkClear) {
-    syncContactsBulkClear.addEventListener("click", () => {
-      if (syncContactsBulkDateStart instanceof HTMLInputElement) syncContactsBulkDateStart.value = "";
-      if (syncContactsBulkDateEnd instanceof HTMLInputElement) syncContactsBulkDateEnd.value = "";
-      if (syncContactLimit instanceof HTMLInputElement) syncContactLimit.value = "";
-      setContactsSyncStatus("Sin datos");
-      updateContactsActionVisibility();
-    });
-  }
+if (syncContactsBulkClear) {
+  syncContactsBulkClear.addEventListener("click", () => {
+    if (syncContactsBulkDateStart instanceof HTMLInputElement) syncContactsBulkDateStart.value = "";
+    if (syncContactsBulkDateEnd instanceof HTMLInputElement) syncContactsBulkDateEnd.value = "";
+    if (syncContactLimit instanceof HTMLInputElement) syncContactLimit.value = "";
+    setContactsSyncStatus("Sin datos");
+    updateContactsActionVisibility();
+  });
+}
 
-  if (syncContactsShopify) {
-    syncContactsShopify.addEventListener("change", () => {
-      updateContactsActionVisibility();
-    });
-  }
+if (syncContactsShopify) {
+  syncContactsShopify.addEventListener("change", () => {
+    updateContactsActionVisibility();
+  });
+}
 
-  if (syncContactsAlegra) {
-    syncContactsAlegra.addEventListener("change", () => {
-      updateContactsActionVisibility();
-    });
-  }
+if (syncContactsAlegra) {
+  syncContactsAlegra.addEventListener("change", () => {
+    updateContactsActionVisibility();
+  });
+}
 
-  if (ordersSyncBtn) {
-    ordersSyncBtn.addEventListener("click", runOrdersSync);
-  }
+if (ordersSyncBtn) {
+  ordersSyncBtn.addEventListener("click", runOrdersSync);
+}
 
-	if (ordersSyncClear) {
-	  ordersSyncClear.addEventListener("click", () => {
-	    if (ordersSyncDateStart) ordersSyncDateStart.value = "";
-	    if (ordersSyncDateEnd) ordersSyncDateEnd.value = "";
-	    if (ordersSyncLimitInput) ordersSyncLimitInput.value = "";
-	    if (ordersSyncNumber) ordersSyncNumber.value = "";
-	    if (ordersSyncStatus) ordersSyncStatus.textContent = "Sin datos";
-	    refreshProductSettingsFromInputs();
-	  });
-	}
+if (ordersSyncClear) {
+  ordersSyncClear.addEventListener("click", () => {
+    if (ordersSyncDateStart) ordersSyncDateStart.value = "";
+    if (ordersSyncDateEnd) ordersSyncDateEnd.value = "";
+    if (ordersSyncLimitInput) ordersSyncLimitInput.value = "";
+    if (ordersSyncNumber) ordersSyncNumber.value = "";
+    if (ordersSyncStatus) ordersSyncStatus.textContent = "Sin datos";
+    refreshProductSettingsFromInputs();
+  });
+}
 
-		if (ordersSyncStopBtn) {
-		  ordersSyncStopBtn.addEventListener("click", () => {
-	    if (ordersBulkSyncAbort) {
-	      try {
-	        ordersBulkSyncAbort.abort();
-	      } catch {
-	        // ignore abort failures
-	      }
-	    }
-	    setOrdersBulkSyncRunning(false);
-		  });
-		}
+if (ordersSyncStopBtn) {
+  ordersSyncStopBtn.addEventListener("click", () => {
+    if (ordersBulkSyncAbort) {
+      try {
+        ordersBulkSyncAbort.abort();
+      } catch {
+        // ignore abort failures
+      }
+    }
+    setOrdersBulkSyncRunning(false);
+  });
+}
 
-			if (invoicesBackfillRun) {
-			  invoicesBackfillRun.addEventListener("click", () => {
-			    runInvoicesBackfill();
-			  });
-			}
+if (invoicesBackfillRun) {
+  invoicesBackfillRun.addEventListener("click", () => {
+    runInvoicesBackfill();
+  });
+}
 
-      if (invoicesBackfillCreateShopify instanceof HTMLInputElement) {
-        invoicesBackfillCreateShopify.addEventListener("change", () => {
-          updateInvoicesBackfillUi();
+if (invoicesBackfillCreateShopify instanceof HTMLInputElement) {
+  invoicesBackfillCreateShopify.addEventListener("change", () => {
+    updateInvoicesBackfillUi();
+  });
+}
+
+if (invoicesBackfillClear) {
+  invoicesBackfillClear.addEventListener("click", () => {
+    if (invoicesBackfillDateStart instanceof HTMLInputElement) invoicesBackfillDateStart.value = "";
+    if (invoicesBackfillDateEnd instanceof HTMLInputElement) invoicesBackfillDateEnd.value = "";
+    if (invoicesBackfillLimit instanceof HTMLInputElement) invoicesBackfillLimit.value = "";
+    if (invoicesBackfillCreateShopify instanceof HTMLInputElement) invoicesBackfillCreateShopify.checked = false;
+    if (invoicesBackfillMode instanceof HTMLSelectElement) invoicesBackfillMode.value = "draft";
+    updateInvoicesBackfillUi();
+    setInvoicesBackfillStatus("Sin datos", "");
+  });
+}
+
+if (invoicesBackfillStop) {
+  invoicesBackfillStop.addEventListener("click", () => {
+    if (invoicesBackfillAbort) {
+      try {
+        invoicesBackfillAbort.abort();
+      } catch {
+        // ignore abort failures
+      }
+    }
+    setInvoicesBackfillRunning(false);
+  });
+}
+
+if (productsShopifyBulkRun) {
+  productsShopifyBulkRun.addEventListener("click", () => {
+    runProductsShopifyBulkSync();
+  });
+}
+
+if (productsShopifyBulkStop) {
+  productsShopifyBulkStop.addEventListener("click", async () => {
+    const syncId = String(activeProductsShopifyBulkSyncId || "").trim();
+    if (syncId) {
+      try {
+        await fetchJson("/api/sync/products/shopify-to-alegra/stop", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ syncId }),
         });
+      } catch {
+        // ignore
       }
-	
-			if (invoicesBackfillClear) {
-			  invoicesBackfillClear.addEventListener("click", () => {
-			    if (invoicesBackfillDateStart instanceof HTMLInputElement) invoicesBackfillDateStart.value = "";
-			    if (invoicesBackfillDateEnd instanceof HTMLInputElement) invoicesBackfillDateEnd.value = "";
-			    if (invoicesBackfillLimit instanceof HTMLInputElement) invoicesBackfillLimit.value = "";
-          if (invoicesBackfillCreateShopify instanceof HTMLInputElement) invoicesBackfillCreateShopify.checked = false;
-			    if (invoicesBackfillMode instanceof HTMLSelectElement) invoicesBackfillMode.value = "draft";
-          updateInvoicesBackfillUi();
-			    setInvoicesBackfillStatus("Sin datos", "");
-			  });
-			}
-
-			if (invoicesBackfillStop) {
-			  invoicesBackfillStop.addEventListener("click", () => {
-			    if (invoicesBackfillAbort) {
-			      try {
-			        invoicesBackfillAbort.abort();
-		      } catch {
-		        // ignore abort failures
-		      }
-		    }
-			    setInvoicesBackfillRunning(false);
-			  });
-			}
-
-      if (productsShopifyBulkRun) {
-        productsShopifyBulkRun.addEventListener("click", () => {
-          runProductsShopifyBulkSync();
-        });
+    }
+    if (productsShopifyBulkAbort) {
+      try {
+        productsShopifyBulkAbort.abort();
+      } catch {
+        // ignore
       }
+    }
+    setProductsShopifyBulkRunning(false);
+  });
+}
 
-      if (productsShopifyBulkStop) {
-        productsShopifyBulkStop.addEventListener("click", async () => {
-          const syncId = String(activeProductsShopifyBulkSyncId || "").trim();
-          if (syncId) {
-            try {
-              await fetchJson("/api/sync/products/shopify-to-alegra/stop", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ syncId }),
-              });
-            } catch {
-              // ignore
-            }
-          }
-          if (productsShopifyBulkAbort) {
-            try {
-              productsShopifyBulkAbort.abort();
-            } catch {
-              // ignore
-            }
-          }
-          setProductsShopifyBulkRunning(false);
-        });
-      }
+if (productsShopifyBulkClear) {
+  productsShopifyBulkClear.addEventListener("click", () => {
+    if (productsShopifyBulkDateStart instanceof HTMLInputElement) productsShopifyBulkDateStart.value = "";
+    if (productsShopifyBulkDateEnd instanceof HTMLInputElement) productsShopifyBulkDateEnd.value = "";
+    if (productsShopifyBulkLimit instanceof HTMLInputElement) productsShopifyBulkLimit.value = "";
+    if (productsShopifyBulkCreate instanceof HTMLInputElement) productsShopifyBulkCreate.checked = false;
+    if (productsShopifyBulkUpdate instanceof HTMLInputElement) productsShopifyBulkUpdate.checked = true;
+    if (productsShopifyBulkIncludeInventory instanceof HTMLInputElement)
+      productsShopifyBulkIncludeInventory.checked = false;
+    if (productsShopifyBulkMatch instanceof HTMLSelectElement) productsShopifyBulkMatch.value = "sku_barcode";
+    if (productsShopifyBulkWarehouse instanceof HTMLSelectElement) productsShopifyBulkWarehouse.value = "";
+    setProductsShopifyBulkStatus("Sin datos", "");
+    if (productsShopifyBulkProgress) productsShopifyBulkProgress.classList.remove("is-active");
+    if (productsShopifyBulkProgressBar) productsShopifyBulkProgressBar.style.width = "0%";
+    if (productsShopifyBulkProgressLabel) productsShopifyBulkProgressLabel.textContent = "Sincronizando 0%";
+    applyToggleDependencies();
+  });
+}
 
-      if (productsShopifyBulkClear) {
-        productsShopifyBulkClear.addEventListener("click", () => {
-          if (productsShopifyBulkDateStart instanceof HTMLInputElement) productsShopifyBulkDateStart.value = "";
-          if (productsShopifyBulkDateEnd instanceof HTMLInputElement) productsShopifyBulkDateEnd.value = "";
-          if (productsShopifyBulkLimit instanceof HTMLInputElement) productsShopifyBulkLimit.value = "";
-          if (productsShopifyBulkCreate instanceof HTMLInputElement) productsShopifyBulkCreate.checked = false;
-          if (productsShopifyBulkUpdate instanceof HTMLInputElement) productsShopifyBulkUpdate.checked = true;
-          if (productsShopifyBulkIncludeInventory instanceof HTMLInputElement) productsShopifyBulkIncludeInventory.checked = false;
-          if (productsShopifyBulkMatch instanceof HTMLSelectElement) productsShopifyBulkMatch.value = "sku_barcode";
-          if (productsShopifyBulkWarehouse instanceof HTMLSelectElement) productsShopifyBulkWarehouse.value = "";
-          setProductsShopifyBulkStatus("Sin datos", "");
-          if (productsShopifyBulkProgress) productsShopifyBulkProgress.classList.remove("is-active");
-          if (productsShopifyBulkProgressBar) productsShopifyBulkProgressBar.style.width = "0%";
-          if (productsShopifyBulkProgressLabel) productsShopifyBulkProgressLabel.textContent = "Sincronizando 0%";
-          applyToggleDependencies();
-        });
-      }
+if (ordersListLimit) {
+  ordersListLimit.addEventListener("change", () => {
+    if (operationsView === "invoices") invoicesStart = 0;
+    else ordersStart = 0;
+    refreshProductSettingsFromInputs();
+    loadOperationsView();
+  });
+}
 
-		if (ordersListLimit) {
-		  ordersListLimit.addEventListener("change", () => {
-		    if (operationsView === "invoices") invoicesStart = 0;
-		    else ordersStart = 0;
-	    refreshProductSettingsFromInputs();
-	    loadOperationsView();
-	  });
-	}
+if (ordersDateFilter) {
+  ordersDateFilter.addEventListener("change", () => {
+    if (operationsView === "invoices") invoicesStart = 0;
+    else ordersStart = 0;
+    refreshProductSettingsFromInputs();
+    loadOperationsView();
+  });
+}
 
-	if (ordersDateFilter) {
-	  ordersDateFilter.addEventListener("change", () => {
-	    if (operationsView === "invoices") invoicesStart = 0;
-	    else ordersStart = 0;
-	    refreshProductSettingsFromInputs();
-	    loadOperationsView();
-	  });
-	}
+if (ordersDaysSelect) {
+  ordersDaysSelect.addEventListener("change", () => {
+    if (operationsView === "invoices") invoicesStart = 0;
+    else ordersStart = 0;
+    refreshProductSettingsFromInputs();
+    loadOperationsView();
+  });
+}
 
-	if (ordersDaysSelect) {
-	  ordersDaysSelect.addEventListener("change", () => {
-	    if (operationsView === "invoices") invoicesStart = 0;
-	    else ordersStart = 0;
-	    refreshProductSettingsFromInputs();
-	    loadOperationsView();
-	  });
-	}
+if (ordersSort) {
+  ordersSort.addEventListener("change", () => {
+    if (operationsView === "invoices") invoicesStart = 0;
+    else ordersStart = 0;
+    refreshProductSettingsFromInputs();
+    loadOperationsView();
+  });
+}
 
-	if (ordersSort) {
-	  ordersSort.addEventListener("change", () => {
-	    if (operationsView === "invoices") invoicesStart = 0;
-	    else ordersStart = 0;
-	    refreshProductSettingsFromInputs();
-	    loadOperationsView();
-	  });
-	}
+if (opsSearch) {
+  let opsSearchTimer;
+  opsSearch.addEventListener("input", () => {
+    if (opsSearchTimer) clearTimeout(opsSearchTimer);
+    opsSearchTimer = setTimeout(() => {
+      if (operationsView === "invoices") invoicesStart = 0;
+      else ordersStart = 0;
+      refreshProductSettingsFromInputs();
+      loadOperationsView();
+    }, 400);
+  });
+}
 
-	if (opsSearch) {
-	  let opsSearchTimer;
-	  opsSearch.addEventListener("input", () => {
-	    if (opsSearchTimer) clearTimeout(opsSearchTimer);
-	    opsSearchTimer = setTimeout(() => {
-	      if (operationsView === "invoices") invoicesStart = 0;
-	      else ordersStart = 0;
-	      refreshProductSettingsFromInputs();
-	      loadOperationsView();
-	    }, 400);
-	  });
-	}
+if (ordersPrevBtn) {
+  ordersPrevBtn.addEventListener("click", () => {
+    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
+    ordersStart = Math.max(0, ordersStart - pageSize);
+    loadOperations();
+  });
+}
 
-	if (ordersPrevBtn) {
-	  ordersPrevBtn.addEventListener("click", () => {
-	    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
-	    ordersStart = Math.max(0, ordersStart - pageSize);
-	    loadOperations();
-	  });
-	}
+if (ordersNextBtn) {
+  ordersNextBtn.addEventListener("click", () => {
+    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
+    const maxStart = ordersTotal
+      ? Math.max(0, (Math.ceil(ordersTotal / pageSize) - 1) * pageSize)
+      : ordersStart + pageSize;
+    ordersStart = Math.min(ordersStart + pageSize, maxStart);
+    loadOperations();
+  });
+}
 
-	if (ordersNextBtn) {
-	  ordersNextBtn.addEventListener("click", () => {
-	    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
-	    const maxStart = ordersTotal ? Math.max(0, (Math.ceil(ordersTotal / pageSize) - 1) * pageSize) : ordersStart + pageSize;
-	    ordersStart = Math.min(ordersStart + pageSize, maxStart);
-	    loadOperations();
-	  });
-	}
+if (ordersPageGo) {
+  ordersPageGo.addEventListener("click", () => {
+    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
+    const totalPages = ordersTotal ? Math.max(1, Math.ceil(ordersTotal / pageSize)) : 1;
+    const target = ordersPageInput ? Number(ordersPageInput.value) : 1;
+    const page = Math.min(Math.max(1, target || 1), totalPages);
+    ordersStart = (page - 1) * pageSize;
+    loadOperations();
+  });
+}
 
-	if (ordersPageGo) {
-	  ordersPageGo.addEventListener("click", () => {
-	    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
-	    const totalPages = ordersTotal ? Math.max(1, Math.ceil(ordersTotal / pageSize)) : 1;
-	    const target = ordersPageInput ? Number(ordersPageInput.value) : 1;
-	    const page = Math.min(Math.max(1, target || 1), totalPages);
-	    ordersStart = (page - 1) * pageSize;
-	    loadOperations();
-	  });
-	}
+if (ordersPageInput) {
+  ordersPageInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && ordersPageGo) {
+      event.preventDefault();
+      ordersPageGo.click();
+    }
+  });
+}
 
-	if (ordersPageInput) {
-	  ordersPageInput.addEventListener("keydown", (event) => {
-	    if (event.key === "Enter" && ordersPageGo) {
-	      event.preventDefault();
-	      ordersPageGo.click();
-	    }
-	  });
-	}
+if (invoicesPrevBtn) {
+  invoicesPrevBtn.addEventListener("click", () => {
+    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
+    invoicesStart = Math.max(0, invoicesStart - pageSize);
+    loadInvoices();
+  });
+}
 
-	if (invoicesPrevBtn) {
-	  invoicesPrevBtn.addEventListener("click", () => {
-	    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
-	    invoicesStart = Math.max(0, invoicesStart - pageSize);
-	    loadInvoices();
-	  });
-	}
+if (invoicesNextBtn) {
+  invoicesNextBtn.addEventListener("click", () => {
+    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
+    const maxStart = invoicesTotal
+      ? Math.max(0, (Math.ceil(invoicesTotal / pageSize) - 1) * pageSize)
+      : invoicesStart + pageSize;
+    invoicesStart = Math.min(invoicesStart + pageSize, maxStart);
+    loadInvoices();
+  });
+}
 
-	if (invoicesNextBtn) {
-	  invoicesNextBtn.addEventListener("click", () => {
-	    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
-	    const maxStart = invoicesTotal ? Math.max(0, (Math.ceil(invoicesTotal / pageSize) - 1) * pageSize) : invoicesStart + pageSize;
-	    invoicesStart = Math.min(invoicesStart + pageSize, maxStart);
-	    loadInvoices();
-	  });
-	}
+if (invoicesPageGo) {
+  invoicesPageGo.addEventListener("click", () => {
+    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
+    const totalPages = invoicesTotal ? Math.max(1, Math.ceil(invoicesTotal / pageSize)) : 1;
+    const target = invoicesPageInput ? Number(invoicesPageInput.value) : 1;
+    const page = Math.min(Math.max(1, target || 1), totalPages);
+    invoicesStart = (page - 1) * pageSize;
+    loadInvoices();
+  });
+}
 
-	if (invoicesPageGo) {
-	  invoicesPageGo.addEventListener("click", () => {
-	    const pageSize = ordersListLimit && Number(ordersListLimit.value) > 0 ? Number(ordersListLimit.value) : 10;
-	    const totalPages = invoicesTotal ? Math.max(1, Math.ceil(invoicesTotal / pageSize)) : 1;
-	    const target = invoicesPageInput ? Number(invoicesPageInput.value) : 1;
-	    const page = Math.min(Math.max(1, target || 1), totalPages);
-	    invoicesStart = (page - 1) * pageSize;
-	    loadInvoices();
-	  });
-	}
-
-	if (invoicesPageInput) {
-	  invoicesPageInput.addEventListener("keydown", (event) => {
-	    if (event.key === "Enter" && invoicesPageGo) {
-	      event.preventDefault();
-	      invoicesPageGo.click();
-	    }
-	  });
-	}
+if (invoicesPageInput) {
+  invoicesPageInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && invoicesPageGo) {
+      event.preventDefault();
+      invoicesPageGo.click();
+    }
+  });
+}
 
 if (contactsSearchBtn) {
   contactsSearchBtn.addEventListener("click", () => {
@@ -15514,45 +15239,43 @@ if (contactsPageGo) {
   });
 }
 
-	if (ordersRefreshBtn) {
-	  ordersRefreshBtn.addEventListener("click", () => {
-	    if (operationsView === "invoices") invoicesStart = 0;
-	    else ordersStart = 0;
-	    loadOperationsView();
-	  });
-	}
+if (ordersRefreshBtn) {
+  ordersRefreshBtn.addEventListener("click", () => {
+    if (operationsView === "invoices") invoicesStart = 0;
+    else ordersStart = 0;
+    loadOperationsView();
+  });
+}
 
-	if (ordersClearBtn) {
-	  ordersClearBtn.addEventListener("click", () => {
-	    if (opsSearch) opsSearch.value = "";
-	    if (ordersDateFilter) ordersDateFilter.value = "";
-	    if (ordersDaysSelect) ordersDaysSelect.value = "30";
-	    if (ordersSort) ordersSort.value = "date_desc";
-	    if (ordersListLimit) ordersListLimit.value = "";
-	    if (operationsView === "invoices") invoicesStart = 0;
-	    else ordersStart = 0;
-	    refreshProductSettingsFromInputs();
-	    loadOperationsView();
-	  });
-	}
+if (ordersClearBtn) {
+  ordersClearBtn.addEventListener("click", () => {
+    if (opsSearch) opsSearch.value = "";
+    if (ordersDateFilter) ordersDateFilter.value = "";
+    if (ordersDaysSelect) ordersDaysSelect.value = "30";
+    if (ordersSort) ordersSort.value = "date_desc";
+    if (ordersListLimit) ordersListLimit.value = "";
+    if (operationsView === "invoices") invoicesStart = 0;
+    else ordersStart = 0;
+    refreshProductSettingsFromInputs();
+    loadOperationsView();
+  });
+}
 
-	if (productsClearBtn) {
-	  productsClearBtn.addEventListener("click", () => {
-	    if (productsSearchInput) productsSearchInput.value = "";
-	    if (productsDateStart) productsDateStart.value = "";
-	    if (productsDateEnd) productsDateEnd.value = "";
-	    if (productsSyncQuery) productsSyncQuery.value = "";
-	    if (productsLimitInput) productsLimitInput.value = "30";
+if (productsClearBtn) {
+  productsClearBtn.addEventListener("click", () => {
+    if (productsSearchInput) productsSearchInput.value = "";
+    if (productsDateStart) productsDateStart.value = "";
+    if (productsDateEnd) productsDateEnd.value = "";
+    if (productsSyncQuery) productsSyncQuery.value = "";
+    if (productsLimitInput) productsLimitInput.value = "30";
     if (productsDateFilter) productsDateFilter.value = "";
     if (productsSort) productsSort.value = "date_desc";
     if (productsInStockOnly) productsInStockOnly.checked = false;
     if (productsStatusFilter) productsStatusFilter.value = "all";
     if (productsWarehouseFilter) {
-      productsWarehouseFilter
-        .querySelectorAll("input[data-warehouse-id]")
-        .forEach((input) => {
-          input.checked = false;
-        });
+      productsWarehouseFilter.querySelectorAll("input[data-warehouse-id]").forEach((input) => {
+        input.checked = false;
+      });
     }
     productsQuery = "";
     productsStart = 0;
@@ -15629,58 +15352,58 @@ if (rulesAutoPublish && rulesAutoStatus) {
 
 // Productos: configuracion unica (automatico + manual) en el bloque de reglas.
 
-  if (productsSyncClear) {
-    productsSyncClear.addEventListener("click", () => {
-      if (productsDateStart) productsDateStart.value = "";
-      if (productsDateEnd) productsDateEnd.value = "";
-      if (productsSyncLimitInput) productsSyncLimitInput.value = "";
-      if (productsSyncQuery) productsSyncQuery.value = "";
-      if (productsSyncOnlyActive) productsSyncOnlyActive.checked = true;
-      if (productsSyncOnlyImages) productsSyncOnlyImages.checked = false;
-      if (productsSyncPublish) productsSyncPublish.checked = true;
-      if (productsSyncUpdateExisting) productsSyncUpdateExisting.checked = true;
-      if (productsSyncOnlyPublished) productsSyncOnlyPublished.checked = true;
-      if (productsSyncIncludeInventory) productsSyncIncludeInventory.checked = true;
-      updateSyncWarehouseState();
-      if (cfgWarehouseSync) {
-        cfgWarehouseSync.querySelectorAll("input[data-warehouse-id]").forEach((input) => {
-          input.checked = false;
-        });
-        updateSyncWarehouseSummary();
-      }
-      refreshProductSettingsFromInputs();
-    });
-  }
+if (productsSyncClear) {
+  productsSyncClear.addEventListener("click", () => {
+    if (productsDateStart) productsDateStart.value = "";
+    if (productsDateEnd) productsDateEnd.value = "";
+    if (productsSyncLimitInput) productsSyncLimitInput.value = "";
+    if (productsSyncQuery) productsSyncQuery.value = "";
+    if (productsSyncOnlyActive) productsSyncOnlyActive.checked = true;
+    if (productsSyncOnlyImages) productsSyncOnlyImages.checked = false;
+    if (productsSyncPublish) productsSyncPublish.checked = true;
+    if (productsSyncUpdateExisting) productsSyncUpdateExisting.checked = true;
+    if (productsSyncOnlyPublished) productsSyncOnlyPublished.checked = true;
+    if (productsSyncIncludeInventory) productsSyncIncludeInventory.checked = true;
+    updateSyncWarehouseState();
+    if (cfgWarehouseSync) {
+      cfgWarehouseSync.querySelectorAll("input[data-warehouse-id]").forEach((input) => {
+        input.checked = false;
+      });
+      updateSyncWarehouseSummary();
+    }
+    refreshProductSettingsFromInputs();
+  });
+}
 
-		const productSettingInputs = [
-		  rulesAutoStatus,
-		  rulesAutoImages,
-      rulesAutoOversell,
-		  productsDateStart,
-		  productsDateEnd,
-		  productsSyncLimitInput,
-		  productsSyncQuery,
-		  productsSyncOnlyActive,
-      productsSyncOnlyImages,
-      productsSyncOversell,
-	  productsSyncPublish,
-	  productsSyncUpdateExisting,
-	  productsSyncOnlyPublished,
-	  productsSyncIncludeInventory,
-	  productsDateFilter,
-	  productsSort,
-	  productsLimitInput,
-	  productsInStockOnly,
-	  productsStatusFilter,
-	  ordersSyncDateStart,
-	  ordersSyncDateEnd,
-	  ordersSyncLimitInput,
-	  ordersListLimit,
-	  ordersSyncNumber,
-	  ordersDateFilter,
-	  ordersDaysSelect,
-	  ordersSort,
-	  opsSearch,
+const productSettingInputs = [
+  rulesAutoStatus,
+  rulesAutoImages,
+  rulesAutoOversell,
+  productsDateStart,
+  productsDateEnd,
+  productsSyncLimitInput,
+  productsSyncQuery,
+  productsSyncOnlyActive,
+  productsSyncOnlyImages,
+  productsSyncOversell,
+  productsSyncPublish,
+  productsSyncUpdateExisting,
+  productsSyncOnlyPublished,
+  productsSyncIncludeInventory,
+  productsDateFilter,
+  productsSort,
+  productsLimitInput,
+  productsInStockOnly,
+  productsStatusFilter,
+  ordersSyncDateStart,
+  ordersSyncDateEnd,
+  ordersSyncLimitInput,
+  ordersListLimit,
+  ordersSyncNumber,
+  ordersDateFilter,
+  ordersDaysSelect,
+  ordersSort,
+  opsSearch,
 ].filter(Boolean);
 productSettingInputs.forEach((input) => {
   input.addEventListener("change", refreshProductSettingsFromInputs);
@@ -15711,17 +15434,14 @@ async function init() {
   };
   const params = new URLSearchParams(window.location.search);
   const pathname = window.location.pathname || "";
-  const isSettingsView =
-    params.get("settings") === "1" || isSettingsPath(pathname);
+  const isSettingsView = params.get("settings") === "1" || isSettingsPath(pathname);
   setupViewportDebug();
   if (isSettingsView) {
     const hasParam = params.get("settings") === "1";
     const hasIntent = consumeSettingsIntent();
     const origin = window.location.origin;
     const hasReferrer =
-      typeof document !== "undefined" &&
-      typeof document.referrer === "string" &&
-      document.referrer.startsWith(origin);
+      typeof document !== "undefined" && typeof document.referrer === "string" && document.referrer.startsWith(origin);
     if (!hasParam && !hasIntent && !hasReferrer) {
       window.location.href = "/";
       return;
@@ -15793,43 +15513,23 @@ async function init() {
   safeLoad(loadMarketing());
   await safeLoad(loadSettings());
   await safeLoad(loadResolutions());
-	  await Promise.all([
-	    alegraHasToken
-	      ? safeLoad(loadCatalog(cfgCostCenter, "cost-centers"))
-	      : Promise.resolve(null),
-	    alegraHasToken
-	      ? safeLoad(loadCatalog(cfgWarehouse, "warehouses"))
-	      : Promise.resolve(null),
-      alegraHasToken && productsShopifyBulkWarehouse instanceof HTMLSelectElement
-        ? safeLoad(loadCatalog(productsShopifyBulkWarehouse, "warehouses"))
-        : Promise.resolve(null),
-      alegraHasToken && cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
-        ? safeLoad(loadCatalog(cfgProductsShopifyToAlegraWarehouse, "warehouses"))
-        : Promise.resolve(null),
-	    alegraHasToken
-	      ? safeLoad(loadCatalog(cfgTransferDest, "warehouses"))
-	      : Promise.resolve(null),
-	    alegraHasToken
-	      ? safeLoad(loadCatalog(cfgTransferPriority, "warehouses"))
+  await Promise.all([
+    alegraHasToken ? safeLoad(loadCatalog(cfgCostCenter, "cost-centers")) : Promise.resolve(null),
+    alegraHasToken ? safeLoad(loadCatalog(cfgWarehouse, "warehouses")) : Promise.resolve(null),
+    alegraHasToken && productsShopifyBulkWarehouse instanceof HTMLSelectElement
+      ? safeLoad(loadCatalog(productsShopifyBulkWarehouse, "warehouses"))
       : Promise.resolve(null),
-    alegraHasToken
-      ? safeLoad(loadCatalog(cfgSeller, "sellers"))
+    alegraHasToken && cfgProductsShopifyToAlegraWarehouse instanceof HTMLSelectElement
+      ? safeLoad(loadCatalog(cfgProductsShopifyToAlegraWarehouse, "warehouses"))
       : Promise.resolve(null),
-    alegraHasToken
-      ? safeLoad(loadCatalog(cfgPaymentMethod, "payment-methods"))
-      : Promise.resolve(null),
-    alegraHasToken
-      ? safeLoad(loadCatalog(cfgBankAccount, "bank-accounts"))
-      : Promise.resolve(null),
-    alegraHasToken
-      ? safeLoad(loadCatalog(cfgPriceGeneral, "price-lists"))
-      : Promise.resolve(null),
-    alegraHasToken
-      ? safeLoad(loadCatalog(cfgPriceDiscount, "price-lists"))
-      : Promise.resolve(null),
-    alegraHasToken
-      ? safeLoad(loadCatalog(cfgPriceWholesale, "price-lists"))
-      : Promise.resolve(null),
+    alegraHasToken ? safeLoad(loadCatalog(cfgTransferDest, "warehouses")) : Promise.resolve(null),
+    alegraHasToken ? safeLoad(loadCatalog(cfgTransferPriority, "warehouses")) : Promise.resolve(null),
+    alegraHasToken ? safeLoad(loadCatalog(cfgSeller, "sellers")) : Promise.resolve(null),
+    alegraHasToken ? safeLoad(loadCatalog(cfgPaymentMethod, "payment-methods")) : Promise.resolve(null),
+    alegraHasToken ? safeLoad(loadCatalog(cfgBankAccount, "bank-accounts")) : Promise.resolve(null),
+    alegraHasToken ? safeLoad(loadCatalog(cfgPriceGeneral, "price-lists")) : Promise.resolve(null),
+    alegraHasToken ? safeLoad(loadCatalog(cfgPriceDiscount, "price-lists")) : Promise.resolve(null),
+    alegraHasToken ? safeLoad(loadCatalog(cfgPriceWholesale, "price-lists")) : Promise.resolve(null),
   ]);
   initModuleControls();
   initHelpPanels();

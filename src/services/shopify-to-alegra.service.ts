@@ -52,10 +52,7 @@ type ForceSyncOptions = {
   skipRules?: boolean;
 };
 
-export async function syncShopifyOrderToAlegra(
-  payload: ShopifyOrderPayload,
-  options?: ForceSyncOptions
-) {
+export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload, options?: ForceSyncOptions) {
   const ctx = await buildSyncContext(payload.__shopDomain);
   const { getOrgId, getPool } = await import("../db");
   const pool = getPool();
@@ -227,8 +224,8 @@ export async function syncShopifyOrderToAlegra(
     einvoiceActive && override?.idNumber
       ? override.idNumber
       : phoneId.startsWith("57") && phoneId.length > 10
-      ? phoneId.slice(2)
-      : phoneId || "3000000000";
+        ? phoneId.slice(2)
+        : phoneId || "3000000000";
   const createContactPayload = {
     ...contactPayload,
     identificationType: einvoiceActive && override?.idType ? override.idType : "CC",
@@ -467,9 +464,7 @@ export async function syncShopifyOrderToAlegra(
     }
   }
 
-  const adjustmentWarehouseId = resolvedWarehouseId
-    ? String(resolvedWarehouseId)
-    : ctx.alegraWarehouseId;
+  const adjustmentWarehouseId = resolvedWarehouseId ? String(resolvedWarehouseId) : ctx.alegraWarehouseId;
   const adjustmentKey = orderId ? `inventory-adjust:${orderId}` : undefined;
   let adjustment = null;
   if (adjustmentKey) {
@@ -484,11 +479,7 @@ export async function syncShopifyOrderToAlegra(
       });
     } else {
       try {
-        adjustment = await createInventoryAdjustmentFromOrder(
-          payload,
-          adjustmentWarehouseId,
-          ctx
-        );
+        adjustment = await createInventoryAdjustmentFromOrder(payload, adjustmentWarehouseId, ctx);
         await markIdempotencyKey(adjustmentKey, "completed");
       } catch (error) {
         await markIdempotencyKey(
@@ -500,11 +491,7 @@ export async function syncShopifyOrderToAlegra(
       }
     }
   } else {
-    adjustment = await createInventoryAdjustmentFromOrder(
-      payload,
-      adjustmentWarehouseId,
-      ctx
-    );
+    adjustment = await createInventoryAdjustmentFromOrder(payload, adjustmentWarehouseId, ctx);
   }
 
   return { handled: true, contactId, invoice, payment, adjustment };
@@ -531,9 +518,7 @@ async function safeCreateInvoiceLog(
 ) {
   try {
     const message =
-      status === "success"
-        ? "Invoice created"
-        : (error as { message?: string })?.message || "Invoice creation failed";
+      status === "success" ? "Invoice created" : (error as { message?: string })?.message || "Invoice creation failed";
     await createSyncLog({
       entity: "order",
       direction: "shopify->alegra",
@@ -570,22 +555,14 @@ function buildProductsSummaryFromPayload(payload: ShopifyOrderPayload) {
 }
 
 function resolvePayloadTimestamp(payload: ShopifyOrderPayload) {
-  const raw =
-    payload.processed_at ||
-    payload.processedAt ||
-    payload.created_at ||
-    payload.createdAt ||
-    "";
+  const raw = payload.processed_at || payload.processedAt || payload.created_at || payload.createdAt || "";
   if (!raw) return null;
   const parsed = Date.parse(String(raw));
   if (Number.isNaN(parsed)) return null;
   return new Date(parsed);
 }
 
-function buildOrderChecklist(
-  payload: ShopifyOrderPayload,
-  options: { requireInvoice: boolean }
-) {
+function buildOrderChecklist(payload: ShopifyOrderPayload, options: { requireInvoice: boolean }) {
   const missing: string[] = [];
   if (!payload.id) {
     missing.push("order_id");
@@ -631,11 +608,7 @@ function buildInvoiceSettingsWarnings(settings: InvoiceSettings) {
 function buildOrderMetaFromPayload(payload: ShopifyOrderPayload) {
   const customerName = buildContactName(payload);
   const customerEmail = payload.customer?.email || payload.email || null;
-  const orderNumber = payload.name
-    ? String(payload.name)
-    : payload.id
-      ? String(payload.id)
-      : null;
+  const orderNumber = payload.name ? String(payload.name) : payload.id ? String(payload.id) : null;
   return {
     orderNumber,
     customerName,
@@ -667,11 +640,7 @@ function buildInvoicePayload(
     observations: interpolateObservations(settings.observationsTemplate, payload),
     items: (payload.line_items || []).map((item) => ({
       name: item.title || item.sku || "Item",
-      price: item.discounted_price
-        ? Number(item.discounted_price)
-        : item.price
-        ? Number(item.price)
-        : 0,
+      price: item.discounted_price ? Number(item.discounted_price) : item.price ? Number(item.price) : 0,
       quantity: item.quantity || 1,
     })),
   };
@@ -768,12 +737,7 @@ async function loadInvoiceSettings(pool: Pool, orgId: number): Promise<InvoiceSe
   };
 }
 
-async function resolveBankAccountId(
-  pool: Pool,
-  orgId: number,
-  paymentMethod: string,
-  defaultBankAccountId: string
-) {
+async function resolveBankAccountId(pool: Pool, orgId: number, paymentMethod: string, defaultBankAccountId: string) {
   if (!paymentMethod) {
     return defaultBankAccountId;
   }
@@ -792,11 +756,7 @@ async function resolveBankAccountId(
   return defaultBankAccountId;
 }
 
-async function resolvePaymentMappingBySource(
-  pool: Pool,
-  orgId: number,
-  sources: string[]
-) {
+async function resolvePaymentMappingBySource(pool: Pool, orgId: number, sources: string[]) {
   if (!sources.length) return null;
   const normalized = sources.map((item) => item.trim().toLowerCase()).filter(Boolean);
   if (!normalized.length) return null;
@@ -839,10 +799,7 @@ function extractPaymentGateways(payload: ShopifyOrderPayload) {
   return names;
 }
 
-function interpolateObservations(
-  template: string,
-  payload: ShopifyOrderPayload
-) {
+function interpolateObservations(template: string, payload: ShopifyOrderPayload) {
   if (!template) {
     return undefined;
   }
@@ -997,8 +954,7 @@ export async function createInventoryAdjustmentFromRefund(
   for (const refundItem of refundItems) {
     const lineItem = refundItem.line_item as Record<string, unknown> | undefined;
     const variantId =
-      (lineItem?.variant_id as string | number | undefined) ||
-      (refundItem.variant_id as string | number | undefined);
+      (lineItem?.variant_id as string | number | undefined) || (refundItem.variant_id as string | number | undefined);
     if (!variantId) {
       continue;
     }
@@ -1011,9 +967,7 @@ export async function createInventoryAdjustmentFromRefund(
     items.push({
       id: Number(mapping.alegraId),
       quantity: Math.abs(quantity),
-      observations: payload.order_id
-        ? `Devolucion Shopify ${payload.order_id}`
-        : "Devolucion Shopify",
+      observations: payload.order_id ? `Devolucion Shopify ${payload.order_id}` : "Devolucion Shopify",
       warehouse: { id: Number(warehouseId) },
     });
   }
@@ -1034,9 +988,7 @@ export async function createInventoryAdjustmentFromRefund(
 
   const adjustmentPayload = {
     date: new Date().toISOString().slice(0, 10),
-    observations: payload.order_id
-      ? `Devolucion Shopify ${payload.order_id}`
-      : "Devolucion Shopify",
+    observations: payload.order_id ? `Devolucion Shopify ${payload.order_id}` : "Devolucion Shopify",
     items,
   };
 
@@ -1075,9 +1027,7 @@ async function createInventoryTransferFromOrder(
   if (strategy !== "manual") {
     try {
       const warehouses = (await ctx.alegra.listWarehouses()) as Array<{ id?: string | number }>;
-      originIds = warehouses
-        .map((warehouse) => String(warehouse?.id || ""))
-        .filter(Boolean);
+      originIds = warehouses.map((warehouse) => String(warehouse?.id || "")).filter(Boolean);
     } catch {
       originIds = [];
     }
@@ -1162,9 +1112,7 @@ async function createInventoryTransferFromOrder(
       };
       return {
         ...item,
-        warehouses: Array.isArray(detail?.inventory?.warehouses)
-          ? detail.inventory.warehouses
-          : [],
+        warehouses: Array.isArray(detail?.inventory?.warehouses) ? detail.inventory.warehouses : [],
       };
     })
   );
@@ -1186,19 +1134,14 @@ async function createInventoryTransferFromOrder(
     candidates: Array<{ warehouseId: string; available: number }>;
   }> = [];
 
-  const getEffectiveAvailable = (
-    item: (typeof inventoryByItem)[number],
-    warehouseId: string
-  ) => {
+  const getEffectiveAvailable = (item: (typeof inventoryByItem)[number], warehouseId: string) => {
     const entry = item.warehouses.find((warehouse) => String(warehouse?.id) === String(warehouseId));
     const raw = Number(entry?.availableQuantity || 0);
     const effective = raw - minStock;
     return Number.isFinite(effective) && effective > 0 ? effective : 0;
   };
 
-  const pickWarehouseForItem = (
-    candidates: Array<{ warehouseId: string; available: number }>
-  ): string => {
+  const pickWarehouseForItem = (candidates: Array<{ warehouseId: string; available: number }>): string => {
     if (!candidates.length) return "";
     const sorted = [...candidates].sort((a, b) => b.available - a.available);
     const top = sorted[0]?.available ?? 0;
@@ -1367,11 +1310,7 @@ async function createInventoryTransferFromOrder(
     };
     await recordTransferDecision(pool, orgId, shopDomain, orderId, decision);
     if (transferKey) {
-      await markIdempotencyKey(
-        transferKey,
-        "failed",
-        (error as { message?: string })?.message || "transfer_failed"
-      );
+      await markIdempotencyKey(transferKey, "failed", (error as { message?: string })?.message || "transfer_failed");
     }
     return decision;
   }

@@ -168,11 +168,7 @@ export async function buildTenantPlanSnapshot(tenantId: number): Promise<PlanSna
   }
 
   const planType: SaPlanType =
-    planRow.plan_type === "on_demand"
-      ? "on_demand"
-      : planRow.plan_type === "pro"
-        ? "pro"
-        : "master";
+    planRow.plan_type === "on_demand" ? "on_demand" : planRow.plan_type === "pro" ? "pro" : "master";
 
   const monthlyPrice = Number(planRow.monthly_price || 0);
 
@@ -208,16 +204,14 @@ export async function buildTenantPlanSnapshot(tenantId: number): Promise<PlanSna
     const configuredUnlimited = row.is_unlimited === null ? null : Boolean(row.is_unlimited);
 
     const isUnlimited =
-      planType === "master" || planType === "on_demand"
-        ? true
-        : (configuredUnlimited === true || maxValue === null);
+      planType === "master" || planType === "on_demand" ? true : configuredUnlimited === true || maxValue === null;
 
     serviceMap[row.key] = {
       serviceKey: row.key,
       periodType,
       isUnlimited,
       maxValue: planType === "pro" ? maxValue : null,
-      unitPrice: planType === "on_demand" ? unitPrice : (planType === "pro" ? unitPrice : 0),
+      unitPrice: planType === "on_demand" ? unitPrice : planType === "pro" ? unitPrice : 0,
     };
   }
 
@@ -300,4 +294,3 @@ export async function isTenantModuleEnabled(tenantId: number, moduleKey: string)
   if (!row) return true;
   return Boolean(row.active) && Boolean(row.enabled);
 }
-

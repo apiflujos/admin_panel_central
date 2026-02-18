@@ -41,13 +41,8 @@ async function listOperationsByQuery(query: string) {
     orders.map(async (order) => {
       const mapping = await getMappingByShopifyId("order", order.id);
       const log = latestLogs.get(order.id);
-      const invoiceNumber =
-        (mapping?.metadata?.invoiceNumber as string | undefined) || null;
-      const status = mapping?.alegraId
-        ? "facturado"
-        : log?.status === "fail"
-        ? "fallo"
-        : "pendiente";
+      const invoiceNumber = (mapping?.metadata?.invoiceNumber as string | undefined) || null;
+      const status = mapping?.alegraId ? "facturado" : log?.status === "fail" ? "fallo" : "pendiente";
       const override = overrides.get(order.id) || null;
       const missing = einvoiceEnabled ? validateEinvoiceData(override) : [];
       return {

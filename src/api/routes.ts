@@ -14,7 +14,13 @@ import {
 } from "./auth.controller";
 import { assistantExecuteHandler, assistantQueryHandler } from "./assistant.controller";
 import { listLogs, retryFailed } from "./logs.controller";
-import { listAlegraCatalog, getSettings, listResolutions, testConnections, updateSettings } from "./settings.controller";
+import {
+  listAlegraCatalog,
+  getSettings,
+  listResolutions,
+  testConnections,
+  updateSettings,
+} from "./settings.controller";
 import { listMetrics } from "./metrics.controller";
 import { downloadCommerceReportCsvHandler } from "./reports.controller";
 import {
@@ -88,21 +94,9 @@ import {
   getShopifyWebhooksStatusHandler,
 } from "./shopify-webhooks.controller";
 import { shopifyOAuthCallback, shopifyOAuthStatus, startShopifyOAuth } from "./shopify-oauth.controller";
-import {
-  googleAdsOAuthCallback,
-  googleAdsOAuthStatus,
-  startGoogleAdsOAuth,
-} from "./google-ads-oauth.controller";
-import {
-  metaAdsOAuthCallback,
-  metaAdsOAuthStatus,
-  startMetaAdsOAuth,
-} from "./meta-ads-oauth.controller";
-import {
-  startTikTokAdsOAuth,
-  tiktokAdsOAuthCallback,
-  tiktokAdsOAuthStatus,
-} from "./tiktok-ads-oauth.controller";
+import { googleAdsOAuthCallback, googleAdsOAuthStatus, startGoogleAdsOAuth } from "./google-ads-oauth.controller";
+import { metaAdsOAuthCallback, metaAdsOAuthStatus, startMetaAdsOAuth } from "./meta-ads-oauth.controller";
+import { startTikTokAdsOAuth, tiktokAdsOAuthCallback, tiktokAdsOAuthStatus } from "./tiktok-ads-oauth.controller";
 import { listContactsHandler, syncContactHandler, syncContactsBulkHandler } from "./contacts.controller";
 import { listOrdersHandler, backfillOrdersHandler } from "./orders.controller";
 import { downloadInvoicePdfHandler, listInvoicesHandler } from "./invoices.controller";
@@ -140,11 +134,9 @@ import {
 
 export const router = Router();
 
-const wrap =
-  (handler: (...args: any[]) => any) =>
-  (req: any, res: any, next: any) => {
-    Promise.resolve(handler(req, res, next)).catch(next);
-  };
+const wrap = (handler: (...args: any[]) => any) => (req: any, res: any, next: any) => {
+  Promise.resolve(handler(req, res, next)).catch(next);
+};
 
 router.post("/webhooks/shopify", wrap(handleShopifyWebhook));
 router.post("/webhooks/alegra", wrap(handleAlegraWebhook));

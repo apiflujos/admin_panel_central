@@ -47,8 +47,12 @@ export function shopifyOAuthStatus(req: Request, res: Response) {
 function resolveAppHost(req: Request) {
   const explicit = String(process.env.APP_HOST || "").trim();
   if (explicit) return explicit.replace(/\/$/, "");
-  const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
-  const forwardedHost = String(req.headers["x-forwarded-host"] || "").split(",")[0].trim();
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "")
+    .split(",")[0]
+    .trim();
+  const forwardedHost = String(req.headers["x-forwarded-host"] || "")
+    .split(",")[0]
+    .trim();
   const proto = forwardedProto || req.protocol || "https";
   const host = forwardedHost || String(req.headers.host || "").trim();
   if (!host) return "";
@@ -91,10 +95,7 @@ function validateHmac(query: Record<string, unknown>, apiSecret: string) {
   const provided = String(query.hmac || "");
   if (!provided) return false;
   const message = buildHmacMessage(query);
-  const digest = crypto
-    .createHmac("sha256", apiSecret)
-    .update(message)
-    .digest("hex");
+  const digest = crypto.createHmac("sha256", apiSecret).update(message).digest("hex");
   const digestBuffer = Buffer.from(digest, "utf8");
   const providedBuffer = Buffer.from(provided, "utf8");
   if (digestBuffer.length !== providedBuffer.length) return false;

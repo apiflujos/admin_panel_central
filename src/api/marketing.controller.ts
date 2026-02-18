@@ -66,7 +66,8 @@ export async function marketingRecomputeMetricsHandler(req: Request, res: Respon
 export async function marketingDashboardHandler(req: Request, res: Response) {
   try {
     const shopDomain = normalizeShopDomain(req.query.shopDomain);
-    const to = typeof req.query.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.to) ? req.query.to : todayKeyUtc();
+    const to =
+      typeof req.query.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.to) ? req.query.to : todayKeyUtc();
     const from =
       typeof req.query.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.from)
         ? req.query.from
@@ -85,7 +86,8 @@ export async function marketingDashboardHandler(req: Request, res: Response) {
 export async function marketingInsightsHandler(req: Request, res: Response) {
   try {
     const shopDomain = normalizeShopDomain(req.query.shopDomain);
-    const to = typeof req.query.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.to) ? req.query.to : todayKeyUtc();
+    const to =
+      typeof req.query.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.to) ? req.query.to : todayKeyUtc();
     const from =
       typeof req.query.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.from)
         ? req.query.from

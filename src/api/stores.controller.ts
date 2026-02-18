@@ -3,8 +3,7 @@ import { createSyncLog } from "../services/logs.service";
 import { createStore, deleteStoreById, listStores } from "../services/stores.service";
 import { deleteWooConnectionsByStoreId } from "../services/woocommerce-connections.service";
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "No disponible";
+const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : "No disponible");
 
 export async function listStoresHandler(_req: Request, res: Response) {
   try {

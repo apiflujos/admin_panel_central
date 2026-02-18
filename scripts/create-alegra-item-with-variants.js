@@ -39,11 +39,7 @@ const payload = {
 };
 
 async function fetchVariantAttributeId(auth, baseUrl, attributeName) {
-  const endpoints = [
-    "/items/variant-attributes",
-    "/item-variants/attributes",
-    "/variant-attributes",
-  ];
+  const endpoints = ["/items/variant-attributes", "/item-variants/attributes", "/variant-attributes"];
   for (const endpoint of endpoints) {
     const response = await fetch(`${baseUrl}${endpoint}`, {
       headers: {
@@ -74,15 +70,8 @@ async function fetchVariantAttributeId(auth, baseUrl, attributeName) {
 }
 
 async function createVariantAttribute(auth, baseUrl, attributeName) {
-  const endpoints = [
-    "/items/variant-attributes",
-    "/item-variants/attributes",
-    "/variant-attributes",
-  ];
-  const payloads = [
-    { name: attributeName },
-    { label: attributeName },
-  ];
+  const endpoints = ["/items/variant-attributes", "/item-variants/attributes", "/variant-attributes"];
+  const payloads = [{ name: attributeName }, { label: attributeName }];
   for (const endpoint of endpoints) {
     for (const payload of payloads) {
       const response = await fetch(`${baseUrl}${endpoint}`, {

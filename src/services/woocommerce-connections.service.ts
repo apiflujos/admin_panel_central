@@ -57,9 +57,11 @@ async function readWooCredential() {
     return JSON.parse(decryptString(result.rows[0].data_encrypted)) as WooCommerceCredentialPayload;
   } catch (error) {
     if (isCryptoKeyMisconfigured(error)) {
-      throw new Error("Configuracion de seguridad invalida. Revisa CRYPTO_KEY_BASE64 en el servidor.");
+      throw new Error("Configuracion de seguridad invalida. Revisa CRYPTO_KEY_BASE64 en el servidor.", {
+        cause: error,
+      });
     }
-    throw new Error("No se pudo leer la conexion de WooCommerce. Vuelve a conectar.");
+    throw new Error("No se pudo leer la conexion de WooCommerce. Vuelve a conectar.", { cause: error });
   }
 }
 
@@ -139,8 +141,7 @@ export async function listWooConnections() {
     stores.map(async (store) => {
       if (Number.isFinite(store.storeId as number)) return store;
       const fallback =
-        (await resolveOrCreateStoreId(store.storeName || "")) ||
-        (await resolveOrCreateStoreId(store.shopDomain || ""));
+        (await resolveOrCreateStoreId(store.storeName || "")) || (await resolveOrCreateStoreId(store.shopDomain || ""));
       if (!fallback) return store;
       mutated = true;
       return { ...store, storeId: fallback };
@@ -226,9 +227,7 @@ export async function deleteWooConnectionByDomain(shopDomain: string) {
   if (!credential?.stores?.length) {
     return { deleted: false };
   }
-  const stores = credential.stores.filter(
-    (entry) => normalizeShopDomain(entry.shopDomain) !== domain
-  );
+  const stores = credential.stores.filter((entry) => normalizeShopDomain(entry.shopDomain) !== domain);
   if (stores.length === credential.stores.length) {
     return { deleted: false };
   }

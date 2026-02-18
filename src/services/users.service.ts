@@ -22,10 +22,12 @@ type UserRow = {
   created_at: Date;
 };
 
-const normalizeEmail = (value?: string) => String(value || "").trim().toLowerCase();
+const normalizeEmail = (value?: string) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
 
-const normalizeRole = (value?: string): UserRole =>
-  value === "admin" ? "admin" : "agent";
+const normalizeRole = (value?: string): UserRole => (value === "admin" ? "admin" : "agent");
 
 export async function listUsers() {
   const pool = getPool();

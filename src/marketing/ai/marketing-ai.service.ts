@@ -94,7 +94,11 @@ export function generateMarketingInsights(dashboard: ExecutiveDashboard) {
     dashboard.kpis.customersNew + dashboard.kpis.customersRepeat > 0
       ? dashboard.kpis.customersRepeat / (dashboard.kpis.customersNew + dashboard.kpis.customersRepeat)
       : null;
-  if (repeatShare !== null && repeatShare < 0.18 && (dashboard.kpis.customersNew + dashboard.kpis.customersRepeat) >= 50) {
+  if (
+    repeatShare !== null &&
+    repeatShare < 0.18 &&
+    dashboard.kpis.customersNew + dashboard.kpis.customersRepeat >= 50
+  ) {
     insights.push({
       id: "retention_low",
       title: "Retención baja: pocos clientes recurrentes",
@@ -146,4 +150,3 @@ export function generateMarketingInsights(dashboard: ExecutiveDashboard) {
 
   return insights;
 }
-

@@ -23,7 +23,9 @@ export function startBillingReportCron() {
     async () => {
       const pool = getPool();
       const periodKey = prevMonthKeyUtc();
-      const tenants = await pool.query<{ id: number; name: string }>(`SELECT id, name FROM organizations ORDER BY id ASC`);
+      const tenants = await pool.query<{ id: number; name: string }>(
+        `SELECT id, name FROM organizations ORDER BY id ASC`
+      );
       const reportTo = String(process.env.BILLING_REPORT_TO || "").trim() || getSuperAdminEmail();
 
       const items = [];
@@ -77,4 +79,3 @@ export function startBillingReportCron() {
 
   console.log("[billing-report] cron scheduled", { spec, timezone });
 }
-

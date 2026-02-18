@@ -31,8 +31,7 @@ function mapRow(row: MappingRow): MappingRecord {
     alegraId: row.alegra_id || undefined,
     shopifyId: row.shopify_id || undefined,
     shopifyProductId: row.parent_id || undefined,
-    shopifyInventoryItemId:
-      (metadata.shopifyInventoryItemId as string | undefined) || undefined,
+    shopifyInventoryItemId: (metadata.shopifyInventoryItemId as string | undefined) || undefined,
     metadata,
   };
 }
@@ -106,10 +105,7 @@ export async function getMappingByShopifyId(entity: string, shopifyId: string) {
   return mapRow(result.rows[0]);
 }
 
-export async function getMappingByShopifyInventoryItemId(
-  entity: string,
-  inventoryItemId: string
-) {
+export async function getMappingByShopifyInventoryItemId(entity: string, inventoryItemId: string) {
   const pool = getPool();
   const orgId = getOrgId();
   const result = await pool.query<MappingRow>(
@@ -145,13 +141,7 @@ export async function saveMapping(record: MappingRecord) {
       SET shopify_id = $1, alegra_id = $2, parent_id = $3, metadata_json = $4
       WHERE id = $5
       `,
-      [
-        record.shopifyId || null,
-        record.alegraId || null,
-        record.shopifyProductId || null,
-        metadata,
-        existing,
-      ]
+      [record.shopifyId || null, record.alegraId || null, record.shopifyProductId || null, metadata, existing]
     );
     return;
   }
@@ -162,22 +152,11 @@ export async function saveMapping(record: MappingRecord) {
       (organization_id, entity, shopify_id, alegra_id, parent_id, metadata_json)
     VALUES ($1, $2, $3, $4, $5, $6)
     `,
-    [
-      orgId,
-      record.entity,
-      record.shopifyId || null,
-      record.alegraId || null,
-      record.shopifyProductId || null,
-      metadata,
-    ]
+    [orgId, record.entity, record.shopifyId || null, record.alegraId || null, record.shopifyProductId || null, metadata]
   );
 }
 
-export async function updateMappingMetadata(
-  entity: string,
-  alegraId: string,
-  metadata: Record<string, unknown>
-) {
+export async function updateMappingMetadata(entity: string, alegraId: string, metadata: Record<string, unknown>) {
   const existing = await getMappingByAlegraId(entity, alegraId);
   if (!existing) {
     return;

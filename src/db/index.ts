@@ -11,28 +11,22 @@ function parsePositiveInt(value: string | undefined, fallback: number) {
 }
 
 function getSchemaErrorMessage(message: string) {
-  return `${message}. Run migrations with \"npm run db:migrate\".`;
+  return `${message}. Run migrations with "npm run db:migrate".`;
 }
 
 async function assertTable(poolInstance: Pool, table: string, schema = "public") {
   const key = `${schema}.${table}`;
   if (schemaChecks.has(key)) return;
-  const result = await poolInstance.query<{ regclass: string | null }>(
-    "SELECT to_regclass($1) as regclass",
-    [`${schema}.${table}`]
-  );
+  const result = await poolInstance.query<{ regclass: string | null }>("SELECT to_regclass($1) as regclass", [
+    `${schema}.${table}`,
+  ]);
   if (!result.rows[0]?.regclass) {
     throw new Error(getSchemaErrorMessage(`Missing table ${schema}.${table}`));
   }
   schemaChecks.add(key);
 }
 
-async function assertColumns(
-  poolInstance: Pool,
-  table: string,
-  columns: string[],
-  schema = "public"
-) {
+async function assertColumns(poolInstance: Pool, table: string, columns: string[], schema = "public") {
   const key = `${schema}.${table}:${columns.join(",")}`;
   if (schemaChecks.has(key)) return;
   await assertTable(poolInstance, table, schema);
@@ -47,11 +41,7 @@ async function assertColumns(
   const existing = new Set(result.rows.map((row) => row.column_name));
   const missing = columns.filter((column) => !existing.has(column));
   if (missing.length) {
-    throw new Error(
-      getSchemaErrorMessage(
-        `Missing columns in ${schema}.${table}: ${missing.join(", ")}`
-      )
-    );
+    throw new Error(getSchemaErrorMessage(`Missing columns in ${schema}.${table}: ${missing.join(", ")}`));
   }
   schemaChecks.add(key);
 }
@@ -62,17 +52,10 @@ export function getPool() {
     if (!connectionString) {
       throw new Error("DATABASE_URL is required");
     }
-    const ssl =
-      process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined;
+    const ssl = process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined;
     const poolMax = parsePositiveInt(process.env.DB_POOL_MAX, 5);
-    const idleTimeoutMillis = parsePositiveInt(
-      process.env.DB_POOL_IDLE_TIMEOUT_MS,
-      30000
-    );
-    const connectionTimeoutMillis = parsePositiveInt(
-      process.env.DB_POOL_CONNECTION_TIMEOUT_MS,
-      5000
-    );
+    const idleTimeoutMillis = parsePositiveInt(process.env.DB_POOL_IDLE_TIMEOUT_MS, 30000);
+    const connectionTimeoutMillis = parsePositiveInt(process.env.DB_POOL_CONNECTION_TIMEOUT_MS, 5000);
     const applicationName = String(process.env.DB_APP_NAME || "").trim() || undefined;
     pool = new Pool({
       connectionString,
@@ -141,18 +124,8 @@ export async function ensureUsersTables(poolInstance: Pool) {
     "is_super_admin",
     "created_at",
   ]);
-  await assertColumns(poolInstance, "user_sessions", [
-    "user_id",
-    "token",
-    "expires_at",
-    "created_at",
-    "last_seen",
-  ]);
-  await assertColumns(poolInstance, "company_profiles", [
-    "organization_id",
-    "name",
-    "created_at",
-  ]);
+  await assertColumns(poolInstance, "user_sessions", ["user_id", "token", "expires_at", "created_at", "last_seen"]);
+  await assertColumns(poolInstance, "company_profiles", ["organization_id", "name", "created_at"]);
 }
 
 export async function ensureSyncCheckpointTable(poolInstance: Pool) {

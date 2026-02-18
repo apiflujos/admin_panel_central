@@ -20,15 +20,13 @@ type ShopifyWebhookHeaders = {
   webhookId: string;
 };
 
-export async function ingestShopifyMarketingWebhook(
-  headers: ShopifyWebhookHeaders,
-  rawBody: Buffer,
-  payload: unknown
-) {
+export async function ingestShopifyMarketingWebhook(headers: ShopifyWebhookHeaders, rawBody: Buffer, payload: unknown) {
   const pool = getPool();
   const orgId = getOrgId();
   const shopDomain = normalizeShopDomain(headers.shopDomain);
-  const topic = String(headers.topic || "").trim().toLowerCase();
+  const topic = String(headers.topic || "")
+    .trim()
+    .toLowerCase();
   const webhookId = String(headers.webhookId || "").trim();
   if (!shopDomain) throw new Error("X-Shopify-Shop-Domain requerido");
   if (!topic) throw new Error("X-Shopify-Topic requerido");
@@ -171,7 +169,13 @@ async function upsertOrderFromWebhook(orgId: number, shopDomain: string, topic: 
   await upsertTrafficSource(orgId, shopDomain, utm, channel);
   await upsertCampaign(orgId, shopDomain, utm);
 
-  const tags = typeof body.tags === "string" ? body.tags.split(",").map((t) => t.trim()).filter(Boolean) : [];
+  const tags =
+    typeof body.tags === "string"
+      ? body.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : [];
   const discountCodes = Array.isArray(body.discount_codes)
     ? (body.discount_codes as Array<Record<string, unknown>>).map((d) => String(d.code || "")).filter(Boolean)
     : [];
@@ -277,7 +281,12 @@ async function upsertOrderFromWebhook(orgId: number, shopDomain: string, topic: 
 async function upsertTrafficSource(
   orgId: number,
   shopDomain: string,
-  utm: { utm_source: string | null; utm_medium: string | null; utm_campaign: string | null; utm_content: string | null },
+  utm: {
+    utm_source: string | null;
+    utm_medium: string | null;
+    utm_campaign: string | null;
+    utm_content: string | null;
+  },
   channel: string
 ) {
   const pool = getPool();

@@ -44,12 +44,10 @@ export async function syncContactsBulkHandler(req: Request, res: Response) {
     const normalizedShopDomain = shopDomain ? String(shopDomain) : undefined;
     const normalizedFrom = typeof from === "string" ? from : undefined;
     const normalizedTo = typeof to === "string" ? to : undefined;
-    const normalizedLimit =
-      Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
+    const normalizedLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
 
     const isBidirectional =
-      direction === "bidirectional" ||
-      (directions && (directions.shopifyToAlegra || directions.alegraToShopify));
+      direction === "bidirectional" || (directions && (directions.shopifyToAlegra || directions.alegraToShopify));
 
     const phases: Array<{
       direction: "shopify_to_alegra" | "alegra_to_shopify";
@@ -58,14 +56,8 @@ export async function syncContactsBulkHandler(req: Request, res: Response) {
     }> = [];
 
     if (isBidirectional) {
-      const wantsShopifyToAlegra =
-        typeof directions?.shopifyToAlegra === "boolean"
-          ? directions.shopifyToAlegra
-          : true;
-      const wantsAlegraToShopify =
-        typeof directions?.alegraToShopify === "boolean"
-          ? directions.alegraToShopify
-          : true;
+      const wantsShopifyToAlegra = typeof directions?.shopifyToAlegra === "boolean" ? directions.shopifyToAlegra : true;
+      const wantsAlegraToShopify = typeof directions?.alegraToShopify === "boolean" ? directions.alegraToShopify : true;
 
       if (wantsShopifyToAlegra) {
         phases.push({
@@ -92,8 +84,7 @@ export async function syncContactsBulkHandler(req: Request, res: Response) {
         });
       }
     } else {
-      const resolvedDirection =
-        direction === "alegra_to_shopify" ? "alegra_to_shopify" : "shopify_to_alegra";
+      const resolvedDirection = direction === "alegra_to_shopify" ? "alegra_to_shopify" : "shopify_to_alegra";
       phases.push({
         direction: resolvedDirection,
         directionLabel: resolvedDirection === "alegra_to_shopify" ? "Alegra → Shopify" : "Shopify → Alegra",

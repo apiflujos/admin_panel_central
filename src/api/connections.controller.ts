@@ -11,8 +11,7 @@ import {
   upsertStoreConnection,
 } from "../services/store-connections.service";
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "No disponible";
+const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : "No disponible");
 
 const moduleError = (moduleKey: string) => {
   const err = new Error(`Modulo ${moduleKey} desactivado por ApiFlujos.`);
@@ -108,7 +107,9 @@ export async function removeConnection(req: Request, res: Response) {
       res.status(400).json({ error: "ID invalido" });
       return;
     }
-    const purgeDataRaw = String(req.query?.purgeData || req.query?.purge || "").trim().toLowerCase();
+    const purgeDataRaw = String(req.query?.purgeData || req.query?.purge || "")
+      .trim()
+      .toLowerCase();
     const purgeData = purgeDataRaw === "1" || purgeDataRaw === "true" || purgeDataRaw === "yes";
     await deleteStoreConnection(id, { purgeData });
     const list = await listStoreConnections();
@@ -139,7 +140,9 @@ export async function removeConnectionByDomain(req: Request, res: Response) {
       res.status(400).json({ error: "Dominio invalido" });
       return;
     }
-    const purgeDataRaw = String(req.query?.purgeData || req.query?.purge || "").trim().toLowerCase();
+    const purgeDataRaw = String(req.query?.purgeData || req.query?.purge || "")
+      .trim()
+      .toLowerCase();
     const purgeData = purgeDataRaw === "1" || purgeDataRaw === "true" || purgeDataRaw === "yes";
     const result = await deleteStoreConnectionByDomain(shopDomain, { purgeData });
     const list = await listStoreConnections();

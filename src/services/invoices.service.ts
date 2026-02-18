@@ -170,4 +170,3 @@ export async function getOrFetchInvoicePdf(alegraInvoiceId: string, shopDomain?:
 
   return { ...pdf, invoiceNumber };
 }
-
