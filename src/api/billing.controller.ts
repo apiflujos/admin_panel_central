@@ -4,11 +4,13 @@ import { getTenantMonthlySummary } from "../sa/sa.admin.service";
 import { buildTenantPlanSnapshot } from "../sa/sa.repository";
 import { getPool } from "../db";
 
+import { User } from "../services/auth.service";
+
 const PeriodKey = z.string().regex(/^\d{4}-\d{2}$/);
 
 export async function billingSummaryHandler(req: Request, res: Response) {
   try {
-    const user = (req as any).user as { organization_id?: number; role?: string } | undefined;
+    const user = (req as { user?: User }).user;
     if (!user) {
       res.status(403).json({ error: "forbidden" });
       return;

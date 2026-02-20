@@ -618,7 +618,7 @@ function filterByRange(items: Array<MetricItem>, from: Date, to: Date) {
   });
 }
 
-function sumByRange(items: Array<MetricItem>, from: Date, to: Date) {
+function _sumByRange(items: Array<MetricItem>, from: Date, to: Date) {
   const fromKey = formatDateKey(from);
   const toKey = formatDateKey(to);
   return items
@@ -651,7 +651,7 @@ function groupPaymentsByMethod(items: Array<MetricItem>) {
     .slice(0, 6);
 }
 
-function buildDailySeries(items: Array<MetricItem>, days: number) {
+function _buildDailySeries(items: Array<MetricItem>, days: number) {
   const series = [];
   const dates = buildDateList(days);
   const totals = new Map<string, number>();
@@ -666,7 +666,7 @@ function buildDailySeries(items: Array<MetricItem>, days: number) {
   return series;
 }
 
-function buildDailyCountSeries(items: Array<MetricItem>, days: number) {
+function _buildDailyCountSeries(items: Array<MetricItem>, days: number) {
   const series = [];
   const dates = buildDateList(days);
   const totals = new Map<string, number>();
@@ -681,7 +681,7 @@ function buildDailyCountSeries(items: Array<MetricItem>, days: number) {
   return series;
 }
 
-function buildDailySeriesRange(items: Array<MetricItem>, from: Date, to: Date) {
+function _buildDailySeriesRange(items: Array<MetricItem>, from: Date, to: Date) {
   const series = [];
   const dates = buildDateListRange(from, to);
   const totals = new Map<string, number>();

@@ -206,31 +206,14 @@ export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload, opt
     id: string | number;
   }>;
 
-  const address = payload.customer?.default_address;
-  const contactName = einvoiceActive && override?.fiscalName ? override.fiscalName : buildContactName(payload);
-  const contactPayload = {
-    name: contactName,
-    email: effectiveEmail,
-    phonePrimary: (einvoiceActive ? override?.phone : payload.customer?.phone) || undefined,
-    address: (einvoiceActive ? override?.address : address?.address1) || undefined,
-    city: (einvoiceActive ? override?.city : address?.city) || undefined,
-    department: einvoiceActive ? override?.state : undefined,
-    country: einvoiceActive ? override?.country : undefined,
-    postalCode: einvoiceActive ? override?.zip : undefined,
-  };
-  const rawPhone = payload.customer?.phone || "";
-  const phoneId = rawPhone.replace(/\D/g, "");
-  const identification =
-    einvoiceActive && override?.idNumber
-      ? override.idNumber
-      : phoneId.startsWith("57") && phoneId.length > 10
-        ? phoneId.slice(2)
-        : phoneId || "3000000000";
-  const createContactPayload = {
-    ...contactPayload,
-    identificationType: einvoiceActive && override?.idType ? override.idType : "CC",
-    identification,
-  };
+  const contactMapping = mapShopifyToAlegraContact(payload, effectiveEmail, {
+    einvoiceActive,
+    override: override || undefined,
+  });
+  const createContactPayload = contactMapping;
+  const identification = contactMapping.identification;
+  const contactName = contactMapping.name;
+  const contactPayload = contactMapping;
 
   let contactId: string;
   if (existing && existing.length > 0) {
@@ -535,11 +518,60 @@ async function safeCreateInvoiceLog(
   }
 }
 
-function buildContactName(payload: ShopifyOrderPayload) {
+export function buildContactName(payload: ShopifyOrderPayload) {
   const first = payload.customer?.first_name || "";
   const last = payload.customer?.last_name || "";
   const name = `${first} ${last}`.trim();
   return name || payload.email || "Cliente Shopify";
+}
+
+export function mapShopifyToAlegraContact(
+  payload: ShopifyOrderPayload,
+  effectiveEmail: string,
+  options: {
+    einvoiceActive?: boolean;
+    override?: {
+      fiscalName?: string | null;
+      phone?: string | null;
+      address?: string | null;
+      city?: string | null;
+      state?: string | null;
+      country?: string | null;
+      zip?: string | null;
+      idNumber?: string | null;
+      idType?: string | null;
+    };
+  }
+) {
+  const { einvoiceActive, override } = options;
+  const address = payload.customer?.default_address;
+  const contactName = einvoiceActive && override?.fiscalName ? override.fiscalName : buildContactName(payload);
+
+  const contactPayload = {
+    name: contactName,
+    email: effectiveEmail,
+    phonePrimary: (einvoiceActive ? override?.phone : payload.customer?.phone) || undefined,
+    address: (einvoiceActive ? override?.address : address?.address1) || undefined,
+    city: (einvoiceActive ? override?.city : address?.city) || undefined,
+    department: einvoiceActive ? override?.state : undefined,
+    country: einvoiceActive ? override?.country : undefined,
+    postalCode: einvoiceActive ? override?.zip : undefined,
+  };
+
+  const rawPhone = payload.customer?.phone || "";
+  const phoneId = rawPhone.replace(/\D/g, "");
+  const identification =
+    einvoiceActive && override?.idNumber
+      ? override.idNumber
+      : phoneId.startsWith("57") && phoneId.length > 10
+        ? phoneId.slice(2)
+        : phoneId || "3000000000";
+
+  return {
+    ...contactPayload,
+    identificationType: einvoiceActive && override?.idType ? override.idType : "CC",
+    identification,
+  };
 }
 
 function buildProductsSummaryFromPayload(payload: ShopifyOrderPayload) {
@@ -618,7 +650,7 @@ function buildOrderMetaFromPayload(payload: ShopifyOrderPayload) {
   };
 }
 
-function buildInvoicePayload(
+export function buildInvoicePayload(
   payload: ShopifyOrderPayload,
   contactId: string,
   settings: InvoiceSettings,
@@ -628,14 +660,14 @@ function buildInvoicePayload(
   const resolvedPaymentMethod = paymentMethodOverride || settings.paymentMethod;
   const status = settings.invoiceStatus === "draft" ? "draft" : undefined;
   return {
-    client: contactId,
+    client: Number(contactId),
     date: today,
     dueDate: today,
     status,
-    resolution: settings.resolutionId ? { id: settings.resolutionId } : undefined,
-    costCenter: settings.costCenterId ? { id: settings.costCenterId } : undefined,
-    warehouse: settings.warehouseId ? { id: settings.warehouseId } : undefined,
-    seller: settings.sellerId ? { id: settings.sellerId } : undefined,
+    resolution: settings.resolutionId ? { id: Number(settings.resolutionId) } : undefined,
+    costCenter: settings.costCenterId ? { id: Number(settings.costCenterId) } : undefined,
+    warehouse: settings.warehouseId ? { id: Number(settings.warehouseId) } : undefined,
+    seller: settings.sellerId ? { id: Number(settings.sellerId) } : undefined,
     paymentMethod: resolvedPaymentMethod || undefined,
     observations: interpolateObservations(settings.observationsTemplate, payload),
     items: (payload.line_items || []).map((item) => ({

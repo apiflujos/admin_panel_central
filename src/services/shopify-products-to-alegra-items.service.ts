@@ -32,9 +32,9 @@ function parseMatchPriority(value: unknown): Array<"sku" | "barcode"> {
   return ["sku", "barcode"];
 }
 
-function resolveConfigFromStore(store: any): ProductSyncConfig {
-  const sync = store?.sync && typeof store.sync === "object" ? store.sync : {};
-  const products = sync.products && typeof sync.products === "object" ? sync.products : {};
+function resolveConfigFromStore(store: Record<string, unknown>): ProductSyncConfig {
+  const sync = (store?.sync && typeof store.sync === "object" ? store.sync : {}) as Record<string, unknown>;
+  const products = (sync.products && typeof sync.products === "object" ? sync.products : {}) as Record<string, unknown>;
   return {
     enabled: Boolean(products.shopifyEnabled),
     createInAlegra: products.createInAlegra !== false && Boolean(products.createInAlegra),
@@ -59,7 +59,10 @@ function coerceNumber(value: unknown): number | null {
 
 function pickIdentifier(variant: { sku?: unknown; barcode?: unknown }, matchPriority: Array<"sku" | "barcode">) {
   const sku = typeof variant.sku === "string" ? variant.sku.trim() : "";
-  const barcode = typeof (variant as any).barcode === "string" ? String((variant as any).barcode).trim() : "";
+  const barcode =
+    typeof (variant as Record<string, unknown>).barcode === "string"
+      ? String((variant as Record<string, unknown>).barcode).trim()
+      : "";
   for (const key of matchPriority) {
     if (key === "sku" && sku) return { identifier: sku, sku, barcode };
     if (key === "barcode" && barcode) return { identifier: barcode, sku, barcode };
@@ -76,7 +79,7 @@ function buildAlegraItemName(productTitle: string, variantTitle: string) {
 
 function extractAlegraListItems(payload: unknown) {
   if (!payload || typeof payload !== "object") return [];
-  const record = payload as any;
+  const record = payload as Record<string, unknown>;
   const items = Array.isArray(record.items) ? record.items : Array.isArray(record.data) ? record.data : [];
   return items as Array<Record<string, unknown>>;
 }
@@ -105,7 +108,7 @@ async function findAlegraItemByIdentifier(ctx: Awaited<ReturnType<typeof buildSy
       const response = await ctx.alegra.searchItems(params);
       const items = extractAlegraListItems(response);
       const first = items[0];
-      const id = first?.id ?? (first as any)?.item?.id;
+      const id = first?.id ?? (first as { item?: { id?: string } })?.item?.id;
       if (id === undefined || id === null || String(id).trim() === "") continue;
       const full = await ctx.alegra.getItemWithParams(String(id), {
         mode: "advanced",
@@ -121,9 +124,12 @@ async function findAlegraItemByIdentifier(ctx: Awaited<ReturnType<typeof buildSy
 }
 
 function resolveAlegraWarehouseQuantity(item: Record<string, unknown>, warehouseId: string) {
-  const inv = (item.inventory as any) || {};
+  const inv = (item.inventory as Record<string, unknown>) || {};
   const warehouses = Array.isArray(inv.warehouses) ? inv.warehouses : [];
-  const match = warehouses.find((w: any) => String(w?.id || "").trim() === String(warehouseId || "").trim());
+  const match = warehouses.find(
+    (w: { id?: unknown; availableQuantity?: unknown; quantity?: unknown }) =>
+      String(w?.id || "").trim() === String(warehouseId || "").trim()
+  );
   const qty = coerceNumber(match?.availableQuantity ?? match?.quantity ?? inv.availableQuantity ?? inv.quantity);
   return qty ?? 0;
 }
@@ -153,8 +159,8 @@ async function maybeAdjustInventory(params: {
       mode: "advanced",
       fields: "inventory",
       metadata: true,
-    })) as any);
-  const current = resolveAlegraWarehouseQuantity(item as any, resolvedWarehouseId);
+    })) as Record<string, unknown>);
+  const current = resolveAlegraWarehouseQuantity(item as Record<string, unknown>, resolvedWarehouseId);
   const delta = Math.round((desired - current) * 1000) / 1000;
   if (!Number.isFinite(delta) || Math.abs(delta) < 0.0001) {
     return { adjusted: false, reason: "noop" as const, current, desired };
@@ -186,7 +192,10 @@ export async function syncShopifyVariantToAlegra(params: {
   const variantId = String(variant?.id || "").trim();
   if (!variantId) return { ok: false, skipped: true, reason: "missing_variant_id" as const };
 
-  const { identifier, sku, barcode } = pickIdentifier(variant as any, config.matchPriority);
+  const { identifier, sku, barcode } = pickIdentifier(
+    variant as unknown as { sku?: unknown; barcode?: unknown },
+    config.matchPriority
+  );
   if (!identifier) {
     return { ok: false, skipped: true, reason: "missing_identifier" as const, variantId, sku, barcode };
   }
@@ -201,7 +210,7 @@ export async function syncShopifyVariantToAlegra(params: {
         mode: "advanced",
         fields: "inventory,barcode,reference,code,name,status,itemVariants,variantAttributes",
         metadata: true,
-      })) as any;
+      })) as Record<string, unknown>;
     } catch {
       alegraItem = null;
     }
@@ -220,7 +229,9 @@ export async function syncShopifyVariantToAlegra(params: {
 
   const name = buildAlegraItemName(product.title, variant.title);
   const price = coerceNumber(variant.price);
-  const desiredInventory = config.includeInventory ? (coerceNumber((variant as any).inventoryQuantity) ?? null) : null;
+  const desiredInventory = config.includeInventory
+    ? (coerceNumber((variant as unknown as { inventoryQuantity?: unknown }).inventoryQuantity) ?? null)
+    : null;
 
   const payload: Record<string, unknown> = {
     name,
@@ -248,7 +259,7 @@ export async function syncShopifyVariantToAlegra(params: {
       });
       return { ok: false, skipped: true, reason: "create_disabled" as const, variantId, identifier };
     }
-    const created = (await ctx.alegra.createItem(payload)) as any;
+    const created = (await ctx.alegra.createItem(payload)) as Record<string, unknown>;
     const createdId = created?.id ? String(created.id) : "";
     if (!createdId) {
       throw new Error("Alegra no devolvió id al crear item.");
@@ -260,7 +271,7 @@ export async function syncShopifyVariantToAlegra(params: {
         mode: "advanced",
         fields: "inventory,barcode,reference,code,name,status,itemVariants,variantAttributes",
         metadata: true,
-      })) as any;
+      })) as Record<string, unknown>;
     } catch {
       alegraItem = null;
     }
@@ -319,7 +330,7 @@ export async function syncShopifyProductToAlegraFromWebhook(payload: unknown) {
   const productId = data.id ? String(data.id) : "";
   const title = data.title ? String(data.title) : "Producto Shopify";
   const status = data.status ? String(data.status) : null;
-  const variants = Array.isArray(data.variants) ? (data.variants as any[]) : [];
+  const variants = Array.isArray(data.variants) ? (data.variants as Record<string, unknown>[]) : [];
   const results = [];
   for (const v of variants) {
     const variantId = v?.id ? String(v.id) : "";

@@ -174,7 +174,7 @@ export async function getAlegraConnectionByStoreId(storeId: number) {
         cause: error,
       });
     }
-    throw new Error("Reconecta Alegra para esta tienda. (Clave guardada antigua o invalida)", { cause: error });
+    throw new Error("No se pudo obtener la configuracion de la tienda.", { cause: error });
   }
   const apiKey = String((decrypted as { apiKey?: string } | null)?.apiKey || "").trim();
   if (!apiKey) {
@@ -1321,8 +1321,8 @@ async function seedFromLegacyCredentials(pool: ReturnType<typeof getPool>, orgId
   const alegraCred = creds.rows.find((row) => row.provider === "alegra");
   if (!shopifyCred || !alegraCred) return;
 
-  let shopify: any;
-  let alegra: any;
+  let shopify: Record<string, unknown>;
+  let alegra: Record<string, unknown>;
   try {
     shopify = JSON.parse(decryptString(shopifyCred.data_encrypted));
     alegra = JSON.parse(decryptString(alegraCred.data_encrypted));
@@ -1333,7 +1333,7 @@ async function seedFromLegacyCredentials(pool: ReturnType<typeof getPool>, orgId
     return;
   }
   if (!shopify?.shopDomain || !shopify?.accessToken) return;
-  if (!alegra?.email || !alegra?.apiKey) return;
+  if (!String(alegra?.email || "").trim() || !String(alegra?.apiKey || "").trim()) return;
 
   const shopDomain = normalizeShopDomain(String(shopify.shopDomain));
   const accessTokenEncrypted = encryptString(JSON.stringify({ accessToken: shopify.accessToken }));
@@ -1346,11 +1346,11 @@ async function seedFromLegacyCredentials(pool: ReturnType<typeof getPool>, orgId
     [orgId, shopDomain, null, accessTokenEncrypted, ""]
   );
 
-  const env = alegra.environment === "sandbox" ? "sandbox" : "prod";
+  const env = String(alegra.environment || "prod") === "sandbox" ? "sandbox" : "prod";
   const alegraAccountId = await resolveAlegraAccountId(pool, orgId, {
-    email: alegra.email,
-    apiKey: alegra.apiKey,
-    environment: env,
+    email: String(alegra.email || ""),
+    apiKey: String(alegra.apiKey || ""),
+    environment: env as "sandbox" | "prod",
   });
   if (alegraAccountId) {
     await upsertStoreConfig(pool, orgId, shopDomain, alegraAccountId);

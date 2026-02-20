@@ -68,8 +68,8 @@ export async function createStore(name: string) {
     );
     const row = result.rows[0];
     return { id: row.id, name: row.name, createdAt: row.created_at };
-  } catch (error: any) {
-    const code = typeof error?.code === "string" ? error.code : "";
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";
     if (code === "23505") {
       throw new Error("Ya existe una tienda con ese nombre.", { cause: error });
     }

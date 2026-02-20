@@ -7,16 +7,21 @@ export const AUTH_COOKIE_NAME = "os_session";
 const PASSWORD_ITERATIONS = 120000;
 const PASSWORD_DIGEST = "sha512";
 
-type UserRecord = {
+export type UserRole = "admin" | "agent" | "super_admin";
+
+export interface User {
   id: number;
   organization_id: number;
   email: string;
-  password_hash: string;
-  role: "admin" | "agent" | "super_admin" | "superadmin";
+  role: UserRole;
   is_super_admin: boolean;
   name: string | null;
   phone: string | null;
   photo_base64: string | null;
+}
+
+type UserRecord = User & {
+  password_hash: string;
 };
 
 function normalizeUserRole(role: unknown): "admin" | "agent" | "super_admin" {
@@ -165,7 +170,7 @@ export async function clearSession(token: string) {
   );
 }
 
-export async function getSessionUser(token: string | undefined | null) {
+export async function getSessionUser(token: string | undefined | null): Promise<User | null> {
   if (!token) return null;
   const pool = getPool();
   await ensureUsersTables(pool);
@@ -183,10 +188,9 @@ export async function getSessionUser(token: string | undefined | null) {
     return null;
   }
   const rawSession = result.rows[0];
-  const session = { ...rawSession, role: normalizeUserRole(rawSession.role) } as typeof rawSession & {
-    role: "admin" | "agent" | "super_admin";
-  };
-  if (session.expires_at && session.expires_at.getTime() < Date.now()) {
+  const user = { ...rawSession, role: normalizeUserRole(rawSession.role) };
+
+  if (user.expires_at && user.expires_at.getTime() < Date.now()) {
     await clearSession(token);
     return null;
   }
@@ -198,7 +202,8 @@ export async function getSessionUser(token: string | undefined | null) {
     `,
     [token]
   );
-  return session;
+  const { password_hash: _hash, expires_at: _exp, ...cleanUser } = user;
+  return cleanUser as User;
 }
 
 export async function updatePassword(userId: number, currentPassword: string, newPassword: string) {

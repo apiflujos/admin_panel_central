@@ -26,13 +26,12 @@ function getAuthToken(req: Request) {
 export async function requirePageSuperAdmin(req: Request, res: Response, next: NextFunction) {
   const token = getAuthToken(req);
   const user = await getSessionUser(token);
-  const ok =
-    Boolean(user) && String((user as any).role || "") === "super_admin" && Boolean((user as any).is_super_admin);
+  const ok = user && user.role === "super_admin" && user.is_super_admin;
   if (!ok) {
     res.status(302).setHeader("Location", "/login.html");
     res.end();
     return;
   }
-  (req as any).user = user;
+  (req as { user?: typeof user }).user = user;
   next();
 }

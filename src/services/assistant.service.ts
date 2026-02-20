@@ -1575,7 +1575,8 @@ async function buildLogAnalysis(filters: {
     params.push(filters.from);
   }
   if (filters.to) {
-    conditions.push(`created_at <= $${idx++}`);
+    conditions.push(`created_at <= $${idx}`);
+    idx++; // eslint-disable-line no-useless-assignment
     params.push(filters.to);
   }
 

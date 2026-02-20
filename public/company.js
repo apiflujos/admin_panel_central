@@ -212,6 +212,10 @@ if (userMenu) {
       window.location.href = "/users.html";
       return;
     }
+    if (action === "assistants") {
+      window.location.href = "/ai-assistants.html";
+      return;
+    }
     if (action === "logout") {
       fetchJson("/api/auth/logout", { method: "POST" })
         .catch(() => null)

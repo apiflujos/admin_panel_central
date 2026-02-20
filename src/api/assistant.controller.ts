@@ -49,7 +49,7 @@ export async function assistantQueryHandler(req: Request, res: Response) {
 export async function assistantExecuteHandler(req: Request, res: Response) {
   try {
     const action = req.body?.action;
-    const role = "admin";
+
     const result = await executeAssistantAction(action);
     res.status(200).json(result);
     await safeCreateLog({
