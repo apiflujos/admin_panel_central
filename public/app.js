@@ -1183,9 +1183,9 @@ function updateConnectionButtonsState() {
   const alegraAccountValue = alegraAccountSelect ? alegraAccountSelect.value : "new";
 
   const shopifyReady =
-    hasStore && hasCommerceAlegra && Boolean(shopifyDomainValue) && (method !== "token" || Boolean(shopifyTokenValue));
+    hasStore && Boolean(shopifyDomainValue) && (method !== "token" || Boolean(shopifyTokenValue));
   const wooReady =
-    hasStore && hasCommerceAlegra && Boolean(wooDomainValue) && Boolean(wooKeyValue) && Boolean(wooSecretValue);
+    hasStore && Boolean(wooDomainValue) && Boolean(wooKeyValue) && Boolean(wooSecretValue);
   const alegraReady =
     hasStore && alegraAccountValue && alegraAccountValue !== "new"
       ? true
@@ -7092,10 +7092,10 @@ function renderCommerceAlegraOptions(accounts) {
   const previous = commerceAlegraSelect.value || "";
   const items = Array.isArray(accounts) ? accounts : [];
   if (!items.length) {
-    commerceAlegraSelect.innerHTML = `<option value="">Conecta una cuenta Alegra primero</option>`;
+    commerceAlegraSelect.innerHTML = `<option value="">Sin cuenta Alegra (opcional)</option>`;
     commerceAlegraSelect.disabled = true;
     if (commerceAlegraHint) {
-      commerceAlegraHint.textContent = "Necesitas una cuenta contable para asociar esta tienda.";
+      commerceAlegraHint.textContent = "Opcional: puedes conectar Alegra después desde esta misma sección.";
     }
     updateConnectionButtonsState();
     return;
