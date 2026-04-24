@@ -5338,7 +5338,7 @@ textarea::placeholder {
   bottom: 16px;
   display: grid;
   gap: 10px;
-  z-index: 250;
+  z-index: 1300;
   width: min(360px, calc(100vw - 32px));
   pointer-events: none;
 }

@@ -208,6 +208,11 @@ export async function shopifyOAuthCallback(req: Request, res: Response) {
     }
     return res.redirect(redirectUrl.toString());
   } catch (error) {
+    const msg = encodeURIComponent((error as { message?: string })?.message || "OAuth error");
+    const appHost = String(process.env.APP_HOST || "").trim();
+    if (appHost) {
+      return res.redirect(`${appHost}/dashboard?oauth_error=${msg}`);
+    }
     return res.status(400).send((error as { message?: string })?.message || "OAuth error");
   }
 }

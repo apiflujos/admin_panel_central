@@ -12979,7 +12979,21 @@ async function connectShopifyWithToken(params) {
     commerceAlegraSelect.options.length > 1 &&
     !commerceAlegraId
   ) {
+    markFieldError(commerceAlegraSelect, "Selecciona la cuenta contable.");
+    focusFieldWithContext(commerceAlegraSelect);
     throw new Error("Selecciona la cuenta contable.");
+  }
+  const testResult = await fetchJson("/api/settings/test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      shopify: { shopDomain: params.shopDomain, accessToken: tokenValue },
+    }),
+  });
+  if (!String(testResult?.shopify || "").startsWith("ok")) {
+    markFieldError(shopifyToken, String(testResult?.shopify || "Token de Shopify inválido."));
+    focusFieldWithContext(shopifyToken);
+    throw new Error(String(testResult?.shopify || "No se pudo validar el token de Shopify."));
   }
   const response = await fetchJson("/api/connections", {
     method: "POST",
@@ -13082,6 +13096,8 @@ async function startShopifyOAuthFlow() {
     commerceAlegraSelect.options.length > 1 &&
     !commerceAlegraId
   ) {
+    markFieldError(commerceAlegraSelect, "Selecciona la cuenta contable.");
+    focusFieldWithContext(commerceAlegraSelect);
     throw new Error("Selecciona la cuenta contable.");
   }
   if (!normalizedInput) {
@@ -13539,7 +13555,10 @@ if (alegraAccountSelect) {
   alegraAccountSelect.addEventListener("change", toggleAlegraAccountFields);
 }
 if (commerceAlegraSelect) {
-  commerceAlegraSelect.addEventListener("change", () => updateConnectionButtonsState());
+  commerceAlegraSelect.addEventListener("change", () => {
+    clearFieldError(commerceAlegraSelect);
+    updateConnectionButtonsState();
+  });
 }
 if (storeActiveSelect) {
   storeActiveSelect.addEventListener("change", () => {
@@ -15471,6 +15490,16 @@ async function init() {
   safeLoad(loadBranding());
   loadSidebarState();
   captureOnboardingParam();
+  (() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauthError = params.get("oauth_error");
+    if (oauthError) {
+      params.delete("oauth_error");
+      const next = params.toString();
+      window.history.replaceState({}, "", next ? `${window.location.pathname}?${next}` : window.location.pathname);
+      window.setTimeout(() => showToast(decodeURIComponent(oauthError), "is-error", { timeoutMs: 8000 }), 300);
+    }
+  })();
   initSettingsSubmenu();
   if (document.body.classList.contains("force-settings")) {
     activateNav("settings");
