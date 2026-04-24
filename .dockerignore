@@ -1,0 +1,7 @@
+node_modules
+dist
+.git
+.github
+*.log
+lint_*.txt
+tsc_errors.txt
