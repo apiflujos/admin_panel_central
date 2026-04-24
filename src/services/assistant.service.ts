@@ -785,6 +785,7 @@ function parseLogQuery(cleaned: string, normalized: string) {
       ask: "Quieres ver logs de hoy, 24h, 7 dias, 30 dias o por pedido (ej: #1234)?",
     };
   }
+  lastLogFilters = filters;
   return { filters };
 }
 

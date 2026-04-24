@@ -20,24 +20,29 @@ export async function acquireIdempotencyKey(key: string): Promise<{ status: Idem
     return { status: "processing", acquired: true };
   }
 
-  const existing = await pool.query<{ status: IdempotencyStatus }>(
+  const existing = await pool.query<{ status: IdempotencyStatus; updated_at: Date | null }>(
     `
-    SELECT status
+    SELECT status, updated_at
     FROM idempotency_keys
     WHERE organization_id = $1 AND key = $2
     `,
     [orgId, key]
   );
   const status = existing.rows[0]?.status || "processing";
-  if (status !== "failed") {
+  const updatedAt = existing.rows[0]?.updated_at;
+  const staleProcessing =
+    status === "processing" && updatedAt && Date.now() - new Date(updatedAt).getTime() > 15 * 60 * 1000;
+
+  if (status !== "failed" && !staleProcessing) {
     return { status, acquired: false };
   }
 
+  const retryCondition = status === "failed" ? "status = 'failed'" : "status = 'processing'";
   const update = await pool.query<{ status: IdempotencyStatus }>(
     `
     UPDATE idempotency_keys
     SET status = 'processing', updated_at = NOW()
-    WHERE organization_id = $1 AND key = $2 AND status = 'failed'
+    WHERE organization_id = $1 AND key = $2 AND ${retryCondition}
     RETURNING status
     `,
     [orgId, key]

@@ -3582,6 +3582,288 @@
                             </div>
                           </div>
                         </div>
+
+                        <div
+                          class="panel admin-only module"
+                          data-provider="alegra"
+                          data-manager="shopify"
+                          data-module="alegra-invoice"
+                          data-help="Configuracion de facturacion en Contable al procesar pedidos de E-commerce. Define resolucion, bodega, vendedor, centro de costos, medio de pago y plantilla de observaciones."
+                        >
+                          <div class="panel-header">
+                            <h3
+                              data-module-toggle="alegra-invoice"
+                              data-title-base="Facturacion en Contable (para pedidos)"
+                            >
+                              Facturacion en Contable (para pedidos)
+                              <span
+                                class="tip"
+                                data-tip="Configura los datos por defecto que se usan al crear una factura en Contable desde un pedido de E-commerce: resolucion, bodega, vendedor, medio de pago y observaciones."
+                                >?</span
+                              >
+                            </h3>
+                          </div>
+                          <div class="module-body">
+                            <div class="mode-sections">
+                              <div class="mode-section">
+                                <div class="mode-toggle-grid" aria-label="Opciones generales de facturacion">
+                                  <div class="mode-toggle">
+                                    <label for="cfg-generate-invoice"
+                                      >Generar factura automaticamente
+                                      <span
+                                        class="tip"
+                                        data-tip="Si esta ON, se crea la factura en Contable al procesar el pedido. Si esta OFF, el pedido se registra en la base pero no se factura."
+                                        >?</span
+                                      ></label
+                                    >
+                                    <input
+                                      type="checkbox"
+                                      id="cfg-generate-invoice"
+                                      name="cfg_generate_invoice"
+                                      class="toggle"
+                                    />
+                                  </div>
+                                  <div class="mode-toggle">
+                                    <label for="cfg-einvoice-enabled"
+                                      >Factura electronica (DIAN)
+                                      <span
+                                        class="tip"
+                                        data-tip="Si esta ON, se activa el flujo de factura electronica: requiere resolucion DIAN y datos fiscales del cliente."
+                                        >?</span
+                                      ></label
+                                    >
+                                    <input
+                                      type="checkbox"
+                                      id="cfg-einvoice-enabled"
+                                      name="cfg_einvoice_enabled"
+                                      class="toggle"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div class="mode-grid">
+                                  <div class="field mode-field">
+                                    <label for="cfg-invoice-status"
+                                      >Estado de la factura
+                                      <span
+                                        class="tip"
+                                        data-tip="Borrador: la factura queda en estado borrador en Contable (se puede editar). Activa: la factura se emite directamente."
+                                        >?</span
+                                      ></label
+                                    >
+                                    <select id="cfg-invoice-status" name="cfg_invoice_status">
+                                      <option value="draft">Borrador</option>
+                                      <option value="active">Activa</option>
+                                    </select>
+                                  </div>
+                                  <div class="field mode-field">
+                                    <label for="cfg-resolution"
+                                      >Resolucion DIAN
+                                      <span
+                                        class="tip"
+                                        data-tip="Resolucion de facturacion registrada en Contable. Requerida para factura electronica."
+                                        >?</span
+                                      ></label
+                                    >
+                                    <select id="cfg-resolution" name="cfg_resolution">
+                                      <option value="">Cargando...</option>
+                                    </select>
+                                  </div>
+                                  <div class="field mode-field">
+                                    <label for="cfg-cost-center"
+                                      >Centro de costos
+                                      <span
+                                        class="tip"
+                                        data-tip="Centro de costos de Contable donde se registra la factura. Opcional."
+                                        >?</span
+                                      ></label
+                                    >
+                                    <select id="cfg-cost-center" name="cfg_cost_center">
+                                      <option value="">Sin centro de costos</option>
+                                    </select>
+                                  </div>
+                                  <div class="field mode-field">
+                                    <label for="cfg-warehouse"
+                                      >Bodega de salida
+                                      <span
+                                        class="tip"
+                                        data-tip="Bodega desde donde se descuenta el inventario al crear la factura en Contable."
+                                        >?</span
+                                      ></label
+                                    >
+                                    <select id="cfg-warehouse" name="cfg_warehouse">
+                                      <option value="">Sin bodega especifica</option>
+                                    </select>
+                                  </div>
+                                  <div class="field mode-field">
+                                    <label for="cfg-seller"
+                                      >Vendedor
+                                      <span
+                                        class="tip"
+                                        data-tip="Vendedor registrado en Contable que se asigna a la factura. Opcional."
+                                        >?</span
+                                      ></label
+                                    >
+                                    <select id="cfg-seller" name="cfg_seller">
+                                      <option value="">Sin vendedor</option>
+                                    </select>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div class="mode-section">
+                                <div class="mode-head">
+                                  <div class="mode-head-left">
+                                    <label class="mode-title-toggle" for="cfg-apply-payment" data-dep-controller="1">
+                                      <input
+                                        type="checkbox"
+                                        id="cfg-apply-payment"
+                                        name="cfg_apply_payment"
+                                        class="toggle"
+                                        data-dep-controller="1"
+                                      />
+                                      <span>Aplicar pago al crear factura</span>
+                                    </label>
+                                    <span
+                                      class="tip"
+                                      data-tip="Si esta ON, se registra el pago en Contable al crear la factura usando el medio de pago y cuenta bancaria seleccionados."
+                                      >?</span
+                                    >
+                                  </div>
+                                </div>
+                                <div class="mode-grid" data-depends-on="cfg-apply-payment">
+                                  <div class="field mode-field">
+                                    <label for="cfg-payment-method"
+                                      >Medio de pago
+                                      <span
+                                        class="tip"
+                                        data-tip="Medio de pago de Contable que se usa para registrar el pago. Requerido si Aplicar pago esta ON."
+                                        >?</span
+                                      ></label
+                                    >
+                                    <select
+                                      id="cfg-payment-method"
+                                      name="cfg_payment_method"
+                                      data-depends-on="cfg-apply-payment"
+                                    >
+                                      <option value="">Sin medio de pago</option>
+                                    </select>
+                                  </div>
+                                  <div class="field mode-field">
+                                    <label for="cfg-bank-account"
+                                      >Cuenta bancaria
+                                      <span
+                                        class="tip"
+                                        data-tip="Cuenta bancaria de Contable donde se registra el ingreso del pago. Requerida si Aplicar pago esta ON."
+                                        >?</span
+                                      ></label
+                                    >
+                                    <select
+                                      id="cfg-bank-account"
+                                      name="cfg_bank_account"
+                                      data-depends-on="cfg-apply-payment"
+                                    >
+                                      <option value="">Sin cuenta bancaria</option>
+                                    </select>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div class="mode-section">
+                                <div class="mode-head">
+                                  <div class="mode-head-left">
+                                    <h4>Observaciones de la factura</h4>
+                                    <span
+                                      class="tip"
+                                      data-tip="Texto que aparece en el campo Observaciones de la factura en Contable. Puedes usar variables: {{order.name}}, {{customer.name}}, {{order.total}}, {{order.payment_gateways}}, {{order.items_summary}}, {{customer.email}}."
+                                      >?</span
+                                    >
+                                  </div>
+                                </div>
+                                <div class="mode-grid">
+                                  <div class="field mode-field field-span" id="cfg-observations-fields">
+                                    <label>Campos a incluir</label>
+                                    <details class="multi-select">
+                                      <summary>
+                                        <span>Seleccionar campos</span>
+                                        <em id="cfg-observations-fields-summary">Ninguno</em>
+                                      </summary>
+                                      <div class="checkbox-grid" id="cfg-observations-fields-options">
+                                        <label>
+                                          <input
+                                            type="checkbox"
+                                            data-observation-key="order_name"
+                                            data-observation-line="Pedido: {{order.name}}"
+                                          />
+                                          Numero de pedido
+                                        </label>
+                                        <label>
+                                          <input
+                                            type="checkbox"
+                                            data-observation-key="customer_name"
+                                            data-observation-line="Cliente: {{customer.name}}"
+                                          />
+                                          Nombre del cliente
+                                        </label>
+                                        <label>
+                                          <input
+                                            type="checkbox"
+                                            data-observation-key="customer_email"
+                                            data-observation-line="Email: {{customer.email}}"
+                                          />
+                                          Email del cliente
+                                        </label>
+                                        <label>
+                                          <input
+                                            type="checkbox"
+                                            data-observation-key="order_total"
+                                            data-observation-line="Total: {{order.total}} {{order.currency}}"
+                                          />
+                                          Total del pedido
+                                        </label>
+                                        <label>
+                                          <input
+                                            type="checkbox"
+                                            data-observation-key="payment_gateways"
+                                            data-observation-line="Pago: {{order.payment_gateways}}"
+                                          />
+                                          Medio de pago del pedido
+                                        </label>
+                                        <label>
+                                          <input
+                                            type="checkbox"
+                                            data-observation-key="items_summary"
+                                            data-observation-line="Productos: {{order.items_summary}}"
+                                          />
+                                          Resumen de productos
+                                        </label>
+                                      </div>
+                                    </details>
+                                  </div>
+                                  <div class="field mode-field field-span">
+                                    <label for="cfg-observations-extra">Texto adicional (libre)</label>
+                                    <textarea
+                                      id="cfg-observations-extra"
+                                      name="cfg_observations_extra"
+                                      rows="2"
+                                      placeholder="Texto adicional para las observaciones..."
+                                    ></textarea>
+                                  </div>
+                                  <div class="field mode-field field-span">
+                                    <label>Vista previa</label>
+                                    <p class="kpi-sub" id="cfg-observations-preview">-</p>
+                                  </div>
+                                </div>
+                                <input
+                                  type="hidden"
+                                  id="cfg-observations"
+                                  name="cfg_observations"
+                                />
+                              </div>
+                            </div>
+                            <p class="field-hint module-warning is-hidden" data-module-warning="alegra-invoice"></p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -630,22 +630,22 @@ async function replaceTaxRules(
   orgId: number,
   rules: Array<{ shopifyTaxId: string; alegraTaxId: string; type: string }>
 ) {
-  await pool.query(
-    `
-    DELETE FROM tax_rules
-    WHERE organization_id = $1
-    `,
-    [orgId]
-  );
-
-  for (const rule of rules) {
-    await pool.query(
-      `
-      INSERT INTO tax_rules (organization_id, shopify_tax_id, alegra_tax_id, type)
-      VALUES ($1, $2, $3, $4)
-      `,
-      [orgId, rule.shopifyTaxId, rule.alegraTaxId, rule.type]
-    );
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(`DELETE FROM tax_rules WHERE organization_id = $1`, [orgId]);
+    for (const rule of rules) {
+      await client.query(
+        `INSERT INTO tax_rules (organization_id, shopify_tax_id, alegra_tax_id, type) VALUES ($1, $2, $3, $4)`,
+        [orgId, rule.shopifyTaxId, rule.alegraTaxId, rule.type]
+      );
+    }
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
   }
 }
 
@@ -985,39 +985,40 @@ async function replacePaymentMappings(
     methodLabel?: string;
   }>
 ) {
-  await pool.query(
-    `
-    DELETE FROM payment_mappings
-    WHERE organization_id = $1
-    `,
-    [orgId]
-  );
-
-  for (const mapping of mappings) {
-    const sourceMethod = mapping.sourceMethod || mapping.methodId || "";
-    const paymentMethod = mapping.paymentMethod || "";
-    const accountId = mapping.accountId || "";
-    const sourceLabel = mapping.sourceLabel || mapping.methodLabel || "";
-    const paymentMethodLabel = mapping.paymentMethodLabel || "";
-    const accountLabel = mapping.accountLabel || "";
-    if (!sourceMethod || !accountId) {
-      continue;
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(`DELETE FROM payment_mappings WHERE organization_id = $1`, [orgId]);
+    for (const mapping of mappings) {
+      const sourceMethod = mapping.sourceMethod || mapping.methodId || "";
+      const paymentMethod = mapping.paymentMethod || "";
+      const accountId = mapping.accountId || "";
+      const sourceLabel = mapping.sourceLabel || mapping.methodLabel || "";
+      const paymentMethodLabel = mapping.paymentMethodLabel || "";
+      const accountLabel = mapping.accountLabel || "";
+      if (!sourceMethod || !accountId) {
+        continue;
+      }
+      await client.query(
+        `INSERT INTO payment_mappings (organization_id, method_id, account_id, method_label, account_label, payment_method, payment_method_label)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          orgId,
+          sourceMethod,
+          accountId,
+          sourceLabel || null,
+          accountLabel || null,
+          paymentMethod || null,
+          paymentMethodLabel || null,
+        ]
+      );
     }
-    await pool.query(
-      `
-      INSERT INTO payment_mappings (organization_id, method_id, account_id, method_label, account_label, payment_method, payment_method_label)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `,
-      [
-        orgId,
-        sourceMethod,
-        accountId,
-        sourceLabel || null,
-        accountLabel || null,
-        paymentMethod || null,
-        paymentMethodLabel || null,
-      ]
-    );
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
   }
 }
 
