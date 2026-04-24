@@ -44,6 +44,7 @@ type ShopifyOrderPayload = {
     title?: string;
     variant_id?: number | string;
   }>;
+  shipping_lines?: Array<{ title?: string; price?: string }>;
   financial_status?: string;
 };
 
@@ -171,6 +172,7 @@ export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload, opt
   const effectiveInvoiceSettings = resolvedWarehouseId
     ? { ...invoiceSettings, warehouseId: resolvedWarehouseId }
     : invoiceSettings;
+  const taxRules = await loadTaxRules(pool, orgId);
   const invoiceWarnings = buildInvoiceSettingsWarnings(effectiveInvoiceSettings);
   if (invoiceWarnings.length) {
     await createSyncLog({
@@ -276,7 +278,7 @@ export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload, opt
   const sourceMapping = await resolvePaymentMappingBySource(pool, orgId, paymentGateways);
   const paymentMethod = sourceMapping?.paymentMethod || invoiceSettings.paymentMethod;
   const bankAccountId = sourceMapping?.accountId || defaultBankAccountId;
-  const invoicePayload = buildInvoicePayload(payload, contactId, effectiveInvoiceSettings, paymentMethod);
+  const invoicePayload = buildInvoicePayload(payload, contactId, effectiveInvoiceSettings, paymentMethod, taxRules);
   if (!invoiceSettings.generateInvoice) {
     if (orderId) {
       const orderMeta = buildOrderMetaFromPayload(payload);
@@ -654,11 +656,33 @@ export function buildInvoicePayload(
   payload: ShopifyOrderPayload,
   contactId: string,
   settings: InvoiceSettings,
-  paymentMethodOverride?: string
+  paymentMethodOverride?: string,
+  taxRules?: Array<{ alegraTaxId: string }>
 ) {
   const today = new Date().toISOString().slice(0, 10);
   const resolvedPaymentMethod = paymentMethodOverride || settings.paymentMethod;
   const status = settings.invoiceStatus === "draft" ? "draft" : undefined;
+  const taxes =
+    taxRules && taxRules.length
+      ? taxRules.map((r) => ({ id: Number(r.alegraTaxId) })).filter((t) => t.id > 0)
+      : undefined;
+
+  const lineItems = (payload.line_items || []).map((item) => ({
+    name: item.title || item.sku || "Item",
+    price: item.discounted_price ? Number(item.discounted_price) : item.price ? Number(item.price) : 0,
+    quantity: item.quantity || 1,
+    ...(taxes ? { taxes } : {}),
+  }));
+
+  const shippingItems = (payload.shipping_lines || [])
+    .filter((s) => Number(s.price || 0) > 0)
+    .map((s) => ({
+      name: s.title || "Envío",
+      price: Number(s.price),
+      quantity: 1,
+      ...(taxes ? { taxes } : {}),
+    }));
+
   return {
     client: Number(contactId),
     date: today,
@@ -670,11 +694,7 @@ export function buildInvoicePayload(
     seller: settings.sellerId ? { id: Number(settings.sellerId) } : undefined,
     paymentMethod: resolvedPaymentMethod || undefined,
     observations: interpolateObservations(settings.observationsTemplate, payload),
-    items: (payload.line_items || []).map((item) => ({
-      name: item.title || item.sku || "Item",
-      price: item.discounted_price ? Number(item.discounted_price) : item.price ? Number(item.price) : 0,
-      quantity: item.quantity || 1,
-    })),
+    items: [...lineItems, ...shippingItems],
   };
 }
 
@@ -767,6 +787,14 @@ async function loadInvoiceSettings(pool: Pool, orgId: number): Promise<InvoiceSe
     observationsTemplate: row.observations_template || "",
     einvoiceEnabled: Boolean(row.einvoice_enabled),
   };
+}
+
+async function loadTaxRules(pool: Pool, orgId: number): Promise<Array<{ alegraTaxId: string }>> {
+  const result = await pool.query<{ alegra_tax_id: string }>(
+    `SELECT alegra_tax_id FROM tax_rules WHERE organization_id = $1`,
+    [orgId]
+  );
+  return result.rows.map((row) => ({ alegraTaxId: row.alegra_tax_id }));
 }
 
 async function resolveBankAccountId(pool: Pool, orgId: number, paymentMethod: string, defaultBankAccountId: string) {

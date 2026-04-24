@@ -87,7 +87,15 @@ export async function syncInventoryAdjustments(
   });
   const ids = Array.from(itemIds);
   const autoPublish = options?.autoPublish !== false;
-  const results = autoPublish ? await Promise.allSettled(ids.map((id) => syncAlegraInventoryById(id))) : [];
+  const results: PromiseSettledResult<unknown>[] = [];
+  if (autoPublish) {
+    const BATCH = 5;
+    for (let i = 0; i < ids.length; i += BATCH) {
+      const batch = ids.slice(i, i + BATCH);
+      const batchResults = await Promise.allSettled(batch.map((id) => syncAlegraInventoryById(id)));
+      results.push(...batchResults);
+    }
+  }
   const synced = results.filter((r) => r.status === "fulfilled").length;
   const failed = results.length - synced;
 

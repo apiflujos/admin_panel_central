@@ -66,8 +66,26 @@ export async function voidInvoiceForOrder(orderId: string) {
     return { status: "missing_invoice" };
   }
 
-  const result = await ctx.alegra.updateInvoice(mapping.alegraId, { status: "void" });
-  return { status: "voided", result };
+  const voidKey = `void:${orderId}`;
+  const { acquireIdempotencyKey, markIdempotencyKey } = await import("./idempotency.service");
+  const idempotency = await acquireIdempotencyKey(voidKey);
+  if (!idempotency.acquired) {
+    return { status: idempotency.status === "completed" ? "already_voided" : "already_processing" };
+  }
+
+  try {
+    const existing = (await ctx.alegra.getInvoice(mapping.alegraId)) as Record<string, unknown> | null;
+    if (existing && String(existing.status || "").toLowerCase() === "void") {
+      await markIdempotencyKey(voidKey, "completed");
+      return { status: "already_voided" };
+    }
+    const result = await ctx.alegra.updateInvoice(mapping.alegraId, { status: "void" });
+    await markIdempotencyKey(voidKey, "completed");
+    return { status: "voided", result };
+  } catch (error) {
+    await markIdempotencyKey(voidKey, "failed", (error as { message?: string })?.message || "Void failed");
+    throw error;
+  }
 }
 
 type InvoiceSettings = {

@@ -544,6 +544,10 @@ export type ShopifyOrder = {
     zip?: string | null;
     countryCodeV2?: string | null;
   } | null;
+  shippingLine?: {
+    title?: string | null;
+    originalPriceSet?: { shopMoney: { amount: string; currencyCode: string } } | null;
+  } | null;
   totalPriceSet?: {
     shopMoney: { amount: string; currencyCode: string };
   };
@@ -655,6 +659,7 @@ type ShopifyProductCreateResult = {
         node: {
           id: string;
           sku?: string | null;
+          barcode?: string | null;
           inventoryItem?: { id: string } | null;
         };
       }>;
@@ -699,6 +704,7 @@ const ORDER_BY_ID_QUERY = `
       updatedAt
       processedAt
       shippingAddress { address1 city province zip countryCodeV2 }
+      shippingLine { title originalPriceSet { shopMoney { amount currencyCode } } }
       totalPriceSet {
         shopMoney { amount currencyCode }
       }
@@ -769,17 +775,18 @@ const ORDERS_UPDATED_SINCE_QUERY = `
     orders(first: 50, query: $query) {
       edges {
         node {
-      id
-      name
-      email
-      displayFinancialStatus
-      paymentGatewayNames
-      updatedAt
-      processedAt
-      shippingAddress { address1 city province zip countryCodeV2 }
-      totalPriceSet {
-        shopMoney { amount currencyCode }
-      }
+          id
+          name
+          email
+          displayFinancialStatus
+          paymentGatewayNames
+          updatedAt
+          processedAt
+          shippingAddress { address1 city province zip countryCodeV2 }
+          shippingLine { title originalPriceSet { shopMoney { amount currencyCode } } }
+          totalPriceSet {
+            shopMoney { amount currencyCode }
+          }
           customer { id email firstName lastName phone }
           lineItems(first: 250) {
             edges {
@@ -817,6 +824,7 @@ const ORDERS_PAGED_QUERY = `
           updatedAt
           processedAt
           shippingAddress { address1 city province zip countryCodeV2 }
+          shippingLine { title originalPriceSet { shopMoney { amount currencyCode } } }
           totalPriceSet {
             shopMoney { amount currencyCode }
           }
@@ -1092,9 +1100,9 @@ const PRODUCT_CREATE_MUTATION = `
     productCreate(input: $input) {
       product {
         id
-        variants(first: 1) {
+        variants(first: 100) {
           edges {
-            node { id sku inventoryItem { id } }
+            node { id sku barcode inventoryItem { id } }
           }
         }
       }

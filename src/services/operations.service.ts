@@ -269,6 +269,14 @@ export function mapOrderToPayload(order: ShopifyOrder) {
       discounted_price: edge.node.discountedUnitPriceSet?.shopMoney?.amount || undefined,
       title: edge.node.title,
     })),
+    shipping_lines: order.shippingLine?.originalPriceSet?.shopMoney?.amount
+      ? [
+          {
+            title: order.shippingLine.title || "Envío",
+            price: order.shippingLine.originalPriceSet.shopMoney.amount,
+          },
+        ]
+      : [],
   };
 }
 
@@ -307,30 +315,29 @@ async function invoiceExistsInAlegra(ctx: Awaited<ReturnType<typeof buildSyncCon
   const targetDate = String(order.processedAt || "").slice(0, 10);
   if (!targetDate) return false;
   const email = order.email || order.customer?.email || "";
-  const phone = String(order.customer?.phone || "").replace(/\\D/g, "");
-  const maxPages = 5;
+  const phone = String(order.customer?.phone || "").replace(/\D/g, "");
+  const maxPages = 20;
   const pageSize = 30;
   for (let page = 0; page < maxPages; page += 1) {
     const invoices = await ctx.alegra.listInvoices({ limit: pageSize, start: page * pageSize });
     if (!Array.isArray(invoices) || !invoices.length) {
       break;
     }
+    let allOlder = true;
     const match = invoices.find((invoice: Record<string, unknown>) => {
       const date = String(invoice.date || invoice.datetime || "").slice(0, 10);
+      if (date >= targetDate) allOlder = false;
       if (date !== targetDate) return false;
       const client = invoice.client as Record<string, unknown> | undefined;
       const clientEmail = client?.email ? String(client.email) : "";
       const clientId = client?.identification ? String(client.identification) : "";
       const byEmail = email && clientEmail && email.toLowerCase() === clientEmail.toLowerCase();
-      const byPhone = phone && clientId && clientId.includes(phone);
+      const byPhone = phone && clientId && clientId.replace(/\D/g, "").includes(phone);
       return byEmail || byPhone;
     });
-    if (match) {
-      return true;
-    }
-    if (invoices.length < pageSize) {
-      break;
-    }
+    if (match) return true;
+    if (allOlder) break;
+    if (invoices.length < pageSize) break;
   }
   return false;
 }
