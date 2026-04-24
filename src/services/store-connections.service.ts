@@ -547,6 +547,7 @@ export async function upsertGoogleAdsCredentials(input: {
     `
     INSERT INTO credentials (organization_id, provider, data_encrypted)
     VALUES ($1, $2, $3)
+    ON CONFLICT (organization_id, provider) DO UPDATE SET data_encrypted = EXCLUDED.data_encrypted, updated_at = NOW()
     `,
     [orgId, GOOGLE_ADS_PROVIDER, encrypted]
   );
@@ -637,6 +638,7 @@ export async function upsertMetaAdsCredentials(input: {
     `
     INSERT INTO credentials (organization_id, provider, data_encrypted)
     VALUES ($1, $2, $3)
+    ON CONFLICT (organization_id, provider) DO UPDATE SET data_encrypted = EXCLUDED.data_encrypted, updated_at = NOW()
     `,
     [orgId, META_ADS_PROVIDER, encrypted]
   );
@@ -727,6 +729,7 @@ export async function upsertTikTokAdsCredentials(input: {
     `
     INSERT INTO credentials (organization_id, provider, data_encrypted)
     VALUES ($1, $2, $3)
+    ON CONFLICT (organization_id, provider) DO UPDATE SET data_encrypted = EXCLUDED.data_encrypted, updated_at = NOW()
     `,
     [orgId, TIKTOK_ADS_PROVIDER, encrypted]
   );

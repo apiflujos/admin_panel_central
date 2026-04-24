@@ -66,6 +66,9 @@ export function getPool() {
       connectionTimeoutMillis,
       application_name: applicationName,
     });
+    (pool as unknown as { on: (event: string, cb: (err: Error) => void) => void }).on("error", (err) => {
+      console.error("[db] idle client error:", err.message);
+    });
   }
   return pool;
 }

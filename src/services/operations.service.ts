@@ -202,8 +202,7 @@ function buildContactOverride(override: OrderInvoiceOverride) {
 export async function seedOperations() {
   const ctx = await buildSyncContext();
   const updatedAtMin = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const result = await ctx.shopify.listOrdersUpdatedSince(updatedAtMin);
-  const orders = result.orders?.edges?.map((edge) => edge.node) || [];
+  const orders = await ctx.shopify.listOrdersUpdatedSince(updatedAtMin);
   const eligible = orders
     .filter((order) => String(order.displayFinancialStatus || "").toUpperCase() === "PAID")
     .sort((a, b) => String(b.processedAt || "").localeCompare(String(a.processedAt || "")));

@@ -62,7 +62,8 @@ export async function processRetryQueue(limit = 50) {
     try {
       await retryInvoiceFromLog(String(orderId));
       await pool.query(`UPDATE retry_queue SET status = 'done' WHERE id = $1`, [row.id]);
-    } catch (_error) {
+    } catch (error) {
+      console.error(`[retry-queue] orderId=${orderId} attempt failed:`, error instanceof Error ? error.message : error);
       const nextRetryCount = row.retry_count + 1;
       if (nextRetryCount >= maxRetries) {
         await pool.query(`UPDATE retry_queue SET status = 'failed' WHERE id = $1`, [row.id]);

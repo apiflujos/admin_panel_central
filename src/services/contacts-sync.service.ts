@@ -111,8 +111,9 @@ async function scanAlegraContacts(
   predicate: (contact: Record<string, unknown>) => boolean
 ) {
   const limit = 50;
+  const maxPages = 40; // 2000 contactos máximo
   let start = 0;
-  for (let page = 0; page < 8; page += 1) {
+  for (let page = 0; page < maxPages; page += 1) {
     const data = (await ctx.alegra.listContacts({ limit, start })) as Array<Record<string, unknown>>;
     if (!Array.isArray(data) || !data.length) return null;
     const match = data.find((item) => predicate(item));

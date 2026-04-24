@@ -96,7 +96,7 @@ const WRITE_ACTIONS = new Set<AssistantAction["type"]>([
   "update_rules",
 ]);
 
-const lastLogFilters: {
+let lastLogFilters: {
   status?: string;
   orderId?: string;
   from?: string;
@@ -1158,7 +1158,7 @@ function parseAiJson(content: string) {
   const trimmed = content.trim();
   const direct = tryParseJson(trimmed);
   if (direct) return direct;
-  const fenced = trimmed.match(/```json\\s*([\\s\\S]*?)```/i);
+  const fenced = trimmed.match(/```json\s*([\s\S]*?)```/i);
   if (fenced && fenced[1]) {
     return tryParseJson(fenced[1].trim());
   }
@@ -1730,8 +1730,7 @@ function buildLogSuggestions(analysis: LogAnalysis, filters: { status?: string }
 async function searchShopifyOrders(orderNumber: string) {
   const ctx = await buildSyncContext();
   const query = `name:${orderNumber.replace(/^#/, "")}`;
-  const result = await ctx.shopify.listOrdersByQuery(query);
-  const orders = result.orders?.edges?.map((edge) => edge.node) || [];
+  const orders = await ctx.shopify.listOrdersByQuery(query);
   return orders.map((order) => ({
     id: order.id,
     name: order.name,

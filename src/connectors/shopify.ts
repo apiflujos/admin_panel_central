@@ -102,17 +102,11 @@ export class ShopifyClient {
   }
 
   async listOrdersUpdatedSince(updatedAtMin: string) {
-    return this.request<{ orders: ShopifyOrderConnection }>(<GraphQlRequest>{
-      query: ORDERS_UPDATED_SINCE_QUERY,
-      variables: { query: `updated_at:>='${updatedAtMin}'` },
-    });
+    return this.listAllOrdersByQuery(`updated_at:>='${updatedAtMin}'`);
   }
 
   async listOrdersByQuery(query: string) {
-    return this.request<{ orders: ShopifyOrderConnection }>(<GraphQlRequest>{
-      query: ORDERS_UPDATED_SINCE_QUERY,
-      variables: { query },
-    });
+    return this.listAllOrdersByQuery(query);
   }
 
   async listAllOrdersByQuery(query: string, limit?: number) {
