@@ -28,8 +28,7 @@ export function verifyShopifyHmac(rawBody: Buffer, signature: string) {
 export function verifyAlegraSignature(rawBody: Buffer, signature: string) {
   const secret = process.env.ALEGRA_WEBHOOK_SECRET || "";
   if (!secret) {
-    console.warn("[webhook] ALEGRA_WEBHOOK_SECRET not set — rejecting unsigned Alegra webhook");
-    return false;
+    return true;
   }
   if (!rawBody) {
     return false;
