@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
@@ -12,13 +12,13 @@
     <div class="app-shell">
       <aside class="sidebar">
         <div class="sidebar-header">
-          <button class="ghost sidebar-toggle" id="sidebar-toggle" aria-label="Abrir/cerrar menu" title="MenÃº">
+          <button class="ghost sidebar-toggle" id="sidebar-toggle" aria-label="Abrir/cerrar menu" title="Menú">
             <span class="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
                 <path id="sidebar-toggle-icon" d="M15 18l-6-6 6-6" />
               </svg>
             </span>
-            <span class="sidebar-toggle-label">MenÃº</span>
+            <span class="sidebar-toggle-label">Menú</span>
           </button>
         </div>
         <nav class="nav">
@@ -205,7 +205,7 @@
                     <div class="metrics-download-row">
                       <select id="metrics-report" name="metrics_report">
                         <option value="orders" selected>Ventas (Pedidos Eâ€‘commerce)</option>
-                        <option value="invoices">FacturaciÃ³n (Facturas Contable)</option>
+                        <option value="invoices">Facturación (Facturas Contable)</option>
                         <option value="top_products_revenue">Top ventas por producto</option>
                         <option value="repeat_customers">Clientes recurrentes</option>
                         <option value="dead_stock">Stock muerto</option>
@@ -334,7 +334,7 @@
                   </div>
                   <div class="panel-split">
                     <div class="table-card" id="card-low-stock">
-                      <h4 class="panel-subtitle">PrÃ³ximos a agotarse</h4>
+                      <h4 class="panel-subtitle">Próximos a agotarse</h4>
                       <table class="table" id="alert-low-stock">
                         <thead>
                           <tr>
@@ -421,7 +421,7 @@
           <div class="panel">
             <div class="panel-header">
               <h3>Super Admin</h3>
-              <span class="panel-tag">Cobro y mediciÃ³n</span>
+              <span class="panel-tag">Cobro y medición</span>
             </div>
             <div class="toolbar products-toolbar">
               <select id="sa-tab" name="sa_tab">
@@ -440,7 +440,7 @@
                 class="ghost danger"
                 id="sa-reset"
                 type="button"
-                title="Resetea contadores del mes (no borra histÃ³rico)"
+                title="Resetea contadores del mes (no borra histórico)"
               >
                 Resetear contadores
               </button>
@@ -449,7 +449,7 @@
 
             <div class="panel" id="sa-pane-tenant">
               <div class="panel-header">
-                <h3>Plan, mÃ³dulos y consumo</h3>
+                <h3>Plan, módulos y consumo</h3>
                 <div class="panel-meta">
                   <span class="panel-source">tenant_plans Â· tenant_modules Â· usage_counters Â· billing_counters</span>
                   <span class="panel-tag">Por tenant</span>
@@ -506,7 +506,7 @@
 
               <div class="panel" id="sa-tenant-modules-panel">
                 <div class="panel-header">
-                  <h3>MÃ³dulos del tenant</h3>
+                  <h3>Módulos del tenant</h3>
                   <div class="panel-meta">
                     <span class="panel-source">tenant_modules</span>
                   </div>
@@ -515,7 +515,7 @@
                   <table class="table" id="sa-modules-table">
                     <thead>
                       <tr>
-                        <th>MÃ³dulo</th>
+                        <th>Módulo</th>
                         <th>Habilitado</th>
                       </tr>
                     </thead>
@@ -559,7 +559,7 @@
                 <h3>Servicios medibles</h3>
                 <div class="panel-meta">
                   <span class="panel-source">limit_definitions</span>
-                  <span class="panel-tag">CatÃ¡logo</span>
+                  <span class="panel-tag">Catálogo</span>
                 </div>
               </div>
               <div class="table-card">
@@ -604,7 +604,7 @@
               </div>
               <p class="field-hint">
                 Ejemplos: <b>orders</b>, <b>invoices</b>, <b>products</b>, <b>api_calls</b>. Key solo
-                letras/nÃºmeros/underscore.
+                letras/números/underscore.
               </p>
             </div>
 
@@ -613,7 +613,7 @@
                 <h3>Planes y cobro por servicio</h3>
                 <div class="panel-meta">
                   <span class="panel-source">plan_definitions Â· plan_service_limits</span>
-                  <span class="panel-tag">ConfiguraciÃ³n</span>
+                  <span class="panel-tag">Configuración</span>
                 </div>
               </div>
               <div class="toolbar products-toolbar">
@@ -632,7 +632,7 @@
                     <tr>
                       <th>Servicio</th>
                       <th>Ilimitado</th>
-                      <th>LÃ­mite</th>
+                      <th>Límite</th>
                       <th>Precio unitario</th>
                       <th></th>
                     </tr>
@@ -676,7 +676,7 @@
                     autocomplete="new-password"
                     placeholder="********"
                   />
-                  <p class="field-hint">Deja vacÃ­o para mantener la contrasena actual.</p>
+                  <p class="field-hint">Deja vacío para mantener la contrasena actual.</p>
                 </div>
               </div>
               <div class="toolbar products-toolbar">
@@ -755,7 +755,7 @@
                   <h3>Funnel (Sessions â†’ Cart â†’ Checkout â†’ Paid)</h3>
                   <div class="panel-meta">
                     <span class="panel-source">Pixel + Webhooks</span>
-                    <span class="panel-tag">ConversiÃ³n</span>
+                    <span class="panel-tag">Conversión</span>
                   </div>
                 </div>
                 <div class="table-card">
@@ -804,7 +804,7 @@
 
               <div class="panel">
                 <div class="panel-header">
-                  <h3>Top campaÃ±as (UTM)</h3>
+                  <h3>Top campañas (UTM)</h3>
                   <div class="panel-meta">
                     <span class="panel-source">UTM Campaign</span>
                     <span class="panel-tag">ROAS</span>
@@ -814,7 +814,7 @@
                   <table class="table" id="mk-top-campaigns">
                     <thead>
                       <tr>
-                        <th>CampaÃ±a</th>
+                        <th>Campaña</th>
                         <th>Revenue</th>
                         <th>Paid</th>
                         <th>ROAS</th>
@@ -1188,7 +1188,7 @@
                   <button class="ghost tiny" id="connection-store-create-top" type="button">Crear tienda</button>
                   <button class="ghost" type="button" data-connection-modal-back="1">Volver</button>
                   <button class="modal-close" type="button" data-connection-modal-close="1" aria-label="Cerrar">
-                    Ã—
+                    ×
                   </button>
                 </div>
               </div>
@@ -1207,7 +1207,7 @@
                 </div>
                 <div class="connection-step" data-connection-step="group">
                   <div class="connection-step-header">
-                    <h4>Selecciona el tipo de conexiÃ³n</h4>
+                    <h4>Selecciona el tipo de conexión</h4>
                     <p class="field-hint" id="connection-store-selected"></p>
                   </div>
                   <div class="connection-group-chooser">
@@ -1244,7 +1244,7 @@
                 </div>
                 <div class="connection-step" data-connection-step="platform">
                   <div class="connection-step-header">
-                    <h4>Selecciona la conexiÃ³n</h4>
+                    <h4>Selecciona la conexión</h4>
                     <p class="field-hint" id="connection-store-selected-platform"></p>
                   </div>
                   <div class="connection-chooser" id="connection-chooser">
@@ -1606,7 +1606,7 @@
                                   </div>
                                   <span class="status-pill is-off" id="google-ads-connection-pill">Sin conectar</span>
                                 </div>
-                                <p class="kpi-sub">Credenciales + gasto diario por campaÃ±a.</p>
+                                <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
                                 <div class="settings-grid connection-fields">
                                   <div class="field span-2">
                                     <label>Client ID</label>
@@ -1665,7 +1665,7 @@
                                   </div>
                                   <span class="status-pill is-off" id="meta-ads-connection-pill">Sin conectar</span>
                                 </div>
-                                <p class="kpi-sub">Credenciales + gasto diario por campaÃ±a.</p>
+                                <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
                                 <div class="settings-grid connection-fields">
                                   <div class="field span-2">
                                     <label>App ID</label>
@@ -1710,7 +1710,7 @@
                                   </div>
                                   <span class="status-pill is-off" id="tiktok-ads-connection-pill">Sin conectar</span>
                                 </div>
-                                <p class="kpi-sub">Credenciales + gasto diario por campaÃ±a.</p>
+                                <p class="kpi-sub">Credenciales + gasto diario por campaña.</p>
                                 <div class="settings-grid connection-fields">
                                   <div class="field span-2">
                                     <label>App ID</label>
@@ -1756,7 +1756,7 @@
                               data-manager="shopify"
                               data-module="marketing-config"
                               data-module-priority="core"
-                              data-help="Configura el Pixel (para sessions / funnel / UTM) y los Webhooks de Marketing. Shopify NO entrega sesiones/UTM de trÃ¡fico desde la Admin API; por eso este mÃ³dulo instala el Pixel y registra eventos para mÃ©tricas."
+                              data-help="Configura el Pixel (para sessions / funnel / UTM) y los Webhooks de Marketing. Shopify NO entrega sesiones/UTM de tráfico desde la Admin API; por eso este módulo instala el Pixel y registra eventos para métricas."
                             >
                               <div class="connection-block-header">
                                 <div class="provider-title">
@@ -1817,7 +1817,7 @@
                                           </button>
                                         </div>
                                         <p class="field-hint">
-                                          Obligatorio para sesiones/UTM. Ventas vienen de Shopify vÃ­a webhooks.
+                                          Obligatorio para sesiones/UTM. Ventas vienen de Shopify vía webhooks.
                                         </p>
                                       </div>
                                     </div>
@@ -1938,7 +1938,7 @@
                   Tienda activa
                   <span
                     class="tip"
-                    data-tip="Las configuraciones se guardan por tienda. Cambiar la tienda activa no afecta a las demÃ¡s."
+                    data-tip="Las configuraciones se guardan por tienda. Cambiar la tienda activa no afecta a las demás."
                     >?</span
                   >
                 </h3>
@@ -1955,7 +1955,7 @@
                     </button>
                   </div>
                   <div class="store-switcher-items is-wide" id="store-active-list"></div>
-                  <div class="field-hint store-scope-hint">ConfiguraciÃ³n independiente por tienda.</div>
+                  <div class="field-hint store-scope-hint">Configuración independiente por tienda.</div>
                   <select
                     id="store-active-select"
                     name="store_active_select"
@@ -2004,7 +2004,7 @@
                           Sincronizar productos (Contable â†’ Eâ€‘commerce)
                           <span
                             class="tip"
-                            data-tip="Reglas por tienda para sincronizar productos de Contable a Eâ€‘commerce. Masivo = catÃ¡logo inicial o re-sincronizaciÃ³n por fechas. AutomÃ¡tico = se ejecuta solo cuando llegan cambios desde Contable."
+                            data-tip="Reglas por tienda para sincronizar productos de Contable a Eâ€‘commerce. Masivo = catálogo inicial o re-sincronización por fechas. Automático = se ejecuta solo cuando llegan cambios desde Contable."
                             >?</span
                           >
                         </h3>
@@ -2023,7 +2023,7 @@
                                 </h4>
                                 <span
                                   class="tip"
-                                  data-tip="Este masivo se usa para catÃ¡logo inicial o re-procesar un rango.&#10;Crea productos en Eâ€‘commerce solo si NO existen (por SKU/Barcode).&#10;RecomendaciÃ³n: prueba con un rango corto y apaga â€œPublicarâ€ si quieres validar antes."
+                                  data-tip="Este masivo se usa para catálogo inicial o re-procesar un rango.&#10;Crea productos en Eâ€‘commerce solo si NO existen (por SKU/Barcode).&#10;Recomendación: prueba con un rango corto y apaga â€œPublicarâ€ si quieres validar antes."
                                   >?</span
                                 >
                               </div>
@@ -2052,7 +2052,7 @@
                                   >Bodegas para stock (masivo)
                                   <span
                                     class="tip"
-                                    data-tip="Opcional. Si eliges bodegas aquÃ­, el masivo calcula/filtra el stock usando solo esas bodegas. Si dejas â€œTodasâ€, usamos las bodegas guardadas en â€œInventario y bodegasâ€ (tambiÃ©n aplican para automÃ¡tico)."
+                                    data-tip="Opcional. Si eliges bodegas aquí, el masivo calcula/filtra el stock usando solo esas bodegas. Si dejas â€œTodasâ€, usamos las bodegas guardadas en â€œInventario y bodegasâ€ (también aplican para automático)."
                                     >?</span
                                   ></label
                                 >
@@ -2073,7 +2073,7 @@
                                   >
                                   <span
                                     class="tip"
-                                    data-tip="Si estÃ¡ activo, el masivo ignora productos inactivos en Contable. Recomendado para evitar crear productos descontinuados en Eâ€‘commerce."
+                                    data-tip="Si está activo, el masivo ignora productos inactivos en Contable. Recomendado para evitar crear productos descontinuados en Eâ€‘commerce."
                                     >?</span
                                   ></label
                                 >
@@ -2090,7 +2090,7 @@
                                   ><span data-label-template="Solo con fotos ({accounting})">Solo con fotos</span>
                                   <span
                                     class="tip"
-                                    data-tip="Si estÃ¡ ON, solo sincroniza productos que tienen al menos una foto en Contable. Los Ã­tems sin imÃ¡genes se omiten del masivo."
+                                    data-tip="Si está ON, solo sincroniza productos que tienen al menos una foto en Contable. Los ítems sin imágenes se omiten del masivo."
                                     >?</span
                                   ></label
                                 >
@@ -2108,7 +2108,7 @@
                                   >
                                   <span
                                     class="tip"
-                                    data-tip="ON: si el producto ya existe, lo actualiza en la base de datos.&#10;Si ademÃ¡s â€œPublicar en Eâ€‘commerceâ€ estÃ¡ ON, tambiÃ©n actualiza el producto existente en Eâ€‘commerce (por SKU/Barcode): precio de variantes y estado (draft/active).&#10;OFF: no modifica productos existentes (ni en la base de datos, ni en Eâ€‘commerce); solo guarda productos nuevos."
+                                    data-tip="ON: si el producto ya existe, lo actualiza en la base de datos.&#10;Si además â€œPublicar en Eâ€‘commerceâ€ está ON, también actualiza el producto existente en Eâ€‘commerce (por SKU/Barcode): precio de variantes y estado (draft/active).&#10;OFF: no modifica productos existentes (ni en la base de datos, ni en Eâ€‘commerce); solo guarda productos nuevos."
                                     >?</span
                                   ></label
                                 >
@@ -2125,7 +2125,7 @@
                                   ><span data-label-template="Publicar en {commerce}">Publicar en Eâ€‘commerce</span>
                                   <span
                                     class="tip"
-                                    data-tip="ON: crea productos nuevos en Eâ€‘commerce.&#10;Si â€œActualizar existentesâ€ estÃ¡ ON, tambiÃ©n actualiza productos ya existentes en Eâ€‘commerce (por SKU/Barcode).&#10;OFF: no crea ni actualiza nada en Eâ€‘commerce (solo trabaja en la base de datos).&#10;Tip: usa OFF para cargar catÃ¡logo y validar antes de publicar."
+                                    data-tip="ON: crea productos nuevos en Eâ€‘commerce.&#10;Si â€œActualizar existentesâ€ está ON, también actualiza productos ya existentes en Eâ€‘commerce (por SKU/Barcode).&#10;OFF: no crea ni actualiza nada en Eâ€‘commerce (solo trabaja en la base de datos).&#10;Tip: usa OFF para cargar catálogo y validar antes de publicar."
                                     >?</span
                                   ></label
                                 >
@@ -2142,7 +2142,7 @@
                                   >Estado
                                   <span
                                     class="tip"
-                                    data-tip="Borrador = no visible en la tienda. Activo = visible y listo para vender. Solo aplica si â€œPublicar en Eâ€‘commerceâ€ estÃ¡ activo."
+                                    data-tip="Borrador = no visible en la tienda. Activo = visible y listo para vender. Solo aplica si â€œPublicar en Eâ€‘commerceâ€ está activo."
                                     >?</span
                                   ></label
                                 >
@@ -2162,7 +2162,7 @@
                                   >
                                   <span
                                     class="tip"
-                                    data-tip="Si estÃ¡ ON, los productos se crean con seguimiento de inventario activo. Esto requiere que â€œSincronizar inventario en Eâ€‘commerceâ€ estÃ© encendido. Si un producto no tiene seguimiento en Shopify (o se permite sobreventa), ese comportamiento se respeta. Las reglas de inventario de Contable rigen este seguimiento."
+                                    data-tip="Si está ON, los productos se crean con seguimiento de inventario activo. Esto requiere que â€œSincronizar inventario en Eâ€‘commerceâ€ esté encendido. Si un producto no tiene seguimiento en Shopify (o se permite sobreventa), ese comportamiento se respeta. Las reglas de inventario de Contable rigen este seguimiento."
                                     >?</span
                                   ></label
                                 >
@@ -2181,7 +2181,7 @@
                                   >
                                   <span
                                     class="tip"
-                                    data-tip="Si estÃ¡ ON, los productos se crean con polÃ­tica de sobreventa. Solo aplica cuando el seguimiento de inventario estÃ¡ activo."
+                                    data-tip="Si está ON, los productos se crean con política de sobreventa. Solo aplica cuando el seguimiento de inventario está activo."
                                     >?</span
                                   ></label
                                 >
@@ -2197,7 +2197,7 @@
                                   >Publicar existencias
                                   <span
                                     class="tip"
-                                    data-tip="ON: trae inventario desde Contable (y lo guarda en la base de datos).&#10;Si ademÃ¡s â€œPublicar en Eâ€‘commerceâ€ estÃ¡ ON, tambiÃ©n sincroniza existencias en Eâ€‘commerce usando las bodegas configuradas en â€œInventario y bodegasâ€."
+                                    data-tip="ON: trae inventario desde Contable (y lo guarda en la base de datos).&#10;Si además â€œPublicar en Eâ€‘commerceâ€ está ON, también sincroniza existencias en Eâ€‘commerce usando las bodegas configuradas en â€œInventario y bodegasâ€."
                                     >?</span
                                   ></label
                                 >
@@ -2240,20 +2240,20 @@
                                     data-dep-controller="1"
                                     checked
                                   />
-                                  <span data-title-template="AutomÃ¡tico: productos {accounting} â†’ {commerce}"
-                                    >AutomÃ¡tico: productos Contable â†’ Eâ€‘commerce</span
+                                  <span data-title-template="Automático: productos {accounting} â†’ {commerce}"
+                                    >Automático: productos Contable â†’ Eâ€‘commerce</span
                                   >
                                 </label>
                                 <span
                                   class="tip"
-                                  data-tip="Se ejecuta sola cuando llegan cambios desde Contable. Estas reglas tambiÃ©n aplican cuando sincronizas manualmente desde el mÃ³dulo Productos. Si apagas â€œPublicar en Eâ€‘commerceâ€, el sistema solo actualiza datos y no deja productos visibles."
+                                  data-tip="Se ejecuta sola cuando llegan cambios desde Contable. Estas reglas también aplican cuando sincronizas manualmente desde el módulo Productos. Si apagas â€œPublicar en Eâ€‘commerceâ€, el sistema solo actualiza datos y no deja productos visibles."
                                   >?</span
                                 >
                               </div>
                             </div>
                             <div
                               class="mode-toggle-grid"
-                              aria-label="Opciones automÃ¡tico (Contable â†’ Eâ€‘commerce)"
+                              aria-label="Opciones automático (Contable â†’ Eâ€‘commerce)"
                               data-depends-on="rules-auto-enabled"
                             >
                               <div class="mode-toggle">
@@ -2263,7 +2263,7 @@
                                   >
                                   <span
                                     class="tip"
-                                    data-tip="Si estÃ¡ OFF, no creamos productos nuevos en Eâ€‘commerce. Solo actualizamos los que ya existan/mapeados."
+                                    data-tip="Si está OFF, no creamos productos nuevos en Eâ€‘commerce. Solo actualizamos los que ya existan/mapeados."
                                     >?</span
                                   ></label
                                 >
@@ -2283,7 +2283,7 @@
                                   >
                                   <span
                                     class="tip"
-                                    data-tip="Si estÃ¡ OFF, no modificamos productos existentes (precio/stock/estado). Igual se registran en la base para que los veas en Productos."
+                                    data-tip="Si está OFF, no modificamos productos existentes (precio/stock/estado). Igual se registran en la base para que los veas en Productos."
                                     >?</span
                                   ></label
                                 >
@@ -2303,7 +2303,7 @@
                                   >
                                   <span
                                     class="tip"
-                                    data-tip="Si estÃ¡ activo, solo se sincronizan productos activos en Contable (automÃ¡tico y manual por SKU)."
+                                    data-tip="Si está activo, solo se sincronizan productos activos en Contable (automático y manual por SKU)."
                                     >?</span
                                   ></label
                                 >
@@ -2314,7 +2314,7 @@
                                   ><span data-label-template="Publicar en {commerce}">Publicar en Eâ€‘commerce</span>
                                   <span
                                     class="tip"
-                                    data-tip="Enciende/apaga la publicaciÃ³n. Si lo apagas, solo sincronizamos datos, pero no publicamos productos (automÃ¡tico ni manual por SKU)."
+                                    data-tip="Enciende/apaga la publicación. Si lo apagas, solo sincronizamos datos, pero no publicamos productos (automático ni manual por SKU)."
                                     >?</span
                                   ></label
                                 >
@@ -2330,7 +2330,7 @@
                                   >Publicar fotos
                                   <span
                                     class="tip"
-                                    data-tip="Si estÃ¡ activo, intentamos subir fotos del producto a Eâ€‘commerce. Si una foto falla, el producto puede publicarse igual (solo quedarÃ¡ sin esa foto)."
+                                    data-tip="Si está activo, intentamos subir fotos del producto a Eâ€‘commerce. Si una foto falla, el producto puede publicarse igual (solo quedará sin esa foto)."
                                     >?</span
                                   ></label
                                 >
@@ -2347,7 +2347,7 @@
                                   >Estado
                                   <span
                                     class="tip"
-                                    data-tip="Define el estado de publicaciÃ³n cuando â€œPublicar en Eâ€‘commerceâ€ estÃ¡ activo: Borrador o Activo."
+                                    data-tip="Define el estado de publicación cuando â€œPublicar en Eâ€‘commerceâ€ está activo: Borrador o Activo."
                                     >?</span
                                   ></label
                                 >
@@ -2365,7 +2365,7 @@
                                   >Seguimiento de inventarios
                                   <span
                                     class="tip"
-                                    data-tip="Si estÃ¡ ON, los productos se crean con seguimiento de inventario activo. Esto requiere que â€œSincronizar inventario en Eâ€‘commerceâ€ estÃ© encendido. Si un producto no tiene seguimiento en Shopify (o se permite sobreventa), ese comportamiento se respeta. Las reglas de inventario de Contable rigen este seguimiento."
+                                    data-tip="Si está ON, los productos se crean con seguimiento de inventario activo. Esto requiere que â€œSincronizar inventario en Eâ€‘commerceâ€ esté encendido. Si un producto no tiene seguimiento en Shopify (o se permite sobreventa), ese comportamiento se respeta. Las reglas de inventario de Contable rigen este seguimiento."
                                     >?</span
                                   ></label
                                 >
@@ -2382,7 +2382,7 @@
                                   >Permitir sobreventa
                                   <span
                                     class="tip"
-                                    data-tip="Si estÃ¡ ON, los productos automÃ¡ticos se crean con polÃ­tica de sobreventa. Solo aplica cuando el seguimiento de inventario estÃ¡ activo."
+                                    data-tip="Si está ON, los productos automáticos se crean con política de sobreventa. Solo aplica cuando el seguimiento de inventario está activo."
                                     >?</span
                                   ></label
                                 >
@@ -2405,7 +2405,7 @@
                           data-module="shopify-products-to-alegra"
                           data-module-priority="core"
                           id="shopify-products-to-alegra-panel"
-                          data-help="Bidireccionalidad de Productos (Eâ€‘commerce â†’ Contable): crea/actualiza Ã­tems en Contable desde productos y variantes de Eâ€‘commerce. Masivo = catÃ¡logo inicial o re-procesar un rango por fechas. AutomÃ¡tico = se ejecuta con webhooks de Eâ€‘commerce (products/create y products/update)."
+                          data-help="Bidireccionalidad de Productos (Eâ€‘commerce â†’ Contable): crea/actualiza ítems en Contable desde productos y variantes de Eâ€‘commerce. Masivo = catálogo inicial o re-procesar un rango por fechas. Automático = se ejecuta con webhooks de Eâ€‘commerce (products/create y products/update)."
                         >
                           <div class="panel-header">
                             <h3
@@ -2432,7 +2432,7 @@
                                     <h4>Masivo: productos Eâ€‘commerce â†’ Contable</h4>
                                     <span
                                       class="tip"
-                                      data-tip="Trae productos de Eâ€‘commerce por fechas y sincroniza cada variante como un Ã­tem en Contable. Si no hay match por SKU/Barcode, puedes permitir crear. Si incluyes inventario, se ajusta el stock en la bodega seleccionada."
+                                      data-tip="Trae productos de Eâ€‘commerce por fechas y sincroniza cada variante como un ítem en Contable. Si no hay match por SKU/Barcode, puedes permitir crear. Si incluyes inventario, se ajusta el stock en la bodega seleccionada."
                                       >?</span
                                     >
                                   </div>
@@ -2474,7 +2474,7 @@
                                       >Crear nuevos en Contable
                                       <span
                                         class="tip"
-                                        data-tip="Si estÃ¡ OFF, solo actualizamos existentes (por mapping o match). Si estÃ¡ ON, creamos Ã­tems en Contable cuando no existen."
+                                        data-tip="Si está OFF, solo actualizamos existentes (por mapping o match). Si está ON, creamos ítems en Contable cuando no existen."
                                         >?</span
                                       ></label
                                     >
@@ -2490,7 +2490,7 @@
                                       >Actualizar existentes en Contable
                                       <span
                                         class="tip"
-                                        data-tip="Si estÃ¡ OFF, no modificamos Ã­tems existentes; solo intentamos mapear/matchear. Recomendado: ON."
+                                        data-tip="Si está OFF, no modificamos ítems existentes; solo intentamos mapear/matchear. Recomendado: ON."
                                         >?</span
                                       ></label
                                     >
@@ -2507,7 +2507,7 @@
                                       >Incluir inventario
                                       <span
                                         class="tip"
-                                        data-tip="Si estÃ¡ ON, ajustamos el stock en Contable para la bodega seleccionada usando el inventario total de Eâ€‘commerce."
+                                        data-tip="Si está ON, ajustamos el stock en Contable para la bodega seleccionada usando el inventario total de Eâ€‘commerce."
                                         >?</span
                                       ></label
                                     >
@@ -2520,10 +2520,10 @@
                                   </div>
                                   <div class="mode-toggle">
                                     <label for="products-shopify-bulk-match"
-                                      >Prioridad de identificaciÃ³n
+                                      >Prioridad de identificación
                                       <span
                                         class="tip"
-                                        data-tip="Antes de crear, buscamos el Ã­tem en Contable con esta prioridad. Si encontramos match, actualizamos (evita duplicados)."
+                                        data-tip="Antes de crear, buscamos el ítem en Contable con esta prioridad. Si encontramos match, actualizamos (evita duplicados)."
                                         >?</span
                                       ></label
                                     >
@@ -2537,7 +2537,7 @@
                                       >Bodega destino (stock)
                                       <span
                                         class="tip"
-                                        data-tip="Obligatoria si â€œIncluir inventarioâ€ estÃ¡ ON. Debe existir en Contable (ConfiguraciÃ³n â†’ Conexiones)."
+                                        data-tip="Obligatoria si â€œIncluir inventarioâ€ está ON. Debe existir en Contable (Configuración â†’ Conexiones)."
                                         >?</span
                                       ></label
                                     >
@@ -2587,11 +2587,11 @@
                                         class="toggle"
                                         data-dep-controller="1"
                                       />
-                                      <span>AutomÃ¡tico: productos Eâ€‘commerce â†’ Contable</span>
+                                      <span>Automático: productos Eâ€‘commerce â†’ Contable</span>
                                     </label>
                                     <span
                                       class="tip"
-                                      data-tip="ON: cuando llega un webhook de Eâ€‘commerce (products/create o products/update), actualizamos/creamos el Ã­tem en Contable segÃºn las opciones."
+                                      data-tip="ON: cuando llega un webhook de Eâ€‘commerce (products/create o products/update), actualizamos/creamos el ítem en Contable según las opciones."
                                       >?</span
                                     >
                                   </div>
@@ -2638,7 +2638,7 @@
                                   </div>
                                   <div class="mode-toggle">
                                     <label for="cfg-products-shopify-to-alegra-match"
-                                      >Prioridad de identificaciÃ³n</label
+                                      >Prioridad de identificación</label
                                     >
                                     <select
                                       id="cfg-products-shopify-to-alegra-match"
@@ -2654,7 +2654,7 @@
                                       >Bodega destino (stock)
                                       <span
                                         class="tip"
-                                        data-tip="Obligatoria si â€œIncluir inventarioâ€ estÃ¡ ON. Debe existir en Contable."
+                                        data-tip="Obligatoria si â€œIncluir inventarioâ€ está ON. Debe existir en Contable."
                                         >?</span
                                       ></label
                                     >
@@ -2694,7 +2694,7 @@
                               Sincronizar inventario (Contable â†’ Eâ€‘commerce)
                               <span
                                 class="tip"
-                                data-tip="Mantiene el stock al dÃ­a en Eâ€‘commerce: corre solo cada cierto tiempo y actualiza existencias usando las bodegas de Contable que elijas."
+                                data-tip="Mantiene el stock al día en Eâ€‘commerce: corre solo cada cierto tiempo y actualiza existencias usando las bodegas de Contable que elijas."
                                 >?</span
                               >
                             </h3>
@@ -2719,11 +2719,11 @@
                                         class="toggle"
                                         data-dep-controller="1"
                                       />
-                                      <span>AutomÃ¡tico: inventario Contable â†’ Eâ€‘commerce</span>
+                                      <span>Automático: inventario Contable â†’ Eâ€‘commerce</span>
                                     </label>
                                     <span
                                       class="tip"
-                                      data-tip="Prende o apaga la automatizaciÃ³n de inventario, define cada cuÃ¡nto consultar y de quÃ© bodegas tomar el stock."
+                                      data-tip="Prende o apaga la automatización de inventario, define cada cuánto consultar y de qué bodegas tomar el stock."
                                       >?</span
                                     >
                                   </div>
@@ -2734,7 +2734,7 @@
                                   data-depends-on="inventory-cron-enabled"
                                 >
                                   <div class="mode-toggle">
-                                    <label for="inventory-cron-interval-select">Cada cuÃ¡nto consultar</label>
+                                    <label for="inventory-cron-interval-select">Cada cuánto consultar</label>
                                     <select
                                       id="inventory-cron-interval-select"
                                       name="inventory_cron_interval_select"
@@ -2747,10 +2747,10 @@
                                   </div>
                                   <div class="mode-toggle">
                                     <label for="cfg-inventory-warehouses"
-                                      >Bodegas para stock (masivo y automÃ¡tico)
+                                      >Bodegas para stock (masivo y automático)
                                       <span
                                         class="tip"
-                                        data-tip="Estas bodegas se usan para calcular existencias cuando sincronizamos inventario y tambiÃ©n para filtrar/calcular stock cuando sincronizamos productos (masivo y automÃ¡tico)."
+                                        data-tip="Estas bodegas se usan para calcular existencias cuando sincronizamos inventario y también para filtrar/calcular stock cuando sincronizamos productos (masivo y automático)."
                                         >?</span
                                       ></label
                                     >
@@ -2767,7 +2767,7 @@
                                       >Sincronizar inventario en Eâ€‘commerce
                                       <span
                                         class="tip"
-                                        data-tip="Si lo apagas, el sistema no actualizarÃ¡ existencias en Eâ€‘commerce (ni en masivo ni en automÃ¡tico)."
+                                        data-tip="Si lo apagas, el sistema no actualizará existencias en Eâ€‘commerce (ni en masivo ni en automático)."
                                         >?</span
                                       ></label
                                     >
@@ -2779,13 +2779,13 @@
                                     />
                                   </div>
                                 </div>
-                                <div class="mode-actions" aria-label="Estado de automatizaciÃ³n">
+                                <div class="mode-actions" aria-label="Estado de automatización">
                                   <span class="kpi-sub">
                                     <span class="status-led" id="inventory-cron-led"></span>
                                     <strong>Estado:</strong> <span id="inventory-cron-status">Sin datos</span>
                                   </span>
                                   <span class="kpi-sub"
-                                    ><strong>Ãšltima actualizaciÃ³n:</strong>
+                                    ><strong>Última actualización:</strong>
                                     <span id="inventory-cron-checkpoint">-</span></span
                                   >
                                   <span class="kpi-sub"
@@ -2821,7 +2821,7 @@
                           data-manager="shopify"
                           data-module="sync-contacts"
                           data-module-priority="core"
-                          data-help="Modulo principal de Contactos: define como se identifican y sincronizan clientes entre Eâ€‘commerce y Contable. Incluye masivo y automÃ¡tico."
+                          data-help="Modulo principal de Contactos: define como se identifican y sincronizan clientes entre Eâ€‘commerce y Contable. Incluye masivo y automático."
                         >
                           <div class="panel-header">
                             <h3
@@ -2831,7 +2831,7 @@
                               Sincronizar contactos (Eâ€‘commerce â†” Contable)
                               <span
                                 class="tip"
-                                data-tip="Sincroniza clientes entre Eâ€‘commerce y Contable. Para evitar duplicados: define la â€œPrioridad de identificaciÃ³nâ€ y prueba primero con los toggles de â€œCrearâ€ apagados."
+                                data-tip="Sincroniza clientes entre Eâ€‘commerce y Contable. Para evitar duplicados: define la â€œPrioridad de identificaciónâ€ y prueba primero con los toggles de â€œCrearâ€ apagados."
                                 >?</span
                               >
                             </h3>
@@ -2847,7 +2847,7 @@
                                   <h4>Masivo: contactos Eâ€‘commerce â†” Contable</h4>
                                   <span
                                     class="tip"
-                                    data-tip="Crea/normaliza contactos en lote. Puedes correr una direcciÃ³n o ambas (bidireccional); si activas ambas se ejecuta en 2 fases. Tip anti-duplicados: define la prioridad y prueba primero con â€œCrearâ€ apagado."
+                                    data-tip="Crea/normaliza contactos en lote. Puedes correr una dirección o ambas (bidireccional); si activas ambas se ejecuta en 2 fases. Tip anti-duplicados: define la prioridad y prueba primero con â€œCrearâ€ apagado."
                                     >?</span
                                   >
                                 </div>
@@ -2885,7 +2885,7 @@
                                       >Permitir Eâ€‘commerce â†’ Contable
                                       <span
                                         class="tip"
-                                        data-tip="Trae contactos desde Eâ€‘commerce (segÃºn fechas) y los actualiza/crea en Contable."
+                                        data-tip="Trae contactos desde Eâ€‘commerce (según fechas) y los actualiza/crea en Contable."
                                         >?</span
                                       ></label
                                     >
@@ -2920,7 +2920,7 @@
                                       >Permitir Contable â†’ Eâ€‘commerce
                                       <span
                                         class="tip"
-                                        data-tip="Trae contactos desde Contable (segÃºn fechas) y los actualiza/crea en Eâ€‘commerce."
+                                        data-tip="Trae contactos desde Contable (según fechas) y los actualiza/crea en Eâ€‘commerce."
                                         >?</span
                                       ></label
                                     >
@@ -2987,11 +2987,11 @@
                                         data-dep-controller="1"
                                         checked
                                       />
-                                      <span>AutomÃ¡tico: contactos Eâ€‘commerce â†” Contable</span>
+                                      <span>Automático: contactos Eâ€‘commerce â†” Contable</span>
                                     </label>
                                     <span
                                       class="tip"
-                                      data-tip="Define quÃ© direcciones estÃ¡n permitidas en automÃ¡tico. Nota: el masivo usa los toggles de arriba (direcciÃ³n + crear)."
+                                      data-tip="Define qué direcciones están permitidas en automático. Nota: el masivo usa los toggles de arriba (dirección + crear)."
                                       >?</span
                                     >
                                   </div>
@@ -3002,7 +3002,7 @@
                                       >Permitir Eâ€‘commerce â†’ Contable
                                       <span
                                         class="tip"
-                                        data-tip="Permite que el sistema sincronice automÃ¡ticamente desde Eâ€‘commerce hacia Contable."
+                                        data-tip="Permite que el sistema sincronice automáticamente desde Eâ€‘commerce hacia Contable."
                                         >?</span
                                       ></label
                                     >
@@ -3019,7 +3019,7 @@
                                       >Crear nuevos en Contable
                                       <span
                                         class="tip"
-                                        data-tip="En automÃ¡tico, permite crear nuevos contactos en Contable cuando no existen. Si lo apagas, solo se actualizan existentes."
+                                        data-tip="En automático, permite crear nuevos contactos en Contable cuando no existen. Si lo apagas, solo se actualizan existentes."
                                         >?</span
                                       ></label
                                     >
@@ -3037,7 +3037,7 @@
                                       >Permitir Contable â†’ Eâ€‘commerce
                                       <span
                                         class="tip"
-                                        data-tip="Permite que el sistema sincronice automÃ¡ticamente desde Contable hacia Eâ€‘commerce."
+                                        data-tip="Permite que el sistema sincronice automáticamente desde Contable hacia Eâ€‘commerce."
                                         >?</span
                                       ></label
                                     >
@@ -3054,7 +3054,7 @@
                                       >Crear nuevos en Eâ€‘commerce
                                       <span
                                         class="tip"
-                                        data-tip="En automÃ¡tico, permite crear nuevos clientes en Eâ€‘commerce cuando no existen. Si lo apagas, solo se actualizan existentes."
+                                        data-tip="En automático, permite crear nuevos clientes en Eâ€‘commerce cuando no existen. Si lo apagas, solo se actualizan existentes."
                                         >?</span
                                       ></label
                                     >
@@ -3069,17 +3069,17 @@
                                   </div>
                                   <div class="mode-field">
                                     <label for="sync-contacts-priority"
-                                      >Prioridad de identificaciÃ³n
+                                      >Prioridad de identificación
                                       <span
                                         class="tip"
-                                        data-tip="Antes de crear, buscamos el contacto en el destino usando este orden. Si encontramos match, actualizamos (evita duplicados). RecomendaciÃ³n: si el Documento es confiable, ponlo primero."
+                                        data-tip="Antes de crear, buscamos el contacto en el destino usando este orden. Si encontramos match, actualizamos (evita duplicados). Recomendación: si el Documento es confiable, ponlo primero."
                                         >?</span
                                       ></label
                                     >
                                     <select id="sync-contacts-priority" name="sync_contacts_priority">
-                                      <option value="document_phone_email">Documento â†’ TelÃ©fono â†’ Email</option>
-                                      <option value="email_document_phone">Email â†’ Documento â†’ TelÃ©fono</option>
-                                      <option value="phone_document_email">TelÃ©fono â†’ Documento â†’ Email</option>
+                                      <option value="document_phone_email">Documento â†’ Teléfono â†’ Email</option>
+                                      <option value="email_document_phone">Email â†’ Documento â†’ Teléfono</option>
+                                      <option value="phone_document_email">Teléfono â†’ Documento â†’ Email</option>
                                     </select>
                                   </div>
                                 </div>
@@ -3101,8 +3101,8 @@
                           />
                           <span class="group-arrow is-commerce">â†”</span>
                           <img class="provider-logo is-alegra" src="/brands/alegra.png?v=20260201s" alt="Contable" />
-                          <span class="group-text group-text-dual">Pedidos y facturaciÃ³n</span>
-                          <span class="group-text group-text-alegra-only">FacturaciÃ³n (Contable)</span>
+                          <span class="group-text group-text-dual">Pedidos y facturación</span>
+                          <span class="group-text group-text-alegra-only">Facturación (Contable)</span>
                         </h4>
                       </div>
                       <div class="settings-group-body">
@@ -3122,7 +3122,7 @@
                               Pedidos (Eâ€‘commerce â†’ Contable) y facturas (Contable â†’ Eâ€‘commerce)
                               <span
                                 class="tip"
-                                data-tip="AquÃ­ controlas las 2 direcciones:&#10;1) Pedidos: Eâ€‘commerce â†’ Contable (registrar / crear factura).&#10;2) Facturas: Contable â†’ Eâ€‘commerce (crear pedido/draft).&#10;RecomendaciÃ³n: prueba primero en masivo con rangos cortos."
+                                data-tip="Aquí controlas las 2 direcciones:&#10;1) Pedidos: Eâ€‘commerce â†’ Contable (registrar / crear factura).&#10;2) Facturas: Contable â†’ Eâ€‘commerce (crear pedido/draft).&#10;Recomendación: prueba primero en masivo con rangos cortos."
                                 >?</span
                               >
                             </h3>
@@ -3139,7 +3139,7 @@
                                     <h4>Sincronizar pedidos de Eâ€‘commerce a Contable (masivo)</h4>
                                     <span
                                       class="tip"
-                                      data-tip="Trae pedidos de Eâ€‘commerce por fechas o por nÃºmero. Siempre los registramos en la base.&#10;Si en AutomÃ¡tico tienes â€œCrear facturaâ€ ON, tambiÃ©n intentarÃ¡ facturarlos en Contable.&#10;Tip: usa un rango corto para validar."
+                                      data-tip="Trae pedidos de Eâ€‘commerce por fechas o por número. Siempre los registramos en la base.&#10;Si en Automático tienes â€œCrear facturaâ€ ON, también intentará facturarlos en Contable.&#10;Tip: usa un rango corto para validar."
                                       >?</span
                                     >
                                   </div>
@@ -3198,11 +3198,11 @@
                                         class="toggle"
                                         data-dep-controller="1"
                                       />
-                                      <span>AutomÃ¡tico: pedidos Eâ€‘commerce â†’ Contable</span>
+                                      <span>Automático: pedidos Eâ€‘commerce â†’ Contable</span>
                                     </label>
                                     <span
                                       class="tip"
-                                      data-tip="ON: procesa pedidos nuevos en tiempo real (webhooks).&#10;OFF: no se detectan pedidos nuevos automÃ¡ticamente."
+                                      data-tip="ON: procesa pedidos nuevos en tiempo real (webhooks).&#10;OFF: no se detectan pedidos nuevos automáticamente."
                                       >?</span
                                     >
                                   </div>
@@ -3217,7 +3217,7 @@
                                       >Crear factura
                                       <span
                                         class="tip"
-                                        data-tip="Si estÃ¡ ON, se crea la factura usando Logistica/Traslados + Facturacion. Si estÃ¡ OFF, solo registramos el pedido en la base."
+                                        data-tip="Si está ON, se crea la factura usando Logistica/Traslados + Facturacion. Si está OFF, solo registramos el pedido en la base."
                                         >?</span
                                       ></label
                                     >
@@ -3255,7 +3255,7 @@
                                     <h4>Sincronizar facturas de Contable a Eâ€‘commerce (masivo)</h4>
                                     <span
                                       class="tip"
-                                      data-tip="Paso 1: decide si quieres crear el pedido en Eâ€‘commerce o solo cargar las facturas a la base (para verlas en Facturas).&#10;Paso 2 (opcional): si activas â€œCrear pedidoâ€, elige Borrador o Activo.&#10;Tip: si el item estÃ¡ mapeado (Contable â†” Eâ€‘commerce), se usa la variante; si no, se crea una lÃ­nea personalizada."
+                                      data-tip="Paso 1: decide si quieres crear el pedido en Eâ€‘commerce o solo cargar las facturas a la base (para verlas en Facturas).&#10;Paso 2 (opcional): si activas â€œCrear pedidoâ€, elige Borrador o Activo.&#10;Tip: si el item está mapeado (Contable â†” Eâ€‘commerce), se usa la variante; si no, se crea una línea personalizada."
                                       >?</span
                                     >
                                   </div>
@@ -3266,7 +3266,7 @@
                                       >Crear pedido en Eâ€‘commerce
                                       <span
                                         class="tip"
-                                        data-tip="OFF: solo cargamos facturas a la base. ON: creamos pedidos/borradores en Eâ€‘commerce (segÃºn â€œCrear comoâ€)."
+                                        data-tip="OFF: solo cargamos facturas a la base. ON: creamos pedidos/borradores en Eâ€‘commerce (según â€œCrear comoâ€)."
                                         >?</span
                                       ></label
                                     >
@@ -3282,7 +3282,7 @@
                                       >Crear como
                                       <span
                                         class="tip"
-                                        data-tip="Borrador (Draft): se crea como borrador, no queda visible para clientes.&#10;Activo (Order): se crea como pedido activo en Eâ€‘commerce.&#10;Solo aplica si â€œCrear pedido en Eâ€‘commerceâ€ estÃ¡ ON."
+                                        data-tip="Borrador (Draft): se crea como borrador, no queda visible para clientes.&#10;Activo (Order): se crea como pedido activo en Eâ€‘commerce.&#10;Solo aplica si â€œCrear pedido en Eâ€‘commerceâ€ está ON."
                                         >?</span
                                       ></label
                                     >
@@ -3355,11 +3355,11 @@
                                         class="toggle"
                                         data-dep-controller="1"
                                       />
-                                      <span>AutomÃ¡tico: facturas Contable â†’ Eâ€‘commerce</span>
+                                      <span>Automático: facturas Contable â†’ Eâ€‘commerce</span>
                                     </label>
                                     <span
                                       class="tip"
-                                      data-tip="ON: cuando llega un webhook de factura desde Contable, creamos el pedido en Eâ€‘commerce segÃºn el modo seleccionado.&#10;Recomendado: configurar el webhook como /api/webhooks/alegra?shopDomain=tu-tienda.myshopify.com."
+                                      data-tip="ON: cuando llega un webhook de factura desde Contable, creamos el pedido en Eâ€‘commerce según el modo seleccionado.&#10;Recomendado: configurar el webhook como /api/webhooks/alegra?shopDomain=tu-tienda.myshopify.com."
                                       >?</span
                                     >
                                   </div>
@@ -3391,9 +3391,9 @@
                           <div class="panel-header">
                             <h3
                               data-module-toggle="alegra-logistics"
-                              data-title-base="LogÃ­stica (Contable) para facturar pedidos"
+                              data-title-base="Logística (Contable) para facturar pedidos"
                             >
-                              LogÃ­stica (Contable) para facturar pedidos
+                              Logística (Contable) para facturar pedidos
                             </h3>
                           </div>
                           <div class="module-body">
@@ -3413,7 +3413,7 @@
                                     </label>
                                     <span
                                       class="tip"
-                                      data-tip="Define de quÃ© bodegas sale la mercancÃ­a y a quÃ© bodega llega antes de crear la factura. Se ejecuta automÃ¡ticamente cuando Pedidos â†’ Crear factura estÃ¡ activo."
+                                      data-tip="Define de qué bodegas sale la mercancía y a qué bodega llega antes de crear la factura. Se ejecuta automáticamente cuando Pedidos â†’ Crear factura está activo."
                                       >?</span
                                     >
                                   </div>
@@ -3425,7 +3425,7 @@
                                       >Tipo de bodega destino
                                       <span
                                         class="tip"
-                                        data-tip="AutomÃ¡tica: usa Bodega prioritaria (o la primera disponible) como destino. Fija: usa la bodega seleccionada aquÃ­. Por regla: disponible prÃ³ximamente."
+                                        data-tip="Automática: usa Bodega prioritaria (o la primera disponible) como destino. Fija: usa la bodega seleccionada aquí. Por regla: disponible próximamente."
                                         >?</span
                                       ></label
                                     >
@@ -3435,7 +3435,7 @@
                                       data-depends-on="cfg-transfer-enabled"
                                     >
                                       <option value="fixed">Fija</option>
-                                      <option value="auto">AutomÃ¡tica</option>
+                                      <option value="auto">Automática</option>
                                       <option value="rule">Por regla</option>
                                     </select>
                                   </div>
@@ -3459,7 +3459,7 @@
                                       >Destino requerido
                                       <span
                                         class="tip"
-                                        data-tip="Si estÃ¡ ON, el sistema no puede crear factura si no hay un destino definido."
+                                        data-tip="Si está ON, el sistema no puede crear factura si no hay un destino definido."
                                         >?</span
                                       ></label
                                     >
@@ -3494,7 +3494,7 @@
                                       >Bodegas origen
                                       <span
                                         class="tip"
-                                        data-tip="Bodegas de donde puede salir la mercancÃ­a. Si eliges estrategia Manual, debes seleccionar al menos 1."
+                                        data-tip="Bodegas de donde puede salir la mercancía. Si eliges estrategia Manual, debes seleccionar al menos 1."
                                         >?</span
                                       ></label
                                     >
@@ -3652,7 +3652,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h4 id="store-create-title">Nueva tienda</h4>
-          <button class="modal-close" id="store-create-close" type="button" aria-label="Cerrar">Ã—</button>
+          <button class="modal-close" id="store-create-close" type="button" aria-label="Cerrar">×</button>
         </div>
         <div class="settings-grid modal-form">
           <div class="field span-2">
@@ -3773,7 +3773,7 @@
         <div class="modal-header">
           <div>
             <h4 id="photos-modal-title">Cargador masivo de fotos</h4>
-            <p class="kpi-sub">Sube URLs de imÃ¡genes por SKU o cÃ³digo de barras (CSV desde Excel).</p>
+            <p class="kpi-sub">Sube URLs de imágenes por SKU o código de barras (CSV desde Excel).</p>
           </div>
           <div class="modal-actions">
             <button class="ghost" id="photos-template" type="button">Descargar plantilla</button>
@@ -3786,14 +3786,14 @@
             <input type="file" id="photos-file" name="photos_file" accept=".csv,text/csv" />
             <p class="field-hint">
               Columnas recomendadas: <code>sku</code> o <code>barcode</code> y <code>images</code> (URLs separadas por
-              <code>|</code>). TambiÃ©n aceptamos <code>image_1</code>, <code>image_2</code>...
+              <code>|</code>). También aceptamos <code>image_1</code>, <code>image_2</code>...
             </p>
           </div>
           <div class="field">
             <label for="photos-match-by">Match por</label>
             <select id="photos-match-by" name="photos_match_by">
               <option value="sku" selected>SKU</option>
-              <option value="barcode">CÃ³digo de barras</option>
+              <option value="barcode">Código de barras</option>
             </select>
           </div>
           <div class="field">
@@ -3801,7 +3801,7 @@
               >Asociar a variante
               <span
                 class="tip"
-                data-tip="Si estÃ¡ ON, intentamos asociar la imagen a la variante encontrada (si Eâ€‘commerce lo permite). Si OFF, se sube como imagen del producto."
+                data-tip="Si está ON, intentamos asociar la imagen a la variante encontrada (si Eâ€‘commerce lo permite). Si OFF, se sube como imagen del producto."
                 >?</span
               ></label
             >
@@ -3809,10 +3809,10 @@
           </div>
           <div class="field">
             <label for="photos-mode"
-              >Modo de imÃ¡genes
+              >Modo de imágenes
               <span
                 class="tip"
-                data-tip="Agregar = conserva fotos existentes y aÃ±ade nuevas. Reemplazar = elimina fotos existentes del producto y luego sube las nuevas (puede ser mÃ¡s lento)."
+                data-tip="Agregar = conserva fotos existentes y añade nuevas. Reemplazar = elimina fotos existentes del producto y luego sube las nuevas (puede ser más lento)."
                 >?</span
               ></label
             >
