@@ -1,7 +1,7 @@
 import crypto from "crypto";
 
 function getSecret() {
-  const secret = String(process.env.CSRF_SECRET || process.env.CRYPTO_KEY_BASE64 || "").trim();
+  const secret = String(process.env.CSRF_SECRET || "").trim();
   return secret || null;
 }
 

@@ -1,5 +1,10 @@
 import { resolveShopifyApiVersion } from "../utils/shopify";
 
+function parsePositiveInt(value: string | undefined, fallback: number) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+}
+
 type GraphQlError = {
   message: string;
   path?: string[];
@@ -32,31 +37,50 @@ export class ShopifyClient {
     this.restBase = `https://${config.shopDomain}/admin/api/${version}`;
   }
 
+  private shopifyTimeoutMs() {
+    return parsePositiveInt(process.env.SHOPIFY_TIMEOUT_MS, 30000);
+  }
+
   private async requestRest<T>(path: string, options: { method: string; body?: unknown }) {
-    const response = await fetch(`${this.restBase}${path}`, {
-      method: options.method,
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Access-Token": this.config.accessToken,
-      },
-      body: options.body ? JSON.stringify(options.body) : undefined,
-    });
-    if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(`Shopify REST error: ${response.status} ${text}`);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.shopifyTimeoutMs());
+    try {
+      const response = await fetch(`${this.restBase}${path}`, {
+        method: options.method,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": this.config.accessToken,
+        },
+        body: options.body ? JSON.stringify(options.body) : undefined,
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(`Shopify REST error: ${response.status} ${text}`);
+      }
+      return (await response.json()) as T;
+    } finally {
+      clearTimeout(timer);
     }
-    return (await response.json()) as T;
   }
 
   private async request<T>(body: GraphQlRequest) {
-    const response = await fetch(this.endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Access-Token": this.config.accessToken,
-      },
-      body: JSON.stringify(body),
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.shopifyTimeoutMs());
+    let response: Response;
+    try {
+      response = await fetch(this.endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": this.config.accessToken,
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!response.ok) {
       const text = await response.text();
@@ -112,8 +136,11 @@ export class ShopifyClient {
   async listAllOrdersByQuery(query: string, limit?: number) {
     let cursor: string | null = null;
     let hasNextPage = true;
+    let pageCount = 0;
+    const MAX_PAGES = 200;
     const orders: ShopifyOrder[] = [];
-    while (hasNextPage) {
+    while (hasNextPage && pageCount < MAX_PAGES) {
+      pageCount += 1;
       const data: { orders: ShopifyOrderConnection } = await this.request<{ orders: ShopifyOrderConnection }>(<
         GraphQlRequest
       >{
@@ -137,8 +164,11 @@ export class ShopifyClient {
   async listAllProductsByQuery(query: string, limit?: number) {
     let cursor: string | null = null;
     let hasNextPage = true;
+    let pageCount = 0;
+    const MAX_PAGES = 200;
     const products: ShopifyProduct[] = [];
-    while (hasNextPage) {
+    while (hasNextPage && pageCount < MAX_PAGES) {
+      pageCount += 1;
       const data: { products: ShopifyProductConnection } = await this.request<{ products: ShopifyProductConnection }>(<
         GraphQlRequest
       >{
@@ -162,8 +192,11 @@ export class ShopifyClient {
   async listAllCustomers(limit?: number) {
     let cursor: string | null = null;
     let hasNextPage = true;
+    let pageCount = 0;
+    const MAX_PAGES = 200;
     const customers: ShopifyCustomer[] = [];
-    while (hasNextPage) {
+    while (hasNextPage && pageCount < MAX_PAGES) {
+      pageCount += 1;
       const data: { customers: ShopifyCustomerConnection } = await this.request<{
         customers: ShopifyCustomerConnection;
       }>(<GraphQlRequest>{
@@ -187,9 +220,12 @@ export class ShopifyClient {
   async listAllCustomersByQuery(query: string, limit?: number) {
     let cursor: string | null = null;
     let hasNextPage = true;
+    let pageCount = 0;
+    const MAX_PAGES = 200;
     const customers: ShopifyCustomer[] = [];
     const cleanedQuery = String(query || "").trim();
-    while (hasNextPage) {
+    while (hasNextPage && pageCount < MAX_PAGES) {
+      pageCount += 1;
       const data: { customers: ShopifyCustomerConnection } = await this.request<{
         customers: ShopifyCustomerConnection;
       }>(<GraphQlRequest>{

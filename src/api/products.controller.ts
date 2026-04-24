@@ -143,13 +143,21 @@ async function getAlegraClientForStore(shopDomain?: string, storeId?: number) {
 async function fetchAlegra(path: string, query?: URLSearchParams, shopDomain?: string, storeId?: number) {
   const { baseUrl, auth } = await getAlegraConfigForStore(shopDomain, storeId);
   const url = query ? `${baseUrl}${path}?${query.toString()}` : `${baseUrl}${path}`;
-  const response = await fetch(url, {
-    headers: {
-      Accept: "application/json",
-      Authorization: `Basic ${auth}`,
-    },
-  });
-  return response;
+  const timeoutMs = Number(process.env.ALEGRA_TIMEOUT_MS || 30000);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        Authorization: `Basic ${auth}`,
+      },
+      signal: controller.signal,
+    });
+    return response;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 let activeProductsSync: { id: string; canceled: boolean; startedAt: number } | null = null;

@@ -6,7 +6,7 @@ export function verifyShopifyHmac(rawBody: Buffer, signature: string) {
     if (String(process.env.ALLOW_UNVERIFIED_SHOPIFY_WEBHOOKS || "").toLowerCase() === "true") {
       return true;
     }
-    return process.env.NODE_ENV !== "production";
+    return false;
   }
   if (!rawBody) {
     return false;
@@ -28,7 +28,8 @@ export function verifyShopifyHmac(rawBody: Buffer, signature: string) {
 export function verifyAlegraSignature(rawBody: Buffer, signature: string) {
   const secret = process.env.ALEGRA_WEBHOOK_SECRET || "";
   if (!secret) {
-    return true;
+    console.warn("[webhook] ALEGRA_WEBHOOK_SECRET not set — rejecting unsigned Alegra webhook");
+    return false;
   }
   if (!rawBody) {
     return false;
