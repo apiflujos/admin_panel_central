@@ -2300,7 +2300,7 @@ async function fetchJson(url, options) {
 
 async function ensureCsrfToken() {
   try {
-    const data = await fetchJson("/api/auth/csrf");
+    const data = await fetchJson(`/api/auth/csrf?_=${Date.now()}`);
     csrfToken = String(data?.token || "");
   } catch {
     csrfToken = "";
