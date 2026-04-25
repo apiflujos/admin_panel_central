@@ -160,6 +160,7 @@ export async function changePasswordHandler(req: Request, res: Response) {
 }
 
 export async function csrfTokenHandler(req: Request, res: Response) {
+  res.setHeader("Cache-Control", "no-store");
   const token = getAuthToken(req);
   if (!token) {
     res.status(401).json({ error: "unauthorized" });
