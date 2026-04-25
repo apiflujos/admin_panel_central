@@ -11910,12 +11910,14 @@ async function loadResolutions() {
       cfgResolution.value = cfgResolution.dataset.selected;
     }
   } catch (error) {
-    cfgResolution.innerHTML = "";
-    const option = document.createElement("option");
-    option.disabled = true;
-    option.selected = true;
-    option.textContent = "Error al cargar";
-    cfgResolution.appendChild(option);
+    if (cfgResolution) {
+      cfgResolution.innerHTML = "";
+      const option = document.createElement("option");
+      option.disabled = true;
+      option.selected = true;
+      option.textContent = "Error al cargar";
+      cfgResolution.appendChild(option);
+    }
     console.error(error);
   }
 }

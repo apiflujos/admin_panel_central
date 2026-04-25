@@ -75,6 +75,10 @@ export async function validateConnections(payload: ConnectionPayload) {
   return results;
 }
 
+function withTimeout(ms: number): AbortSignal {
+  return AbortSignal.timeout(ms);
+}
+
 async function testShopify(config: { shopDomain: string; accessToken: string; apiVersion?: string }) {
   const version = resolveShopifyApiVersion(config.apiVersion);
   const response = await fetch(`https://${config.shopDomain}/admin/api/${version}/graphql.json`, {
@@ -84,6 +88,7 @@ async function testShopify(config: { shopDomain: string; accessToken: string; ap
       "X-Shopify-Access-Token": config.accessToken,
     },
     body: JSON.stringify({ query: "{ shop { name } }" }),
+    signal: withTimeout(15_000),
   });
   if (!response.ok) {
     const text = await response.text();
@@ -103,6 +108,7 @@ async function testAlegra(config: { email: string; apiKey: string; environment?:
       Authorization: `Basic ${auth}`,
       Accept: "application/json",
     },
+    signal: withTimeout(15_000),
   });
   if (!response.ok) {
     const text = await response.text();
@@ -125,6 +131,7 @@ async function testWooCommerce(config: { shopDomain: string; consumerKey: string
       Authorization: `Basic ${token}`,
       Accept: "application/json",
     },
+    signal: withTimeout(15_000),
   });
   if (!response.ok) {
     const text = await response.text();
