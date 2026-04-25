@@ -25,9 +25,9 @@ CREATE INDEX IF NOT EXISTS idempotency_keys_updated_at_idx
 CREATE INDEX IF NOT EXISTS contacts_org_idx
   ON contacts (organization_id);
 
--- orders: org + shopify_id for lookups and status filter
+-- orders: org + shopify_order_id for lookups and status filter
 CREATE INDEX IF NOT EXISTS orders_org_shopify_idx
-  ON orders (organization_id, shopify_id);
+  ON orders (organization_id, shopify_order_id);
 
 -- sync_logs: already indexed but add direction for filtered queries
 CREATE INDEX IF NOT EXISTS sync_logs_org_entity_direction_idx
