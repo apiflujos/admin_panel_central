@@ -2302,8 +2302,10 @@ async function ensureCsrfToken() {
   try {
     const data = await fetchJson(`/api/auth/csrf?_=${Date.now()}`);
     csrfToken = String(data?.token || "");
-  } catch {
+    console.log("[csrf] fetched, token length:", csrfToken.length, "empty:", !csrfToken);
+  } catch (err) {
     csrfToken = "";
+    console.error("[csrf] fetch failed:", err?.message);
   }
 }
 
