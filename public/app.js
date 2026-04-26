@@ -2299,9 +2299,10 @@ async function fetchJson(url, options) {
 }
 
 async function ensureCsrfToken() {
-  // Token is injected by the server into window.__CSRF when the page is rendered.
-  // Fallback to fetching it only if the server didn't provide it (e.g. direct file access).
-  const injected = typeof window !== "undefined" && window.__CSRF ? String(window.__CSRF) : "";
+  // Token is injected by the server as <meta name="csrf-token"> when the page is rendered.
+  // Fallback to fetching it only if the meta tag is missing (e.g. direct file access).
+  const meta = document.querySelector('meta[name="csrf-token"]');
+  const injected = meta ? String(meta.getAttribute("content") || "") : "";
   if (injected) {
     csrfToken = injected;
     return;

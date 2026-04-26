@@ -127,7 +127,7 @@ function renderIndex(req: express.Request, res: express.Response, bodyClass?: st
     // Inject CSRF token so the frontend never needs a separate fetch
     const sessionToken = getSessionToken(req);
     const csrf = sessionToken ? (createCsrfToken(sessionToken) ?? "") : "";
-    html = html.replace("</head>", `<script>window.__CSRF=${JSON.stringify(csrf)};</script>\n</head>`);
+    html = html.replace("</head>", `<meta name="csrf-token" content="${csrf}">\n</head>`);
     if (bodyClass) {
       html = html.replace(/<body(\s[^>]*)?>/i, (match, attrs = "") => {
         if (/class=/.test(attrs)) {
