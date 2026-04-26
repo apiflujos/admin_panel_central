@@ -163,12 +163,10 @@ export async function csrfTokenHandler(req: Request, res: Response) {
   res.setHeader("Cache-Control", "no-store");
   const token = getAuthToken(req);
   if (!token) {
-    console.error("[csrf-handler] no auth token in request");
     res.status(401).json({ error: "unauthorized" });
     return;
   }
   const csrf = createCsrfToken(token);
-  console.log("[csrf-handler]", { hasToken: !!token, hasCsrf: !!csrf, secretSet: !!process.env.CSRF_SECRET });
   if (!csrf) {
     const isProd = process.env.NODE_ENV === "production";
     if (isProd) {

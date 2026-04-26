@@ -15,6 +15,7 @@ import { startBillingReportCron } from "./jobs/billing-report";
 import { ensureSaDefaults } from "./sa/sa.bootstrap";
 import { requirePageSuperAdmin } from "./api/page-auth";
 import { getPool } from "./db";
+import { createCsrfToken } from "./utils/csrf";
 
 const app = express();
 
@@ -106,38 +107,50 @@ app.get("/health/db", async (_req, res) => {
 
 app.get("/auth", startShopifyOAuth);
 app.get("/auth/callback", shopifyOAuthCallback);
-app.get("/dashboard", (_req, res) => {
-  res.sendFile(path.join(publicDir, "index.html"));
-});
+
 const indexHtmlPath = path.join(publicDir, "index.html");
-const renderIndexWithBodyClass = (res: express.Response, className: string) => {
+
+function getSessionToken(req: express.Request): string | null {
+  const header = req.headers.cookie || "";
+  for (const part of header.split(";")) {
+    const trimmed = part.trim();
+    if (trimmed.startsWith("os_session=")) {
+      return decodeURIComponent(trimmed.slice("os_session=".length)) || null;
+    }
+  }
+  return null;
+}
+
+function renderIndex(req: express.Request, res: express.Response, bodyClass?: string) {
   try {
-    const html = fs.readFileSync(indexHtmlPath, "utf8");
-    const withClass = html.replace(/<body(\s[^>]*)?>/i, (match, attrs = "") => {
-      if (/class=/.test(attrs)) {
-        return match.replace(/class=("|')([^"']*)("|')/i, (full, quote, value) => {
-          const next = value.includes(className) ? value : `${value} ${className}`.trim();
-          return `class=${quote}${next}${quote}`;
-        });
-      }
-      return `<body${attrs} class="${className}">`;
-    });
-    res.send(withClass);
+    let html = fs.readFileSync(indexHtmlPath, "utf8");
+    // Inject CSRF token so the frontend never needs a separate fetch
+    const sessionToken = getSessionToken(req);
+    const csrf = sessionToken ? (createCsrfToken(sessionToken) ?? "") : "";
+    html = html.replace("</head>", `<script>window.__CSRF=${JSON.stringify(csrf)};</script>\n</head>`);
+    if (bodyClass) {
+      html = html.replace(/<body(\s[^>]*)?>/i, (match, attrs = "") => {
+        if (/class=/.test(attrs)) {
+          return match.replace(/class=("|')([^"']*)("|')/i, (_full, quote, value) => {
+            const next = value.includes(bodyClass) ? value : `${value} ${bodyClass}`.trim();
+            return `class=${quote}${next}${quote}`;
+          });
+        }
+        return `<body${attrs} class="${bodyClass}">`;
+      });
+    }
+    res.setHeader("Cache-Control", "no-store");
+    res.send(html);
   } catch (error) {
-    console.error("[settings] failed to render index:", error);
+    console.error("[render] failed:", error);
     res.status(500).send("error");
   }
-};
-app.get("/settings", (_req, res) => {
-  renderIndexWithBodyClass(res, "force-settings");
-});
-app.get("/settings/:pane", (_req, res) => {
-  renderIndexWithBodyClass(res, "force-settings");
-});
+}
 
-app.get("/__sa", requirePageSuperAdmin, (_req, res) => {
-  res.sendFile(path.join(publicDir, "index.html"));
-});
+app.get("/dashboard", (req, res) => renderIndex(req, res));
+app.get("/settings", (req, res) => renderIndex(req, res, "force-settings"));
+app.get("/settings/:pane", (req, res) => renderIndex(req, res, "force-settings"));
+app.get("/__sa", requirePageSuperAdmin, (req, res) => renderIndex(req, res));
 
 app.use("/api", router);
 app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {

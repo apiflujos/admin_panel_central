@@ -2299,13 +2299,18 @@ async function fetchJson(url, options) {
 }
 
 async function ensureCsrfToken() {
+  // Token is injected by the server into window.__CSRF when the page is rendered.
+  // Fallback to fetching it only if the server didn't provide it (e.g. direct file access).
+  const injected = typeof window !== "undefined" && window.__CSRF ? String(window.__CSRF) : "";
+  if (injected) {
+    csrfToken = injected;
+    return;
+  }
   try {
     const data = await fetchJson(`/api/auth/csrf?_=${Date.now()}`);
     csrfToken = String(data?.token || "");
-    console.log("[csrf] fetched, token length:", csrfToken.length, "empty:", !csrfToken);
-  } catch (err) {
+  } catch {
     csrfToken = "";
-    console.error("[csrf] fetch failed:", err?.message);
   }
 }
 
