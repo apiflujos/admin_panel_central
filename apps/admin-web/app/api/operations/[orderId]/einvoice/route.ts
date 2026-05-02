@@ -21,6 +21,12 @@ const parseBooleanLike = (value: unknown) => {
   return Boolean(value);
 };
 
+const asOptionalString = (value: unknown) => {
+  if (value === null || value === undefined) return undefined;
+  const normalized = String(value).trim();
+  return normalized ? normalized : undefined;
+};
+
 export const GET = routeHandler(async (_req: Request, ctx) => {
   await requireRouteAdmin();
   try {
@@ -57,16 +63,16 @@ export const PUT = routeHandler(async (req: Request, ctx) => {
     const result = await upsertOrderInvoiceOverride(orderId, {
       orderId,
       einvoiceRequested: parseBooleanLike(payload.einvoiceRequested),
-      idType: payload.idType,
-      idNumber: payload.idNumber,
-      fiscalName: payload.fiscalName,
-      email: payload.email,
-      phone: payload.phone,
-      address: payload.address,
-      city: payload.city,
-      state: payload.state,
-      country: payload.country,
-      zip: payload.zip,
+      idType: asOptionalString(payload.idType),
+      idNumber: asOptionalString(payload.idNumber),
+      fiscalName: asOptionalString(payload.fiscalName),
+      email: asOptionalString(payload.email),
+      phone: asOptionalString(payload.phone),
+      address: asOptionalString(payload.address),
+      city: asOptionalString(payload.city),
+      state: asOptionalString(payload.state),
+      country: asOptionalString(payload.country),
+      zip: asOptionalString(payload.zip),
     });
     return NextResponse.json(result);
   } catch (error) {
