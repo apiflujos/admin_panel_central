@@ -1,0 +1,86 @@
+.auth-layout {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(360px, 420px);
+  gap: 24px;
+  align-items: stretch;
+  padding: 24px;
+}
+
+.auth-hero {
+  display: grid;
+  align-content: center;
+  gap: 16px;
+  padding: 32px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.22), transparent 26%),
+    linear-gradient(135deg, #5d4598 0%, #2d204d 100%);
+  color: #fff;
+  min-height: 420px;
+}
+
+.auth-hero h1 {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.05;
+}
+
+.auth-hero p {
+  margin: 0;
+  max-width: 52ch;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.auth-kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.auth-pill-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.auth-card {
+  align-self: center;
+  padding: 20px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-field {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.auth-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 6px;
+}
+
+.auth-error {
+  margin: 0;
+  color: var(--status-danger);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 1080px) {
+  .auth-layout {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,41 @@
+import type { Request, Response } from "express";
+
+import { createSyncLog } from "../../../../../../src/services/logs.service";
+import { getMetrics, type MetricsRange } from "../../../../../../src/services/metrics.service";
+
+const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
+  try {
+    await createSyncLog(payload);
+  } catch {
+    // ignore logging failures
+  }
+};
+
+function isMetricsRange(value: string): value is MetricsRange {
+  return value === "day" || value === "week" || value === "month";
+}
+
+export async function listMetrics(req: Request, res: Response) {
+  try {
+    const raw = typeof req.query.range === "string" ? req.query.range : "";
+    const range = isMetricsRange(raw) ? (raw as MetricsRange) : undefined;
+    const shopDomain = typeof req.query.shopDomain === "string" ? String(req.query.shopDomain).trim() : "";
+    const result = await getMetrics({ range, shopDomain: shopDomain || undefined });
+    res.status(200).json(result);
+    await safeCreateLog({
+      entity: "metrics_list",
+      direction: "shopify->alegra",
+      status: "success",
+      message: "Metricas cargadas",
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "No disponible";
+    res.status(400).json({ error: message });
+    await safeCreateLog({
+      entity: "metrics_list",
+      direction: "shopify->alegra",
+      status: "fail",
+      message,
+    });
+  }
+}
