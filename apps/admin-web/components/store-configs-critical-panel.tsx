@@ -21,6 +21,7 @@ type CriticalStoreConfigDraft = Pick<
   | "webhookItemsEnabled"
   | "createInShopify"
   | "updateInShopify"
+  | "warehouseIds"
 > &
   Pick<CriticalStoreConfig["invoice"], "generateInvoice"> & {
     shopifyToAlegra: CriticalStoreConfig["sync"]["orders"]["shopifyToAlegra"];
@@ -40,10 +41,15 @@ const defaultDraft: CriticalStoreConfigDraft = {
   webhookItemsEnabled: true,
   createInShopify: true,
   updateInShopify: true,
+  warehouseIds: [],
   generateInvoice: false,
   shopifyToAlegra: "db_only",
   alegraToShopify: "off",
 };
+
+function normalizeIdList(values: string[]) {
+  return [...values].map((value) => String(value)).filter(Boolean).sort((left, right) => left.localeCompare(right, "es"));
+}
 
 function toDraft(config?: CriticalStoreConfig | null): CriticalStoreConfigDraft {
   if (!config) return defaultDraft;
@@ -60,6 +66,7 @@ function toDraft(config?: CriticalStoreConfig | null): CriticalStoreConfigDraft 
     webhookItemsEnabled: config.rules.webhookItemsEnabled,
     createInShopify: config.rules.createInShopify,
     updateInShopify: config.rules.updateInShopify,
+    warehouseIds: normalizeIdList(config.rules.warehouseIds),
     generateInvoice: config.invoice.generateInvoice,
     shopifyToAlegra: config.sync.orders.shopifyToAlegra,
     alegraToShopify: config.sync.orders.alegraToShopify,
@@ -80,6 +87,8 @@ function isDraftEqual(left: CriticalStoreConfigDraft, right: CriticalStoreConfig
     left.webhookItemsEnabled === right.webhookItemsEnabled &&
     left.createInShopify === right.createInShopify &&
     left.updateInShopify === right.updateInShopify &&
+    left.warehouseIds.length === right.warehouseIds.length &&
+    left.warehouseIds.every((value, index) => value === right.warehouseIds[index]) &&
     left.generateInvoice === right.generateInvoice &&
     left.shopifyToAlegra === right.shopifyToAlegra &&
     left.alegraToShopify === right.alegraToShopify
@@ -102,6 +111,8 @@ export function StoreConfigsCriticalPanel({
   const [draft, setDraft] = useState<CriticalStoreConfigDraft>(defaultDraft);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveMessage, setSaveMessage] = useState("");
+  const [warehouseItems, setWarehouseItems] = useState<Array<{ id: string; name: string }>>([]);
+  const [warehousesLoading, setWarehousesLoading] = useState(false);
 
   const activeStore = useMemo(
     () => stores.find((store) => store.id === activeStoreId) ?? null,
@@ -125,6 +136,7 @@ export function StoreConfigsCriticalPanel({
       webhookItemsEnabled: defaults.rules.webhookItemsEnabled,
       createInShopify: defaults.rules.createInShopify,
       updateInShopify: defaults.rules.updateInShopify,
+      warehouseIds: normalizeIdList(defaults.rules.warehouseIds),
       generateInvoice: defaults.invoice.generateInvoice,
       shopifyToAlegra: defaults.sync.orders.shopifyToAlegra,
       alegraToShopify: defaults.sync.orders.alegraToShopify,
@@ -174,6 +186,7 @@ export function StoreConfigsCriticalPanel({
         webhookItemsEnabled: draft.webhookItemsEnabled,
         createInShopify: draft.createInShopify,
         updateInShopify: draft.updateInShopify,
+        warehouseIds: draft.warehouseIds,
       },
       invoice: {
         ...effectiveConfig.invoice,
@@ -190,6 +203,61 @@ export function StoreConfigsCriticalPanel({
     });
   }, [draft, effectiveConfig]);
   const oversellEnabled = draft.trackInventory;
+  const warehouseSummary = useMemo(() => {
+    if (!warehouseItems.length) return "Sin bodegas";
+    if (!draft.warehouseIds.length || draft.warehouseIds.length === warehouseItems.length) {
+      return "Todas";
+    }
+    return `${draft.warehouseIds.length} seleccionadas`;
+  }, [draft.warehouseIds, warehouseItems]);
+
+  useEffect(() => {
+    const shopDomain = activeConfig?.shopDomain ?? activeStore?.providers.shopify?.shopDomain ?? "";
+    if (!activeStore || !shopDomain) {
+      setWarehouseItems([]);
+      return;
+    }
+    let cancelled = false;
+    setWarehousesLoading(true);
+    fetch(`/api/alegra/warehouses?shopDomain=${encodeURIComponent(shopDomain)}`, {
+      credentials: "include",
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        const payload = (await response.json()) as {
+          items?: Array<{ id?: string | number; _id?: string | number; name?: string }>;
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(payload.error || `warehouses_failed:${response.status}`);
+        }
+        const nextItems = Array.isArray(payload.items)
+          ? payload.items
+              .map((item) => ({
+                id: String(item.id || item._id || "").trim(),
+                name: String(item.name || item.id || item._id || "").trim(),
+              }))
+              .filter((item) => item.id)
+              .sort((left, right) => left.name.localeCompare(right.name, "es"))
+          : [];
+        if (!cancelled) {
+          setWarehouseItems(nextItems);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setWarehouseItems([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setWarehousesLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeConfig?.shopDomain, activeStore]);
 
   async function persist() {
     if (!activeStore) {
@@ -223,6 +291,7 @@ export function StoreConfigsCriticalPanel({
           webhookItemsEnabled: draft.webhookItemsEnabled,
           createInShopify: draft.createInShopify,
           updateInShopify: draft.updateInShopify,
+          warehouseIds: draft.warehouseIds,
         },
         invoice: {
           generateInvoice: draft.generateInvoice,
@@ -268,6 +337,7 @@ export function StoreConfigsCriticalPanel({
           webhookItemsEnabled: draft.webhookItemsEnabled,
           createInShopify: draft.createInShopify,
           updateInShopify: draft.updateInShopify,
+          warehouseIds: draft.warehouseIds,
         },
         invoice: {
           generateInvoice: draft.generateInvoice,
@@ -497,6 +567,67 @@ export function StoreConfigsCriticalPanel({
           </select>
           <small>Permite actualizar productos existentes en Shopify desde el flujo automático.</small>
         </label>
+
+        <div className="store-config-field store-config-field-span-2">
+          <span>Bodegas de inventario</span>
+          <small>Sin selección explícita, la tienda opera con todas las bodegas disponibles.</small>
+          <div className="store-warehouse-card">
+            <div className="store-warehouse-head">
+              <strong>{warehouseSummary}</strong>
+              <span>{warehousesLoading ? "Cargando…" : `${warehouseItems.length} disponibles`}</span>
+            </div>
+            <div className="store-warehouse-grid">
+              {warehouseItems.length ? (
+                warehouseItems.map((warehouse) => {
+                  const checked = draft.warehouseIds.includes(warehouse.id);
+                  return (
+                    <label className="store-warehouse-option" key={warehouse.id}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(event) =>
+                          setDraft((current) => {
+                            const next = new Set(current.warehouseIds);
+                            if (event.target.checked) {
+                              next.add(warehouse.id);
+                            } else {
+                              next.delete(warehouse.id);
+                            }
+                            return {
+                              ...current,
+                              warehouseIds: normalizeIdList(Array.from(next)),
+                            };
+                          })
+                        }
+                      />
+                      <span>{warehouse.name}</span>
+                    </label>
+                  );
+                })
+              ) : (
+                <span className="connection-inline-note">
+                  {activeStore ? "Sin bodegas cargadas para esta tienda." : "Selecciona una tienda con Shopify/Alegra."}
+                </span>
+              )}
+            </div>
+            {warehouseItems.length ? (
+              <div className="connection-card-actions">
+                <button
+                  className="btn btn-ghost btn-compact"
+                  type="button"
+                  onClick={() =>
+                    setDraft((current) => ({
+                      ...current,
+                      warehouseIds: [],
+                    }))
+                  }
+                >
+                  Usar todas
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
 
         <label className="store-config-field">
           <span>Publicar con stock</span>

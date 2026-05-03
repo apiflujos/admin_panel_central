@@ -59,6 +59,7 @@ export function getEffectiveCriticalStoreConfig(
       webhookItemsEnabled: defaults.rules.webhookItemsEnabled,
       createInShopify: defaults.rules.createInShopify,
       updateInShopify: defaults.rules.updateInShopify,
+      warehouseIds: defaults.rules.warehouseIds,
     },
     invoice: {
       generateInvoice: defaults.invoice.generateInvoice,

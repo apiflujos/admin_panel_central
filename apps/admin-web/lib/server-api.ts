@@ -371,6 +371,7 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
         webhookItemsEnabled: config.rules.webhookItemsEnabled,
         createInShopify: config.rules.createInShopify,
         updateInShopify: config.rules.updateInShopify,
+        warehouseIds: config.rules.warehouseIds,
       },
       invoice: {
         generateInvoice: config.invoice.generateInvoice,
@@ -405,6 +406,7 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
         webhookItemsEnabled: settings.rules?.webhookItemsEnabled ?? true,
         createInShopify: settings.rules?.createInShopify ?? true,
         updateInShopify: settings.rules?.updateInShopify ?? true,
+        warehouseIds: settings.rules?.warehouseIds ?? [],
       },
       invoice: {
         generateInvoice: settings.invoice?.generateInvoice ?? false,

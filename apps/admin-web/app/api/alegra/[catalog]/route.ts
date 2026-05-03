@@ -1,50 +1,23 @@
 import { NextResponse } from "next/server";
 
-import { createSyncLog } from "../../../../../../src/services/logs.service";
 import { listAlegraCatalogItems } from "../../../../../../src/services/settings.service";
 import { routeHandler } from "../../../../lib/route-handler";
+import { requireRouteAdmin } from "../../../../lib/route-auth";
 
-const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : "No disponible");
-
-const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
-  try {
-    await createSyncLog(payload);
-  } catch {
-    // ignore logging failures
-  }
-};
-
-export const GET = routeHandler(async (req: Request, ctx) => {
-  const params = (await (ctx.params ?? Promise.resolve({}))) as Record<string, string>;
+export const GET = routeHandler(async (_req: Request, ctx) => {
+  await requireRouteAdmin();
+  const params = await ctx.params;
   const catalog = String(params.catalog || "");
-  try {
-    const searchParams = new URL(req.url).searchParams;
-    const rawAccountId = searchParams.get("accountId");
-    const accountId = rawAccountId ? Number(rawAccountId) : undefined;
-    const shopDomain = searchParams.get("shopDomain")?.trim() || undefined;
-    const result = await listAlegraCatalogItems(
-      catalog,
-      Number.isFinite(accountId as number) ? (accountId as number) : undefined,
-      shopDomain
-    );
-    await safeCreateLog({
-      entity: "alegra_catalog",
-      direction: "alegra->shopify",
-      status: "success",
-      message: "Catalogo cargado",
-      request: { catalog },
-      response: result as Record<string, unknown>,
-    });
-    return NextResponse.json(result);
-  } catch (error) {
-    const message = getErrorMessage(error);
-    await safeCreateLog({
-      entity: "alegra_catalog",
-      direction: "alegra->shopify",
-      status: "fail",
-      message,
-      request: { catalog },
-    });
-    return NextResponse.json({ error: message }, { status: 400 });
+  const url = new URL(_req.url);
+  const accountId = url.searchParams.get("accountId");
+  const shopDomain = url.searchParams.get("shopDomain") || undefined;
+  const result = await listAlegraCatalogItems(
+    catalog,
+    accountId ? Number(accountId) : undefined,
+    shopDomain
+  );
+  if (result.error) {
+    return NextResponse.json({ error: result.error, items: result.items || [] }, { status: 400 });
   }
+  return NextResponse.json(result);
 });

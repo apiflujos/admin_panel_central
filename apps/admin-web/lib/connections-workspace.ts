@@ -57,6 +57,7 @@ export type CriticalStoreConfig = {
     webhookItemsEnabled: boolean;
     createInShopify: boolean;
     updateInShopify: boolean;
+    warehouseIds: string[];
   };
   invoice: {
     generateInvoice: boolean;
@@ -93,6 +94,7 @@ export type ConnectionsWorkspace = {
       webhookItemsEnabled: boolean;
       createInShopify: boolean;
       updateInShopify: boolean;
+      warehouseIds: string[];
     };
     invoice: {
       generateInvoice: boolean;
