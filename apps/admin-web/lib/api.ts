@@ -150,6 +150,80 @@ export async function getOperationsCatalog(params?: { days?: number }): Promise<
   return requestJson<AdminWebOperationsListDto>({ path: `/admin-web/operations${suffix}`, method: "GET" });
 }
 
+export type AdminWebOperationActionResult = {
+  status?: string;
+  invoiceId?: string | null;
+  invoiceNumber?: string | null;
+  missing?: string[];
+  [key: string]: unknown;
+};
+
+export type AdminWebEinvoiceOverride = {
+  orderId?: string;
+  einvoiceRequested?: boolean;
+  idType?: string;
+  idNumber?: string;
+  fiscalName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zip?: string;
+};
+
+export type AdminWebEinvoiceResponse = {
+  override: AdminWebEinvoiceOverride | null;
+  einvoiceEnabled: boolean;
+};
+
+export async function syncOperation(orderId: string): Promise<AdminWebOperationActionResult> {
+  return requestJson<AdminWebOperationActionResult>({
+    path: `/operations/${encodeURIComponent(orderId)}/sync`,
+    method: "POST",
+  });
+}
+
+export async function retryOperationInvoice(orderId: string): Promise<AdminWebOperationActionResult> {
+  return requestJson<AdminWebOperationActionResult>({
+    path: `/operations/${encodeURIComponent(orderId)}/invoice`,
+    method: "POST",
+  });
+}
+
+export async function emitOperationPayment(orderId: string): Promise<AdminWebOperationActionResult> {
+  return requestJson<AdminWebOperationActionResult>({
+    path: `/operations/${encodeURIComponent(orderId)}/payment`,
+    method: "POST",
+  });
+}
+
+export async function cancelOperationInvoice(orderId: string): Promise<AdminWebOperationActionResult> {
+  return requestJson<AdminWebOperationActionResult>({
+    path: `/operations/${encodeURIComponent(orderId)}/cancel`,
+    method: "POST",
+  });
+}
+
+export async function getEinvoiceOverride(orderId: string): Promise<AdminWebEinvoiceResponse> {
+  return requestJson<AdminWebEinvoiceResponse>({
+    path: `/operations/${encodeURIComponent(orderId)}/einvoice`,
+    method: "GET",
+  });
+}
+
+export async function saveEinvoiceOverride(
+  orderId: string,
+  payload: AdminWebEinvoiceOverride
+): Promise<{ saved: true }> {
+  return requestJson<{ saved: true }>({
+    path: `/operations/${encodeURIComponent(orderId)}/einvoice`,
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function getLogsCatalog(params?: {
   status?: string;
   entity?: string;

@@ -430,6 +430,10 @@
   overflow: hidden;
 }
 
+.modal-card-wide {
+  width: min(820px, 100%);
+}
+
 .modal-header,
 .modal-body {
   padding: 16px 18px;
@@ -511,6 +515,12 @@
 
 .dataTable tbody tr:hover td {
   background: #faf8fd;
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 @media (max-width: 1080px) {
