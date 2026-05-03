@@ -73,6 +73,16 @@ async function main() {
     record("GET /api/company/public", response.ok, response.ok ? "" : `status=${response.status}`);
   }
 
+  {
+    const { response } = await httpJson(baseUrl, "/login.html");
+    record("GET /login.html", response.ok, response.ok ? "" : `status=${response.status}`);
+  }
+
+  {
+    const { response } = await httpJson(baseUrl, "/dashboard");
+    record("GET /dashboard", response.ok, response.ok ? "" : `status=${response.status}`);
+  }
+
   let authHeader = "";
   let cookieHeader = "";
 

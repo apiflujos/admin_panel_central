@@ -4,7 +4,7 @@
 
 - `GET /health` → `{ "status": "ok" }`.
 - `APP_HOST` apunta a la URL publica.
-- `ADMIN_WEB_URL` debe apuntar al frontend nuevo.
+- Si `admin-web` participa en la validación, `ADMIN_WEB_URL` debe apuntar al frontend nuevo.
 - `DATABASE_URL` y `DATABASE_SSL=true` si aplica.
 - `ADMIN_EMAIL` y `ADMIN_PASSWORD` configurados.
 - `REDIS_URL` presente.
@@ -30,12 +30,17 @@ BASE_URL=https://<tu-servicio>.onrender.com ADMIN_EMAIL=<email> ADMIN_PASSWORD=<
 Notas:
 
 - `BASE_URL` puede ser igual a `APP_HOST` (default: `http://localhost:10000`).
-- `BASE_URL` debe apuntar a `ADMIN_WEB_URL`.
+- En `client/olivashoes`, el smoke base apunta al backend legacy restaurado (`app`), no a `admin-web`.
+- `BASE_URL` debe apuntar a la superficie que estés validando:
+  - backend legacy restaurado: `http://localhost:3006`
+  - `admin-web`: `http://localhost:3100`
 - `QA_TOKEN` es un Bearer token opcional generado con `POST /api/auth/token` (requiere login admin).
 
 Valida:
 
 - `/health`
+- `/login.html`
+- `/dashboard`
 - `/api/profile`
 - `/api/settings`, `/api/connections`, `/api/store-configs`, `/api/shopify/webhooks/status`
 - `/api/checkpoints/inventory-adjustments`, `/api/metrics`
@@ -76,7 +81,15 @@ Valida:
   - `/contacts`
   - `/invoices`
   - `/marketing`
-  - `/operations`
+- `/operations`
+
+## Regla de transición
+
+Mientras `admin-web` no tenga paridad funcional completa, la aprobación de QA requiere:
+
+1. smoke backend legacy restaurado
+2. smoke visual/funcional del flujo crítico en navegador
+3. smoke adicional de `admin-web` solo para el módulo que se esté portando
 
 ## QA visual (UI)
 

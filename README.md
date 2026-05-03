@@ -13,6 +13,7 @@ If you are an AI agent (Codex/Gemini/Claude/etc), **read these files before codi
 - `.env.example`
 - `docs/RECONSTRUCTION_BLUEPRINT.md`
 - `docs/RECONSTRUCTION_BACKLOG.md`
+- `docs/TRANSITION_STATUS.md`
 
 Before changing any code, **ask the human** if the change is for:
 
@@ -38,9 +39,10 @@ Arquitectura objetivo:
 
 Frontend operativo:
 
-- `apps/admin-web` es la única entrada frontend objetivo.
-- el backend ya no debe servir `public/index.html`.
-- `ADMIN_WEB_URL` define la URL base del frontend nuevo para redirects desde `/`, `/dashboard`, `/settings*` y `/__sa`.
+- Arquitectura objetivo: `apps/admin-web`.
+- Estado actual en `client/olivashoes`: la superficie funcional preservada sigue siendo `src/server.ts + public/* + src/api/*`.
+- `apps/admin-web` permanece como destino de portado controlado, no como reemplazo ya cerrado.
+- Ver estado de transición en `docs/TRANSITION_STATUS.md`.
 
 ## Quick start
 
@@ -48,11 +50,13 @@ Frontend operativo:
 2. Install dependencies: `npm install`
 3. Run dev server: `npm run dev`
 
-Para operar en una sola capa frontend:
+En `client/olivashoes`, el arranque operativo actual es el runtime legacy restaurado:
 
-1. levantar `apps/admin-web`
-2. definir `ADMIN_WEB_URL`
-3. reiniciar backend
+1. levantar backend (`npm run dev` o `docker compose up -d app`)
+2. validar `GET /health`
+3. acceder por `/login.html` o `/dashboard`
+
+El cutover a una sola capa frontend con `admin-web` sigue pendiente de paridad funcional.
 
 ## Deploy (Render)
 
@@ -200,7 +204,8 @@ Notas:
 - Roadmap: integrar WooCommerce y otras fuentes de pedidos más adelante (ver `docs/INTEGRATIONS.md`).
 - `APP_HOST` es la única URL pública usada por OAuth y webhooks.
 - Branding: ApiFlujos siempre visible; el cliente puede configurar su logo en `Perfil empresa`.
-- El frontend operativo es `apps/admin-web`; no se mantiene branding UI en `public/`.
+- En `client/olivashoes`, el branding operativo actual sigue sirviéndose también desde `public/`.
+- `apps/admin-web` debe absorber ese comportamiento antes de retirar el legacy.
 - Super Admin (ApiFlujos): grupo de usuarios con acceso global. Se gestionan en `Super Admin > Usuarios ApiFlujos` (`/api/sa/users`).
 - Solo super admin ApiFlujos puede asignar/cambiar roles de usuarios.
 

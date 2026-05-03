@@ -8,6 +8,7 @@
 ## Nota para agentes IA
 
 - Antes de modificar código, preguntar si el cambio va en `main` o en `client/<cliente>`.
+- Ver `docs/TRANSITION_STATUS.md` antes de asumir que `admin-web` ya reemplazó al legacy.
 
 ## Base de datos
 
@@ -135,7 +136,7 @@ git merge main
 
 ## Cutover a una sola capa frontend
 
-El backend ya no debe servir `public/index.html`. La operación correcta es:
+Esto sigue siendo un objetivo, no una suposición global. En `client/olivashoes`, hoy todavía opera el runtime legacy restaurado. El cutover correcto será:
 
 1. desplegar `admin-web`
 2. validar `GET /api/health` del frontend nuevo
@@ -151,6 +152,8 @@ ADMIN_WEB_URL=https://<frontend-nuevo>
    - `/dashboard` redirige a `admin-web`
    - `/settings` redirige a `admin-web`
    - `/__sa` redirige a `admin-web`
+
+Mientras eso no ocurra, el smoke funcional debe ejecutarse contra el backend legacy restaurado (`app`).
 
 ## Pool de Postgres (opcional)
 
@@ -168,7 +171,7 @@ ADMIN_WEB_URL=https://<frontend-nuevo>
 Servicios expuestos:
 
 - `app` → `http://localhost:3006`
-- `admin-web` → `http://localhost:3100`
+- `admin-web` → `http://localhost:3100` (cuando se use en transición o QA)
 
 Comandos:
 
@@ -183,13 +186,14 @@ Checks:
 
 ```
 GET http://localhost:3006/health
-GET http://localhost:3100/api/health
+GET http://localhost:3100/api/health   # si admin-web está levantado
 ```
 
 ## Branding por cliente
 
-- El frontend operativo vive en `apps/admin-web`.
+- Estado actual en `client/olivashoes`: el branding operativo también se sirve desde `public/*`.
 - Logo del cliente se configura en `Perfil empresa` (`/api/company`) y se muestra junto al logo de ApiFlujos.
+- El retiro de esa superficie solo se hace cuando `admin-web` replique branding y flujos críticos.
 
 ## Super Admin (ApiFlujos)
 

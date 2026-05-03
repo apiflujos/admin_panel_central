@@ -34,7 +34,9 @@ Estado actual:
 - Cliente API tipado inicial en `lib/api.ts`.
 - Ruta local `api/session/login` y `api/session/logout` creada para preservar cookie real del backend.
 - Lectura server-side de sesión y datos reales centralizada en `lib/server-api.ts`.
-- El crecimiento nuevo debe seguir entrando por `apps/admin-web`, no por `public/`.
+- Objetivo arquitectónico: el crecimiento nuevo debe entrar por `apps/admin-web`.
+- Estado actual en `client/olivashoes`: `apps/admin-web` todavía no es la fuente funcional de verdad; el producto vivo sigue en `src/server.ts + public/* + src/api/*`.
+- Cualquier portado nuevo debe copiar comportamiento real desde el legacy y cerrarse con smoke funcional antes de declarar reemplazo.
 - Scripts útiles:
   - `npm run dev:admin-web`
   - `npm run build:admin-web`

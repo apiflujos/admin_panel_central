@@ -4,6 +4,7 @@
 
 - Antes de modificar código, preguntar si el cambio va en `main` o en `client/<cliente>`.
 - Este repo se despliega **una instancia por cliente** (no multi‑cliente en runtime).
+- Revisar `docs/TRANSITION_STATUS.md` antes de asumir que `admin-web` es la única superficie operativa en una branch de cliente.
 
 ## Flujos principales
 
@@ -196,7 +197,8 @@ Notas:
   - `GET/PUT /api/company`
   - `GET /api/company/public` (publico)
 - El logo del cliente se muestra junto al de ApiFlujos (no lo reemplaza).
-- La identidad visual operativa debe resolverse desde `apps/admin-web` y `Perfil empresa`, no desde archivos HTML legacy en `public/`.
+- Arquitectura objetivo: resolver identidad visual desde `apps/admin-web` y `Perfil empresa`.
+- Estado actual en `client/olivashoes`: el branding y parte de la UX operativa siguen sirviéndose desde `public/*` hasta cerrar el portado con paridad.
 
 ## API (mapa rapido por grupos)
 
