@@ -46,6 +46,13 @@ type ConnectionsWorkspace = {
   companyName: string;
   securityMisconfigured: boolean;
   stores: WorkspaceStore[];
+  alegraAccounts: Array<{
+    id: number;
+    email: string;
+    environment: string;
+    storeId: number | null;
+    needsReconnect: boolean;
+  }>;
   ads: WorkspaceAds[];
 };
 
@@ -80,6 +87,17 @@ export function SettingsConnectionsPage({
   const [webhookStatus, setWebhookStatus] = useState<WebhookStatus | null>(null);
   const [webhookLoading, setWebhookLoading] = useState(false);
   const [actionLoadingKey, setActionLoadingKey] = useState<string>("");
+  const [isCreateStoreOpen, setIsCreateStoreOpen] = useState(false);
+  const [newStoreName, setNewStoreName] = useState("");
+  const [reconnectKind, setReconnectKind] = useState<"shopify" | "woocommerce" | "alegra" | null>(null);
+  const [wooDomain, setWooDomain] = useState("");
+  const [wooConsumerKey, setWooConsumerKey] = useState("");
+  const [wooConsumerSecret, setWooConsumerSecret] = useState("");
+  const [alegraMode, setAlegraMode] = useState<"existing" | "manual">("existing");
+  const [alegraAccountId, setAlegraAccountId] = useState("");
+  const [alegraEmail, setAlegraEmail] = useState("");
+  const [alegraApiKey, setAlegraApiKey] = useState("");
+  const [alegraEnvironment, setAlegraEnvironment] = useState("prod");
 
   useEffect(() => {
     setWorkspaceState(workspace);
@@ -257,6 +275,149 @@ export function SettingsConnectionsPage({
     }
   }
 
+  async function createStore() {
+    if (!newStoreName.trim()) {
+      setStatusMessage("Nombre de tienda requerido.");
+      return;
+    }
+    setActionLoadingKey("store:create");
+    setStatusMessage("");
+    try {
+      const response = await fetch("/api/stores", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newStoreName.trim() }),
+      });
+      const payload = (await response.json()) as { error?: string; created?: { id: number } };
+      if (!response.ok) {
+        throw new Error(payload.error || `store_create_failed:${response.status}`);
+      }
+      const next = await refreshWorkspace();
+      const createdId = payload.created?.id;
+      if (createdId) {
+        setSelectedStoreId(createdId);
+      } else {
+        setSelectedStoreId(next.stores[0]?.id ?? null);
+      }
+      setNewStoreName("");
+      setIsCreateStoreOpen(false);
+      setStatusMessage("Tienda creada correctamente.");
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "No se pudo crear la tienda.");
+    } finally {
+      setActionLoadingKey("");
+    }
+  }
+
+  function openReconnect(kind: "shopify" | "woocommerce" | "alegra") {
+    if (kind === "woocommerce") {
+      setWooDomain(selectedStore?.providers.woocommerce?.shopDomain || "");
+      setWooConsumerKey("");
+      setWooConsumerSecret("");
+    }
+    if (kind === "alegra") {
+      const account = workspaceState.alegraAccounts.find((item) => item.storeId === selectedStore?.id) || workspaceState.alegraAccounts[0];
+      setAlegraMode(account ? "existing" : "manual");
+      setAlegraAccountId(account ? String(account.id) : "");
+      setAlegraEmail(account?.email || "");
+      setAlegraApiKey("");
+      setAlegraEnvironment(account?.environment || "prod");
+    }
+    setReconnectKind(kind);
+  }
+
+  async function reconnectShopify() {
+    const shopDomain = selectedStore?.providers.shopify?.shopDomain;
+    if (!selectedStore || !shopDomain) {
+      setStatusMessage("Selecciona una tienda con dominio Shopify.");
+      return;
+    }
+    const params = new URLSearchParams({
+      shop: shopDomain,
+      storeId: String(selectedStore.id),
+      storeName: selectedStore.name,
+    });
+    const alegraMatch = workspaceState.alegraAccounts.find((account) => account.storeId === selectedStore.id);
+    if (alegraMatch) {
+      params.set("alegraAccountId", String(alegraMatch.id));
+    }
+    window.location.href = `/api/auth/shopify?${params.toString()}`;
+  }
+
+  async function reconnectWooCommerce() {
+    if (!selectedStore) {
+      setStatusMessage("Selecciona una tienda.");
+      return;
+    }
+    setActionLoadingKey("reconnect:woocommerce");
+    setStatusMessage("");
+    try {
+      const response = await fetch("/api/woocommerce/connections", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeId: selectedStore.id,
+          storeName: selectedStore.name,
+          shopDomain: wooDomain,
+          consumerKey: wooConsumerKey,
+          consumerSecret: wooConsumerSecret,
+        }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || `woocommerce_reconnect_failed:${response.status}`);
+      }
+      await refreshWorkspace();
+      setReconnectKind(null);
+      setStatusMessage("WooCommerce actualizado correctamente.");
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "No se pudo actualizar WooCommerce.");
+    } finally {
+      setActionLoadingKey("");
+    }
+  }
+
+  async function reconnectAlegra() {
+    if (!selectedStore) {
+      setStatusMessage("Selecciona una tienda.");
+      return;
+    }
+    setActionLoadingKey("reconnect:alegra");
+    setStatusMessage("");
+    try {
+      const alegraPayload =
+        alegraMode === "existing" && alegraAccountId
+          ? { accountId: Number(alegraAccountId) }
+          : {
+              email: alegraEmail,
+              apiKey: alegraApiKey,
+              environment: alegraEnvironment,
+            };
+      const response = await fetch("/api/connections", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeId: selectedStore.id,
+          alegra: alegraPayload,
+        }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || `alegra_reconnect_failed:${response.status}`);
+      }
+      await refreshWorkspace();
+      setReconnectKind(null);
+      setStatusMessage("Alegra asociado o actualizado correctamente.");
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "No se pudo actualizar Alegra.");
+    } finally {
+      setActionLoadingKey("");
+    }
+  }
+
   return (
     <section className="page-stack">
       <PageHeader
@@ -314,15 +475,20 @@ export function SettingsConnectionsPage({
             <h3>Tienda activa</h3>
             <p>Contexto de lectura y acciones operativas para la fase inicial de portado.</p>
           </div>
-          <button
-            className="btn btn-ghost"
-            type="button"
-            onClick={() => {
-              void refreshWorkspace();
-            }}
-          >
-            Refrescar
-          </button>
+          <div className="connection-card-actions">
+            <button
+              className="btn btn-ghost"
+              type="button"
+              onClick={() => {
+                void refreshWorkspace();
+              }}
+            >
+              Refrescar
+            </button>
+            <button className="btn btn-primary" type="button" onClick={() => setIsCreateStoreOpen(true)}>
+              Crear tienda
+            </button>
+          </div>
         </div>
         <div className="connection-card-actions">
           <select
@@ -422,6 +588,11 @@ export function SettingsConnectionsPage({
                       Desconectar
                     </button>
                   ) : null}
+                  {row.provider === "Shopify" && row.status !== "connected" ? (
+                    <button className="btn btn-primary btn-compact" type="button" onClick={() => void reconnectShopify()}>
+                      Reconectar
+                    </button>
+                  ) : null}
                   {row.provider === "WooCommerce" ? (
                     <button
                       className="btn btn-ghost btn-compact"
@@ -432,6 +603,11 @@ export function SettingsConnectionsPage({
                       }}
                     >
                       Desconectar
+                    </button>
+                  ) : null}
+                  {row.provider === "WooCommerce" && row.status !== "connected" ? (
+                    <button className="btn btn-primary btn-compact" type="button" onClick={() => openReconnect("woocommerce")}>
+                      Reconectar
                     </button>
                   ) : null}
                 </div>
@@ -483,6 +659,11 @@ export function SettingsConnectionsPage({
                   >
                     Desconectar
                   </button>
+                  {row.status !== "connected" ? (
+                    <button className="btn btn-primary btn-compact" type="button" onClick={() => openReconnect("alegra")}>
+                      Reconectar
+                    </button>
+                  ) : null}
                 </div>
               </article>
             ))
@@ -655,6 +836,156 @@ export function SettingsConnectionsPage({
               <div className="modal-row">
                 <span>Ultimo sync</span>
                 <strong>{selected.lastSyncAt?.slice(0, 19).replace("T", " ") ?? "Sin registro"}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isCreateStoreOpen ? (
+        <div className="modal-backdrop" role="presentation" onClick={() => setIsCreateStoreOpen(false)}>
+          <div className="modal-card" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <p className="modal-kicker">Tienda</p>
+                <h3>Crear tienda</h3>
+              </div>
+              <button className="btn btn-ghost btn-compact" type="button" onClick={() => setIsCreateStoreOpen(false)}>
+                Cerrar
+              </button>
+            </div>
+            <div className="modal-body">
+              <label className="connection-form-row">
+                <span>Nombre</span>
+                <input className="input" value={newStoreName} onChange={(event) => setNewStoreName(event.target.value)} />
+              </label>
+              <div className="connection-card-actions">
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  disabled={actionLoadingKey === "store:create"}
+                  onClick={() => {
+                    void createStore();
+                  }}
+                >
+                  Crear
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {reconnectKind === "woocommerce" ? (
+        <div className="modal-backdrop" role="presentation" onClick={() => setReconnectKind(null)}>
+          <div className="modal-card" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <p className="modal-kicker">Reconexión</p>
+                <h3>WooCommerce</h3>
+              </div>
+              <button className="btn btn-ghost btn-compact" type="button" onClick={() => setReconnectKind(null)}>
+                Cerrar
+              </button>
+            </div>
+            <div className="modal-body">
+              <label className="connection-form-row">
+                <span>Dominio</span>
+                <input className="input" value={wooDomain} onChange={(event) => setWooDomain(event.target.value)} />
+              </label>
+              <label className="connection-form-row">
+                <span>Consumer Key</span>
+                <input className="input" value={wooConsumerKey} onChange={(event) => setWooConsumerKey(event.target.value)} />
+              </label>
+              <label className="connection-form-row">
+                <span>Consumer Secret</span>
+                <input
+                  className="input"
+                  type="password"
+                  value={wooConsumerSecret}
+                  onChange={(event) => setWooConsumerSecret(event.target.value)}
+                />
+              </label>
+              <div className="connection-card-actions">
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  disabled={actionLoadingKey === "reconnect:woocommerce"}
+                  onClick={() => {
+                    void reconnectWooCommerce();
+                  }}
+                >
+                  Guardar conexión
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {reconnectKind === "alegra" ? (
+        <div className="modal-backdrop" role="presentation" onClick={() => setReconnectKind(null)}>
+          <div className="modal-card" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <p className="modal-kicker">Reconexión</p>
+                <h3>Alegra</h3>
+              </div>
+              <button className="btn btn-ghost btn-compact" type="button" onClick={() => setReconnectKind(null)}>
+                Cerrar
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="connection-card-actions">
+                <button className={`btn ${alegraMode === "existing" ? "btn-primary" : "btn-ghost"}`} type="button" onClick={() => setAlegraMode("existing")}>
+                  Cuenta existente
+                </button>
+                <button className={`btn ${alegraMode === "manual" ? "btn-primary" : "btn-ghost"}`} type="button" onClick={() => setAlegraMode("manual")}>
+                  Credenciales nuevas
+                </button>
+              </div>
+              {alegraMode === "existing" ? (
+                <label className="connection-form-row">
+                  <span>Cuenta</span>
+                  <select className="input" value={alegraAccountId} onChange={(event) => setAlegraAccountId(event.target.value)}>
+                    <option value="">Selecciona una cuenta</option>
+                    {workspaceState.alegraAccounts.map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.email} · {account.environment}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <>
+                  <label className="connection-form-row">
+                    <span>Email</span>
+                    <input className="input" value={alegraEmail} onChange={(event) => setAlegraEmail(event.target.value)} />
+                  </label>
+                  <label className="connection-form-row">
+                    <span>API Key</span>
+                    <input className="input" type="password" value={alegraApiKey} onChange={(event) => setAlegraApiKey(event.target.value)} />
+                  </label>
+                  <label className="connection-form-row">
+                    <span>Entorno</span>
+                    <select className="input" value={alegraEnvironment} onChange={(event) => setAlegraEnvironment(event.target.value)}>
+                      <option value="prod">Producción</option>
+                      <option value="sandbox">Pruebas</option>
+                    </select>
+                  </label>
+                </>
+              )}
+              <div className="connection-card-actions">
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  disabled={actionLoadingKey === "reconnect:alegra"}
+                  onClick={() => {
+                    void reconnectAlegra();
+                  }}
+                >
+                  Guardar conexión
+                </button>
               </div>
             </div>
           </div>

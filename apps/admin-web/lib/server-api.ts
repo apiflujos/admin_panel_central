@@ -334,6 +334,13 @@ export async function getServerConnectionsWorkspace() {
     companyName: company.name || "ApiFlujos",
     securityMisconfigured: Boolean(connections.securityMisconfigured),
     stores,
+    alegraAccounts: connections.alegraAccounts.map((account: (typeof connections.alegraAccounts)[number]) => ({
+      id: account.id,
+      email: account.email,
+      environment: account.environment,
+      storeId: account.storeId ?? null,
+      needsReconnect: account.needsReconnect,
+    })),
     ads: [
       {
         key: "google_ads",
