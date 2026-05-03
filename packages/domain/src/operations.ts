@@ -17,11 +17,28 @@ type OperationServiceItem = {
   errorMessage?: unknown;
   einvoiceRequested?: unknown;
   einvoiceMissing?: unknown;
+  actionability?: unknown;
 };
 
 type OperationsServiceResult = {
   items: OperationServiceItem[];
 };
+
+type OperationActionabilityInput = {
+  sync?: { enabled?: unknown; reason?: unknown };
+  retryInvoice?: { enabled?: unknown; reason?: unknown };
+  payment?: { enabled?: unknown; reason?: unknown };
+  cancel?: { enabled?: unknown; reason?: unknown };
+  editEinvoice?: { enabled?: unknown; reason?: unknown };
+  pdf?: { enabled?: unknown; reason?: unknown; invoiceId?: unknown };
+};
+
+function toActionState(input: { enabled?: unknown; reason?: unknown }) {
+  return {
+    enabled: Boolean(input.enabled),
+    reason: typeof input.reason === "string" && input.reason.trim() ? input.reason : undefined,
+  };
+}
 
 export function normalizeOperationsDays(input: OperationsFiltersInput, fallback = 7) {
   const parsed = Number(input.days);
@@ -30,6 +47,7 @@ export function normalizeOperationsDays(input: OperationsFiltersInput, fallback 
 }
 
 export function toAdminWebOperationRowDto(item: OperationServiceItem): AdminWebOperationRowDto {
+  const actionability = ((item.actionability as OperationActionabilityInput | undefined) || {}) as OperationActionabilityInput;
   return {
     id: String(item.id || ""),
     orderNumber: String(item.orderNumber || "-"),
@@ -43,6 +61,18 @@ export function toAdminWebOperationRowDto(item: OperationServiceItem): AdminWebO
     errorMessage: item.errorMessage ? String(item.errorMessage) : null,
     einvoiceRequested: Boolean(item.einvoiceRequested),
     einvoiceMissing: Array.isArray(item.einvoiceMissing) ? item.einvoiceMissing.map((entry) => String(entry)) : [],
+    actionability: {
+      sync: toActionState(actionability.sync || {}),
+      retryInvoice: toActionState(actionability.retryInvoice || {}),
+      payment: toActionState(actionability.payment || {}),
+      cancel: toActionState(actionability.cancel || {}),
+      editEinvoice: toActionState(actionability.editEinvoice || {}),
+      pdf: {
+        ...toActionState(actionability.pdf || {}),
+        invoiceId:
+          actionability.pdf && actionability.pdf.invoiceId != null ? String(actionability.pdf.invoiceId) : null,
+      },
+    },
   };
 }
 

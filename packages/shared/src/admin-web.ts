@@ -193,6 +193,33 @@ export type AdminWebOperationRowDto = {
   errorMessage: string | null;
   einvoiceRequested: boolean;
   einvoiceMissing: string[];
+  actionability: {
+    sync: {
+      enabled: boolean;
+      reason?: string;
+    };
+    retryInvoice: {
+      enabled: boolean;
+      reason?: string;
+    };
+    payment: {
+      enabled: boolean;
+      reason?: string;
+    };
+    cancel: {
+      enabled: boolean;
+      reason?: string;
+    };
+    editEinvoice: {
+      enabled: boolean;
+      reason?: string;
+    };
+    pdf: {
+      enabled: boolean;
+      reason?: string;
+      invoiceId?: string | null;
+    };
+  };
 };
 
 export type AdminWebOperationsListDto = {

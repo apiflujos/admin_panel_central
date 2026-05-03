@@ -4,10 +4,13 @@ import { useState, useTransition } from "react";
 
 import type { AdminWebOperationsListDto } from "../../../packages/shared/src/admin-web";
 import {
+  cancelOperationInvoice,
+  emitOperationPayment,
   getEinvoiceOverride,
   getOperationsCatalog,
   retryOperationInvoice,
   saveEinvoiceOverride,
+  syncOperation,
   type AdminWebEinvoiceOverride,
 } from "../lib/api";
 import { DataTable } from "./ui/data-table";
@@ -251,7 +254,8 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
                     <button
                       className="btn btn-primary btn-compact"
                       type="button"
-                      disabled={pendingAction}
+                      disabled={pendingAction || !row.actionability.retryInvoice.enabled}
+                      title={row.actionability.retryInvoice.reason}
                       onClick={() =>
                         runAction(() =>
                           runOperationTask(async () => {
@@ -268,10 +272,62 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
                   <button
                     className="btn btn-ghost btn-compact"
                     type="button"
-                    disabled={pendingAction}
+                    disabled={pendingAction || !row.actionability.editEinvoice.enabled}
+                    title={row.actionability.editEinvoice.reason}
                     onClick={() => openEinvoice(row.id, row.orderNumber, row.einvoiceMissing)}
                   >
                     e-Factura
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-compact"
+                    type="button"
+                    disabled={pendingAction || !row.actionability.sync.enabled}
+                    title={row.actionability.sync.reason}
+                    onClick={() =>
+                      runAction(() =>
+                        runOperationTask(async () => {
+                          const response = await syncOperation(row.id);
+                          await refreshRows();
+                          return `Sync ejecutado para ${row.orderNumber}: ${String(response.status || "ok")}.`;
+                        }, "No se pudo ejecutar el sync.")
+                      )
+                    }
+                  >
+                    Sync
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-compact"
+                    type="button"
+                    disabled={pendingAction || !row.actionability.payment.enabled}
+                    title={row.actionability.payment.reason}
+                    onClick={() =>
+                      runAction(() =>
+                        runOperationTask(async () => {
+                          const response = await emitOperationPayment(row.id);
+                          await refreshRows();
+                          return `Pago para ${row.orderNumber}: ${String(response.status || "ok")}.`;
+                        }, "No se pudo emitir el pago.")
+                      )
+                    }
+                  >
+                    Pago
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-compact"
+                    type="button"
+                    disabled={pendingAction || !row.actionability.cancel.enabled}
+                    title={row.actionability.cancel.reason}
+                    onClick={() =>
+                      runAction(() =>
+                        runOperationTask(async () => {
+                          const response = await cancelOperationInvoice(row.id);
+                          await refreshRows();
+                          return `Anulación para ${row.orderNumber}: ${String(response.status || "ok")}.`;
+                        }, "No se pudo anular la factura.")
+                      )
+                    }
+                  >
+                    Anular
                   </button>
                 </div>
               ),

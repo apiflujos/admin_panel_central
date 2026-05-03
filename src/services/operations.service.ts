@@ -43,6 +43,16 @@ async function listOperationsByQuery(query: string) {
       const status = mapping?.alegraId ? "facturado" : log?.status === "fail" ? "fallo" : "pendiente";
       const override = overrides.get(order.id) || null;
       const missing = einvoiceEnabled ? validateEinvoiceData(override) : [];
+      const actionability = buildOperationActionability({
+        orderId: order.id,
+        invoiceId: mapping?.alegraId ? String(mapping.alegraId) : null,
+        alegraStatus: status,
+        einvoiceEnabled,
+        einvoiceRequested: Boolean(override?.einvoiceRequested),
+        einvoiceMissing: missing,
+        paymentEnabled: invoiceSettings.applyPayment,
+        hasBankAccount: Boolean(invoiceSettings.bankAccountId),
+      });
       return {
         id: order.id,
         orderNumber: order.name,
@@ -56,6 +66,7 @@ async function listOperationsByQuery(query: string) {
         errorMessage: log?.status === "fail" ? log.message || null : null,
         einvoiceRequested: Boolean(override?.einvoiceRequested),
         einvoiceMissing: missing,
+        actionability,
       };
     })
   );
@@ -158,9 +169,13 @@ async function loadInvoiceSettings() {
   const pool = getPool();
   const orgId = getOrgId();
   await ensureInvoiceSettingsColumns(pool);
-  const result = await pool.query<{ einvoice_enabled: boolean | null }>(
+  const result = await pool.query<{
+    einvoice_enabled: boolean | null;
+    apply_payment: boolean | null;
+    bank_account_id: string | null;
+  }>(
     `
-    SELECT einvoice_enabled
+    SELECT einvoice_enabled, apply_payment, bank_account_id
     FROM invoice_settings
     WHERE organization_id = $1
     ORDER BY created_at DESC
@@ -169,9 +184,64 @@ async function loadInvoiceSettings() {
     [orgId]
   );
   if (!result.rows.length) {
-    return { einvoiceEnabled: false };
+    return { einvoiceEnabled: false, applyPayment: false, bankAccountId: "" };
   }
-  return { einvoiceEnabled: Boolean(result.rows[0].einvoice_enabled) };
+  return {
+    einvoiceEnabled: Boolean(result.rows[0].einvoice_enabled),
+    applyPayment: Boolean(result.rows[0].apply_payment),
+    bankAccountId: result.rows[0].bank_account_id || "",
+  };
+}
+
+function buildOperationActionability(params: {
+  orderId: string;
+  invoiceId: string | null;
+  alegraStatus: string;
+  einvoiceEnabled: boolean;
+  einvoiceRequested: boolean;
+  einvoiceMissing: string[];
+  paymentEnabled: boolean;
+  hasBankAccount: boolean;
+}) {
+  const { orderId, invoiceId, alegraStatus, einvoiceEnabled, einvoiceRequested, einvoiceMissing, paymentEnabled, hasBankAccount } =
+    params;
+  const hasOrderId = Boolean(orderId);
+  const isInvoiced = alegraStatus === "facturado";
+  const hasInvoice = Boolean(invoiceId);
+  const missingEinvoiceData = einvoiceEnabled && einvoiceRequested && einvoiceMissing.length > 0;
+
+  return {
+    sync: hasOrderId
+      ? { enabled: true as const }
+      : { enabled: false as const, reason: "Sin identificador de pedido." },
+    retryInvoice: !hasOrderId
+      ? { enabled: false as const, reason: "Sin identificador de pedido." }
+      : isInvoiced || hasInvoice
+        ? { enabled: false as const, reason: "La operación ya está facturada." }
+        : missingEinvoiceData
+          ? { enabled: false as const, reason: "Faltan datos de e-factura para facturar." }
+          : { enabled: true as const },
+    payment: !hasInvoice
+      ? { enabled: false as const, reason: "La operación no tiene factura asociada." }
+      : !paymentEnabled
+        ? { enabled: false as const, reason: "Apply payment está apagado." }
+        : !hasBankAccount
+          ? { enabled: false as const, reason: "Falta cuenta bancaria en configuración." }
+          : isInvoiced
+            ? { enabled: true as const }
+            : { enabled: false as const, reason: "La factura aún no está en estado facturado." },
+    cancel: !hasInvoice
+      ? { enabled: false as const, reason: "La operación no tiene factura asociada." }
+      : isInvoiced
+        ? { enabled: true as const }
+        : { enabled: false as const, reason: "Solo se puede anular una factura activa." },
+    editEinvoice: hasOrderId
+      ? { enabled: true as const }
+      : { enabled: false as const, reason: "Sin identificador de pedido." },
+    pdf: hasInvoice
+      ? { enabled: true as const, invoiceId }
+      : { enabled: false as const, reason: "Sin factura asociada.", invoiceId: null },
+  };
 }
 
 function resolveContactId(invoicePayload: Record<string, unknown>) {
