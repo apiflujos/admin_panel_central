@@ -82,20 +82,23 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
     .trim()
     .replace(/^https?:\/\//, "")
     .replace(/\/.*$/, "");
+  const shopify = new ShopifyClient({
+    shopDomain: resolvedDomain,
+    accessToken: shopifySettings.accessToken,
+    apiVersion: shopifySettings.apiVersion,
+  });
+  const resolvedLocationId =
+    String(shopifySettings.locationId || "").trim() || (await shopify.getPrimaryLocationId().catch(() => ""));
 
   return {
-    shopify: new ShopifyClient({
-      shopDomain: resolvedDomain,
-      accessToken: shopifySettings.accessToken,
-      apiVersion: shopifySettings.apiVersion,
-    }),
+    shopify,
     alegra: new AlegraClient({
       email: alegraSettings.email,
       apiKey: alegraSettings.apiKey,
       baseUrl: getAlegraBaseUrl(alegraSettings.environment),
     }),
     shopDomain: resolvedDomain,
-    shopifyLocationId: shopifySettings.locationId,
+    shopifyLocationId: resolvedLocationId || undefined,
     webhookItemsEnabled: (rules as InventoryRules).webhookItemsEnabled !== false,
     syncEnabled: rules.syncEnabled !== false,
     createInShopify: (rules as InventoryRules).createInShopify !== false,
@@ -176,6 +179,8 @@ async function loadShopifySettings(pool: ReturnType<typeof getPool>, orgId: numb
         return {
           shopDomain: store.rows[0].shop_domain,
           accessToken: decrypted.accessToken,
+          locationId: decrypted.locationId,
+          apiVersion: decrypted.apiVersion,
         } as ProviderSettings;
       } catch (error) {
         if (isCryptoKeyMisconfigured(error)) throw error;

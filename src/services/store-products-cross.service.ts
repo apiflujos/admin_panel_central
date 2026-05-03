@@ -291,7 +291,7 @@ async function buildShopifyInputFromWoo(
       inventoryPolicy?: "CONTINUE" | "DENY" | null;
     } = {
       sku: variation?.sku ? String(variation.sku).trim() : undefined,
-      inventoryPolicy: allowOversell ? "CONTINUE" : "DENY",
+      inventoryPolicy: (allowOversell ? "CONTINUE" : "DENY") as "CONTINUE" | "DENY",
     };
 
     if (optionNames.length) {

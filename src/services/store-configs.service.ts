@@ -19,6 +19,15 @@ const normalizeIdList = (value?: unknown) =>
 
 const normalizeBoolean = (value: unknown, fallback: boolean) => {
   if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "on") return true;
+    if (normalized === "false" || normalized === "0" || normalized === "no" || normalized === "off") return false;
+  }
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
   return fallback;
 };
 

@@ -1,5 +1,7 @@
 import { getOrgId, getPool } from "../db";
 import { retryInvoiceFromLog } from "./operations.service";
+import { processQueuedWebhookEvent, type WebhookEvent, type WebhookSource } from "./sync.service";
+import { updateSyncLog } from "./logs.service";
 
 type RetryRow = {
   id: number;
@@ -8,6 +10,44 @@ type RetryRow = {
   request_json: Record<string, unknown> | null;
   retry_count: number;
 };
+
+type JsonObject = Record<string, unknown>;
+
+type QueuedWebhookEvent = WebhookEvent & {
+  webhookEventId: number | null;
+  meta: JsonObject;
+};
+
+function asRecord(value: unknown): JsonObject | null {
+  return value && typeof value === "object" ? (value as JsonObject) : null;
+}
+
+function parseWebhookSource(value: unknown): WebhookSource | null {
+  return value === "shopify" || value === "alegra" ? value : null;
+}
+
+function parseQueuedWebhookEvent(value: unknown): QueuedWebhookEvent | null {
+  const record = asRecord(value);
+  if (!record) return null;
+  const source = parseWebhookSource(record.source);
+  const eventType = typeof record.eventType === "string" ? record.eventType : null;
+  if (!source || !eventType) return null;
+  const meta = asRecord(record.meta) || {};
+  const webhookEventIdRaw = record.webhookEventId;
+  const webhookEventId =
+    typeof webhookEventIdRaw === "number" && Number.isFinite(webhookEventIdRaw)
+      ? webhookEventIdRaw
+      : typeof webhookEventIdRaw === "string" && webhookEventIdRaw.trim() && Number.isFinite(Number(webhookEventIdRaw))
+        ? Number(webhookEventIdRaw)
+        : null;
+  return {
+    source,
+    eventType,
+    payload: record.payload,
+    meta,
+    webhookEventId,
+  };
+}
 
 export async function processRetryQueue(limit = 50) {
   const pool = getPool();
@@ -54,19 +94,40 @@ export async function processRetryQueue(limit = 50) {
 
   for (const row of rows) {
     const orderId = row.request_json?.orderId;
-    if (row.entity !== "order" || (typeof orderId !== "string" && typeof orderId !== "number")) {
-      await pool.query(`UPDATE retry_queue SET status = 'skipped' WHERE id = $1`, [row.id]);
-      continue;
-    }
 
     try {
-      await retryInvoiceFromLog(String(orderId));
+      if (row.entity === "order" && (typeof orderId === "string" || typeof orderId === "number")) {
+        await retryInvoiceFromLog(String(orderId));
+      } else if (row.entity === "webhook") {
+        const queuedEvent = parseQueuedWebhookEvent(row.request_json?.webhookEvent);
+        if (!queuedEvent) {
+          await pool.query(`UPDATE retry_queue SET status = 'skipped' WHERE id = $1`, [row.id]);
+          continue;
+        }
+        await processQueuedWebhookEvent({
+          syncLogId: row.sync_log_id,
+          event: {
+            source: queuedEvent.source,
+            eventType: queuedEvent.eventType,
+            payload: queuedEvent.payload,
+            meta: queuedEvent.meta,
+          },
+          webhookEventId: queuedEvent.webhookEventId,
+        });
+      } else {
+        await pool.query(`UPDATE retry_queue SET status = 'skipped' WHERE id = $1`, [row.id]);
+        continue;
+      }
       await pool.query(`UPDATE retry_queue SET status = 'done' WHERE id = $1`, [row.id]);
     } catch (error) {
       console.error(`[retry-queue] orderId=${orderId} attempt failed:`, error instanceof Error ? error.message : error);
       const nextRetryCount = row.retry_count + 1;
       if (nextRetryCount >= maxRetries) {
         await pool.query(`UPDATE retry_queue SET status = 'failed' WHERE id = $1`, [row.id]);
+        await updateSyncLog(row.sync_log_id, {
+          status: "fail",
+          message: error instanceof Error ? error.message : "Retry failed",
+        });
         continue;
       }
       const delaySec = baseDelaySec * Math.pow(2, Math.min(nextRetryCount, 4));
@@ -86,6 +147,10 @@ export async function processRetryQueue(limit = 50) {
         `,
         [row.sync_log_id]
       );
+      await updateSyncLog(row.sync_log_id, {
+        status: "retrying",
+        message: error instanceof Error ? error.message : "Retry scheduled",
+      });
     }
   }
 

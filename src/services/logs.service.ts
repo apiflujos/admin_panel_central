@@ -217,7 +217,7 @@ export async function retryFailedLogs() {
 export async function createSyncLog(payload: {
   entity: string;
   direction: string;
-  status: "success" | "fail" | "retrying" | "warn";
+  status: "success" | "fail" | "retrying" | "warn" | "queued";
   message?: string;
   request?: Record<string, unknown>;
   response?: Record<string, unknown>;
@@ -226,11 +226,12 @@ export async function createSyncLog(payload: {
   const pool = getPool();
   const orgId = getOrgId();
 
-  await pool.query(
+  const result = await pool.query<{ id: number }>(
     `
     INSERT INTO sync_logs
       (organization_id, entity, direction, status, message, request_json, response_json)
     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    RETURNING id
     `,
     [
       orgId,
@@ -241,5 +242,31 @@ export async function createSyncLog(payload: {
       payload.request || null,
       payload.response || null,
     ]
+  );
+  return result.rows[0]?.id || null;
+}
+
+export async function updateSyncLog(
+  id: number,
+  payload: {
+    status?: "success" | "fail" | "retrying" | "warn" | "queued";
+    message?: string | null;
+    request?: Record<string, unknown> | null;
+    response?: Record<string, unknown> | null;
+  }
+) {
+  const { getOrgId, getPool } = await import("../db");
+  const pool = getPool();
+  const orgId = getOrgId();
+  await pool.query(
+    `
+    UPDATE sync_logs
+    SET status = COALESCE($3, status),
+        message = COALESCE($4, message),
+        request_json = COALESCE($5, request_json),
+        response_json = COALESCE($6, response_json)
+    WHERE organization_id = $1 AND id = $2
+    `,
+    [orgId, id, payload.status || null, payload.message ?? null, payload.request ?? null, payload.response ?? null]
   );
 }

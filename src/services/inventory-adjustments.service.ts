@@ -92,7 +92,9 @@ export async function syncInventoryAdjustments(
     const BATCH = 5;
     for (let i = 0; i < ids.length; i += BATCH) {
       const batch = ids.slice(i, i + BATCH);
-      const batchResults = await Promise.allSettled(batch.map((id) => syncAlegraInventoryById(id)));
+      const batchResults = await Promise.allSettled(
+        batch.map((id) => syncAlegraInventoryById(id, shopDomain || undefined))
+      );
       results.push(...batchResults);
     }
   }

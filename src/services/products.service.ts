@@ -13,6 +13,7 @@ type ProductInput = {
   warehouseIds?: string[] | null;
   source?: string | null;
   sourceUpdatedAt?: string | number | Date | null;
+  payloadJson?: unknown;
 };
 
 const normalizeShopDomain = (value: unknown) =>
@@ -50,6 +51,8 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
     : null;
   const source = input.source ? String(input.source) : null;
   const sourceUpdatedAt = parseTimestamp(input.sourceUpdatedAt);
+  const payloadJson =
+    input.payloadJson && typeof input.payloadJson === "object" ? JSON.stringify(input.payloadJson) : JSON.stringify({});
 
   if (!alegraId && !shopifyId && !reference && !sku) {
     return { skipped: true, reason: "missing_identifiers" };
@@ -99,6 +102,7 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
           warehouse_ids = COALESCE($11::text[], warehouse_ids),
           source_updated_at = COALESCE($12::timestamptz, source_updated_at),
           source = COALESCE($13::text, source),
+          payload_json = COALESCE(products.payload_json, '{}'::jsonb) || $14::jsonb,
           sync_status = CASE
             WHEN COALESCE($3, alegra_item_id) IS NOT NULL
              AND COALESCE($4, shopify_product_id) IS NOT NULL
@@ -123,6 +127,7 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
         warehouseIds,
         sourceUpdatedAt,
         source,
+        payloadJson,
       ]
     );
     return { updated: true };
@@ -144,6 +149,7 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
     warehouseIds,
     sourceUpdatedAt,
     syncStatus,
+    payloadJson,
   ];
 
   if (alegraId) {
@@ -151,8 +157,8 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
       await pool.query(
         `
         INSERT INTO products
-          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, last_sync_at)
-        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,NOW())
+          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, payload_json, last_sync_at)
+        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,$15::jsonb,NOW())
         ON CONFLICT (organization_id, shop_domain, alegra_item_id) DO NOTHING
         `,
         insertValues
@@ -161,8 +167,8 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
       await pool.query(
         `
         INSERT INTO products
-          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, last_sync_at)
-        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,NOW())
+          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, payload_json, last_sync_at)
+        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,$15::jsonb,NOW())
         ON CONFLICT (organization_id, shop_domain, alegra_item_id) DO UPDATE SET
           shopify_product_id = COALESCE(EXCLUDED.shopify_product_id, products.shopify_product_id),
           name = COALESCE(EXCLUDED.name, products.name),
@@ -174,6 +180,7 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
           warehouse_ids = COALESCE(EXCLUDED.warehouse_ids, products.warehouse_ids),
           source_updated_at = COALESCE(EXCLUDED.source_updated_at, products.source_updated_at),
           source = COALESCE(EXCLUDED.source, products.source),
+          payload_json = COALESCE(products.payload_json, '{}'::jsonb) || EXCLUDED.payload_json,
           sync_status = CASE
             WHEN COALESCE(EXCLUDED.alegra_item_id, products.alegra_item_id) IS NOT NULL
              AND COALESCE(EXCLUDED.shopify_product_id, products.shopify_product_id) IS NOT NULL
@@ -194,8 +201,8 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
       await pool.query(
         `
         INSERT INTO products
-          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, last_sync_at)
-        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,NOW())
+          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, payload_json, last_sync_at)
+        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,$15::jsonb,NOW())
         ON CONFLICT (organization_id, shop_domain, shopify_product_id) DO NOTHING
         `,
         insertValues
@@ -204,8 +211,8 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
       await pool.query(
         `
         INSERT INTO products
-          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, last_sync_at)
-        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,NOW())
+          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, payload_json, last_sync_at)
+        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,$15::jsonb,NOW())
         ON CONFLICT (organization_id, shop_domain, shopify_product_id) DO UPDATE SET
           alegra_item_id = COALESCE(EXCLUDED.alegra_item_id, products.alegra_item_id),
           name = COALESCE(EXCLUDED.name, products.name),
@@ -217,6 +224,7 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
           warehouse_ids = COALESCE(EXCLUDED.warehouse_ids, products.warehouse_ids),
           source_updated_at = COALESCE(EXCLUDED.source_updated_at, products.source_updated_at),
           source = COALESCE(EXCLUDED.source, products.source),
+          payload_json = COALESCE(products.payload_json, '{}'::jsonb) || EXCLUDED.payload_json,
           sync_status = CASE
             WHEN COALESCE(EXCLUDED.alegra_item_id, products.alegra_item_id) IS NOT NULL
              AND COALESCE(EXCLUDED.shopify_product_id, products.shopify_product_id) IS NOT NULL
@@ -235,8 +243,8 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
   await pool.query(
     `
     INSERT INTO products
-      (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, last_sync_at)
-    VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,NOW())
+      (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, payload_json, last_sync_at)
+    VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,$15::jsonb,NOW())
     `,
     insertValues
   );
@@ -257,7 +265,7 @@ export async function listProducts(options: {
 }) {
   const pool = getPool();
   const orgId = getOrgId();
-  const where: string[] = ["organization_id = $1"];
+  const where: string[] = ["products.organization_id = $1"];
   const params: Array<string | number | null | string[]> = [orgId];
   let idx = 2;
 
@@ -268,34 +276,36 @@ export async function listProducts(options: {
   };
 
   if (typeof options.shopDomain === "string") {
-    add("shop_domain = $idx", normalizeShopDomain(options.shopDomain));
+    add("products.shop_domain = $idx", normalizeShopDomain(options.shopDomain));
   }
   if (options.query) {
     const q = `%${options.query}%`;
-    where.push(`(name ILIKE $${idx} OR reference ILIKE $${idx} OR sku ILIKE $${idx})`);
+    where.push(
+      `(products.name ILIKE $${idx} OR products.reference ILIKE $${idx} OR products.sku ILIKE $${idx})`
+    );
     params.push(q);
     idx += 1;
   }
   if (options.status) {
-    add("status_alegra = $idx", options.status);
+    add("products.status_alegra = $idx", options.status);
   }
   if (options.source) {
-    add("source = $idx", options.source);
+    add("products.source = $idx", options.source);
   }
   if (options.inStockOnly) {
-    where.push("(inventory_quantity IS NULL OR inventory_quantity > 0)");
+    where.push("(products.inventory_quantity IS NULL OR products.inventory_quantity > 0)");
   }
   if (options.warehouseIds && options.warehouseIds.length) {
     add(
-      "warehouse_ids && $idx::text[]",
+      "products.warehouse_ids && $idx::text[]",
       options.warehouseIds.map((id) => String(id))
     );
   }
   if (options.from) {
-    add("COALESCE(source_updated_at, updated_at) >= $idx", options.from);
+    add("COALESCE(products.source_updated_at, products.updated_at) >= $idx", options.from);
   }
   if (options.to) {
-    add("COALESCE(source_updated_at, updated_at) <= $idx", options.to);
+    add("COALESCE(products.source_updated_at, products.updated_at) <= $idx", options.to);
   }
 
   const limit = Number.isFinite(options.limit) && Number(options.limit) > 0 ? Number(options.limit) : 30;
@@ -313,22 +323,29 @@ export async function listProducts(options: {
 
   const items = await pool.query(
     `
-    SELECT id,
-           alegra_item_id,
-           shopify_product_id,
-           name,
-           reference,
-           sku,
-           status_alegra,
-           status_shopify,
-           inventory_quantity,
-           warehouse_ids,
-           source,
-           source_updated_at,
-           updated_at
+    SELECT products.id,
+           products.alegra_item_id,
+           products.shopify_product_id,
+           products.name,
+           products.reference,
+           products.sku,
+           products.status_alegra,
+           products.status_shopify,
+           products.inventory_quantity,
+           products.warehouse_ids,
+           CASE
+             WHEN products.payload_json = '{}'::jsonb THEN COALESCE(alegra_items_cache.item_json, products.payload_json)
+             ELSE products.payload_json
+           END AS payload_json,
+           products.source,
+           products.source_updated_at,
+           products.updated_at
     FROM products
+    LEFT JOIN alegra_items_cache
+      ON alegra_items_cache.organization_id = products.organization_id
+     AND alegra_items_cache.alegra_item_id = products.alegra_item_id
     ${whereClause}
-    ORDER BY COALESCE(source_updated_at, updated_at) DESC NULLS LAST
+    ORDER BY COALESCE(products.source_updated_at, products.updated_at) DESC NULLS LAST
     LIMIT $${idx} OFFSET $${idx + 1}
     `,
     [...params, limit, offset]

@@ -141,6 +141,31 @@ export async function ensureSyncCheckpointTable(poolInstance: Pool) {
   ]);
 }
 
+export async function ensureWebhookEventsTable(poolInstance: Pool) {
+  await assertColumns(poolInstance, "webhook_events", [
+    "organization_id",
+    "source",
+    "event_type",
+    "payload_json",
+    "received_at",
+    "processed_at",
+    "status",
+  ]);
+}
+
+export async function ensureSyncRunsTable(poolInstance: Pool) {
+  await assertColumns(poolInstance, "sync_runs", [
+    "organization_id",
+    "sync_id",
+    "sync_type",
+    "status",
+    "cancel_requested",
+    "started_at",
+    "finished_at",
+    "meta_json",
+  ]);
+}
+
 export async function ensureConnectionTestsTable(poolInstance: Pool) {
   await assertColumns(poolInstance, "connection_tests", [
     "organization_id",

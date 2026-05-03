@@ -11,17 +11,48 @@ If you are an AI agent (Codex/Gemini/Claude/etc), **read these files before codi
 - `docs/INTEGRATIONS.md`
 - `docs/QA.md`
 - `.env.example`
+- `docs/RECONSTRUCTION_BLUEPRINT.md`
+- `docs/RECONSTRUCTION_BACKLOG.md`
 
 Before changing any code, **ask the human** if the change is for:
 
 - `main` (base comun), or
 - a specific client branch (`client/<cliente>`).
 
+For frontend/UI work in `main`, use `Design System v4.html` as the visual source of truth. Reuse the canonical classes from that document (`.btn`, `.input`, `.pill`, `.page-header-standard`, `.page-toolbar`, `.dataTable`) before creating new patterns.
+
+## Reconstrucción
+
+La reconstrucción total del sistema en `main` se está guiando por:
+
+- [docs/RECONSTRUCTION_BLUEPRINT.md](docs/RECONSTRUCTION_BLUEPRINT.md)
+- [docs/RECONSTRUCTION_BACKLOG.md](docs/RECONSTRUCTION_BACKLOG.md)
+
+Arquitectura objetivo:
+
+- `apps/admin-web`
+- `apps/integration-api`
+- `apps/workers`
+- `packages/shared`
+- `packages/domain`
+
+Frontend operativo:
+
+- `apps/admin-web` es la única entrada frontend objetivo.
+- el backend ya no debe servir `public/index.html`.
+- `ADMIN_WEB_URL` define la URL base del frontend nuevo para redirects desde `/`, `/dashboard`, `/settings*` y `/__sa`.
+
 ## Quick start
 
 1. Copy `.env.example` to `.env` and fill the values (use it as source of truth).
 2. Install dependencies: `npm install`
 3. Run dev server: `npm run dev`
+
+Para operar en una sola capa frontend:
+
+1. levantar `apps/admin-web`
+2. definir `ADMIN_WEB_URL`
+3. reiniciar backend
 
 ## Deploy (Render)
 
@@ -44,6 +75,18 @@ Before changing any code, **ask the human** if the change is for:
   - Local: `npm run db:migrate:dev`
 - Migrations are tracked in `schema_migrations`.
 - The app does not auto-apply schema changes at runtime.
+
+Orden recomendado de despliegue:
+
+1. `npm ci`
+2. `npm run build`
+3. `npm run db:migrate`
+4. reiniciar procesos (`pm2`, Docker o el supervisor que uses)
+5. correr smoke:
+   - backend: `npm run qa:smoke`
+   - frontend nuevo: `npm run qa:admin-web`
+
+El smoke visual debe ejecutarse únicamente contra `admin-web`.
 
 ## External datastores
 
@@ -86,6 +129,64 @@ Before changing any code, **ask the human** if the change is for:
 - Checklist: `docs/QA.md`
 - Script (requiere `QA_TOKEN` o `ADMIN_EMAIL`/`ADMIN_PASSWORD`):
   - `BASE_URL=https://<tu-servicio>.onrender.com QA_TOKEN=<token> SHOP_DOMAIN=<tu-tienda.myshopify.com> npm run qa:smoke`
+- Frontend nuevo (`admin-web`):
+  - `BASE_URL=http://localhost:3100 ADMIN_EMAIL=<email> ADMIN_PASSWORD=<pass> npm run qa:admin-web`
+
+## Preparar inventario desde Excel
+
+Para normalizar un Excel de inventario/precios y dejarlo listo para cruce con Shopify:
+
+```bash
+npm run inventory:prepare:xlsx -- "Actualizacion Precios e Inventarios 29abr26 (1).xlsx" --warehouse="Bodega Pagina Web"
+```
+
+Salida:
+
+- `Descargas/preparados-shopify/<archivo>.prepared.json`
+- `Descargas/preparados-shopify/<archivo>.prepared.csv`
+- `Descargas/preparados-shopify/<archivo>.summary.json`
+
+Notas:
+
+- Usa por defecto la hoja `item`.
+- Toma solo filas de variantes (`Nombre` con formato `Producto / Variante`).
+- La columna base para match es `Referencia`.
+- La bodega se puede cambiar con `--warehouse=<nombre>` o `XLSX_WAREHOUSE_NAME`.
+- La implementacion operativa ya vive en `src/scripts/prepare-shopify-inventory-from-xlsx.ts` y `src/services/xlsx-inventory-preparation.service.ts`.
+
+## Publicar inventario de Excel en Shopify
+
+Para preparar el Excel, resolver match contra variantes de Shopify y actualizar inventario:
+
+```bash
+npm run inventory:publish:xlsx -- "Actualizacion Precios e Inventarios 29abr26 (1).xlsx" --warehouse="Bodega Pagina Web" --apply
+```
+
+Atajo mas simple, usando automaticamente el Excel mas reciente `Actualizacion Precios e Inventarios 29abr26*.xlsx`:
+
+```bash
+npm run inventory:publish:web
+```
+
+Sin aplicar cambios, para revisar el match primero:
+
+```bash
+npm run inventory:publish:xlsx -- "Actualizacion Precios e Inventarios 29abr26 (1).xlsx" --warehouse="Bodega Pagina Web"
+```
+
+Dry run simple:
+
+```bash
+npm run inventory:publish:web:dry
+```
+
+Notas:
+
+- Si existen `SHOPIFY_DOMAIN` y `SHOPIFY_ACCESS_TOKEN`, el script usa esas credenciales.
+- Si no existen, intenta leer la conexión Shopify guardada desde la BD usando `DATABASE_URL`, `APP_ORG_ID` y `CRYPTO_KEY_BASE64`.
+- Si no se pasa `SHOPIFY_LOCATION_ID`, el script intenta resolver la ubicación principal en Shopify.
+- Genera un reporte JSON en `Descargas/preparados-shopify/*.shopify-inventory-report.json`.
+- La implementacion operativa ya vive en `src/scripts/publish-shopify-inventory-from-xlsx.ts` y `src/services/shopify-inventory-publication.service.ts`.
 
 ## Notes
 
@@ -99,7 +200,7 @@ Before changing any code, **ask the human** if the change is for:
 - Roadmap: integrar WooCommerce y otras fuentes de pedidos más adelante (ver `docs/INTEGRATIONS.md`).
 - `APP_HOST` es la única URL pública usada por OAuth y webhooks.
 - Branding: ApiFlujos siempre visible; el cliente puede configurar su logo en `Perfil empresa`.
-- Branding por cliente: textos/títulos se ajustan en `public/brand.json` (por branch).
+- El frontend operativo es `apps/admin-web`; no se mantiene branding UI en `public/`.
 - Super Admin (ApiFlujos): grupo de usuarios con acceso global. Se gestionan en `Super Admin > Usuarios ApiFlujos` (`/api/sa/users`).
 - Solo super admin ApiFlujos puede asignar/cambiar roles de usuarios.
 

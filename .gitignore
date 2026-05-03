@@ -5,3 +5,19 @@ cookies.txt
 recursos/
 public/data/*
 !public/data/.gitkeep
+
+# Build artifacts
+*.tsbuildinfo
+apps/admin-web/.next/
+
+# Personal and temporary files — never track
+Descargas/
+*.xlsx
+*.pdf
+inventario*
+
+# Codex planning docs — generated, not code
+docs/LEGACY_DEMOLITION_PLAN.md
+docs/RECONSTRUCTION_BACKLOG.md
+docs/RECONSTRUCTION_BLUEPRINT.md
+.codex

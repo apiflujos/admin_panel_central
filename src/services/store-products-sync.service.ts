@@ -196,7 +196,7 @@ async function buildProductCreateInput(
     } = {
       sku: node?.sku ? String(node.sku).trim() : undefined,
       barcode: node?.barcode ? String(node.barcode).trim() : undefined,
-      inventoryPolicy: allowOversell ? "CONTINUE" : "DENY",
+      inventoryPolicy: (allowOversell ? "CONTINUE" : "DENY") as "CONTINUE" | "DENY",
     };
 
     if (optionNames.length) {

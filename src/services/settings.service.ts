@@ -363,6 +363,8 @@ export async function getShopifyCredential() {
   return {
     shopDomain: cleanedDomain,
     accessToken: String(decrypted?.accessToken || ""),
+    locationId: String(decrypted?.locationId || ""),
+    apiVersion: String(decrypted?.apiVersion || ""),
   } as {
     shopDomain: string;
     accessToken: string;

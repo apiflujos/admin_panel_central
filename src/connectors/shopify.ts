@@ -523,6 +523,28 @@ export class ShopifyClient {
     });
   }
 
+  async findVariantBySku(sku: string) {
+    const escaped = sku.replace(/"/g, '\\"');
+    const query = `sku:"${escaped}"`;
+    return this.request<{
+      productVariants: {
+        edges: Array<{
+          node: {
+            id: string;
+            sku?: string | null;
+            barcode?: string | null;
+            inventoryPolicy?: string | null;
+            inventoryItem?: { id: string; tracked?: boolean } | null;
+            product?: { id: string; status?: string | null } | null;
+          };
+        }>;
+      };
+    }>(<GraphQlRequest>{
+      query: PRODUCT_VARIANT_BY_IDENTIFIER_QUERY,
+      variables: { query },
+    });
+  }
+
   async adjustInventory(inventoryItemId: string, locationId: string, availableDelta: number) {
     return this.request<{ inventoryAdjustQuantity: ShopifyMutationResult }>(<GraphQlRequest>{
       query: INVENTORY_ADJUST_MUTATION,
@@ -622,6 +644,7 @@ export type ShopifyCustomer = {
   firstName?: string | null;
   lastName?: string | null;
   phone?: string | null;
+  note?: string | null;
   defaultAddress?: {
     address1?: string | null;
     city?: string | null;
@@ -783,6 +806,7 @@ const CUSTOMER_BY_ID_QUERY = `
       firstName
       lastName
       phone
+      note
       defaultAddress { address1 city province zip countryCodeV2 }
     }
   }
@@ -798,6 +822,7 @@ const CUSTOMERS_PAGED_QUERY = `
           firstName
           lastName
           phone
+          note
           defaultAddress { address1 city province zip countryCodeV2 }
         }
       }

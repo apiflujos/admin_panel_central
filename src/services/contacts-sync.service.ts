@@ -16,9 +16,42 @@ type ContactRecord = {
   address?: string;
 };
 
+type AlegraContact = {
+  id?: string | number;
+  name?: string;
+  email?: string;
+  phonePrimary?: string;
+  identification?: string;
+  address?: string;
+  dateCreated?: string;
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
+  date?: string;
+};
+
+type ShopifyCustomerInput = {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  note?: string;
+  addresses?: Array<{ address1: string }>;
+};
+
 const isEmail = (value: string) => value.includes("@");
 
 const normalizePhone = (value?: string) => (value ? value.replace(/[^\d+]/g, "").trim() : "");
+
+const normalizeDocument = (value?: string) => (value ? value.replace(/[^\da-zA-Z]/g, "").trim().toUpperCase() : "");
+
+const extractDocumentFromShopifyNote = (value?: string | null) => {
+  const note = String(value || "").trim();
+  if (!note) return "";
+  const match = note.match(/(?:^|\b)DOC:\s*([A-Z0-9.\-]+)/i);
+  return normalizeDocument(match?.[1] || "");
+};
 
 const normalizeIsoDate = (value?: string) => {
   const raw = String(value || "").trim();
@@ -57,19 +90,20 @@ function normalizeShopifyCustomer(customer: ShopifyCustomer): ContactRecord {
     name: [customer.firstName, customer.lastName].filter(Boolean).join(" ").trim(),
     email: customer.email || undefined,
     phone: normalizePhone(customer.phone || ""),
+    doc: extractDocumentFromShopifyNote(customer.note),
     address: address?.address1 || undefined,
   };
 }
 
-function normalizeAlegraContact(contact: Record<string, unknown>): ContactRecord {
-  const address = contact.address as string | undefined;
+function normalizeAlegraContact(contact: AlegraContact): ContactRecord {
+  const address = typeof contact.address === "string" ? contact.address : undefined;
   const name = contact.name ? String(contact.name) : "";
   return {
     id: contact.id ? String(contact.id) : undefined,
     name: name || undefined,
     email: contact.email ? String(contact.email) : undefined,
     phone: normalizePhone(contact.phonePrimary ? String(contact.phonePrimary) : ""),
-    doc: contact.identification ? String(contact.identification) : undefined,
+    doc: normalizeDocument(contact.identification ? String(contact.identification) : ""),
     address: address || undefined,
   };
 }
@@ -86,7 +120,8 @@ async function findAlegraContactByPriority(
   for (const key of priority) {
     if (key === "email" && email) {
       const found = (await ctx.alegra.findContactByEmail(email)) as Array<Record<string, unknown>>;
-      if (found && found.length) return found[0];
+      const typedFound = found as AlegraContact[];
+      if (typedFound && typedFound.length) return typedFound[0];
     }
     if (key === "phone" && phone) {
       const found = await scanAlegraContacts(ctx, (item) => {
@@ -97,7 +132,7 @@ async function findAlegraContactByPriority(
     }
     if (key === "document" && doc) {
       const found = await scanAlegraContacts(ctx, (item) => {
-        const identification = item.identification ? String(item.identification) : "";
+        const identification = normalizeDocument(item.identification ? String(item.identification) : "");
         return identification === doc;
       });
       if (found) return found;
@@ -108,13 +143,13 @@ async function findAlegraContactByPriority(
 
 async function scanAlegraContacts(
   ctx: Awaited<ReturnType<typeof buildSyncContext>>,
-  predicate: (contact: Record<string, unknown>) => boolean
+  predicate: (contact: AlegraContact) => boolean
 ) {
   const limit = 50;
   const maxPages = 40; // 2000 contactos máximo
   let start = 0;
   for (let page = 0; page < maxPages; page += 1) {
-    const data = (await ctx.alegra.listContacts({ limit, start })) as Array<Record<string, unknown>>;
+    const data = (await ctx.alegra.listContacts({ limit, start })) as AlegraContact[];
     if (!Array.isArray(data) || !data.length) return null;
     const match = data.find((item) => predicate(item));
     if (match) return match;
@@ -131,6 +166,7 @@ async function findShopifyCustomerByPriority(
 ) {
   const email = contact.email || "";
   const phone = normalizePhone(contact.phone || "");
+  const doc = normalizeDocument(contact.doc || "");
   for (const key of priority) {
     if (key === "email" && email) {
       const matches = await ctx.shopify.searchCustomers(`email:${email}`);
@@ -140,8 +176,77 @@ async function findShopifyCustomerByPriority(
       const matches = await ctx.shopify.searchCustomers(`phone:${phone}`);
       if (matches.length) return matches[0];
     }
+    if (key === "document" && doc) {
+      const customers = await ctx.shopify.listAllCustomers(500);
+      const matched = customers.find((customer) => extractDocumentFromShopifyNote(customer.note) === doc);
+      if (matched) return matched;
+    }
   }
   return null;
+}
+
+async function findShopifyCustomerByIdentifier(
+  ctx: Awaited<ReturnType<typeof buildSyncContext>>,
+  identifier: string,
+  priority: string[]
+) {
+  const rawIdentifier = identifier.trim();
+  if (!rawIdentifier) return null;
+  if (rawIdentifier.startsWith("gid://")) {
+    const data = await ctx.shopify.getCustomerById(rawIdentifier);
+    return data?.customer || null;
+  }
+  if (isEmail(rawIdentifier)) {
+    const matches = await ctx.shopify.searchCustomers(`email:${rawIdentifier}`);
+    return matches[0] || null;
+  }
+  if (/^\d+$/.test(rawIdentifier)) {
+    const gid = `gid://shopify/Customer/${rawIdentifier}`;
+    try {
+      const data = await ctx.shopify.getCustomerById(gid);
+      if (data?.customer) {
+        return data.customer;
+      }
+    } catch {
+      // Fallback to manual match priority below.
+    }
+  }
+  return findShopifyCustomerByPriority(
+    ctx,
+    {
+      phone: rawIdentifier,
+      doc: rawIdentifier,
+    },
+    priority
+  );
+}
+
+async function findAlegraContactByIdentifier(
+  ctx: Awaited<ReturnType<typeof buildSyncContext>>,
+  identifier: string
+) {
+  const rawIdentifier = identifier.trim();
+  if (!rawIdentifier) return null;
+  if (isEmail(rawIdentifier)) {
+    const matches = (await ctx.alegra.findContactByEmail(rawIdentifier)) as AlegraContact[];
+    return matches[0] || null;
+  }
+  if (/^\d+$/.test(rawIdentifier)) {
+    try {
+      const byId = (await ctx.alegra.getContact(rawIdentifier)) as AlegraContact | null;
+      if (byId?.id) {
+        return byId;
+      }
+    } catch {
+      // Fallback to phone/document scan below.
+    }
+  }
+  return scanAlegraContacts(ctx, (item) => {
+    const phone = normalizePhone(item.phonePrimary ? String(item.phonePrimary) : "");
+    const doc = normalizeDocument(item.identification ? String(item.identification) : "");
+    const normalizedIdentifier = normalizeDocument(rawIdentifier);
+    return phone === rawIdentifier || doc === normalizedIdentifier;
+  });
 }
 
 async function syncShopifyCustomerToAlegra(
@@ -152,7 +257,7 @@ async function syncShopifyCustomerToAlegra(
 ) {
   const createInAlegra = options.createInAlegra !== false;
   const normalized = normalizeShopifyCustomer(contact);
-  if (!normalized.email && !normalized.phone) {
+  if (!normalized.email && !normalized.phone && !normalized.doc) {
     return { skipped: true, reason: "missing_contact_data" };
   }
 
@@ -219,13 +324,13 @@ async function syncShopifyCustomerToAlegra(
 
 async function syncAlegraContactToShopify(
   ctx: Awaited<ReturnType<typeof buildSyncContext>>,
-  contact: Record<string, unknown>,
+  contact: AlegraContact,
   matchPriority: string[],
   options: { createInShopify?: boolean } = {}
 ) {
   const createInShopify = options.createInShopify !== false;
   const normalized = normalizeAlegraContact(contact);
-  if (!normalized.email && !normalized.phone) {
+  if (!normalized.email && !normalized.phone && !normalized.doc) {
     return { skipped: true, reason: "missing_contact_data" };
   }
 
@@ -240,7 +345,7 @@ async function syncAlegraContactToShopify(
   }
 
   const nameParts = splitName(normalized.name);
-  const payload: Record<string, unknown> = {
+  const payload: ShopifyCustomerInput = {
     firstName: nameParts.firstName || undefined,
     lastName: nameParts.lastName || undefined,
     email: normalized.email || undefined,
@@ -315,21 +420,7 @@ export async function syncSingleContact(options: {
       return { skipped: true, reason: "sync_disabled" };
     }
     const identifier = options.identifier.trim();
-    let customer: ShopifyCustomer | null;
-    if (identifier.startsWith("gid://")) {
-      const data = await ctx.shopify.getCustomerById(identifier);
-      customer = data?.customer || null;
-    } else if (/^\d+$/.test(identifier)) {
-      const gid = `gid://shopify/Customer/${identifier}`;
-      const data = await ctx.shopify.getCustomerById(gid);
-      customer = data?.customer || null;
-    } else if (isEmail(identifier)) {
-      const matches = await ctx.shopify.searchCustomers(`email:${identifier}`);
-      customer = matches[0] || null;
-    } else {
-      const matches = await ctx.shopify.searchCustomers(`phone:${identifier}`);
-      customer = matches[0] || null;
-    }
+    const customer = await findShopifyCustomerByIdentifier(ctx, identifier, priority);
     if (!customer) {
       return { skipped: true, reason: "not_found" };
     }
@@ -342,19 +433,7 @@ export async function syncSingleContact(options: {
     return { skipped: true, reason: "sync_disabled" };
   }
   const identifier = options.identifier.trim();
-  let alegraContact: Record<string, unknown> | null;
-  if (/^\d+$/.test(identifier)) {
-    alegraContact = (await ctx.alegra.getContact(identifier)) as Record<string, unknown>;
-  } else if (isEmail(identifier)) {
-    const matches = (await ctx.alegra.findContactByEmail(identifier)) as Array<Record<string, unknown>>;
-    alegraContact = matches[0] || null;
-  } else {
-    alegraContact = await scanAlegraContacts(ctx, (item) => {
-      const phone = normalizePhone(item.phonePrimary ? String(item.phonePrimary) : "");
-      const doc = item.identification ? String(item.identification) : "";
-      return phone === identifier || doc === identifier;
-    });
-  }
+  const alegraContact = await findAlegraContactByIdentifier(ctx, identifier);
   if (!alegraContact) {
     return { skipped: true, reason: "not_found" };
   }
@@ -482,7 +561,7 @@ export async function syncContactsBulk(options: {
   let remaining = limit;
   const fromDate = parseIsoDay(from);
   const toDate = parseIsoDay(to);
-  const resolveAlegraTimestamp = (item: Record<string, unknown>) => {
+  const resolveAlegraTimestamp = (item: AlegraContact) => {
     const candidates = [item.dateCreated, item.createdAt, item.created_at, item.updatedAt, item.updated_at, item.date];
     for (const candidate of candidates) {
       if (!candidate) continue;
@@ -491,7 +570,7 @@ export async function syncContactsBulk(options: {
     }
     return null;
   };
-  const withinRange = (item: Record<string, unknown>) => {
+  const withinRange = (item: AlegraContact) => {
     if (!fromDate && !toDate) return true;
     const ts = resolveAlegraTimestamp(item);
     if (!ts) return true;
@@ -509,7 +588,7 @@ export async function syncContactsBulk(options: {
     const batch = (await ctx.alegra.listContacts({
       limit: Math.min(pageSize, remaining),
       start,
-    })) as Array<Record<string, unknown>>;
+    })) as AlegraContact[];
     if (!Array.isArray(batch) || !batch.length) break;
     for (const item of batch) {
       maybeAbort();

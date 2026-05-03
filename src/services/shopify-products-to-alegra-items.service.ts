@@ -1,8 +1,14 @@
 import { buildSyncContext } from "./sync-context";
 import { createSyncLog } from "./logs.service";
-import { getMappingByShopifyId, saveMapping } from "./mapping.service";
+import { getMappingByShopifyId, getMappingByShopifyInventoryItemId, saveMapping } from "./mapping.service";
 import { getStoreConfigForDomain } from "./store-configs.service";
 import type { ShopifyProduct } from "../connectors/shopify";
+import {
+  buildAlegraItemDisplayName,
+  coerceDecimal,
+  pickShopifyVariantIdentifier,
+  resolveAlegraWarehouseQuantityFromRecord,
+} from "../../packages/domain/src";
 
 type ProductSyncConfig = {
   enabled: boolean;
@@ -21,15 +27,11 @@ const DEFAULT_CONFIG: ProductSyncConfig = {
   updateInAlegra: true,
   includeInventory: false,
   warehouseId: undefined,
-  matchPriority: ["sku", "barcode"],
+  matchPriority: ["sku"],
 };
 
-function parseMatchPriority(value: unknown): Array<"sku" | "barcode"> {
-  const raw = String(value || "")
-    .trim()
-    .toLowerCase();
-  if (raw === "barcode_sku") return ["barcode", "sku"];
-  return ["sku", "barcode"];
+function parseMatchPriority(_value: unknown): Array<"sku" | "barcode"> {
+  return ["sku"];
 }
 
 function resolveConfigFromStore(store: Record<string, unknown>): ProductSyncConfig {
@@ -46,35 +48,20 @@ function resolveConfigFromStore(store: Record<string, unknown>): ProductSyncConf
   };
 }
 
-function coerceNumber(value: unknown): number | null {
-  if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-    const parsed = Number(trimmed.replace(",", "."));
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
-}
-
-function pickIdentifier(variant: { sku?: unknown; barcode?: unknown }, matchPriority: Array<"sku" | "barcode">) {
-  const sku = typeof variant.sku === "string" ? variant.sku.trim() : "";
-  const barcode =
-    typeof (variant as Record<string, unknown>).barcode === "string"
-      ? String((variant as Record<string, unknown>).barcode).trim()
-      : "";
-  for (const key of matchPriority) {
-    if (key === "sku" && sku) return { identifier: sku, sku, barcode };
-    if (key === "barcode" && barcode) return { identifier: barcode, sku, barcode };
-  }
-  return { identifier: "", sku, barcode };
+function pickIdentifier(variant: { sku?: unknown }, _matchPriority: Array<"sku" | "barcode">) {
+  return pickShopifyVariantIdentifier(
+    {
+      sku: typeof variant.sku === "string" ? variant.sku : undefined,
+      barcode: typeof (variant as { barcode?: unknown }).barcode === "string"
+        ? String((variant as { barcode?: unknown }).barcode)
+        : undefined,
+    },
+    _matchPriority
+  );
 }
 
 function buildAlegraItemName(productTitle: string, variantTitle: string) {
-  const base = String(productTitle || "").trim() || "Producto Shopify";
-  const v = String(variantTitle || "").trim();
-  if (!v || v.toLowerCase() === "default title") return base;
-  return `${base} - ${v}`.slice(0, 250);
+  return buildAlegraItemDisplayName(productTitle, variantTitle);
 }
 
 function extractAlegraListItems(payload: unknown) {
@@ -96,10 +83,9 @@ async function findAlegraItemByIdentifier(ctx: Awaited<ReturnType<typeof buildSy
 
   const attempts: Array<Record<string, unknown>> = [
     { ...baseParams, reference: value },
-    { ...baseParams, barcode: value },
     { ...baseParams, code: value },
     { ...baseParams, query: `reference:${value}` },
-    { ...baseParams, query: `barcode:${value}` },
+    { ...baseParams, query: `code:${value}` },
     { ...baseParams, query: value },
   ];
 
@@ -124,14 +110,12 @@ async function findAlegraItemByIdentifier(ctx: Awaited<ReturnType<typeof buildSy
 }
 
 function resolveAlegraWarehouseQuantity(item: Record<string, unknown>, warehouseId: string) {
-  const inv = (item.inventory as Record<string, unknown>) || {};
-  const warehouses = Array.isArray(inv.warehouses) ? inv.warehouses : [];
-  const match = warehouses.find(
-    (w: { id?: unknown; availableQuantity?: unknown; quantity?: unknown }) =>
-      String(w?.id || "").trim() === String(warehouseId || "").trim()
-  );
-  const qty = coerceNumber(match?.availableQuantity ?? match?.quantity ?? inv.availableQuantity ?? inv.quantity);
-  return qty ?? 0;
+  const inv = ((item.inventory as Record<string, unknown>) || {}) as {
+    availableQuantity?: number;
+    quantity?: number;
+    warehouses?: Array<{ id?: string | number; availableQuantity?: number; quantity?: number }>;
+  };
+  return resolveAlegraWarehouseQuantityFromRecord(inv, warehouseId);
 }
 
 async function maybeAdjustInventory(params: {
@@ -192,12 +176,9 @@ export async function syncShopifyVariantToAlegra(params: {
   const variantId = String(variant?.id || "").trim();
   if (!variantId) return { ok: false, skipped: true, reason: "missing_variant_id" as const };
 
-  const { identifier, sku, barcode } = pickIdentifier(
-    variant as unknown as { sku?: unknown; barcode?: unknown },
-    config.matchPriority
-  );
+  const { identifier, sku } = pickIdentifier(variant as unknown as { sku?: unknown }, config.matchPriority);
   if (!identifier) {
-    return { ok: false, skipped: true, reason: "missing_identifier" as const, variantId, sku, barcode };
+    return { ok: false, skipped: true, reason: "missing_identifier" as const, variantId, sku };
   }
 
   const existingMapping = await getMappingByShopifyId("item", variantId);
@@ -217,10 +198,6 @@ export async function syncShopifyVariantToAlegra(params: {
   } else {
     alegraItem = await findAlegraItemByIdentifier(ctx, identifier);
     if (!alegraItem) {
-      const secondary = identifier === sku ? barcode : sku;
-      if (secondary && secondary.trim()) {
-        alegraItem = await findAlegraItemByIdentifier(ctx, secondary);
-      }
     }
     if (alegraItem?.id) {
       alegraItemId = String(alegraItem.id);
@@ -228,15 +205,14 @@ export async function syncShopifyVariantToAlegra(params: {
   }
 
   const name = buildAlegraItemName(product.title, variant.title);
-  const price = coerceNumber(variant.price);
+  const price = coerceDecimal(variant.price);
   const desiredInventory = config.includeInventory
-    ? (coerceNumber((variant as unknown as { inventoryQuantity?: unknown }).inventoryQuantity) ?? null)
+    ? (coerceDecimal((variant as unknown as { inventoryQuantity?: unknown }).inventoryQuantity) ?? null)
     : null;
 
   const payload: Record<string, unknown> = {
     name,
     reference: (sku || identifier).trim(),
-    ...(barcode ? { barcode } : {}),
     ...(price !== null ? { price } : {}),
   };
 
@@ -285,7 +261,6 @@ export async function syncShopifyVariantToAlegra(params: {
     shopifyInventoryItemId: variant.inventoryItem?.id || undefined,
     metadata: {
       sku: sku || undefined,
-      barcode: barcode || undefined,
       identifier,
       shopDomain,
     },
@@ -308,7 +283,6 @@ export async function syncShopifyVariantToAlegra(params: {
     variantId,
     identifier,
     sku,
-    barcode,
     price,
     inventory: inventoryResult,
   };
@@ -337,7 +311,7 @@ export async function syncShopifyProductToAlegraFromWebhook(payload: unknown) {
     const sku = v?.sku ? String(v.sku) : null;
     const barcode = v?.barcode ? String(v.barcode) : null;
     const price = v?.price ? String(v.price) : "0";
-    const inventoryQuantity = coerceNumber(v?.inventory_quantity);
+    const inventoryQuantity = coerceDecimal(v?.inventory_quantity);
     const node: ShopifyVariantNode = {
       id: variantId,
       title: v?.title ? String(v.title) : "Variante",
@@ -360,13 +334,60 @@ export async function syncShopifyProductToAlegraFromWebhook(payload: unknown) {
   return { handled: true, shopDomain, productId, results };
 }
 
+export async function syncShopifyInventoryLevelToAlegra(params: {
+  shopDomain: string;
+  inventoryItemId: string;
+  available: number;
+}) {
+  const shopDomain = String(params.shopDomain || "").trim();
+  const inventoryItemId = String(params.inventoryItemId || "").trim();
+  if (!shopDomain) {
+    return { handled: false, reason: "missing_shop_domain" as const };
+  }
+  if (!inventoryItemId) {
+    return { handled: false, reason: "missing_inventory_item_id" as const };
+  }
+
+  const store = await getStoreConfigForDomain(shopDomain).catch(() => null);
+  const config = store ? resolveConfigFromStore(store) : DEFAULT_CONFIG;
+  if (!config.enabled) {
+    return { handled: false, reason: "disabled" as const };
+  }
+  if (!config.includeInventory) {
+    return { handled: false, reason: "inventory_disabled" as const };
+  }
+
+  const mapping = await getMappingByShopifyInventoryItemId("item", inventoryItemId);
+  if (!mapping?.alegraId) {
+    return { handled: false, reason: "missing_mapping" as const };
+  }
+
+  const ctx = await buildSyncContext(shopDomain);
+  const inventory = await maybeAdjustInventory({
+    ctx,
+    alegraItemId: mapping.alegraId,
+    desired: params.available,
+    warehouseId: config.warehouseId,
+    includeInventory: config.includeInventory,
+    observations: `Sync Shopify inventory ${inventoryItemId}`,
+  });
+
+  return {
+    handled: true,
+    shopDomain,
+    inventoryItemId,
+    alegraItemId: mapping.alegraId,
+    inventory,
+  };
+}
+
 export async function syncShopifyProductsToAlegraBulk(params: {
   shopDomain: string;
   dateStart?: string;
   dateEnd?: string;
   limit?: number;
   config?: Partial<ProductSyncConfig>;
-  isCanceled?: () => boolean;
+  isCanceled?: () => boolean | Promise<boolean>;
   onEvent?: (payload: Record<string, unknown>) => void;
 }) {
   const shopDomain = String(params.shopDomain || "").trim();
@@ -403,13 +424,13 @@ export async function syncShopifyProductsToAlegraBulk(params: {
 
   onEvent({ type: "start", totalProducts, totalVariants });
   for (const product of products) {
-    if (isCanceled()) {
+    if (await isCanceled()) {
       onEvent({ type: "canceled", processed, created, updated, skipped, failed });
       return { ok: false, canceled: true, processed, created, updated, skipped, failed, totalProducts, totalVariants };
     }
     const variants = Array.isArray(product?.variants?.edges) ? product.variants.edges : [];
     for (const edge of variants) {
-      if (isCanceled()) {
+      if (await isCanceled()) {
         onEvent({ type: "canceled", processed, created, updated, skipped, failed });
         return {
           ok: false,

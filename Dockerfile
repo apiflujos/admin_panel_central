@@ -3,6 +3,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY tsconfig.json ./
+COPY scripts ./scripts
+COPY apps ./apps
+COPY packages ./packages
 COPY src ./src
 RUN npm run build
 
@@ -11,7 +14,6 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev --ignore-scripts
 COPY --from=builder /app/dist ./dist
-COPY public ./public
 COPY src/db/migrations ./src/db/migrations
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh

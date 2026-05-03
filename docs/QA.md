@@ -4,6 +4,7 @@
 
 - `GET /health` → `{ "status": "ok" }`.
 - `APP_HOST` apunta a la URL publica.
+- `ADMIN_WEB_URL` debe apuntar al frontend nuevo.
 - `DATABASE_URL` y `DATABASE_SSL=true` si aplica.
 - `ADMIN_EMAIL` y `ADMIN_PASSWORD` configurados.
 - `REDIS_URL` presente.
@@ -29,6 +30,7 @@ BASE_URL=https://<tu-servicio>.onrender.com ADMIN_EMAIL=<email> ADMIN_PASSWORD=<
 Notas:
 
 - `BASE_URL` puede ser igual a `APP_HOST` (default: `http://localhost:10000`).
+- `BASE_URL` debe apuntar a `ADMIN_WEB_URL`.
 - `QA_TOKEN` es un Bearer token opcional generado con `POST /api/auth/token` (requiere login admin).
 
 Valida:
@@ -38,6 +40,43 @@ Valida:
 - `/api/settings`, `/api/connections`, `/api/store-configs`, `/api/shopify/webhooks/status`
 - `/api/checkpoints/inventory-adjustments`, `/api/metrics`
 - `/api/woocommerce/connections` (si WooCommerce está activo)
+
+## Smoke test del frontend nuevo (`admin-web`)
+
+Valida el árbol `Next.js + TypeScript` ya reconstruido.
+
+Requiere:
+
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
+- `BASE_URL` apuntando al `admin-web` (default: `http://localhost:3000`)
+
+Ejemplo:
+
+```
+BASE_URL=http://localhost:3000 ADMIN_EMAIL=<email> ADMIN_PASSWORD=<pass> npm run qa:admin-web
+```
+
+Con Docker Compose local:
+
+```
+BASE_URL=http://localhost:3100 ADMIN_EMAIL=<email> ADMIN_PASSWORD=<pass> npm run qa:admin-web
+```
+
+Valida:
+
+- `/api/health`
+- `/auth/login`
+- login real por `/api/session/login`
+- páginas privadas principales:
+  - `/`
+  - `/settings/connections`
+  - `/products`
+  - `/orders`
+  - `/contacts`
+  - `/invoices`
+  - `/marketing`
+  - `/operations`
 
 ## QA visual (UI)
 

@@ -14,6 +14,8 @@ type AlegraAccountInput = {
 type ShopifyStoreInput = {
   shopDomain: string;
   accessToken: string;
+  locationId?: string;
+  apiVersion?: string;
   storeName?: string;
   scopes?: string;
   alegra?: AlegraAccountInput;
@@ -81,7 +83,14 @@ export async function getShopifyConnectionByDomain(shopDomain: string) {
   if (!token) {
     throw new Error("Access token Shopify requerido");
   }
-  return { shopDomain: row.shop_domain, accessToken: token };
+  const locationId = String((decrypted as { locationId?: string } | null)?.locationId || "").trim();
+  const apiVersion = String((decrypted as { apiVersion?: string } | null)?.apiVersion || "").trim();
+  return {
+    shopDomain: row.shop_domain,
+    accessToken: token,
+    ...(locationId ? { locationId } : {}),
+    ...(apiVersion ? { apiVersion } : {}),
+  };
 }
 
 export async function getAlegraConnectionByDomain(shopDomain: string) {
@@ -463,10 +472,18 @@ export async function listStoreConnections() {
     return { connected: false, needsReconnect: true, advertiserId: "" };
   });
 
-  const wooData = await listWooConnections().catch(() => ({ stores: [] }));
+  const wooData = (await listWooConnections().catch(() => ({ stores: [] }))) as {
+    stores: Array<{
+      storeId?: number;
+      shopDomain: string;
+      storeName?: string;
+      hasConsumerKey?: boolean;
+      hasConsumerSecret?: boolean;
+    }>;
+  };
   const wooByStore = new Map<number, { shopDomain: string; storeName: string; ok: boolean }>();
   wooData.stores.forEach((store) => {
-    const storeId = Number((store as { storeId?: number }).storeId);
+    const storeId = Number(store.storeId);
     if (!Number.isFinite(storeId)) return;
     const ok = Boolean(store.hasConsumerKey && store.hasConsumerSecret);
     wooByStore.set(storeId, { shopDomain: store.shopDomain, storeName: store.storeName || "", ok });
@@ -848,7 +865,12 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
     storeName = desiredName;
   }
   const trimmedToken = input.accessToken?.trim() || "";
-  const accessTokenEncrypted = trimmedToken ? encryptString(JSON.stringify({ accessToken: trimmedToken })) : null;
+  const encryptedPayload = {
+    accessToken: trimmedToken,
+    locationId: String(input.locationId || "").trim() || undefined,
+    apiVersion: String(input.apiVersion || "").trim() || undefined,
+  };
+  const accessTokenEncrypted = trimmedToken ? encryptString(JSON.stringify(encryptedPayload)) : null;
 
   const existingStore = await pool.query<{ id: number }>(
     `
@@ -923,6 +945,25 @@ export async function shopifyStoreExists(shopDomain: string) {
     [orgId, normalized]
   );
   return res.rows.length > 0;
+}
+
+export async function listConnectedShopifyDomains() {
+  const pool = getPool();
+  const orgId = getOrgId();
+  await ensureOrganization(pool, orgId);
+  const res = await pool.query<{ shop_domain: string }>(
+    `
+    SELECT DISTINCT shop_domain
+    FROM shopify_stores
+    WHERE organization_id = $1
+      AND shop_domain IS NOT NULL
+      AND BTRIM(shop_domain) <> ''
+      AND access_token_encrypted IS NOT NULL
+    ORDER BY shop_domain ASC
+    `,
+    [orgId]
+  );
+  return res.rows.map((row) => normalizeShopDomain(row.shop_domain)).filter(Boolean);
 }
 
 export async function deleteStoreConnectionByDomain(shopDomain: string, options: DeleteStoreConnectionOptions = {}) {

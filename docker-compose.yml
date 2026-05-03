@@ -39,6 +39,21 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  admin-web:
+    build:
+      context: .
+      dockerfile: apps/admin-web/Dockerfile
+    ports:
+      - "3100:3100"
+    environment:
+      APP_HOST: http://app:3006
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+    depends_on:
+      app:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:

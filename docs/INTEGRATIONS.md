@@ -196,7 +196,7 @@ Notas:
   - `GET/PUT /api/company`
   - `GET /api/company/public` (publico)
 - El logo del cliente se muestra junto al de ApiFlujos (no lo reemplaza).
-- Identidad base (por branch): `public/brand.json` define títulos y textos antes de conectar servicios.
+- La identidad visual operativa debe resolverse desde `apps/admin-web` y `Perfil empresa`, no desde archivos HTML legacy en `public/`.
 
 ## API (mapa rapido por grupos)
 
