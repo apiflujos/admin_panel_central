@@ -259,6 +259,104 @@ export async function getServerConnectionsStatus(): Promise<ConnectionStatusList
   ]);
 }
 
+export async function getServerConnectionsWorkspace() {
+  const [
+    { buildProviderDetail, toConnectionStatus },
+    { getCompanyProfile },
+    { listStoreConnections },
+  ] = await Promise.all([
+    import("../../../packages/domain/src/settings"),
+    import("../../../src/services/company.service"),
+    import("../../../src/services/store-connections.service"),
+  ]);
+
+  const [company, connections] = await Promise.all([
+    getCompanyProfile(),
+    listStoreConnections(),
+  ]);
+
+  const stores = connections.storesCatalog.map((store: (typeof connections.storesCatalog)[number]) => ({
+    id: store.id,
+    name: store.name,
+    createdAt: store.createdAt,
+    providers: {
+      shopify: store.shopify
+        ? {
+            label: store.shopify.storeName || store.shopify.shopDomain,
+            status: toConnectionStatus({
+              connected: store.shopify.shopifyConnected,
+              needsReconnect: store.shopify.shopifyNeedsReconnect,
+            }),
+            detail: buildProviderDetail(
+              {
+                connected: store.shopify.shopifyConnected,
+                needsReconnect: store.shopify.shopifyNeedsReconnect,
+              },
+              "Catálogo y órdenes activos",
+              "Reconectar token de Shopify"
+            ),
+            shopDomain: store.shopify.shopDomain,
+          }
+        : null,
+      alegra: store.alegra
+        ? {
+            label: store.alegra.email,
+            status: toConnectionStatus({
+              connected: !store.alegra.needsReconnect,
+              needsReconnect: store.alegra.needsReconnect,
+            }),
+            detail: buildProviderDetail(
+              {
+                connected: !store.alegra.needsReconnect,
+                needsReconnect: store.alegra.needsReconnect,
+              },
+              "Cuenta contable vinculada",
+              "Reconectar credenciales de Alegra"
+            ),
+          }
+        : null,
+      woocommerce: store.woo
+        ? {
+            label: store.woo.storeName || store.woo.shopDomain,
+            status: toConnectionStatus({ connected: store.woo.ok, needsReconnect: !store.woo.ok }),
+            detail: buildProviderDetail(
+              { connected: store.woo.ok, needsReconnect: !store.woo.ok },
+              "API key y secret disponibles",
+              "Completar consumer key/secret"
+            ),
+            shopDomain: store.woo.shopDomain,
+          }
+        : null,
+    },
+  }));
+
+  return {
+    companyName: company.name || "ApiFlujos",
+    securityMisconfigured: Boolean(connections.securityMisconfigured),
+    stores,
+    ads: [
+      {
+        key: "google_ads",
+        label: "Google Ads",
+        status: toConnectionStatus(connections.googleAds),
+        detail: buildProviderDetail(connections.googleAds, "Spend sync operativo", "Renovar credenciales Google Ads"),
+      },
+      {
+        key: "meta_ads",
+        label: "Meta Ads",
+        status: toConnectionStatus(connections.metaAds),
+        detail: buildProviderDetail(connections.metaAds, "Spend sync operativo", "Renovar credenciales Meta Ads"),
+      },
+      {
+        key: "tiktok_ads",
+        label: "TikTok Ads",
+        status: toConnectionStatus(connections.tiktokAds),
+        detail: buildProviderDetail(connections.tiktokAds, "Spend sync operativo", "Renovar credenciales TikTok Ads"),
+      },
+    ],
+  };
+}
+
 export async function getServerProductsCatalog(params?: {
   query?: string;
   start?: number;

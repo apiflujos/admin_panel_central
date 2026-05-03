@@ -22,6 +22,7 @@ type JsonRequestOptions = RequestInit & {
 async function requestJson<T>({ path, headers, ...init }: JsonRequestOptions): Promise<T> {
   const response = await fetch(`${apiBase}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(headers || {}),
