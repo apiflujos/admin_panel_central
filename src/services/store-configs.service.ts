@@ -581,20 +581,35 @@ export async function saveStoreConfig(storeKey: string, payload: Record<string, 
   const target = await resolveStoreConfigTarget(storeKey, payload);
   if (!target.storeId && !target.shopDomain) throw new Error("Tienda invalida");
 
-  const transfers = (payload.transfers as Record<string, unknown>) || {};
-  const priceLists = (payload.priceLists as Record<string, unknown>) || {};
-  const sync = (payload.sync as Record<string, unknown>) || {};
-  const configJson = {
-    transfers,
-    priceLists,
-    rules: payload.rules || {},
-    invoice: payload.invoice || {},
-    sync,
-  };
+  const payloadTransfers = (payload.transfers as Record<string, unknown>) || undefined;
+  const payloadPriceLists = (payload.priceLists as Record<string, unknown>) || undefined;
+  const payloadRules = (payload.rules as Record<string, unknown>) || undefined;
+  const payloadInvoice = (payload.invoice as Record<string, unknown>) || undefined;
+  const payloadSync = (payload.sync as Record<string, unknown>) || undefined;
 
-  const existing = await pool.query<{ id: number }>(
+  const existing = await pool.query<{
+    id: number;
+    config_json: unknown;
+    transfer_destination_warehouse_id: string | null;
+    transfer_origin_warehouse_ids: string | null;
+    transfer_priority_warehouse_id: string | null;
+    transfer_strategy: string | null;
+    price_list_general_id: string | null;
+    price_list_discount_id: string | null;
+    price_list_wholesale_id: string | null;
+    currency: string | null;
+  }>(
     `
-    SELECT id
+    SELECT id,
+           config_json,
+           transfer_destination_warehouse_id,
+           transfer_origin_warehouse_ids,
+           transfer_priority_warehouse_id,
+           transfer_strategy,
+           price_list_general_id,
+           price_list_discount_id,
+           price_list_wholesale_id,
+           currency
     FROM shopify_store_configs
     WHERE organization_id = $1
       AND (
@@ -606,6 +621,47 @@ export async function saveStoreConfig(storeKey: string, payload: Record<string, 
     `,
     [orgId, target.storeId, target.shopDomain]
   );
+
+  const existingConfig =
+    existing.rows.length && existing.rows[0].config_json && typeof existing.rows[0].config_json === "object"
+      ? (existing.rows[0].config_json as Record<string, unknown>)
+      : {};
+  const existingTransfers = ((existingConfig.transfers as Record<string, unknown>) || {}) as Record<string, unknown>;
+  const existingPriceLists = ((existingConfig.priceLists as Record<string, unknown>) || {}) as Record<string, unknown>;
+  const existingRules = ((existingConfig.rules as Record<string, unknown>) || {}) as Record<string, unknown>;
+  const existingInvoice = ((existingConfig.invoice as Record<string, unknown>) || {}) as Record<string, unknown>;
+  const existingSync = ((existingConfig.sync as Record<string, unknown>) || {}) as Record<string, unknown>;
+
+  const transfers = payloadTransfers ? { ...existingTransfers, ...payloadTransfers } : existingTransfers;
+  const priceLists = payloadPriceLists ? { ...existingPriceLists, ...payloadPriceLists } : existingPriceLists;
+  const rules = payloadRules ? { ...existingRules, ...payloadRules } : existingRules;
+  const invoice = payloadInvoice ? { ...existingInvoice, ...payloadInvoice } : existingInvoice;
+  const sync = payloadSync
+    ? {
+        ...existingSync,
+        ...payloadSync,
+        contacts: {
+          ...(((existingSync.contacts as Record<string, unknown>) || {}) as Record<string, unknown>),
+          ...((((payloadSync.contacts as Record<string, unknown>) || {}) as Record<string, unknown>)),
+        },
+        orders: {
+          ...(((existingSync.orders as Record<string, unknown>) || {}) as Record<string, unknown>),
+          ...((((payloadSync.orders as Record<string, unknown>) || {}) as Record<string, unknown>)),
+        },
+        products: {
+          ...(((existingSync.products as Record<string, unknown>) || {}) as Record<string, unknown>),
+          ...((((payloadSync.products as Record<string, unknown>) || {}) as Record<string, unknown>)),
+        },
+      }
+    : existingSync;
+
+  const configJson = {
+    transfers,
+    priceLists,
+    rules,
+    invoice,
+    sync,
+  };
 
   const originIds = normalizeIdList(transfers.originWarehouseIds as string[]);
 

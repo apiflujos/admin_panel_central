@@ -169,7 +169,10 @@ export async function getSuperAdminOverview(): Promise<AdminWebSuperAdminOvervie
 
 export async function saveStoreConfig(
   storeKey: string,
-  payload: Pick<CriticalStoreConfig, "rules" | "invoice" | "sync"> & { storeId?: number; shopDomain?: string }
+  payload: Pick<CriticalStoreConfig, "transfers" | "rules" | "invoice" | "sync"> & {
+    storeId?: number;
+    shopDomain?: string;
+  }
 ): Promise<{ saved: true; storeId?: number }> {
   return requestJson<{ saved: true; storeId?: number }>({
     path: `/store-configs/${encodeURIComponent(storeKey)}`,

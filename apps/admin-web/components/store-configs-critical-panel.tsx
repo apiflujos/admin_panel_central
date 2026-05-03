@@ -23,6 +23,7 @@ type CriticalStoreConfigDraft = Pick<
   | "updateInShopify"
   | "warehouseIds"
 > &
+  Pick<CriticalStoreConfig["transfers"], "enabled" | "destinationRequired" | "destinationWarehouseId" | "originWarehouseIds"> &
   Pick<CriticalStoreConfig["invoice"], "generateInvoice"> & {
     shopifyToAlegra: CriticalStoreConfig["sync"]["orders"]["shopifyToAlegra"];
     alegraToShopify: CriticalStoreConfig["sync"]["orders"]["alegraToShopify"];
@@ -42,6 +43,10 @@ const defaultDraft: CriticalStoreConfigDraft = {
   createInShopify: true,
   updateInShopify: true,
   warehouseIds: [],
+  enabled: true,
+  destinationRequired: true,
+  destinationWarehouseId: "",
+  originWarehouseIds: [],
   generateInvoice: false,
   shopifyToAlegra: "db_only",
   alegraToShopify: "off",
@@ -67,6 +72,10 @@ function toDraft(config?: CriticalStoreConfig | null): CriticalStoreConfigDraft 
     createInShopify: config.rules.createInShopify,
     updateInShopify: config.rules.updateInShopify,
     warehouseIds: normalizeIdList(config.rules.warehouseIds),
+    enabled: config.transfers.enabled,
+    destinationRequired: config.transfers.destinationRequired,
+    destinationWarehouseId: config.transfers.destinationWarehouseId,
+    originWarehouseIds: normalizeIdList(config.transfers.originWarehouseIds),
     generateInvoice: config.invoice.generateInvoice,
     shopifyToAlegra: config.sync.orders.shopifyToAlegra,
     alegraToShopify: config.sync.orders.alegraToShopify,
@@ -89,6 +98,11 @@ function isDraftEqual(left: CriticalStoreConfigDraft, right: CriticalStoreConfig
     left.updateInShopify === right.updateInShopify &&
     left.warehouseIds.length === right.warehouseIds.length &&
     left.warehouseIds.every((value, index) => value === right.warehouseIds[index]) &&
+    left.enabled === right.enabled &&
+    left.destinationRequired === right.destinationRequired &&
+    left.destinationWarehouseId === right.destinationWarehouseId &&
+    left.originWarehouseIds.length === right.originWarehouseIds.length &&
+    left.originWarehouseIds.every((value, index) => value === right.originWarehouseIds[index]) &&
     left.generateInvoice === right.generateInvoice &&
     left.shopifyToAlegra === right.shopifyToAlegra &&
     left.alegraToShopify === right.alegraToShopify
@@ -137,6 +151,10 @@ export function StoreConfigsCriticalPanel({
       createInShopify: defaults.rules.createInShopify,
       updateInShopify: defaults.rules.updateInShopify,
       warehouseIds: normalizeIdList(defaults.rules.warehouseIds),
+      enabled: defaults.transfers.enabled,
+      destinationRequired: defaults.transfers.destinationRequired,
+      destinationWarehouseId: defaults.transfers.destinationWarehouseId,
+      originWarehouseIds: normalizeIdList(defaults.transfers.originWarehouseIds),
       generateInvoice: defaults.invoice.generateInvoice,
       shopifyToAlegra: defaults.sync.orders.shopifyToAlegra,
       alegraToShopify: defaults.sync.orders.alegraToShopify,
@@ -200,9 +218,19 @@ export function StoreConfigsCriticalPanel({
           alegraToShopify: draft.alegraToShopify,
         },
       },
+      transfers: {
+        ...effectiveConfig.transfers,
+        enabled: draft.enabled,
+        destinationRequired: draft.destinationRequired,
+        destinationWarehouseId: draft.destinationWarehouseId,
+        originWarehouseIds: draft.originWarehouseIds,
+      },
     });
   }, [draft, effectiveConfig]);
   const oversellEnabled = draft.trackInventory;
+  const transferStrategy = effectiveConfig?.transfers.strategy ?? defaults.transfers.strategy;
+  const transferFallbackStrategy = effectiveConfig?.transfers.fallbackStrategy ?? defaults.transfers.fallbackStrategy;
+  const transferOriginsEditable = transferStrategy === "manual" || transferFallbackStrategy === "manual";
   const warehouseSummary = useMemo(() => {
     if (!warehouseItems.length) return "Sin bodegas";
     if (!draft.warehouseIds.length || draft.warehouseIds.length === warehouseItems.length) {
@@ -210,6 +238,13 @@ export function StoreConfigsCriticalPanel({
     }
     return `${draft.warehouseIds.length} seleccionadas`;
   }, [draft.warehouseIds, warehouseItems]);
+  const transferOriginSummary = useMemo(() => {
+    if (!warehouseItems.length) return "Sin bodegas";
+    if (!draft.originWarehouseIds.length || draft.originWarehouseIds.length === warehouseItems.length) {
+      return "Todas";
+    }
+    return `${draft.originWarehouseIds.length} seleccionadas`;
+  }, [draft.originWarehouseIds, warehouseItems]);
 
   useEffect(() => {
     const shopDomain = activeConfig?.shopDomain ?? activeStore?.providers.shopify?.shopDomain ?? "";
@@ -274,10 +309,19 @@ export function StoreConfigsCriticalPanel({
     }
     const normalizedSyncEnabled = draft.trackInventory ? true : draft.syncEnabled;
     const normalizedAllowOversell = draft.trackInventory ? draft.allowOversell : false;
+    const baseTransfers = activeConfig?.transfers ?? effectiveConfig?.transfers ?? defaults.transfers;
     try {
       await saveStoreConfig(String(activeStore.id), {
         storeId: activeStore.id,
         shopDomain: activeConfig?.shopDomain,
+        transfers: {
+          enabled: draft.enabled,
+          destinationRequired: draft.destinationRequired,
+          destinationWarehouseId: draft.destinationWarehouseId,
+          originWarehouseIds: draft.originWarehouseIds,
+          strategy: baseTransfers.strategy,
+          fallbackStrategy: baseTransfers.fallbackStrategy,
+        },
         rules: {
           syncEnabled: normalizedSyncEnabled,
           inventoryAdjustmentsEnabled: draft.inventoryAdjustmentsEnabled,
@@ -316,13 +360,13 @@ export function StoreConfigsCriticalPanel({
         storeId: activeStore.id,
         storeName: activeStore.name,
         shopDomain: activeConfig?.shopDomain ?? activeStore.providers.shopify?.shopDomain,
-        transfers: activeConfig?.transfers ?? effectiveConfig?.transfers ?? {
-          enabled: defaults.transfers.enabled,
-          destinationRequired: defaults.transfers.destinationRequired,
-          destinationWarehouseId: defaults.transfers.destinationWarehouseId,
-          originWarehouseIds: defaults.transfers.originWarehouseIds,
-          strategy: defaults.transfers.strategy,
-          fallbackStrategy: defaults.transfers.fallbackStrategy,
+        transfers: {
+          enabled: draft.enabled,
+          destinationRequired: draft.destinationRequired,
+          destinationWarehouseId: draft.destinationWarehouseId,
+          originWarehouseIds: draft.originWarehouseIds,
+          strategy: baseTransfers.strategy,
+          fallbackStrategy: baseTransfers.fallbackStrategy,
         },
         rules: {
           syncEnabled: normalizedSyncEnabled,
@@ -454,6 +498,66 @@ export function StoreConfigsCriticalPanel({
             <option value="false">No</option>
           </select>
           <small>No toca todavía resolución, bodega ni método de pago.</small>
+        </label>
+
+        <label className="store-config-field">
+          <span>Traslados activos</span>
+          <select
+            className="input"
+            value={draft.enabled ? "true" : "false"}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                enabled: event.target.value === "true",
+              }))
+            }
+          >
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </select>
+          <small>Controla si la tienda usa logística de traslados para sostener el flujo de factura.</small>
+        </label>
+
+        <label className="store-config-field">
+          <span>Exigir bodega destino</span>
+          <select
+            className="input"
+            value={draft.destinationRequired ? "true" : "false"}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                destinationRequired: event.target.value === "true",
+              }))
+            }
+            disabled={!draft.enabled}
+          >
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </select>
+          <small>Si está activo, la tienda debe definir una bodega destino explícita.</small>
+        </label>
+
+        <label className="store-config-field">
+          <span>Bodega destino</span>
+          <select
+            className="input"
+            value={draft.destinationWarehouseId}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                destinationWarehouseId: event.target.value,
+              }))
+            }
+            disabled={!draft.enabled || warehousesLoading || !warehouseItems.length}
+          >
+            <option value="">{draft.destinationRequired ? "Selecciona una bodega" : "Sin destino fijo"}</option>
+            {warehouseItems.map((warehouse) => (
+              <option key={warehouse.id} value={warehouse.id}>
+                {warehouse.name}
+              </option>
+            ))}
+          </select>
+          <small>Usa el mismo catálogo de bodegas Alegra asociado a la tienda activa.</small>
         </label>
 
         <label className="store-config-field">
@@ -625,6 +729,87 @@ export function StoreConfigsCriticalPanel({
                   Usar todas
                 </button>
               </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="store-config-field store-config-field-span-2">
+          <span>Bodegas origen para traslados</span>
+          <small>
+            Sin selección explícita, la tienda opera con todas las bodegas disponibles. La estrategia avanzada sigue
+            preservada desde legacy.
+          </small>
+          <div className="store-warehouse-card">
+            <div className="store-warehouse-head">
+              <strong>{transferOriginSummary}</strong>
+              <span>{warehousesLoading ? "Cargando…" : `${warehouseItems.length} disponibles`}</span>
+            </div>
+            <div className="store-warehouse-grid">
+              {warehouseItems.length ? (
+                warehouseItems.map((warehouse) => {
+                  const checked = draft.originWarehouseIds.includes(warehouse.id);
+                  return (
+                    <label className="store-warehouse-option" key={`origin-${warehouse.id}`}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={!draft.enabled || !transferOriginsEditable}
+                        onChange={(event) =>
+                          setDraft((current) => {
+                            const next = new Set(current.originWarehouseIds);
+                            if (event.target.checked) {
+                              next.add(warehouse.id);
+                            } else {
+                              next.delete(warehouse.id);
+                            }
+                            return {
+                              ...current,
+                              originWarehouseIds: normalizeIdList(Array.from(next)),
+                            };
+                          })
+                        }
+                      />
+                      <span>{warehouse.name}</span>
+                    </label>
+                  );
+                })
+              ) : (
+                <span className="connection-inline-note">
+                  {activeStore ? "Sin bodegas cargadas para esta tienda." : "Selecciona una tienda con Shopify/Alegra."}
+                </span>
+              )}
+            </div>
+            <div className="connection-card-actions">
+              <span>
+                Estrategia actual: <strong>{transferStrategy}</strong>
+                {transferFallbackStrategy ? (
+                  <>
+                    {" "}
+                    · Fallback <strong>{transferFallbackStrategy}</strong>
+                  </>
+                ) : null}
+              </span>
+              {warehouseItems.length ? (
+                <button
+                  className="btn btn-ghost btn-compact"
+                  type="button"
+                  onClick={() =>
+                    setDraft((current) => ({
+                      ...current,
+                      originWarehouseIds: [],
+                    }))
+                  }
+                  disabled={!draft.enabled || !transferOriginsEditable}
+                >
+                  Usar todas
+                </button>
+              ) : null}
+            </div>
+            {!transferOriginsEditable ? (
+              <p className="connection-inline-note">
+                La selección de orígenes queda en solo lectura mientras la tienda use una estrategia avanzada. Ese
+                detalle sigue administrándose desde el legacy.
+              </p>
             ) : null}
           </div>
         </div>
