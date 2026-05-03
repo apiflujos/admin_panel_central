@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ConnectionStatusDto, SettingsOverviewDto } from "../../../packages/shared/src/admin-web";
 import type { ConnectionsWorkspace } from "../lib/connections-workspace";
 import { toneForStatus } from "../lib/status";
+import { StoreConfigPriceListsPanel } from "./store-config-price-lists-panel";
 import { StoreConfigsCriticalPanel } from "./store-configs-critical-panel";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
@@ -476,6 +477,14 @@ export function SettingsConnectionsPage({
       </section>
 
       <StoreConfigsCriticalPanel
+        stores={workspaceState.stores}
+        storeConfigs={workspaceState.storeConfigs}
+        defaults={workspaceState.storeConfigDefaults}
+        activeStoreId={selectedStoreId}
+        onStoreConfigSaved={handleStoreConfigSaved}
+      />
+
+      <StoreConfigPriceListsPanel
         stores={workspaceState.stores}
         storeConfigs={workspaceState.storeConfigs}
         defaults={workspaceState.storeConfigDefaults}

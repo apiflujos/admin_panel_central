@@ -308,6 +308,11 @@
   color: var(--text-faint);
 }
 
+.store-config-field select.input-control,
+.store-config-field input.input-control {
+  width: 100%;
+}
+
 .store-warehouse-card {
   display: grid;
   gap: 8px;

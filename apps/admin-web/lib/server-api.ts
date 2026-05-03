@@ -364,6 +364,12 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
       storeId: config.storeId,
       storeName: config.storeName,
       shopDomain: config.shopDomain,
+      priceLists: {
+        generalId: config.priceLists.generalId,
+        discountId: config.priceLists.discountId,
+        wholesaleId: config.priceLists.wholesaleId,
+        currency: config.priceLists.currency,
+      },
       transfers: {
         enabled: config.transfers.enabled,
         destinationRequired: config.transfers.destinationRequired,
@@ -412,6 +418,12 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
       },
     })),
     storeConfigDefaults: {
+      priceLists: {
+        generalId: "",
+        discountId: "",
+        wholesaleId: "",
+        currency: "",
+      },
       rules: {
         syncEnabled: true,
         inventoryAdjustmentsEnabled: settings.rules?.inventoryAdjustmentsEnabled ?? true,

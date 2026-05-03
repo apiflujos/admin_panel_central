@@ -36,6 +36,12 @@ export type CriticalStoreConfig = {
   storeId: number;
   storeName: string;
   shopDomain?: string;
+  priceLists: {
+    generalId: string;
+    discountId: string;
+    wholesaleId: string;
+    currency: string;
+  };
   transfers: {
     enabled: boolean;
     destinationRequired: boolean;
@@ -81,6 +87,12 @@ export type ConnectionsWorkspace = {
   stores: WorkspaceStore[];
   storeConfigs: CriticalStoreConfig[];
   storeConfigDefaults: {
+    priceLists: {
+      generalId: string;
+      discountId: string;
+      wholesaleId: string;
+      currency: string;
+    };
     rules: {
       syncEnabled: boolean;
       inventoryAdjustmentsEnabled: boolean;

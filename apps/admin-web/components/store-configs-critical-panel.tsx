@@ -314,6 +314,7 @@ export function StoreConfigsCriticalPanel({
       await saveStoreConfig(String(activeStore.id), {
         storeId: activeStore.id,
         shopDomain: activeConfig?.shopDomain,
+        priceLists: activeConfig?.priceLists ?? defaults.priceLists,
         transfers: {
           enabled: draft.enabled,
           destinationRequired: draft.destinationRequired,
@@ -360,6 +361,7 @@ export function StoreConfigsCriticalPanel({
         storeId: activeStore.id,
         storeName: activeStore.name,
         shopDomain: activeConfig?.shopDomain ?? activeStore.providers.shopify?.shopDomain,
+        priceLists: activeConfig?.priceLists ?? defaults.priceLists,
         transfers: {
           enabled: draft.enabled,
           destinationRequired: draft.destinationRequired,

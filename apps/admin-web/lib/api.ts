@@ -243,7 +243,7 @@ export async function getSuperAdminOverview(): Promise<AdminWebSuperAdminOvervie
 
 export async function saveStoreConfig(
   storeKey: string,
-  payload: Pick<CriticalStoreConfig, "transfers" | "rules" | "invoice" | "sync"> & {
+  payload: Pick<CriticalStoreConfig, "priceLists" | "transfers" | "rules" | "invoice" | "sync"> & {
     storeId?: number;
     shopDomain?: string;
   }
