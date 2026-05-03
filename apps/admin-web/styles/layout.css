@@ -33,6 +33,14 @@
   border-bottom: 1px solid var(--panel-border);
 }
 
+.sidebarClientBrand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px 14px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
 .sidebarBrandMark,
 .topbarBrandMark {
   width: 32px;
@@ -47,9 +55,40 @@
   font-size: 12px;
 }
 
+.sidebarClientMark,
+.sidebarClientLogo {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  flex: 0 0 auto;
+}
+
+.sidebarClientMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--surface-brand) 80%, white);
+  border: 1px solid var(--panel-border);
+  color: var(--text-strong);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.sidebarClientLogo {
+  object-fit: cover;
+  border: 1px solid var(--panel-border);
+  background: #fff;
+}
+
 .sidebarBrandText {
   display: grid;
   gap: 2px;
+}
+
+.sidebarClientText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 
 .sidebarBrandText strong {
@@ -58,6 +97,19 @@
 }
 
 .sidebarBrandText span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.sidebarClientText strong {
+  font-size: 13px;
+  color: var(--text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebarClientText span {
   font-size: 11px;
   color: var(--muted);
 }
@@ -149,10 +201,20 @@
   gap: 10px;
 }
 
+.topbarBrandText {
+  display: grid;
+  gap: 1px;
+}
+
 .topbarBrand strong,
 .topbarTitle strong {
   font-size: 15px;
   color: var(--text-strong);
+}
+
+.topbarBrandText span {
+  font-size: 11px;
+  color: var(--muted);
 }
 
 .topbarTitle {

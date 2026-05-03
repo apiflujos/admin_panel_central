@@ -88,6 +88,25 @@ export const getServerSessionProfile = cache(async (): Promise<AuthSessionDto | 
   }
 });
 
+export const getServerCompanyBrand = cache(async (): Promise<{
+  companyName: string;
+  logoBase64: string;
+}> => {
+  try {
+    const { getCompanyProfile } = await import("../../../src/services/company.service");
+    const company = await getCompanyProfile();
+    return {
+      companyName: company.name?.trim() || "ApiFlujos",
+      logoBase64: company.logoBase64 || "",
+    };
+  } catch {
+    return {
+      companyName: "ApiFlujos",
+      logoBase64: "",
+    };
+  }
+});
+
 export async function requireServerSessionProfile(): Promise<AuthSessionDto> {
   const session = await getServerSessionProfile();
   if (!session) {
