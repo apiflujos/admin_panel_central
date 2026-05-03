@@ -283,6 +283,31 @@
   color: var(--text-strong);
 }
 
+.store-configs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.store-config-field {
+  display: grid;
+  gap: 6px;
+}
+
+.store-config-field span {
+  font-size: 12px;
+  color: var(--text-strong);
+}
+
+.store-config-field small {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.connection-inline-note-error {
+  color: var(--status-danger);
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -389,7 +414,8 @@
 @media (max-width: 1080px) {
   .stats-grid,
   .stats-grid-4,
-  .connections-grid {
+  .connections-grid,
+  .store-configs-grid {
     grid-template-columns: 1fr;
   }
 }

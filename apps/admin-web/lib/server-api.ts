@@ -20,6 +20,7 @@ import type {
 } from "../../../packages/shared/src/admin-web";
 import { getSessionUser } from "../../../src/services/auth.service";
 import type { OrderInvoiceOverride } from "../../../src/services/order-invoice-overrides.service";
+import type { ConnectionsWorkspace } from "./connections-workspace";
 
 async function countEnabledModules() {
   const [{ getOrgId, getPool }] = await Promise.all([import("../../../src/db")]);
@@ -259,20 +260,26 @@ export async function getServerConnectionsStatus(): Promise<ConnectionStatusList
   ]);
 }
 
-export async function getServerConnectionsWorkspace() {
+export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorkspace> {
   const [
     { buildProviderDetail, toConnectionStatus },
     { getCompanyProfile },
     { listStoreConnections },
+    { listStoreConfigs },
+    { getSettings },
   ] = await Promise.all([
     import("../../../packages/domain/src/settings"),
     import("../../../src/services/company.service"),
     import("../../../src/services/store-connections.service"),
+    import("../../../src/services/store-configs.service"),
+    import("../../../src/services/settings.service"),
   ]);
 
-  const [company, connections] = await Promise.all([
+  const [company, connections, storeConfigs, settings] = await Promise.all([
     getCompanyProfile(),
     listStoreConnections(),
+    listStoreConfigs(),
+    getSettings(),
   ]);
 
   const stores = connections.storesCatalog.map((store: (typeof connections.storesCatalog)[number]) => ({
@@ -334,6 +341,43 @@ export async function getServerConnectionsWorkspace() {
     companyName: company.name || "ApiFlujos",
     securityMisconfigured: Boolean(connections.securityMisconfigured),
     stores,
+    storeConfigs: storeConfigs.map((config: (typeof storeConfigs)[number]) => ({
+      storeId: config.storeId,
+      storeName: config.storeName,
+      shopDomain: config.shopDomain,
+      rules: {
+        syncEnabled: config.rules.syncEnabled,
+        inventoryAdjustmentsEnabled: config.rules.inventoryAdjustmentsEnabled,
+      },
+      invoice: {
+        generateInvoice: config.invoice.generateInvoice,
+      },
+      sync: {
+        orders: {
+          shopifyToAlegra: config.sync.orders.shopifyToAlegra as
+            | "invoice"
+            | "contact_only"
+            | "db_only"
+            | "off",
+          alegraToShopify: config.sync.orders.alegraToShopify as "draft" | "active" | "off",
+        },
+      },
+    })),
+    storeConfigDefaults: {
+      rules: {
+        syncEnabled: true,
+        inventoryAdjustmentsEnabled: settings.rules?.inventoryAdjustmentsEnabled ?? true,
+      },
+      invoice: {
+        generateInvoice: settings.invoice?.generateInvoice ?? false,
+      },
+      sync: {
+        orders: {
+          shopifyToAlegra: "db_only",
+          alegraToShopify: "off",
+        },
+      },
+    },
     alegraAccounts: connections.alegraAccounts.map((account: (typeof connections.alegraAccounts)[number]) => ({
       id: account.id,
       email: account.email,

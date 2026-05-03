@@ -3,58 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 
 import type { ConnectionStatusDto, SettingsOverviewDto } from "../../../packages/shared/src/admin-web";
+import type { ConnectionsWorkspace } from "../lib/connections-workspace";
 import { toneForStatus } from "../lib/status";
+import { StoreConfigsCriticalPanel } from "./store-configs-critical-panel";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { StatusPill } from "./ui/status-pill";
 
 type ConnectionRow = ConnectionStatusDto & { id: string };
-
-type WorkspaceStore = {
-  id: number;
-  name: string;
-  createdAt: string;
-  providers: {
-    shopify: {
-      label: string;
-      status: ConnectionStatusDto["status"];
-      detail: string;
-      shopDomain?: string;
-    } | null;
-    alegra: {
-      label: string;
-      status: ConnectionStatusDto["status"];
-      detail: string;
-    } | null;
-    woocommerce: {
-      label: string;
-      status: ConnectionStatusDto["status"];
-      detail: string;
-      shopDomain?: string;
-    } | null;
-  };
-};
-
-type WorkspaceAds = {
-  key: string;
-  label: string;
-  status: ConnectionStatusDto["status"];
-  detail: string;
-};
-
-type ConnectionsWorkspace = {
-  companyName: string;
-  securityMisconfigured: boolean;
-  stores: WorkspaceStore[];
-  alegraAccounts: Array<{
-    id: number;
-    email: string;
-    environment: string;
-    storeId: number | null;
-    needsReconnect: boolean;
-  }>;
-  ads: WorkspaceAds[];
-};
 
 type WebhookStatus = {
   ok: boolean;
@@ -159,6 +115,18 @@ export function SettingsConnectionsPage({
   const selectedAccountingRows = selectedStore
     ? accountingRows.filter((row) => row.storeId === selectedStore.id)
     : accountingRows;
+
+  function handleStoreConfigSaved(nextConfig: ConnectionsWorkspace["storeConfigs"][number]) {
+    setWorkspaceState((current) => {
+      const existingIndex = current.storeConfigs.findIndex((item) => item.storeId === nextConfig.storeId);
+      if (existingIndex === -1) {
+        return { ...current, storeConfigs: [nextConfig, ...current.storeConfigs] };
+      }
+      const nextConfigs = [...current.storeConfigs];
+      nextConfigs[existingIndex] = nextConfig;
+      return { ...current, storeConfigs: nextConfigs };
+    });
+  }
 
   async function refreshWorkspace() {
     const response = await fetch("/api/admin-web/connections/workspace", {
@@ -506,6 +474,14 @@ export function SettingsConnectionsPage({
         </div>
         {statusMessage ? <p className="connection-inline-note">{statusMessage}</p> : null}
       </section>
+
+      <StoreConfigsCriticalPanel
+        stores={workspaceState.stores}
+        storeConfigs={workspaceState.storeConfigs}
+        defaults={workspaceState.storeConfigDefaults}
+        activeStoreId={selectedStoreId}
+        onStoreConfigSaved={handleStoreConfigSaved}
+      />
 
       <section className="connection-section">
         <div className="page-toolbar">

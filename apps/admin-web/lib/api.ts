@@ -12,6 +12,7 @@ import type {
   ConnectionStatusListDto,
   SettingsOverviewDto,
 } from "../../../packages/shared/src/admin-web";
+import type { CriticalStoreConfig } from "./connections-workspace";
 
 const apiBase = process.env.APP_HOST ? `${process.env.APP_HOST.replace(/\/$/, "")}/api` : "/api";
 
@@ -164,4 +165,15 @@ export async function getLogsCatalog(params?: {
 
 export async function getSuperAdminOverview(): Promise<AdminWebSuperAdminOverviewDto> {
   return requestJson<AdminWebSuperAdminOverviewDto>({ path: "/admin-web/superadmin/overview", method: "GET" });
+}
+
+export async function saveStoreConfig(
+  storeKey: string,
+  payload: Pick<CriticalStoreConfig, "rules" | "invoice" | "sync"> & { storeId?: number; shopDomain?: string }
+): Promise<{ saved: true; storeId?: number }> {
+  return requestJson<{ saved: true; storeId?: number }>({
+    path: `/store-configs/${encodeURIComponent(storeKey)}`,
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }
