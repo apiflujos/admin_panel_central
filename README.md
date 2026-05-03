@@ -14,6 +14,8 @@ If you are an AI agent (Codex/Gemini/Claude/etc), **read these files before codi
 - `docs/RECONSTRUCTION_BLUEPRINT.md`
 - `docs/RECONSTRUCTION_BACKLOG.md`
 - `docs/TRANSITION_STATUS.md`
+- `docs/CLIENT_OLIVASHOES_STANDARDIZATION_PLAN.md`
+- `docs/QA_CLIENT_OLIVASHOES.md`
 
 Before changing any code, **ask the human** if the change is for:
 
@@ -43,6 +45,7 @@ Frontend operativo:
 - Estado actual en `client/olivashoes`: la superficie funcional preservada sigue siendo `src/server.ts + public/* + src/api/*`.
 - `apps/admin-web` permanece como destino de portado controlado, no como reemplazo ya cerrado.
 - Ver estado de transición en `docs/TRANSITION_STATUS.md`.
+- Ver plan específico de portado en `docs/CLIENT_OLIVASHOES_STANDARDIZATION_PLAN.md`.
 
 ## Quick start
 

@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { toAuthSessionDto } from "../../../packages/domain/src/auth";
 import type { ContactsListServiceResult } from "../../../packages/domain/src/contacts";
@@ -85,6 +86,14 @@ export const getServerSessionProfile = cache(async (): Promise<AuthSessionDto | 
     return null;
   }
 });
+
+export async function requireServerSessionProfile(): Promise<AuthSessionDto> {
+  const session = await getServerSessionProfile();
+  if (!session) {
+    redirect("/auth/login");
+  }
+  return session;
+}
 
 export async function getServerDashboardOverview(): Promise<AdminWebDashboardOverviewDto> {
   const [
