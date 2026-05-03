@@ -54,6 +54,11 @@ export function getEffectiveCriticalStoreConfig(
       autoPublishOnWebhook: defaults.rules.autoPublishOnWebhook,
       autoPublishStatus: defaults.rules.autoPublishStatus,
       onlyActiveItems: defaults.rules.onlyActiveItems,
+      trackInventory: defaults.rules.trackInventory,
+      allowOversell: defaults.rules.allowOversell,
+      webhookItemsEnabled: defaults.rules.webhookItemsEnabled,
+      createInShopify: defaults.rules.createInShopify,
+      updateInShopify: defaults.rules.updateInShopify,
     },
     invoice: {
       generateInvoice: defaults.invoice.generateInvoice,
@@ -113,6 +118,21 @@ export function evaluateStoreConfigReadiness(config: CriticalStoreConfig): Store
 
   if (config.rules.inventoryAdjustmentsAutoPublish && !config.rules.inventoryAdjustmentsEnabled) {
     messages.push("Auto-publicar ajustes está activo, pero los ajustes de inventario están pausados.");
+    level = level === "critical" ? "critical" : "warn";
+  }
+
+  if (!config.rules.trackInventory && config.rules.allowOversell) {
+    messages.push("Allow oversell no aplica cuando Track inventory está apagado.");
+    level = level === "critical" ? "critical" : "warn";
+  }
+
+  if (config.rules.trackInventory && !config.rules.syncEnabled) {
+    messages.push("Track inventory activo requiere Sync operativo encendido.");
+    level = level === "critical" ? "critical" : "warn";
+  }
+
+  if (!config.rules.webhookItemsEnabled && (config.rules.createInShopify || config.rules.updateInShopify)) {
+    messages.push("Create/Update en Shopify siguen configurados, pero el disparo por webhooks está apagado.");
     level = level === "critical" ? "critical" : "warn";
   }
 

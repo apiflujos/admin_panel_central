@@ -52,6 +52,11 @@ export type CriticalStoreConfig = {
     autoPublishOnWebhook: boolean;
     autoPublishStatus: "draft" | "active";
     onlyActiveItems: boolean;
+    trackInventory: boolean;
+    allowOversell: boolean;
+    webhookItemsEnabled: boolean;
+    createInShopify: boolean;
+    updateInShopify: boolean;
   };
   invoice: {
     generateInvoice: boolean;
@@ -83,6 +88,11 @@ export type ConnectionsWorkspace = {
       autoPublishOnWebhook: boolean;
       autoPublishStatus: "draft" | "active";
       onlyActiveItems: boolean;
+      trackInventory: boolean;
+      allowOversell: boolean;
+      webhookItemsEnabled: boolean;
+      createInShopify: boolean;
+      updateInShopify: boolean;
     };
     invoice: {
       generateInvoice: boolean;

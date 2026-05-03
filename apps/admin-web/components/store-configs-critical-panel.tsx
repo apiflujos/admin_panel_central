@@ -16,6 +16,11 @@ type CriticalStoreConfigDraft = Pick<
   | "autoPublishOnWebhook"
   | "autoPublishStatus"
   | "onlyActiveItems"
+  | "trackInventory"
+  | "allowOversell"
+  | "webhookItemsEnabled"
+  | "createInShopify"
+  | "updateInShopify"
 > &
   Pick<CriticalStoreConfig["invoice"], "generateInvoice"> & {
     shopifyToAlegra: CriticalStoreConfig["sync"]["orders"]["shopifyToAlegra"];
@@ -30,6 +35,11 @@ const defaultDraft: CriticalStoreConfigDraft = {
   autoPublishOnWebhook: false,
   autoPublishStatus: "draft",
   onlyActiveItems: false,
+  trackInventory: true,
+  allowOversell: false,
+  webhookItemsEnabled: true,
+  createInShopify: true,
+  updateInShopify: true,
   generateInvoice: false,
   shopifyToAlegra: "db_only",
   alegraToShopify: "off",
@@ -45,6 +55,11 @@ function toDraft(config?: CriticalStoreConfig | null): CriticalStoreConfigDraft 
     autoPublishOnWebhook: config.rules.autoPublishOnWebhook,
     autoPublishStatus: config.rules.autoPublishStatus,
     onlyActiveItems: config.rules.onlyActiveItems,
+    trackInventory: config.rules.trackInventory,
+    allowOversell: config.rules.allowOversell,
+    webhookItemsEnabled: config.rules.webhookItemsEnabled,
+    createInShopify: config.rules.createInShopify,
+    updateInShopify: config.rules.updateInShopify,
     generateInvoice: config.invoice.generateInvoice,
     shopifyToAlegra: config.sync.orders.shopifyToAlegra,
     alegraToShopify: config.sync.orders.alegraToShopify,
@@ -60,6 +75,11 @@ function isDraftEqual(left: CriticalStoreConfigDraft, right: CriticalStoreConfig
     left.autoPublishOnWebhook === right.autoPublishOnWebhook &&
     left.autoPublishStatus === right.autoPublishStatus &&
     left.onlyActiveItems === right.onlyActiveItems &&
+    left.trackInventory === right.trackInventory &&
+    left.allowOversell === right.allowOversell &&
+    left.webhookItemsEnabled === right.webhookItemsEnabled &&
+    left.createInShopify === right.createInShopify &&
+    left.updateInShopify === right.updateInShopify &&
     left.generateInvoice === right.generateInvoice &&
     left.shopifyToAlegra === right.shopifyToAlegra &&
     left.alegraToShopify === right.alegraToShopify
@@ -100,6 +120,11 @@ export function StoreConfigsCriticalPanel({
       autoPublishOnWebhook: defaults.rules.autoPublishOnWebhook,
       autoPublishStatus: defaults.rules.autoPublishStatus,
       onlyActiveItems: defaults.rules.onlyActiveItems,
+      trackInventory: defaults.rules.trackInventory,
+      allowOversell: defaults.rules.allowOversell,
+      webhookItemsEnabled: defaults.rules.webhookItemsEnabled,
+      createInShopify: defaults.rules.createInShopify,
+      updateInShopify: defaults.rules.updateInShopify,
       generateInvoice: defaults.invoice.generateInvoice,
       shopifyToAlegra: defaults.sync.orders.shopifyToAlegra,
       alegraToShopify: defaults.sync.orders.alegraToShopify,
@@ -144,6 +169,11 @@ export function StoreConfigsCriticalPanel({
         autoPublishOnWebhook: draft.autoPublishOnWebhook,
         autoPublishStatus: draft.autoPublishStatus,
         onlyActiveItems: draft.onlyActiveItems,
+        trackInventory: draft.trackInventory,
+        allowOversell: draft.allowOversell,
+        webhookItemsEnabled: draft.webhookItemsEnabled,
+        createInShopify: draft.createInShopify,
+        updateInShopify: draft.updateInShopify,
       },
       invoice: {
         ...effectiveConfig.invoice,
@@ -159,6 +189,7 @@ export function StoreConfigsCriticalPanel({
       },
     });
   }, [draft, effectiveConfig]);
+  const oversellEnabled = draft.trackInventory;
 
   async function persist() {
     if (!activeStore) {
@@ -166,25 +197,32 @@ export function StoreConfigsCriticalPanel({
       setSaveMessage("Selecciona una tienda antes de guardar.");
       return;
     }
-      setSaveState("saving");
-      setSaveMessage("");
+    setSaveState("saving");
+    setSaveMessage("");
     if (readiness && !readiness.canSave) {
       setSaveState("error");
       setSaveMessage("La combinación actual requiere completar el setup antes de guardar.");
       return;
     }
+    const normalizedSyncEnabled = draft.trackInventory ? true : draft.syncEnabled;
+    const normalizedAllowOversell = draft.trackInventory ? draft.allowOversell : false;
     try {
       await saveStoreConfig(String(activeStore.id), {
         storeId: activeStore.id,
         shopDomain: activeConfig?.shopDomain,
         rules: {
-          syncEnabled: draft.syncEnabled,
+          syncEnabled: normalizedSyncEnabled,
           inventoryAdjustmentsEnabled: draft.inventoryAdjustmentsEnabled,
           inventoryAdjustmentsAutoPublish: draft.inventoryAdjustmentsAutoPublish,
           publishOnStock: draft.publishOnStock,
           autoPublishOnWebhook: draft.autoPublishOnWebhook,
           autoPublishStatus: draft.autoPublishStatus,
           onlyActiveItems: draft.onlyActiveItems,
+          trackInventory: draft.trackInventory,
+          allowOversell: normalizedAllowOversell,
+          webhookItemsEnabled: draft.webhookItemsEnabled,
+          createInShopify: draft.createInShopify,
+          updateInShopify: draft.updateInShopify,
         },
         invoice: {
           generateInvoice: draft.generateInvoice,
@@ -218,13 +256,18 @@ export function StoreConfigsCriticalPanel({
           fallbackStrategy: defaults.transfers.fallbackStrategy,
         },
         rules: {
-          syncEnabled: draft.syncEnabled,
+          syncEnabled: normalizedSyncEnabled,
           inventoryAdjustmentsEnabled: draft.inventoryAdjustmentsEnabled,
           inventoryAdjustmentsAutoPublish: draft.inventoryAdjustmentsAutoPublish,
           publishOnStock: draft.publishOnStock,
           autoPublishOnWebhook: draft.autoPublishOnWebhook,
           autoPublishStatus: draft.autoPublishStatus,
           onlyActiveItems: draft.onlyActiveItems,
+          trackInventory: draft.trackInventory,
+          allowOversell: normalizedAllowOversell,
+          webhookItemsEnabled: draft.webhookItemsEnabled,
+          createInShopify: draft.createInShopify,
+          updateInShopify: draft.updateInShopify,
         },
         invoice: {
           generateInvoice: draft.generateInvoice,
@@ -274,15 +317,16 @@ export function StoreConfigsCriticalPanel({
           <span>Sync operativo</span>
           <select
             className="input"
-            value={draft.syncEnabled ? "true" : "false"}
+            value={(draft.trackInventory ? true : draft.syncEnabled) ? "true" : "false"}
             onChange={(event) =>
               setDraft((current) => ({ ...current, syncEnabled: event.target.value === "true" }))
             }
+            disabled={draft.trackInventory}
           >
             <option value="true">Activa</option>
             <option value="false">Pausada</option>
           </select>
-          <small>Pausa envíos operativos de la tienda; no reemplaza los modos por flujo.</small>
+          <small>Pausa envíos operativos. Si Track inventory está activo, legacy fuerza este valor a activo.</small>
         </label>
 
         <label className="store-config-field">
@@ -358,6 +402,100 @@ export function StoreConfigsCriticalPanel({
             <option value="false">Pausados</option>
           </select>
           <small>Pausa los ajustes automáticos por tienda sin desmontar la conexión.</small>
+        </label>
+
+        <label className="store-config-field">
+          <span>Track inventory</span>
+          <select
+            className="input"
+            value={draft.trackInventory ? "true" : "false"}
+            onChange={(event) => {
+              const nextValue = event.target.value === "true";
+              setDraft((current) => ({
+                ...current,
+                trackInventory: nextValue,
+                syncEnabled: nextValue ? true : current.syncEnabled,
+                allowOversell: nextValue ? current.allowOversell : false,
+              }));
+            }}
+          >
+            <option value="true">Activo</option>
+            <option value="false">Apagado</option>
+          </select>
+          <small>Al activarlo, el legacy mantiene Sync operativo encendido.</small>
+        </label>
+
+        <label className="store-config-field">
+          <span>Allow oversell</span>
+          <select
+            className="input"
+            value={(draft.trackInventory ? draft.allowOversell : false) ? "true" : "false"}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                allowOversell: current.trackInventory ? event.target.value === "true" : false,
+              }))
+            }
+            disabled={!oversellEnabled}
+          >
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </select>
+          <small>No aplica si Track inventory está apagado.</small>
+        </label>
+
+        <label className="store-config-field">
+          <span>Webhook items enabled</span>
+          <select
+            className="input"
+            value={draft.webhookItemsEnabled ? "true" : "false"}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                webhookItemsEnabled: event.target.value === "true",
+              }))
+            }
+          >
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </select>
+          <small>Controla si los cambios de items por webhook disparan automatización.</small>
+        </label>
+
+        <label className="store-config-field">
+          <span>Create in Shopify</span>
+          <select
+            className="input"
+            value={draft.createInShopify ? "true" : "false"}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                createInShopify: event.target.value === "true",
+              }))
+            }
+          >
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </select>
+          <small>Permite crear productos nuevos en Shopify desde el flujo automático.</small>
+        </label>
+
+        <label className="store-config-field">
+          <span>Update in Shopify</span>
+          <select
+            className="input"
+            value={draft.updateInShopify ? "true" : "false"}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                updateInShopify: event.target.value === "true",
+              }))
+            }
+          >
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </select>
+          <small>Permite actualizar productos existentes en Shopify desde el flujo automático.</small>
         </label>
 
         <label className="store-config-field">

@@ -366,6 +366,11 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
         autoPublishOnWebhook: config.rules.autoPublishOnWebhook,
         autoPublishStatus: config.rules.autoPublishStatus as "draft" | "active",
         onlyActiveItems: config.rules.onlyActiveItems,
+        trackInventory: config.rules.trackInventory,
+        allowOversell: config.rules.allowOversell,
+        webhookItemsEnabled: config.rules.webhookItemsEnabled,
+        createInShopify: config.rules.createInShopify,
+        updateInShopify: config.rules.updateInShopify,
       },
       invoice: {
         generateInvoice: config.invoice.generateInvoice,
@@ -395,6 +400,11 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
         autoPublishOnWebhook: settings.rules?.autoPublishOnWebhook ?? false,
         autoPublishStatus: settings.rules?.autoPublishStatus === "active" ? "active" : "draft",
         onlyActiveItems: Boolean(settings.rules?.onlyActiveItems),
+        trackInventory: settings.rules?.trackInventory ?? true,
+        allowOversell: settings.rules?.allowOversell ?? false,
+        webhookItemsEnabled: settings.rules?.webhookItemsEnabled ?? true,
+        createInShopify: settings.rules?.createInShopify ?? true,
+        updateInShopify: settings.rules?.updateInShopify ?? true,
       },
       invoice: {
         generateInvoice: settings.invoice?.generateInvoice ?? false,
