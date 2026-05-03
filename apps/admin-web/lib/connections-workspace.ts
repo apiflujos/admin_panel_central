@@ -36,12 +36,30 @@ export type CriticalStoreConfig = {
   storeId: number;
   storeName: string;
   shopDomain?: string;
+  transfers: {
+    enabled: boolean;
+    destinationRequired: boolean;
+    destinationWarehouseId: string;
+    originWarehouseIds: string[];
+    strategy: "manual" | "consolidation" | "priority" | "max_stock";
+    fallbackStrategy: "manual" | "consolidation" | "priority" | "max_stock" | "";
+  };
   rules: {
     syncEnabled: boolean;
     inventoryAdjustmentsEnabled: boolean;
+    inventoryAdjustmentsAutoPublish: boolean;
+    publishOnStock: boolean;
+    autoPublishOnWebhook: boolean;
+    autoPublishStatus: "draft" | "active";
+    onlyActiveItems: boolean;
   };
   invoice: {
     generateInvoice: boolean;
+    resolutionId: string;
+    paymentMethod: string;
+    bankAccountId: string;
+    applyPayment: boolean;
+    einvoiceEnabled: boolean;
   };
   sync: {
     orders: {
@@ -60,15 +78,33 @@ export type ConnectionsWorkspace = {
     rules: {
       syncEnabled: boolean;
       inventoryAdjustmentsEnabled: boolean;
+      inventoryAdjustmentsAutoPublish: boolean;
+      publishOnStock: boolean;
+      autoPublishOnWebhook: boolean;
+      autoPublishStatus: "draft" | "active";
+      onlyActiveItems: boolean;
     };
     invoice: {
       generateInvoice: boolean;
+      resolutionId: string;
+      paymentMethod: string;
+      bankAccountId: string;
+      applyPayment: boolean;
+      einvoiceEnabled: boolean;
     };
     sync: {
       orders: {
         shopifyToAlegra: "invoice" | "contact_only" | "db_only" | "off";
         alegraToShopify: "draft" | "active" | "off";
       };
+    };
+    transfers: {
+      enabled: boolean;
+      destinationRequired: boolean;
+      destinationWarehouseId: string;
+      originWarehouseIds: string[];
+      strategy: "manual" | "consolidation" | "priority" | "max_stock";
+      fallbackStrategy: "manual" | "consolidation" | "priority" | "max_stock" | "";
     };
   };
   alegraAccounts: Array<{

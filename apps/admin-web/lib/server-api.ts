@@ -345,12 +345,35 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
       storeId: config.storeId,
       storeName: config.storeName,
       shopDomain: config.shopDomain,
+      transfers: {
+        enabled: config.transfers.enabled,
+        destinationRequired: config.transfers.destinationRequired,
+        destinationWarehouseId: config.transfers.destinationWarehouseId,
+        originWarehouseIds: config.transfers.originWarehouseIds as string[],
+        strategy: config.transfers.strategy as "manual" | "consolidation" | "priority" | "max_stock",
+        fallbackStrategy: config.transfers.fallbackStrategy as
+          | "manual"
+          | "consolidation"
+          | "priority"
+          | "max_stock"
+          | "",
+      },
       rules: {
         syncEnabled: config.rules.syncEnabled,
         inventoryAdjustmentsEnabled: config.rules.inventoryAdjustmentsEnabled,
+        inventoryAdjustmentsAutoPublish: config.rules.inventoryAdjustmentsAutoPublish,
+        publishOnStock: config.rules.publishOnStock,
+        autoPublishOnWebhook: config.rules.autoPublishOnWebhook,
+        autoPublishStatus: config.rules.autoPublishStatus as "draft" | "active",
+        onlyActiveItems: config.rules.onlyActiveItems,
       },
       invoice: {
         generateInvoice: config.invoice.generateInvoice,
+        resolutionId: config.invoice.resolutionId,
+        paymentMethod: config.invoice.paymentMethod,
+        bankAccountId: config.invoice.bankAccountId,
+        applyPayment: config.invoice.applyPayment,
+        einvoiceEnabled: config.invoice.einvoiceEnabled,
       },
       sync: {
         orders: {
@@ -367,15 +390,33 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
       rules: {
         syncEnabled: true,
         inventoryAdjustmentsEnabled: settings.rules?.inventoryAdjustmentsEnabled ?? true,
+        inventoryAdjustmentsAutoPublish: settings.rules?.inventoryAdjustmentsAutoPublish ?? true,
+        publishOnStock: settings.rules?.publishOnStock ?? true,
+        autoPublishOnWebhook: settings.rules?.autoPublishOnWebhook ?? false,
+        autoPublishStatus: settings.rules?.autoPublishStatus === "active" ? "active" : "draft",
+        onlyActiveItems: Boolean(settings.rules?.onlyActiveItems),
       },
       invoice: {
         generateInvoice: settings.invoice?.generateInvoice ?? false,
+        resolutionId: settings.invoice?.resolutionId ?? "",
+        paymentMethod: settings.invoice?.paymentMethod ?? "",
+        bankAccountId: settings.invoice?.bankAccountId ?? "",
+        applyPayment: settings.invoice?.applyPayment ?? false,
+        einvoiceEnabled: settings.invoice?.einvoiceEnabled ?? false,
       },
       sync: {
         orders: {
           shopifyToAlegra: "db_only",
           alegraToShopify: "off",
         },
+      },
+      transfers: {
+        enabled: true,
+        destinationRequired: true,
+        destinationWarehouseId: settings.invoice?.warehouseId ?? "",
+        originWarehouseIds: settings.rules?.warehouseIds ?? [],
+        strategy: "manual",
+        fallbackStrategy: "",
       },
     },
     alegraAccounts: connections.alegraAccounts.map((account: (typeof connections.alegraAccounts)[number]) => ({

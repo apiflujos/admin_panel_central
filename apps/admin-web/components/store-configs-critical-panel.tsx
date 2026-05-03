@@ -4,9 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { ConnectionsWorkspace, CriticalStoreConfig, WorkspaceStore } from "../lib/connections-workspace";
 import { saveStoreConfig } from "../lib/api";
+import { evaluateStoreConfigReadiness, getEffectiveCriticalStoreConfig } from "../lib/store-config-readiness";
+import { StoreConfigsReadiness } from "./store-configs-readiness";
 
-type CriticalStoreConfigDraft = CriticalStoreConfig["rules"] &
-  CriticalStoreConfig["invoice"] & {
+type CriticalStoreConfigDraft = Pick<
+  CriticalStoreConfig["rules"],
+  | "syncEnabled"
+  | "inventoryAdjustmentsEnabled"
+  | "inventoryAdjustmentsAutoPublish"
+  | "publishOnStock"
+  | "autoPublishOnWebhook"
+  | "autoPublishStatus"
+  | "onlyActiveItems"
+> &
+  Pick<CriticalStoreConfig["invoice"], "generateInvoice"> & {
     shopifyToAlegra: CriticalStoreConfig["sync"]["orders"]["shopifyToAlegra"];
     alegraToShopify: CriticalStoreConfig["sync"]["orders"]["alegraToShopify"];
   };
@@ -14,6 +25,11 @@ type CriticalStoreConfigDraft = CriticalStoreConfig["rules"] &
 const defaultDraft: CriticalStoreConfigDraft = {
   syncEnabled: true,
   inventoryAdjustmentsEnabled: true,
+  inventoryAdjustmentsAutoPublish: true,
+  publishOnStock: true,
+  autoPublishOnWebhook: false,
+  autoPublishStatus: "draft",
+  onlyActiveItems: false,
   generateInvoice: false,
   shopifyToAlegra: "db_only",
   alegraToShopify: "off",
@@ -24,6 +40,11 @@ function toDraft(config?: CriticalStoreConfig | null): CriticalStoreConfigDraft 
   return {
     syncEnabled: config.rules.syncEnabled,
     inventoryAdjustmentsEnabled: config.rules.inventoryAdjustmentsEnabled,
+    inventoryAdjustmentsAutoPublish: config.rules.inventoryAdjustmentsAutoPublish,
+    publishOnStock: config.rules.publishOnStock,
+    autoPublishOnWebhook: config.rules.autoPublishOnWebhook,
+    autoPublishStatus: config.rules.autoPublishStatus,
+    onlyActiveItems: config.rules.onlyActiveItems,
     generateInvoice: config.invoice.generateInvoice,
     shopifyToAlegra: config.sync.orders.shopifyToAlegra,
     alegraToShopify: config.sync.orders.alegraToShopify,
@@ -34,6 +55,11 @@ function isDraftEqual(left: CriticalStoreConfigDraft, right: CriticalStoreConfig
   return (
     left.syncEnabled === right.syncEnabled &&
     left.inventoryAdjustmentsEnabled === right.inventoryAdjustmentsEnabled &&
+    left.inventoryAdjustmentsAutoPublish === right.inventoryAdjustmentsAutoPublish &&
+    left.publishOnStock === right.publishOnStock &&
+    left.autoPublishOnWebhook === right.autoPublishOnWebhook &&
+    left.autoPublishStatus === right.autoPublishStatus &&
+    left.onlyActiveItems === right.onlyActiveItems &&
     left.generateInvoice === right.generateInvoice &&
     left.shopifyToAlegra === right.shopifyToAlegra &&
     left.alegraToShopify === right.alegraToShopify
@@ -65,40 +91,74 @@ export function StoreConfigsCriticalPanel({
     () => storeConfigs.find((config) => config.storeId === activeStoreId) ?? null,
     [activeStoreId, storeConfigs]
   );
+  const baseDraft = useMemo(
+    () => ({
+      syncEnabled: defaults.rules.syncEnabled,
+      inventoryAdjustmentsEnabled: defaults.rules.inventoryAdjustmentsEnabled,
+      inventoryAdjustmentsAutoPublish: defaults.rules.inventoryAdjustmentsAutoPublish,
+      publishOnStock: defaults.rules.publishOnStock,
+      autoPublishOnWebhook: defaults.rules.autoPublishOnWebhook,
+      autoPublishStatus: defaults.rules.autoPublishStatus,
+      onlyActiveItems: defaults.rules.onlyActiveItems,
+      generateInvoice: defaults.invoice.generateInvoice,
+      shopifyToAlegra: defaults.sync.orders.shopifyToAlegra,
+      alegraToShopify: defaults.sync.orders.alegraToShopify,
+    }),
+    [defaults]
+  );
 
   useEffect(() => {
-    setDraft(
-      activeConfig
-        ? toDraft(activeConfig)
-        : {
-            syncEnabled: defaults.rules.syncEnabled,
-            inventoryAdjustmentsEnabled: defaults.rules.inventoryAdjustmentsEnabled,
-            generateInvoice: defaults.invoice.generateInvoice,
-            shopifyToAlegra: defaults.sync.orders.shopifyToAlegra,
-            alegraToShopify: defaults.sync.orders.alegraToShopify,
-          }
-    );
+    setDraft(activeConfig ? toDraft(activeConfig) : baseDraft);
     setSaveState("idle");
     setSaveMessage("");
-  }, [activeConfig, activeStoreId, defaults]);
+  }, [activeConfig, activeStoreId, baseDraft]);
 
   const dirty = useMemo(
-    () =>
-      !isDraftEqual(
-        draft,
-        activeConfig
-          ? toDraft(activeConfig)
-          : {
-              syncEnabled: defaults.rules.syncEnabled,
-              inventoryAdjustmentsEnabled: defaults.rules.inventoryAdjustmentsEnabled,
-              generateInvoice: defaults.invoice.generateInvoice,
-              shopifyToAlegra: defaults.sync.orders.shopifyToAlegra,
-              alegraToShopify: defaults.sync.orders.alegraToShopify,
-            }
-      ),
-    [activeConfig, defaults, draft]
+    () => !isDraftEqual(draft, activeConfig ? toDraft(activeConfig) : baseDraft),
+    [activeConfig, baseDraft, draft]
   );
   const invoiceModeAlreadyActive = activeConfig?.sync.orders.shopifyToAlegra === "invoice";
+  const effectiveConfig = useMemo(
+    () =>
+      activeStore
+        ? getEffectiveCriticalStoreConfig(
+            activeConfig,
+            defaults,
+            activeStore.id,
+            activeStore.name,
+            activeConfig?.shopDomain ?? activeStore.providers.shopify?.shopDomain
+          )
+        : null,
+    [activeConfig, activeStore, defaults]
+  );
+  const readiness = useMemo(() => {
+    if (!effectiveConfig) return null;
+    return evaluateStoreConfigReadiness({
+      ...effectiveConfig,
+      rules: {
+        ...effectiveConfig.rules,
+        syncEnabled: draft.syncEnabled,
+        inventoryAdjustmentsEnabled: draft.inventoryAdjustmentsEnabled,
+        inventoryAdjustmentsAutoPublish: draft.inventoryAdjustmentsAutoPublish,
+        publishOnStock: draft.publishOnStock,
+        autoPublishOnWebhook: draft.autoPublishOnWebhook,
+        autoPublishStatus: draft.autoPublishStatus,
+        onlyActiveItems: draft.onlyActiveItems,
+      },
+      invoice: {
+        ...effectiveConfig.invoice,
+        generateInvoice: draft.generateInvoice,
+      },
+      sync: {
+        ...effectiveConfig.sync,
+        orders: {
+          ...effectiveConfig.sync.orders,
+          shopifyToAlegra: draft.shopifyToAlegra,
+          alegraToShopify: draft.alegraToShopify,
+        },
+      },
+    });
+  }, [draft, effectiveConfig]);
 
   async function persist() {
     if (!activeStore) {
@@ -106,8 +166,13 @@ export function StoreConfigsCriticalPanel({
       setSaveMessage("Selecciona una tienda antes de guardar.");
       return;
     }
-    setSaveState("saving");
-    setSaveMessage("");
+      setSaveState("saving");
+      setSaveMessage("");
+    if (readiness && !readiness.canSave) {
+      setSaveState("error");
+      setSaveMessage("La combinación actual requiere completar el setup antes de guardar.");
+      return;
+    }
     try {
       await saveStoreConfig(String(activeStore.id), {
         storeId: activeStore.id,
@@ -115,9 +180,23 @@ export function StoreConfigsCriticalPanel({
         rules: {
           syncEnabled: draft.syncEnabled,
           inventoryAdjustmentsEnabled: draft.inventoryAdjustmentsEnabled,
+          inventoryAdjustmentsAutoPublish: draft.inventoryAdjustmentsAutoPublish,
+          publishOnStock: draft.publishOnStock,
+          autoPublishOnWebhook: draft.autoPublishOnWebhook,
+          autoPublishStatus: draft.autoPublishStatus,
+          onlyActiveItems: draft.onlyActiveItems,
         },
         invoice: {
           generateInvoice: draft.generateInvoice,
+          resolutionId: activeConfig?.invoice.resolutionId ?? effectiveConfig?.invoice.resolutionId ?? defaults.invoice.resolutionId,
+          paymentMethod:
+            activeConfig?.invoice.paymentMethod ?? effectiveConfig?.invoice.paymentMethod ?? defaults.invoice.paymentMethod,
+          bankAccountId:
+            activeConfig?.invoice.bankAccountId ?? effectiveConfig?.invoice.bankAccountId ?? defaults.invoice.bankAccountId,
+          applyPayment:
+            activeConfig?.invoice.applyPayment ?? effectiveConfig?.invoice.applyPayment ?? defaults.invoice.applyPayment,
+          einvoiceEnabled:
+            activeConfig?.invoice.einvoiceEnabled ?? effectiveConfig?.invoice.einvoiceEnabled ?? defaults.invoice.einvoiceEnabled,
         },
         sync: {
           orders: {
@@ -130,12 +209,34 @@ export function StoreConfigsCriticalPanel({
         storeId: activeStore.id,
         storeName: activeStore.name,
         shopDomain: activeConfig?.shopDomain ?? activeStore.providers.shopify?.shopDomain,
+        transfers: activeConfig?.transfers ?? effectiveConfig?.transfers ?? {
+          enabled: defaults.transfers.enabled,
+          destinationRequired: defaults.transfers.destinationRequired,
+          destinationWarehouseId: defaults.transfers.destinationWarehouseId,
+          originWarehouseIds: defaults.transfers.originWarehouseIds,
+          strategy: defaults.transfers.strategy,
+          fallbackStrategy: defaults.transfers.fallbackStrategy,
+        },
         rules: {
           syncEnabled: draft.syncEnabled,
           inventoryAdjustmentsEnabled: draft.inventoryAdjustmentsEnabled,
+          inventoryAdjustmentsAutoPublish: draft.inventoryAdjustmentsAutoPublish,
+          publishOnStock: draft.publishOnStock,
+          autoPublishOnWebhook: draft.autoPublishOnWebhook,
+          autoPublishStatus: draft.autoPublishStatus,
+          onlyActiveItems: draft.onlyActiveItems,
         },
         invoice: {
           generateInvoice: draft.generateInvoice,
+          resolutionId: activeConfig?.invoice.resolutionId ?? effectiveConfig?.invoice.resolutionId ?? defaults.invoice.resolutionId,
+          paymentMethod:
+            activeConfig?.invoice.paymentMethod ?? effectiveConfig?.invoice.paymentMethod ?? defaults.invoice.paymentMethod,
+          bankAccountId:
+            activeConfig?.invoice.bankAccountId ?? effectiveConfig?.invoice.bankAccountId ?? defaults.invoice.bankAccountId,
+          applyPayment:
+            activeConfig?.invoice.applyPayment ?? effectiveConfig?.invoice.applyPayment ?? defaults.invoice.applyPayment,
+          einvoiceEnabled:
+            activeConfig?.invoice.einvoiceEnabled ?? effectiveConfig?.invoice.einvoiceEnabled ?? defaults.invoice.einvoiceEnabled,
         },
         sync: {
           orders: {
@@ -165,6 +266,8 @@ export function StoreConfigsCriticalPanel({
       {!activeStore ? (
         <p className="connection-inline-note">Selecciona una tienda para editar su configuración crítica.</p>
       ) : null}
+
+      {readiness ? <StoreConfigsReadiness readiness={readiness} /> : null}
 
       <div className="store-configs-grid">
         <label className="store-config-field">
@@ -256,6 +359,96 @@ export function StoreConfigsCriticalPanel({
           </select>
           <small>Pausa los ajustes automáticos por tienda sin desmontar la conexión.</small>
         </label>
+
+        <label className="store-config-field">
+          <span>Publicar con stock</span>
+          <select
+            className="input"
+            value={draft.publishOnStock ? "true" : "false"}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                publishOnStock: event.target.value === "true",
+              }))
+            }
+          >
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </select>
+          <small>Restringe la publicación automática a ítems con stock.</small>
+        </label>
+
+        <label className="store-config-field">
+          <span>Auto-publicar webhook</span>
+          <select
+            className="input"
+            value={draft.autoPublishOnWebhook ? "true" : "false"}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                autoPublishOnWebhook: event.target.value === "true",
+              }))
+            }
+          >
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </select>
+          <small>Publica automáticamente cuando entra un cambio desde webhook.</small>
+        </label>
+
+        <label className="store-config-field">
+          <span>Estado de auto-publicación</span>
+          <select
+            className="input"
+            value={draft.autoPublishStatus}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                autoPublishStatus: event.target.value as CriticalStoreConfig["rules"]["autoPublishStatus"],
+              }))
+            }
+          >
+            <option value="draft">Borrador</option>
+            <option value="active">Activo</option>
+          </select>
+          <small>Define si la publicación automática deja el ítem en borrador o activo.</small>
+        </label>
+
+        <label className="store-config-field">
+          <span>Solo ítems activos</span>
+          <select
+            className="input"
+            value={draft.onlyActiveItems ? "true" : "false"}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                onlyActiveItems: event.target.value === "true",
+              }))
+            }
+          >
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </select>
+          <small>Evita publicar ítems inactivos cuando corre el flujo automático.</small>
+        </label>
+
+        <label className="store-config-field">
+          <span>Auto-publicar ajustes</span>
+          <select
+            className="input"
+            value={draft.inventoryAdjustmentsAutoPublish ? "true" : "false"}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                inventoryAdjustmentsAutoPublish: event.target.value === "true",
+              }))
+            }
+          >
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </select>
+          <small>Permite publicar automáticamente cuando corren ajustes de inventario.</small>
+        </label>
       </div>
 
       <div className="connection-card-actions">
@@ -264,7 +457,12 @@ export function StoreConfigsCriticalPanel({
             ? "Persistencia por tienda sobre shopify_store_configs."
             : "Esta tienda aún no tiene override persistido; el formulario parte de defaults globales y el primer guardado lo crea."}
         </span>
-        <button className="btn btn-primary btn-compact" type="button" disabled={!activeStore || !dirty || saveState === "saving"} onClick={() => void persist()}>
+        <button
+          className="btn btn-primary btn-compact"
+          type="button"
+          disabled={!activeStore || !dirty || saveState === "saving" || Boolean(readiness && !readiness.canSave)}
+          onClick={() => void persist()}
+        >
           {saveState === "saving" ? "Guardando..." : "Guardar toggles"}
         </button>
       </div>

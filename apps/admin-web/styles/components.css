@@ -308,6 +308,56 @@
   color: var(--status-danger);
 }
 
+.store-readiness {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--panel-border);
+  background: #fff;
+}
+
+.store-readiness-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.store-readiness-head strong {
+  font-size: 13px;
+  color: var(--text-strong);
+}
+
+.store-readiness-head span {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.store-readiness-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.store-readiness-ok {
+  border-color: color-mix(in srgb, var(--status-success) 35%, var(--panel-border));
+  background: color-mix(in srgb, var(--status-success-bg) 55%, white);
+}
+
+.store-readiness-warn {
+  border-color: color-mix(in srgb, var(--status-warning) 35%, var(--panel-border));
+  background: color-mix(in srgb, var(--status-warning-bg) 55%, white);
+}
+
+.store-readiness-critical {
+  border-color: color-mix(in srgb, var(--status-danger) 35%, var(--panel-border));
+  background: color-mix(in srgb, var(--status-danger-bg) 55%, white);
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
