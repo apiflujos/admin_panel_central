@@ -12,7 +12,6 @@ import {
   normalizeShopDomainForOAuth,
 } from "../../../../../../../src/services/shopify-oauth.service";
 import { resolveShopifyApiVersion } from "../../../../../../../src/utils/shopify";
-import { registerShopifyWebhooks } from "../../../../../../integration-api/src/modules/webhooks/handlers/core-shopify-webhooks";
 import { routeHandler } from "../../../../../lib/route-handler";
 
 type OAuthEnv = {
@@ -21,6 +20,16 @@ type OAuthEnv = {
   scopes: string;
   appHost: string;
 };
+
+const DEFAULT_TOPICS = [
+  "ORDERS_CREATE",
+  "ORDERS_UPDATED",
+  "ORDERS_PAID",
+  "REFUNDS_CREATE",
+  "INVENTORY_LEVELS_UPDATE",
+  "PRODUCTS_CREATE",
+  "PRODUCTS_UPDATE",
+];
 
 async function assertModuleEnabled(moduleKey: string) {
   const enabled = await isTenantModuleEnabled(getOrgId(), moduleKey);
@@ -82,6 +91,36 @@ function validateHmac(searchParams: URLSearchParams, apiSecret: string) {
   const providedBuffer = Buffer.from(provided, "utf8");
   if (digestBuffer.length !== providedBuffer.length) return false;
   return crypto.timingSafeEqual(digestBuffer, providedBuffer);
+}
+
+async function registerShopifyWebhooks(params: { client: ShopifyClient; baseUrl: string }) {
+  const baseUrl = params.baseUrl.replace(/\/$/, "");
+  const callbackUrl = `${baseUrl}/api/webhooks/shopify`;
+  const results = await Promise.all(
+    DEFAULT_TOPICS.map(async (topic) => {
+      try {
+        const data = await params.client.createWebhookSubscription(topic, callbackUrl);
+        const response = data.webhookSubscriptionCreate;
+        const errors = response.userErrors || [];
+        return {
+          topic,
+          ok: errors.length === 0,
+          errors,
+        };
+      } catch (error) {
+        return {
+          topic,
+          ok: false,
+          errors: [{ message: (error as { message?: string })?.message || "error" }],
+        };
+      }
+    })
+  );
+  return {
+    ok: results.every((item) => item.ok),
+    callbackUrl,
+    items: results,
+  };
 }
 
 export const GET = routeHandler(async (req: Request) => {

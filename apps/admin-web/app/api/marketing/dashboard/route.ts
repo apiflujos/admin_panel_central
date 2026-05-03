@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { normalizeMarketingDashboardFilters, toAdminWebMarketingOverviewDto } from "../../../../../../../packages/domain/src/marketing";
-import { getMarketingExecutiveDashboard } from "../../../../../../../src/marketing/reports/marketing-reports.service";
-import { listStoreConnections } from "../../../../../../../src/services/store-connections.service";
-import { routeHandler } from "../../../../../lib/route-handler";
-import { requireRouteAdmin } from "../../../../../lib/route-auth";
+import { normalizeMarketingDashboardFilters } from "../../../../../../packages/domain/src/marketing";
+import { getMarketingExecutiveDashboard } from "../../../../../../src/marketing/reports/marketing-reports.service";
+import { listStoreConnections } from "../../../../../../src/services/store-connections.service";
+import { routeHandler } from "../../../../lib/route-handler";
 
 async function resolveDefaultMarketingShopDomain() {
   const connections = await listStoreConnections();
@@ -35,8 +34,6 @@ async function resolveMarketingDashboardFilters(query: Record<string, unknown>) 
 }
 
 export const GET = routeHandler(async (req: Request) => {
-  await requireRouteAdmin();
-
   try {
     const searchParams = new URL(req.url).searchParams;
     const filters = await resolveMarketingDashboardFilters({
@@ -45,10 +42,8 @@ export const GET = routeHandler(async (req: Request) => {
       to: searchParams.get("to") ?? undefined,
     });
     const result = await getMarketingExecutiveDashboard(filters);
-    return NextResponse.json(toAdminWebMarketingOverviewDto(result));
+    return NextResponse.json(result, { status: 200 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "dashboard_error";
-    const status = message === "shopDomain requerido" ? 400 : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "dashboard_error" }, { status: 400 });
   }
 });

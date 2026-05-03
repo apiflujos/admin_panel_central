@@ -20,6 +20,59 @@ import type {
 import { getSessionUser } from "../../../src/services/auth.service";
 import type { OrderInvoiceOverride } from "../../../src/services/order-invoice-overrides.service";
 
+async function countEnabledModules() {
+  const [{ getOrgId, getPool }] = await Promise.all([import("../../../src/db")]);
+  const pool = getPool();
+  const tenantId = getOrgId();
+  const rows = await pool.query<{ key: string }>(
+    `
+    SELECT md.key
+    FROM sa.module_definitions md
+    LEFT JOIN sa.tenant_modules tm
+      ON tm.module_key = md.key AND tm.tenant_id = $1
+    WHERE md.active = true
+      AND COALESCE(tm.enabled, true) = true
+    `,
+    [tenantId]
+  );
+  return rows.rows.length;
+}
+
+async function resolveDefaultMarketingShopDomain() {
+  const [{ listStoreConnections }] = await Promise.all([import("../../../src/services/store-connections.service")]);
+  const connections = await listStoreConnections();
+  for (const store of connections.storesCatalog) {
+    if (store.shopify?.shopDomain) {
+      return String(store.shopify.shopDomain);
+    }
+  }
+  return "";
+}
+
+async function resolveMarketingDashboardFilters(
+  query: Record<string, unknown>,
+  options: { autofillShopDomain?: boolean } = {}
+) {
+  const [{ normalizeMarketingDashboardFilters }] = await Promise.all([import("../../../packages/domain/src/marketing")]);
+  const requestedShopDomain =
+    typeof query.shopDomain === "string" && query.shopDomain.trim()
+      ? query.shopDomain
+      : options.autofillShopDomain
+        ? await resolveDefaultMarketingShopDomain()
+        : undefined;
+
+  const filters = normalizeMarketingDashboardFilters({
+    ...query,
+    shopDomain: requestedShopDomain,
+  });
+
+  if (!filters.shopDomain) {
+    throw new Error("shopDomain requerido");
+  }
+
+  return filters;
+}
+
 export const getServerSessionProfile = cache(async (): Promise<AuthSessionDto | null> => {
   try {
     const cookieStore = await cookies();
@@ -40,7 +93,6 @@ export async function getServerDashboardOverview(): Promise<AdminWebDashboardOve
     { listOrders },
     { listProducts },
     { listStoreConnections },
-    { countEnabledModules },
     { toAdminWebDashboardOverviewDto },
     { summarizeConnectionHealth },
   ] = await Promise.all([
@@ -49,7 +101,6 @@ export async function getServerDashboardOverview(): Promise<AdminWebDashboardOve
     import("../../../src/services/orders.service"),
     import("../../../src/services/products.service"),
     import("../../../src/services/store-connections.service"),
-    import("../../../apps/integration-api/src/modules/settings/handlers/support/tenant-modules"),
     import("../../../packages/domain/src/dashboard"),
     import("../../../packages/domain/src/settings"),
   ]);
@@ -83,12 +134,10 @@ export async function getServerDashboardOverview(): Promise<AdminWebDashboardOve
 export async function getServerSettingsOverview(): Promise<SettingsOverviewDto> {
   const [
     { summarizeConnectionHealth, toSettingsOverviewDto },
-    { countEnabledModules },
     { getCompanyProfile },
     { listStoreConnections },
   ] = await Promise.all([
     import("../../../packages/domain/src/settings"),
-    import("../../../apps/integration-api/src/modules/settings/handlers/support/tenant-modules"),
     import("../../../src/services/company.service"),
     import("../../../src/services/store-connections.service"),
   ]);
@@ -324,11 +373,9 @@ export async function getServerMarketingOverview(
   const [
     { toAdminWebMarketingOverviewDto },
     { getMarketingExecutiveDashboard },
-    { resolveMarketingDashboardFilters },
   ] = await Promise.all([
     import("../../../packages/domain/src/marketing"),
     import("../../../src/marketing/reports/marketing-reports.service"),
-    import("../../../apps/integration-api/src/modules/operations/handlers/support/marketing-dashboard-filters"),
   ]);
 
   const filters = await resolveMarketingDashboardFilters(
