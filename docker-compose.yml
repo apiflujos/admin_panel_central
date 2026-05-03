@@ -23,44 +23,19 @@ services:
       timeout: 3s
       retries: 10
 
-  admin:
-    build:
-      context: .
-      dockerfile: apps/admin-web/Dockerfile
+  app:
+    build: .
     ports:
-      - "3000:3000"
+      - "3006:3006"
     env_file: .env
     environment:
       DATABASE_URL: postgresql://admin:admin@postgres:5432/admin-central-olivashoes
       REDIS_URL: redis://redis:6379
       DATABASE_SSL: "false"
-      NODE_ENV: production
-      NEXT_TELEMETRY_DISABLED: "1"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  workers:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file: .env
-    environment:
-      DATABASE_URL: postgresql://admin:admin@postgres:5432/admin-central-olivashoes
-      REDIS_URL: redis://redis:6379
-      DATABASE_SSL: "false"
-      NODE_ENV: production
-    depends_on:
-      admin:
         condition: service_healthy
     restart: unless-stopped
 

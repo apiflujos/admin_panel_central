@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Central - Asistentes IA</title>
+    <link rel="icon" type="image/png" href="/favicon.png?v=20260205a" />
+    <link rel="stylesheet" href="styles.css?v=20260209p4" />
+    <style>
+      .assistants-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+      .field.full-width {
+        grid-column: span 2;
+      }
+      textarea {
+        min-height: 120px;
+        font-family: monospace;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1>Asistentes IA</h1>
+          <p class="subtitle">Gestion de asistentes inteligentes e integracion con n8n.</p>
+        </div>
+        <div class="topbar-center">
+          <div class="topbar-brand apiflujos-brand">
+            <img id="company-logo" src="/assets/logo.png" alt="ApiFlujos" />
+            <img id="client-logo" class="client-logo" alt="Logo cliente" />
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost" id="back-home" type="button">Volver</button>
+          <div class="topbar-user" id="topbar-user">
+            <button class="ghost topbar-user-trigger" id="topbar-user-toggle" type="button">
+              <img id="user-avatar" src="/assets/avatar.png" alt="Usuario" />
+              <div class="topbar-user-meta">
+                <span id="user-name">Usuario</span>
+                <span id="user-role">Agente</span>
+              </div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+            <div class="topbar-user-menu" id="topbar-user-menu">
+              <button class="ghost" data-user-action="dashboard">Dashboard</button>
+              <button class="ghost admin-only" data-user-action="company">Empresa</button>
+              <button class="ghost" data-user-action="logout">Cerrar sesion</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="panel" id="assistants-panel">
+        <div class="panel-header">
+          <h3>Asistente IA</h3>
+          <span class="panel-tag">Valentina</span>
+        </div>
+        <div class="assistants-layout">
+          <div class="settings-grid assistants-form">
+            <div class="field">
+              <label>Nombre del Asistente</label>
+              <input type="text" id="assistant-name" placeholder="Ej: Valentina" />
+            </div>
+            <div class="field">
+              <label>URL de n8n (Webhook)</label>
+              <input type="url" id="assistant-n8n-url" placeholder="https://n8n.tu-servidor.com/webhook/..." />
+            </div>
+            <div class="field">
+              <label>Avatar URL</label>
+              <input type="text" id="assistant-avatar-url" placeholder="https://..." />
+            </div>
+            <div class="field">
+              <label>Descripción</label>
+              <input type="text" id="assistant-description" placeholder="Ej: Asesora experta en estética" />
+            </div>
+            
+            <div class="field full-width">
+              <label>Instrucción General (Valentina)</label>
+              <textarea id="assistant-instruccion" placeholder="Define el rol y comportamiento general..."></textarea>
+            </div>
+
+            <div class="field full-width">
+              <label>Políticas de Servicio</label>
+              <textarea id="assistant-politicas" placeholder="Políticas de cancelación, reembolsos, etc..."></textarea>
+            </div>
+
+            <div class="field full-width">
+              <label>Identidad de Empresa</label>
+              <textarea id="assistant-identidad" placeholder="Información general de la empresa, servicios, horarios..."></textarea>
+            </div>
+
+            <div class="field">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="assistant-active" checked />
+                    <span>Asistente Activo</span>
+                </label>
+            </div>
+
+            <div class="field field-actions">
+              <button class="primary" id="assistant-save" type="button">Guardar Asistente</button>
+              <button class="ghost" id="assistant-clear" type="button">Limpiar</button>
+            </div>
+          </div>
+          
+          <div class="table-card">
+            <table id="assistants-table">
+              <colgroup>
+                <col style="width: 20%" />
+                <col style="width: 30%" />
+                <col style="width: 15%" />
+                <col style="width: 15%" />
+                <col style="width: 20%" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>URL n8n</th>
+                  <th>Estado</th>
+                  <th>Creado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="5" class="empty">Cargando asistentes...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p class="field-hint" id="assistants-message"></p>
+      </section>
+    </div>
+
+    <script src="ai-assistants.js" type="module"></script>
+  </body>
+</html>
