@@ -1,8 +1,22 @@
 import type { ConnectionStatusDto } from "../../../packages/shared/src/admin-web";
-import { getServerConnectionsStatus, getServerConnectionsWorkspace, getServerSettingsOverview } from "../lib/server-api";
+import {
+  getServerConnectionsStatus,
+  getServerConnectionsWorkspace,
+  getServerSettingsOverview,
+} from "../lib/server-api";
 import { SettingsConnectionsPage } from "./settings-connections-page";
 
-export async function SettingsConnectionsPageContent() {
+export async function SettingsConnectionsPageContent({
+  callbackState,
+  initialStoreId,
+}: {
+  callbackState?: {
+    onboard?: string;
+    oauthError?: string;
+    connections?: boolean;
+  };
+  initialStoreId?: number | null;
+}) {
   const [overview, connectionsResult, workspace] = await Promise.all([
     getServerSettingsOverview(),
     getServerConnectionsStatus(),
@@ -15,6 +29,8 @@ export async function SettingsConnectionsPageContent() {
       connections={connections}
       summary={connectionsResult.summary}
       workspace={workspace}
+      callbackState={callbackState}
+      initialStoreId={initialStoreId}
     />
   );
 }

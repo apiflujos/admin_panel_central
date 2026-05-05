@@ -196,17 +196,16 @@ export const GET = routeHandler(async (req: Request) => {
       client,
       baseUrl: env.appHost,
     });
-    const redirectUrl = new URL(`${env.appHost}/dashboard`);
+    const redirectUrl = new URL("/settings/connections", req.url);
+    redirectUrl.searchParams.set("connections", "1");
     if ((connectionResult as { isNew?: boolean })?.isNew) {
       redirectUrl.searchParams.set("onboard", normalizedShop);
     }
     return NextResponse.redirect(redirectUrl.toString(), { status: 302 });
   } catch (error) {
     const msg = encodeURIComponent((error as { message?: string })?.message || "OAuth error");
-    const appHost = String(process.env.APP_HOST || "").trim();
-    if (appHost) {
-      return NextResponse.redirect(`${appHost}/dashboard?oauth_error=${msg}`, { status: 302 });
-    }
-    return new NextResponse((error as { message?: string })?.message || "OAuth error", { status: 400 });
+    const redirectUrl = new URL("/settings/connections", req.url);
+    redirectUrl.searchParams.set("oauth_error", msg);
+    return NextResponse.redirect(redirectUrl, { status: 302 });
   }
 });

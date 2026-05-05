@@ -17,25 +17,35 @@ No se retira nada de `public/*` ni `src/api/*` hasta cerrar paridad validada.
 
 ## Estado actual
 
-### Superficie funcional viva
+### Superficie principal visible
 
-- login: `/login.html`
-- dashboard/settings/superadmin: renderizados por `src/server.ts`
+- login: `/auth/login`
+- dashboard: `/`
+- perfil/empresa/usuarios/asistentes:
+  - `/profile`
+  - `/company`
+  - `/users`
+  - `/ai-assistants`
+- settings principal:
+  - `/settings/connections`
+  - `/settings/stores`
+  - `/settings/marketing`
+- super admin: `/superadmin`
 - API productiva: `src/api/routes.ts`
-- UX operativa real:
-  - `public/index.html`
-  - `public/app.js`
-  - `public/styles.css`
 
-### Superficie objetivo parcial
+### Fallback legacy explícito
 
 - `apps/admin-web/app/settings/connections/page.tsx`
 - `apps/admin-web/components/settings-connections-page.tsx`
 - `apps/admin-web/components/settings-connections-page-content.tsx`
 - `apps/admin-web/lib/api.ts`
 - `apps/admin-web/lib/server-api.ts`
+- `/legacy/login`
+- `/legacy/dashboard`
+- `/legacy/settings/*`
+- `/legacy/__sa`
 
-Hoy esa capa solo cubre un resumen de conexiones, no el flujo operativo completo.
+El fallback sigue existiendo porque aún hay flujos avanzados y panes no portados completamente.
 
 ## Gap principal detectado
 
@@ -66,22 +76,51 @@ Hoy esa capa solo cubre un resumen de conexiones, no el flujo operativo completo
 - copy config entre tiendas
 - conexión y validaciones acopladas al estado real de la tienda activa
 
-### `admin-web` hoy solo tiene
+### `admin-web` hoy ya cubre
 
-- cards resumen
-- modal de detalle
-- overview superficial
-- lectura server-side de estado
+- auth shell principal
+- dashboard
+- connections + gran parte de reconnect/disconnect/webhooks
+- store-configs críticos
+- factura global avanzada:
+  - generate invoice
+  - e-invoice
+  - resolution
+  - cost center
+  - warehouse
+  - seller
+  - payment method
+  - bank account
+  - observations template
+  - builder de observaciones
+- marketing-config base por tienda:
+  - pixel key
+  - script tag
+  - webhook URL
+  - webhook status
+  - create/delete webhooks
+  - rotate pixel key
+- copy config entre tiendas
+- transfers base/avanzados
+- operations / invoices base
+- profile / company / users / ai-assistants
+- branding principal y handoff de callbacks
 
-No tiene:
+### `admin-web` todavía no cubre completamente
 
-- create/reconnect/disconnect
-- wizard
-- store-scoping real
-- webhooks ops
-- ads credentials flow
-- marketing config flow
-- toggle/overrides relacionados con la tienda
+- wizard legacy completo
+- panes avanzados aún vivos en `/legacy/settings/*`
+- auto-connect y orquestación fina de marketing legacy
+- posible lógica remanente de `public/app.js` no portada
+- bloques de compatibilidad controlada en `legacy/settings/connections`:
+  - sync contacts
+    - congelado en esta fase
+  - sync orders
+    - último candidato razonable si se reabre portado
+  - products Shopify -> Alegra
+    - congelado por riesgo / combinatoria
+  - inventory cron / checkpoint
+    - visible desde Next, operado aún en fallback
 
 ## Archivos legacy a usar como donantes funcionales
 
@@ -249,6 +288,14 @@ Entregables:
 - logo del cliente secundario
 - topbar/perfil/empresa
 - navegación y shell alineados con `Design System v4.html`
+
+## Fase 6 — Retiro controlado del legacy
+
+Objetivo:
+
+- dejar `/legacy/*` solo para compatibilidad temporal
+- mover toda entrada visible normal a Next
+- retirar el shell legacy cuando el smoke final cierre
 
 ## Regla de salida por fase
 

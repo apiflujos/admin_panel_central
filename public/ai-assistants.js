@@ -162,7 +162,7 @@ saveButton.onclick = saveAssistant;
 clearButton.onclick = clearForm;
 
 document.getElementById("back-home").onclick = () => {
-  window.location.href = "index.html";
+  window.location.href = "/";
 };
 
 loadAssistants();

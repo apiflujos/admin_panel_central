@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 
 import type { AdminWebOperationsListDto } from "../../../packages/shared/src/admin-web";
 import {
@@ -14,14 +14,30 @@ import {
   type AdminWebEinvoiceOverride,
 } from "../lib/api";
 import { DataTable } from "./ui/data-table";
+import { BooleanChoice } from "./ui/boolean-choice";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { StatusPill } from "./ui/status-pill";
 
+function operationTone(row: AdminWebOperationsListDto["items"][number]): "success" | "error" | "warning" {
+  if (row.alegraStatus === "facturado") return "success";
+  if (row.errorMessage) return "error";
+  return "warning";
+}
+
+function operationLabel(row: AdminWebOperationsListDto["items"][number]) {
+  if (row.alegraStatus === "facturado") return "Facturado";
+  if (row.errorMessage) return "Falló";
+  return "Pendiente";
+}
+
 export function OperationsPage({ result }: { result: AdminWebOperationsListDto }) {
   const [rows, setRows] = useState(result);
+  const [query, setQuery] = useState("");
+  const [statusView, setStatusView] = useState<"" | "invoiced" | "failed" | "pending">("");
   const [message, setMessage] = useState<{ tone: "info" | "error"; text: string } | null>(null);
-  const [pendingAction, startTransition] = useTransition();
+  const [refreshing, setRefreshing] = useState(false);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
   const [einvoiceModal, setEinvoiceModal] = useState<{
     orderId: string;
     orderNumber: string;
@@ -33,15 +49,41 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
     status: string;
   } | null>(null);
 
-  async function refreshRows() {
-    const next = await getOperationsCatalog();
-    setRows(next);
-  }
+  const filteredRows = rows.items.filter((row) => {
+    const haystack = [
+      row.orderNumber,
+      row.customer,
+      row.customerEmail,
+      row.products,
+      row.invoiceNumber,
+      row.errorMessage,
+      row.alegraStatus,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
 
-  function runAction(action: () => Promise<void>) {
-    startTransition(() => {
-      void action();
-    });
+    const matchesQuery = haystack.includes(query.trim().toLowerCase());
+    const matchesStatus =
+      statusView === ""
+        ? true
+        : statusView === "invoiced"
+          ? row.alegraStatus === "facturado"
+          : statusView === "failed"
+            ? Boolean(row.errorMessage)
+            : row.alegraStatus !== "facturado" && !row.errorMessage;
+
+    return matchesQuery && matchesStatus;
+  });
+
+  async function refreshRows() {
+    setRefreshing(true);
+    try {
+      const next = await getOperationsCatalog();
+      setRows(next);
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   function setSuccess(text: string) {
@@ -52,12 +94,15 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
     setMessage({ tone: "error", text: error instanceof Error ? error.message : fallback });
   }
 
-  async function runOperationTask(task: () => Promise<string>, fallback: string) {
+  async function runOperationTask(actionKey: string, task: () => Promise<string>, fallback: string) {
+    setBusyAction(actionKey);
     try {
       const text = await task();
       setSuccess(text);
     } catch (error) {
       setFailure(error, fallback);
+    } finally {
+      setBusyAction(null);
     }
   }
 
@@ -107,9 +152,7 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
     try {
       await saveEinvoiceOverride(einvoiceModal.orderId, einvoiceModal.draft);
       await refreshRows();
-      setEinvoiceModal((current) =>
-        current ? { ...current, saving: false, status: "Guardado." } : current
-      );
+      setEinvoiceModal((current) => (current ? { ...current, saving: false, status: "Guardado." } : current));
       setSuccess(`Override de e-factura guardado para ${einvoiceModal.orderNumber}.`);
     } catch (error) {
       setEinvoiceModal((current) =>
@@ -128,7 +171,7 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
     <section className="page-stack">
       <PageHeader
         title="Operaciones"
-        subtitle="Ejecucion operativa Shopify ↔ Alegra."
+        subtitle="Ejecución operativa Shopify ↔ Alegra."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -144,38 +187,69 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
             <span className="input-icon" aria-hidden="true">
               ⌕
             </span>
-            <input className="input-control" type="search" placeholder="Buscar operación o cliente..." aria-label="Buscar operación" />
+            <input
+              className="input"
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar operación, cliente o factura..."
+              aria-label="Buscar operación"
+            />
           </div>
         }
         filters={
           <>
-            <span className="pill pill-info">
-              Todas · {rows.items.length}
-            </span>
-            <span className="pill">
-              Facturadas · {rows.summary.invoicedCount}
-            </span>
-            <span className="pill">
-              Fallidas · {rows.summary.failedCount}
-            </span>
+            <span className="pill pill-info">Todas · {rows.items.length}</span>
+            <span className="pill">Facturadas · {rows.summary.invoicedCount}</span>
+            <span className="pill">Fallidas · {rows.summary.failedCount}</span>
+            <span className="pill">E-factura pendiente · {rows.summary.einvoicePendingCount}</span>
+          </>
+        }
+        views={
+          <>
+            <button
+              className={statusView === "" ? "pill pill-info" : "pill"}
+              type="button"
+              onClick={() => setStatusView("")}
+            >
+              Todas
+            </button>
+            <button
+              className={statusView === "invoiced" ? "pill pill-info" : "pill"}
+              type="button"
+              onClick={() => setStatusView("invoiced")}
+            >
+              Facturadas
+            </button>
+            <button
+              className={statusView === "failed" ? "pill pill-info" : "pill"}
+              type="button"
+              onClick={() => setStatusView("failed")}
+            >
+              Fallidas
+            </button>
+            <button
+              className={statusView === "pending" ? "pill pill-info" : "pill"}
+              type="button"
+              onClick={() => setStatusView("pending")}
+            >
+              Pendientes
+            </button>
           </>
         }
         actions={
-          <>
-            <button
-              className="btn btn-primary btn-compact"
-              type="button"
-              onClick={() =>
-                runAction(async () => {
-                  await refreshRows();
-                  setSuccess("Operaciones recargadas.");
-                })
-              }
-              disabled={pendingAction}
-            >
-              {pendingAction ? "Refrescando..." : "Refrescar"}
-            </button>
-          </>
+          <button
+            className="btn primary btn-compact"
+            type="button"
+            onClick={() =>
+              void refreshRows()
+                .then(() => setSuccess("Operaciones recargadas."))
+                .catch((error) => setFailure(error, "No se pudo recargar la tabla."))
+            }
+            disabled={refreshing}
+          >
+            {refreshing ? "Refrescando..." : "Refrescar"}
+          </button>
         }
       />
 
@@ -185,65 +259,97 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
         </p>
       ) : null}
 
-      <section className="stats-grid">
-        <article className="card stat-card">
+      <section className="metrics-kpis metrics-kpis-tight metrics-kpis-compact">
+        <article className="metrics-kpi metrics-kpi-primary">
           <p className="stat-label">Items</p>
           <strong>{rows.items.length}</strong>
           <span className="stat-note">Últimos 7 días por defecto</span>
         </article>
-        <article className="card stat-card">
+        <article className="metrics-kpi metrics-kpi-success">
           <p className="stat-label">Facturadas</p>
           <strong>{rows.summary.invoicedCount}</strong>
-          <span className="stat-note">Con mapping/invoice</span>
+          <span className="stat-note">Con vínculo contable y e-factura</span>
         </article>
-        <article className="card stat-card">
+        <article className="metrics-kpi metrics-kpi-danger">
           <p className="stat-label">Con error</p>
           <strong>{rows.summary.failedCount}</strong>
           <span className="stat-note">Pendientes de reintento</span>
         </article>
+        <article className="metrics-kpi metrics-kpi-warning">
+          <p className="stat-label">E-factura pendiente</p>
+          <strong>{rows.summary.einvoicePendingCount}</strong>
+          <span className="stat-note">Datos fiscales por completar</span>
+        </article>
       </section>
 
-      <div className="card table-card">
-        <div className="table-meta">Operaciones listas para seguimiento en el nuevo panel</div>
+      <section className="card page-module-shell page-module-shell-compact">
+        <div className="page-module-head">
+          <div>
+            <strong>Mesa operativa</strong>
+            <span>{filteredRows.length} operaciones visibles para facturar, sincronizar, cobrar o anular.</span>
+          </div>
+          <div className="page-module-actions">
+            <span className="pill">Vista {statusView || "Todas"}</span>
+            <span className="pill">Resultados {filteredRows.length}</span>
+          </div>
+        </div>
+        <p className="connection-inline-note">
+          Atiende primero errores y e-factura pendiente; después sincroniza, factura o emite el cobro según el caso.
+        </p>
+
         <DataTable
           columns={[
             {
               key: "orderNumber",
               header: "Pedido",
-              render: (row) => row.orderNumber,
+              render: (row) => (
+                <div className="entity-cell">
+                  <strong>{row.orderNumber}</strong>
+                  <span>{row.processedAt ? new Date(row.processedAt).toLocaleString("es-CO") : "Sin fecha"}</span>
+                </div>
+              ),
             },
             {
               key: "customer",
               header: "Cliente",
-              render: (row) => row.customer,
+              render: (row) => (
+                <div className="entity-cell">
+                  <strong>{row.customer}</strong>
+                  <span>{row.customerEmail || "Sin email"}</span>
+                </div>
+              ),
             },
             {
               key: "products",
               header: "Productos",
-              render: (row) => row.products,
+              render: (row) => (
+                <div className="entity-cell">
+                  <strong>{row.products}</strong>
+                  <span>{row.errorMessage || "Sin error reportado"}</span>
+                </div>
+              ),
             },
             {
               key: "status",
               header: "Estado",
-              render: (row) =>
-                row.alegraStatus === "facturado" ? (
-                  <StatusPill tone="success" small>
-                    Facturado
+              render: (row) => (
+                <div className="status-stack">
+                  <StatusPill tone={operationTone(row)} small>
+                    {operationLabel(row)}
                   </StatusPill>
-                ) : row.errorMessage ? (
-                  <StatusPill tone="error" small>
-                    Falló
-                  </StatusPill>
-                ) : (
-                  <StatusPill tone="warning" small>
-                    Pendiente
-                  </StatusPill>
-                ),
+                  {row.einvoiceRequested ? <span className="pill pill-sm">E-factura solicitada</span> : null}
+                </div>
+              ),
             },
             {
               key: "invoice",
               header: "Factura",
-              render: (row) => row.invoiceNumber || "—",
+              render: (row) => (
+                <div className="entity-cell entity-cell-compact">
+                  <strong>{row.invoiceNumber || "—"}</strong>
+                  <span>{row.invoiceId || "Sin vincular"}</span>
+                </div>
+              ),
             },
             {
               key: "actions",
@@ -252,101 +358,115 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
                 <div className="table-actions">
                   {row.alegraStatus !== "facturado" ? (
                     <button
-                      className="btn btn-primary btn-compact"
+                      className="btn primary btn-compact"
                       type="button"
-                      disabled={pendingAction || !row.actionability.retryInvoice.enabled}
+                      disabled={busyAction !== null || !row.actionability.retryInvoice.enabled}
                       title={row.actionability.retryInvoice.reason}
                       onClick={() =>
-                        runAction(() =>
-                          runOperationTask(async () => {
+                        void runOperationTask(
+                          `invoice:${row.id}`,
+                          async () => {
                             const response = await retryOperationInvoice(row.id);
                             await refreshRows();
                             return `Factura manual para ${row.orderNumber}: ${String(response.status || "ok")}.`;
-                          }, "No se pudo facturar manualmente.")
+                          },
+                          "No se pudo facturar manualmente."
                         )
                       }
                     >
-                      Facturar
+                      {busyAction === `invoice:${row.id}` ? "Facturando..." : "Facturar"}
                     </button>
                   ) : null}
                   <button
-                    className="btn btn-ghost btn-compact"
+                    className="btn ghost btn-compact"
                     type="button"
-                    disabled={pendingAction || !row.actionability.editEinvoice.enabled}
+                    disabled={busyAction !== null || !row.actionability.editEinvoice.enabled}
                     title={row.actionability.editEinvoice.reason}
                     onClick={() => openEinvoice(row.id, row.orderNumber, row.einvoiceMissing)}
                   >
                     e-Factura
                   </button>
                   <button
-                    className="btn btn-ghost btn-compact"
+                    className="btn ghost btn-compact"
                     type="button"
-                    disabled={pendingAction || !row.actionability.sync.enabled}
+                    disabled={busyAction !== null || !row.actionability.sync.enabled}
                     title={row.actionability.sync.reason}
                     onClick={() =>
-                      runAction(() =>
-                        runOperationTask(async () => {
+                      void runOperationTask(
+                        `sync:${row.id}`,
+                        async () => {
                           const response = await syncOperation(row.id);
                           await refreshRows();
-                          return `Sync ejecutado para ${row.orderNumber}: ${String(response.status || "ok")}.`;
-                        }, "No se pudo ejecutar el sync.")
+                          return `Sincronización ejecutada para ${row.orderNumber}: ${String(response.status || "ok")}.`;
+                        },
+                        "No se pudo ejecutar la sincronización."
                       )
                     }
                   >
-                    Sync
+                    {busyAction === `sync:${row.id}` ? "Sincronizando..." : "Sincronizar"}
                   </button>
                   <button
-                    className="btn btn-ghost btn-compact"
+                    className="btn ghost btn-compact"
                     type="button"
-                    disabled={pendingAction || !row.actionability.payment.enabled}
+                    disabled={busyAction !== null || !row.actionability.payment.enabled}
                     title={row.actionability.payment.reason}
                     onClick={() =>
-                      runAction(() =>
-                        runOperationTask(async () => {
+                      void runOperationTask(
+                        `payment:${row.id}`,
+                        async () => {
                           const response = await emitOperationPayment(row.id);
                           await refreshRows();
                           return `Pago para ${row.orderNumber}: ${String(response.status || "ok")}.`;
-                        }, "No se pudo emitir el pago.")
+                        },
+                        "No se pudo emitir el pago."
                       )
                     }
                   >
-                    Pago
+                    {busyAction === `payment:${row.id}` ? "Pago..." : "Pago"}
                   </button>
                   <button
-                    className="btn btn-ghost btn-compact"
+                    className="btn ghost btn-compact"
                     type="button"
-                    disabled={pendingAction || !row.actionability.cancel.enabled}
+                    disabled={busyAction !== null || !row.actionability.cancel.enabled}
                     title={row.actionability.cancel.reason}
-                    onClick={() =>
-                      runAction(() =>
-                        runOperationTask(async () => {
+                    onClick={() => {
+                      if (!window.confirm(`¿Anular la factura de ${row.orderNumber}?`)) return;
+                      void runOperationTask(
+                        `cancel:${row.id}`,
+                        async () => {
                           const response = await cancelOperationInvoice(row.id);
                           await refreshRows();
                           return `Anulación para ${row.orderNumber}: ${String(response.status || "ok")}.`;
-                        }, "No se pudo anular la factura.")
-                      )
-                    }
+                        },
+                        "No se pudo anular la factura."
+                      );
+                    }}
                   >
-                    Anular
+                    {busyAction === `cancel:${row.id}` ? "Anulando..." : "Anular"}
                   </button>
                 </div>
               ),
             },
           ]}
-          rows={rows.items}
+          rows={filteredRows}
           getRowKey={(row) => row.id}
         />
-      </div>
+      </section>
 
       {einvoiceModal ? (
         <div className="modal-backdrop" role="presentation" onClick={() => setEinvoiceModal(null)}>
-          <div className="modal-card modal-card-wide" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+          <div
+            className="modal-card modal-card-wide"
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="modal-header">
               <div>
                 <p className="modal-kicker">E-Factura</p>
                 <h3>Pedido {einvoiceModal.orderNumber}</h3>
               </div>
-              <button className="btn btn-ghost btn-compact" type="button" onClick={() => setEinvoiceModal(null)}>
+              <button className="btn ghost btn-compact" type="button" onClick={() => setEinvoiceModal(null)}>
                 Cerrar
               </button>
             </div>
@@ -366,30 +486,27 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
                 </div>
               ) : null}
               <div className="store-configs-grid">
-                <label className="store-config-field">
-                  <span>Solicitar e-factura</span>
-                  <select
-                    className="input"
-                    value={einvoiceModal.draft.einvoiceRequested ? "true" : "false"}
-                    disabled={einvoiceModal.loading || einvoiceModal.saving}
-                    onChange={(event) =>
-                      setEinvoiceModal((current) =>
-                        current
-                          ? {
-                              ...current,
-                              draft: {
-                                ...current.draft,
-                                einvoiceRequested: event.target.value === "true",
-                              },
-                            }
-                          : current
-                      )
-                    }
-                  >
-                    <option value="true">Sí</option>
-                    <option value="false">No</option>
-                  </select>
-                </label>
+                <BooleanChoice
+                  label="Solicitar e-factura"
+                  value={einvoiceModal.draft.einvoiceRequested ?? false}
+                  disabled={einvoiceModal.loading || einvoiceModal.saving}
+                  onChange={(next) =>
+                    setEinvoiceModal((current) =>
+                      current
+                        ? {
+                            ...current,
+                            draft: {
+                              ...current.draft,
+                              einvoiceRequested: next,
+                            },
+                          }
+                        : current
+                    )
+                  }
+                  positive="Sí"
+                  negative="No"
+                  help="Activa la emisión electrónica para este pedido cuando el cliente la haya solicitado."
+                />
                 <label className="store-config-field">
                   <span>Razón social</span>
                   <input
@@ -522,9 +639,13 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
                 </label>
               </div>
               <div className="connection-card-actions">
-                <span>{einvoiceModal.einvoiceEnabled ? "La e-factura está habilitada globalmente." : "La e-factura sigue deshabilitada globalmente."}</span>
+                <span>
+                  {einvoiceModal.einvoiceEnabled
+                    ? "La e-factura está habilitada globalmente."
+                    : "La e-factura sigue deshabilitada globalmente."}
+                </span>
                 <button
-                  className="btn btn-primary btn-compact"
+                  className="btn primary btn-compact"
                   type="button"
                   onClick={() => void saveCurrentEinvoice()}
                   disabled={einvoiceModal.loading || einvoiceModal.saving}

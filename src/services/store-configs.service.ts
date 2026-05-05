@@ -471,6 +471,10 @@ async function getStoreConfigForStoreId(storeId: number) {
     },
     sync: {
       contacts: {
+        enabled: normalizeBoolean(
+          (contactSync as Record<string, unknown>).enabled,
+          normalizeBoolean(contactSync.fromShopify, true) || normalizeBoolean(contactSync.fromAlegra, true)
+        ),
         fromShopify: normalizeBoolean(contactSync.fromShopify, true),
         fromAlegra: normalizeBoolean(contactSync.fromAlegra, true),
         createInAlegra: normalizeBoolean((contactSync as Record<string, unknown>).createInAlegra, true),
@@ -478,6 +482,14 @@ async function getStoreConfigForStoreId(storeId: number) {
         matchPriority: normalizeContactPriority(contactSync.matchPriority, ["document", "phone", "email"]),
       },
       orders: {
+        shopifyEnabled: normalizeBoolean(
+          (orderSync as Record<string, unknown>).shopifyEnabled,
+          normalizeShopifyOrderMode(orderSync.shopifyToAlegra) !== "off"
+        ),
+        alegraEnabled: normalizeBoolean(
+          (orderSync as Record<string, unknown>).alegraEnabled,
+          normalizeAlegraOrderMode(orderSync.alegraToShopify) !== "off"
+        ),
         shopifyToAlegra: normalizeShopifyOrderMode(orderSync.shopifyToAlegra),
         alegraToShopify: normalizeAlegraOrderMode(orderSync.alegraToShopify),
       },
@@ -642,15 +654,15 @@ export async function saveStoreConfig(storeKey: string, payload: Record<string, 
         ...payloadSync,
         contacts: {
           ...(((existingSync.contacts as Record<string, unknown>) || {}) as Record<string, unknown>),
-          ...((((payloadSync.contacts as Record<string, unknown>) || {}) as Record<string, unknown>)),
+          ...(((payloadSync.contacts as Record<string, unknown>) || {}) as Record<string, unknown>),
         },
         orders: {
           ...(((existingSync.orders as Record<string, unknown>) || {}) as Record<string, unknown>),
-          ...((((payloadSync.orders as Record<string, unknown>) || {}) as Record<string, unknown>)),
+          ...(((payloadSync.orders as Record<string, unknown>) || {}) as Record<string, unknown>),
         },
         products: {
           ...(((existingSync.products as Record<string, unknown>) || {}) as Record<string, unknown>),
-          ...((((payloadSync.products as Record<string, unknown>) || {}) as Record<string, unknown>)),
+          ...(((payloadSync.products as Record<string, unknown>) || {}) as Record<string, unknown>),
         },
       }
     : existingSync;
@@ -722,6 +734,56 @@ export async function saveStoreConfig(storeKey: string, payload: Record<string, 
   }
 
   return { saved: true, storeId: target.storeId || undefined };
+}
+
+const COPYABLE_STORE_CONFIG_BLOCKS = ["transfers", "priceLists", "rules", "invoice", "sync"] as const;
+
+type CopyableStoreConfigBlock = (typeof COPYABLE_STORE_CONFIG_BLOCKS)[number];
+
+export async function copyStoreConfig(
+  targetStoreKey: string,
+  payload: {
+    sourceStoreId?: number;
+    blocks?: string[];
+  }
+) {
+  const targetStoreId = normalizeStoreId(targetStoreKey);
+  const sourceStoreId = normalizeStoreId(payload.sourceStoreId);
+  if (!targetStoreId) throw new Error("Tienda destino invalida");
+  if (!sourceStoreId) throw new Error("Tienda origen invalida");
+  if (targetStoreId === sourceStoreId) {
+    throw new Error("La tienda origen y destino no pueden ser la misma.");
+  }
+
+  const blocks =
+    Array.isArray(payload.blocks) && payload.blocks.length
+      ? payload.blocks.filter((block): block is CopyableStoreConfigBlock =>
+          COPYABLE_STORE_CONFIG_BLOCKS.includes(block as CopyableStoreConfigBlock)
+        )
+      : [...COPYABLE_STORE_CONFIG_BLOCKS];
+
+  if (!blocks.length) {
+    throw new Error("No hay bloques validos para copiar.");
+  }
+
+  const items = await listStoreConfigs();
+  const source = items.find((item) => item.storeId === sourceStoreId);
+  if (!source) {
+    throw new Error("No se encontro configuracion para copiar en la tienda origen.");
+  }
+
+  const nextPayload: Record<string, unknown> = {};
+  for (const block of blocks) {
+    nextPayload[block] = source[block];
+  }
+
+  const result = await saveStoreConfig(String(targetStoreId), nextPayload);
+  return {
+    ...result,
+    sourceStoreId,
+    targetStoreId,
+    blocks,
+  };
 }
 
 export async function getStoreCredential(shopDomain: string) {

@@ -17,10 +17,12 @@ export function PageToolbar({
         {search ? <div className="page-toolbar-search">{search}</div> : null}
         {filters ? <div className="page-toolbar-filters">{filters}</div> : null}
       </div>
-      <div className="page-toolbar-row page-toolbar-row-2">
-        {views ? <div className="page-toolbar-views">{views}</div> : <div />}
-        {actions ? <div className="page-toolbar-right">{actions}</div> : null}
-      </div>
+      {views || actions ? (
+        <div className="page-toolbar-row page-toolbar-row-2">
+          {views ? <div className="page-toolbar-views">{views}</div> : null}
+          {actions ? <div className="page-toolbar-right">{actions}</div> : null}
+        </div>
+      ) : null}
     </div>
   );
 }

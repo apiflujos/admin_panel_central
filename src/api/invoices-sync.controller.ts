@@ -7,6 +7,11 @@ import {
   type InvoiceToShopifyMode,
 } from "../services/alegra-invoices-to-shopify-orders.service";
 
+let activeInvoicesSync: { id: string; canceled: boolean; startedAt: number } | null = null;
+const createSyncId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const isInvoicesSyncCanceled = (syncId: string) =>
+  Boolean(activeInvoicesSync?.id === syncId && activeInvoicesSync.canceled);
+
 const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
   try {
     await createSyncLog(payload);
@@ -30,15 +35,17 @@ export async function syncInvoicesToShopifyHandler(req: Request, res: Response) 
   const body = (req.body || {}) as {
     shopDomain?: string;
     mode?: InvoiceToShopifyMode;
-    filters?: { dateStart?: string; dateEnd?: string; limit?: number };
+    filters?: { dateStart?: string; dateEnd?: string; limit?: number; alegraInvoiceId?: string };
     stream?: boolean;
   };
   const shopDomain = typeof body.shopDomain === "string" ? body.shopDomain.trim() : "";
   const mode: InvoiceToShopifyMode = body.mode === "active" ? "active" : "draft";
   const filters = body.filters || {};
   const startedAt = Date.now();
+  const syncId = createSyncId();
 
   try {
+    activeInvoicesSync = { id: syncId, canceled: false, startedAt };
     if (stream) {
       res.status(200);
       res.setHeader("Content-Type", "application/x-ndjson");
@@ -58,11 +65,16 @@ export async function syncInvoicesToShopifyHandler(req: Request, res: Response) 
         dateEnd: filters.dateEnd || null,
         limit: typeof filters.limit === "number" ? filters.limit : Number(filters.limit || 0) || null,
       },
+      alegraInvoiceId:
+        typeof filters.alegraInvoiceId === "string" && filters.alegraInvoiceId.trim()
+          ? filters.alegraInvoiceId.trim()
+          : undefined,
       onProgress: (event) => {
         if (stream) {
-          sendStream(event);
+          sendStream({ syncId, ...event });
         }
       },
+      shouldCancel: () => isInvoicesSyncCanceled(syncId),
     });
 
     try {
@@ -94,7 +106,7 @@ export async function syncInvoicesToShopifyHandler(req: Request, res: Response) 
       return;
     }
 
-    res.json({ ok: true, startedAt, ...result });
+    res.json({ ok: true, startedAt, syncId, ...result });
     await safeCreateLog({
       entity: "invoices_to_shopify",
       direction: "alegra->shopify",
@@ -106,7 +118,7 @@ export async function syncInvoicesToShopifyHandler(req: Request, res: Response) 
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invoices sync error";
     if (stream) {
-      sendStream({ type: "error", error: message });
+      sendStream({ type: "error", syncId, error: message });
       streamOpen = false;
       res.end();
       await safeCreateLog({
@@ -118,7 +130,7 @@ export async function syncInvoicesToShopifyHandler(req: Request, res: Response) 
       });
       return;
     }
-    res.status(500).json({ error: message });
+    res.status(500).json({ error: message, syncId });
     await safeCreateLog({
       entity: "invoices_to_shopify",
       direction: "alegra->shopify",
@@ -126,5 +138,23 @@ export async function syncInvoicesToShopifyHandler(req: Request, res: Response) 
       message,
       request: { shopDomain: shopDomain || null, mode, filters },
     });
+  } finally {
+    if (activeInvoicesSync?.id === syncId) {
+      activeInvoicesSync = null;
+    }
   }
+}
+
+export async function stopInvoicesSyncHandler(req: Request, res: Response) {
+  const requestedId = String(req.body?.syncId || "").trim();
+  if (!activeInvoicesSync) {
+    res.status(200).json({ ok: false, canceled: false, reason: "no_active_sync" });
+    return;
+  }
+  if (requestedId && activeInvoicesSync.id !== requestedId) {
+    res.status(200).json({ ok: false, canceled: false, reason: "sync_id_mismatch" });
+    return;
+  }
+  activeInvoicesSync.canceled = true;
+  res.status(200).json({ ok: true, canceled: true, syncId: activeInvoicesSync.id });
 }

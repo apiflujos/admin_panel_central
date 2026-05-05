@@ -42,10 +42,10 @@ Estado actual:
   - `npm run build:admin-web`
   - `npm run start:admin-web`
   - `npm run typecheck:admin-web`
-  - `npm run check:reconstruction`
   - `npm run qa:admin-web`
 
 Docker:
 
 - `apps/admin-web/Dockerfile` construye el frontend nuevo como servicio separado.
 - En `docker-compose.yml`, `admin-web` expone `3100` y consume la API interna por `APP_HOST=http://app:3006`.
+- El contenedor no auto-aplica migraciones; debes correr `npm run db:migrate` aparte antes del arranque del stack.

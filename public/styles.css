@@ -31,6 +31,29 @@ body {
   font-size: 11.5px;
 }
 
+body.legacy-surface {
+  padding-top: 42px;
+}
+
+.legacy-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 8px 16px;
+  background: linear-gradient(90deg, #7a3d00, #b45309);
+  color: #fff7ed;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 8px 20px rgba(122, 61, 0, 0.18);
+}
+
 .login-page {
   min-height: 100vh;
   display: grid;

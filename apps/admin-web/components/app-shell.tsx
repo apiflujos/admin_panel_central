@@ -5,7 +5,34 @@ import { getServerCompanyBrand } from "../lib/server-api";
 import type { AuthSessionDto } from "../../../packages/shared/src/admin-web";
 
 function renderSection(section: "operacion" | "sistema") {
-  return section === "operacion" ? "Operación" : "Sistema";
+  return section === "operacion" ? "Operación" : null;
+}
+
+function resolveShellTitle(activeHref: string) {
+  const explicit = appNavigation.find((item) => item.href === activeHref)?.label;
+  if (explicit) return explicit;
+  if (activeHref === "/profile") return "Perfil";
+  if (activeHref === "/company") return "Empresa";
+  if (activeHref === "/users") return "Usuarios";
+  if (activeHref === "/ai-assistants") return "Asistentes IA";
+  return "Admin Central";
+}
+
+function resolveShellSubtitle(activeHref: string) {
+  if (activeHref === "/") return "Vista consolidada del rendimiento operativo.";
+  if (activeHref === "/orders") return "Pedidos, estados y facturación del flujo comercial.";
+  if (activeHref === "/operations") return "Seguimiento de sincronizaciones y ejecución operativa.";
+  if (activeHref === "/invoices") return "Control de facturas y estado de emisión.";
+  if (activeHref === "/contacts") return "Base comercial y sincronización de clientes.";
+  if (activeHref === "/products") return "Catálogo, stock y disponibilidad comercial.";
+  if (activeHref === "/marketing") return "Canales, campañas y atribución del periodo.";
+  if (activeHref === "/settings/connections") return "Conexiones, webhooks y configuración troncal.";
+  if (activeHref === "/superadmin") return "Control de acceso y soporte ApiFlujos.";
+  if (activeHref === "/profile") return "Preferencias personales y seguridad.";
+  if (activeHref === "/company") return "Identidad del cliente y datos corporativos.";
+  if (activeHref === "/users") return "Usuarios internos y roles autorizados.";
+  if (activeHref === "/ai-assistants") return "Asistentes operativos y automatización guiada.";
+  return "Superficie operativa estandarizada para todos los clientes.";
 }
 
 function getBrandInitials(name: string) {
@@ -18,6 +45,9 @@ function getBrandInitials(name: string) {
   return parts.map((part) => part[0]?.toUpperCase() || "").join("") || "AF";
 }
 
+const APIFLUJOS_LOGO_SRC = "/assets/logo.png";
+const APIFLUJOS_AVATAR_SRC = "/assets/avatar.png";
+
 export async function AppShell({
   children,
   session,
@@ -29,20 +59,18 @@ export async function AppShell({
 }) {
   const brand = await getServerCompanyBrand();
   const normalizedCompanyName = brand.companyName.trim();
-  const hasDistinctClientBrand =
-    Boolean(brand.logoBase64) || normalizedCompanyName.toLowerCase() !== "apiflujos";
+  const hasDistinctClientBrand = Boolean(brand.logoBase64) || normalizedCompanyName.toLowerCase() !== "apiflujos";
   const clientInitials = getBrandInitials(brand.companyName);
   const operationItems = appNavigation.filter((item) => item.section === "operacion");
   const systemItems = appNavigation.filter((item) => item.section === "sistema");
+  const showAdminShortcuts = Boolean(session && (session.role === "admin" || session.role === "super_admin"));
 
   return (
     <div className="app-shell">
-      <aside className="sidebar" aria-label="Navegacion principal">
+      <aside className="sidebar" aria-label="Navegación principal">
         <div className="sidebarShell">
           <div className="sidebarBrandMeta">
-            <div className="sidebarBrandMark" aria-hidden="true">
-              AF
-            </div>
+            <img className="sidebarBrandLogo" src={APIFLUJOS_AVATAR_SRC} alt="ApiFlujos" />
             <div className="sidebarBrandText">
               <strong>ApiFlujos</strong>
               <span>Admin Central</span>
@@ -74,12 +102,13 @@ export async function AppShell({
                 className={item.href === activeHref ? "nav-item is-active" : "nav-item"}
                 aria-current={item.href === activeHref ? "page" : undefined}
               >
-                <span className="nav-icon" aria-hidden="true">{item.icon}</span>
+                <span className="nav-icon" aria-hidden="true">
+                  {item.icon}
+                </span>
                 <span className="nav-label">{item.label}</span>
               </a>
             ))}
-
-            <div className="nav-section">{renderSection("sistema")}</div>
+            {renderSection("sistema") ? <div className="nav-section">{renderSection("sistema")}</div> : null}
             {systemItems.map((item) => (
               <a
                 key={item.href}
@@ -87,7 +116,9 @@ export async function AppShell({
                 className={item.href === activeHref ? "nav-item is-active" : "nav-item"}
                 aria-current={item.href === activeHref ? "page" : undefined}
               >
-                <span className="nav-icon" aria-hidden="true">{item.icon}</span>
+                <span className="nav-icon" aria-hidden="true">
+                  {item.icon}
+                </span>
                 <span className="nav-label">{item.label}</span>
               </a>
             ))}
@@ -95,34 +126,88 @@ export async function AppShell({
 
           <div className="sidebarSpacer" />
 
-          {session ? (
-            <form action="/api/session/logout" method="post">
-              <button className="sidebarExit" type="submit">
-                <span className="nav-icon" aria-hidden="true">→</span>
-                <span className="nav-label">Salir</span>
-              </button>
-            </form>
-          ) : null}
+          <div className="sidebarFooter">
+            <a className="sidebarExit" href="/legacy/settings/stores">
+              <span className="nav-icon" aria-hidden="true">
+                ↗
+              </span>
+              <span className="nav-label">Ajustes heredados</span>
+            </a>
+
+            {session ? (
+              <form action="/api/session/logout" method="post">
+                <button className="sidebarExit" type="submit">
+                  <span className="nav-icon" aria-hidden="true">
+                    →
+                  </span>
+                  <span className="nav-label">Salir</span>
+                </button>
+              </form>
+            ) : null}
+          </div>
         </div>
       </aside>
 
       <div className="content">
         <header className="topbar">
-          <div className="topbarBrand">
-            <span className="topbarBrandMark" aria-hidden="true">
-              AF
-            </span>
-            <div className="topbarBrandText">
-              <strong>ApiFlujos</strong>
-              <span>{hasDistinctClientBrand ? brand.companyName : "Admin Central"}</span>
+          <div className="topbarLeft">
+            <div className="sidebarToggleBtn" aria-hidden="true">
+              ‹
+            </div>
+            <div className="topbarBrand">
+              <img className="topbarBrandLogo" src={APIFLUJOS_LOGO_SRC} alt="ApiFlujos" />
+              <div className="topbarBrandText">
+                <strong>ApiFlujos</strong>
+                <span>{hasDistinctClientBrand ? brand.companyName : "Admin Central"}</span>
+              </div>
             </div>
           </div>
-          <div className="topbarTitle">
-            <strong>{appNavigation.find((item) => item.href === activeHref)?.label || "Admin Central"}</strong>
+          <div className="topbarTitleCentered">
+            <div className="topbarTitle">
+              <strong>{resolveShellTitle(activeHref)}</strong>
+            </div>
+            <div className="topbarSubtitle">{resolveShellSubtitle(activeHref)}</div>
           </div>
           <div className="topbarActions">
-            {session ? <span className="pill">{session.roleLabel}</span> : null}
-            {session ? <span className="pill">{session.displayName}</span> : null}
+            <div className="topbarQuickGroup">
+              {session ? (
+                <a className="topbarQuickPill" href="/profile">
+                  Perfil
+                </a>
+              ) : null}
+              {showAdminShortcuts ? (
+                <a className="topbarQuickPill" href="/company">
+                  Empresa
+                </a>
+              ) : null}
+              {showAdminShortcuts ? (
+                <a className="topbarQuickPill" href="/users">
+                  Usuarios
+                </a>
+              ) : null}
+              {showAdminShortcuts ? (
+                <a className="topbarQuickPill" href="/ai-assistants">
+                  IA
+                </a>
+              ) : null}
+            </div>
+            <button className="topbarBellBtn" type="button" aria-label="Alertas">
+              <span aria-hidden="true">◌</span>
+            </button>
+            {session ? (
+              <div className="userMenu">
+                <a className="userMenuBtn" href="/profile">
+                  <img className="userMenuAvatarImage" src={APIFLUJOS_AVATAR_SRC} alt="ApiFlujos" />
+                  <span className="userMenuName">
+                    <strong>{session.displayName}</strong>
+                    <span className="subtitle">{session.roleLabel}</span>
+                  </span>
+                  <span className="userMenuIcon" aria-hidden="true">
+                    ⌄
+                  </span>
+                </a>
+              </div>
+            ) : null}
           </div>
         </header>
         <div className="page">{children}</div>

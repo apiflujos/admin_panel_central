@@ -42,8 +42,8 @@ Arquitectura objetivo:
 Frontend operativo:
 
 - Arquitectura objetivo: `apps/admin-web`.
-- Estado actual en `client/olivashoes`: la superficie funcional preservada sigue siendo `src/server.ts + public/* + src/api/*`.
-- `apps/admin-web` permanece como destino de portado controlado, no como reemplazo ya cerrado.
+- Estado actual en `client/olivashoes`: la superficie principal visible ya corre mayormente en `apps/admin-web`.
+- El runtime `src/server.ts + public/* + src/api/*` sigue preservando la lógica y sobrevive como fallback explícito bajo `/legacy/*`.
 - Ver estado de transición en `docs/TRANSITION_STATUS.md`.
 - Ver plan específico de portado en `docs/CLIENT_OLIVASHOES_STANDARDIZATION_PLAN.md`.
 
@@ -53,17 +53,23 @@ Frontend operativo:
 2. Install dependencies: `npm install`
 3. Run dev server: `npm run dev`
 
-En `client/olivashoes`, el arranque operativo actual es el runtime legacy restaurado:
+En `client/olivashoes`, el arranque operativo actual combina:
 
-1. levantar backend (`npm run dev` o `docker compose up -d app`)
-2. validar `GET /health`
-3. acceder por `/login.html` o `/dashboard`
+1. correr migraciones (`npm run db:migrate` o `docker compose run --rm app npm run db:migrate`)
+2. levantar backend (`npm run dev` o `docker compose up -d app worker`)
+3. validar `GET /health`
+4. acceder por `/auth/login` o `/`
 
-El cutover a una sola capa frontend con `admin-web` sigue pendiente de paridad funcional.
+Si también vas a validar el frontend nuevo:
+
+1. levantar `admin-web` (`npm run dev:admin-web` o `docker compose up -d admin-web`)
+2. validar `GET /api/health` en `http://localhost:3100`
+
+El fallback legacy explícito sigue disponible en `/legacy/*` mientras termina la paridad funcional.
 
 ## Deploy (Render)
 
-- Blueprint: `render.yaml` (web + Postgres).
+- Blueprint: `render.yaml` (web + worker + Postgres).
 - Health check: `GET /health`
 - Important env vars to set in Render:
   - `APP_HOST`: base URL (ej: `https://<tu-servicio>.onrender.com` o tu dominio, incluye esquema)
@@ -136,6 +142,7 @@ El smoke visual debe ejecutarse únicamente contra `admin-web`.
 - Checklist: `docs/QA.md`
 - Script (requiere `QA_TOKEN` o `ADMIN_EMAIL`/`ADMIN_PASSWORD`):
   - `BASE_URL=https://<tu-servicio>.onrender.com QA_TOKEN=<token> SHOP_DOMAIN=<tu-tienda.myshopify.com> npm run qa:smoke`
+  - valida superficie normal (`/auth/login`, `/`) y compatibilidad legacy (`/login.html`, `/dashboard`)
 - Frontend nuevo (`admin-web`):
   - `BASE_URL=http://localhost:3100 ADMIN_EMAIL=<email> ADMIN_PASSWORD=<pass> npm run qa:admin-web`
 

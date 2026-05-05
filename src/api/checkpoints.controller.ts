@@ -1,12 +1,25 @@
 import type { Request, Response } from "express";
 import { getSyncCheckpoint } from "../services/sync-checkpoints.service";
 import { getInventoryAdjustmentsSettings } from "../services/settings.service";
+import { getStoreConfigForDomain } from "../services/store-configs.service";
 
-export async function getInventoryAdjustmentsCheckpoint(_req: Request, res: Response) {
+const checkpointKey = (shopDomain: string) => `inventory_adjustments:${shopDomain}`;
+
+export async function getInventoryAdjustmentsCheckpoint(req: Request, res: Response) {
   try {
-    const checkpoint = await getSyncCheckpoint("inventory_adjustments");
+    const shopDomain = typeof req.query.shopDomain === "string" ? req.query.shopDomain.trim() : "";
+    const checkpoint = await getSyncCheckpoint(shopDomain ? checkpointKey(shopDomain) : "inventory_adjustments");
     const settings = await getInventoryAdjustmentsSettings();
-    const intervalMs = settings.enabled ? settings.intervalMinutes * 60 * 1000 : 0;
+    let intervalMinutes = settings.enabled ? settings.intervalMinutes : 0;
+    if (shopDomain) {
+      const store = await getStoreConfigForDomain(shopDomain).catch(() => null);
+      if (store?.rules?.inventoryAdjustmentsEnabled === false) {
+        intervalMinutes = 0;
+      } else if (store?.rules?.inventoryAdjustmentsIntervalMinutes) {
+        intervalMinutes = store.rules.inventoryAdjustmentsIntervalMinutes;
+      }
+    }
+    const intervalMs = intervalMinutes > 0 ? intervalMinutes * 60 * 1000 : 0;
     res.status(200).json({ checkpoint, intervalMs });
   } catch (error) {
     const message = error instanceof Error ? error.message : "No disponible";

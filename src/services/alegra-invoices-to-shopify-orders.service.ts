@@ -288,9 +288,48 @@ async function syncSingleInvoice(params: { shopDomain?: string; alegraInvoiceId:
 export async function syncAlegraInvoicesToShopifyOrders(params: {
   shopDomain?: string;
   mode: InvoiceToShopifyMode;
+  alegraInvoiceId?: string;
   filters?: InvoiceToShopifyFilters;
   onProgress?: (event: Record<string, unknown>) => void;
+  shouldCancel?: () => boolean | Promise<boolean>;
 }) {
+  const singleInvoiceId = String(params.alegraInvoiceId || "").trim();
+  if (singleInvoiceId) {
+    params.onProgress?.({ type: "start", total: 1, pages: 1, single: true, alegraInvoiceId: singleInvoiceId });
+    if (await params.shouldCancel?.()) {
+      params.onProgress?.({
+        type: "canceled",
+        processed: 0,
+        total: 1,
+        created: 0,
+        skipped: 0,
+        failed: 0,
+        alegraInvoiceId: singleInvoiceId,
+      });
+      return { processed: 0, total: 1, created: 0, skipped: 0, failed: 0, canceled: true };
+    }
+    try {
+      const result = await syncSingleInvoice({
+        shopDomain: params.shopDomain,
+        alegraInvoiceId: singleInvoiceId,
+        mode: params.mode,
+      });
+      const summary = {
+        processed: 1,
+        total: 1,
+        created: result.skipped ? 0 : 1,
+        skipped: result.skipped ? 1 : 0,
+        failed: 0,
+      };
+      params.onProgress?.({ type: "complete", single: true, alegraInvoiceId: singleInvoiceId, ...summary });
+      return summary;
+    } catch {
+      const summary = { processed: 1, total: 1, created: 0, skipped: 0, failed: 1 };
+      params.onProgress?.({ type: "complete", single: true, alegraInvoiceId: singleInvoiceId, ...summary });
+      return summary;
+    }
+  }
+
   const ctx = await buildSyncContext(params.shopDomain || undefined);
   const dateStart = parseDateOnly(String(params.filters?.dateStart || "")) || "";
   const dateEnd = parseDateOnly(String(params.filters?.dateEnd || "")) || "";
@@ -331,6 +370,10 @@ export async function syncAlegraInvoicesToShopifyOrders(params: {
 
   const step = Math.max(1, Math.ceil(total / 25));
   for (const invoice of candidates) {
+    if (await params.shouldCancel?.()) {
+      params.onProgress?.({ type: "canceled", ...result });
+      return { ...result, canceled: true };
+    }
     result.processed += 1;
     const invoiceId = invoice.id ? String(invoice.id) : "";
     try {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 
-const DEFAULT_BASE_URL = "http://localhost:10000";
+const DEFAULT_BASE_URL = "http://localhost:3006";
 
 function normalizeBaseUrl(value) {
   const raw = String(value || "").trim();
@@ -20,6 +20,15 @@ function normalizeShopDomain(value) {
 
 function formatResult(ok) {
   return ok ? "OK" : "FAIL";
+}
+
+function isNextSurfaceBaseUrl(baseUrl) {
+  try {
+    const url = new URL(baseUrl);
+    return url.port === "3000" || url.port === "3100";
+  } catch {
+    return false;
+  }
 }
 
 function getSetCookieHeaders(headers) {
@@ -51,6 +60,7 @@ async function main() {
   const adminEmail = String(process.env.ADMIN_EMAIL || "").trim();
   const adminPassword = String(process.env.ADMIN_PASSWORD || "");
   const explicitShopDomain = normalizeShopDomain(process.env.SHOP_DOMAIN || "");
+  const expectNextSurface = isNextSurfaceBaseUrl(baseUrl);
 
   const results = [];
   const record = (name, ok, details = "") => {
@@ -69,18 +79,42 @@ async function main() {
   }
 
   {
+    const { response } = await httpJson(baseUrl, "/auth/login");
+    const ok = expectNextSurface ? response.ok : response.ok || response.status === 404;
+    const detail = response.ok
+      ? expectNextSurface
+        ? ""
+        : "compat presente"
+      : response.status === 404 && !expectNextSurface
+        ? "omitido en runtime legacy"
+        : `status=${response.status}`;
+    record("GET /auth/login", ok, detail);
+  }
+
+  {
+    const { response } = await httpJson(baseUrl, "/");
+    record("GET /", response.ok, response.ok ? "" : `status=${response.status}`);
+  }
+
+  {
     const { response } = await httpJson(baseUrl, "/api/company/public");
     record("GET /api/company/public", response.ok, response.ok ? "" : `status=${response.status}`);
   }
 
   {
     const { response } = await httpJson(baseUrl, "/login.html");
-    record("GET /login.html", response.ok, response.ok ? "" : `status=${response.status}`);
+    const ok = expectNextSurface ? response.ok : response.ok || response.status === 404;
+    const detail = response.ok
+      ? "compat"
+      : response.status === 404 && !expectNextSurface
+        ? "compat omitida"
+        : `status=${response.status}`;
+    record("GET /login.html (compat)", ok, detail);
   }
 
   {
     const { response } = await httpJson(baseUrl, "/dashboard");
-    record("GET /dashboard", response.ok, response.ok ? "" : `status=${response.status}`);
+    record("GET /dashboard (compat)", response.ok, response.ok ? "" : `status=${response.status}`);
   }
 
   let authHeader = "";

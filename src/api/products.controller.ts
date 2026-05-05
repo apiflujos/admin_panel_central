@@ -163,6 +163,8 @@ async function fetchAlegra(path: string, query?: URLSearchParams, shopDomain?: s
 let activeProductsSync: { id: string; canceled: boolean; startedAt: number } | null = null;
 let activeProductImagesSync: { id: string; canceled: boolean; startedAt: number } | null = null;
 let activeProductsShopifyToAlegraSync: { id: string; canceled: boolean; startedAt: number } | null = null;
+let activeOrdersSync: { id: string; canceled: boolean; startedAt: number } | null = null;
+let activeProductsBackfillSync: { id: string; canceled: boolean; startedAt: number } | null = null;
 
 const createSyncId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -173,6 +175,10 @@ const isProductImagesSyncCanceled = (syncId: string) =>
 
 const isProductsShopifyToAlegraCanceled = (syncId: string) =>
   Boolean(activeProductsShopifyToAlegraSync?.id === syncId && activeProductsShopifyToAlegraSync.canceled);
+
+const isOrdersSyncCanceled = (syncId: string) => Boolean(activeOrdersSync?.id === syncId && activeOrdersSync.canceled);
+const isProductsBackfillCanceled = (syncId: string) =>
+  Boolean(activeProductsBackfillSync?.id === syncId && activeProductsBackfillSync.canceled);
 
 async function fetchAlegraWithRetry(
   path: string,
@@ -1174,6 +1180,22 @@ export async function listItemWarehouseSummaryHandler(req: Request, res: Respons
 export async function syncInventoryAdjustmentsHandler(req: Request, res: Response) {
   try {
     const shopDomain = typeof req.query.shopDomain === "string" ? req.query.shopDomain.trim() : "";
+    const stream = req.query.stream === "1" || req.query.stream === "true" || req.body?.stream === true;
+    let streamOpen = stream;
+    const sendStream = (payload: Record<string, unknown>) => {
+      if (!streamOpen || res.writableEnded || res.destroyed) return;
+      try {
+        res.write(`${JSON.stringify(payload)}\n`);
+      } catch {
+        streamOpen = false;
+      }
+    };
+    const autoPublish =
+      typeof req.query.autoPublish === "string"
+        ? req.query.autoPublish === "true" || req.query.autoPublish === "1"
+        : typeof req.body?.autoPublish === "boolean"
+          ? req.body.autoPublish
+          : undefined;
     const query = new URLSearchParams();
     Object.entries(req.query).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
@@ -1181,8 +1203,34 @@ export async function syncInventoryAdjustmentsHandler(req: Request, res: Respons
       }
     });
     query.delete("shopDomain");
-    const result = await syncInventoryAdjustments(query, { shopDomain: shopDomain || undefined });
-    res.json({ ok: true, ...result });
+    query.delete("autoPublish");
+    if (stream) {
+      res.status(200);
+      res.setHeader("Content-Type", "application/x-ndjson");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders?.();
+      res.on("close", () => {
+        streamOpen = false;
+      });
+      sendStream({ type: "start", query: Object.fromEntries(query.entries()) });
+    }
+    const result = await syncInventoryAdjustments(query, {
+      shopDomain: shopDomain || undefined,
+      autoPublish,
+      onProgress: async (payload) => {
+        if (stream) {
+          sendStream(payload);
+        }
+      },
+    });
+    if (stream) {
+      sendStream({ type: "complete", ...result });
+      streamOpen = false;
+      res.end();
+    } else {
+      res.json({ ok: true, ...result });
+    }
     await safeCreateLog({
       entity: "inventory_adjustments_sync",
       direction: "alegra->shopify",
@@ -1192,12 +1240,22 @@ export async function syncInventoryAdjustmentsHandler(req: Request, res: Respons
       response: result as Record<string, unknown>,
     });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Sync adjustments error" });
+    const message = error instanceof Error ? error.message : "Sync adjustments error";
+    if (req.query.stream === "1" || req.query.stream === "true" || req.body?.stream === true) {
+      try {
+        res.write(`${JSON.stringify({ type: "error", error: message })}\n`);
+      } catch {
+        // ignore
+      }
+      res.end();
+    } else {
+      res.status(500).json({ error: message });
+    }
     await safeCreateLog({
       entity: "inventory_adjustments_sync",
       direction: "alegra->shopify",
       status: "fail",
-      message: error instanceof Error ? error.message : "Sync adjustments error",
+      message,
       request: { query: req.query },
     });
   }
@@ -2394,6 +2452,15 @@ export async function syncProductsHandler(req: Request, res: Response) {
 
 export async function syncOrdersHandler(req: Request, res: Response) {
   const { filters = {} } = req.body || {};
+  const mode =
+    req.body?.mode === "invoice" ||
+    req.body?.mode === "contact_only" ||
+    req.body?.mode === "db_only" ||
+    req.body?.mode === "off"
+      ? req.body.mode
+      : undefined;
+  const generateInvoice = typeof req.body?.generateInvoice === "boolean" ? req.body.generateInvoice : undefined;
+  const skipRules = typeof req.body?.skipRules === "boolean" ? req.body.skipRules : undefined;
   const shopDomainInput =
     typeof req.body?.shopDomain === "string"
       ? String(req.body.shopDomain).trim()
@@ -2411,7 +2478,9 @@ export async function syncOrdersHandler(req: Request, res: Response) {
     }
   };
   const startedAt = Date.now();
+  const syncId = createSyncId();
   try {
+    activeOrdersSync = { id: syncId, canceled: false, startedAt };
     if (stream) {
       res.status(200);
       res.setHeader("Content-Type", "application/x-ndjson");
@@ -2452,13 +2521,23 @@ export async function syncOrdersHandler(req: Request, res: Response) {
       orders = orders.slice(0, limit);
     }
     const total = orders.length;
-    sendStream({ type: "start", startedAt, total });
+    sendStream({ type: "start", syncId, startedAt, total });
     let processed = 0;
     let synced = 0;
     let skipped = 0;
     let failed = 0;
     const step = Math.max(1, Math.ceil(total / 20));
     for (const _order of orders) {
+      if (isOrdersSyncCanceled(syncId)) {
+        sendStream({ type: "canceled", syncId, processed, total, synced, skipped, failed });
+        if (stream) {
+          streamOpen = false;
+          res.end();
+          return;
+        }
+        res.json({ ok: false, canceled: true, syncId, count: total, synced, skipped, failed });
+        return;
+      }
       processed += 1;
       try {
         const mapping = await getMappingByShopifyId("order", String(_order.id));
@@ -2487,10 +2566,19 @@ export async function syncOrdersHandler(req: Request, res: Response) {
           skipped += 1;
         } else {
           const payload = mapOrderToPayload(_order);
-          const result = await syncShopifyOrderToAlegra({
-            ...(payload as Record<string, unknown>),
-            __shopDomain: effectiveShopDomain,
-          });
+          const result = await syncShopifyOrderToAlegra(
+            {
+              ...(payload as Record<string, unknown>),
+              __shopDomain: effectiveShopDomain,
+            },
+            mode || generateInvoice !== undefined || skipRules !== undefined
+              ? {
+                  ...(mode ? { orderModeOverride: mode } : {}),
+                  ...(generateInvoice !== undefined ? { generateInvoice } : {}),
+                  ...(skipRules !== undefined ? { skipRules } : {}),
+                }
+              : undefined
+          );
           if (result && typeof result === "object" && "skipped" in result) {
             skipped += 1;
           } else if (result && typeof result === "object" && (result as { handled?: boolean }).handled === false) {
@@ -2503,10 +2591,10 @@ export async function syncOrdersHandler(req: Request, res: Response) {
         failed += 1;
       }
       if (processed % step === 0 || processed === total) {
-        sendStream({ type: "progress", processed, total, synced, skipped, failed });
+        sendStream({ type: "progress", syncId, processed, total, synced, skipped, failed });
       }
     }
-    const responsePayload = { ok: true, count: total, orders, synced, skipped, failed };
+    const responsePayload = { ok: true, syncId, count: total, orders, synced, skipped, failed };
     if (stream) {
       sendStream({ type: "complete", processed, total, ...responsePayload });
       streamOpen = false;
@@ -2516,7 +2604,7 @@ export async function syncOrdersHandler(req: Request, res: Response) {
         direction: "shopify->alegra",
         status: "success",
         message: "Sync pedidos ok",
-        request: { filters, shopDomain: effectiveShopDomain || null },
+        request: { filters, shopDomain: effectiveShopDomain || null, mode, generateInvoice, skipRules },
         response: { count: total, processed, total, synced, skipped, failed },
       });
       return;
@@ -2527,13 +2615,13 @@ export async function syncOrdersHandler(req: Request, res: Response) {
       direction: "shopify->alegra",
       status: "success",
       message: "Sync pedidos ok",
-      request: { filters, shopDomain: effectiveShopDomain || null },
+      request: { filters, shopDomain: effectiveShopDomain || null, mode, generateInvoice, skipRules },
       response: { count: total, processed, total, synced, skipped, failed },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Orders sync error";
     if (stream) {
-      sendStream({ type: "error", error: message });
+      sendStream({ type: "error", syncId, error: message });
       streamOpen = false;
       res.end();
       await safeCreateLog({
@@ -2541,25 +2629,44 @@ export async function syncOrdersHandler(req: Request, res: Response) {
         direction: "shopify->alegra",
         status: "fail",
         message,
-        request: { filters },
+        request: { filters, mode, generateInvoice, skipRules },
       });
       return;
     }
-    res.status(500).json({ error: message });
+    res.status(500).json({ error: message, syncId });
     await safeCreateLog({
       entity: "orders_sync",
       direction: "shopify->alegra",
       status: "fail",
       message,
-      request: { filters },
+      request: { filters, mode, generateInvoice, skipRules },
     });
+  } finally {
+    if (activeOrdersSync?.id === syncId) {
+      activeOrdersSync = null;
+    }
   }
+}
+
+export async function stopOrdersSyncHandler(req: Request, res: Response) {
+  const requestedId = String(req.body?.syncId || "").trim();
+  if (!activeOrdersSync) {
+    res.status(200).json({ ok: false, canceled: false, reason: "no_active_sync" });
+    return;
+  }
+  if (requestedId && activeOrdersSync.id !== requestedId) {
+    res.status(200).json({ ok: false, canceled: false, reason: "sync_id_mismatch" });
+    return;
+  }
+  activeOrdersSync.canceled = true;
+  res.status(200).json({ ok: true, canceled: true, syncId: activeOrdersSync.id });
 }
 
 export async function backfillProductsHandler(req: Request, res: Response) {
   try {
     const body = (req.body || {}) as {
       source?: string;
+      shopDomain?: string;
       limit?: number;
       dateStart?: string;
       dateEnd?: string;
@@ -2568,7 +2675,18 @@ export async function backfillProductsHandler(req: Request, res: Response) {
       alegraActiveOnly?: boolean;
       shopifyPublishedOnly?: boolean;
     };
+    const stream = req.query.stream === "1" || req.query.stream === "true" || req.body?.stream === true;
+    let streamOpen = stream;
+    const sendStream = (payload: Record<string, unknown>) => {
+      if (!streamOpen || res.writableEnded || res.destroyed) return;
+      try {
+        res.write(`${JSON.stringify(payload)}\n`);
+      } catch {
+        streamOpen = false;
+      }
+    };
     const source = String(body.source || "both").toLowerCase();
+    const shopDomain = typeof body.shopDomain === "string" ? body.shopDomain.trim() : "";
     const limit = Number.isFinite(body.limit) && Number(body.limit) > 0 ? Number(body.limit) : null;
     const dateStart = body.dateStart ? String(body.dateStart) : "";
     const dateEnd = body.dateEnd ? String(body.dateEnd) : "";
@@ -2577,6 +2695,21 @@ export async function backfillProductsHandler(req: Request, res: Response) {
     const alegraStatusFilter = (alegraStatusInput || (body.alegraActiveOnly ? "active" : "")).toLowerCase();
     const shopifyPublishedOnly = Boolean(body.shopifyPublishedOnly);
     const results: Record<string, unknown> = {};
+    const startedAt = Date.now();
+    const syncId = createSyncId();
+    activeProductsBackfillSync = { id: syncId, canceled: false, startedAt };
+
+    if (stream) {
+      res.status(200);
+      res.setHeader("Content-Type", "application/x-ndjson");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders?.();
+      res.on("close", () => {
+        streamOpen = false;
+      });
+    }
+    sendStream({ type: "start", syncId, startedAt, source, total: limit });
 
     if (source === "alegra" || source === "both") {
       let start = 0;
@@ -2589,6 +2722,16 @@ export async function backfillProductsHandler(req: Request, res: Response) {
       if (useCache && cachedTotal > 0) {
         usedCache = true;
         while (true) {
+          if (isProductsBackfillCanceled(syncId)) {
+            sendStream({ type: "canceled", syncId, source: "alegra", processed, pages, total: limit });
+            if (stream) {
+              streamOpen = false;
+              res.end();
+              return;
+            }
+            res.json({ ok: false, canceled: true, syncId, alegra: { processed, pages } });
+            return;
+          }
           if (limit !== null && processed >= limit) break;
           const batchLimit = limit !== null ? Math.min(pageSize, Math.max(0, limit - processed)) : pageSize;
           if (batchLimit <= 0) break;
@@ -2598,9 +2741,23 @@ export async function backfillProductsHandler(req: Request, res: Response) {
           const filteredBatch = alegraStatusFilter
             ? batch.filter((item) => String(item?.status || "").toLowerCase() === alegraStatusFilter)
             : batch;
-          if (filteredBatch.length) {
-            await persistProductsFromAlegra(filteredBatch);
-            processed += filteredBatch.length;
+          const datedBatch = dateEnd
+            ? filteredBatch.filter((item) => {
+                const raw =
+                  (item as { updated_at?: string; updatedAt?: string }).updated_at ||
+                  (item as { updated_at?: string; updatedAt?: string }).updatedAt ||
+                  (item as { created_at?: string; createdAt?: string }).created_at ||
+                  (item as { created_at?: string; createdAt?: string }).createdAt ||
+                  "";
+                const parsed = raw ? Date.parse(String(raw)) : NaN;
+                if (!Number.isFinite(parsed)) return true;
+                return parsed <= Date.parse(`${dateEnd}T23:59:59.999Z`);
+              })
+            : filteredBatch;
+          if (datedBatch.length) {
+            await persistProductsFromAlegra(datedBatch);
+            processed += datedBatch.length;
+            sendStream({ type: "progress", syncId, source: "alegra", processed, pages, total: limit });
           }
           start += batch.length;
           pages += 1;
@@ -2614,6 +2771,16 @@ export async function backfillProductsHandler(req: Request, res: Response) {
         processed = 0;
         pages = 0;
         while (true) {
+          if (isProductsBackfillCanceled(syncId)) {
+            sendStream({ type: "canceled", syncId, source: "alegra", processed, pages, total: limit });
+            if (stream) {
+              streamOpen = false;
+              res.end();
+              return;
+            }
+            res.json({ ok: false, canceled: true, syncId, alegra: { processed, pages } });
+            return;
+          }
           if (limit !== null && processed >= limit) break;
           const batchLimit = limit !== null ? Math.min(pageSize, Math.max(0, limit - processed)) : pageSize;
           if (batchLimit <= 0) break;
@@ -2628,7 +2795,7 @@ export async function backfillProductsHandler(req: Request, res: Response) {
           if (dateStart) {
             query.set("updated_at_start", dateStart);
           }
-          const response = await fetchAlegraWithRetry("/items", query, undefined);
+          const response = await fetchAlegraWithRetry("/items", query, shopDomain || undefined);
           if (!response.ok) break;
           const payload = (await response.json()) as { items?: AlegraItem[]; data?: AlegraItem[] };
           const batch = Array.isArray(payload.items) ? payload.items : Array.isArray(payload.data) ? payload.data : [];
@@ -2636,9 +2803,23 @@ export async function backfillProductsHandler(req: Request, res: Response) {
           const filteredBatch = alegraStatusFilter
             ? batch.filter((item) => String(item?.status || "").toLowerCase() === alegraStatusFilter)
             : batch;
-          if (filteredBatch.length) {
-            await persistProductsFromAlegra(filteredBatch);
-            processed += filteredBatch.length;
+          const datedBatch = dateEnd
+            ? filteredBatch.filter((item) => {
+                const raw =
+                  (item as { updated_at?: string; updatedAt?: string }).updated_at ||
+                  (item as { updated_at?: string; updatedAt?: string }).updatedAt ||
+                  (item as { created_at?: string; createdAt?: string }).created_at ||
+                  (item as { created_at?: string; createdAt?: string }).createdAt ||
+                  "";
+                const parsed = raw ? Date.parse(String(raw)) : NaN;
+                if (!Number.isFinite(parsed)) return true;
+                return parsed <= Date.parse(`${dateEnd}T23:59:59.999Z`);
+              })
+            : filteredBatch;
+          if (datedBatch.length) {
+            await persistProductsFromAlegra(datedBatch);
+            processed += datedBatch.length;
+            sendStream({ type: "progress", syncId, source: "alegra", processed, pages, total: limit });
           }
           start += batch.length;
           pages += 1;
@@ -2649,7 +2830,9 @@ export async function backfillProductsHandler(req: Request, res: Response) {
     }
 
     if (source === "shopify" || source === "both") {
-      const shopifyCredential = await getShopifyCredential();
+      const shopifyCredential = shopDomain
+        ? await getShopifyConnectionByDomain(shopDomain)
+        : await getShopifyCredential();
       const client = new ShopifyClient({
         shopDomain: shopifyCredential.shopDomain,
         accessToken: shopifyCredential.accessToken,
@@ -2662,6 +2845,16 @@ export async function backfillProductsHandler(req: Request, res: Response) {
       const products = await client.listAllProductsByQuery(query, limit || undefined);
       let processed = 0;
       for (const product of products) {
+        if (isProductsBackfillCanceled(syncId)) {
+          sendStream({ type: "canceled", syncId, source: "shopify", processed, total: limit });
+          if (stream) {
+            streamOpen = false;
+            res.end();
+            return;
+          }
+          res.json({ ok: false, canceled: true, syncId, shopify: { processed } });
+          return;
+        }
         const variants = product.variants?.edges || [];
         const sku = variants[0]?.node?.sku || null;
         await upsertProduct({
@@ -2675,14 +2868,47 @@ export async function backfillProductsHandler(req: Request, res: Response) {
           source: "shopify",
         });
         processed += 1;
+        sendStream({ type: "progress", syncId, source: "shopify", processed, total: limit });
       }
       results.shopify = { processed };
     }
 
-    res.json({ ok: true, ...results });
+    if (stream) {
+      sendStream({ type: "complete", syncId, ok: true, results });
+      streamOpen = false;
+      res.end();
+      return;
+    }
+    res.json({ ok: true, syncId, ...results });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Backfill error" });
+    const message = error instanceof Error ? error.message : "Backfill error";
+    if (req.query.stream === "1" || req.query.stream === "true" || req.body?.stream === true) {
+      try {
+        res.write(`${JSON.stringify({ type: "error", error: message })}\n`);
+      } catch {
+        // ignore
+      }
+      res.end();
+      return;
+    }
+    res.status(500).json({ error: message });
+  } finally {
+    activeProductsBackfillSync = null;
   }
+}
+
+export async function stopProductsBackfillHandler(req: Request, res: Response) {
+  const requestedId = String(req.body?.syncId || "").trim();
+  if (!activeProductsBackfillSync) {
+    res.status(200).json({ ok: false, canceled: false, reason: "no_active_sync" });
+    return;
+  }
+  if (requestedId && activeProductsBackfillSync.id !== requestedId) {
+    res.status(200).json({ ok: false, canceled: false, reason: "sync_id_mismatch" });
+    return;
+  }
+  activeProductsBackfillSync.canceled = true;
+  res.status(200).json({ ok: true, canceled: true, syncId: activeProductsBackfillSync.id });
 }
 
 export async function syncProductImagesHandler(req: Request, res: Response) {

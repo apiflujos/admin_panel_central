@@ -142,7 +142,7 @@ export async function googleAdsOAuthCallback(req: Request, res: Response) {
       shopDomain,
       loginCustomerId: previous?.loginCustomerId || null,
     });
-    const redirectUrl = new URL(`${env.appHost}/dashboard`);
+    const redirectUrl = new URL(`${env.appHost}/settings/connections`);
     redirectUrl.searchParams.set("connections", "1");
     return res.redirect(redirectUrl.toString());
   } catch (error) {

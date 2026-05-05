@@ -8,6 +8,7 @@ export type AppNavigationItem = {
 export const appNavigation: AppNavigationItem[] = [
   { label: "Métricas", href: "/", section: "operacion", icon: "◈" },
   { label: "Pedidos", href: "/orders", section: "operacion", icon: "◫" },
+  { label: "Operaciones", href: "/operations", section: "operacion", icon: "◌" },
   { label: "Facturas", href: "/invoices", section: "operacion", icon: "◻" },
   { label: "Contactos", href: "/contacts", section: "operacion", icon: "◎" },
   { label: "Productos", href: "/products", section: "operacion", icon: "▦" },

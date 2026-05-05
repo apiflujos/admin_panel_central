@@ -44,15 +44,21 @@ export type CriticalStoreConfig = {
   };
   transfers: {
     enabled: boolean;
+    destinationMode: "fixed" | "auto" | "rule";
     destinationRequired: boolean;
     destinationWarehouseId: string;
     originWarehouseIds: string[];
+    priorityWarehouseId: string;
     strategy: "manual" | "consolidation" | "priority" | "max_stock";
     fallbackStrategy: "manual" | "consolidation" | "priority" | "max_stock" | "";
+    tieBreakRule: "" | "priority" | "max_stock" | "random";
+    splitEnabled: boolean;
+    minStock: number;
   };
   rules: {
     syncEnabled: boolean;
     inventoryAdjustmentsEnabled: boolean;
+    inventoryAdjustmentsIntervalMinutes: number;
     inventoryAdjustmentsAutoPublish: boolean;
     publishOnStock: boolean;
     autoPublishOnWebhook: boolean;
@@ -63,6 +69,7 @@ export type CriticalStoreConfig = {
     webhookItemsEnabled: boolean;
     createInShopify: boolean;
     updateInShopify: boolean;
+    includeImages: boolean;
     warehouseIds: string[];
   };
   invoice: {
@@ -74,9 +81,27 @@ export type CriticalStoreConfig = {
     einvoiceEnabled: boolean;
   };
   sync: {
+    contacts: {
+      enabled: boolean;
+      fromShopify: boolean;
+      fromAlegra: boolean;
+      createInAlegra: boolean;
+      createInShopify: boolean;
+      matchPriority: string[];
+    };
     orders: {
+      shopifyEnabled: boolean;
+      alegraEnabled: boolean;
       shopifyToAlegra: "invoice" | "contact_only" | "db_only" | "off";
       alegraToShopify: "draft" | "active" | "off";
+    };
+    products: {
+      shopifyEnabled: boolean;
+      createInAlegra: boolean;
+      updateInAlegra: boolean;
+      includeInventory: boolean;
+      warehouseId: string;
+      matchPriority: "sku_barcode" | "barcode_sku";
     };
   };
 };
@@ -96,6 +121,7 @@ export type ConnectionsWorkspace = {
     rules: {
       syncEnabled: boolean;
       inventoryAdjustmentsEnabled: boolean;
+      inventoryAdjustmentsIntervalMinutes: number;
       inventoryAdjustmentsAutoPublish: boolean;
       publishOnStock: boolean;
       autoPublishOnWebhook: boolean;
@@ -106,6 +132,7 @@ export type ConnectionsWorkspace = {
       webhookItemsEnabled: boolean;
       createInShopify: boolean;
       updateInShopify: boolean;
+      includeImages: boolean;
       warehouseIds: string[];
     };
     invoice: {
@@ -117,18 +144,41 @@ export type ConnectionsWorkspace = {
       einvoiceEnabled: boolean;
     };
     sync: {
+      contacts: {
+        enabled: boolean;
+        fromShopify: boolean;
+        fromAlegra: boolean;
+        createInAlegra: boolean;
+        createInShopify: boolean;
+        matchPriority: string[];
+      };
       orders: {
+        shopifyEnabled: boolean;
+        alegraEnabled: boolean;
         shopifyToAlegra: "invoice" | "contact_only" | "db_only" | "off";
         alegraToShopify: "draft" | "active" | "off";
+      };
+      products: {
+        shopifyEnabled: boolean;
+        createInAlegra: boolean;
+        updateInAlegra: boolean;
+        includeInventory: boolean;
+        warehouseId: string;
+        matchPriority: "sku_barcode" | "barcode_sku";
       };
     };
     transfers: {
       enabled: boolean;
+      destinationMode: "fixed" | "auto" | "rule";
       destinationRequired: boolean;
       destinationWarehouseId: string;
       originWarehouseIds: string[];
+      priorityWarehouseId: string;
       strategy: "manual" | "consolidation" | "priority" | "max_stock";
       fallbackStrategy: "manual" | "consolidation" | "priority" | "max_stock" | "";
+      tieBreakRule: "" | "priority" | "max_stock" | "random";
+      splitEnabled: boolean;
+      minStock: number;
     };
   };
   alegraAccounts: Array<{

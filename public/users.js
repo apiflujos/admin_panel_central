@@ -44,7 +44,7 @@ async function fetchJson(url, options) {
   }
   const response = await fetch(url, options);
   if (response.status === 401) {
-    window.location.href = "/login.html";
+    window.location.href = "/auth/login";
     throw new Error("unauthorized");
   }
   if (!response.ok) {
@@ -224,18 +224,18 @@ if (userMenu) {
       return;
     }
     if (action === "company") {
-      window.location.href = "/company.html";
+      window.location.href = "/company";
       return;
     }
     if (action === "assistants") {
-      window.location.href = "/ai-assistants.html";
+      window.location.href = "/ai-assistants";
       return;
     }
     if (action === "logout") {
       fetchJson("/api/auth/logout", { method: "POST" })
         .catch(() => null)
         .finally(() => {
-          window.location.href = "/login.html";
+          window.location.href = "/auth/login";
         });
     }
   });

@@ -55,7 +55,9 @@ async function resolveMarketingDashboardFilters(
   query: Record<string, unknown>,
   options: { autofillShopDomain?: boolean } = {}
 ) {
-  const [{ normalizeMarketingDashboardFilters }] = await Promise.all([import("../../../packages/domain/src/marketing")]);
+  const [{ normalizeMarketingDashboardFilters }] = await Promise.all([
+    import("../../../packages/domain/src/marketing"),
+  ]);
   const requestedShopDomain =
     typeof query.shopDomain === "string" && query.shopDomain.trim()
       ? query.shopDomain
@@ -88,24 +90,26 @@ export const getServerSessionProfile = cache(async (): Promise<AuthSessionDto | 
   }
 });
 
-export const getServerCompanyBrand = cache(async (): Promise<{
-  companyName: string;
-  logoBase64: string;
-}> => {
-  try {
-    const { getCompanyProfile } = await import("../../../src/services/company.service");
-    const company = await getCompanyProfile();
-    return {
-      companyName: company.name?.trim() || "ApiFlujos",
-      logoBase64: company.logoBase64 || "",
-    };
-  } catch {
-    return {
-      companyName: "ApiFlujos",
-      logoBase64: "",
-    };
+export const getServerCompanyBrand = cache(
+  async (): Promise<{
+    companyName: string;
+    logoBase64: string;
+  }> => {
+    try {
+      const { getCompanyProfile } = await import("../../../src/services/company.service");
+      const company = await getCompanyProfile();
+      return {
+        companyName: company.name?.trim() || "ApiFlujos",
+        logoBase64: company.logoBase64 || "",
+      };
+    } catch {
+      return {
+        companyName: "ApiFlujos",
+        logoBase64: "",
+      };
+    }
   }
-});
+);
 
 export async function requireServerSessionProfile(): Promise<AuthSessionDto> {
   const session = await getServerSessionProfile();
@@ -134,18 +138,16 @@ export async function getServerDashboardOverview(): Promise<AdminWebDashboardOve
     import("../../../packages/domain/src/settings"),
   ]);
 
-  const [company, connections, moduleCount, products, orders, logs] =
-    await Promise.all([
-      getCompanyProfile(),
-      listStoreConnections(),
-      countEnabledModules(),
-      listProducts({ limit: 3, offset: 0 }),
-      listOrders({ limit: 3, offset: 0 }),
-      listSyncLogs({}),
-    ]);
+  const [company, connections, moduleCount, products, orders, logs] = await Promise.all([
+    getCompanyProfile(),
+    listStoreConnections(),
+    countEnabledModules(),
+    listProducts({ limit: 3, offset: 0 }),
+    listOrders({ limit: 3, offset: 0 }),
+    listSyncLogs({}),
+  ]);
 
-  const { activeConnections, pendingActions } =
-    summarizeConnectionHealth(connections);
+  const { activeConnections, pendingActions } = summarizeConnectionHealth(connections);
 
   return toAdminWebDashboardOverviewDto({
     settings: {
@@ -161,15 +163,12 @@ export async function getServerDashboardOverview(): Promise<AdminWebDashboardOve
 }
 
 export async function getServerSettingsOverview(): Promise<SettingsOverviewDto> {
-  const [
-    { summarizeConnectionHealth, toSettingsOverviewDto },
-    { getCompanyProfile },
-    { listStoreConnections },
-  ] = await Promise.all([
-    import("../../../packages/domain/src/settings"),
-    import("../../../src/services/company.service"),
-    import("../../../src/services/store-connections.service"),
-  ]);
+  const [{ summarizeConnectionHealth, toSettingsOverviewDto }, { getCompanyProfile }, { listStoreConnections }] =
+    await Promise.all([
+      import("../../../packages/domain/src/settings"),
+      import("../../../src/services/company.service"),
+      import("../../../src/services/store-connections.service"),
+    ]);
 
   const [company, connections, moduleCount] = await Promise.all([
     getCompanyProfile(),
@@ -177,8 +176,7 @@ export async function getServerSettingsOverview(): Promise<SettingsOverviewDto> 
     countEnabledModules(),
   ]);
 
-  const { activeConnections, pendingActions } =
-    summarizeConnectionHealth(connections);
+  const { activeConnections, pendingActions } = summarizeConnectionHealth(connections);
 
   return toSettingsOverviewDto({
     companyName: company.name || "ApiFlujos",
@@ -189,13 +187,11 @@ export async function getServerSettingsOverview(): Promise<SettingsOverviewDto> 
 }
 
 export async function getServerConnectionsStatus(): Promise<ConnectionStatusListDto> {
-  const [
-    { buildProviderDetail, toConnectionStatus, toConnectionStatusListDto },
-    { listStoreConnections },
-  ] = await Promise.all([
-    import("../../../packages/domain/src/settings"),
-    import("../../../src/services/store-connections.service"),
-  ]);
+  const [{ buildProviderDetail, toConnectionStatus, toConnectionStatusListDto }, { listStoreConnections }] =
+    await Promise.all([
+      import("../../../packages/domain/src/settings"),
+      import("../../../src/services/store-connections.service"),
+    ]);
 
   const connections = await listStoreConnections();
 
@@ -304,7 +300,7 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
   const stores = connections.storesCatalog.map((store: (typeof connections.storesCatalog)[number]) => ({
     id: store.id,
     name: store.name,
-    createdAt: store.createdAt,
+    createdAt: new Date(String(store.createdAt)).toISOString(),
     providers: {
       shopify: store.shopify
         ? {
@@ -356,6 +352,8 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
     },
   }));
 
+  const settingsRules = (settings.rules || {}) as Record<string, unknown>;
+
   return {
     companyName: company.name || "ApiFlujos",
     securityMisconfigured: Boolean(connections.securityMisconfigured),
@@ -372,9 +370,11 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
       },
       transfers: {
         enabled: config.transfers.enabled,
+        destinationMode: config.transfers.destinationMode as "fixed" | "auto" | "rule",
         destinationRequired: config.transfers.destinationRequired,
         destinationWarehouseId: config.transfers.destinationWarehouseId,
         originWarehouseIds: config.transfers.originWarehouseIds as string[],
+        priorityWarehouseId: config.transfers.priorityWarehouseId,
         strategy: config.transfers.strategy as "manual" | "consolidation" | "priority" | "max_stock",
         fallbackStrategy: config.transfers.fallbackStrategy as
           | "manual"
@@ -382,10 +382,14 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
           | "priority"
           | "max_stock"
           | "",
+        tieBreakRule: config.transfers.tieBreakRule as "" | "priority" | "max_stock" | "random",
+        splitEnabled: Boolean(config.transfers.splitEnabled),
+        minStock: Number(config.transfers.minStock || 0),
       },
       rules: {
         syncEnabled: config.rules.syncEnabled,
         inventoryAdjustmentsEnabled: config.rules.inventoryAdjustmentsEnabled,
+        inventoryAdjustmentsIntervalMinutes: config.rules.inventoryAdjustmentsIntervalMinutes,
         inventoryAdjustmentsAutoPublish: config.rules.inventoryAdjustmentsAutoPublish,
         publishOnStock: config.rules.publishOnStock,
         autoPublishOnWebhook: config.rules.autoPublishOnWebhook,
@@ -396,6 +400,7 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
         webhookItemsEnabled: config.rules.webhookItemsEnabled,
         createInShopify: config.rules.createInShopify,
         updateInShopify: config.rules.updateInShopify,
+        includeImages: config.rules.includeImages,
         warehouseIds: config.rules.warehouseIds,
       },
       invoice: {
@@ -407,13 +412,27 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
         einvoiceEnabled: config.invoice.einvoiceEnabled,
       },
       sync: {
+        contacts: {
+          enabled: config.sync.contacts.enabled,
+          fromShopify: config.sync.contacts.fromShopify,
+          fromAlegra: config.sync.contacts.fromAlegra,
+          createInAlegra: config.sync.contacts.createInAlegra,
+          createInShopify: config.sync.contacts.createInShopify,
+          matchPriority: config.sync.contacts.matchPriority,
+        },
         orders: {
-          shopifyToAlegra: config.sync.orders.shopifyToAlegra as
-            | "invoice"
-            | "contact_only"
-            | "db_only"
-            | "off",
+          shopifyEnabled: config.sync.orders.shopifyEnabled,
+          alegraEnabled: config.sync.orders.alegraEnabled,
+          shopifyToAlegra: config.sync.orders.shopifyToAlegra as "invoice" | "contact_only" | "db_only" | "off",
           alegraToShopify: config.sync.orders.alegraToShopify as "draft" | "active" | "off",
+        },
+        products: {
+          shopifyEnabled: config.sync.products.shopifyEnabled,
+          createInAlegra: config.sync.products.createInAlegra,
+          updateInAlegra: config.sync.products.updateInAlegra,
+          includeInventory: config.sync.products.includeInventory,
+          warehouseId: config.sync.products.warehouseId,
+          matchPriority: config.sync.products.matchPriority as "sku_barcode" | "barcode_sku",
         },
       },
     })),
@@ -426,18 +445,23 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
       },
       rules: {
         syncEnabled: true,
-        inventoryAdjustmentsEnabled: settings.rules?.inventoryAdjustmentsEnabled ?? true,
-        inventoryAdjustmentsAutoPublish: settings.rules?.inventoryAdjustmentsAutoPublish ?? true,
-        publishOnStock: settings.rules?.publishOnStock ?? true,
-        autoPublishOnWebhook: settings.rules?.autoPublishOnWebhook ?? false,
-        autoPublishStatus: settings.rules?.autoPublishStatus === "active" ? "active" : "draft",
-        onlyActiveItems: Boolean(settings.rules?.onlyActiveItems),
-        trackInventory: settings.rules?.trackInventory ?? true,
-        allowOversell: settings.rules?.allowOversell ?? false,
-        webhookItemsEnabled: settings.rules?.webhookItemsEnabled ?? true,
-        createInShopify: settings.rules?.createInShopify ?? true,
-        updateInShopify: settings.rules?.updateInShopify ?? true,
-        warehouseIds: settings.rules?.warehouseIds ?? [],
+        inventoryAdjustmentsEnabled: settingsRules.inventoryAdjustmentsEnabled !== false,
+        inventoryAdjustmentsIntervalMinutes:
+          typeof settingsRules.inventoryAdjustmentsIntervalMinutes === "number"
+            ? Number(settingsRules.inventoryAdjustmentsIntervalMinutes)
+            : 5,
+        inventoryAdjustmentsAutoPublish: settingsRules.inventoryAdjustmentsAutoPublish !== false,
+        publishOnStock: settingsRules.publishOnStock !== false,
+        autoPublishOnWebhook: settingsRules.autoPublishOnWebhook === true,
+        autoPublishStatus: settingsRules.autoPublishStatus === "active" ? "active" : "draft",
+        onlyActiveItems: Boolean(settingsRules.onlyActiveItems),
+        trackInventory: settingsRules.trackInventory !== false,
+        allowOversell: settingsRules.allowOversell === true,
+        webhookItemsEnabled: settingsRules.webhookItemsEnabled !== false,
+        createInShopify: settingsRules.createInShopify !== false,
+        updateInShopify: settingsRules.updateInShopify !== false,
+        includeImages: settingsRules.includeImages !== false,
+        warehouseIds: Array.isArray(settingsRules.warehouseIds) ? (settingsRules.warehouseIds as string[]) : [],
       },
       invoice: {
         generateInvoice: settings.invoice?.generateInvoice ?? false,
@@ -448,18 +472,41 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
         einvoiceEnabled: settings.invoice?.einvoiceEnabled ?? false,
       },
       sync: {
+        contacts: {
+          enabled: true,
+          fromShopify: true,
+          fromAlegra: true,
+          createInAlegra: true,
+          createInShopify: true,
+          matchPriority: ["document", "phone", "email"],
+        },
         orders: {
+          shopifyEnabled: true,
+          alegraEnabled: false,
           shopifyToAlegra: "db_only",
           alegraToShopify: "off",
+        },
+        products: {
+          shopifyEnabled: false,
+          createInAlegra: false,
+          updateInAlegra: true,
+          includeInventory: false,
+          warehouseId: "",
+          matchPriority: "sku_barcode",
         },
       },
       transfers: {
         enabled: true,
+        destinationMode: "fixed",
         destinationRequired: true,
         destinationWarehouseId: settings.invoice?.warehouseId ?? "",
-        originWarehouseIds: settings.rules?.warehouseIds ?? [],
+        originWarehouseIds: Array.isArray(settingsRules.warehouseIds) ? (settingsRules.warehouseIds as string[]) : [],
+        priorityWarehouseId: "",
         strategy: "manual",
         fallbackStrategy: "",
+        tieBreakRule: "",
+        splitEnabled: false,
+        minStock: 0,
       },
     },
     alegraAccounts: connections.alegraAccounts.map((account: (typeof connections.alegraAccounts)[number]) => ({
@@ -497,11 +544,10 @@ export async function getServerProductsCatalog(params?: {
   start?: number;
   limit?: number;
 }): Promise<AdminWebProductsListDto> {
-  const [{ normalizeProductsListFilters, toAdminWebProductsListDto }, { listProducts }] =
-    await Promise.all([
-      import("../../../packages/domain/src/products"),
-      import("../../../src/services/products.service"),
-    ]);
+  const [{ normalizeProductsListFilters, toAdminWebProductsListDto }, { listProducts }] = await Promise.all([
+    import("../../../packages/domain/src/products"),
+    import("../../../src/services/products.service"),
+  ]);
 
   const result = await listProducts(
     normalizeProductsListFilters({
@@ -521,10 +567,7 @@ export async function getServerOrdersCatalog(params?: {
 }): Promise<AdminWebOrdersListDto> {
   const [
     { normalizeOrdersListFilters, toAdminWebOrdersListDto },
-    {
-      listOrderInvoiceOverrides,
-      validateEinvoiceData,
-    },
+    { listOrderInvoiceOverrides, validateEinvoiceData },
     { listOrders },
     { ensureInvoiceSettingsColumns, getOrgId, getPool },
   ] = await Promise.all([
@@ -565,10 +608,7 @@ export async function getServerOrdersCatalog(params?: {
     return Boolean(invoiceSettings.rows[0].einvoice_enabled);
   };
 
-  const [overrides, einvoiceEnabled] = await Promise.all([
-    listOrderInvoiceOverrides(orderIds),
-    loadEinvoiceEnabled(),
-  ]);
+  const [overrides, einvoiceEnabled] = await Promise.all([listOrderInvoiceOverrides(orderIds), loadEinvoiceEnabled()]);
 
   return toAdminWebOrdersListDto({
     result,
@@ -579,30 +619,42 @@ export async function getServerOrdersCatalog(params?: {
   });
 }
 
-export async function getServerContactsCatalog(): Promise<AdminWebContactsListDto> {
-  const [{ normalizeContactsListFilters, toAdminWebContactsListDto }, { listContacts }] =
-    await Promise.all([
-      import("../../../packages/domain/src/contacts"),
-      import("../../../src/services/contacts.service"),
-    ]);
+export async function getServerContactsCatalog(filters?: {
+  query?: string;
+  status?: string;
+  source?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<AdminWebContactsListDto> {
+  const [{ normalizeContactsListFilters, toAdminWebContactsListDto }, { listContacts }] = await Promise.all([
+    import("../../../packages/domain/src/contacts"),
+    import("../../../src/services/contacts.service"),
+  ]);
 
   const result = await listContacts(
-    normalizeContactsListFilters({ limit: "20", offset: "0" })
+    normalizeContactsListFilters({
+      query: filters?.query,
+      status: filters?.status,
+      source: filters?.source,
+      from: filters?.from,
+      to: filters?.to,
+      limit: String(filters?.limit ?? 20),
+      offset: String(filters?.offset ?? 0),
+    })
   );
 
   return toAdminWebContactsListDto(result as ContactsListServiceResult);
 }
 
 export async function getServerInvoicesCatalog(): Promise<AdminWebInvoicesListDto> {
-  const [{ normalizeInvoicesListFilters, toAdminWebInvoicesListDto }, { listInvoices }] =
-    await Promise.all([
-      import("../../../packages/domain/src/invoices"),
-      import("../../../src/services/invoices.service"),
-    ]);
+  const [{ normalizeInvoicesListFilters, toAdminWebInvoicesListDto }, { listInvoices }] = await Promise.all([
+    import("../../../packages/domain/src/invoices"),
+    import("../../../src/services/invoices.service"),
+  ]);
 
-  const result = await listInvoices(
-    normalizeInvoicesListFilters({ limit: "20", offset: "0" })
-  );
+  const result = await listInvoices(normalizeInvoicesListFilters({ limit: "20", offset: "0" }));
 
   return toAdminWebInvoicesListDto(result);
 }
@@ -612,42 +664,57 @@ export async function getServerMarketingOverview(
   from?: string,
   to?: string
 ): Promise<AdminWebMarketingOverviewDto> {
-  const [
-    { toAdminWebMarketingOverviewDto },
-    { getMarketingExecutiveDashboard },
-  ] = await Promise.all([
+  const [{ toAdminWebMarketingOverviewDto }, { getMarketingExecutiveDashboard }] = await Promise.all([
     import("../../../packages/domain/src/marketing"),
     import("../../../src/marketing/reports/marketing-reports.service"),
   ]);
 
-  const filters = await resolveMarketingDashboardFilters(
-    { shopDomain, from, to },
-    { autofillShopDomain: true }
-  );
+  const filters = await resolveMarketingDashboardFilters({ shopDomain, from, to }, { autofillShopDomain: true });
   const result = await getMarketingExecutiveDashboard(filters);
   return toAdminWebMarketingOverviewDto(result);
 }
 
 export async function getServerOperationsCatalog(): Promise<AdminWebOperationsListDto> {
-  const [{ normalizeOperationsDays, toAdminWebOperationsListDto }, { listOperations }] =
-    await Promise.all([
-      import("../../../packages/domain/src/operations"),
-      import("../../../src/services/operations.service"),
-    ]);
+  const [{ normalizeOperationsDays, toAdminWebOperationsListDto }, { listOperations }] = await Promise.all([
+    import("../../../packages/domain/src/operations"),
+    import("../../../src/services/operations.service"),
+  ]);
 
-  const result = await listOperations(
-    normalizeOperationsDays({ days: "7" })
-  );
+  try {
+    const result = await listOperations(normalizeOperationsDays({ days: "7" }));
 
-  return toAdminWebOperationsListDto(result);
+    return toAdminWebOperationsListDto(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "operations_load_failed";
+    if (message.includes("Missing Shopify credentials in DB")) {
+      return toAdminWebOperationsListDto({ items: [] });
+    }
+    throw error;
+  }
 }
 
-export async function getServerLogsCatalog(): Promise<AdminWebLogsListDto> {
-  const [{ toAdminWebLogsListDto }, { listSyncLogs }] = await Promise.all([
+export async function getServerLogsCatalog(filters?: {
+  status?: string;
+  orderId?: string;
+  entity?: string;
+  direction?: string;
+  from?: string;
+  to?: string;
+}): Promise<AdminWebLogsListDto> {
+  const [{ normalizeLogsFilters, toAdminWebLogsListDto }, { listSyncLogs }] = await Promise.all([
     import("../../../packages/domain/src/logs"),
     import("../../../src/services/logs.service"),
   ]);
-  const data = await listSyncLogs({});
+  const data = await listSyncLogs(
+    normalizeLogsFilters({
+      status: filters?.status,
+      orderId: filters?.orderId,
+      entity: filters?.entity,
+      direction: filters?.direction,
+      from: filters?.from,
+      to: filters?.to,
+    })
+  );
   return toAdminWebLogsListDto(data);
 }
 
@@ -696,4 +763,84 @@ export async function getServerSuperAdminOverview(): Promise<AdminWebSuperAdminO
     modulesCount: modules.length,
     users: users.rows,
   });
+}
+
+export async function getServerCompanyProfile(): Promise<{
+  name: string;
+  phone: string;
+  address: string;
+  logoBase64: string;
+}> {
+  const { getCompanyProfile } = await import("../../../src/services/company.service");
+  return getCompanyProfile();
+}
+
+export async function getServerTenantUsers(): Promise<
+  Array<{
+    id: number;
+    email: string;
+    role: "admin" | "agent";
+    name: string | null;
+    phone: string | null;
+    photoBase64: string | null;
+    createdAt: string;
+  }>
+> {
+  const { listUsers } = await import("../../../src/services/users.service");
+  const users = await listUsers();
+  return users.map((user) => ({
+    ...user,
+    createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : new Date(user.createdAt).toISOString(),
+  }));
+}
+
+export async function getServerAiAssistants(): Promise<
+  Array<{
+    id: number;
+    organization_id: number;
+    name: string;
+    avatar_url: string | null;
+    description: string | null;
+    n8n_url: string | null;
+    politicas: string | null;
+    instruccion: string | null;
+    identidad: string | null;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+  }>
+> {
+  const { listAiAssistants } = await import("../../../src/services/ai-assistants.service");
+  return listAiAssistants();
+}
+
+export async function getServerProfile(): Promise<{
+  id: number;
+  organizationId: number;
+  email: string;
+  role: string;
+  isSuperAdmin: boolean;
+  name: string | null;
+  phone: string | null;
+  photoBase64: string | null;
+}> {
+  const cookieStore = await cookies();
+  const session = cookieStore.get("os_session");
+  if (!session?.value) {
+    redirect("/auth/login");
+  }
+  const user = await getSessionUser(session.value);
+  if (!user) {
+    redirect("/auth/login");
+  }
+  return {
+    id: user.id,
+    organizationId: user.organization_id,
+    email: user.email,
+    role: user.role,
+    isSuperAdmin: Boolean(user.is_super_admin),
+    name: user.name,
+    phone: user.phone,
+    photoBase64: user.photo_base64,
+  };
 }

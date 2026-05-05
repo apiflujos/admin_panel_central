@@ -25,6 +25,36 @@ const addDays = (date: string, days: number) => {
   return toIsoDate(parsed + days * 24 * 60 * 60 * 1000);
 };
 
+async function resolveStoreRuntime(
+  shopDomain: string,
+  settings: Awaited<ReturnType<typeof getInventoryAdjustmentsSettings>>
+) {
+  const store = await getStoreConfigForDomain(shopDomain).catch(() => null);
+  const storeRules = store?.rules;
+  const enabled = storeRules ? storeRules.inventoryAdjustmentsEnabled !== false : settings.enabled;
+  const autoPublish = storeRules ? storeRules.inventoryAdjustmentsAutoPublish !== false : settings.autoPublish;
+  const intervalMinutes =
+    enabled && typeof storeRules?.inventoryAdjustmentsIntervalMinutes === "number"
+      ? Math.max(5, Number(storeRules.inventoryAdjustmentsIntervalMinutes) || 0)
+      : enabled
+        ? settings.intervalMinutes
+        : 0;
+  return { enabled, autoPublish, intervalMinutes };
+}
+
+async function shouldRunStore(shopDomain: string, intervalMinutes: number) {
+  if (intervalMinutes <= 0) return false;
+  const checkpoint = await getSyncCheckpoint(checkpointKey(shopDomain));
+  if (!checkpoint?.updatedAt) {
+    return true;
+  }
+  const lastUpdatedAt = Date.parse(checkpoint.updatedAt);
+  if (!Number.isFinite(lastUpdatedAt) || lastUpdatedAt <= 0) {
+    return true;
+  }
+  return Date.now() - lastUpdatedAt >= intervalMinutes * 60 * 1000;
+}
+
 export function startInventoryAdjustmentsWorker() {
   if (process.env.INVENTORY_ADJUSTMENTS_POLL_DISABLED === "true") {
     return;
@@ -45,11 +75,11 @@ export function startInventoryAdjustmentsWorker() {
     const shopDomains = await listConnectedShopifyDomains();
     for (const shopDomain of shopDomains) {
       try {
-        const store = await getStoreConfigForDomain(shopDomain).catch(() => null);
-        const storeRules = store?.rules;
-        const enabled = storeRules ? storeRules.inventoryAdjustmentsEnabled !== false : settings.enabled;
-        const autoPublish = storeRules ? storeRules.inventoryAdjustmentsAutoPublish !== false : settings.autoPublish;
-        if (!enabled) {
+        const runtime = await resolveStoreRuntime(shopDomain, settings);
+        if (!runtime.enabled || runtime.intervalMinutes <= 0) {
+          continue;
+        }
+        if (!(await shouldRunStore(shopDomain, runtime.intervalMinutes))) {
           continue;
         }
 
@@ -60,7 +90,7 @@ export function startInventoryAdjustmentsWorker() {
           query.set("metadata", "true");
           query.set("date", currentDate);
           const result = await syncInventoryAdjustments(query, {
-            autoPublish,
+            autoPublish: runtime.autoPublish,
             shopDomain,
           });
           await saveSyncCheckpoint({
@@ -104,25 +134,39 @@ export function startInventoryAdjustmentsWorker() {
     let intervalMinutes = 0;
     try {
       const settings = await getInventoryAdjustmentsSettings();
-      intervalMinutes = settings.enabled ? settings.intervalMinutes : 0;
+      if (!settings.enabled || settings.intervalMinutes <= 0) {
+        return;
+      }
+      intervalMinutes = settings.intervalMinutes;
+      const shopDomains = await listConnectedShopifyDomains();
+      for (const shopDomain of shopDomains) {
+        const runtime = await resolveStoreRuntime(shopDomain, settings);
+        if (!runtime.enabled || runtime.intervalMinutes <= 0) {
+          continue;
+        }
+        intervalMinutes = Math.min(intervalMinutes, runtime.intervalMinutes);
+      }
     } catch (error) {
       console.error("Inventory adjustments: schedule settings read failed:", error);
     }
     if (intervalMinutes <= 0) {
       return;
     }
-    setTimeout(async () => {
-      try {
-        await run();
-      } catch (error) {
-        console.error("Inventory adjustments poll failed:", error);
-      }
-      try {
-        await scheduleNext();
-      } catch (error) {
-        console.error("Inventory adjustments schedule failed:", error);
-      }
-    }, intervalMinutes * 60 * 1000);
+    setTimeout(
+      async () => {
+        try {
+          await run();
+        } catch (error) {
+          console.error("Inventory adjustments poll failed:", error);
+        }
+        try {
+          await scheduleNext();
+        } catch (error) {
+          console.error("Inventory adjustments schedule failed:", error);
+        }
+      },
+      intervalMinutes * 60 * 1000
+    );
   };
 
   void (async () => {

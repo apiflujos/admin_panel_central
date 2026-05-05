@@ -2,6 +2,11 @@ import type { Request, Response } from "express";
 import { syncContactsBulk, syncSingleContact } from "../services/contacts-sync.service";
 import { listContacts } from "../services/contacts.service";
 
+let activeContactsBulkSync: { id: string; canceled: boolean; startedAt: number } | null = null;
+const createSyncId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const isContactsBulkCanceled = (syncId: string) =>
+  Boolean(activeContactsBulkSync?.id === syncId && activeContactsBulkSync.canceled);
+
 export async function syncContactHandler(req: Request, res: Response) {
   try {
     const { source, identifier, shopDomain } = req.body || {};
@@ -125,6 +130,8 @@ export async function syncContactsBulkHandler(req: Request, res: Response) {
     res.flushHeaders?.();
 
     let closed = false;
+    const syncId = createSyncId();
+    activeContactsBulkSync = { id: syncId, canceled: false, startedAt: Date.now() };
     req.on("close", () => {
       closed = true;
     });
@@ -140,7 +147,7 @@ export async function syncContactsBulkHandler(req: Request, res: Response) {
 
     try {
       const startedAt = Date.now();
-      write({ type: "start", startedAt, phaseTotal: phases.length });
+      write({ type: "start", syncId, startedAt, phaseTotal: phases.length });
       const phaseTotal = phases.length;
       const aggregates = { total: 0, processed: 0, synced: 0, skipped: 0, failed: 0 };
       const phaseResults = [];
@@ -151,6 +158,7 @@ export async function syncContactsBulkHandler(req: Request, res: Response) {
         const phaseStartedAt = Date.now();
         write({
           type: "phase_start",
+          syncId,
           startedAt: phaseStartedAt,
           phaseIndex,
           phaseTotal,
@@ -170,10 +178,11 @@ export async function syncContactsBulkHandler(req: Request, res: Response) {
           createInDestination: phase.createInDestination,
           shopDomain: normalizedShopDomain,
           force: true,
-          shouldAbort: () => closed,
+          shouldAbort: () => closed || isContactsBulkCanceled(syncId),
           onProgress: (progress) => {
             write({
               type: "progress",
+              syncId,
               phaseIndex,
               phaseTotal,
               direction: phase.direction,
@@ -186,6 +195,7 @@ export async function syncContactsBulkHandler(req: Request, res: Response) {
         phaseResults.push({ ...result, direction: phase.direction, directionLabel: phase.directionLabel });
         write({
           type: "phase_complete",
+          syncId,
           phaseIndex,
           phaseTotal,
           direction: phase.direction,
@@ -202,24 +212,44 @@ export async function syncContactsBulkHandler(req: Request, res: Response) {
         aggregates.total += numeric((result as any)?.total);
       }
 
-      write({ type: "complete", ...aggregates, phases: phaseResults });
+      write({ type: "complete", syncId, ...aggregates, phases: phaseResults });
     } catch (error) {
       const code = (error as { code?: string })?.code;
       if (closed) {
+        if (activeContactsBulkSync?.id === syncId) {
+          activeContactsBulkSync = null;
+        }
         return res.end();
       }
-      if (code === "canceled") {
-        write({ type: "canceled" });
+      if (code === "canceled" || isContactsBulkCanceled(syncId)) {
+        write({ type: "canceled", syncId });
       } else {
         const message = (error as { message?: string })?.message || "Sync failed";
-        write({ type: "error", error: message });
+        write({ type: "error", syncId, error: message });
       }
+    }
+    if (activeContactsBulkSync?.id === syncId) {
+      activeContactsBulkSync = null;
     }
     return res.end();
   } catch (error) {
     const message = (error as { message?: string })?.message || "Sync failed";
     return res.status(500).json({ error: message });
   }
+}
+
+export async function stopContactsBulkSyncHandler(req: Request, res: Response) {
+  const requestedId = String(req.body?.syncId || "").trim();
+  if (!activeContactsBulkSync) {
+    res.status(200).json({ ok: false, canceled: false, reason: "no_active_sync" });
+    return;
+  }
+  if (requestedId && activeContactsBulkSync.id !== requestedId) {
+    res.status(200).json({ ok: false, canceled: false, reason: "sync_id_mismatch" });
+    return;
+  }
+  activeContactsBulkSync.canceled = true;
+  res.status(200).json({ ok: true, canceled: true, syncId: activeContactsBulkSync.id });
 }
 
 export async function listContactsHandler(req: Request, res: Response) {

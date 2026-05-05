@@ -49,7 +49,7 @@ import {
 } from "./connections.controller";
 import { createStoreHandler, deleteStoreHandler, listStoresHandler } from "./stores.controller";
 import { listConnectionTestsHandler } from "./connection-tests.controller";
-import { listStoreConfigsHandler, saveStoreConfigHandler } from "./store-configs.controller";
+import { copyStoreConfigHandler, listStoreConfigsHandler, saveStoreConfigHandler } from "./store-configs.controller";
 import {
   createUserHandler,
   deleteUserHandler,
@@ -85,8 +85,10 @@ import {
   syncProductImagesHandler,
   stopProductImagesSyncHandler,
   syncOrdersHandler,
+  stopOrdersSyncHandler,
   syncProductsHandler,
   backfillProductsHandler,
+  stopProductsBackfillHandler,
 } from "./products.controller";
 import {
   createShopifyWebhooksHandler,
@@ -97,10 +99,15 @@ import { shopifyOAuthCallback, shopifyOAuthStatus, startShopifyOAuth } from "./s
 import { googleAdsOAuthCallback, googleAdsOAuthStatus, startGoogleAdsOAuth } from "./google-ads-oauth.controller";
 import { metaAdsOAuthCallback, metaAdsOAuthStatus, startMetaAdsOAuth } from "./meta-ads-oauth.controller";
 import { startTikTokAdsOAuth, tiktokAdsOAuthCallback, tiktokAdsOAuthStatus } from "./tiktok-ads-oauth.controller";
-import { listContactsHandler, syncContactHandler, syncContactsBulkHandler } from "./contacts.controller";
-import { listOrdersHandler, backfillOrdersHandler } from "./orders.controller";
+import {
+  listContactsHandler,
+  stopContactsBulkSyncHandler,
+  syncContactHandler,
+  syncContactsBulkHandler,
+} from "./contacts.controller";
+import { listOrdersHandler, backfillOrdersHandler, stopOrdersBackfillHandler } from "./orders.controller";
 import { downloadInvoicePdfHandler, listInvoicesHandler } from "./invoices.controller";
-import { syncInvoicesToShopifyHandler } from "./invoices-sync.controller";
+import { syncInvoicesToShopifyHandler, stopInvoicesSyncHandler } from "./invoices-sync.controller";
 import { marketingGraphqlHttpHandler } from "../marketing/graphql/marketing-graphql";
 import { billingSummaryHandler } from "./billing.controller";
 import { syncStoreProductsHandler } from "./store-sync.controller";
@@ -236,6 +243,7 @@ router.post("/woocommerce/connections", requireAdmin, wrap(createWooConnectionHa
 router.delete("/woocommerce/connections/:shopDomain", requireAdmin, wrap(deleteWooConnectionHandler));
 router.get("/store-configs", requireAdmin, wrap(listStoreConfigsHandler));
 router.put("/store-configs/:storeKey", requireAdmin, wrap(saveStoreConfigHandler));
+router.post("/store-configs/:storeKey/copy-from", requireAdmin, wrap(copyStoreConfigHandler));
 router.post("/settings/test", requireAdmin, wrap(testConnections));
 router.put("/settings", requireAdmin, wrap(updateSettings));
 router.get("/settings", requireAdmin, wrap(getSettings));
@@ -264,13 +272,18 @@ router.post("/sync/products/shopify-to-alegra/stop", wrap(stopProductsShopifyToA
 router.post("/sync/product-images", wrap(syncProductImagesHandler));
 router.post("/sync/product-images/stop", wrap(stopProductImagesSyncHandler));
 router.post("/sync/orders", wrap(syncOrdersHandler));
+router.post("/sync/orders/stop", wrap(stopOrdersSyncHandler));
 router.post("/sync/invoices", wrap(syncInvoicesToShopifyHandler));
+router.post("/sync/invoices/stop", wrap(stopInvoicesSyncHandler));
 router.post("/backfill/products", wrap(backfillProductsHandler));
+router.post("/backfill/products/stop", wrap(stopProductsBackfillHandler));
 router.post("/backfill/orders", wrap(backfillOrdersHandler));
+router.post("/backfill/orders/stop", wrap(stopOrdersBackfillHandler));
 router.post("/sync/inventory-adjustments", wrap(syncInventoryAdjustmentsHandler));
 router.post("/sync/stores/products", requireAdmin, wrap(syncStoreProductsHandler));
 router.post("/sync/contacts", wrap(syncContactHandler));
 router.post("/sync/contacts/bulk", wrap(syncContactsBulkHandler));
+router.post("/sync/contacts/bulk/stop", wrap(stopContactsBulkSyncHandler));
 router.get("/contacts", wrap(listContactsHandler));
 router.get("/orders", wrap(listOrdersHandler));
 router.get("/invoices", wrap(listInvoicesHandler));

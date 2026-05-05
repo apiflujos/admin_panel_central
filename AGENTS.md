@@ -84,7 +84,6 @@ Use this guide to generate correct code changes and documentation.
 - Avoid destructive git commands.
 - Prefer `rg` for search.
 - Add comments only if logic is not obvious.
-- For frontend work in `main`, use `Design System v4.html` as the visual source of truth. Reuse its canonical vocabulary (`.btn`, `.input`, `.pill`, `.page-header-standard`, `.page-toolbar`, `.dataTable`) before inventing new UI patterns.
 
 ## Documentation rules
 

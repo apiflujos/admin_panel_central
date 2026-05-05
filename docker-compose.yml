@@ -29,6 +29,8 @@ services:
       - "3006:3006"
     env_file: .env
     environment:
+      APP_PORT: "3006"
+      RUN_WORKERS_IN_WEB: "false"
       DATABASE_URL: postgresql://admin:admin@postgres:5432/admin-central-olivashoes
       REDIS_URL: redis://redis:6379
       DATABASE_SSL: "false"
@@ -37,6 +39,68 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3006/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  worker:
+    build: .
+    env_file: .env
+    command: npm run start:workers
+    environment:
+      RUN_WORKERS_IN_WEB: "false"
+      DATABASE_URL: postgresql://admin:admin@postgres:5432/admin-central-olivashoes
+      REDIS_URL: redis://redis:6379
+      DATABASE_SSL: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  admin-web:
+    build:
+      context: .
+      dockerfile: apps/admin-web/Dockerfile
+    ports:
+      - "3100:3000"
+    env_file: .env
+    environment:
+      APP_HOST: http://app:3006
+      ADMIN_WEB_URL: http://localhost:3100
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      DATABASE_URL: postgresql://admin:admin@postgres:5432/admin-central-olivashoes
+      REDIS_URL: redis://redis:6379
+      DATABASE_SSL: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
     restart: unless-stopped
 
 volumes:

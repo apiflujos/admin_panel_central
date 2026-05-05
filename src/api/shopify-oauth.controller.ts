@@ -202,7 +202,8 @@ export async function shopifyOAuthCallback(req: Request, res: Response) {
       client,
       baseUrl: env.appHost,
     });
-    const redirectUrl = new URL(`${env.appHost}/dashboard`);
+    const redirectUrl = new URL(`${env.appHost}/settings/connections`);
+    redirectUrl.searchParams.set("connections", "1");
     if (connectionResult?.isNew) {
       redirectUrl.searchParams.set("onboard", normalizedShop);
     }
@@ -211,7 +212,7 @@ export async function shopifyOAuthCallback(req: Request, res: Response) {
     const msg = encodeURIComponent((error as { message?: string })?.message || "OAuth error");
     const appHost = String(process.env.APP_HOST || "").trim();
     if (appHost) {
-      return res.redirect(`${appHost}/dashboard?oauth_error=${msg}`);
+      return res.redirect(`${appHost}/settings/connections?oauth_error=${msg}`);
     }
     return res.status(400).send((error as { message?: string })?.message || "OAuth error");
   }

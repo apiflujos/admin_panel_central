@@ -50,7 +50,11 @@ const extractAdjustmentItems = (payload: unknown) => {
 
 export async function syncInventoryAdjustments(
   query: URLSearchParams,
-  options?: { autoPublish?: boolean; shopDomain?: string }
+  options?: {
+    autoPublish?: boolean;
+    shopDomain?: string;
+    onProgress?: (payload: Record<string, unknown>) => void | Promise<void>;
+  }
 ) {
   if (!query.has("metadata")) query.set("metadata", "true");
   if (!query.has("date")) {
@@ -70,6 +74,13 @@ export async function syncInventoryAdjustments(
     pageQuery.set("limit", String(limit));
     const payload = await fetchWithRetry(pageQuery, shopDomain || undefined);
     const batch = extractAdjustmentItems(payload);
+    await options?.onProgress?.({
+      type: "adjustments_page",
+      start,
+      limit,
+      fetched: batch.length,
+      loaded: adjustments.length + batch.length,
+    });
     if (!batch.length) {
       break;
     }
@@ -87,6 +98,12 @@ export async function syncInventoryAdjustments(
   });
   const ids = Array.from(itemIds);
   const autoPublish = options?.autoPublish !== false;
+  await options?.onProgress?.({
+    type: "adjustments_loaded",
+    adjustmentsCount: adjustments.length,
+    itemCount: ids.length,
+    autoPublish,
+  });
   const results: PromiseSettledResult<unknown>[] = [];
   if (autoPublish) {
     const BATCH = 5;
@@ -96,6 +113,13 @@ export async function syncInventoryAdjustments(
         batch.map((id) => syncAlegraInventoryById(id, shopDomain || undefined))
       );
       results.push(...batchResults);
+      await options?.onProgress?.({
+        type: "publish_batch",
+        processed: results.length,
+        total: ids.length,
+        synced: results.filter((result) => result.status === "fulfilled").length,
+        failed: results.filter((result) => result.status === "rejected").length,
+      });
     }
   }
   const synced = results.filter((r) => r.status === "fulfilled").length;

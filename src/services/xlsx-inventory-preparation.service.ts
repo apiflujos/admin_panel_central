@@ -264,8 +264,8 @@ export function prepareInventoryWorkbook(filePath: string, options: PrepareInven
   }
 
   const summaryColumns: WorkbookWarehouseColumn[] = SUMMARY_WAREHOUSE_ALIASES.filter(
-    (item) => headers.byHeader[item.header]
-  ).map((item) => ({
+    (item: (typeof SUMMARY_WAREHOUSE_ALIASES)[number]) => headers.byHeader[item.header]
+  ).map((item: (typeof SUMMARY_WAREHOUSE_ALIASES)[number]) => ({
     header: item.header,
     column: headers.byHeader[item.header] || "",
     warehouse: item.warehouse,
@@ -303,7 +303,7 @@ export function prepareInventoryWorkbook(filePath: string, options: PrepareInven
     const stockByWarehouse = mergeWorkbookStock(warehouseColumns, rawWarehouseStock, summaryOverrides);
     const totalQuantity = summaryTotalColumn
       ? toNumber(row.cells[summaryTotalColumn] || "")
-      : Object.values(stockByWarehouse).reduce((sum, qty) => sum + Number(qty || 0), 0);
+      : Object.values(stockByWarehouse).reduce<number>((sum, qty) => sum + Number(qty || 0), 0);
     const selectedQuantity = resolveWorkbookSelectedQuantity(stockByWarehouse, selection);
 
     prepared.push({

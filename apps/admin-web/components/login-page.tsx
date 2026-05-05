@@ -1,37 +1,47 @@
 export function LoginPage({ hasError = false }: { hasError?: boolean }) {
   return (
     <section className="auth-layout">
-      <div className="auth-hero">
-        <p className="auth-kicker">Alegra ↔ Shopify</p>
-        <h1>Nuevo acceso del admin central</h1>
-        <p>Panel de administración para la sincronización entre Alegra y Shopify. Accede con tus credenciales de administrador.</p>
-        <div className="auth-pill-row">
-          <span className="pill pill-info">Design System v4</span>
-          <span className="pill pill-success">Strict TS</span>
-          <span className="pill">Session DTO</span>
-        </div>
-      </div>
       <div className="auth-card card">
-        <div className="table-meta">Acceso administrativo</div>
+        <div className="auth-brand-row">
+          <img className="auth-brand-logo" src="/assets/logo.png" alt="ApiFlujos" />
+          <img className="auth-brand-avatar" src="/assets/avatar.png" alt="" aria-hidden="true" />
+        </div>
+
+        <div className="auth-copy">
+          <h1>Bienvenido</h1>
+          <p>Ingresa para ver los pedidos y la trazabilidad.</p>
+        </div>
+
+        {hasError ? (
+          <div className="auth-inline-state auth-inline-state-error">No se pudo iniciar sesión. Revisa tus datos.</div>
+        ) : (
+          <div className="auth-inline-state">Sesión cerrada.</div>
+        )}
+
         <form className="auth-form" action="/api/session/login" method="post">
           <label className="auth-field">
-            <span>Email</span>
-            <input className="input-control" name="email" type="email" placeholder="admin@apiflows.co" />
+            <span>Usuario</span>
+            <input className="input" name="email" type="email" placeholder="admin@apiflujos.com" />
           </label>
+
           <label className="auth-field">
             <span>Contraseña</span>
-            <input className="input-control" name="password" type="password" placeholder="••••••••" />
+            <div className="auth-password-row">
+              <input className="input" name="password" type="password" placeholder="" />
+              <button className="auth-password-toggle" type="button">
+                Ver
+              </button>
+            </div>
           </label>
-          {hasError ? <p className="auth-error">No se pudo iniciar sesión. Verifica credenciales y backend.</p> : null}
+
+          <label className="auth-checkbox-row">
+            <input type="checkbox" name="remember" value="1" />
+            <span>Recordarme</span>
+          </label>
+
           <div className="auth-actions">
-            <a
-              className="btn btn-ghost"
-              href="mailto:soporte@apiflujos.co"
-            >
-              Recuperar acceso
-            </a>
-            <button className="btn btn-primary" type="submit">
-              Ingresar
+            <button className="btn primary" type="submit">
+              Entrar
             </button>
           </div>
         </form>

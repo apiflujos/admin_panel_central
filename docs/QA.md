@@ -29,7 +29,7 @@ BASE_URL=https://<tu-servicio>.onrender.com ADMIN_EMAIL=<email> ADMIN_PASSWORD=<
 
 Notas:
 
-- `BASE_URL` puede ser igual a `APP_HOST` (default: `http://localhost:10000`).
+- `BASE_URL` puede ser igual a `APP_HOST` (default: `http://localhost:3006`).
 - En `client/olivashoes`, el smoke base apunta al backend legacy restaurado (`app`), no a `admin-web`.
 - `BASE_URL` debe apuntar a la superficie que estés validando:
   - backend legacy restaurado: `http://localhost:3006`
@@ -39,11 +39,14 @@ Notas:
 Valida:
 
 - `/health`
-- `/login.html`
-- `/dashboard`
+- `/auth/login`
+- `/`
 - `/api/profile`
 - `/api/settings`, `/api/connections`, `/api/store-configs`, `/api/shopify/webhooks/status`
 - `/api/checkpoints/inventory-adjustments`, `/api/metrics`
+- compatibilidad legacy:
+  - `/login.html`
+  - `/dashboard`
 - `/api/woocommerce/connections` (si WooCommerce está activo)
 
 ## Smoke test del frontend nuevo (`admin-web`)
@@ -54,12 +57,12 @@ Requiere:
 
 - `ADMIN_EMAIL`
 - `ADMIN_PASSWORD`
-- `BASE_URL` apuntando al `admin-web` (default: `http://localhost:3000`)
+- `BASE_URL` apuntando al `admin-web` (default: `http://localhost:3100`)
 
 Ejemplo:
 
 ```
-BASE_URL=http://localhost:3000 ADMIN_EMAIL=<email> ADMIN_PASSWORD=<pass> npm run qa:admin-web
+BASE_URL=http://localhost:3100 ADMIN_EMAIL=<email> ADMIN_PASSWORD=<pass> npm run qa:admin-web
 ```
 
 Con Docker Compose local:
@@ -75,13 +78,20 @@ Valida:
 - login real por `/api/session/login`
 - páginas privadas principales:
   - `/`
+  - `/profile`
+  - `/company`
+  - `/users`
+  - `/ai-assistants`
   - `/settings/connections`
+  - `/settings/stores`
+  - `/settings/marketing`
   - `/products`
   - `/orders`
   - `/contacts`
   - `/invoices`
   - `/marketing`
 - `/operations`
+- `/superadmin`
 
 ## Regla de transición
 

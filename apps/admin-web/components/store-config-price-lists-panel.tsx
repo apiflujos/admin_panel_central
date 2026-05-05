@@ -172,7 +172,7 @@ export function StoreConfigPriceListsPanel({
           <label className="store-config-field">
             <span>Lista general</span>
             <select
-              className="input-control"
+              className="input"
               value={draft.generalId}
               disabled={!shopDomain || loadingCatalog}
               onChange={(event) => setDraft((current) => ({ ...current, generalId: event.target.value }))}
@@ -189,7 +189,7 @@ export function StoreConfigPriceListsPanel({
           <label className="store-config-field">
             <span>Lista descuento</span>
             <select
-              className="input-control"
+              className="input"
               value={draft.discountId}
               disabled={!shopDomain || loadingCatalog}
               onChange={(event) => setDraft((current) => ({ ...current, discountId: event.target.value }))}
@@ -206,7 +206,7 @@ export function StoreConfigPriceListsPanel({
           <label className="store-config-field">
             <span>Lista mayorista</span>
             <select
-              className="input-control"
+              className="input"
               value={draft.wholesaleId}
               disabled={!shopDomain || loadingCatalog}
               onChange={(event) => setDraft((current) => ({ ...current, wholesaleId: event.target.value }))}
@@ -223,7 +223,7 @@ export function StoreConfigPriceListsPanel({
           <label className="store-config-field">
             <span>Moneda</span>
             <input
-              className="input-control"
+              className="input"
               value={draft.currency}
               onChange={(event) => setDraft((current) => ({ ...current, currency: event.target.value.toUpperCase() }))}
               placeholder="COP"
@@ -234,7 +234,9 @@ export function StoreConfigPriceListsPanel({
       )}
 
       {!shopDomain && activeStore ? (
-        <p className="connection-inline-note">La tienda necesita contexto Shopify/Alegra para cargar listas disponibles.</p>
+        <p className="connection-inline-note">
+          La tienda necesita contexto Shopify/Alegra para cargar listas disponibles.
+        </p>
       ) : loadingCatalog ? (
         <p className="connection-inline-note">Cargando listas de precio desde Alegra…</p>
       ) : activeStore && !catalog.length ? (
@@ -243,7 +245,7 @@ export function StoreConfigPriceListsPanel({
 
       <div className="connection-card-actions">
         <button
-          className="btn btn-primary"
+          className="btn primary"
           type="button"
           disabled={!activeStore || !dirty || saveState === "saving"}
           onClick={() => void persist()}

@@ -1,17 +1,24 @@
 #!/usr/bin/env node
 "use strict";
 
-const DEFAULT_BASE_URL = "http://localhost:3000";
+const DEFAULT_BASE_URL = "http://localhost:3100";
 
 const PAGE_CHECKS = [
-  { path: "/", label: "Dashboard", marker: "Dashboard" },
+  { path: "/", label: "Dashboard", marker: "Métricas" },
+  { path: "/profile", label: "Perfil", marker: "Perfil" },
+  { path: "/company", label: "Empresa", marker: "Empresa" },
+  { path: "/users", label: "Usuarios", marker: "Usuarios" },
+  { path: "/ai-assistants", label: "Asistentes IA", marker: "Asistentes IA" },
   { path: "/settings/connections", label: "Conexiones", marker: "Conexiones" },
+  { path: "/settings/stores", label: "Tiendas", marker: "Stores" },
+  { path: "/settings/marketing", label: "Marketing settings", marker: "Marketing" },
   { path: "/products", label: "Productos", marker: "Productos" },
   { path: "/orders", label: "Pedidos", marker: "Pedidos" },
   { path: "/contacts", label: "Contactos", marker: "Contactos" },
   { path: "/invoices", label: "Facturas", marker: "Facturas" },
   { path: "/marketing", label: "Marketing", marker: "Marketing" },
   { path: "/operations", label: "Operaciones", marker: "Operaciones" },
+  { path: "/superadmin", label: "Super Admin", marker: "Super Admin" },
 ];
 
 function normalizeBaseUrl(value) {
@@ -40,7 +47,9 @@ async function httpRequest(baseUrl, path, options = {}) {
     ...options,
   });
   const contentType = response.headers.get("content-type") || "";
-  const body = contentType.includes("application/json") ? await response.json().catch(() => null) : await response.text().catch(() => "");
+  const body = contentType.includes("application/json")
+    ? await response.json().catch(() => null)
+    : await response.text().catch(() => "");
   return { response, body };
 }
 

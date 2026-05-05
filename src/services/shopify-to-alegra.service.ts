@@ -6,6 +6,7 @@ import { createSyncLog } from "./logs.service";
 import { acquireIdempotencyKey, markIdempotencyKey } from "./idempotency.service";
 import { getOrderInvoiceOverride, validateEinvoiceData } from "./order-invoice-overrides.service";
 import { resolveStoreConfig } from "./store-config.service";
+import type { ShopifyOrderMode } from "./store-config.service";
 import { getStoreConfigForDomain } from "./store-configs.service";
 import type { Pool } from "pg";
 
@@ -51,6 +52,7 @@ type ShopifyOrderPayload = {
 type ForceSyncOptions = {
   generateInvoice?: boolean;
   skipRules?: boolean;
+  orderModeOverride?: ShopifyOrderMode;
 };
 
 export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload, options?: ForceSyncOptions) {
@@ -70,7 +72,7 @@ export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload, opt
   if (storeConfigFull?.invoice) {
     invoiceSettings = { ...invoiceSettings, ...storeConfigFull.invoice };
   }
-  const orderMode = storeConfig.syncOrdersShopifyToAlegra || "invoice";
+  const orderMode = options?.orderModeOverride || storeConfig.syncOrdersShopifyToAlegra || "invoice";
   if (orderMode === "off") {
     return { handled: false, reason: "sync_disabled" };
   }

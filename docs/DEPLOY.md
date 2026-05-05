@@ -65,6 +65,12 @@ pm2 restart admin-central-api-<cliente>
 pm2 restart admin-central-admin-web-<cliente>
 ```
 
+Si separas también los jobs en un proceso dedicado:
+
+```
+pm2 restart admin-central-workers-<cliente>
+```
+
 Checks mínimos después del restart:
 
 ```
@@ -80,6 +86,7 @@ GET /api/health   # si admin-web está desplegado
 - `APP_HOST` apunta al dominio correcto del cliente.
 - `REDIS_URL` configurado (obligatorio).
 - `DATABASE_URL` apunta a `admin-central-<CLIENTE>`.
+- Si despliegas workers dedicados, el web debe llevar `RUN_WORKERS_IN_WEB=false`.
 
 ## Smoke básico (post-deploy)
 
@@ -129,6 +136,7 @@ git merge main
 - `APP_PORT` (único puerto)
 - `APP_HOST` (única URL pública base, incluye esquema; usada por OAuth y webhooks)
 - `ADMIN_WEB_URL` (URL pública del frontend nuevo)
+- `RUN_WORKERS_IN_WEB` (`true` por compatibilidad; poner `false` cuando exista proceso `worker`)
 - `DATABASE_URL` (Postgres principal)
 - `REDIS_URL` (**obligatorio**)
 - `MIM_DATABASE_URL` (opcional, sin migraciones)
@@ -171,13 +179,15 @@ Mientras eso no ocurra, el smoke funcional debe ejecutarse contra el backend leg
 Servicios expuestos:
 
 - `app` → `http://localhost:3006`
+- `worker` → runtime de pollers/cron sin puerto HTTP
 - `admin-web` → `http://localhost:3100` (cuando se use en transición o QA)
 
 Comandos:
 
 ```
 docker compose down
-docker compose up -d --build
+docker compose run --rm app npm run db:migrate
+docker compose up -d --build app worker admin-web
 docker compose ps
 docker compose logs --tail=200
 ```

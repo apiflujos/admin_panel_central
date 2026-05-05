@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { createSyncLog } from "../services/logs.service";
-import { listStoreConfigs, saveStoreConfig } from "../services/store-configs.service";
+import { copyStoreConfig, listStoreConfigs, saveStoreConfig } from "../services/store-configs.service";
 
 const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : "No disponible");
 
@@ -49,6 +49,32 @@ export async function saveStoreConfigHandler(req: Request, res: Response) {
       status: "fail",
       message,
       request: { storeKey: req.params.storeKey },
+    });
+  }
+}
+
+export async function copyStoreConfigHandler(req: Request, res: Response) {
+  try {
+    const storeKey = req.params.storeKey || "";
+    const payload = req.body || {};
+    const result = await copyStoreConfig(storeKey, payload);
+    res.status(200).json(result);
+    await createSyncLog({
+      entity: "store_configs_copy",
+      direction: "shopify->alegra",
+      status: "success",
+      message: "Store config copiado",
+      request: { storeKey, sourceStoreId: payload.sourceStoreId, blocks: payload.blocks },
+    });
+  } catch (error) {
+    const message = getErrorMessage(error);
+    res.status(400).json({ error: message });
+    await createSyncLog({
+      entity: "store_configs_copy",
+      direction: "shopify->alegra",
+      status: "fail",
+      message,
+      request: { storeKey: req.params.storeKey, sourceStoreId: req.body?.sourceStoreId, blocks: req.body?.blocks },
     });
   }
 }

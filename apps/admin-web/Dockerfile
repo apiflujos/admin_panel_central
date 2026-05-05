@@ -17,6 +17,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/admin-web/node_modules ./apps/admin-web/node_modules
 
+COPY package*.json ./
 COPY tsconfig.json ./
 COPY scripts ./scripts
 COPY src ./src
@@ -39,16 +40,20 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
+# Runtime deps para migraciones y servicios server-side compartidos
+COPY package*.json ./
+RUN npm ci --omit=dev --ignore-scripts
+
 # Standalone Next.js (incluye node_modules runtime: pg, ioredis, etc.)
 COPY --from=builder /app/apps/admin-web/.next/standalone ./
 COPY --from=builder /app/apps/admin-web/.next/static ./apps/admin-web/.next/static
-COPY --from=builder /app/apps/admin-web/public ./apps/admin-web/public
 
 # Script de migración compilado
 COPY --from=builder /app/dist/src/scripts/db-migrate.js ./dist/src/scripts/db-migrate.js
+COPY --from=builder /app/dist/src/db ./dist/src/db
 COPY --from=builder /app/src/db/migrations ./src/db/migrations
 
 EXPOSE 3000
 
-# Ejecuta migraciones y luego inicia Next.js
-ENTRYPOINT ["sh", "-c", "node dist/src/scripts/db-migrate.js && node apps/admin-web/server.js"]
+# El runtime no auto-aplica migraciones: se ejecutan aparte con npm run db:migrate.
+CMD ["node", "apps/admin-web/server.js"]

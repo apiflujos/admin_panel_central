@@ -891,6 +891,8 @@ function activateNav(target) {
 }
 
 function resolveSettingsPaneKey(_value) {
+  const value = String(_value || "").trim().toLowerCase();
+  if (value === "stores" || value === "marketing") return value;
   return "connections";
 }
 
@@ -900,7 +902,12 @@ function getStoredSettingsPane() {
 
 function isSettingsPath(pathname) {
   if (typeof pathname !== "string") return false;
-  return pathname === "/settings" || pathname.startsWith("/settings/");
+  return (
+    pathname === "/settings" ||
+    pathname.startsWith("/settings/") ||
+    pathname === "/legacy/settings" ||
+    pathname.startsWith("/legacy/settings/")
+  );
 }
 
 function consumeSettingsIntent() {
@@ -1451,7 +1458,9 @@ function getSettingsPaneFromPath() {
   if (typeof window === "undefined") return "";
   const pathname = window.location?.pathname || "";
   if (!isSettingsPath(pathname)) return "";
-  return "connections";
+  const parts = pathname.split("/").filter(Boolean);
+  const pane = parts[parts.length - 1] || "connections";
+  return resolveSettingsPaneKey(pane);
 }
 
 function pruneSettingsPanesForPath() {
@@ -1473,7 +1482,9 @@ function updateSettingsPath(paneKey, options = {}) {
   const { replace = false } = options || {};
   if (typeof window === "undefined") return;
   const next = resolveSettingsPaneKey(paneKey);
-  const nextUrl = `/settings/${next}`;
+  const pathname = window.location?.pathname || "";
+  const basePath = pathname.startsWith("/legacy/settings") ? "/legacy/settings" : "/settings";
+  const nextUrl = `${basePath}/${next}`;
   if (replace) {
     window.history.replaceState({ settingsPane: next }, "", nextUrl);
   } else {
@@ -1739,10 +1750,31 @@ function loadSidebarState() {
   }
 }
 
+function getNextRouteForNavTarget(target, opsView) {
+  if (target === "dashboard") return "/";
+  if (target === "settings") return "/settings/connections";
+  if (target === "contacts") return "/contacts";
+  if (target === "products") return "/products";
+  if (target === "marketing") return "/marketing";
+  if (target === "logs") return "/logs";
+  if (target === "superadmin") return "/superadmin";
+  if (target === "operations" && opsView === "orders") return "/orders";
+  if (target === "operations" && opsView === "invoices") return "/invoices";
+  return "";
+}
+
 navItems.forEach((item) => {
   item.addEventListener("click", () => {
     const target = item.getAttribute("data-target") || "";
     const opsView = item.getAttribute("data-ops-view") || "";
+    const nextRoute = getNextRouteForNavTarget(target, opsView);
+    if (nextRoute) {
+      if (target === "settings") {
+        markSettingsIntent();
+      }
+      window.location.href = nextRoute;
+      return;
+    }
     if (target === "operations" && (opsView === "orders" || opsView === "invoices")) {
       setOperationsView(opsView);
       if (opsView === "invoices") invoicesStart = 0;
@@ -1792,6 +1824,14 @@ document.addEventListener("click", (event) => {
   const navTarget = button.getAttribute("data-nav-to") || "";
   if (!navTarget) return;
   event.preventDefault();
+  const nextRoute = getNextRouteForNavTarget(navTarget, "");
+  if (nextRoute) {
+    if (navTarget === "settings") {
+      markSettingsIntent();
+    }
+    window.location.href = nextRoute;
+    return;
+  }
   if (navTarget === "settings") {
     markSettingsIntent();
     window.location.href = "/settings/connections";
@@ -2275,7 +2315,7 @@ async function fetchJson(url, options) {
     throw new Error(message);
   }
   if (response.status === 401) {
-    window.location.href = "/login.html";
+    window.location.href = "/auth/login";
     throw new Error("unauthorized");
   }
   if (!response.ok) {
@@ -13321,7 +13361,7 @@ if (sidebarLogout) {
     fetchJson("/api/auth/logout", { method: "POST" })
       .catch(() => null)
       .finally(() => {
-        window.location.href = "/login.html";
+        window.location.href = "/auth/login";
       });
   });
 }
@@ -14079,26 +14119,26 @@ if (userMenu) {
     const action = target.getAttribute("data-user-action");
     toggleUserMenu(false);
     if (action === "profile") {
-      openPanelInSection("profile", "profile-panel");
+      window.location.href = "/profile";
       return;
     }
     if (action === "company") {
-      window.location.href = "/company.html";
+      window.location.href = "/company";
       return;
     }
     if (action === "users") {
-      window.location.href = "/users.html";
+      window.location.href = "/users";
       return;
     }
     if (action === "assistants") {
-      window.location.href = "/ai-assistants.html";
+      window.location.href = "/ai-assistants";
       return;
     }
     if (action === "logout") {
       fetchJson("/api/auth/logout", { method: "POST" })
         .catch(() => null)
         .finally(() => {
-          window.location.href = "/login.html";
+          window.location.href = "/auth/login";
         });
     }
   });

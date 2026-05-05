@@ -149,7 +149,7 @@ export async function metaAdsOAuthCallback(req: Request, res: Response) {
       adAccountId,
       shopDomain,
     });
-    const redirectUrl = new URL(`${env.appHost}/dashboard`);
+    const redirectUrl = new URL(`${env.appHost}/settings/connections`);
     redirectUrl.searchParams.set("connections", "1");
     return res.redirect(redirectUrl.toString());
   } catch (error) {

@@ -28,7 +28,7 @@ export async function requirePageSuperAdmin(req: Request, res: Response, next: N
   const user = await getSessionUser(token);
   const ok = user && user.role === "super_admin" && user.is_super_admin;
   if (!ok) {
-    res.status(302).setHeader("Location", "/login.html");
+    res.status(302).setHeader("Location", "/auth/login");
     res.end();
     return;
   }

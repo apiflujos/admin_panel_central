@@ -106,7 +106,7 @@ export const GET = routeHandler(async (req: Request) => {
       shopDomain,
       loginCustomerId: previous?.loginCustomerId || null,
     });
-    const redirectUrl = new URL(`${env.appHost}/dashboard`);
+    const redirectUrl = new URL("/settings/connections", req.url);
     redirectUrl.searchParams.set("connections", "1");
     return NextResponse.redirect(redirectUrl.toString(), { status: 302 });
   } catch (error) {

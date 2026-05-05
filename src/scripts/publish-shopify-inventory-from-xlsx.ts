@@ -130,7 +130,9 @@ async function main() {
       const inventoryApply = await applyInventoryUpdates(
         shopify,
         locationId,
-        plan.matched.filter((item) => Number(item.previousInventoryQuantity) !== Number(item.selectedQuantity)),
+        plan.matched.filter(
+          (item: (typeof plan.matched)[number]) => Number(item.previousInventoryQuantity) !== Number(item.selectedQuantity)
+        ),
         args.batchSize
       );
       report.appliedBatches = inventoryApply.batchResults.length;
@@ -142,7 +144,7 @@ async function main() {
       const priceApply = await applyPriceUpdates(
         shopify,
         plan.matched.filter(
-          (item) =>
+          (item: (typeof plan.matched)[number]) =>
             item.desiredPrice !== null &&
             (item.previousPrice !== item.desiredPrice ||
               (item.previousCompareAtPrice || null) !== (item.desiredCompareAtPrice || null))

@@ -11,6 +11,8 @@ services:
         value: production
       - key: APP_PORT
         value: "10000"
+      - key: RUN_WORKERS_IN_WEB
+        value: "false"
       - key: DATABASE_URL
         fromDatabase:
           name: admin-central
@@ -38,6 +40,36 @@ services:
       - key: ALEGRA_WEBHOOK_SECRET
         sync: false
       - key: REDIS_URL
+        sync: false
+
+  - type: worker
+    name: admin-central-workers
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:workers
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: RUN_WORKERS_IN_WEB
+        value: "false"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: admin-central
+          property: connectionString
+      - key: DATABASE_SSL
+        value: "true"
+      - key: APP_ORG_ID
+        value: "1"
+      - key: CRYPTO_KEY_BASE64
+        sync: false
+      - key: APP_HOST
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: BILLING_REPORT_ENABLED
+        sync: false
+      - key: MARKETING_ENABLED
         sync: false
 
 databases:

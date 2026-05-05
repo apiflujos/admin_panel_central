@@ -51,6 +51,11 @@ app.use(
 );
 
 const publicDir = path.resolve("public");
+app.get("/login.html", (_req, res) => res.redirect(302, "/auth/login"));
+app.get("/index.html", (_req, res) => res.redirect(302, "/"));
+app.get("/company.html", (_req, res) => res.redirect(302, "/company"));
+app.get("/users.html", (_req, res) => res.redirect(302, "/users"));
+app.get("/ai-assistants.html", (_req, res) => res.redirect(302, "/ai-assistants"));
 app.use(
   express.static(publicDir, {
     setHeaders: (res, filePath) => {
@@ -109,6 +114,7 @@ app.get("/auth", startShopifyOAuth);
 app.get("/auth/callback", shopifyOAuthCallback);
 
 const indexHtmlPath = path.join(publicDir, "index.html");
+const loginHtmlPath = path.join(publicDir, "login.html");
 
 function getSessionToken(req: express.Request): string | null {
   const header = req.headers.cookie || "";
@@ -139,6 +145,13 @@ function renderIndex(req: express.Request, res: express.Response, bodyClass?: st
         return `<body${attrs} class="${bodyClass}">`;
       });
     }
+    if (bodyClass?.includes("legacy-surface")) {
+      html = html.replace(
+        /<body(\s[^>]*)?>/i,
+        (match) =>
+          `${match}\n<div class="legacy-banner" role="status">Modo legado activo. Usa esta superficie solo como fallback operativo.</div>`
+      );
+    }
     res.setHeader("Cache-Control", "no-store");
     res.send(html);
   } catch (error) {
@@ -147,10 +160,40 @@ function renderIndex(req: express.Request, res: express.Response, bodyClass?: st
   }
 }
 
-app.get("/dashboard", (req, res) => renderIndex(req, res));
-app.get("/settings", (req, res) => renderIndex(req, res, "force-settings"));
-app.get("/settings/:pane", (req, res) => renderIndex(req, res, "force-settings"));
-app.get("/__sa", requirePageSuperAdmin, (req, res) => renderIndex(req, res));
+app.get("/dashboard", (_req, res) => res.redirect(302, "/"));
+app.get("/settings", (_req, res) => res.redirect(302, "/settings/connections"));
+app.get("/settings/:pane", (req, res) => {
+  const pane = String(req.params.pane || "")
+    .trim()
+    .toLowerCase();
+  if (pane === "connections" || pane === "stores" || pane === "marketing") {
+    res.redirect(302, `/settings/${pane}`);
+    return;
+  }
+  res.redirect(302, `/legacy/settings/${pane}`);
+});
+app.get("/__sa", requirePageSuperAdmin, (_req, res) => res.redirect(302, "/superadmin"));
+app.get("/legacy/dashboard", (req, res) => renderIndex(req, res, "legacy-surface"));
+app.get("/legacy/login", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.sendFile(loginHtmlPath);
+});
+app.get("/legacy/settings", (_req, res) => res.redirect(302, "/legacy/settings/connections"));
+app.get("/legacy/settings/:pane", (req, res) => {
+  const pane = String(req.params.pane || "")
+    .trim()
+    .toLowerCase();
+  if (pane === "connections" || pane === "stores" || pane === "marketing") {
+    if (pane !== "connections") {
+      res.redirect(302, "/legacy/settings/connections");
+      return;
+    }
+    renderIndex(req, res, "force-settings legacy-surface");
+    return;
+  }
+  renderIndex(req, res, "force-settings legacy-surface");
+});
+app.get("/legacy/__sa", requirePageSuperAdmin, (req, res) => renderIndex(req, res, "legacy-surface"));
 
 app.use("/api", router);
 app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -165,16 +208,25 @@ app.use((err: unknown, _req: express.Request, res: express.Response, next: expre
 // Importante: Usar APP_PORT si está definido, sino PORT.
 const port = Number(process.env.APP_PORT || process.env.PORT || 10000);
 const host = "0.0.0.0";
+const runWorkersInWeb =
+  String(process.env.RUN_WORKERS_IN_WEB || "true")
+    .trim()
+    .toLowerCase() !== "false";
 
 app.listen(port, host, () => {
   console.log("-------------------------------------------");
   console.log(`Server listening on http://${host}:${port}`);
   console.log("-------------------------------------------");
   ensureSaDefaults().catch((error) => console.error("[sa] bootstrap failed", error));
-  startInventoryAdjustmentsPoller();
-  startOrdersSyncPoller();
-  startProductsSyncPoller();
-  startRetryQueuePoller();
-  startMarketingJobs();
-  startBillingReportCron();
+  if (runWorkersInWeb) {
+    console.log("[workers] running inside web process");
+    startInventoryAdjustmentsPoller();
+    startOrdersSyncPoller();
+    startProductsSyncPoller();
+    startRetryQueuePoller();
+    startMarketingJobs();
+    startBillingReportCron();
+    return;
+  }
+  console.log("[workers] skipped in web process (RUN_WORKERS_IN_WEB=false)");
 });

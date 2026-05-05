@@ -3,9 +3,16 @@ import type { ReactNode } from "react";
 
 import "./globals.css";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
-  title: "Admin Central",
-  description: "Nuevo admin panel en Next.js + TypeScript para Alegra <> Shopify.",
+  title: "ApiFlujos",
+  description: "Panel principal de administración y trazabilidad.",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { RouteAuthError } from "./route-auth";
 
-type RouteContext = { params?: Promise<Record<string, string>> };
+type RouteContext = { params: Promise<Record<string, string>> };
 type Handler = (req: Request, ctx: RouteContext) => Promise<Response>;
 
 export function routeHandler(handler: Handler): Handler {

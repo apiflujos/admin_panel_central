@@ -1,27 +1,14 @@
 export function PageContentSkeleton() {
   return (
-    <section
-      className="page-stack"
-      aria-busy="true"
-      aria-label="Cargando contenido"
-    >
-      <div
-        className="card"
-        style={{ padding: "7px 10px", minHeight: 52 }}
-      />
-      <div
-        className="card"
-        style={{ padding: "7px 10px", minHeight: 44 }}
-      />
-      <section className="stats-grid">
+    <section className="page-stack page-skeleton" aria-busy="true" aria-label="Cargando contenido">
+      <div className="page-module-shell page-skeleton-block page-skeleton-header" />
+      <div className="page-module-shell page-skeleton-block page-skeleton-toolbar" />
+      <section className="metrics-kpis metrics-kpis-tight">
         {[0, 1, 2].map((i) => (
-          <article key={i} className="card stat-card" style={{ minHeight: 64 }} />
+          <article key={i} className="metrics-kpi page-skeleton-block page-skeleton-stat" />
         ))}
       </section>
-      <div
-        className="card table-card"
-        style={{ minHeight: 200 }}
-      />
+      <div className="page-module-shell page-skeleton-block page-skeleton-table" />
     </section>
   );
 }

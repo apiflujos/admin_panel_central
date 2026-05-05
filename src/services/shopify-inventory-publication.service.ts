@@ -246,25 +246,29 @@ export class ShopifyApiClient {
           title: String(node.title || ""),
           status: String(node.status || ""),
           variants: {
-            edges: (node.variants?.edges || []).map((variantEdge) => ({
+            edges: ((node.variants?.edges || []) as Array<Record<string, unknown>>).map((variantEdge) => ({
               node: {
-                productId: String((variantEdge.node as unknown as { productId?: { id?: string } }).productId?.id || node.id || ""),
-                productTitle: String((variantEdge.node as unknown as { productTitle?: { title?: string } }).productTitle?.title || node.title || ""),
-                productStatus: String((variantEdge.node as unknown as { productStatus?: { status?: string } }).productStatus?.status || node.status || ""),
-                variantId: String((variantEdge.node as unknown as { variantId?: string }).variantId || ""),
-                variantTitle: String((variantEdge.node as unknown as { variantTitle?: string }).variantTitle || ""),
-                sku: String(variantEdge.node.sku || "").trim(),
-                barcode: String(variantEdge.node.barcode || "").trim(),
-                price: variantEdge.node.price ? String(variantEdge.node.price) : null,
-                compareAtPrice: variantEdge.node.compareAtPrice ? String(variantEdge.node.compareAtPrice) : null,
-                inventoryQuantity: Number.isFinite(Number(variantEdge.node.inventoryQuantity))
-                  ? Number(variantEdge.node.inventoryQuantity)
+                productId: String(((variantEdge.node as { productId?: { id?: string } } | undefined)?.productId?.id) || node.id || ""),
+                productTitle: String(((variantEdge.node as { productTitle?: { title?: string } } | undefined)?.productTitle?.title) || node.title || ""),
+                productStatus: String(((variantEdge.node as { productStatus?: { status?: string } } | undefined)?.productStatus?.status) || node.status || ""),
+                variantId: String(((variantEdge.node as { variantId?: string } | undefined)?.variantId) || ""),
+                variantTitle: String(((variantEdge.node as { variantTitle?: string } | undefined)?.variantTitle) || ""),
+                sku: String(((variantEdge.node as { sku?: string } | undefined)?.sku) || "").trim(),
+                barcode: String(((variantEdge.node as { barcode?: string } | undefined)?.barcode) || "").trim(),
+                price: ((variantEdge.node as { price?: string | null } | undefined)?.price)
+                  ? String((variantEdge.node as { price?: string | null }).price)
+                  : null,
+                compareAtPrice: ((variantEdge.node as { compareAtPrice?: string | null } | undefined)?.compareAtPrice)
+                  ? String((variantEdge.node as { compareAtPrice?: string | null }).compareAtPrice)
+                  : null,
+                inventoryQuantity: Number.isFinite(Number((variantEdge.node as { inventoryQuantity?: number | null } | undefined)?.inventoryQuantity))
+                  ? Number((variantEdge.node as { inventoryQuantity?: number | null } | undefined)?.inventoryQuantity)
                   : null,
                 inventoryItemId: String(
-                  (variantEdge.node as unknown as { inventoryItem?: { id?: string } }).inventoryItem?.id || ""
+                  ((variantEdge.node as { inventoryItem?: { id?: string } } | undefined)?.inventoryItem?.id) || ""
                 ).trim(),
-                selectedOptions: Array.isArray(variantEdge.node.selectedOptions)
-                  ? variantEdge.node.selectedOptions.map((item) =>
+                selectedOptions: Array.isArray((variantEdge.node as { selectedOptions?: Array<{ value?: string | null }> } | undefined)?.selectedOptions)
+                  ? ((variantEdge.node as { selectedOptions?: Array<{ value?: string | null }> }).selectedOptions || []).map((item) =>
                       String((item as unknown as { value?: string })?.value || "")
                     )
                   : [],

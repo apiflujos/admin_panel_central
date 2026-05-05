@@ -4,6 +4,8 @@ COPY package*.json ./
 RUN npm ci
 COPY tsconfig.json ./
 COPY src ./src
+COPY apps ./apps
+COPY packages ./packages
 RUN npm run build
 
 FROM node:22-alpine AS runner
@@ -13,7 +15,5 @@ RUN npm ci --omit=dev --ignore-scripts
 COPY --from=builder /app/dist ./dist
 COPY public ./public
 COPY src/db/migrations ./src/db/migrations
-COPY docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
 EXPOSE 3006
-ENTRYPOINT ["./docker-entrypoint.sh"]
+CMD ["node", "dist/src/server.js"]

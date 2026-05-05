@@ -12,6 +12,11 @@ import { resolveShopifyApiVersion } from "../utils/shopify";
 import { getShopifyConnectionByDomain } from "../services/store-connections.service";
 import { resolveStoreConfig } from "../services/store-config.service";
 
+let activeOrdersBackfillSync: { id: string; canceled: boolean; startedAt: number } | null = null;
+const createSyncId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const isOrdersBackfillCanceled = (syncId: string) =>
+  Boolean(activeOrdersBackfillSync?.id === syncId && activeOrdersBackfillSync.canceled);
+
 const resolveInvoiceNumber = (invoice: Record<string, unknown> | null) => {
   const template = invoice?.numberTemplate as Record<string, unknown> | undefined;
   const full = template?.fullNumber ? String(template.fullNumber) : "";
@@ -152,6 +157,8 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
     const days = Number.isFinite(body.days) && Number(body.days) > 0 ? Number(body.days) : null;
     const results: Record<string, unknown> = {};
     const startedAt = Date.now();
+    const syncId = createSyncId();
+    activeOrdersBackfillSync = { id: syncId, canceled: false, startedAt };
 
     if (stream) {
       res.status(200);
@@ -164,7 +171,7 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
       });
     }
 
-    sendStream({ type: "start", startedAt, total: limit });
+    sendStream({ type: "start", syncId, startedAt, total: limit });
 
     if (source === "shopify" || source === "both") {
       const shopifyCredential = await getShopifyCredential();
@@ -184,6 +191,18 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
       const orders = await client.listAllOrdersByQuery(query, limit || undefined);
       let processed = 0;
       for (const order of orders) {
+        if (isOrdersBackfillCanceled(syncId)) {
+          sendStream({ type: "canceled", syncId, processed, total: limit, source: "shopify" });
+          if (stream) {
+            streamOpen = false;
+            res.end();
+            activeOrdersBackfillSync = null;
+            return;
+          }
+          res.json({ ok: false, canceled: true, syncId, shopify: { processed } });
+          activeOrdersBackfillSync = null;
+          return;
+        }
         const mapping = await getMappingByShopifyId("order", String(order.id));
         const alegraId = mapping?.alegraId || null;
         const invoiceNumber = mapping?.metadata?.invoiceNumber ? String(mapping.metadata.invoiceNumber) : null;
@@ -232,6 +251,18 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
       let processed = 0;
       let pages = 0;
       while (true) {
+        if (isOrdersBackfillCanceled(syncId)) {
+          sendStream({ type: "canceled", syncId, processed, pages, total: limit, source: "alegra" });
+          if (stream) {
+            streamOpen = false;
+            res.end();
+            activeOrdersBackfillSync = null;
+            return;
+          }
+          res.json({ ok: false, canceled: true, syncId, alegra: { processed, pages } });
+          activeOrdersBackfillSync = null;
+          return;
+        }
         if (limit !== null && processed >= limit) break;
         const batchLimit = limit !== null ? Math.min(pageSize, Math.max(0, limit - processed)) : pageSize;
         if (batchLimit <= 0) break;
@@ -270,12 +301,12 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
             sourceUpdatedAt: processedAt,
           });
           processed += 1;
-          sendStream({ type: "progress", processed, pages, total: limit });
+          sendStream({ type: "progress", syncId, processed, pages, total: limit });
           if (limit !== null && processed >= limit) break;
         }
         start += invoices.length;
         pages += 1;
-        sendStream({ type: "progress", processed, pages, total: limit });
+        sendStream({ type: "progress", syncId, processed, pages, total: limit });
         if (invoices.length < batchLimit) break;
       }
       results.alegra = { processed, pages };
@@ -298,6 +329,7 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
     if (stream) {
       sendStream({
         type: "complete",
+        syncId,
         ok: true,
         processed: (results.alegra as any)?.processed ?? (results.shopify as any)?.processed ?? 0,
         pages: (results.alegra as any)?.pages ?? 0,
@@ -307,7 +339,7 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
       res.end();
       return;
     }
-    res.json({ ok: true, ...results });
+    res.json({ ok: true, syncId, ...results });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Backfill error";
     if (req.query.stream === "1" || req.query.stream === "true" || req.body?.stream === true) {
@@ -320,5 +352,21 @@ export async function backfillOrdersHandler(req: Request, res: Response) {
       return;
     }
     res.status(500).json({ error: error instanceof Error ? error.message : "Backfill error" });
+  } finally {
+    activeOrdersBackfillSync = null;
   }
+}
+
+export async function stopOrdersBackfillHandler(req: Request, res: Response) {
+  const requestedId = String(req.body?.syncId || "").trim();
+  if (!activeOrdersBackfillSync) {
+    res.status(200).json({ ok: false, canceled: false, reason: "no_active_sync" });
+    return;
+  }
+  if (requestedId && activeOrdersBackfillSync.id !== requestedId) {
+    res.status(200).json({ ok: false, canceled: false, reason: "sync_id_mismatch" });
+    return;
+  }
+  activeOrdersBackfillSync.canceled = true;
+  res.status(200).json({ ok: true, canceled: true, syncId: activeOrdersBackfillSync.id });
 }

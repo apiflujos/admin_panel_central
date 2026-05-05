@@ -18,10 +18,18 @@ function isInvoiceSetupComplete(config: CriticalStoreConfig) {
 
 function isTransferSetupComplete(config: CriticalStoreConfig) {
   if (!config.transfers.enabled) return false;
-  const destinationOk = !config.transfers.destinationRequired || Boolean(config.transfers.destinationWarehouseId.trim());
+  const destinationOk =
+    !config.transfers.destinationRequired ||
+    config.transfers.destinationMode !== "fixed" ||
+    Boolean(config.transfers.destinationWarehouseId.trim());
   if (!destinationOk) return false;
-  const requiresOrigins =
-    config.transfers.strategy === "manual" || config.transfers.fallbackStrategy === "manual";
+  const requiresOrigins = config.transfers.strategy === "manual" || config.transfers.fallbackStrategy === "manual";
+  if (
+    (config.transfers.strategy === "priority" || config.transfers.tieBreakRule === "priority") &&
+    !config.transfers.priorityWarehouseId.trim()
+  ) {
+    return false;
+  }
   if (!requiresOrigins) return true;
   return config.transfers.originWarehouseIds.length > 0;
 }
@@ -38,17 +46,29 @@ export function getEffectiveCriticalStoreConfig(
     storeId,
     storeName,
     shopDomain,
+    priceLists: {
+      generalId: defaults.priceLists.generalId,
+      discountId: defaults.priceLists.discountId,
+      wholesaleId: defaults.priceLists.wholesaleId,
+      currency: defaults.priceLists.currency,
+    },
     transfers: {
       enabled: defaults.transfers.enabled,
+      destinationMode: defaults.transfers.destinationMode,
       destinationRequired: defaults.transfers.destinationRequired,
       destinationWarehouseId: defaults.transfers.destinationWarehouseId,
       originWarehouseIds: defaults.transfers.originWarehouseIds,
+      priorityWarehouseId: defaults.transfers.priorityWarehouseId,
       strategy: defaults.transfers.strategy,
       fallbackStrategy: defaults.transfers.fallbackStrategy,
+      tieBreakRule: defaults.transfers.tieBreakRule,
+      splitEnabled: defaults.transfers.splitEnabled,
+      minStock: defaults.transfers.minStock,
     },
     rules: {
       syncEnabled: defaults.rules.syncEnabled,
       inventoryAdjustmentsEnabled: defaults.rules.inventoryAdjustmentsEnabled,
+      inventoryAdjustmentsIntervalMinutes: defaults.rules.inventoryAdjustmentsIntervalMinutes,
       inventoryAdjustmentsAutoPublish: defaults.rules.inventoryAdjustmentsAutoPublish,
       publishOnStock: defaults.rules.publishOnStock,
       autoPublishOnWebhook: defaults.rules.autoPublishOnWebhook,
@@ -59,6 +79,7 @@ export function getEffectiveCriticalStoreConfig(
       webhookItemsEnabled: defaults.rules.webhookItemsEnabled,
       createInShopify: defaults.rules.createInShopify,
       updateInShopify: defaults.rules.updateInShopify,
+      includeImages: defaults.rules.includeImages,
       warehouseIds: defaults.rules.warehouseIds,
     },
     invoice: {
@@ -70,9 +91,27 @@ export function getEffectiveCriticalStoreConfig(
       einvoiceEnabled: defaults.invoice.einvoiceEnabled,
     },
     sync: {
+      contacts: {
+        enabled: defaults.sync.contacts.enabled,
+        fromShopify: defaults.sync.contacts.fromShopify,
+        fromAlegra: defaults.sync.contacts.fromAlegra,
+        createInAlegra: defaults.sync.contacts.createInAlegra,
+        createInShopify: defaults.sync.contacts.createInShopify,
+        matchPriority: defaults.sync.contacts.matchPriority,
+      },
       orders: {
+        shopifyEnabled: defaults.sync.orders.shopifyEnabled,
+        alegraEnabled: defaults.sync.orders.alegraEnabled,
         shopifyToAlegra: defaults.sync.orders.shopifyToAlegra,
         alegraToShopify: defaults.sync.orders.alegraToShopify,
+      },
+      products: {
+        shopifyEnabled: defaults.sync.products.shopifyEnabled,
+        createInAlegra: defaults.sync.products.createInAlegra,
+        updateInAlegra: defaults.sync.products.updateInAlegra,
+        includeInventory: defaults.sync.products.includeInventory,
+        warehouseId: defaults.sync.products.warehouseId,
+        matchPriority: defaults.sync.products.matchPriority,
       },
     },
   };
@@ -105,6 +144,16 @@ export function evaluateStoreConfigReadiness(config: CriticalStoreConfig): Store
       level = "critical";
       canSave = false;
     }
+  }
+
+  if (
+    config.transfers.enabled &&
+    (config.transfers.strategy === "priority" || config.transfers.tieBreakRule === "priority") &&
+    !config.transfers.priorityWarehouseId.trim()
+  ) {
+    messages.push("La estrategia logística requiere definir una bodega prioritaria.");
+    level = "critical";
+    canSave = false;
   }
 
   if (!config.rules.syncEnabled) {
