@@ -79,6 +79,7 @@ import {
   updateProductTrackingHandler,
   publishShopifyHandler,
   syncInventoryAdjustmentsHandler,
+  syncPublishedInventoryBaselineHandler,
   stopProductsSyncHandler,
   syncProductsShopifyToAlegraHandler,
   stopProductsShopifyToAlegraSyncHandler,
@@ -280,6 +281,7 @@ router.post("/backfill/products/stop", wrap(stopProductsBackfillHandler));
 router.post("/backfill/orders", wrap(backfillOrdersHandler));
 router.post("/backfill/orders/stop", wrap(stopOrdersBackfillHandler));
 router.post("/sync/inventory-adjustments", wrap(syncInventoryAdjustmentsHandler));
+router.post("/sync/inventory-baseline", wrap(syncPublishedInventoryBaselineHandler));
 router.post("/sync/stores/products", requireAdmin, wrap(syncStoreProductsHandler));
 router.post("/sync/contacts", wrap(syncContactHandler));
 router.post("/sync/contacts/bulk", wrap(syncContactsBulkHandler));

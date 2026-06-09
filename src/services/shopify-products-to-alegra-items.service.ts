@@ -3,6 +3,7 @@ import { createSyncLog } from "./logs.service";
 import { getMappingByShopifyId, getMappingByShopifyInventoryItemId, saveMapping } from "./mapping.service";
 import { getStoreConfigForDomain } from "./store-configs.service";
 import type { ShopifyProduct } from "../connectors/shopify";
+import { getPool } from "../db";
 import {
   buildAlegraItemDisplayName,
   coerceDecimal,
@@ -30,7 +31,21 @@ const DEFAULT_CONFIG: ProductSyncConfig = {
   matchPriority: ["sku"],
 };
 
-function parseMatchPriority(_value: unknown): Array<"sku" | "barcode"> {
+function parseMatchPriority(value: unknown): Array<"sku" | "barcode"> {
+  if (Array.isArray(value)) {
+    const normalized = value
+      .map((entry) => String(entry || "").trim().toLowerCase())
+      .filter((entry): entry is "sku" | "barcode" => entry === "sku" || entry === "barcode");
+    if (normalized.length) {
+      return Array.from(new Set(normalized));
+    }
+  }
+  const key = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (key === "barcode_sku") return ["barcode", "sku"];
+  if (key === "sku_barcode") return ["sku", "barcode"];
+  if (key === "barcode") return ["barcode"];
   return ["sku"];
 }
 
@@ -83,8 +98,10 @@ async function findAlegraItemByIdentifier(ctx: Awaited<ReturnType<typeof buildSy
 
   const attempts: Array<Record<string, unknown>> = [
     { ...baseParams, reference: value },
+    { ...baseParams, barcode: value },
     { ...baseParams, code: value },
     { ...baseParams, query: `reference:${value}` },
+    { ...baseParams, query: `barcode:${value}` },
     { ...baseParams, query: `code:${value}` },
     { ...baseParams, query: value },
   ];
@@ -107,6 +124,47 @@ async function findAlegraItemByIdentifier(ctx: Awaited<ReturnType<typeof buildSy
     }
   }
   return null;
+}
+
+async function findAlegraItemsByExactName(ctx: Awaited<ReturnType<typeof buildSyncContext>>, name: string) {
+  const value = String(name || "").trim();
+  if (!value) return [];
+  try {
+    const response = await ctx.alegra.searchItems({
+      metadata: true,
+      mode: "advanced",
+      limit: 20,
+      query: value,
+      fields: "inventory,barcode,reference,code,name,status,itemVariants,variantAttributes",
+    });
+    return extractAlegraListItems(response).filter(
+      (item) => String(item?.name || "").trim().toLowerCase() === value.toLowerCase()
+    );
+  } catch {
+    return [];
+  }
+}
+
+function hasAlegraIdentifier(item: Record<string, unknown> | null | undefined) {
+  return Boolean(
+    String(item?.reference || "").trim() || String(item?.barcode || "").trim() || String(item?.code || "").trim()
+  );
+}
+
+async function withVariantCreateLock<T>(shopDomain: string, variantId: string, fn: () => Promise<T>) {
+  const pool = getPool();
+  const client = await pool.connect();
+  const lockKey = `${shopDomain}:${variantId}`;
+  try {
+    await client.query("SELECT pg_advisory_lock(hashtext($1))", [lockKey]);
+    return await fn();
+  } finally {
+    try {
+      await client.query("SELECT pg_advisory_unlock(hashtext($1))", [lockKey]);
+    } finally {
+      client.release();
+    }
+  }
 }
 
 function resolveAlegraWarehouseQuantity(item: Record<string, unknown>, warehouseId: string) {
@@ -172,120 +230,162 @@ export async function syncShopifyVariantToAlegra(params: {
   variant: ShopifyVariantNode;
   config: ProductSyncConfig;
 }) {
-  const { ctx, shopDomain, product, variant, config } = params;
-  const variantId = String(variant?.id || "").trim();
-  if (!variantId) return { ok: false, skipped: true, reason: "missing_variant_id" as const };
+  return withVariantCreateLock(params.shopDomain, String(params.variant?.id || "").trim(), async () => {
+    const { ctx, shopDomain, product, variant, config } = params;
+    const variantId = String(variant?.id || "").trim();
+    if (!variantId) return { ok: false, skipped: true, reason: "missing_variant_id" as const };
 
-  const { identifier, sku } = pickIdentifier(variant as unknown as { sku?: unknown }, config.matchPriority);
-  if (!identifier) {
-    return { ok: false, skipped: true, reason: "missing_identifier" as const, variantId, sku };
-  }
-
-  const existingMapping = await getMappingByShopifyId("item", variantId);
-  let alegraItemId = existingMapping?.alegraId ? String(existingMapping.alegraId) : "";
-  let alegraItem: Record<string, unknown> | null;
-
-  if (alegraItemId) {
-    try {
-      alegraItem = (await ctx.alegra.getItemWithParams(alegraItemId, {
-        mode: "advanced",
-        fields: "inventory,barcode,reference,code,name,status,itemVariants,variantAttributes",
-        metadata: true,
-      })) as Record<string, unknown>;
-    } catch {
-      alegraItem = null;
+    const { identifier, sku } = pickIdentifier(variant as unknown as { sku?: unknown }, config.matchPriority);
+    if (!identifier) {
+      return { ok: false, skipped: true, reason: "missing_identifier" as const, variantId, sku };
     }
-  } else {
-    alegraItem = await findAlegraItemByIdentifier(ctx, identifier);
-    if (!alegraItem) {
-    }
-    if (alegraItem?.id) {
-      alegraItemId = String(alegraItem.id);
-    }
-  }
 
-  const name = buildAlegraItemName(product.title, variant.title);
-  const price = coerceDecimal(variant.price);
-  const desiredInventory = config.includeInventory
-    ? (coerceDecimal((variant as unknown as { inventoryQuantity?: unknown }).inventoryQuantity) ?? null)
-    : null;
+    const name = buildAlegraItemName(product.title, variant.title);
+    const existingMapping = await getMappingByShopifyId("item", variantId);
+    let alegraItemId = existingMapping?.alegraId ? String(existingMapping.alegraId) : "";
+    let alegraItem: Record<string, unknown> | null;
 
-  const payload: Record<string, unknown> = {
-    name,
-    reference: (sku || identifier).trim(),
-    ...(price !== null ? { price } : {}),
-  };
-
-  let action: "created" | "updated" | "skipped";
-  if (alegraItemId) {
-    if (config.updateInAlegra) {
-      await ctx.alegra.updateItem(alegraItemId, payload);
-      action = "updated";
+    if (alegraItemId) {
+      try {
+        alegraItem = (await ctx.alegra.getItemWithParams(alegraItemId, {
+          mode: "advanced",
+          fields: "inventory,barcode,reference,code,name,status,itemVariants,variantAttributes",
+          metadata: true,
+        })) as Record<string, unknown>;
+      } catch {
+        alegraItem = null;
+      }
     } else {
-      action = "skipped";
+      alegraItem = await findAlegraItemByIdentifier(ctx, identifier);
+      if (alegraItem?.id) {
+        alegraItemId = String(alegraItem.id);
+      } else {
+        const exactNameMatches = await findAlegraItemsByExactName(ctx, name);
+        const matchWithIdentifier = exactNameMatches.find((item) => hasAlegraIdentifier(item));
+        if (matchWithIdentifier?.id) {
+          alegraItem = matchWithIdentifier;
+          alegraItemId = String(matchWithIdentifier.id);
+        } else if (exactNameMatches.length > 0) {
+          await createSyncLog({
+            entity: "product",
+            direction: "shopify->alegra",
+            status: "warn",
+            message: "Producto sospechoso en Alegra: nombre exacto existente sin match seguro",
+            request: {
+              shopDomain,
+              productId: product.id,
+              variantId,
+              identifier,
+              name,
+              exactNameMatches: exactNameMatches.slice(0, 10).map((item) => ({
+                id: item.id,
+                reference: item.reference || null,
+                barcode: item.barcode || null,
+                code: item.code || null,
+              })),
+            },
+          });
+          return {
+            ok: false,
+            skipped: true,
+            reason: "ambiguous_existing_name" as const,
+            variantId,
+            identifier,
+          };
+        }
+      }
     }
-  } else {
-    if (!config.createInAlegra) {
+
+    const price = coerceDecimal(variant.price);
+    const desiredInventory = config.includeInventory
+      ? (coerceDecimal((variant as unknown as { inventoryQuantity?: unknown }).inventoryQuantity) ?? null)
+      : null;
+
+    const payload: Record<string, unknown> = {
+      name,
+      reference: (sku || identifier).trim(),
+      ...(price !== null ? { price } : {}),
+    };
+
+    let action: "created" | "updated" | "skipped";
+    if (alegraItemId) {
+      if (config.updateInAlegra) {
+        await ctx.alegra.updateItem(alegraItemId, payload);
+        action = "updated";
+      } else {
+        action = "skipped";
+      }
+    } else {
+      if (!config.createInAlegra) {
+        await createSyncLog({
+          entity: "product",
+          direction: "shopify->alegra",
+          status: "warn",
+          message: "Producto sin match en Alegra (crear desactivado)",
+          request: { shopDomain, productId: product.id, variantId, identifier, name },
+        });
+        return { ok: false, skipped: true, reason: "create_disabled" as const, variantId, identifier };
+      }
+      const created = (await ctx.alegra.createItem(payload)) as Record<string, unknown>;
+      const createdId = created?.id ? String(created.id) : "";
+      if (!createdId) {
+        throw new Error("Alegra no devolvió id al crear item.");
+      }
+      alegraItemId = createdId;
+      action = "created";
       await createSyncLog({
         entity: "product",
         direction: "shopify->alegra",
-        status: "warn",
-        message: "Producto sin match en Alegra (crear desactivado)",
-        request: { shopDomain, productId: product.id, variantId, identifier },
+        status: "success",
+        message: "Producto creado en Alegra",
+        request: { shopDomain, productId: product.id, variantId, identifier, name },
+        response: { alegraItemId: createdId },
       });
-      return { ok: false, skipped: true, reason: "create_disabled" as const, variantId, identifier };
+      try {
+        alegraItem = (await ctx.alegra.getItemWithParams(createdId, {
+          mode: "advanced",
+          fields: "inventory,barcode,reference,code,name,status,itemVariants,variantAttributes",
+          metadata: true,
+        })) as Record<string, unknown>;
+      } catch {
+        alegraItem = null;
+      }
     }
-    const created = (await ctx.alegra.createItem(payload)) as Record<string, unknown>;
-    const createdId = created?.id ? String(created.id) : "";
-    if (!createdId) {
-      throw new Error("Alegra no devolvió id al crear item.");
-    }
-    alegraItemId = createdId;
-    action = "created";
-    try {
-      alegraItem = (await ctx.alegra.getItemWithParams(createdId, {
-        mode: "advanced",
-        fields: "inventory,barcode,reference,code,name,status,itemVariants,variantAttributes",
-        metadata: true,
-      })) as Record<string, unknown>;
-    } catch {
-      alegraItem = null;
-    }
-  }
 
-  await saveMapping({
-    entity: "item",
-    alegraId: alegraItemId,
-    shopifyId: variantId,
-    shopifyProductId: product.id,
-    shopifyInventoryItemId: variant.inventoryItem?.id || undefined,
-    metadata: {
-      sku: sku || undefined,
+    await saveMapping({
+      entity: "item",
+      alegraId: alegraItemId,
+      shopifyId: variantId,
+      shopifyProductId: product.id,
+      shopifyInventoryItemId: variant.inventoryItem?.id || undefined,
+      metadata: {
+        sku: sku || undefined,
+        identifier,
+        shopDomain,
+      },
+    });
+
+    const inventoryResult = await maybeAdjustInventory({
+      ctx,
+      alegraItemId,
+      desired: desiredInventory,
+      warehouseId: config.warehouseId,
+      includeInventory: config.includeInventory,
+      observations: `Sync Shopify ${identifier}`,
+      alegraItem,
+    });
+
+    return {
+      ok: true,
+      action,
+      alegraItemId,
+      variantId,
       identifier,
-      shopDomain,
-    },
+      sku,
+      price,
+      inventory: inventoryResult,
+    };
   });
-
-  const inventoryResult = await maybeAdjustInventory({
-    ctx,
-    alegraItemId,
-    desired: desiredInventory,
-    warehouseId: config.warehouseId,
-    includeInventory: config.includeInventory,
-    observations: `Sync Shopify ${identifier}`,
-    alegraItem,
-  });
-
-  return {
-    ok: true,
-    action,
-    alegraItemId,
-    variantId,
-    identifier,
-    sku,
-    price,
-    inventory: inventoryResult,
-  };
 }
 
 export async function syncShopifyProductToAlegraFromWebhook(payload: unknown) {

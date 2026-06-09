@@ -10,11 +10,12 @@ import { mapOrderToPayload } from "../services/operations.service";
 import { getMappingByShopifyId } from "../services/mapping.service";
 import { syncShopifyOrderToAlegra } from "../services/shopify-to-alegra.service";
 import type { ShopifyOrder } from "../connectors/shopify";
-import { createSyncLog } from "../services/logs.service";
+import { createSyncLog, updateSyncLog } from "../services/logs.service";
 import { clearSyncCheckpoint, getSyncCheckpoint, saveSyncCheckpoint } from "../services/sync-checkpoints.service";
 import { syncShopifyProductsToAlegraBulk } from "../services/shopify-products-to-alegra-items.service";
 import { ensureInventoryRulesColumns, getOrgId, getPool } from "../db";
 import { consumeLimitOrBlock } from "../sa/consume";
+import { resolveDesiredPricing } from "../../packages/domain/src";
 import {
   countAlegraItemsCache,
   listAlegraItemsCache,
@@ -29,6 +30,7 @@ import {
 } from "../services/store-connections.service";
 import { upsertProduct, listProducts } from "../services/products.service";
 import { upsertOrder } from "../services/orders.service";
+import { syncAlegraInventoryById } from "../services/alegra-to-shopify.service";
 
 type AlegraPrice = {
   name?: string;
@@ -79,6 +81,7 @@ type AlegraItem = {
   idItemParent?: string | number;
   type?: string;
   category?: { name?: string };
+  tax?: Array<{ percentage?: string | number }>;
 };
 
 type ShopifyConfig = {
@@ -88,6 +91,15 @@ type ShopifyConfig = {
   apiVersion: string;
   vendorDefault: string;
   locationId: string;
+};
+
+type SyncFailedProduct = {
+  alegraItemId: string | null;
+  sku: string | null;
+  reference: string | null;
+  name: string | null;
+  stage: "lookup" | "update" | "create" | "unknown";
+  error: string;
 };
 
 async function getAlegraConfig() {
@@ -293,6 +305,15 @@ const normalizeText = (value: unknown) => {
   return text ? text : null;
 };
 
+const toSyncErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    const text = String(error.message || "").trim();
+    return text || "Unexpected sync error";
+  }
+  const text = String(error ?? "").trim();
+  return text || "Unexpected sync error";
+};
+
 const persistProductsFromAlegra = async (
   items: AlegraItem[],
   shopDomainInput = "",
@@ -489,6 +510,19 @@ const parsePriceValue = (value?: string | number) => {
   return null;
 };
 
+const parseTaxRate = (taxes?: Array<{ percentage?: string | number }>) => {
+  if (!Array.isArray(taxes) || !taxes.length) return 0;
+  const raw = taxes[0]?.percentage;
+  const parsed = parsePriceValue(raw);
+  return parsed !== null && parsed > 0 ? parsed : 0;
+};
+
+const withVat = (value: number | null, taxRate: number) => {
+  if (value === null) return null;
+  if (!Number.isFinite(taxRate) || taxRate <= 0) return value;
+  return value * (1 + taxRate / 100);
+};
+
 const findPriceById = (prices: AlegraPrice[], listId?: string) => {
   if (!listId) return null;
   const normalized = normalizePriceId(listId);
@@ -504,23 +538,11 @@ const findPriceByName = (prices: AlegraPrice[], keywords: string[]) => {
   return match || null;
 };
 
-const pickPriceForStore = (prices: AlegraPrice[] = [], config?: PriceListConfig) => {
+const findGeneralPrice = (prices: AlegraPrice[] = [], config?: PriceListConfig) => {
   if (!Array.isArray(prices) || prices.length === 0) return null;
-  if (config?.discountId) {
-    const byId = findPriceById(prices, config.discountId);
-    const byName = byId || findPriceByName(prices, ["descuento", "discount", "promo"]);
-    const value = parsePriceValue(byName?.price);
-    if (value !== null) return value;
-  }
-  if (config?.wholesaleId) {
-    const byId = findPriceById(prices, config.wholesaleId);
-    const byName = byId || findPriceByName(prices, ["wholesale", "mayorista"]);
-    const value = parsePriceValue(byName?.price);
-    if (value !== null) return value;
-  }
   if (config?.generalId) {
     const byId = findPriceById(prices, config.generalId);
-    const byName = byId || findPriceByName(prices, ["general", "base"]);
+    const byName = byId || findPriceByName(prices, ["general", "base", "oficial"]);
     const value = parsePriceValue(byName?.price);
     if (value !== null) return value;
   }
@@ -531,6 +553,39 @@ const pickPriceForStore = (prices: AlegraPrice[] = [], config?: PriceListConfig)
         .includes("general")
     ) || prices[0];
   return parsePriceValue(fallback?.price);
+};
+
+const findDiscountPrice = (prices: AlegraPrice[] = [], config?: PriceListConfig) => {
+  if (!Array.isArray(prices) || prices.length === 0) return null;
+  if (config?.discountId) {
+    const byId = findPriceById(prices, config.discountId);
+    const byName = byId || findPriceByName(prices, ["descuento", "discount", "promo", "oferta", "outlet"]);
+    const value = parsePriceValue(byName?.price);
+    if (value !== null) return value;
+  }
+  const fallback = findPriceByName(prices, ["descuento", "discount", "promo", "oferta", "outlet"]);
+  return parsePriceValue(fallback?.price);
+};
+
+const resolveStorePricing = (prices: AlegraPrice[] = [], config?: PriceListConfig, taxRate: number = 0) => {
+  const general = withVat(findGeneralPrice(prices, config), taxRate);
+  const discount = withVat(findDiscountPrice(prices, config), taxRate);
+  const desired = resolveDesiredPricing({
+    priceWithVat: general ?? 0,
+    discountPriceWithVat: discount ?? 0,
+    general: general ?? 0,
+    discountBeforeVat: discount ?? 0,
+  });
+  return {
+    price: desired.price,
+    compareAtPrice: desired.compareAtPrice,
+    strategy: desired.strategy,
+  };
+};
+
+const pickPriceForStore = (prices: AlegraPrice[] = [], config?: PriceListConfig) => {
+  const pricing = resolveStorePricing(prices, config);
+  return pricing.price !== null ? Number(pricing.price) : null;
 };
 
 const pickPrice = (prices: AlegraPrice[] = []) => {
@@ -719,7 +774,7 @@ const buildShopifyPayload = (
       alegraItem.barcode ||
       extractCustomFieldValue(alegraItem, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"]) ||
       "",
-    price: pickPriceForStore(alegraItem.price, priceConfig)?.toString() ?? "0",
+    price: resolveStorePricing(alegraItem.price, priceConfig, parseTaxRate(alegraItem.tax)).price ?? "0",
     inventory_policy: inventoryPolicy,
     inventory_management: inventoryManagement,
     inventory_quantity:
@@ -736,7 +791,7 @@ const buildShopifyPayload = (
             alegraItem.barcode ||
             extractCustomFieldValue(alegraItem, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"]) ||
             "",
-          price: pickPriceForStore(variant.price, priceConfig)?.toString() ?? "0",
+          price: resolveStorePricing(variant.price, priceConfig, parseTaxRate(alegraItem.tax)).price ?? "0",
           inventory_policy: inventoryPolicy,
           inventory_management: inventoryManagement,
           inventory_quantity:
@@ -1261,6 +1316,224 @@ export async function syncInventoryAdjustmentsHandler(req: Request, res: Respons
   }
 }
 
+export async function syncPublishedInventoryBaselineHandler(req: Request, res: Response) {
+  const shopDomain =
+    typeof req.query.shopDomain === "string"
+      ? req.query.shopDomain.trim()
+      : typeof req.body?.shopDomain === "string"
+        ? String(req.body.shopDomain).trim()
+        : "";
+  if (!shopDomain) {
+    res.status(400).json({ error: "shopDomain requerido" });
+    return;
+  }
+
+  const stream = req.query.stream === "1" || req.query.stream === "true" || req.body?.stream === true;
+  const startedAt = Date.now();
+  const syncId = createSyncId();
+  let syncLogId: number | null = null;
+  let streamOpen = stream;
+  const sendStream = (payload: Record<string, unknown>) => {
+    if (!streamOpen || res.writableEnded || res.destroyed) return;
+    try {
+      res.write(`${JSON.stringify(payload)}\n`);
+    } catch {
+      streamOpen = false;
+    }
+  };
+
+  try {
+    syncLogId = await createSyncLog({
+      entity: "inventory_baseline_sync",
+      direction: "alegra->shopify",
+      status: "queued",
+      message: "Inventory baseline sync queued",
+      request: {
+        shopDomain,
+        stream,
+        syncId,
+        startedAt,
+      },
+    });
+
+    if (stream) {
+      res.status(200);
+      res.setHeader("Content-Type", "application/x-ndjson");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders?.();
+      res.on("close", () => {
+        streamOpen = false;
+      });
+    }
+
+    const selectedProducts: Array<{
+      alegraItemId: string;
+      name: string | null;
+      sku: string | null;
+      reference: string | null;
+    }> = [];
+    const seen = new Set<string>();
+    const pageSize = 200;
+    let offset = 0;
+
+    while (true) {
+      const page = await listProducts({
+        shopDomain,
+        limit: pageSize,
+        offset,
+      });
+      const rows = Array.isArray(page.items) ? page.items : [];
+      for (const row of rows as Array<Record<string, unknown>>) {
+        const alegraItemId = normalizeText(row.alegra_item_id);
+        const shopifyProductId = normalizeText(row.shopify_product_id);
+        if (!alegraItemId || !shopifyProductId || seen.has(alegraItemId)) continue;
+        seen.add(alegraItemId);
+        selectedProducts.push({
+          alegraItemId,
+          name: normalizeText(row.name),
+          sku: normalizeText(row.sku),
+          reference: normalizeText(row.reference),
+        });
+      }
+      offset += rows.length;
+      if (rows.length < pageSize) {
+        break;
+      }
+    }
+
+    sendStream({ type: "start", total: selectedProducts.length, shopDomain, syncId, startedAt });
+
+    let processed = 0;
+    let synced = 0;
+    let failed = 0;
+    const failedItems: Array<{
+      alegraItemId: string;
+      name: string | null;
+      sku: string | null;
+      reference: string | null;
+      error: string;
+    }> = [];
+    const BATCH = 5;
+
+    for (let i = 0; i < selectedProducts.length; i += BATCH) {
+      const batch = selectedProducts.slice(i, i + BATCH);
+      const results = await Promise.allSettled(
+        batch.map((item) => syncAlegraInventoryById(item.alegraItemId, shopDomain))
+      );
+      results.forEach((result, index) => {
+        processed += 1;
+        if (result.status === "fulfilled") {
+          synced += 1;
+          return;
+        }
+        failed += 1;
+        if (failedItems.length < 100) {
+          failedItems.push({
+            alegraItemId: batch[index].alegraItemId,
+            name: batch[index].name,
+            sku: batch[index].sku,
+            reference: batch[index].reference,
+            error: toSyncErrorMessage(result.reason),
+          });
+        }
+      });
+      sendStream({
+        type: "progress",
+        syncId,
+        processed,
+        total: selectedProducts.length,
+        synced,
+        failed,
+      });
+    }
+
+    const responsePayload = {
+      ok: true,
+      syncId,
+      startedAt,
+      shopDomain,
+      total: selectedProducts.length,
+      processed,
+      synced,
+      failed,
+      failedItems: failedItems.length ? failedItems : undefined,
+    };
+
+    if (stream) {
+      sendStream({ type: "complete", ...responsePayload });
+      streamOpen = false;
+      res.end();
+    } else {
+      res.status(200).json(responsePayload);
+    }
+
+    if (syncLogId) {
+      await updateSyncLog(syncLogId, {
+        status: failed > 0 ? "warn" : "success",
+        message: failed > 0 ? "Inventory baseline sync completed with errors" : "Inventory baseline sync ok",
+        response: responsePayload as Record<string, unknown>,
+      });
+    } else {
+      await safeCreateLog({
+        entity: "inventory_baseline_sync",
+        direction: "alegra->shopify",
+        status: failed > 0 ? "warn" : "success",
+        message: failed > 0 ? "Inventory baseline sync completed with errors" : "Inventory baseline sync ok",
+        request: {
+          shopDomain,
+          stream,
+          syncId,
+          startedAt,
+        },
+        response: responsePayload as Record<string, unknown>,
+      });
+    }
+  } catch (error) {
+    const message = toSyncErrorMessage(error);
+    if (stream) {
+      sendStream({ type: "error", syncId, error: message });
+      streamOpen = false;
+      res.end();
+    } else {
+      res.status(500).json({ error: message, syncId });
+    }
+    if (syncLogId) {
+      await updateSyncLog(syncLogId, {
+        status: "fail",
+        message,
+        response: {
+          ok: false,
+          syncId,
+          startedAt,
+          shopDomain,
+          error: message,
+        },
+      });
+    } else {
+      await safeCreateLog({
+        entity: "inventory_baseline_sync",
+        direction: "alegra->shopify",
+        status: "fail",
+        message,
+        request: {
+          shopDomain,
+          stream,
+          syncId,
+          startedAt,
+        },
+        response: {
+          ok: false,
+          syncId,
+          startedAt,
+          shopDomain,
+          error: message,
+        },
+      });
+    }
+  }
+}
+
 export async function publishShopifyHandler(req: Request, res: Response) {
   const { alegraId, settings = {}, alegraItem, shopDomain } = req.body || {};
   try {
@@ -1651,6 +1924,8 @@ export async function syncProductsHandler(req: Request, res: Response) {
   let parentCount = 0;
   let variantCount = 0;
   const events: string[] = [];
+  const failedItems: SyncFailedProduct[] = [];
+  const failedItemsLimit = 100;
   const stream = req.query.stream === "1" || req.query.stream === "true" || req.body?.stream === true;
   let streamOpen = stream;
   const sendStream = (payload: Record<string, unknown>) => {
@@ -1822,6 +2097,23 @@ export async function syncProductsHandler(req: Request, res: Response) {
         events.shift();
       }
     };
+    const pushFailedItem = (item: AlegraItem, error: unknown, stage: SyncFailedProduct["stage"]) => {
+      const entry: SyncFailedProduct = {
+        alegraItemId: normalizeText(item?.id),
+        sku: resolveItemSku(item),
+        reference: normalizeText(item?.reference || item?.code || item?.barcode),
+        name: normalizeText(item?.name),
+        stage,
+        error: toSyncErrorMessage(error),
+      };
+      if (failedItems.length < failedItemsLimit) {
+        failedItems.push(entry);
+      }
+      logEvent(
+        `Fallo ${stage} ${entry.reference || entry.sku || entry.alegraItemId || entry.name || "sin_identificador"}: ${entry.error}`
+      );
+      sendStream({ type: "item_error", syncId, item: entry });
+    };
     const onRateLimit = (waitMs: number) => {
       rateLimitRetries += 1;
       logEvent(`429 Alegra, reintento en ${Math.round(waitMs / 1000)}s...`);
@@ -1888,25 +2180,64 @@ export async function syncProductsHandler(req: Request, res: Response) {
               let updatedAny = false;
               for (const desired of desiredVariants) {
                 const sku = String(desired?.sku || "").trim();
-                const price = String(desired?.price || "0").trim() || "0";
                 if (!sku) continue;
-                const match = await resolveExistingVariant(sku);
+                let match;
+                try {
+                  match = await resolveExistingVariant(sku);
+                } catch (error) {
+                  pushFailedItem(current.item, error, "lookup");
+                  throw error;
+                }
                 const variantId = (match as any)?.variantId ? String((match as any).variantId) : "";
                 if (!match.exists || !variantId || updatedVariantIds.has(variantId)) continue;
                 updatedVariantIds.add(variantId);
-                await withShopifyRetry(() => shopifyClient.updateVariantPrice(variantId, price), {
-                  label: "updateVariantPrice",
-                  retries: 2,
-                });
+                const currentAlegraVariant =
+                  Array.isArray(current.item.itemVariants) && current.item.itemVariants.length > 0
+                    ? current.item.itemVariants.find((variant) => {
+                        const candidateSku = String(
+                          variant?.reference ||
+                            variant?.barcode ||
+                            current.item.reference ||
+                            current.item.barcode ||
+                            ""
+                        ).trim();
+                        return candidateSku === sku;
+                      }) || null
+                    : null;
+                const pricing = resolveStorePricing(
+                  currentAlegraVariant?.price || current.item.price || [],
+                  {
+                    generalId: storeConfig?.priceListGeneralId,
+                    discountId: storeConfig?.priceListDiscountId,
+                    wholesaleId: storeConfig?.priceListWholesaleId,
+                    currency: storeConfig?.currency,
+                  },
+                  parseTaxRate(current.item.tax)
+                );
+                const price = pricing.price ?? (String(desired?.price || "0").trim() || "0");
+                try {
+                  await withShopifyRetry(() => shopifyClient.updateVariantPrice(variantId, price, pricing.compareAtPrice), {
+                    label: "updateVariantPrice",
+                    retries: 2,
+                  });
+                } catch (error) {
+                  pushFailedItem(current.item, error, "update");
+                  throw error;
+                }
                 updatedAny = true;
               }
               const desiredStatus = String(settings.status || "draft").toLowerCase();
               // Status updates are tied to "Publicar en Shopify".
               if (publishOnSync && status.productId && (desiredStatus === "active" || desiredStatus === "draft")) {
-                await withShopifyRetry(
-                  () => shopifyClient.updateProductStatus(String(status.productId), desiredStatus === "active"),
-                  { label: "updateProductStatus", retries: 1 }
-                );
+                try {
+                  await withShopifyRetry(
+                    () => shopifyClient.updateProductStatus(String(status.productId), desiredStatus === "active"),
+                    { label: "updateProductStatus", retries: 1 }
+                  );
+                } catch (error) {
+                  pushFailedItem(current.item, error, "update");
+                  throw error;
+                }
               }
               if (updatedAny) {
                 updated += 1;
@@ -1942,15 +2273,21 @@ export async function syncProductsHandler(req: Request, res: Response) {
               },
               trackInventory
             );
-            const publishedResult = await fetchShopify(
-              "/products.json",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payloadShopify),
-              },
-              shopifyConfig || undefined
-            );
+            let publishedResult;
+            try {
+              publishedResult = await fetchShopify(
+                "/products.json",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(payloadShopify),
+                },
+                shopifyConfig || undefined
+              );
+            } catch (error) {
+              pushFailedItem(current.item, error, "create");
+              throw error;
+            }
             const shopifyProductId = (publishedResult as any)?.product?.id;
             const sourceUpdatedAt = resolveItemDate(current.item);
             await upsertProduct({
@@ -2345,6 +2682,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
       message: searchMessage,
       attempts: searchAttempts.length ? searchAttempts : undefined,
       events: events.length ? events : undefined,
+      failedItems: failedItems.length ? failedItems : undefined,
       inventoryAdjustments: inventoryAdjustmentsResult,
     };
     if (stream) {
@@ -2428,6 +2766,21 @@ export async function syncProductsHandler(req: Request, res: Response) {
           batchSize: safeBatchSize,
           syncId,
         },
+        response: {
+          scanned,
+          processed,
+          updated,
+          published,
+          skipped,
+          skippedUnpublished,
+          failed,
+          rateLimitRetries,
+          total,
+          parentCount,
+          variantCount,
+          events: events.length ? events : undefined,
+          failedItems: failedItems.length ? failedItems : undefined,
+        },
       });
       activeProductsSync = null;
       return;
@@ -2444,6 +2797,21 @@ export async function syncProductsHandler(req: Request, res: Response) {
         settings,
         batchSize: safeBatchSize,
         syncId,
+      },
+      response: {
+        scanned,
+        processed,
+        updated,
+        published,
+        skipped,
+        skippedUnpublished,
+        failed,
+        rateLimitRetries,
+        total,
+        parentCount,
+        variantCount,
+        events: events.length ? events : undefined,
+        failedItems: failedItems.length ? failedItems : undefined,
       },
     });
     activeProductsSync = null;

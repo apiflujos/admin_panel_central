@@ -40,11 +40,23 @@ Flujo (invoice):
 - Mapeo por SKU/Barcode/Reference.
 - Crea producto base en Shopify si no existe.
 - Actualiza precio/estado/stock.
+- Si la lista de descuento ya no aplica en Alegra, limpia `compareAtPrice` en Shopify y deja el precio oficial.
 
 ### 4) Ajustes de inventario (Alegra -> Shopify)
 
 - Poll de ajustes en Alegra.
 - Re‑sync por item con checkpoints.
+
+### 4.1) Baseline de inventario publicado (Alegra -> Shopify)
+
+- Endpoint manual: `POST /api/sync/inventory-baseline`
+- Recorre productos ya publicados en Shopify (`shopify_product_id` presente).
+- Recalcula existencias desde Alegra usando las bodegas activas de la tienda.
+- Soporta `stream=1` para NDJSON.
+- Ahora deja `sync_logs` con:
+  - estado inicial `queued`
+  - cierre `success|warn|fail`
+  - resumen final en `response_json`
 
 ### 5) Contactos (Shopify <-> Alegra)
 

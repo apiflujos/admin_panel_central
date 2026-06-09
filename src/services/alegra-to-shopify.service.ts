@@ -6,6 +6,7 @@ import {
   extractAlegraCustomFieldValue,
   extractAlegraIdentifiers,
   isAlegraStatusInactive,
+  resolveDesiredPricing,
   resolveAlegraAvailableQuantity,
   resolvePublishEligibility,
   shouldSkipAlegraInventoryByWarehouse,
@@ -21,6 +22,7 @@ export type AlegraItem = {
   customFields?: Array<{ name?: string; label?: string; value?: string }>;
   status?: string;
   price?: number | Array<{ idPriceList?: number; price?: number }>;
+  tax?: Array<{ percentage?: string | number }>;
   inventory?: {
     availableQuantity?: number;
     warehouses?: Array<{ id: number; availableQuantity?: number }>;
@@ -97,7 +99,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
   });
   const desiredPublish = ctx.autoPublishStatus === "active" ? publishEligible : false;
   const resolvedShopifyStatus = ctx.autoPublishOnWebhook ? (desiredPublish ? "active" : "draft") : null;
-  const itemPrice = resolvePrice(item.price, ctx);
+  const itemPricing = resolvePrice(item.price, ctx, parseTaxRate(item.tax));
 
   if (!mapped) {
     const matched = await resolveVariantByIdentifiers(ctx, identifiers);
@@ -114,7 +116,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
         metadata: { sku: matched.sku },
       });
       const result = await withRetry(
-        () => ctx.shopify.updateVariantPrice(matched.variantId, itemPrice ? String(itemPrice) : "0"),
+        () => ctx.shopify.updateVariantPrice(matched.variantId, itemPricing.price, itemPricing.compareAtPrice),
         { label: "updateVariantPrice" }
       );
       if (matched.productId && ctx.autoPublishOnWebhook) {
@@ -142,7 +144,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
         item.barcode ||
         extractAlegraCustomFieldValue(item, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"]) ||
         undefined,
-      price: itemPrice ? String(itemPrice) : "0",
+      price: itemPricing.price,
       publish: ctx.autoPublishOnWebhook ? desiredPublish : false,
       trackInventory: ctx.trackInventory,
       allowOversell: ctx.allowOversell,
@@ -201,7 +203,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
   }
 
   const variantId = mapped.shopifyId;
-  const result = await withRetry(() => ctx.shopify.updateVariantPrice(variantId, itemPrice ? String(itemPrice) : "0"), {
+  const result = await withRetry(() => ctx.shopify.updateVariantPrice(variantId, itemPricing.price, itemPricing.compareAtPrice), {
     label: "updateVariantPrice",
   });
 
@@ -458,9 +460,28 @@ async function resolveVariantByIdentifiers(ctx: Awaited<ReturnType<typeof buildS
   return null;
 }
 
-function resolvePrice(price: AlegraItem["price"], ctx: Awaited<ReturnType<typeof buildSyncContext>>): number | null {
+function parseTaxRate(taxes?: Array<{ percentage?: string | number }>): number {
+  if (!Array.isArray(taxes) || !taxes.length) {
+    return 0;
+  }
+  const parsed = Number(String(taxes[0]?.percentage ?? "").trim().replace(",", "."));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function withVat(value: number, taxRate: number): number {
+  if (!Number.isFinite(taxRate) || taxRate <= 0) {
+    return value;
+  }
+  return value * (1 + taxRate / 100);
+}
+
+function resolvePrice(
+  price: AlegraItem["price"],
+  ctx: Awaited<ReturnType<typeof buildSyncContext>>,
+  taxRate: number
+): { price: string; compareAtPrice: string | null } {
   if (typeof price === "number") {
-    return price;
+    return { price: String(withVat(price, taxRate)), compareAtPrice: null };
   }
   if (Array.isArray(price) && price.length > 0) {
     const matchByList = (listId?: string) => {
@@ -468,16 +489,26 @@ function resolvePrice(price: AlegraItem["price"], ctx: Awaited<ReturnType<typeof
       const normalized = String(listId);
       return price.find((entry) => String(entry?.idPriceList || "") === normalized) || null;
     };
-    const discount = matchByList(ctx.priceListDiscountId);
-    if (discount && typeof discount.price === "number") return discount.price;
-    const wholesale = matchByList(ctx.priceListWholesaleId);
-    if (wholesale && typeof wholesale.price === "number") return wholesale.price;
     const general = matchByList(ctx.priceListGeneralId);
-    if (general && typeof general.price === "number") return general.price;
+    const discount = matchByList(ctx.priceListDiscountId);
     const first = price[0];
-    if (typeof first?.price === "number") return first.price;
+    const generalPriceRaw =
+      typeof general?.price === "number" ? general.price : typeof first?.price === "number" ? first.price : 0;
+    const discountPriceRaw = typeof discount?.price === "number" ? discount.price : 0;
+    const generalPrice = withVat(generalPriceRaw, taxRate);
+    const discountPrice = withVat(discountPriceRaw, taxRate);
+    const desired = resolveDesiredPricing({
+      priceWithVat: generalPrice,
+      discountPriceWithVat: discountPrice,
+      general: generalPrice,
+      discountBeforeVat: discountPrice,
+    });
+    return {
+      price: desired.price ?? "0",
+      compareAtPrice: desired.compareAtPrice,
+    };
   }
-  return null;
+  return { price: "0", compareAtPrice: null };
 }
 
 async function withRetry<T>(

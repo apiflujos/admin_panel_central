@@ -114,6 +114,60 @@ const normalizeProductMatchPriority = (value: unknown, fallback: "sku_barcode" |
   return fallback;
 };
 
+function buildNormalizedSyncConfig(params: {
+  contactSync: Record<string, unknown>;
+  orderSync: Record<string, unknown>;
+  productSync: Record<string, unknown>;
+  rules: Record<string, unknown>;
+  hasCommerceConnection: boolean;
+  hasAlegraConnection: boolean;
+}) {
+  const { contactSync, orderSync, productSync, rules, hasCommerceConnection, hasAlegraConnection } = params;
+  const pairConnected = hasCommerceConnection && hasAlegraConnection;
+  const trackInventoryEnabled = normalizeBoolean((rules as Record<string, unknown>).trackInventory, true);
+  const shopifyToAlegra =
+    orderSync.shopifyToAlegra === undefined && pairConnected
+      ? "db_only"
+      : normalizeShopifyOrderMode(orderSync.shopifyToAlegra);
+  const alegraToShopify =
+    orderSync.alegraToShopify === undefined && pairConnected
+      ? "draft"
+      : normalizeAlegraOrderMode(orderSync.alegraToShopify);
+  const contactsFromCommerce = normalizeBoolean(contactSync.fromShopify, hasCommerceConnection);
+  const contactsFromAlegra = normalizeBoolean(contactSync.fromAlegra, hasAlegraConnection);
+
+  return {
+    contacts: {
+      enabled: normalizeBoolean(
+        (contactSync as Record<string, unknown>).enabled,
+        contactsFromCommerce || contactsFromAlegra
+      ),
+      fromShopify: contactsFromCommerce,
+      fromAlegra: contactsFromAlegra,
+      createInAlegra: normalizeBoolean((contactSync as Record<string, unknown>).createInAlegra, hasAlegraConnection),
+      createInShopify: normalizeBoolean(
+        (contactSync as Record<string, unknown>).createInShopify,
+        hasCommerceConnection
+      ),
+      matchPriority: normalizeContactPriority(contactSync.matchPriority, ["document", "phone", "email"]),
+    },
+    orders: {
+      shopifyEnabled: normalizeBoolean((orderSync as Record<string, unknown>).shopifyEnabled, pairConnected),
+      alegraEnabled: normalizeBoolean((orderSync as Record<string, unknown>).alegraEnabled, pairConnected),
+      shopifyToAlegra,
+      alegraToShopify,
+    },
+    products: {
+      shopifyEnabled: normalizeBoolean(productSync.shopifyEnabled, pairConnected),
+      createInAlegra: normalizeBoolean(productSync.createInAlegra, pairConnected),
+      updateInAlegra: normalizeBoolean(productSync.updateInAlegra, pairConnected),
+      includeInventory: normalizeBoolean(productSync.includeInventory, pairConnected && trackInventoryEnabled),
+      warehouseId: normalizeText(productSync.warehouseId, ""),
+      matchPriority: normalizeProductMatchPriority(productSync.matchPriority, "sku_barcode"),
+    },
+  };
+}
+
 export async function listStoreConfigs() {
   const pool = getPool();
   const orgId = getOrgId();
@@ -142,7 +196,7 @@ export async function listStoreConfigs() {
            COALESCE(c.shop_domain, s.shop_domain) AS shop_domain,
            s.access_token_encrypted,
            c.id AS config_id,
-           c.alegra_account_id,
+           COALESCE(c.alegra_account_id, aa.id) AS alegra_account_id,
            c.transfer_destination_warehouse_id,
            c.transfer_origin_warehouse_ids,
            c.transfer_priority_warehouse_id,
@@ -169,6 +223,14 @@ export async function listStoreConfigs() {
       ORDER BY c.created_at DESC
       LIMIT 1
     ) c ON true
+    LEFT JOIN LATERAL (
+      SELECT id
+      FROM alegra_accounts a
+      WHERE a.organization_id = st.organization_id
+        AND a.store_id = st.id
+      ORDER BY a.created_at DESC
+      LIMIT 1
+    ) aa ON true
     WHERE st.organization_id = $1
     ORDER BY st.created_at DESC
     `,
@@ -180,9 +242,7 @@ export async function listStoreConfigs() {
     invoice: settings.invoice || {},
   };
 
-  return stores.rows
-    .filter((row) => Boolean(row.config_id))
-    .map((row) => {
+  return stores.rows.map((row) => {
       const config = (row.config_json as Record<string, unknown>) || {};
       const transfers = (config.transfers as Record<string, unknown>) || {};
       const priceLists = (config.priceLists as Record<string, unknown>) || {};
@@ -193,6 +253,8 @@ export async function listStoreConfigs() {
       const contactSync = (sync.contacts as Record<string, unknown>) || {};
       const orderSync = (sync.orders as Record<string, unknown>) || {};
       const productSync = (sync.products as Record<string, unknown>) || {};
+      const hasCommerceConnection = Boolean(row.shop_domain);
+      const hasAlegraConnection = Boolean(row.alegra_account_id);
       return {
         storeId: row.store_id,
         storeName: row.store_name,
@@ -289,39 +351,14 @@ export async function listStoreConfigs() {
             normalizeBoolean(invoiceDefaults.einvoiceEnabled, false)
           ),
         },
-        sync: {
-          contacts: {
-            enabled: normalizeBoolean(
-              (contactSync as Record<string, unknown>).enabled,
-              normalizeBoolean(contactSync.fromShopify, true) || normalizeBoolean(contactSync.fromAlegra, true)
-            ),
-            fromShopify: normalizeBoolean(contactSync.fromShopify, true),
-            fromAlegra: normalizeBoolean(contactSync.fromAlegra, true),
-            createInAlegra: normalizeBoolean((contactSync as Record<string, unknown>).createInAlegra, true),
-            createInShopify: normalizeBoolean((contactSync as Record<string, unknown>).createInShopify, true),
-            matchPriority: normalizeContactPriority(contactSync.matchPriority, ["document", "phone", "email"]),
-          },
-          orders: {
-            shopifyEnabled: normalizeBoolean(
-              (orderSync as Record<string, unknown>).shopifyEnabled,
-              normalizeShopifyOrderMode(orderSync.shopifyToAlegra) !== "off"
-            ),
-            alegraEnabled: normalizeBoolean(
-              (orderSync as Record<string, unknown>).alegraEnabled,
-              normalizeAlegraOrderMode(orderSync.alegraToShopify) !== "off"
-            ),
-            shopifyToAlegra: normalizeShopifyOrderMode(orderSync.shopifyToAlegra),
-            alegraToShopify: normalizeAlegraOrderMode(orderSync.alegraToShopify),
-          },
-          products: {
-            shopifyEnabled: normalizeBoolean(productSync.shopifyEnabled, false),
-            createInAlegra: normalizeBoolean(productSync.createInAlegra, false),
-            updateInAlegra: normalizeBoolean(productSync.updateInAlegra, true),
-            includeInventory: normalizeBoolean(productSync.includeInventory, false),
-            warehouseId: normalizeText(productSync.warehouseId, ""),
-            matchPriority: normalizeProductMatchPriority(productSync.matchPriority, "sku_barcode"),
-          },
-        },
+        sync: buildNormalizedSyncConfig({
+          contactSync,
+          orderSync,
+          productSync,
+          rules,
+          hasCommerceConnection,
+          hasAlegraConnection,
+        }),
       };
     });
 }
@@ -334,6 +371,7 @@ async function getStoreConfigForStoreId(storeId: number) {
 
   const result = await pool.query<{
     shop_domain: string;
+    alegra_account_id: number | null;
     transfer_destination_warehouse_id: string | null;
     transfer_origin_warehouse_ids: string | null;
     transfer_priority_warehouse_id: string | null;
@@ -346,6 +384,7 @@ async function getStoreConfigForStoreId(storeId: number) {
   }>(
     `
     SELECT shop_domain,
+           alegra_account_id,
            transfer_destination_warehouse_id,
            transfer_origin_warehouse_ids,
            transfer_priority_warehouse_id,
@@ -378,6 +417,8 @@ async function getStoreConfigForStoreId(storeId: number) {
   const contactSync = (sync.contacts as Record<string, unknown>) || {};
   const orderSync = (sync.orders as Record<string, unknown>) || {};
   const productSync = (sync.products as Record<string, unknown>) || {};
+  const hasCommerceConnection = Boolean(row.shop_domain);
+  const hasAlegraConnection = Boolean(row.alegra_account_id);
   return {
     storeId,
     shopDomain: row.shop_domain,
@@ -469,39 +510,14 @@ async function getStoreConfigForStoreId(storeId: number) {
         normalizeBoolean(invoiceDefaults.einvoiceEnabled, false)
       ),
     },
-    sync: {
-      contacts: {
-        enabled: normalizeBoolean(
-          (contactSync as Record<string, unknown>).enabled,
-          normalizeBoolean(contactSync.fromShopify, true) || normalizeBoolean(contactSync.fromAlegra, true)
-        ),
-        fromShopify: normalizeBoolean(contactSync.fromShopify, true),
-        fromAlegra: normalizeBoolean(contactSync.fromAlegra, true),
-        createInAlegra: normalizeBoolean((contactSync as Record<string, unknown>).createInAlegra, true),
-        createInShopify: normalizeBoolean((contactSync as Record<string, unknown>).createInShopify, true),
-        matchPriority: normalizeContactPriority(contactSync.matchPriority, ["document", "phone", "email"]),
-      },
-      orders: {
-        shopifyEnabled: normalizeBoolean(
-          (orderSync as Record<string, unknown>).shopifyEnabled,
-          normalizeShopifyOrderMode(orderSync.shopifyToAlegra) !== "off"
-        ),
-        alegraEnabled: normalizeBoolean(
-          (orderSync as Record<string, unknown>).alegraEnabled,
-          normalizeAlegraOrderMode(orderSync.alegraToShopify) !== "off"
-        ),
-        shopifyToAlegra: normalizeShopifyOrderMode(orderSync.shopifyToAlegra),
-        alegraToShopify: normalizeAlegraOrderMode(orderSync.alegraToShopify),
-      },
-      products: {
-        shopifyEnabled: normalizeBoolean(productSync.shopifyEnabled, false),
-        createInAlegra: normalizeBoolean(productSync.createInAlegra, false),
-        updateInAlegra: normalizeBoolean(productSync.updateInAlegra, true),
-        includeInventory: normalizeBoolean(productSync.includeInventory, false),
-        warehouseId: normalizeText(productSync.warehouseId, ""),
-        matchPriority: normalizeProductMatchPriority(productSync.matchPriority, "sku_barcode"),
-      },
-    },
+    sync: buildNormalizedSyncConfig({
+      contactSync,
+      orderSync,
+      productSync,
+      rules,
+      hasCommerceConnection,
+      hasAlegraConnection,
+    }),
   };
 }
 

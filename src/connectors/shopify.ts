@@ -268,13 +268,14 @@ export class ShopifyClient {
     });
   }
 
-  async updateVariantPrice(variantId: string, price: string) {
+  async updateVariantPrice(variantId: string, price: string, compareAtPrice?: string | null) {
     return this.request<{ productVariantUpdate: ShopifyMutationResult }>(<GraphQlRequest>{
       query: VARIANT_PRICE_MUTATION,
       variables: {
         input: {
           id: variantId,
           price,
+          compareAtPrice: compareAtPrice ?? null,
         },
       },
     });
