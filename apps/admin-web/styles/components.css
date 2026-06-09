@@ -2141,3 +2141,63 @@
   padding: 1px 6px;
   line-height: 1.4;
 }
+
+/* Collapsible settings panels */
+.operations-panels {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-panel-collapse {
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+}
+
+.settings-panel-collapse[open] {
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(35, 24, 58, 0.05);
+}
+
+.settings-panel-collapse > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-strong);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-panel-collapse > summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-panel-collapse > summary::before {
+  content: "▸";
+  color: var(--muted);
+  font-size: 12px;
+  transition: transform 0.15s ease;
+  display: inline-block;
+}
+
+.settings-panel-collapse[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.settings-panel-collapse > summary:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.settings-panel-collapse > .card.connection-card {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--panel-border);
+  box-shadow: none;
+  background: transparent;
+}

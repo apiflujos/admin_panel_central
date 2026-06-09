@@ -27,7 +27,6 @@ export async function SettingsConnectionsPageContent({
     <SettingsConnectionsPage
       overview={overview}
       connections={connections}
-      summary={connectionsResult.summary}
       workspace={workspace}
       callbackState={callbackState}
       initialStoreId={initialStoreId}
