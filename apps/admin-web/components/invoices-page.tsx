@@ -67,7 +67,7 @@ export function InvoicesPage({ result }: { result: AdminWebInvoicesListDto }) {
     <section className="page-stack">
       <PageHeader
         title="Facturas"
-        subtitle="Facturación, estado documental y descarga de soporte."
+        subtitle="Estado documental y descarga."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -93,13 +93,6 @@ export function InvoicesPage({ result }: { result: AdminWebInvoicesListDto }) {
             />
           </div>
         }
-        filters={
-          <>
-            <span className="pill pill-info">Todas · {rows.total}</span>
-            <span className="pill">Pagadas · {paidCount}</span>
-            <span className="pill">Pendientes · {pendingCount}</span>
-          </>
-        }
         views={
           <>
             <button
@@ -107,21 +100,21 @@ export function InvoicesPage({ result }: { result: AdminWebInvoicesListDto }) {
               type="button"
               onClick={() => setStatusView("")}
             >
-              Todas
+              Todas · {rows.total}
             </button>
             <button
               className={statusView === "paid" ? "pill pill-info" : "pill"}
               type="button"
               onClick={() => setStatusView("paid")}
             >
-              Pagadas
+              Pagadas · {paidCount}
             </button>
             <button
               className={statusView === "pending" ? "pill pill-info" : "pill"}
               type="button"
               onClick={() => setStatusView("pending")}
             >
-              Pendientes
+              Pendientes · {pendingCount}
             </button>
           </>
         }
@@ -136,42 +129,13 @@ export function InvoicesPage({ result }: { result: AdminWebInvoicesListDto }) {
 
       <section className="metrics-kpis metrics-kpis-tight metrics-kpis-compact">
         <article className="metrics-kpi metrics-kpi-primary">
-          <p className="stat-label">Total facturas</p>
-          <strong>{rows.total}</strong>
-          <span className="stat-note">Con `alegra_invoice_id` resuelto</span>
-        </article>
-        <article className="metrics-kpi metrics-kpi-success">
-          <p className="stat-label">Pagadas</p>
-          <strong>{paidCount}</strong>
-          <span className="stat-note">Cierre financiero confirmado</span>
-        </article>
-        <article className="metrics-kpi metrics-kpi-warning">
-          <p className="stat-label">Pendientes</p>
-          <strong>{pendingCount}</strong>
-          <span className="stat-note">Requieren seguimiento</span>
-        </article>
-        <article className="metrics-kpi metrics-kpi-primary">
           <p className="stat-label">Monto visible</p>
           <strong>{renderedTotal.toLocaleString("es-CO")}</strong>
-          <span className="stat-note">Solo sobre la vista actual</span>
+          <span className="stat-note">Solo la vista actual</span>
         </article>
       </section>
 
       <section className="card page-module-shell page-module-shell-compact">
-        <div className="page-module-head">
-          <div>
-            <strong>Libro documental</strong>
-            <span>{filteredRows.length} facturas visibles para seguimiento, descarga y conciliación rápida.</span>
-          </div>
-          <div className="page-module-actions">
-            <span className="pill">Vista {statusView || "Todas"}</span>
-            <span className="pill">Resultados {filteredRows.length}</span>
-          </div>
-        </div>
-        <p className="connection-inline-note">
-          Usa la vista pendiente para conciliación rápida y descarga de PDF solo cuando el documento ya esté confirmado.
-        </p>
-
         <DataTable
           columns={[
             {

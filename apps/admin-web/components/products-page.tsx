@@ -111,7 +111,7 @@ export function ProductsPage({
               </div>
             </form>
           }
-          filters={
+          views={
             <>
               <span className="pill pill-info">Todos · {result.total}</span>
               <span className="pill">Matcheados · {result.summary.matchedCount}</span>
@@ -140,24 +140,6 @@ export function ProductsPage({
             </>
           }
         />
-
-        <section className="products-summary-grid metrics-kpis-compact">
-          <article className="card metrics-kpi metrics-kpi-primary">
-            <span className="metrics-kpi-label">Catálogo total</span>
-            <strong>{result.total}</strong>
-            <p>Items visibles en el cliente</p>
-          </article>
-          <article className="card metrics-kpi metrics-kpi-success">
-            <span className="metrics-kpi-label">Con matching</span>
-            <strong>{result.summary.matchedCount}</strong>
-            <p>Resueltos contra Shopify</p>
-          </article>
-          <article className="card metrics-kpi metrics-kpi-warning">
-            <span className="metrics-kpi-label">Pendientes</span>
-            <strong>{result.summary.pendingCount}</strong>
-            <p>Requieren revisión operativa</p>
-          </article>
-        </section>
 
         <div className="table-meta">
           Mostrando {start + 1}–{Math.min(start + PAGE_SIZE, result.total)} de {result.total} · {groups.length} productos

@@ -25,7 +25,7 @@ export function OrdersPage({
     <section className="page-stack">
       <PageHeader
         title="Pedidos"
-        subtitle="Seguimiento compacto de pedidos, facturación y pendientes operativos."
+        subtitle="Pedidos y facturación."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -53,12 +53,12 @@ export function OrdersPage({
             </div>
           </form>
         }
-        filters={
+        views={
           <>
             <span className="pill pill-info">Todos · {result.total}</span>
-            <span className="pill">Pendientes · {result.summary.pendingCount}</span>
             <span className="pill">Facturados · {result.summary.invoicedCount}</span>
-            <span className="pill">E-invoice pendiente · {result.summary.einvoicePendingCount}</span>
+            <span className="pill">Pendientes · {result.summary.pendingCount}</span>
+            <span className="pill">E-invoice pend. · {result.summary.einvoicePendingCount}</span>
           </>
         }
         actions={
@@ -83,45 +83,9 @@ export function OrdersPage({
         }
       />
 
-      <section className="metrics-kpis metrics-kpis-tight metrics-kpis-compact">
-        <article className="metrics-kpi metrics-kpi-primary">
-          <p className="stat-label">Total pedidos</p>
-          <strong>{result.total}</strong>
-          <span className="stat-note">Volumen visible en esta ventana</span>
-        </article>
-        <article className="metrics-kpi metrics-kpi-success">
-          <p className="stat-label">Facturados</p>
-          <strong>{result.summary.invoicedCount}</strong>
-          <span className="stat-note">Con factura emitida en Alegra</span>
-        </article>
-        <article className="metrics-kpi metrics-kpi-warning">
-          <p className="stat-label">Pendientes</p>
-          <strong>{result.summary.pendingCount}</strong>
-          <span className="stat-note">Sin cierre operativo</span>
-        </article>
-        <article className="metrics-kpi metrics-kpi-danger">
-          <p className="stat-label">E-invoice pendiente</p>
-          <strong>{result.summary.einvoicePendingCount}</strong>
-          <span className="stat-note">Overrides incompletos</span>
-        </article>
-      </section>
-
       <section className="card page-module-shell page-module-shell-compact">
-        <div className="page-module-head">
-          <div>
-            <strong>Pipeline de pedidos</strong>
-            <span>
-              Mostrando {offset + 1}–{Math.min(offset + PAGE_SIZE, result.total)} de {result.total}
-            </span>
-          </div>
-          <div className="page-module-actions">
-            <span className="pill">Facturados {result.summary.invoicedCount}</span>
-            <span className="pill">Pendientes {result.summary.pendingCount}</span>
-            <span className="pill pill-info">Página {Math.floor(offset / PAGE_SIZE) + 1}</span>
-          </div>
-        </div>
         <p className="connection-inline-note">
-          Prioriza primero estados pendientes y e-invoice antes de navegar a páginas siguientes.
+          Mostrando {offset + 1}–{Math.min(offset + PAGE_SIZE, result.total)} de {result.total} · Página {Math.floor(offset / PAGE_SIZE) + 1}
         </p>
         <DataTable
           columns={[

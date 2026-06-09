@@ -32,7 +32,7 @@ export function ContactsPage({
     <section className="page-stack">
       <PageHeader
         title="Contactos"
-        subtitle="Base comercial normalizada y estado de sincronización."
+        subtitle="Base comercial y sincronización."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -62,32 +62,25 @@ export function ContactsPage({
             </div>
           </form>
         }
-        filters={
-          <>
-            <span className="pill pill-info">Todos · {result.total}</span>
-            <span className="pill">Sincronizados · {syncedCount}</span>
-            <span className="pill">Pendientes · {pendingCount}</span>
-          </>
-        }
         views={
           <>
             <a
               className={status === "" ? "pill pill-info" : "pill"}
               href={`/contacts?query=${encodeURIComponent(query)}&source=${encodeURIComponent(source)}&offset=0`}
             >
-              Todos
+              Todos · {result.total}
             </a>
             <a
               className={status === "synced" ? "pill pill-info" : "pill"}
               href={`/contacts?query=${encodeURIComponent(query)}&status=synced&source=${encodeURIComponent(source)}&offset=0`}
             >
-              Sincronizados
+              Sincronizados · {syncedCount}
             </a>
             <a
               className={status === "pending" ? "pill pill-info" : "pill"}
               href={`/contacts?query=${encodeURIComponent(query)}&status=pending&source=${encodeURIComponent(source)}&offset=0`}
             >
-              Pendientes
+              Pendientes · {pendingCount}
             </a>
           </>
         }
@@ -115,43 +108,15 @@ export function ContactsPage({
 
       <section className="metrics-kpis metrics-kpis-tight metrics-kpis-compact">
         <article className="metrics-kpi metrics-kpi-primary">
-          <p className="stat-label">Total contactos</p>
-          <strong>{result.total}</strong>
-          <span className="stat-note">Base operativa local</span>
-        </article>
-        <article className="metrics-kpi metrics-kpi-success">
-          <p className="stat-label">Sincronizados</p>
-          <strong>{syncedCount}</strong>
-          <span className="stat-note">Con identificadores resueltos</span>
-        </article>
-        <article className="metrics-kpi metrics-kpi-warning">
-          <p className="stat-label">Pendientes</p>
-          <strong>{pendingCount}</strong>
-          <span className="stat-note">Requieren conciliación</span>
-        </article>
-        <article className="metrics-kpi metrics-kpi-primary">
           <p className="stat-label">Recientes</p>
           <strong>{recentCount}</strong>
-          <span className="stat-note">Actualizados en los últimos 7 días</span>
+          <span className="stat-note">Últimos 7 días</span>
         </article>
       </section>
 
       <section className="card page-module-shell page-module-shell-compact">
-        <div className="page-module-head">
-          <div>
-            <strong>Directorio operativo</strong>
-            <span>
-              Mostrando {offset + 1}–{Math.min(offset + PAGE_SIZE, result.total)} de {result.total} contactos listos
-              para conciliación y soporte.
-            </span>
-          </div>
-          <div className="page-module-actions">
-            <span className="pill">Fuente {source || "Todas"}</span>
-            <span className="pill">Estado {status || "Todos"}</span>
-          </div>
-        </div>
         <p className="connection-inline-note">
-          Prioriza primero pendientes y contactos actualizados recientemente antes de revisar el resto del directorio.
+          Mostrando {offset + 1}–{Math.min(offset + PAGE_SIZE, result.total)} de {result.total}.
         </p>
 
         <div className="record-grid record-grid-compact">

@@ -1083,7 +1083,7 @@ export function SettingsConnectionsPage({
                   <div className="settings-subsection-head">
                     <div>
                       <strong>Tienda objetivo</strong>
-                      <span>Primero fija la tienda; después eliges el módulo y la plataforma exacta.</span>
+                      <span>Elige la tienda para esta conexión.</span>
                     </div>
                   </div>
                   <select
@@ -1097,9 +1097,7 @@ export function SettingsConnectionsPage({
                       </option>
                     ))}
                   </select>
-                  <p className="connection-inline-note">
-                    Esta selección fija el contexto para Shopify, WooCommerce, Alegra y Ads.
-                  </p>
+                  
                   <div className="page-module-actions">
                     <button className="btn ghost" type="button" onClick={() => setIsCreateStoreOpen(true)}>
                       Crear tienda
@@ -1116,7 +1114,7 @@ export function SettingsConnectionsPage({
                   <div className="settings-subsection-head">
                     <div>
                       <strong>Grupo funcional</strong>
-                      <span>Elige el frente operativo para mostrar solo plataformas útiles en el siguiente paso.</span>
+                      <span>Define qué plataformas verás en el siguiente paso.</span>
                     </div>
                   </div>
                   <div className="provider-shortcuts provider-shortcuts-modal">
@@ -1168,7 +1166,7 @@ export function SettingsConnectionsPage({
                   <div className="settings-subsection-head">
                     <div>
                       <strong>Plataforma exacta</strong>
-                      <span>Abre solo el flujo específico que vas a configurar dentro del grupo elegido.</span>
+                      <span>Elige la plataforma específica.</span>
                     </div>
                   </div>
                   <div className="provider-shortcuts provider-shortcuts-modal">
