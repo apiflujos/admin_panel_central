@@ -1,19 +1,31 @@
+import {
+  BarChart3,
+  FileText,
+  KeyRound,
+  Megaphone,
+  Package,
+  ScrollText,
+  Settings,
+  ShoppingBag,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+
 export type AppNavigationItem = {
   label: string;
   href: string;
   section: "operacion" | "sistema";
-  icon: string;
+  icon: LucideIcon;
 };
 
 export const appNavigation: AppNavigationItem[] = [
-  { label: "Métricas", href: "/", section: "operacion", icon: "◈" },
-  { label: "Pedidos", href: "/orders", section: "operacion", icon: "◫" },
-  { label: "Operaciones", href: "/operations", section: "operacion", icon: "◌" },
-  { label: "Facturas", href: "/invoices", section: "operacion", icon: "◻" },
-  { label: "Contactos", href: "/contacts", section: "operacion", icon: "◎" },
-  { label: "Productos", href: "/products", section: "operacion", icon: "▦" },
-  { label: "Marketing", href: "/marketing", section: "operacion", icon: "◬" },
-  { label: "Configuración", href: "/settings/connections", section: "sistema", icon: "◉" },
-  { label: "Super Admin", href: "/superadmin", section: "sistema", icon: "◈" },
-  { label: "Logs de API", href: "/logs", section: "sistema", icon: "≡" },
+  { label: "Métricas", href: "/", section: "operacion", icon: BarChart3 },
+  { label: "Pedidos", href: "/orders", section: "operacion", icon: Package },
+  { label: "Facturas", href: "/invoices", section: "operacion", icon: FileText },
+  { label: "Contactos", href: "/contacts", section: "operacion", icon: Users },
+  { label: "Productos", href: "/products", section: "operacion", icon: ShoppingBag },
+  { label: "Marketing", href: "/marketing", section: "operacion", icon: Megaphone },
+  { label: "Configuración", href: "/settings/connections", section: "sistema", icon: Settings },
+  { label: "Super Admin", href: "/superadmin", section: "sistema", icon: KeyRound },
+  { label: "Logs de API", href: "/logs", section: "sistema", icon: ScrollText },
 ];

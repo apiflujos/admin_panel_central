@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { ExternalLink, LogOut } from "lucide-react";
+
 import { appNavigation } from "../lib/navigation";
 import { getServerCompanyBrand } from "../lib/server-api";
 import type { AuthSessionDto } from "../../../packages/shared/src/admin-web";
@@ -95,33 +97,39 @@ export async function AppShell({
 
           <nav className="nav">
             <div className="nav-section">{renderSection("operacion")}</div>
-            {operationItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className={item.href === activeHref ? "nav-item is-active" : "nav-item"}
-                aria-current={item.href === activeHref ? "page" : undefined}
-              >
-                <span className="nav-icon" aria-hidden="true">
-                  {item.icon}
-                </span>
-                <span className="nav-label">{item.label}</span>
-              </a>
-            ))}
+            {operationItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className={item.href === activeHref ? "nav-item is-active" : "nav-item"}
+                  aria-current={item.href === activeHref ? "page" : undefined}
+                >
+                  <span className="nav-icon" aria-hidden="true">
+                    <Icon size={16} strokeWidth={1.75} />
+                  </span>
+                  <span className="nav-label">{item.label}</span>
+                </a>
+              );
+            })}
             {renderSection("sistema") ? <div className="nav-section">{renderSection("sistema")}</div> : null}
-            {systemItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className={item.href === activeHref ? "nav-item is-active" : "nav-item"}
-                aria-current={item.href === activeHref ? "page" : undefined}
-              >
-                <span className="nav-icon" aria-hidden="true">
-                  {item.icon}
-                </span>
-                <span className="nav-label">{item.label}</span>
-              </a>
-            ))}
+            {systemItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className={item.href === activeHref ? "nav-item is-active" : "nav-item"}
+                  aria-current={item.href === activeHref ? "page" : undefined}
+                >
+                  <span className="nav-icon" aria-hidden="true">
+                    <Icon size={16} strokeWidth={1.75} />
+                  </span>
+                  <span className="nav-label">{item.label}</span>
+                </a>
+              );
+            })}
           </nav>
 
           <div className="sidebarSpacer" />
@@ -129,7 +137,7 @@ export async function AppShell({
           <div className="sidebarFooter">
             <a className="sidebarExit" href="/legacy/settings/stores">
               <span className="nav-icon" aria-hidden="true">
-                ↗
+                <ExternalLink size={16} strokeWidth={1.75} />
               </span>
               <span className="nav-label">Ajustes heredados</span>
             </a>
@@ -138,7 +146,7 @@ export async function AppShell({
               <form action="/api/session/logout" method="post">
                 <button className="sidebarExit" type="submit">
                   <span className="nav-icon" aria-hidden="true">
-                    →
+                    <LogOut size={16} strokeWidth={1.75} />
                   </span>
                   <span className="nav-label">Salir</span>
                 </button>
