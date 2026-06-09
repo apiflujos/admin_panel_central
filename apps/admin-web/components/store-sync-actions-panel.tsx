@@ -1271,7 +1271,7 @@ export function StoreSyncActionsPanel({
                 positive="Sí"
                 negative="No"
                 disabled={ordersToAlegraOptions.mode !== "invoice"}
-                help="Sobrescribe solo esta corrida manual aunque la tienda tenga otro default."
+                help="Solo para esta corrida manual."
               />
               <BooleanChoice
                 label="Ignorar reglas logísticas"
@@ -1279,7 +1279,7 @@ export function StoreSyncActionsPanel({
                 onChange={(next) => setOrdersToAlegraOptions((current) => ({ ...current, skipRules: next }))}
                 positive="Sí"
                 negative="No"
-                help="Permite registrar el pedido aun si una regla operativa lo bloquearía."
+                help="Registra el pedido aún si una regla lo bloquearía."
               />
               <BooleanChoice
                 label="Crear pedido en E-commerce"
@@ -1862,7 +1862,7 @@ export function StoreSyncActionsPanel({
                 onChange={(next) => setInventoryAdjustmentsForm((current) => ({ ...current, autoPublish: next }))}
                 positive="Sí"
                 negative="No"
-                help="Respeta o sobreescribe el comportamiento del worker automático para esta ejecución manual."
+                help="Sobreescribe el worker para esta ejecución."
               />
             </div>
             <div className="connection-card-actions">

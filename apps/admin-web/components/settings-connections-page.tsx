@@ -43,21 +43,21 @@ type ConnectionWizardPlatform =
 
 function wizardPlatformHint(platform: ConnectionWizardPlatform | null) {
   if (platform === "shopify") {
-    return "Usa el dominio técnico `myshopify.com`. El OAuth y los webhooks dependen de ese identificador exacto.";
+    return "Usa el dominio técnico `myshopify.com`.";
   }
   if (platform === "woocommerce") {
-    return "Primero fija el dominio y luego las llaves de API. Sin ambas piezas no se puede restablecer el sync.";
+    return "Dominio + Consumer Key + Secret.";
   }
   if (platform === "alegra") {
-    return "Define primero si reutilizas una cuenta existente o si cargarás credenciales nuevas en la base activa.";
+    return "Reutiliza cuenta existente o carga credenciales nuevas.";
   }
   if (platform === "google-ads" || platform === "meta-ads" || platform === "tiktok-ads") {
-    return "Captura primero el identificador de cuenta correcto. Después OAuth completa permisos y refresh token.";
+    return "Captura el ID de cuenta y completa OAuth.";
   }
   if (platform === "shopify-marketing") {
-    return "El pixel, script y webhooks ya viven en el submódulo propio de marketing.";
+    return "Pixel, script y webhooks viven en el submódulo de marketing.";
   }
-  return "Completa solo los datos mínimos para abrir o restablecer la conexión.";
+  return "Completa los datos mínimos para abrir la conexión.";
 }
 
 export function SettingsConnectionsPage({
@@ -129,7 +129,7 @@ export function SettingsConnectionsPage({
       if (matchedStore) {
         setSelectedStoreId(matchedStore.id);
       }
-      setStatusMessage(`Shopify conectado correctamente para ${callbackState.onboard}.`);
+      setStatusMessage(`Shopify conectado para ${callbackState.onboard}.`);
       return;
     }
     if (callbackState.connections) {
@@ -347,7 +347,7 @@ export function SettingsConnectionsPage({
       if (!response.ok) {
         throw new Error(payload.error || `disconnect_failed:${response.status}`);
       }
-      setStatusMessage(`${provider} desconectado correctamente.`);
+      setStatusMessage(`${provider} desconectado.`);
       const nextWorkspace = await refreshWorkspace();
       if (
         provider === "shopify" &&
@@ -390,7 +390,7 @@ export function SettingsConnectionsPage({
       }
       setNewStoreName("");
       setIsCreateStoreOpen(false);
-      setStatusMessage("Tienda creada correctamente.");
+      setStatusMessage("Tienda creada.");
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo crear la tienda.");
     } finally {
@@ -538,7 +538,7 @@ export function SettingsConnectionsPage({
       }
       await refreshWorkspace();
       setReconnectKind(null);
-      setStatusMessage("WooCommerce actualizado correctamente.");
+      setStatusMessage("WooCommerce actualizado.");
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo actualizar WooCommerce.");
     } finally {
@@ -577,7 +577,7 @@ export function SettingsConnectionsPage({
       }
       await refreshWorkspace();
       setReconnectKind(null);
-      setStatusMessage("Alegra asociado o actualizado correctamente.");
+      setStatusMessage("Alegra asociado o actualizado.");
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo actualizar Alegra.");
     } finally {

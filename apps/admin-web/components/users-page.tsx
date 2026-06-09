@@ -35,7 +35,7 @@ export function UsersPage({
         role: canAssignRoles ? form.role : undefined,
       });
       setForm({ name: "", email: "", phone: "", password: "", role: "agent" });
-      setStatusMessage("Usuario creado correctamente.");
+      setStatusMessage("Usuario creado.");
       startTransition(() => router.refresh());
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo crear el usuario.");
@@ -50,7 +50,7 @@ export function UsersPage({
     setStatusMessage("");
     try {
       await deleteTenantUser(user.id);
-      setStatusMessage("Usuario eliminado correctamente.");
+      setStatusMessage("Usuario eliminado.");
       startTransition(() => router.refresh());
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo eliminar el usuario.");

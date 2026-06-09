@@ -81,7 +81,7 @@ export function StoreMarketingConfigPanel({
     try {
       const next = await rotateMarketingPixelKey(shopDomain);
       setPixelConfig(next);
-      setMessage("Pixel key rotado correctamente.");
+      setMessage("Pixel key rotado.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No se pudo rotar el pixel key.");
     } finally {

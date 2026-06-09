@@ -21,7 +21,7 @@ export function CompanyPage({ initialCompany }: { initialCompany: AdminWebCompan
     setStatusMessage("");
     try {
       await saveCompanyProfile(form);
-      setStatusMessage("Empresa actualizada correctamente.");
+      setStatusMessage("Empresa actualizada.");
       startTransition(() => router.refresh());
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo guardar la empresa.");

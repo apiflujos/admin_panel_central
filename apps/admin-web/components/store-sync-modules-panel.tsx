@@ -186,7 +186,7 @@ export function StoreSyncModulesPanel({
                 }
                 positive="Activo"
                 negative="Inactivo"
-                help="Controla si la sincronización de contactos queda habilitada en segundo plano."
+                help="Sync automático de contactos."
               />
               <BooleanChoice
                 label="E-commerce → Contable"
@@ -196,7 +196,7 @@ export function StoreSyncModulesPanel({
                 }
                 positive="Permitido"
                 negative="Bloqueado"
-                help="Permite actualizar o crear contactos desde E-commerce hacia Contable."
+                help="Actualiza o crea contactos E-commerce → Contable."
                 disabled={!draft.contacts.enabled}
               />
               <BooleanChoice
@@ -207,7 +207,7 @@ export function StoreSyncModulesPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help="Cuando no existe match, decide si se crea el contacto en Contable."
+                help="Crea el contacto cuando no hay match."
                 disabled={!draft.contacts.enabled || !draft.contacts.fromShopify}
               />
               <BooleanChoice
@@ -218,7 +218,7 @@ export function StoreSyncModulesPanel({
                 }
                 positive="Permitido"
                 negative="Bloqueado"
-                help="Permite actualizar o crear clientes desde Contable hacia E-commerce."
+                help="Actualiza o crea clientes Contable → E-commerce."
                 disabled={!draft.contacts.enabled}
               />
               <BooleanChoice
@@ -229,7 +229,7 @@ export function StoreSyncModulesPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help="Cuando no existe match, decide si se crea el cliente en E-commerce."
+                help="Crea el cliente cuando no hay match."
                 disabled={!draft.contacts.enabled || !draft.contacts.fromAlegra}
               />
               <label className="store-config-field">
@@ -275,7 +275,7 @@ export function StoreSyncModulesPanel({
                 }
                 positive="Activo"
                 negative="Inactivo"
-                help="Habilita el flujo principal de pedidos desde Shopify hacia Alegra."
+                help="Sync de pedidos Shopify → Alegra."
               />
               <label className="store-config-field">
                 <span>Modo Shopify → Alegra</span>
@@ -308,7 +308,7 @@ export function StoreSyncModulesPanel({
                 }
                 positive="Activo"
                 negative="Inactivo"
-                help="Controla si el flujo inverso desde facturas de Alegra queda disponible."
+                help="Sync inverso desde facturas Alegra."
               />
               <label className="store-config-field">
                 <span>Modo Alegra → E-commerce</span>
@@ -404,7 +404,7 @@ export function StoreSyncModulesPanel({
                 }
                 positive="Activo"
                 negative="Inactivo"
-                help="Habilita la sincronización automática desde Shopify hacia Contable."
+                help="Sync automático Shopify → Contable."
               />
               <BooleanChoice
                 label="Crear en Contable"
@@ -414,7 +414,7 @@ export function StoreSyncModulesPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help="Si no existe el producto en Contable, permite crearlo automáticamente."
+                help="Crea el producto cuando no existe."
                 disabled={!draft.products.shopifyEnabled}
               />
               <BooleanChoice
@@ -425,7 +425,7 @@ export function StoreSyncModulesPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help="Permite refrescar información de productos existentes en Contable."
+                help="Refresca productos existentes en Contable."
                 disabled={!draft.products.shopifyEnabled}
               />
               <BooleanChoice
@@ -436,7 +436,7 @@ export function StoreSyncModulesPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help="Incluye ajustes de stock al sincronizar productos desde Shopify."
+                help="Incluye stock en el sync."
                 disabled={!draft.products.shopifyEnabled}
               />
               <label className="store-config-field">

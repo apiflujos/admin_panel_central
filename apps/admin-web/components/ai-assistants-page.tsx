@@ -168,7 +168,7 @@ export function AiAssistantsPage({ initialAssistants }: { initialAssistants: Adm
               onChange={(next) => setForm((c) => ({ ...c, is_active: next }))}
               positive="Activo"
               negative="Inactivo"
-              help="Define si el asistente queda disponible para ejecución y orquestación."
+              help="Disponibilidad para ejecución."
             />
           </div>
         </div>

@@ -34,7 +34,7 @@ export function ProfilePage({
     setStatusMessage("");
     try {
       await saveProfile(form);
-      setStatusMessage("Perfil actualizado correctamente.");
+      setStatusMessage("Perfil actualizado.");
       startTransition(() => router.refresh());
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo actualizar el perfil.");

@@ -14,9 +14,7 @@ export function LoginPage({ hasError = false }: { hasError?: boolean }) {
 
         {hasError ? (
           <div className="auth-inline-state auth-inline-state-error">No se pudo iniciar sesión. Revisa tus datos.</div>
-        ) : (
-          <div className="auth-inline-state">Sesión cerrada.</div>
-        )}
+        ) : null}
 
         <form className="auth-form" action="/api/session/login" method="post">
           <label className="auth-field">

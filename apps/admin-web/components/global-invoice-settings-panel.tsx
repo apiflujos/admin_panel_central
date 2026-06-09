@@ -311,7 +311,7 @@ export function GlobalInvoiceSettingsPanel({
             onChange={(next) => setSettings((current) => ({ ...current, applyPayment: next }))}
             positive="Sí"
             negative="No"
-            help="Si está activo, también debes definir medio de pago y cuenta bancaria."
+            help="Requiere medio de pago y cuenta bancaria."
             disabled={loading}
           />
 

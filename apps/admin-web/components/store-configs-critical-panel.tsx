@@ -600,7 +600,7 @@ export function StoreConfigsCriticalPanel({
               }
               positive="Sí"
               negative="No"
-              help="Activa la intención de facturar; los catálogos y pagos se resuelven en facturación global."
+              help="Default global. Catálogos y pagos en facturación."
             />
           </div>
         </div>
@@ -623,7 +623,7 @@ export function StoreConfigsCriticalPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help="Define si esta tienda usa la lógica de traslados entre bodegas."
+                help="Activa traslados entre bodegas."
               />
 
               <label className="store-config-field">
@@ -741,7 +741,7 @@ export function StoreConfigsCriticalPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help="Permite repartir stock entre varias bodegas cuando hace falta."
+                help="Permite repartir stock entre bodegas."
                 disabled={!draft.enabled}
               />
 
@@ -820,7 +820,7 @@ export function StoreConfigsCriticalPanel({
                 }
                 positive="Activo"
                 negative="Inactivo"
-                help="Si está activo, la sincronización operativa queda forzosamente activa."
+                help="Si está activo, fuerza el sync."
               />
 
               <BooleanChoice
@@ -849,7 +849,7 @@ export function StoreConfigsCriticalPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help="Permite que cambios entrantes disparen automatizaciones de catálogo."
+                help="Webhooks disparan automatizaciones."
               />
 
               <BooleanChoice
@@ -891,7 +891,7 @@ export function StoreConfigsCriticalPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help="Evita publicar productos sin imágenes cuando el catálogo viene desde Contable."
+                help="No publica sin imágenes."
               />
             </div>
           </div>
@@ -1104,7 +1104,7 @@ export function StoreConfigsCriticalPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help="Publica automáticamente cuando entra un cambio por webhook."
+                help="Auto-publica al recibir webhook."
               />
 
               <label className="store-config-field">
@@ -1150,7 +1150,7 @@ export function StoreConfigsCriticalPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help="Permite publicar automáticamente cuando corren ajustes de inventario."
+                help="Auto-publica tras ajustes de inventario."
               />
             </div>
           </div>

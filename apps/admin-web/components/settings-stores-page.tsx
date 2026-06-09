@@ -27,7 +27,7 @@ export function SettingsStoresPage({ workspace }: { workspace: ConnectionsWorksp
     try {
       await createStore(name);
       setStoreName("");
-      setStatusMessage(`Tienda "${name}" creada correctamente.`);
+      setStatusMessage(`Tienda "${name}" creada.`);
       startTransition(() => router.refresh());
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo crear la tienda.");
@@ -46,7 +46,7 @@ export function SettingsStoresPage({ workspace }: { workspace: ConnectionsWorksp
     setStatusMessage("");
     try {
       await deleteStore(store.id);
-      setStatusMessage(`Tienda "${store.name}" eliminada correctamente.`);
+      setStatusMessage(`Tienda "${store.name}" eliminada.`);
       startTransition(() => router.refresh());
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo eliminar la tienda.");
