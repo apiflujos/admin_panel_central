@@ -32,7 +32,7 @@ export function CompanyPage({ initialCompany }: { initialCompany: AdminWebCompan
     <section className="page-stack">
       <PageHeader
         title="Empresa"
-        subtitle="Perfil maestro y branding secundario del cliente dentro de la superficie principal."
+        subtitle="Perfil y branding."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -47,35 +47,7 @@ export function CompanyPage({ initialCompany }: { initialCompany: AdminWebCompan
         }
       />
 
-      <section className="metrics-kpis-tight">
-        <article className="metric-card metric-card-violet">
-          <span className="metric-label">Nombre comercial</span>
-          <strong className="metric-value">{form.name || "Sin nombre"}</strong>
-          <span className="metric-note">Identidad visible en la operación</span>
-        </article>
-        <article className="metric-card metric-card-mint">
-          <span className="metric-label">Contacto</span>
-          <strong className="metric-value">{form.phone || "Pendiente"}</strong>
-          <span className="metric-note">Teléfono principal registrado</span>
-        </article>
-        <article className="metric-card metric-card-amber">
-          <span className="metric-label">Branding</span>
-          <strong className="metric-value">{form.logoBase64 ? "Listo" : "Pendiente"}</strong>
-          <span className="metric-note">Logo secundario del cliente</span>
-        </article>
-      </section>
-
       <section className="page-module-shell">
-        <div className="page-module-head">
-          <div>
-            <h3>Perfil principal</h3>
-            <p>Datos base de la empresa y branding secundario del cliente.</p>
-          </div>
-          <div className="page-module-actions">
-            <span className="pill pill-info">Gestión directa</span>
-          </div>
-        </div>
-
         <div className="settings-grid">
           <label className="field">
             <span>Nombre</span>
@@ -104,21 +76,6 @@ export function CompanyPage({ initialCompany }: { initialCompany: AdminWebCompan
               placeholder="Dirección"
             />
           </label>
-          <article className="record-card">
-            <div className="record-card-head">
-              <div>
-                <h4>Checklist mínimo</h4>
-                <p>Paridad básica del perfil empresarial.</p>
-              </div>
-            </div>
-            <div className="record-card-body">
-              <div className="status-stack">
-                <span className={`pill ${form.name ? "pill-ok" : "pill-warn"}`}>Nombre</span>
-                <span className={`pill ${form.phone ? "pill-ok" : "pill-warn"}`}>Teléfono</span>
-                <span className={`pill ${form.address ? "pill-ok" : "pill-warn"}`}>Dirección</span>
-              </div>
-            </div>
-          </article>
           <label className="field field-span-2">
             <span>Logo cliente</span>
             <textarea

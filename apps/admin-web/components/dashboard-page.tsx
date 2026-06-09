@@ -5,10 +5,6 @@ import type {
 import { toneForStatus } from "../lib/status";
 import { StatusPill } from "./ui/status-pill";
 
-function formatDateInput(value: Date) {
-  return value.toISOString().slice(0, 10);
-}
-
 function formatHighlightMetric(row: AdminWebDashboardHighlightRowDto) {
   if (row.kind === "log") return "Incidencia";
   return row.metric || "Actividad";
@@ -30,79 +26,31 @@ function buildHealthBars(overview: AdminWebDashboardOverviewDto) {
 }
 
 export function DashboardPage({ overview }: { overview: AdminWebDashboardOverviewDto }) {
-  const today = new Date();
-  const from = new Date(today);
-  from.setDate(today.getDate() - 30);
   const healthBars = buildHealthBars(overview);
   const highlights = overview.highlights.slice(0, 4);
 
   return (
     <section className="page-stack metrics-page">
       <section className="card metrics-shell metrics-shell-compact">
-        <header className="metrics-filters">
-          <div className="metrics-filter-group">
-            <label className="metrics-filter">
-              <span>Periodo</span>
-              <button className="btn ghost metrics-segment is-active" type="button">
-                Día
-              </button>
-            </label>
-            <label className="metrics-filter">
-              <span>Canal</span>
-              <button className="btn ghost metrics-segment" type="button">
-                Todos
-              </button>
-            </label>
-          </div>
-
-          <div className="metrics-filter-group metrics-filter-group-dates">
-            <label className="metrics-filter">
-              <span>Desde</span>
-              <input className="input" type="date" value={formatDateInput(from)} readOnly />
-            </label>
-            <label className="metrics-filter">
-              <span>Hasta</span>
-              <input className="input" type="date" value={formatDateInput(today)} readOnly />
-            </label>
-          </div>
-        </header>
-
-        <div className="metrics-tabs">
-          <button className="btn ghost metrics-tab is-active" type="button">
-            Resumen
-          </button>
-          <button className="btn ghost metrics-tab" type="button">
-            Operación
-          </button>
-          <button className="btn ghost metrics-tab" type="button">
-            Riesgos
-          </button>
-          <button className="btn ghost metrics-tab" type="button">
-            Highlights
-          </button>
-        </div>
-
         <section className="metrics-kpis metrics-kpis-dashboard metrics-kpis-compact">
           <article className="card metrics-kpi metrics-kpi-primary">
-            <span className="metrics-kpi-label">Productos activos</span>
+            <span className="metrics-kpi-label">Productos</span>
             <strong>{overview.totalProducts}</strong>
-            <p>Catálogo listo para operar</p>
           </article>
           <article className="card metrics-kpi metrics-kpi-success">
-            <span className="metrics-kpi-label">Conexiones activas</span>
+            <span className="metrics-kpi-label">Conexiones</span>
             <strong>{overview.activeConnections}</strong>
-            <p>{overview.moduleCount} módulos habilitados</p>
+            <p>{overview.moduleCount} módulos</p>
           </article>
           <article className="card metrics-kpi metrics-kpi-warning">
             <span className="metrics-kpi-label">Pedidos 7 días</span>
             <strong>{overview.totalOrders}</strong>
-            <p>Ventana operativa actual</p>
           </article>
           <article className="card metrics-kpi metrics-kpi-danger">
             <span className="metrics-kpi-label">Riesgos</span>
             <strong>{overview.pendingActions + overview.failedLogs}</strong>
             <p>
-              {overview.pendingActions} pendientes · {overview.failedLogs} logs fallidos
+              {overview.pendingActions} pendientes · {overview.failedLogs} fallidos
             </p>
           </article>
         </section>
@@ -112,7 +60,6 @@ export function DashboardPage({ overview }: { overview: AdminWebDashboardOvervie
             <div className="metrics-panel-head">
               <div>
                 <h3>Salud operativa</h3>
-                <p>Distribución visual de los indicadores principales del cliente.</p>
               </div>
               <span className="pill pill-info">{overview.companyName}</span>
             </div>
@@ -136,9 +83,8 @@ export function DashboardPage({ overview }: { overview: AdminWebDashboardOvervie
             <div className="metrics-panel-head">
               <div>
                 <h3>Highlights recientes</h3>
-                <p>Productos, pedidos y logs priorizados para seguimiento rápido.</p>
               </div>
-              <span className="pill">{highlights.length} items</span>
+              <span className="pill">{highlights.length}</span>
             </div>
 
             <div className="metrics-highlight-grid metrics-highlight-grid-compact">
@@ -161,7 +107,6 @@ export function DashboardPage({ overview }: { overview: AdminWebDashboardOvervie
               ) : (
                 <div className="metrics-empty-state">
                   <strong>Sin highlights recientes</strong>
-                  <p>Cuando entren productos, pedidos o logs relevantes aparecerán aquí.</p>
                 </div>
               )}
             </div>

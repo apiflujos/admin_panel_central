@@ -270,20 +270,19 @@ export function GlobalInvoiceSettingsPanel({
       <div className="connection-card-head">
         <div>
           <h3>Factura global</h3>
-          <p>Valores globales de facturación, pago y e-factura para el cliente.</p>
+          <p>Reglas base de facturación, pago y e-factura.</p>
         </div>
         <div className="connection-card-actions">
           <span className={`pill ${alegraConnected ? "pill-ok" : "pill-warn"}`}>
             {alegraConnected ? "Alegra conectada" : "Alegra pendiente"}
           </span>
-          {activeStore ? <span className="pill">Contexto · {activeStore.name}</span> : null}
+          {activeStore ? <span className="pill">{activeStore.name}</span> : null}
         </div>
       </div>
 
       <div className="settings-subsection">
         <div className="settings-subsection-head">
-          <strong>Defaults de comportamiento</strong>
-          <span>Toggles base para facturación y e-factura</span>
+          <strong>Comportamiento base</strong>
         </div>
         <div className="store-configs-grid">
           <BooleanChoice
@@ -291,7 +290,7 @@ export function GlobalInvoiceSettingsPanel({
             value={settings.generateInvoice}
             onChange={(next) => setSettings((current) => ({ ...current, generateInvoice: next }))}
             positive="Activo"
-            negative="Apagado"
+            negative="Inactivo"
             help="Default global para pedidos Shopify → Alegra."
             disabled={loading}
           />
@@ -329,17 +328,12 @@ export function GlobalInvoiceSettingsPanel({
       <details className="settings-collapsible" open>
         <summary className="settings-collapsible-summary">
           <strong>Catálogos Alegra</strong>
-          <span>Documento y recaudo resueltos con la cuenta de la tienda activa</span>
+          <span>Documento y recaudo de la cuenta activa</span>
         </summary>
         <div className="settings-subsection">
           <div className="settings-subsection-head">
             <strong>Documento</strong>
-            <span>Defaults fiscales y de emisión</span>
           </div>
-          <p className="connection-inline-note">
-            Estos catálogos salen de la cuenta Alegra asociada a la tienda activa; si cambias de tienda, cambia el
-            contexto disponible.
-          </p>
           <div className="store-configs-grid">
             {renderSelect(
               "Resolución DIAN",
@@ -374,11 +368,8 @@ export function GlobalInvoiceSettingsPanel({
         <div className="settings-subsection">
           <div className="settings-subsection-head">
             <strong>Pago</strong>
-            <span>Solo aplica cuando `Aplicar pago` está activo</span>
+            <span>Solo cuando `Aplicar pago` está activo</span>
           </div>
-          <p className="connection-inline-note">
-            Completa este bloque solo cuando el toggle `Aplicar pago` quede activo en la parte superior.
-          </p>
           <div className="store-configs-grid">
             {renderSelect(
               "Medio de pago",
@@ -401,7 +392,7 @@ export function GlobalInvoiceSettingsPanel({
       <details className="settings-collapsible">
         <summary className="settings-collapsible-summary">
           <strong>Observaciones</strong>
-          <span>Builder avanzado del template persistido</span>
+          <span>Bloques reutilizables para el texto de la factura</span>
         </summary>
         <div className="settings-subsection">
           <div className="store-configs-grid">

@@ -242,7 +242,7 @@ export function StoreConfigPriceListsPanel({
           disabled={!activeStore || !dirty || saveState === "saving"}
           onClick={() => void persist()}
         >
-          {saveState === "saving" ? "Guardando..." : "Guardar price lists"}
+          {saveState === "saving" ? "Guardando..." : "Guardar listas"}
         </button>
         {saveMessage ? <span>{saveMessage}</span> : null}
       </div>

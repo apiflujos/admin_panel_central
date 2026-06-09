@@ -128,10 +128,9 @@ export function StoreMarketingConfigPanel({
       <div className="connection-card-head">
         <div>
           <h3>Configuración de marketing</h3>
-          <p>Script, pixel key y webhooks de la tienda activa dentro del flujo de Shopify.</p>
+          <p>Pixel, script y webhooks de la tienda.</p>
         </div>
         <div className="connection-card-actions">
-          {activeStore ? <span className="pill">Tienda · {activeStore.name}</span> : null}
           {shopDomain ? <span className="pill pill-info">{shopDomain}</span> : null}
           {webhookStatus ? (
             <span className={`pill ${webhookTone}`}>
@@ -143,24 +142,21 @@ export function StoreMarketingConfigPanel({
 
       {!canOperate ? (
         <p className="connection-inline-note">
-          Selecciona una tienda con Shopify conectado para operar Pixel y Webhooks de Marketing.
+          Selecciona una tienda con Shopify conectado.
         </p>
       ) : null}
       {canOperate && !loading && !pixelConfig && !webhookStatus && message ? (
         <p className="connection-inline-note connection-inline-note-error">
-          No se pudo cargar el estado de marketing para la tienda activa. Revisa la conexión Shopify o usa la superficie
-          heredada.
+          No se pudo cargar el estado de marketing. Revisa la conexión Shopify.
         </p>
       ) : null}
 
       <div className="settings-subsection">
         <div className="settings-subsection-head">
-          <strong>Paso 2. Instalar script y key</strong>
-          <span>Valores de instalación y trazabilidad de la tienda.</span>
+          <strong>Pixel y script</strong>
         </div>
         <p className="connection-inline-note">
-          Primero instala script o key en Shopify. Solo después valida webhooks para no diagnosticar una configuración
-          incompleto.
+          Instala script y key en Shopify antes de validar webhooks.
         </p>
         <div className="provider-mark-row compact-provider-row">
           <ProviderMark provider="Shopify" />
@@ -193,7 +189,7 @@ export function StoreMarketingConfigPanel({
                 {actionState === "rotate" ? "Rotando..." : "Rotar key"}
               </button>
             </div>
-            <small>La key identifica el pixel instalado en el theme de Shopify para esa tienda.</small>
+            <small>Identifica el pixel instalado en el theme de Shopify.</small>
           </label>
 
           <label className="store-config-field store-config-field-span-2">
@@ -214,7 +210,7 @@ export function StoreMarketingConfigPanel({
                 Copiar script
               </button>
             </div>
-            <small>Pégalo en `theme.liquid`. Sin eso no habrá sesiones ni atribución de tráfico.</small>
+            <small>Pégalo en `theme.liquid`. Sin esto no hay sesiones ni atribución.</small>
           </label>
 
           <label className="store-config-field store-config-field-span-2">
@@ -237,18 +233,17 @@ export function StoreMarketingConfigPanel({
                 Copiar URL
               </button>
             </div>
-            <small>URL esperada para `orders`, `checkouts` y `customers` dentro del módulo de marketing.</small>
+            <small>URL esperada para `orders`, `checkouts` y `customers`.</small>
           </label>
         </div>
       </div>
 
       <div className="settings-subsection">
         <div className="settings-subsection-head">
-          <strong>Paso 3. Validar webhooks</strong>
-          <span>Eventos esperados y acciones operativas sobre Shopify.</span>
+          <strong>Webhooks</strong>
         </div>
         <p className="connection-inline-note">
-          Si falta un topic, recrea webhooks desde aquí antes de pasar a analítica o revisar eventos de marketing.
+          Si falta algún topic, recréalo antes de revisar la analítica.
         </p>
         <div className="store-configs-grid">
           <div className="store-config-field store-config-field-span-2">
@@ -260,7 +255,7 @@ export function StoreMarketingConfigPanel({
                 </span>
               ))}
             </div>
-            <small>El estado compara estos eventos contra las suscripciones reales de Shopify.</small>
+            <small>Comparados contra las suscripciones reales de Shopify.</small>
           </div>
 
           <div className="store-config-field store-config-field-span-2">
@@ -294,7 +289,7 @@ export function StoreMarketingConfigPanel({
                 Ver analítica
               </a>
             </div>
-            <small>Cuando la configuración quede estable, continúa con el módulo de analítica y embudo.</small>
+            <small>Cuando esté estable, pasa al módulo de analítica.</small>
           </div>
         </div>
       </div>

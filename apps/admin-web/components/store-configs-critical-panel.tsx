@@ -532,7 +532,7 @@ export function StoreConfigsCriticalPanel({
         <div className="settings-subsection store-config-field-span-2">
           <div className="settings-subsection-head">
             <strong>Flujo core</strong>
-            <span>Gating principal entre Shopify, Alegra y factura por tienda</span>
+            
           </div>
           <div className="store-configs-grid">
             <BooleanChoice
@@ -545,8 +545,8 @@ export function StoreConfigsCriticalPanel({
                 }))
               }
               positive="Activa"
-              negative="Inactivo"
-              help="Pausa la operación sin desmontar la conexión. Si controlas inventario, queda activa por diseño."
+              negative="Inactiva"
+              help="Pausa la operación sin desmontar la conexión."
               disabled={draft.trackInventory}
             />
 
@@ -608,7 +608,7 @@ export function StoreConfigsCriticalPanel({
         <details className="settings-collapsible store-config-field-span-2">
           <summary className="settings-collapsible-summary">
             <strong>Traslados y destino</strong>
-            <span>Resolución logística para bodegas, prioridades y reparto de stock</span>
+            
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
@@ -643,7 +643,7 @@ export function StoreConfigsCriticalPanel({
                   <option value="auto">Auto</option>
                   <option value="rule">Por regla</option>
                 </select>
-                <small>Define cómo se elige la bodega de destino en cada operación.</small>
+                
               </label>
 
               <BooleanChoice
@@ -770,7 +770,7 @@ export function StoreConfigsCriticalPanel({
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Inventario y automatización</strong>
-            <span>Ajustes, sobreventa, webhooks y creación o publicación automática</span>
+            
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
@@ -784,7 +784,7 @@ export function StoreConfigsCriticalPanel({
                   }))
                 }
                 positive="Activos"
-                negative="Pausados"
+                negative="Inactivos"
                 help="Pausa los ajustes automáticos sin desmontar la conexión."
               />
 
@@ -819,8 +819,8 @@ export function StoreConfigsCriticalPanel({
                   }))
                 }
                 positive="Activo"
-                negative="Apagado"
-                help="Si está activo, la sincronización operativa no puede quedar apagada."
+                negative="Inactivo"
+                help="Si está activo, la sincronización operativa queda forzosamente activa."
               />
 
               <BooleanChoice
@@ -900,7 +900,7 @@ export function StoreConfigsCriticalPanel({
         <details className="settings-collapsible store-config-field-span-2">
           <summary className="settings-collapsible-summary">
             <strong>Bodegas y publicación final</strong>
-            <span>Selección efectiva de bodegas y reglas finales de publicación automática</span>
+            
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
