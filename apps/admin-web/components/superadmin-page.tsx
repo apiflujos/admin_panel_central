@@ -9,7 +9,7 @@ export function SuperAdminPage({ overview }: { overview: AdminWebSuperAdminOverv
     <section className="page-stack">
       <PageHeader
         title="Super Admin"
-        subtitle="Clientes, planes, servicios y usuarios ApiFlujos."
+        subtitle="Clientes, planes y usuarios ApiFlujos."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -34,17 +34,11 @@ export function SuperAdminPage({ overview }: { overview: AdminWebSuperAdminOverv
               />
             </div>
           }
-          filters={
+          views={
             <>
               <span className="pill pill-info">Usuarios · {overview.summary.usersCount}</span>
               <span className="pill">Clientes · {overview.summary.tenantsCount}</span>
               <span className="pill">Planes · {overview.summary.plansCount}</span>
-            </>
-          }
-          views={
-            <>
-              <span className="pill pill-info">Resumen</span>
-              <span className="pill">Usuarios</span>
             </>
           }
           actions={
@@ -58,37 +52,22 @@ export function SuperAdminPage({ overview }: { overview: AdminWebSuperAdminOverv
           <article className="metrics-kpi metrics-kpi-primary">
             <p className="metrics-kpi-label">Clientes</p>
             <strong>{overview.tenantsCount}</strong>
-            <p>Organizaciones activas en la base compartida</p>
           </article>
           <article className="metrics-kpi metrics-kpi-success">
             <p className="metrics-kpi-label">Planes</p>
             <strong>{overview.plansCount}</strong>
-            <p>Planes activos</p>
           </article>
           <article className="metrics-kpi metrics-kpi-warning">
             <p className="metrics-kpi-label">Servicios</p>
             <strong>{overview.servicesCount}</strong>
-            <p>Servicios base disponibles</p>
           </article>
           <article className="metrics-kpi metrics-kpi-primary">
             <p className="metrics-kpi-label">Módulos</p>
             <strong>{overview.modulesCount}</strong>
-            <p>Capacidades publicadas</p>
           </article>
         </section>
 
         <section className="card page-module-shell">
-          <div className="page-module-head">
-            <div>
-              <strong>Usuarios ApiFlujos</strong>
-              <span>Personal con intervención transversal sobre clientes y soporte.</span>
-            </div>
-            <div className="page-module-actions">
-              <span className="pill">Total {overview.users.length}</span>
-              <span className="pill">Acceso elevado</span>
-            </div>
-          </div>
-
           <DataTable
             columns={[
               {

@@ -100,7 +100,7 @@ export function AiAssistantsPage({ initialAssistants }: { initialAssistants: Adm
     <section className="page-stack">
       <PageHeader
         title="Asistentes IA"
-        subtitle="Configuración editorial y operativa de asistentes conectados a n8n."
+        subtitle="Asistentes conectados a n8n."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -109,44 +109,25 @@ export function AiAssistantsPage({ initialAssistants }: { initialAssistants: Adm
           </>
         }
         actions={
-          <a className="btn ghost" href="/legacy/settings">
-            Configuración avanzada
-          </a>
+          <>
+            <span className="pill">{assistantsCount} total</span>
+            <span className="pill">{activeCount} activos</span>
+            <a className="btn ghost" href="/legacy/settings">
+              Configuración avanzada
+            </a>
+          </>
         }
       />
-
-      <section className="metrics-kpis-tight">
-        <article className="metric-card metric-card-violet">
-          <span className="metric-label">Asistentes</span>
-          <strong className="metric-value">{assistantsCount}</strong>
-          <span className="metric-note">Registrados en el cliente</span>
-        </article>
-        <article className="metric-card metric-card-mint">
-          <span className="metric-label">Activos</span>
-          <strong className="metric-value">{activeCount}</strong>
-          <span className="metric-note">Disponibles para n8n</span>
-        </article>
-        <article className="metric-card metric-card-amber">
-          <span className="metric-label">Cobertura</span>
-          <strong className="metric-value">Next</strong>
-          <span className="metric-note">Respaldo</span>
-        </article>
-      </section>
 
       <section className="page-module-shell">
         <div className="page-module-head">
           <div>
             <h3>{editingId ? "Editar asistente" : "Crear asistente"}</h3>
-            <p>Configura asistentes vinculados a n8n para el cliente.</p>
-          </div>
-          <div className="page-module-actions">
-            <span className="pill pill-info">Gestión directa</span>
           </div>
         </div>
         <div className="settings-subsection">
           <div className="settings-subsection-head">
             <strong>Identidad base</strong>
-            <span>Nombre, endpoint y presencia visual del asistente</span>
           </div>
           <div className="settings-grid">
             <label className="field">
@@ -195,7 +176,6 @@ export function AiAssistantsPage({ initialAssistants }: { initialAssistants: Adm
         <div className="settings-subsection">
           <div className="settings-subsection-head">
             <strong>Prompt y gobierno</strong>
-            <span>Instrucción, políticas e identidad textual del asistente</span>
           </div>
           <div className="settings-grid">
             <label className="field field-span-2">
@@ -239,17 +219,6 @@ export function AiAssistantsPage({ initialAssistants }: { initialAssistants: Adm
       </section>
 
       <section className="page-module-shell">
-        <div className="page-module-head">
-          <div>
-            <h3>Asistentes configurados</h3>
-            <p>Inventario operativo de agentes publicados para el cliente.</p>
-          </div>
-          <div className="page-module-actions">
-            <span className="pill">Total {initialAssistants.length}</span>
-            <span className="pill">Activos {activeCount}</span>
-          </div>
-        </div>
-
         <DataTable
           columns={[
             {

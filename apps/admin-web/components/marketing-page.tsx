@@ -30,7 +30,7 @@ export function MarketingPage({ overview }: { overview: AdminWebMarketingOvervie
     <section className="page-stack metrics-page">
       <PageHeader
         title="Marketing"
-        subtitle="Métricas de performance, canal y embudo del periodo."
+        subtitle="Performance, canales y embudo."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -60,18 +60,11 @@ export function MarketingPage({ overview }: { overview: AdminWebMarketingOvervie
               </div>
             </form>
           }
-          filters={
+          views={
             <>
               <span className="pill pill-info">ROAS · {overview.roas != null ? overview.roas.toFixed(2) : "—"}</span>
               <span className="pill">Nuevos · {overview.customersNew}</span>
               <span className="pill">Recurrentes · {overview.customersRepeat}</span>
-            </>
-          }
-          views={
-            <>
-              <span className="pill pill-info">Resumen</span>
-              <span className="pill">Canales</span>
-              <span className="pill">Campañas</span>
             </>
           }
           actions={
@@ -109,7 +102,6 @@ export function MarketingPage({ overview }: { overview: AdminWebMarketingOvervie
           <article className="metrics-kpi metrics-kpi-warning">
             <p className="metrics-kpi-label">Inversión</p>
             <strong>{overview.spend.toLocaleString("es-CO")}</strong>
-            <p>Medios pagos consolidados</p>
           </article>
           <article className="metrics-kpi metrics-kpi-success">
             <p className="metrics-kpi-label">Pedidos pagados</p>
@@ -128,7 +120,6 @@ export function MarketingPage({ overview }: { overview: AdminWebMarketingOvervie
             <div className="metrics-panel-head">
               <div>
                 <h3>Salud del embudo</h3>
-                <p>Lectura rápida de intención, checkout y monetización.</p>
               </div>
               <StatusPill tone="info" small>
                 {overview.shopDomain}
@@ -178,7 +169,6 @@ export function MarketingPage({ overview }: { overview: AdminWebMarketingOvervie
             <div className="metrics-panel-head">
               <div>
                 <h3>Highlights del periodo</h3>
-                <p>Lectura ejecutiva de adquisición y recurrencia.</p>
               </div>
             </div>
             <div className="metrics-highlight-grid">
@@ -188,23 +178,20 @@ export function MarketingPage({ overview }: { overview: AdminWebMarketingOvervie
                   <span className="metrics-highlight-metric">{overview.customersNew}</span>
                 </div>
                 <strong>Adquisición</strong>
-                <p>Usuarios captados por campañas o canales directos.</p>
               </article>
               <article className="metrics-highlight-card">
                 <div className="metrics-highlight-top">
-                  <span className="metrics-highlight-kind">Clientes recurrentes</span>
+                  <span className="metrics-highlight-kind">Recurrentes</span>
                   <span className="metrics-highlight-metric">{overview.customersRepeat}</span>
                 </div>
                 <strong>Retención</strong>
-                <p>Base que vuelve a comprar en la ventana observada.</p>
               </article>
               <article className="metrics-highlight-card">
                 <div className="metrics-highlight-top">
-                  <span className="metrics-highlight-kind">Agregar al carrito</span>
+                  <span className="metrics-highlight-kind">Carrito</span>
                   <span className="metrics-highlight-metric">{overview.addToCart}</span>
                 </div>
-                <strong>Intento de compra</strong>
-                <p>Señal temprana del interés sobre producto y oferta.</p>
+                <strong>Intento</strong>
               </article>
               <article className="metrics-highlight-card">
                 <div className="metrics-highlight-top">
@@ -212,7 +199,6 @@ export function MarketingPage({ overview }: { overview: AdminWebMarketingOvervie
                   <span className="metrics-highlight-metric">{overview.checkouts}</span>
                 </div>
                 <strong>Cierre</strong>
-                <p>Usuarios que avanzaron hasta el paso final del embudo.</p>
               </article>
             </div>
           </article>
@@ -221,8 +207,7 @@ export function MarketingPage({ overview }: { overview: AdminWebMarketingOvervie
         <section className="card page-module-shell">
           <div className="page-module-head">
             <div>
-              <strong>Canales con mayor aporte</strong>
-              <span>Comparativa de revenue, pedidos y eficiencia por origen.</span>
+              <strong>Canales</strong>
             </div>
           </div>
           <DataTable<AdminWebMarketingChannelDto>
@@ -274,8 +259,7 @@ export function MarketingPage({ overview }: { overview: AdminWebMarketingOvervie
         <section className="card page-module-shell">
           <div className="page-module-head">
             <div>
-              <strong>Campañas principales</strong>
-              <span>Lectura rápida de desempeño sobre las campañas con mayor tracción.</span>
+              <strong>Campañas</strong>
             </div>
           </div>
           <DataTable<AdminWebMarketingCampaignDto>

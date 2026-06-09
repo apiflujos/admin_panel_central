@@ -23,7 +23,7 @@ export function LogsPage({ result }: { result: AdminWebLogsListDto }) {
     <section className="page-stack">
       <PageHeader
         title="Logs"
-        subtitle="Trazas, errores y reintentos de sincronización."
+        subtitle="Trazas, errores y reintentos."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -55,26 +55,19 @@ export function LogsPage({ result }: { result: AdminWebLogsListDto }) {
               </div>
             </form>
           }
-          filters={
-            <>
-              <span className="pill pill-info">Últimos {result.summary.total}</span>
-              <span className="pill">Fallidos · {result.summary.failedCount}</span>
-              <span className="pill">Reintentando · {result.summary.retryingCount}</span>
-            </>
-          }
           views={
             <>
               <a className={!result.filters.status ? "pill pill-info" : "pill"} href="/logs">
-                Recientes
+                Recientes · {result.summary.total}
               </a>
               <a className={result.filters.status === "fail" ? "pill pill-info" : "pill"} href="/logs?status=fail">
-                Errores
+                Errores · {result.summary.failedCount}
               </a>
               <a
                 className={result.filters.status === "retrying" ? "pill pill-info" : "pill"}
                 href="/logs?status=retrying"
               >
-                Reintentos
+                Reintentos · {result.summary.retryingCount}
               </a>
             </>
           }
@@ -102,42 +95,7 @@ export function LogsPage({ result }: { result: AdminWebLogsListDto }) {
           }
         />
 
-        <section className="metrics-kpis metrics-kpis-tight">
-          <article className="metrics-kpi metrics-kpi-primary">
-            <p className="metrics-kpi-label">Total</p>
-            <strong>{result.summary.total}</strong>
-            <p>Filas renderizadas</p>
-          </article>
-          <article className="metrics-kpi metrics-kpi-danger">
-            <p className="metrics-kpi-label">Fallidos</p>
-            <strong>{result.summary.failedCount}</strong>
-            <p>Requieren atención</p>
-          </article>
-          <article className="metrics-kpi metrics-kpi-warning">
-            <p className="metrics-kpi-label">Reintentos</p>
-            <strong>{result.summary.retryingCount}</strong>
-            <p>En cola o reintento</p>
-          </article>
-          <article className="metrics-kpi metrics-kpi-success">
-            <p className="metrics-kpi-label">Éxitos visibles</p>
-            <strong>
-              {Math.max(result.summary.total - result.summary.failedCount - result.summary.retryingCount, 0)}
-            </strong>
-            <p>Éxitos dentro del set actual</p>
-          </article>
-        </section>
-
         <section className="card page-module-shell">
-          <div className="page-module-head">
-            <div>
-              <strong>Registro operativo</strong>
-              <span>Últimos eventos relevantes para soporte, triage y auditoría.</span>
-            </div>
-            <div className="page-module-actions">
-              <span className="pill">Entidad {result.filters.entity || "Todas"}</span>
-              <span className="pill">Estado {result.filters.status || "Todos"}</span>
-            </div>
-          </div>
           <DataTable
             columns={[
               {

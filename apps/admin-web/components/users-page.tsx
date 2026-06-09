@@ -7,7 +7,6 @@ import type { AdminWebTenantUser } from "../lib/api";
 import { createTenantUser, deleteTenantUser } from "../lib/api";
 import { DataTable } from "./ui/data-table";
 import { PageHeader } from "./ui/page-header";
-import { StageGuide } from "./ui/stage-guide";
 
 export function UsersPage({
   initialUsers,
@@ -64,7 +63,7 @@ export function UsersPage({
     <section className="page-stack">
       <PageHeader
         title="Usuarios"
-        subtitle="Alta, visibilidad y control operativo de usuarios del cliente."
+        subtitle="Alta y roles del equipo."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -73,43 +72,12 @@ export function UsersPage({
           </>
         }
         actions={
-          <a className="btn ghost" href="/legacy/settings">
-            Configuración avanzada
-          </a>
-        }
-      />
-
-      <section className="metrics-kpis metrics-kpis-tight">
-        <article className="metrics-kpi metrics-kpi-primary">
-          <span className="metrics-kpi-label">Usuarios</span>
-          <strong>{initialUsers.length}</strong>
-          <span className="stat-note">Identidades activas del cliente</span>
-        </article>
-        <article className="metrics-kpi metrics-kpi-success">
-          <span className="metrics-kpi-label">Admins</span>
-          <strong>{initialUsers.filter((user) => user.role === "admin").length}</strong>
-          <span className="stat-note">Capacidad operativa ampliada</span>
-        </article>
-        <article className="metrics-kpi metrics-kpi-warning">
-          <span className="metrics-kpi-label">Política de roles</span>
-          <strong>{canAssignRoles ? "Amplia" : "Restringida"}</strong>
-          <span className="stat-note">Solo super admins asignan admin</span>
-        </article>
-      </section>
-
-      <StageGuide
-        title="Flujo del submódulo"
-        description="Primero das de alta la identidad, luego defines el rol permitido y al final validas el equipo activo del cliente."
-        items={[
-          "Cargar nombre, email, teléfono y contraseña inicial.",
-          "Definir el rol según la política actual del backend.",
-          "Confirmar alta y revisar el inventario de usuarios.",
-        ]}
-        next={
           <>
-            <span className="pill pill-info">1. Crear identidad</span>
-            <span className="pill">2. Definir rol</span>
-            <span className="pill">3. Validar equipo</span>
+            <span className="pill">{initialUsers.length} total</span>
+            <span className="pill">{initialUsers.filter((user) => user.role === "admin").length} admin</span>
+            <a className="btn ghost" href="/legacy/settings">
+              Configuración avanzada
+            </a>
           </>
         }
       />
@@ -118,19 +86,9 @@ export function UsersPage({
         <div className="page-module-head">
           <div>
             <h3>Crear usuario</h3>
-            <p>Alta básica ya gestionada por Next. Los roles siguen respetando las restricciones del backend.</p>
-          </div>
-          <div className="page-module-actions">
-            <span className="pill pill-info">Gestión directa</span>
           </div>
         </div>
         <div className="settings-subsection">
-          <div className="settings-subsection-head">
-            <div>
-              <strong>Identidad base</strong>
-              <span>Datos de contacto y credenciales iniciales.</span>
-            </div>
-          </div>
           <div className="settings-grid">
             <label className="field">
               <span>Nombre</span>
@@ -169,12 +127,6 @@ export function UsersPage({
           </div>
         </div>
         <div className="settings-subsection">
-          <div className="settings-subsection-head">
-            <div>
-              <strong>Acceso y permisos</strong>
-              <span>El backend sigue limitando la asignación de roles elevados.</span>
-            </div>
-          </div>
           <div className="settings-grid">
             <div className="field">
               <span>Rol</span>
@@ -195,11 +147,7 @@ export function UsersPage({
                   Admin
                 </button>
               </div>
-              <small>
-                {canAssignRoles
-                  ? "Usa admin solo cuando el usuario necesite capacidad operativa ampliada."
-                  : "El rol admin sigue restringido a super admins ApiFlujos."}
-              </small>
+              {!canAssignRoles ? <small>Admin solo para super admins ApiFlujos.</small> : null}
             </div>
           </div>
         </div>
@@ -217,13 +165,6 @@ export function UsersPage({
       </section>
 
       <section className="page-module-shell">
-        <div className="page-module-head">
-          <div>
-            <h3>Usuarios del cliente</h3>
-            <p>Vista operativa del equipo con foco en contacto y rol.</p>
-          </div>
-        </div>
-
         <DataTable
           columns={[
             {
