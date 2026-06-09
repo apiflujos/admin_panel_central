@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { AdminWebInvoiceRowDto, AdminWebInvoicesListDto } from "../../../packages/shared/src/admin-web";
 import { getInvoicesCatalog } from "../lib/api";
 import { DataTable } from "./ui/data-table";
+import { InfoHint } from "./ui/info-hint";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { StatusPill } from "./ui/status-pill";
@@ -67,7 +68,7 @@ export function InvoicesPage({ result }: { result: AdminWebInvoicesListDto }) {
     <section className="page-stack">
       <PageHeader
         title="Facturas"
-        subtitle="Facturación, estado documental y descarga de soporte."
+        subtitle="Estado documental."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -160,7 +161,9 @@ export function InvoicesPage({ result }: { result: AdminWebInvoicesListDto }) {
       <section className="card page-module-shell page-module-shell-compact">
         <div className="page-module-head">
           <div>
-            <strong>Libro documental</strong>
+            <strong>
+              Libro documental <InfoHint label="Úsalo para revisar estado, soporte y descarga de facturas visibles." />
+            </strong>
             <span>{filteredRows.length} facturas visibles para seguimiento, descarga y conciliación rápida.</span>
           </div>
           <div className="page-module-actions">

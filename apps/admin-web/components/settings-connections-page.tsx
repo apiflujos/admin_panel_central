@@ -1,23 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { ConnectionStatusDto, SettingsOverviewDto } from "../../../packages/shared/src/admin-web";
 import type { ConnectionsWorkspace } from "../lib/connections-workspace";
 import { copyStoreConfigFrom } from "../lib/api";
 import { toneForStatus } from "../lib/status";
 import { GlobalInvoiceSettingsPanel } from "./global-invoice-settings-panel";
-import { LegacySyncCompatibilityPanel } from "./legacy-sync-compatibility-panel";
 import { StoreConfigPriceListsPanel } from "./store-config-price-lists-panel";
 import { StoreConfigsCriticalPanel } from "./store-configs-critical-panel";
-import { StoreSyncActionsPanel } from "./store-sync-actions-panel";
-import { StoreSyncAutomationPanel } from "./store-sync-automation-panel";
-import { StoreMarketingConfigPanel } from "./store-marketing-config-panel";
 import { StoreSyncModulesPanel } from "./store-sync-modules-panel";
+import { InfoHint } from "./ui/info-hint";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { ProviderMark } from "./ui/provider-mark";
-import { StageGuide } from "./ui/stage-guide";
 import { StatusPill } from "./ui/status-pill";
 
 type ConnectionRow = ConnectionStatusDto & { id: string };
@@ -30,7 +26,7 @@ type WebhookStatus = {
   callbackUrl?: string;
 };
 
-type ConfigFlowStage = "channels" | "operations" | "invoice" | "marketing" | "legacy";
+type ConfigFlowStage = "channels" | "products" | "inventory" | "orders" | "contacts" | "invoice";
 type ConnectionWizardStep = "store" | "group" | "platform" | "form";
 type ConnectionWizardGroup = "commerce" | "accounting" | "ads";
 type ConnectionWizardPlatform =
@@ -41,43 +37,6 @@ type ConnectionWizardPlatform =
   | "meta-ads"
   | "tiktok-ads"
   | "shopify-marketing";
-
-const stageMeta: Record<ConfigFlowStage, { title: string; description: string; checklist: string[]; next: string }> = {
-  channels: {
-    title: "Conexiones",
-    description: "Conecta tiendas y proveedores antes de tocar reglas operativas, contables o de marketing.",
-    checklist: ["Elegir tienda", "Conectar Shopify/WooCommerce/Alegra", "Validar Ads y webhooks"],
-    next: "Luego pasa a Operación para reglas y logística.",
-  },
-  operations: {
-    title: "Configuración operativa",
-    description: "Define sync, traslados, inventario y publicación automática por tienda.",
-    checklist: ["Ajustar flujo core", "Revisar traslados", "Validar inventario y publicación"],
-    next: "Después revisa Facturación para defaults globales.",
-  },
-  invoice: {
-    title: "Facturación",
-    description: "Resuelve defaults de documento, pago y observaciones a nivel cliente.",
-    checklist: ["Activar factura/e-factura", "Cargar catálogos Alegra", "Revisar observaciones"],
-    next: "Luego valida Marketing si usas pixel y webhooks.",
-  },
-  marketing: {
-    title: "Marketing",
-    description: "Prepara pixel, script y webhooks por tienda Shopify antes de mirar analítica.",
-    checklist: ["Elegir tienda", "Copiar script", "Validar webhooks"],
-    next: "Si falta algo no vuelvas al dashboard; corrígelo aquí primero.",
-  },
-  legacy: {
-    title: "Compatibilidad heredada",
-    description: "Solo para casos que aún no están en la superficie nueva o ajustes avanzados todavía no migrados.",
-    checklist: [
-      "Usar la superficie heredada con criterio",
-      "Evitar tocarlo si ya existe flujo nuevo",
-      "Salir apenas cierres el ajuste",
-    ],
-    next: "Vuelve al flujo nuevo apenas cierres el caso pendiente.",
-  },
-};
 
 function wizardPlatformHint(platform: ConnectionWizardPlatform | null) {
   if (platform === "shopify") {
@@ -96,6 +55,15 @@ function wizardPlatformHint(platform: ConnectionWizardPlatform | null) {
     return "El pixel, script y webhooks ya viven en el submódulo propio de marketing.";
   }
   return "Completa solo los datos mínimos para abrir o restablecer la conexión.";
+}
+
+function SettingsInlineDetail({ summary, children }: { summary: string; children: ReactNode }) {
+  return (
+    <details className="settings-mini-help">
+      <summary>{summary}</summary>
+      <div className="settings-mini-help-body">{children}</div>
+    </details>
+  );
 }
 
 export function SettingsConnectionsPage({
@@ -200,8 +168,6 @@ export function SettingsConnectionsPage({
         })),
     [selectedStore?.id, workspaceState.storeConfigs]
   );
-  const stageGuide = stageMeta[activeStage];
-
   useEffect(() => {
     setCopySourceStoreId((current) => {
       if (!copyableSourceStores.length) return null;
@@ -266,16 +232,14 @@ export function SettingsConnectionsPage({
   const selectedShopifyProvider = selectedStore?.providers.shopify ?? null;
   const selectedWooProvider = selectedStore?.providers.woocommerce ?? null;
   const selectedAlegraProvider = selectedStore?.providers.alegra ?? null;
+  const commerceLabel = selectedShopifyProvider ? "Shopify" : selectedWooProvider ? "WooCommerce" : "Tienda";
+  const commerceGroupLabel = selectedShopifyProvider && selectedWooProvider ? "Canales de venta" : commerceLabel;
+  const accountingLabel = selectedAlegraProvider ? "Alegra" : "Contabilidad";
   const connectedAdsCount = workspaceState.ads.filter((ad) => ad.status === "connected").length;
   const connectedCommerceCount = [selectedShopifyProvider, selectedWooProvider].filter(
     (provider) => provider?.status === "connected"
   ).length;
   const isOperationalStage = activeStage !== "channels";
-  const activeOperationalConfig = activeConfig ?? null;
-  const operationalRules = activeOperationalConfig?.rules ?? workspaceState.storeConfigDefaults.rules;
-  const operationalSync = activeOperationalConfig?.sync ?? workspaceState.storeConfigDefaults.sync;
-  const operationalInvoice = activeOperationalConfig?.invoice ?? workspaceState.storeConfigDefaults.invoice;
-  const operationalTransfers = activeOperationalConfig?.transfers ?? workspaceState.storeConfigDefaults.transfers;
 
   function handleStoreConfigSaved(nextConfig: ConnectionsWorkspace["storeConfigs"][number]) {
     setWorkspaceState((current) => {
@@ -466,7 +430,7 @@ export function SettingsConnectionsPage({
       copyableSourceStores.find((item) => item.storeId === copySourceStoreId)?.storeName ||
       `Tienda #${copySourceStoreId}`;
     const confirmed = window.confirm(
-      `Se sobrescribirán transfers, price lists, rules, invoice y sync de ${selectedStore.name} con la configuración de ${sourceLabel}. Las conexiones y credenciales no se copian. ¿Continuar?`
+      `Se sobrescribirán transferencias, listas de precio, reglas, factura y sync de ${selectedStore.name} con la configuración de ${sourceLabel}. Las conexiones y credenciales no se copian. ¿Continuar?`
     );
     if (!confirmed) return;
     setActionLoadingKey(`copy-config:${selectedStore.id}`);
@@ -713,7 +677,7 @@ export function SettingsConnectionsPage({
             <button
               className={`btn ${isOperationalStage ? "primary" : "ghost"} btn-compact`}
               type="button"
-              onClick={() => setActiveStage(isOperationalStage ? activeStage : "operations")}
+              onClick={() => setActiveStage(isOperationalStage ? activeStage : "products")}
             >
               Configuración operativa
             </button>
@@ -721,18 +685,10 @@ export function SettingsConnectionsPage({
         }
       />
 
-      <StageGuide
-        title={stageGuide.title}
-        description={stageGuide.description}
-        items={stageGuide.checklist}
-        next={<span className="pill pill-info">{stageGuide.next}</span>}
-      />
-
-      <section className="page-module-shell page-module-shell-compact config-active-store-shell">
+      <section className="page-module-shell page-module-shell-compact config-active-store-shell settings-density-compact settings-connections-shell">
         <div className="page-module-head">
           <div>
-            <h3>Tienda activa</h3>
-            <p>Selecciona la tienda, identifica plataformas activas y abre desde aquí los flujos reales.</p>
+            <h3>Tienda</h3>
           </div>
           <div className="page-module-actions">
             <button
@@ -758,7 +714,7 @@ export function SettingsConnectionsPage({
               <img className="config-brand-strip-logo" src="/assets/logo.png" alt="ApiFlujos" />
               <div className="config-brand-strip-meta">
                 <strong>{workspaceState.companyName}</strong>
-                <span>Centro operativo de integraciones por tienda</span>
+                <span>Integraciones</span>
               </div>
               <img className="config-brand-strip-avatar" src="/assets/avatar.png" alt="Asistente ApiFlujos" />
             </div>
@@ -772,19 +728,13 @@ export function SettingsConnectionsPage({
             </div>
             <div className="config-summary-copy">
               <strong>{selectedStore?.name || workspaceState.companyName}</strong>
-              <span>
-                {overview.activeConnections} integraciones activas · {summary.attentionCount} por revisar ·{" "}
-                {summary.disconnectedCount} por conectar
-              </span>
             </div>
           </div>
           <div className="page-module-actions compact-pills">
             <span className="pill pill-ok">Activas {summary.connectedCount}</span>
-            <span className="pill pill-warn">Revisión {summary.attentionCount}</span>
-            <span className="pill pill-bad">Por conectar {summary.disconnectedCount}</span>
-            {workspaceState.securityMisconfigured ? (
-              <span className="pill pill-bad">Credenciales por reconectar</span>
-            ) : null}
+            <span className="pill pill-warn">Rev {summary.attentionCount}</span>
+            <span className="pill pill-bad">Pend {summary.disconnectedCount}</span>
+            {workspaceState.securityMisconfigured ? <span className="pill pill-bad">Credenciales</span> : null}
           </div>
         </div>
         <div className="config-active-store-grid">
@@ -801,13 +751,9 @@ export function SettingsConnectionsPage({
                 </option>
               ))}
             </select>
-            <small>Todo el flujo inferior se recalcula sobre la tienda seleccionada.</small>
           </label>
           <div className="config-active-store-meta">
             {selectedStore ? <span className="pill pill-info">Tienda #{selectedStore.id}</span> : null}
-            {selectedStore?.providers.shopify ? <ProviderMark provider="Shopify" /> : null}
-            {selectedStore?.providers.woocommerce ? <ProviderMark provider="WooCommerce" /> : null}
-            {selectedStore?.providers.alegra ? <ProviderMark provider="Alegra" /> : null}
             {!selectedStore?.providers.shopify &&
             !selectedStore?.providers.woocommerce &&
             !selectedStore?.providers.alegra ? (
@@ -829,7 +775,6 @@ export function SettingsConnectionsPage({
                 </option>
               ))}
             </select>
-            <small>Hereda reglas operativas sin copiar conexiones ni credenciales.</small>
           </label>
           <div className="page-module-actions config-active-store-copy">
             <button
@@ -844,20 +789,30 @@ export function SettingsConnectionsPage({
             </button>
           </div>
         </div>
-        <p className="connection-inline-note">
-          Copia completa de la configuración operativa por tienda: traslados, listas de precios, reglas, factura y
-          sincronización. No copia conexiones ni credenciales.
-        </p>
-        {statusMessage ? <p className="connection-inline-note">{statusMessage}</p> : null}
+        <div className="settings-inline-row">
+          <SettingsInlineDetail summary="Ver detalle">
+            <p>Elige una tienda para revisar canales y reglas.</p>
+            <p>Copiar configuración replica reglas operativas desde otra tienda.</p>
+            {statusMessage ? <p>{statusMessage}</p> : null}
+          </SettingsInlineDetail>
+        </div>
       </section>
 
       {activeStage === "channels" ? (
-        <section className="page-module-shell connection-section-shell">
+        <section className="page-module-shell connection-section-shell settings-density-compact settings-connections-shell">
           <div className="page-module-head">
             <div>
-              <strong>Centro de integraciones</strong>
-              <span>Conecta, reconecta o administra cada plataforma desde una superficie corta y accionable.</span>
+              <strong>
+                Integraciones{" "}
+                <InfoHint
+                  label={`Conecta primero ${commerceGroupLabel} y ${accountingLabel}. Ads y webhooks se validan después por la tienda activa.`}
+                />
+              </strong>
             </div>
+            <SettingsInlineDetail summary="Cómo usar">
+              <p>Conecta primero {commerceGroupLabel} y {accountingLabel}.</p>
+              <p>Ads y webhooks se revisan después, por la misma tienda activa.</p>
+            </SettingsInlineDetail>
           </div>
           <section className="integration-hub-grid">
             <article className="card integration-hub-card">
@@ -866,8 +821,8 @@ export function SettingsConnectionsPage({
                   <ProviderMark provider="Shopify" />
                   <ProviderMark provider="WooCommerce" />
                   <div>
-                    <strong>E-commerce</strong>
-                    <span>{selectedStore?.name || "Selecciona una tienda"}</span>
+                    <strong>{commerceGroupLabel}</strong>
+                    <span>{selectedStore?.name || "Sin tienda"}</span>
                   </div>
                 </div>
                 <StatusPill
@@ -887,13 +842,9 @@ export function SettingsConnectionsPage({
                       : "Pendiente"}
                 </StatusPill>
               </div>
-              <p className="integration-hub-copy">
-                Conecta Shopify y WooCommerce desde una sola superficie. Aquí se resuelven dominio, llaves, OAuth y
-                recuperación de catálogo y pedidos.
-              </p>
               <div className="integration-hub-meta">
-                <span className="pill">{selectedShopifyProvider?.shopDomain || "Shopify sin dominio técnico"}</span>
-                <span className="pill">{selectedWooProvider?.shopDomain || "WooCommerce sin dominio"}</span>
+                <span className="pill">{selectedShopifyProvider?.shopDomain || "Shopify pendiente"}</span>
+                <span className="pill">{selectedWooProvider?.shopDomain || "Woo pendiente"}</span>
               </div>
               <div className="connection-card-actions">
                 <button className="btn primary btn-compact" type="button" onClick={() => openConnectionFlow("shopify")}>
@@ -915,7 +866,7 @@ export function SettingsConnectionsPage({
                   <ProviderMark provider="Alegra" />
                   <div>
                     <strong>Alegra</strong>
-                    <span>{selectedStore?.name || "Selecciona una tienda"}</span>
+                    <span>{selectedStore?.name || "Sin tienda"}</span>
                   </div>
                 </div>
                 <StatusPill tone={toneForStatus(selectedAlegraProvider?.status || "disconnected")} small>
@@ -928,12 +879,9 @@ export function SettingsConnectionsPage({
                     : "Sin conectar"}
                 </StatusPill>
               </div>
-              <p className="integration-hub-copy">
-                {selectedAlegraProvider?.detail ||
-                  "Asocia la cuenta contable que usará facturación, pagos y sincronización."}
-              </p>
               <div className="integration-hub-meta">
-                <span className="pill">{selectedAlegraProvider?.label || "Sin cuenta asociada"}</span>
+                <span className="pill">{selectedAlegraProvider?.detail || "Cuenta pendiente"}</span>
+                <span className="pill">{selectedAlegraProvider?.label || "Sin cuenta"}</span>
               </div>
               <div className="connection-card-actions">
                 <button className="btn primary btn-compact" type="button" onClick={() => openConnectionFlow("alegra")}>
@@ -955,19 +903,16 @@ export function SettingsConnectionsPage({
                   <ProviderMark provider="TikTok Ads" />
                   <div>
                     <strong>Marketing</strong>
-                    <span>{selectedStore?.name || "Selecciona una tienda"}</span>
+                    <span>{selectedStore?.name || "Sin tienda"}</span>
                   </div>
                 </div>
                 <StatusPill tone={connectedAdsCount ? "success" : "warning"} small>
                   {connectedAdsCount ? `${connectedAdsCount} activa(s)` : "Pendiente"}
                 </StatusPill>
               </div>
-              <p className="integration-hub-copy">
-                Gestiona cuentas publicitarias y luego continúa en marketing para pixel, script y webhooks.
-              </p>
               <div className="integration-hub-meta">
                 <span className="pill">Ads activas {connectedAdsCount}</span>
-                <span className="pill">Marketing por tienda</span>
+                <span className="pill">Por tienda</span>
               </div>
               <div className="connection-card-actions">
                 <button
@@ -987,19 +932,42 @@ export function SettingsConnectionsPage({
       ) : null}
 
       {isOperationalStage ? (
-        <section className="page-module-shell operational-workspace-shell">
+        <section className="page-module-shell operational-workspace-shell settings-density-compact settings-connections-shell">
           <div className="page-module-head">
             <div>
-              <strong>Configuración operativa</strong>
-              <span>Una sola superficie para operación, facturación, marketing y compatibilidad heredada.</span>
+              <strong>
+                Configuración{" "}
+                <InfoHint label="Aquí solo van reglas automáticas por tienda. Lo manual vive en Productos, Pedidos, Contactos y Facturas." />
+              </strong>
             </div>
             <div className="page-module-actions">
               <button
-                className={`btn ${activeStage === "operations" ? "primary" : "ghost"} btn-compact`}
+                className={`btn ${activeStage === "products" ? "primary" : "ghost"} btn-compact`}
                 type="button"
-                onClick={() => setActiveStage("operations")}
+                onClick={() => setActiveStage("products")}
               >
-                Operación
+                Productos
+              </button>
+              <button
+                className={`btn ${activeStage === "inventory" ? "primary" : "ghost"} btn-compact`}
+                type="button"
+                onClick={() => setActiveStage("inventory")}
+              >
+                Inventario
+              </button>
+              <button
+                className={`btn ${activeStage === "orders" ? "primary" : "ghost"} btn-compact`}
+                type="button"
+                onClick={() => setActiveStage("orders")}
+              >
+                Pedidos
+              </button>
+              <button
+                className={`btn ${activeStage === "contacts" ? "primary" : "ghost"} btn-compact`}
+                type="button"
+                onClick={() => setActiveStage("contacts")}
+              >
+                Contactos
               </button>
               <button
                 className={`btn ${activeStage === "invoice" ? "primary" : "ghost"} btn-compact`}
@@ -1008,214 +976,68 @@ export function SettingsConnectionsPage({
               >
                 Facturación
               </button>
-              <button
-                className={`btn ${activeStage === "marketing" ? "primary" : "ghost"} btn-compact`}
-                type="button"
-                onClick={() => setActiveStage("marketing")}
-              >
-                Marketing
-              </button>
-              <button
-                className={`btn ${activeStage === "legacy" ? "primary" : "ghost"} btn-compact`}
-                type="button"
-                onClick={() => setActiveStage("legacy")}
-              >
-                Heredado
-              </button>
             </div>
           </div>
-          <p className="connection-inline-note">
-            Usa este espacio para reglas de productos, contactos, facturas, listas de precios, marketing y ajustes
-            avanzados sin salir del flujo de la tienda activa.
-          </p>
+          <SettingsInlineDetail summary="Alcance">
+            <p>Aquí solo quedan reglas automáticas por tienda.</p>
+            <p>Lo inicial, por fecha o puntual vive en Productos, Pedidos, Contactos y Facturas.</p>
+          </SettingsInlineDetail>
 
-          <section className="operational-hub-grid">
-            <article className="card operational-hub-card">
+          <section className="card operational-hub-card">
               <div className="settings-subsection-head">
                 <div>
-                  <strong>Productos</strong>
-                  <span>Catálogo, publicación y automatización por tienda.</span>
+                  <strong>
+                    Manual{" "}
+                    <InfoHint label="Usa esos módulos para corridas iniciales, por fecha y puntuales." />
+                  </strong>
                 </div>
-                <span className={`pill ${operationalRules.syncEnabled ? "pill-ok" : "pill-warn"}`}>
-                  {operationalRules.syncEnabled ? "Automático activo" : "Pausado"}
-                </span>
               </div>
-              <div className="page-module-actions compact-pills">
-                <span className={`pill ${operationalRules.createInShopify ? "pill-ok" : ""}`}>
-                  Crear {operationalRules.createInShopify ? "encendido" : "apagado"}
-                </span>
-                <span className={`pill ${operationalRules.updateInShopify ? "pill-ok" : ""}`}>
-                  Actualizar {operationalRules.updateInShopify ? "encendido" : "apagado"}
-                </span>
-                <span className={`pill ${operationalRules.autoPublishOnWebhook ? "pill-ok" : ""}`}>
-                  Webhook {operationalRules.autoPublishOnWebhook ? "activo" : "apagado"}
-                </span>
-              </div>
-              <p className="connection-inline-note">
-                Aquí viven las reglas de sincronización automática, publicación, carga histórica e imágenes de producto
-                sin salir de la tienda activa.
-              </p>
-              <div className="page-module-actions">
-                <button
-                  className={`btn ${activeStage === "operations" ? "primary" : "ghost"} btn-compact`}
-                  type="button"
-                  onClick={() => setActiveStage("operations")}
-                >
-                  Abrir reglas
-                </button>
-                <a className="btn ghost btn-compact" href="/products">
-                  Ir a productos
-                </a>
-              </div>
-            </article>
-
-            <article className="card operational-hub-card">
-              <div className="settings-subsection-head">
-                <div>
-                  <strong>Inventario y bodegas</strong>
-                  <span>Automatización de stock, ajustes y resolución logística.</span>
-                </div>
-                <span className={`pill ${operationalRules.inventoryAdjustmentsEnabled ? "pill-ok" : "pill-warn"}`}>
-                  {operationalRules.inventoryAdjustmentsEnabled ? "Ajustes activos" : "Ajustes pausados"}
-                </span>
-              </div>
-              <div className="page-module-actions compact-pills">
-                <span className={`pill ${operationalRules.trackInventory ? "pill-ok" : ""}`}>
-                  Inventario {operationalRules.trackInventory ? "activo" : "apagado"}
-                </span>
-                <span className={`pill ${operationalTransfers.enabled ? "pill-ok" : ""}`}>
-                  Traslados {operationalTransfers.enabled ? "activos" : "apagados"}
-                </span>
-                <span className="pill">
-                  {operationalRules.warehouseIds.length
-                    ? `${operationalRules.warehouseIds.length} bodegas elegidas`
-                    : "Todas las bodegas"}
-                </span>
-              </div>
-              <p className="connection-inline-note">
-                Este bloque controla la lógica automática. La frecuencia, el checkpoint y los masivos ya vuelven a vivir
-                en esta misma superficie.
-              </p>
-              <div className="page-module-actions">
-                <button
-                  className={`btn ${activeStage === "operations" ? "primary" : "ghost"} btn-compact`}
-                  type="button"
-                  onClick={() => setActiveStage("operations")}
-                >
-                  Abrir reglas
-                </button>
-                <a className="btn ghost btn-compact" href="/operations">
-                  Ver operaciones
-                </a>
-              </div>
-            </article>
-
-            <article className="card operational-hub-card">
-              <div className="settings-subsection-head">
-                <div>
-                  <strong>Pedidos y facturación</strong>
-                  <span>Dirección del sync entre Shopify y Alegra, factura y pago.</span>
-                </div>
-                <span className={`pill ${operationalInvoice.generateInvoice ? "pill-ok" : "pill-warn"}`}>
-                  {operationalInvoice.generateInvoice ? "Factura activa" : "Factura apagada"}
-                </span>
-              </div>
-              <div className="page-module-actions compact-pills">
-                <span className="pill">Pedido → {operationalSync.orders.shopifyToAlegra}</span>
-                <span className="pill">Contable → {operationalSync.orders.alegraToShopify}</span>
-                <span className={`pill ${operationalInvoice.einvoiceEnabled ? "pill-ok" : ""}`}>
-                  E-factura {operationalInvoice.einvoiceEnabled ? "activa" : "apagada"}
-                </span>
-              </div>
-              <p className="connection-inline-note">
-                Aquí defines la intención operativa y ya puedes lanzar corridas manuales y masivas por fecha sin
-                depender del flujo heredado.
-              </p>
-              <div className="page-module-actions">
-                <button
-                  className={`btn ${activeStage === "invoice" ? "primary" : "ghost"} btn-compact`}
-                  type="button"
-                  onClick={() => setActiveStage("invoice")}
-                >
-                  Abrir facturación
-                </button>
-                <a className="btn ghost btn-compact" href="/orders">
-                  Ir a pedidos
-                </a>
-                <a className="btn ghost btn-compact" href="/invoices">
-                  Ir a facturas
-                </a>
-              </div>
-            </article>
-
-            <article className="card operational-hub-card">
-              <div className="settings-subsection-head">
-                <div>
-                  <strong>Contactos</strong>
-                  <span>Bidireccionalidad, creación automática y prioridad de identificación.</span>
-                </div>
-                <span className={`pill ${operationalSync.contacts.enabled ? "pill-ok" : "pill-warn"}`}>
-                  {operationalSync.contacts.enabled ? "Automático activo" : "Pausado"}
-                </span>
-              </div>
-              <div className="page-module-actions compact-pills">
-                <span className={`pill ${operationalSync.contacts.fromShopify ? "pill-ok" : ""}`}>
-                  E-commerce → Contable
-                </span>
-                <span className={`pill ${operationalSync.contacts.fromAlegra ? "pill-ok" : ""}`}>
-                  Contable → E-commerce
-                </span>
-                <span className="pill">Prioridad {operationalSync.contacts.matchPriority.join(" / ")}</span>
-              </div>
-              <p className="connection-inline-note">
-                El módulo nuevo ya vuelve a exponer dirección, creación automática, prioridad de match y ejecución
-                masiva por fechas.
-              </p>
-              <div className="page-module-actions">
-                <a className="btn ghost btn-compact" href="/contacts">
-                  Ir a contactos
-                </a>
-                <button
-                  className={`btn ${activeStage === "operations" ? "primary" : "ghost"} btn-compact`}
-                  type="button"
-                  onClick={() => setActiveStage("operations")}
-                >
-                  Ajustar reglas
-                </button>
-              </div>
-            </article>
+            <div className="page-module-actions">
+              <a className="btn ghost btn-compact" href="/products">
+                Productos
+              </a>
+              <a className="btn ghost btn-compact" href="/orders">
+                Pedidos
+              </a>
+              <a className="btn ghost btn-compact" href="/contacts">
+                Contactos
+              </a>
+              <a className="btn ghost btn-compact" href="/invoices">
+                Facturas
+              </a>
+            </div>
+            <SettingsInlineDetail summary="Alcance">
+              <p>Usa esos módulos para lo inicial, por fecha y puntual.</p>
+            </SettingsInlineDetail>
           </section>
 
-          {activeStage === "operations" ? (
+          {activeStage === "products" ? (
             <>
-              <StoreSyncAutomationPanel
-                stores={workspaceState.stores}
-                storeConfigs={workspaceState.storeConfigs}
-                defaults={workspaceState.storeConfigDefaults}
-                activeStoreId={selectedStoreId}
-              />
-
+              <section className="card page-module-shell page-module-shell-compact">
+                <div className="page-module-head">
+                  <div>
+                    <strong>
+                      Productos <InfoHint label="Define catálogo, match y listas base por tienda." />
+                    </strong>
+                  </div>
+                  <div className="page-module-actions">
+                    <span className="pill pill-info">Setup</span>
+                    <a className="btn ghost btn-compact" href="/products">
+                      Ir a productos
+                    </a>
+                  </div>
+                </div>
+                <SettingsInlineDetail summary="Detalle">
+                  <p>Define catálogo, match y listas base.</p>
+                </SettingsInlineDetail>
+              </section>
               <StoreSyncModulesPanel
                 stores={workspaceState.stores}
                 storeConfigs={workspaceState.storeConfigs}
                 defaults={workspaceState.storeConfigDefaults}
                 activeStoreId={selectedStoreId}
                 onStoreConfigSaved={handleStoreConfigSaved}
-              />
-
-              <StoreSyncActionsPanel
-                stores={workspaceState.stores}
-                storeConfigs={workspaceState.storeConfigs}
-                defaults={workspaceState.storeConfigDefaults}
-                activeStoreId={selectedStoreId}
-              />
-
-              <StoreConfigsCriticalPanel
-                stores={workspaceState.stores}
-                storeConfigs={workspaceState.storeConfigs}
-                defaults={workspaceState.storeConfigDefaults}
-                activeStoreId={selectedStoreId}
-                onStoreConfigSaved={handleStoreConfigSaved}
+                visibleModules={["products"]}
               />
 
               <StoreConfigPriceListsPanel
@@ -1228,37 +1050,104 @@ export function SettingsConnectionsPage({
             </>
           ) : null}
 
-          {activeStage === "invoice" ? (
-            <GlobalInvoiceSettingsPanel stores={workspaceState.stores} activeStoreId={selectedStoreId} />
-          ) : null}
-
-          {activeStage === "marketing" ? (
-            <StoreMarketingConfigPanel stores={workspaceState.stores} activeStoreId={selectedStoreId} />
-          ) : null}
-
-          {activeStage === "legacy" ? (
+          {activeStage === "inventory" ? (
             <>
-              <LegacySyncCompatibilityPanel />
-              <section className="page-module-shell connection-section-shell">
+              <section className="card page-module-shell page-module-shell-compact">
                 <div className="page-module-head">
                   <div>
-                    <strong>Superficies heredadas restantes</strong>
-                    <span>Úsalas solo cuando el ajuste todavía no viva completo en la superficie nueva.</span>
+                    <strong>
+                      Inventario y bodegas <InfoHint label="Define stock activo, cron, publicación y bodegas." />
+                    </strong>
                   </div>
                   <div className="page-module-actions">
-                    <span className="pill pill-warn">Respaldo activo</span>
+                    <span className="pill pill-info">Setup</span>
+                    <a className="btn ghost btn-compact" href="/operations">
+                      Ver estado
+                    </a>
                   </div>
                 </div>
-                <div className="page-module-actions">
-                  <a className="btn ghost" href="/legacy/settings/stores">
-                    Abrir stores heredados
-                  </a>
-                  <a className="btn ghost" href="/settings/marketing">
-                    Abrir Marketing
-                  </a>
-                </div>
+                <SettingsInlineDetail summary="Detalle">
+                  <p>Define stock activo, cron, publicación y bodegas.</p>
+                </SettingsInlineDetail>
               </section>
+              <StoreConfigsCriticalPanel
+                stores={workspaceState.stores}
+                storeConfigs={workspaceState.storeConfigs}
+                defaults={workspaceState.storeConfigDefaults}
+                activeStoreId={selectedStoreId}
+                onStoreConfigSaved={handleStoreConfigSaved}
+                mode="inventory"
+              />
             </>
+          ) : null}
+
+          {activeStage === "orders" ? (
+            <>
+              <section className="card page-module-shell page-module-shell-compact">
+                <div className="page-module-head">
+                  <div>
+                    <strong>
+                      Pedidos <InfoHint label={`Define entrada desde ${commerceLabel} y retorno desde ${accountingLabel}.`} />
+                    </strong>
+                  </div>
+                  <div className="page-module-actions">
+                    <span className="pill pill-info">Setup</span>
+                    <a className="btn ghost btn-compact" href="/orders">
+                      Ir a pedidos
+                    </a>
+                    <a className="btn ghost btn-compact" href="/invoices">
+                      Ir a facturas
+                    </a>
+                  </div>
+                </div>
+                <SettingsInlineDetail summary="Detalle">
+                  <p>Define entrada desde {commerceLabel} y retorno desde {accountingLabel}.</p>
+                </SettingsInlineDetail>
+              </section>
+              <StoreSyncModulesPanel
+                stores={workspaceState.stores}
+                storeConfigs={workspaceState.storeConfigs}
+                defaults={workspaceState.storeConfigDefaults}
+                activeStoreId={selectedStoreId}
+                onStoreConfigSaved={handleStoreConfigSaved}
+                visibleModules={["orders"]}
+              />
+            </>
+          ) : null}
+
+          {activeStage === "contacts" ? (
+            <>
+              <section className="card page-module-shell page-module-shell-compact">
+                <div className="page-module-head">
+                  <div>
+                    <strong>
+                      Contactos <InfoHint label="Define dirección, creación automática y match." />
+                    </strong>
+                  </div>
+                  <div className="page-module-actions">
+                    <span className="pill pill-info">Setup</span>
+                    <a className="btn ghost btn-compact" href="/contacts">
+                      Ir a contactos
+                    </a>
+                  </div>
+                </div>
+                <SettingsInlineDetail summary="Detalle">
+                  <p>Define dirección, creación automática y match.</p>
+                </SettingsInlineDetail>
+              </section>
+              <StoreSyncModulesPanel
+                stores={workspaceState.stores}
+                storeConfigs={workspaceState.storeConfigs}
+                defaults={workspaceState.storeConfigDefaults}
+                activeStoreId={selectedStoreId}
+                onStoreConfigSaved={handleStoreConfigSaved}
+                visibleModules={["contacts"]}
+              />
+            </>
+          ) : null}
+
+          {activeStage === "invoice" ? (
+            <GlobalInvoiceSettingsPanel stores={workspaceState.stores} activeStoreId={selectedStoreId} />
           ) : null}
         </section>
       ) : null}
@@ -1268,16 +1157,15 @@ export function SettingsConnectionsPage({
           <summary className="settings-collapsible-summary">
             <div>
               <strong>Diagnóstico detallado</strong>
-              <span>Expande solo cuando necesites revisar el detalle técnico de canales, webhooks o consolidado.</span>
+              <span>Canales, webhooks y consolidado.</span>
             </div>
-            <span className="pill">Expandir</span>
+            <span className="pill">Abrir</span>
           </summary>
           <section className="connection-section">
             <div className="page-module-shell connection-section-shell">
               <div className="page-module-head">
                 <div>
                   <strong>Tiendas conectadas</strong>
-                  <span>Lectura consolidada por tienda para decidir dónde seguir configurando.</span>
                 </div>
               </div>
               <section className="connections-grid">
@@ -1294,9 +1182,7 @@ export function SettingsConnectionsPage({
                           <div>
                             <strong>{store.name}</strong>
                             <span>
-                              {connectedProviders.length
-                                ? connectedProviders.join(" · ")
-                                : "Sin proveedores configurados"}
+                              {connectedProviders.length ? connectedProviders.join(" · ") : "Sin proveedores"}
                             </span>
                           </div>
                           <span className="pill">{connectedProviders.length || 0} conexiones</span>
@@ -1329,7 +1215,7 @@ export function SettingsConnectionsPage({
                     <div className="settings-subsection-head">
                       <div>
                         <strong>Sin tiendas</strong>
-                        <span>La creación y asociación de tiendas todavía vive en el flujo heredado.</span>
+                        <span>Crea una tienda.</span>
                       </div>
                     </div>
                   </article>
@@ -1342,8 +1228,7 @@ export function SettingsConnectionsPage({
             <div className="page-module-shell connection-section-shell">
               <div className="page-module-head">
                 <div>
-                  <strong>E-commerce</strong>
-                  <span>Canales comerciales activos de la tienda seleccionada.</span>
+                  <strong>{commerceGroupLabel}</strong>
                 </div>
               </div>
               <section className="connections-grid">
@@ -1372,7 +1257,7 @@ export function SettingsConnectionsPage({
                       </div>
                       <div className="connection-tech-list">
                         <div className="connection-tech-item">
-                          <span>Detalle operativo</span>
+                          <span>Detalle</span>
                           <strong>{row.detail}</strong>
                         </div>
                       </div>
@@ -1427,7 +1312,7 @@ export function SettingsConnectionsPage({
                     <div className="settings-subsection-head">
                       <div>
                         <strong>Sin conexiones de e-commerce</strong>
-                        <span>El alta y la reconexión siguen viviendo en el flujo heredado.</span>
+                        <span>Conecta un canal.</span>
                       </div>
                     </div>
                   </article>
@@ -1441,7 +1326,6 @@ export function SettingsConnectionsPage({
               <div className="page-module-head">
                 <div>
                   <strong>Contabilidad</strong>
-                  <span>Cuentas Alegra de la tienda seleccionada.</span>
                 </div>
               </div>
               <section className="connections-grid">
@@ -1469,7 +1353,7 @@ export function SettingsConnectionsPage({
                       </div>
                       <div className="connection-tech-list">
                         <div className="connection-tech-item">
-                          <span>Detalle operativo</span>
+                          <span>Detalle</span>
                           <strong>{row.detail}</strong>
                         </div>
                       </div>
@@ -1501,7 +1385,7 @@ export function SettingsConnectionsPage({
                     <div className="settings-subsection-head">
                       <div>
                         <strong>Sin cuenta contable conectada</strong>
-                        <span>La asociación o reconexión sigue operando desde el flujo heredado.</span>
+                        <span>Conecta una cuenta.</span>
                       </div>
                     </div>
                   </article>
@@ -1515,7 +1399,6 @@ export function SettingsConnectionsPage({
               <div className="page-module-head">
                 <div>
                   <strong>Ads</strong>
-                  <span>Estado global de credenciales y sincronización de inversión.</span>
                 </div>
               </div>
               <section className="connections-grid">
@@ -1524,7 +1407,7 @@ export function SettingsConnectionsPage({
                     <div className="settings-subsection-head">
                       <div>
                         <strong>{ad.label}</strong>
-                        <span>Integración compartida del tenant</span>
+                        <span>Integración compartida</span>
                       </div>
                       <StatusPill tone={toneForStatus(ad.status)} small>
                         {ad.status === "connected" ? "Activa" : ad.status === "attention" ? "Atención" : "Desconectada"}
@@ -1535,7 +1418,7 @@ export function SettingsConnectionsPage({
                     </div>
                     <div className="connection-tech-list">
                       <div className="connection-tech-item">
-                        <span>Detalle operativo</span>
+                        <span>Detalle</span>
                         <strong>{ad.detail}</strong>
                       </div>
                     </div>
@@ -1550,7 +1433,6 @@ export function SettingsConnectionsPage({
               <div className="page-module-head">
                 <div>
                   <strong>Webhooks Shopify</strong>
-                  <span>Estado y control inicial para la tienda seleccionada.</span>
                 </div>
               </div>
               <article className="settings-subsection">
@@ -1590,7 +1472,6 @@ export function SettingsConnectionsPage({
                       <div className="settings-subsection-head">
                         <div>
                           <strong>Acciones</strong>
-                          <span>Consulta el estado o recrea webhooks desde la tienda activa.</span>
                         </div>
                       </div>
                       <div className="page-module-actions">
@@ -1629,10 +1510,7 @@ export function SettingsConnectionsPage({
                     <div className="settings-subsection">
                       <div className="settings-subsection-head">
                         <div>
-                          <strong>Detalles técnicos</strong>
-                          <span>
-                            Visibilidad rápida de la URL esperada y la cobertura de eventos exigida por Shopify.
-                          </span>
+                          <strong>Detalle</strong>
                         </div>
                       </div>
                       <div className="connection-tech-list">
@@ -1653,9 +1531,7 @@ export function SettingsConnectionsPage({
                   <div className="settings-subsection-head">
                     <div>
                       <strong>Sin Shopify activo</strong>
-                      <span>
-                        Selecciona una tienda que tenga Shopify configurado para consultar o administrar webhooks.
-                      </span>
+                      <span>Selecciona una tienda con Shopify.</span>
                     </div>
                   </div>
                 )}
@@ -1667,7 +1543,6 @@ export function SettingsConnectionsPage({
             <div className="page-module-head">
               <div>
                 <strong>Conexiones consolidadas</strong>
-                <span>Resumen consolidado de canales, estado y último movimiento observado.</span>
               </div>
             </div>
             <section className="connections-grid">
@@ -1696,7 +1571,7 @@ export function SettingsConnectionsPage({
                   </div>
                   <div className="connection-tech-list">
                     <div className="connection-tech-item">
-                      <span>Detalle operativo</span>
+                      <span>Detalle</span>
                       <strong>{connection.detail}</strong>
                     </div>
                   </div>
@@ -1842,7 +1717,7 @@ export function SettingsConnectionsPage({
                       }}
                     >
                       <div>
-                        <strong>E-commerce</strong>
+                        <strong>{commerceGroupLabel}</strong>
                         <span>Shopify y WooCommerce</span>
                       </div>
                     </button>

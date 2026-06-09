@@ -11,6 +11,7 @@ function renderSection(section: "operacion" | "sistema") {
 function resolveShellTitle(activeHref: string) {
   const explicit = appNavigation.find((item) => item.href === activeHref)?.label;
   if (explicit) return explicit;
+  if (activeHref === "/operations") return "Incidencias";
   if (activeHref === "/profile") return "Perfil";
   if (activeHref === "/company") return "Empresa";
   if (activeHref === "/users") return "Usuarios";
@@ -19,20 +20,20 @@ function resolveShellTitle(activeHref: string) {
 }
 
 function resolveShellSubtitle(activeHref: string) {
-  if (activeHref === "/") return "Vista consolidada del rendimiento operativo.";
-  if (activeHref === "/orders") return "Pedidos, estados y facturación del flujo comercial.";
-  if (activeHref === "/operations") return "Seguimiento de sincronizaciones y ejecución operativa.";
-  if (activeHref === "/invoices") return "Control de facturas y estado de emisión.";
-  if (activeHref === "/contacts") return "Base comercial y sincronización de clientes.";
-  if (activeHref === "/products") return "Catálogo, stock y disponibilidad comercial.";
-  if (activeHref === "/marketing") return "Canales, campañas y atribución del periodo.";
-  if (activeHref === "/settings/connections") return "Conexiones, webhooks y configuración troncal.";
-  if (activeHref === "/superadmin") return "Control de acceso y soporte ApiFlujos.";
-  if (activeHref === "/profile") return "Preferencias personales y seguridad.";
-  if (activeHref === "/company") return "Identidad del cliente y datos corporativos.";
-  if (activeHref === "/users") return "Usuarios internos y roles autorizados.";
-  if (activeHref === "/ai-assistants") return "Asistentes operativos y automatización guiada.";
-  return "Superficie operativa estandarizada para todos los clientes.";
+  if (activeHref === "/") return "Vista operativa.";
+  if (activeHref === "/orders") return "Pedidos y facturas.";
+  if (activeHref === "/operations") return "Errores y correcciones.";
+  if (activeHref === "/invoices") return "Emisión y control.";
+  if (activeHref === "/contacts") return "Clientes y match.";
+  if (activeHref === "/products") return "Catálogo y stock.";
+  if (activeHref === "/marketing") return "Canales y campañas.";
+  if (activeHref === "/settings/connections") return "Conexiones y setup.";
+  if (activeHref === "/superadmin") return "Acceso y soporte.";
+  if (activeHref === "/profile") return "Perfil y seguridad.";
+  if (activeHref === "/company") return "Identidad del cliente.";
+  if (activeHref === "/users") return "Usuarios y roles.";
+  if (activeHref === "/ai-assistants") return "Asistentes y automatización.";
+  return "Superficie operativa.";
 }
 
 function getBrandInitials(name: string) {
@@ -131,7 +132,7 @@ export async function AppShell({
               <span className="nav-icon" aria-hidden="true">
                 ↗
               </span>
-              <span className="nav-label">Ajustes heredados</span>
+              <span className="nav-label">Ajustes avanzados</span>
             </a>
 
             {session ? (

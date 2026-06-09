@@ -1,4 +1,4 @@
-import { getServerContactsCatalog } from "../lib/server-api";
+import { getServerConnectionsWorkspace, getServerContactsCatalog } from "../lib/server-api";
 import { ContactsPage } from "./contacts-page";
 
 export async function ContactsPageContent({
@@ -11,8 +11,18 @@ export async function ContactsPageContent({
   const status = typeof params.status === "string" ? params.status : undefined;
   const source = typeof params.source === "string" ? params.source : undefined;
   const offset = typeof params.offset === "string" ? Number(params.offset) : 0;
-  const contacts = await getServerContactsCatalog({ query, status, source, offset, limit: 20 });
+  const [contacts, workspace] = await Promise.all([
+    getServerContactsCatalog({ query, status, source, offset, limit: 20 }),
+    getServerConnectionsWorkspace(),
+  ]);
   return (
-    <ContactsPage result={contacts} query={query ?? ""} status={status ?? ""} source={source ?? ""} offset={offset} />
+    <ContactsPage
+      result={contacts}
+      query={query ?? ""}
+      status={status ?? ""}
+      source={source ?? ""}
+      offset={offset}
+      workspace={workspace}
+    />
   );
 }

@@ -22,6 +22,21 @@ export type WorkspaceStore = {
       detail: string;
       shopDomain?: string;
     } | null;
+    googleAds?: {
+      label: string;
+      status: ConnectionStatusDto["status"];
+      detail: string;
+    } | null;
+    metaAds?: {
+      label: string;
+      status: ConnectionStatusDto["status"];
+      detail: string;
+    } | null;
+    tiktokAds?: {
+      label: string;
+      status: ConnectionStatusDto["status"];
+      detail: string;
+    } | null;
   };
 };
 

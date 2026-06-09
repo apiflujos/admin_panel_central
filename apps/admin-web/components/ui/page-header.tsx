@@ -7,7 +7,7 @@ export function PageHeader({
   actions,
 }: {
   title: string;
-  subtitle: string;
+  subtitle?: ReactNode;
   breadcrumbs: ReactNode;
   actions?: ReactNode;
 }) {
@@ -17,7 +17,7 @@ export function PageHeader({
       <div className="page-header-row">
         <div>
           <h1>{title}</h1>
-          <p className="page-header-subtitle">{subtitle}</p>
+          {subtitle ? <p className="page-header-subtitle">{subtitle}</p> : null}
         </div>
         {actions ? <div className="page-header-actions">{actions}</div> : null}
       </div>

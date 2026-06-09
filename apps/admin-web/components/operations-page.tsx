@@ -15,6 +15,7 @@ import {
 } from "../lib/api";
 import { DataTable } from "./ui/data-table";
 import { BooleanChoice } from "./ui/boolean-choice";
+import { InfoHint } from "./ui/info-hint";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { StatusPill } from "./ui/status-pill";
@@ -170,13 +171,13 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
   return (
     <section className="page-stack">
       <PageHeader
-        title="Operaciones"
-        subtitle="Ejecución operativa Shopify ↔ Alegra."
+        title="Incidencias"
+        subtitle="Errores, reintentos y correcciones."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
             <span>/</span>
-            <span>Operaciones</span>
+            <span>Incidencias</span>
           </>
         }
       />
@@ -243,7 +244,7 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
             type="button"
             onClick={() =>
               void refreshRows()
-                .then(() => setSuccess("Operaciones recargadas."))
+                .then(() => setSuccess("Incidencias recargadas."))
                 .catch((error) => setFailure(error, "No se pudo recargar la tabla."))
             }
             disabled={refreshing}
@@ -285,7 +286,9 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
       <section className="card page-module-shell page-module-shell-compact">
         <div className="page-module-head">
           <div>
-            <strong>Mesa operativa</strong>
+            <strong>
+              Mesa de incidencias <InfoHint label="Aquí corriges errores, reintentas, sincronizas y resuelves e-factura pendiente." />
+            </strong>
             <span>{filteredRows.length} operaciones visibles para facturar, sincronizar, cobrar o anular.</span>
           </div>
           <div className="page-module-actions">

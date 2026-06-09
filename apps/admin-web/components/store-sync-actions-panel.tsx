@@ -19,6 +19,7 @@ import {
   updateProductTracking,
 } from "../lib/api";
 import { BooleanChoice } from "./ui/boolean-choice";
+import { InfoHint } from "./ui/info-hint";
 
 function summarizeResult(result: Record<string, unknown>) {
   const processed = typeof result.processed === "number" ? result.processed : null;
@@ -44,10 +45,22 @@ function toPercent(processed: number, total: number) {
 }
 
 function orderModeLabel(mode: "invoice" | "contact_only" | "db_only" | "off") {
-  if (mode === "invoice") return "Facturar en Contable";
+  if (mode === "invoice") return "Crear factura";
   if (mode === "contact_only") return "Solo contacto";
-  if (mode === "db_only") return "Solo base interna";
+  if (mode === "db_only") return "Guardar pedido";
   return "Apagado";
+}
+
+function invoiceReturnModeLabel(mode: "draft" | "active") {
+  return mode === "active" ? "Crear activo" : "Crear borrador";
+}
+
+function publishStatusLabel(mode: "draft" | "active") {
+  return mode === "active" ? "Activo" : "Borrador";
+}
+
+function productMatchLabel(mode: "sku_barcode" | "barcode_sku") {
+  return mode === "barcode_sku" ? "Barcode -> SKU" : "SKU -> Barcode";
 }
 
 type DateRange = { dateStart: string; dateEnd: string; limit: string };
@@ -342,11 +355,13 @@ export function StoreSyncActionsPanel({
   storeConfigs,
   defaults,
   activeStoreId,
+  visibleGroups = ["contacts", "orders", "products"],
 }: {
   stores: WorkspaceStore[];
   storeConfigs: CriticalStoreConfig[];
   defaults: ConnectionsWorkspace["storeConfigDefaults"];
   activeStoreId: number | null;
+  visibleGroups?: Array<"contacts" | "orders" | "products">;
 }) {
   const activeStore = useMemo(
     () => stores.find((store) => store.id === activeStoreId) ?? null,
@@ -358,6 +373,12 @@ export function StoreSyncActionsPanel({
   );
   const effectiveRules = activeConfig?.rules ?? defaults.rules;
   const effectiveSync = activeConfig?.sync ?? defaults.sync;
+  const commerceLabel = activeStore?.providers.shopify
+    ? "Shopify"
+    : activeStore?.providers.woocommerce
+      ? "WooCommerce"
+      : "Tienda";
+  const accountingLabel = activeStore?.providers.alegra ? "Alegra" : "Contable";
   const [warehouseItems, setWarehouseItems] = useState<Array<{ id: string; name: string }>>([]);
 
   const [contactsRange, setContactsRange] = useState<DateRange>(defaultRange);
@@ -706,6 +727,7 @@ export function StoreSyncActionsPanel({
     if (productsToShopifyWarehouseIds.length === warehouseItems.length) return "Todas";
     return `${productsToShopifyWarehouseIds.length} seleccionadas`;
   }, [productsToShopifyWarehouseIds, warehouseItems]);
+  const isProductsOnly = visibleGroups.length === 1 && visibleGroups[0] === "products";
 
   function downloadProductImagesTemplate() {
     const blob = new Blob([buildPhotosTemplateCsv()], { type: "text/csv;charset=utf-8" });
@@ -777,8 +799,8 @@ export function StoreSyncActionsPanel({
       <section className="card connection-card">
         <div className="connection-card-head">
           <div>
-            <h3>Ejecuciones manuales y masivas</h3>
-            <p>Selecciona una tienda para recuperar la operación manual dentro de la superficie nueva.</p>
+            <h3>Sincronización manual</h3>
+            <p>Selecciona una tienda.</p>
           </div>
         </div>
       </section>
@@ -787,2193 +809,2256 @@ export function StoreSyncActionsPanel({
 
   return (
     <section className="card connection-card">
-      <div className="connection-card-head">
+          <div className="connection-card-head">
         <div>
-          <h3>Ejecuciones manuales y masivas</h3>
-          <p>Acciona sincronizaciones por fecha y sentido sin salir de la configuración de la tienda activa.</p>
+          <h3>
+            {isProductsOnly ? "Manual de productos" : "Sincronización manual"}{" "}
+            <InfoHint
+              label={
+                isProductsOnly
+                  ? "Aquí van las corridas iniciales, por fecha, puntuales y de stock."
+                  : "Aquí van las corridas por fecha, iniciales y puntuales."
+              }
+            />
+          </h3>
+          <p>
+            {isProductsOnly ? "Inicial, fecha, puntual y stock." : "Fecha, inicial y puntual."}
+          </p>
         </div>
         <span className="pill">Tienda #{activeStore.id}</span>
       </div>
 
       <div className="store-configs-grid">
-        <details className="settings-collapsible store-config-field-span-2" open>
-          <summary className="settings-collapsible-summary">
-            <strong>Contactos</strong>
-            <span>Masivo E-commerce ↔ Contable con dirección y creación controladas por tienda</span>
-          </summary>
-          <div className="settings-subsection">
-            <div className="store-configs-grid">
-              <label className="store-config-field">
-                <span>Fecha inicio</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={contactsRange.dateStart}
-                  onChange={(event) => setContactsRange((current) => ({ ...current, dateStart: event.target.value }))}
-                />
-              </label>
-              <label className="store-config-field">
-                <span>Fecha fin</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={contactsRange.dateEnd}
-                  onChange={(event) => setContactsRange((current) => ({ ...current, dateEnd: event.target.value }))}
-                />
-              </label>
-              <label className="store-config-field">
-                <span>Límite</span>
-                <input
-                  className="input"
-                  type="number"
-                  min={1}
-                  placeholder="200"
-                  value={contactsRange.limit}
-                  onChange={(event) => setContactsRange((current) => ({ ...current, limit: event.target.value }))}
-                />
-              </label>
-            </div>
-            <div className="page-module-actions compact-pills">
-              <span className={`pill ${contactsBulkOptions.shopifyToAlegra ? "pill-ok" : ""}`}>
-                E-commerce → Contable
-              </span>
-              <span className={`pill ${contactsBulkOptions.alegraToShopify ? "pill-ok" : ""}`}>
-                Contable → E-commerce
-              </span>
-              <span className="pill">Prioridad {effectiveSync.contacts.matchPriority.join(" / ")}</span>
-            </div>
-            <div className="store-configs-grid">
-              <BooleanChoice
-                label="Permitir E-commerce → Contable"
-                value={contactsBulkOptions.shopifyToAlegra}
-                onChange={(next) => setContactsBulkOptions((current) => ({ ...current, shopifyToAlegra: next }))}
-                positive="Sí"
-                negative="No"
-              />
-              <BooleanChoice
-                label="Crear nuevos en Contable"
-                value={contactsBulkOptions.createInAlegra}
-                onChange={(next) => setContactsBulkOptions((current) => ({ ...current, createInAlegra: next }))}
-                positive="Sí"
-                negative="No"
-                disabled={!contactsBulkOptions.shopifyToAlegra}
-              />
-              <BooleanChoice
-                label="Permitir Contable → E-commerce"
-                value={contactsBulkOptions.alegraToShopify}
-                onChange={(next) => setContactsBulkOptions((current) => ({ ...current, alegraToShopify: next }))}
-                positive="Sí"
-                negative="No"
-              />
-              <BooleanChoice
-                label="Crear nuevos en E-commerce"
-                value={contactsBulkOptions.createInShopify}
-                onChange={(next) => setContactsBulkOptions((current) => ({ ...current, createInShopify: next }))}
-                positive="Sí"
-                negative="No"
-                disabled={!contactsBulkOptions.alegraToShopify}
-              />
-            </div>
-            <div className="connection-card-actions">
-              <button
-                className="btn primary"
-                type="button"
-                disabled={loadingKey === "contacts"}
-                onClick={() =>
-                  void runStreamAction(
-                    "contacts",
-                    "Contactos E-commerce ↔ Contable",
-                    "/api/sync/contacts/bulk",
-                    {
-                      direction: "bidirectional",
-                      shopDomain: activeStore.providers.shopify?.shopDomain,
-                      from: contactsRange.dateStart || undefined,
-                      to: contactsRange.dateEnd || undefined,
-                      limit: contactsRange.limit ? Number(contactsRange.limit) : undefined,
-                      directions: {
-                        shopifyToAlegra: contactsBulkOptions.shopifyToAlegra,
-                        alegraToShopify: contactsBulkOptions.alegraToShopify,
-                      },
-                      createInAlegra: contactsBulkOptions.createInAlegra,
-                      createInShopify: contactsBulkOptions.createInShopify,
-                    },
-                    {
-                      onPayload: (payload) => {
-                        if (payload.type === "start") {
-                          setStreamState((current) =>
-                            current?.key === "contacts"
-                              ? {
-                                  ...current,
-                                  progress: 0,
-                                  detail: `Iniciando ${Number(payload.phaseTotal || 1)} fases...`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "progress") {
-                          const total = Number(payload.total || 0);
-                          const processed = Number(payload.processed || 0);
-                          const phaseIndex = Number(payload.phaseIndex || 1);
-                          const phaseTotal = Number(payload.phaseTotal || 1);
-                          const phasePercent = toPercent(processed, total);
-                          const percent = Math.max(
-                            0,
-                            Math.min(
-                              100,
-                              Math.round(((Math.max(0, phaseIndex - 1) + phasePercent / 100) / phaseTotal) * 100)
-                            )
-                          );
-                          setStreamState((current) =>
-                            current?.key === "contacts"
-                              ? {
-                                  ...current,
-                                  progress: percent,
-                                  detail: `Fase ${phaseIndex}/${phaseTotal} · ${String(payload.directionLabel || "")} · Procesados ${processed}/${total || "?"} · Sincronizados ${Number(payload.synced || 0)} · Fallidos ${Number(payload.failed || 0)}`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "complete") {
-                          setStreamState((current) =>
-                            current?.key === "contacts"
-                              ? {
-                                  ...current,
-                                  progress: 100,
-                                  detail: `Procesados ${Number(payload.processed || 0)} · Sincronizados ${Number(payload.synced || 0)} · Omitidos ${Number(payload.skipped || 0)} · Fallidos ${Number(payload.failed || 0)}`,
-                                  stoppable: false,
-                                }
-                              : current
-                          );
-                          setMessage(
-                            `Contactos listos. Procesados ${Number(payload.processed || 0)} · Sincronizados ${Number(payload.synced || 0)} · Omitidos ${Number(payload.skipped || 0)} · Fallidos ${Number(payload.failed || 0)}`
-                          );
-                          return;
-                        }
-                        if (payload.type === "canceled") {
-                          setStreamState((current) =>
-                            current?.key === "contacts"
-                              ? {
-                                  ...current,
-                                  detail: "Sincronización detenida por cierre de stream.",
-                                  stoppable: false,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "error") {
-                          throw new Error(String(payload.error || "No se pudo sincronizar contactos."));
-                        }
-                      },
-                    }
-                  )
-                }
-              >
-                {loadingKey === "contacts" ? "Sincronizando..." : "Sincronizar contactos"}
-              </button>
-              {streamState?.key === "contacts" && streamState.stoppable ? (
-                <button className="btn ghost" type="button" onClick={() => void stopStreamAction("contacts")}>
-                  Detener
-                </button>
-              ) : null}
-              <button
-                className="btn ghost"
-                type="button"
-                onClick={() => {
-                  setContactsRange(defaultRange);
-                  setContactsBulkOptions({
-                    shopifyToAlegra: effectiveSync.contacts.fromShopify,
-                    alegraToShopify: effectiveSync.contacts.fromAlegra,
-                    createInAlegra: effectiveSync.contacts.createInAlegra,
-                    createInShopify: effectiveSync.contacts.createInShopify,
-                  });
-                }}
-              >
-                Limpiar
-              </button>
-            </div>
-          </div>
-        </details>
-
-        <details className="settings-collapsible store-config-field-span-2" open>
-          <summary className="settings-collapsible-summary">
-            <strong>Ajustes finos por producto</strong>
-            <span>Corrige tracking y sobreventa por SKU o Alegra ID sin salir a la superficie heredada.</span>
-          </summary>
-          <div className="settings-subsection">
-            <div className="store-configs-grid">
-              <label className="store-config-field">
-                <span>SKU en E-commerce</span>
-                <input
-                  className="input"
-                  value={productManualControlForm.sku}
-                  placeholder="SKU-001"
-                  onChange={(event) =>
-                    setProductManualControlForm((current) => ({ ...current, sku: event.target.value }))
-                  }
-                />
-              </label>
-              <label className="store-config-field">
-                <span>Alegra ID</span>
-                <input
-                  className="input"
-                  value={productManualControlForm.alegraId}
-                  placeholder="12345"
-                  onChange={(event) =>
-                    setProductManualControlForm((current) => ({ ...current, alegraId: event.target.value }))
-                  }
-                />
-              </label>
-              <BooleanChoice
-                label="Tracking en E-commerce"
-                value={productManualControlForm.trackInventoryShopify}
-                onChange={(next) =>
-                  setProductManualControlForm((current) => ({ ...current, trackInventoryShopify: next }))
-                }
-                positive="Activo"
-                negative="Pausado"
-              />
-              <BooleanChoice
-                label="Tracking en Contable"
-                value={productManualControlForm.trackInventoryAlegra}
-                onChange={(next) =>
-                  setProductManualControlForm((current) => ({ ...current, trackInventoryAlegra: next }))
-                }
-                positive="Activo"
-                negative="Pausado"
-              />
-              <BooleanChoice
-                label="Sobreventa en E-commerce"
-                value={productManualControlForm.allowOversellShopify}
-                onChange={(next) =>
-                  setProductManualControlForm((current) => ({ ...current, allowOversellShopify: next }))
-                }
-                positive="Permitida"
-                negative="Bloqueada"
-                disabled={!productManualControlForm.trackInventoryShopify}
-              />
-              <BooleanChoice
-                label="Sobreventa en Contable"
-                value={productManualControlForm.allowOversellAlegra}
-                onChange={(next) =>
-                  setProductManualControlForm((current) => ({ ...current, allowOversellAlegra: next }))
-                }
-                positive="Permitida"
-                negative="Bloqueada"
-                disabled={!productManualControlForm.trackInventoryAlegra}
-              />
-              <label className="store-config-field">
-                <span>Inventario inicial en Contable</span>
-                <input
-                  className="input"
-                  type="number"
-                  min={0}
-                  placeholder="0"
-                  value={productManualControlForm.inventoryQuantity}
-                  onChange={(event) =>
-                    setProductManualControlForm((current) => ({
-                      ...current,
-                      inventoryQuantity: event.target.value,
-                    }))
-                  }
-                />
-                <small>Solo aplica si activas tracking en Contable para este ajuste manual.</small>
-              </label>
-              <label className="store-config-field">
-                <span>Unidad en Contable</span>
-                <input
-                  className="input"
-                  value={productManualControlForm.inventoryUnit}
-                  placeholder="u"
-                  onChange={(event) =>
-                    setProductManualControlForm((current) => ({ ...current, inventoryUnit: event.target.value }))
-                  }
-                />
-              </label>
-            </div>
-            <div className="page-module-actions compact-pills">
-              <span className="pill">Útil para correcciones puntuales sin relanzar todo el catálogo</span>
-              <span className="pill">Puedes usar solo SKU, solo Alegra ID o ambos</span>
-            </div>
-            <div className="connection-card-actions">
-              <button
-                className="btn primary"
-                type="button"
-                disabled={loadingKey === "product-tracking"}
-                onClick={() => void runProductManualTrackingUpdate()}
-              >
-                {loadingKey === "product-tracking" ? "Actualizando..." : "Guardar tracking"}
-              </button>
-              <button
-                className="btn ghost"
-                type="button"
-                disabled={loadingKey === "product-oversell"}
-                onClick={() => void runProductManualOversellUpdate()}
-              >
-                {loadingKey === "product-oversell" ? "Actualizando..." : "Guardar sobreventa"}
-              </button>
-              <button
-                className="btn ghost"
-                type="button"
-                onClick={() => {
-                  setProductManualControlForm(defaultProductManualControlForm);
-                }}
-              >
-                Limpiar
-              </button>
-            </div>
-          </div>
-        </details>
-
-        <details className="settings-collapsible store-config-field-span-2" open>
-          <summary className="settings-collapsible-summary">
-            <strong>Pedidos y facturas</strong>
-            <span>Masivos por rango para pedidos Shopify → Alegra y facturas Alegra → Shopify</span>
-          </summary>
-          <div className="settings-subsection">
-            <div className="store-configs-grid">
-              <label className="store-config-field">
-                <span>Fecha inicio</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={ordersRange.dateStart}
-                  onChange={(event) => setOrdersRange((current) => ({ ...current, dateStart: event.target.value }))}
-                />
-              </label>
-              <label className="store-config-field">
-                <span>Fecha fin</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={ordersRange.dateEnd}
-                  onChange={(event) => setOrdersRange((current) => ({ ...current, dateEnd: event.target.value }))}
-                />
-              </label>
-              <label className="store-config-field">
-                <span>Límite</span>
-                <input
-                  className="input"
-                  type="number"
-                  min={1}
-                  placeholder="100"
-                  value={ordersRange.limit}
-                  onChange={(event) => setOrdersRange((current) => ({ ...current, limit: event.target.value }))}
-                />
-              </label>
-              <label className="store-config-field">
-                <span>Pedido puntual</span>
-                <input
-                  className="input"
-                  value={ordersRange.orderNumber}
-                  placeholder="#12345"
-                  onChange={(event) => setOrdersRange((current) => ({ ...current, orderNumber: event.target.value }))}
-                />
-              </label>
-              <label className="store-config-field">
-                <span>Factura puntual Contable</span>
-                <input
-                  className="input"
-                  value={invoiceRange.alegraInvoiceId}
-                  placeholder="Alegra ID 12345"
-                  onChange={(event) =>
-                    setInvoiceRange((current) => ({ ...current, alegraInvoiceId: event.target.value }))
-                  }
-                />
-                <small>Si lo llenas, el retorno usa esa factura puntual en vez del rango.</small>
-              </label>
-            </div>
-            <div className="page-module-actions compact-pills">
-              <span className={`pill ${effectiveSync.orders.shopifyEnabled ? "pill-ok" : ""}`}>
-                Shopify → Contable {orderModeLabel(ordersToAlegraOptions.mode)}
-              </span>
-              <span className={`pill ${effectiveSync.orders.alegraEnabled ? "pill-ok" : ""}`}>
-                Alegra → Shopify{" "}
-                {invoicesToShopifyOptions.createShopifyOrder
-                  ? invoicesToShopifyOptions.mode === "active"
-                    ? "Pedido activo"
-                    : "Borrador"
-                  : "Solo base interna"}
-              </span>
-            </div>
+        {visibleGroups.includes("contacts") ? (
+          <details className="settings-collapsible store-config-field-span-2" open>
+            <summary className="settings-collapsible-summary">
+              <strong>Contactos</strong>
+              <span>Por fecha</span>
+            </summary>
             <div className="settings-subsection">
-              <div className="settings-subsection-head">
-                <div>
-                  <strong>Webhooks Shopify para pedidos</strong>
-                  <span>Valida primero los eventos base antes de lanzar masivos o retorno desde Contable.</span>
-                </div>
-                {ordersWebhookStatus ? (
-                  <span
-                    className={`pill ${
-                      ordersWebhookStatus.ok ? "pill-ok" : ordersWebhookStatus.connected ? "pill-warn" : "pill-bad"
-                    }`}
-                  >
-                    {ordersWebhookStatus.ok
-                      ? "Completos"
-                      : `${ordersWebhookStatus.connected}/${ordersWebhookStatus.total}`}
-                  </span>
-                ) : (
-                  <span className="pill">{ordersWebhookLoading ? "Consultando..." : "Sin datos"}</span>
-                )}
+              <div className="store-configs-grid">
+                <label className="store-config-field">
+                  <span>Fecha inicio</span>
+                  <input
+                    className="input"
+                    type="date"
+                    value={contactsRange.dateStart}
+                    onChange={(event) => setContactsRange((current) => ({ ...current, dateStart: event.target.value }))}
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Fecha fin</span>
+                  <input
+                    className="input"
+                    type="date"
+                    value={contactsRange.dateEnd}
+                    onChange={(event) => setContactsRange((current) => ({ ...current, dateEnd: event.target.value }))}
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Límite</span>
+                  <input
+                    className="input"
+                    type="number"
+                    min={1}
+                    placeholder="200"
+                    value={contactsRange.limit}
+                    onChange={(event) => setContactsRange((current) => ({ ...current, limit: event.target.value }))}
+                  />
+                </label>
               </div>
               <div className="page-module-actions compact-pills">
-                <span className="pill">
-                  Eventos {ordersWebhookStatus?.connected || 0}/{ordersWebhookStatus?.total || 0}
+                <span className={`pill ${contactsBulkOptions.shopifyToAlegra ? "pill-ok" : ""}`}>
+                  {commerceLabel} → {accountingLabel}
                 </span>
-                {ordersWebhookStatus?.missing?.length ? (
-                  <span className="pill pill-warn">Faltan {ordersWebhookStatus.missing.join(", ")}</span>
-                ) : (
-                  <span className="pill pill-ok">Cobertura base lista</span>
-                )}
+                <span className={`pill ${contactsBulkOptions.alegraToShopify ? "pill-ok" : ""}`}>
+                  {accountingLabel} → {commerceLabel}
+                </span>
+                <span className="pill">Match {effectiveSync.contacts.matchPriority.join(" / ")}</span>
               </div>
-              <div className="connection-tech-list">
-                <div className="connection-tech-item">
-                  <span>URL esperada</span>
-                  <strong>{ordersWebhookStatus?.callbackUrl || "Disponible al consultar el estado"}</strong>
-                </div>
-                <div className="connection-tech-item">
-                  <span>Acción sugerida</span>
-                  <strong>
-                    {ordersWebhookStatus?.missing?.length
-                      ? "Recrear webhooks antes de lanzar sincronizaciones de pedidos."
-                      : "La tienda ya tiene la cobertura mínima para pedidos, inventario y productos."}
-                  </strong>
-                </div>
+              <div className="store-configs-grid">
+                <BooleanChoice
+                  label="Entrada"
+                  value={contactsBulkOptions.shopifyToAlegra}
+                  onChange={(next) => setContactsBulkOptions((current) => ({ ...current, shopifyToAlegra: next }))}
+                  positive="Sí"
+                  negative="No"
+                />
+                <BooleanChoice
+                  label={`Crear en ${accountingLabel}`}
+                  value={contactsBulkOptions.createInAlegra}
+                  onChange={(next) => setContactsBulkOptions((current) => ({ ...current, createInAlegra: next }))}
+                  positive="Sí"
+                  negative="No"
+                  disabled={!contactsBulkOptions.shopifyToAlegra}
+                />
+                <BooleanChoice
+                  label="Retorno"
+                  value={contactsBulkOptions.alegraToShopify}
+                  onChange={(next) => setContactsBulkOptions((current) => ({ ...current, alegraToShopify: next }))}
+                  positive="Sí"
+                  negative="No"
+                />
+                <BooleanChoice
+                  label={`Crear en ${commerceLabel}`}
+                  value={contactsBulkOptions.createInShopify}
+                  onChange={(next) => setContactsBulkOptions((current) => ({ ...current, createInShopify: next }))}
+                  positive="Sí"
+                  negative="No"
+                  disabled={!contactsBulkOptions.alegraToShopify}
+                />
               </div>
               <div className="connection-card-actions">
                 <button
+                  className="btn primary"
+                  type="button"
+                  disabled={loadingKey === "contacts"}
+                  onClick={() =>
+                    void runStreamAction(
+                      "contacts",
+                      `Contactos ${commerceLabel} ↔ ${accountingLabel}`,
+                      "/api/sync/contacts/bulk",
+                      {
+                        direction: "bidirectional",
+                        shopDomain: activeStore.providers.shopify?.shopDomain,
+                        from: contactsRange.dateStart || undefined,
+                        to: contactsRange.dateEnd || undefined,
+                        limit: contactsRange.limit ? Number(contactsRange.limit) : undefined,
+                        directions: {
+                          shopifyToAlegra: contactsBulkOptions.shopifyToAlegra,
+                          alegraToShopify: contactsBulkOptions.alegraToShopify,
+                        },
+                        createInAlegra: contactsBulkOptions.createInAlegra,
+                        createInShopify: contactsBulkOptions.createInShopify,
+                      },
+                      {
+                        onPayload: (payload) => {
+                          if (payload.type === "start") {
+                            setStreamState((current) =>
+                              current?.key === "contacts"
+                                ? {
+                                    ...current,
+                                    progress: 0,
+                                    detail: `Iniciando ${Number(payload.phaseTotal || 1)} fases...`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "progress") {
+                            const total = Number(payload.total || 0);
+                            const processed = Number(payload.processed || 0);
+                            const phaseIndex = Number(payload.phaseIndex || 1);
+                            const phaseTotal = Number(payload.phaseTotal || 1);
+                            const phasePercent = toPercent(processed, total);
+                            const percent = Math.max(
+                              0,
+                              Math.min(
+                                100,
+                                Math.round(((Math.max(0, phaseIndex - 1) + phasePercent / 100) / phaseTotal) * 100)
+                              )
+                            );
+                            setStreamState((current) =>
+                              current?.key === "contacts"
+                                ? {
+                                    ...current,
+                                    progress: percent,
+                                    detail: `Fase ${phaseIndex}/${phaseTotal} · ${String(payload.directionLabel || "")} · Procesados ${processed}/${total || "?"} · Sincronizados ${Number(payload.synced || 0)} · Fallidos ${Number(payload.failed || 0)}`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "complete") {
+                            setStreamState((current) =>
+                              current?.key === "contacts"
+                                ? {
+                                    ...current,
+                                    progress: 100,
+                                    detail: `Procesados ${Number(payload.processed || 0)} · Sincronizados ${Number(payload.synced || 0)} · Omitidos ${Number(payload.skipped || 0)} · Fallidos ${Number(payload.failed || 0)}`,
+                                    stoppable: false,
+                                  }
+                                : current
+                            );
+                            setMessage(
+                              `Contactos listos. Procesados ${Number(payload.processed || 0)} · Sincronizados ${Number(payload.synced || 0)} · Omitidos ${Number(payload.skipped || 0)} · Fallidos ${Number(payload.failed || 0)}`
+                            );
+                            return;
+                          }
+                          if (payload.type === "canceled") {
+                            setStreamState((current) =>
+                              current?.key === "contacts"
+                                ? {
+                                    ...current,
+                                    detail: "Sincronización detenida por cierre de stream.",
+                                    stoppable: false,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "error") {
+                            throw new Error(String(payload.error || "No se pudo sincronizar contactos."));
+                          }
+                        },
+                      }
+                    )
+                  }
+                >
+                  {loadingKey === "contacts" ? "Sincronizando..." : "Sincronizar contactos"}
+                </button>
+                {streamState?.key === "contacts" && streamState.stoppable ? (
+                  <button className="btn ghost" type="button" onClick={() => void stopStreamAction("contacts")}>
+                    Detener
+                  </button>
+                ) : null}
+                <button
                   className="btn ghost"
                   type="button"
-                  disabled={ordersWebhookLoading}
                   onClick={() => {
-                    void refreshOrdersWebhookStatus();
+                    setContactsRange(defaultRange);
+                    setContactsBulkOptions({
+                      shopifyToAlegra: effectiveSync.contacts.fromShopify,
+                      alegraToShopify: effectiveSync.contacts.fromAlegra,
+                      createInAlegra: effectiveSync.contacts.createInAlegra,
+                      createInShopify: effectiveSync.contacts.createInShopify,
+                    });
                   }}
                 >
-                  Revisar estado
+                  Limpiar
                 </button>
+              </div>
+            </div>
+          </details>
+        ) : null}
+
+        {visibleGroups.includes("products") ? (
+          <details className="settings-collapsible store-config-field-span-2">
+            <summary className="settings-collapsible-summary">
+              <strong>Ajuste puntual por producto</strong>
+              <span>Tracking y sobreventa</span>
+            </summary>
+            <div className="settings-subsection">
+              <div className="store-configs-grid">
+                <label className="store-config-field">
+                  <span>SKU en {commerceLabel}</span>
+                  <input
+                    className="input"
+                    value={productManualControlForm.sku}
+                    placeholder="SKU-001"
+                    onChange={(event) =>
+                      setProductManualControlForm((current) => ({ ...current, sku: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Alegra ID</span>
+                  <input
+                    className="input"
+                    value={productManualControlForm.alegraId}
+                    placeholder="12345"
+                    onChange={(event) =>
+                      setProductManualControlForm((current) => ({ ...current, alegraId: event.target.value }))
+                    }
+                  />
+                </label>
+                <BooleanChoice
+                  label={`Tracking en ${commerceLabel}`}
+                  value={productManualControlForm.trackInventoryShopify}
+                  onChange={(next) =>
+                    setProductManualControlForm((current) => ({ ...current, trackInventoryShopify: next }))
+                  }
+                  positive="Activo"
+                  negative="Pausado"
+                />
+                <BooleanChoice
+                  label={`Tracking en ${accountingLabel}`}
+                  value={productManualControlForm.trackInventoryAlegra}
+                  onChange={(next) =>
+                    setProductManualControlForm((current) => ({ ...current, trackInventoryAlegra: next }))
+                  }
+                  positive="Activo"
+                  negative="Pausado"
+                />
+                <BooleanChoice
+                  label={`Sobreventa en ${commerceLabel}`}
+                  value={productManualControlForm.allowOversellShopify}
+                  onChange={(next) =>
+                    setProductManualControlForm((current) => ({ ...current, allowOversellShopify: next }))
+                  }
+                  positive="Permitida"
+                  negative="Bloqueada"
+                  disabled={!productManualControlForm.trackInventoryShopify}
+                />
+                <BooleanChoice
+                  label={`Sobreventa en ${accountingLabel}`}
+                  value={productManualControlForm.allowOversellAlegra}
+                  onChange={(next) =>
+                    setProductManualControlForm((current) => ({ ...current, allowOversellAlegra: next }))
+                  }
+                  positive="Permitida"
+                  negative="Bloqueada"
+                  disabled={!productManualControlForm.trackInventoryAlegra}
+                />
+                <label className="store-config-field">
+                  <span>Inventario inicial en {accountingLabel}</span>
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    placeholder="0"
+                    value={productManualControlForm.inventoryQuantity}
+                    onChange={(event) =>
+                      setProductManualControlForm((current) => ({
+                        ...current,
+                        inventoryQuantity: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Unidad en {accountingLabel}</span>
+                  <input
+                    className="input"
+                    value={productManualControlForm.inventoryUnit}
+                    placeholder="u"
+                    onChange={(event) =>
+                      setProductManualControlForm((current) => ({ ...current, inventoryUnit: event.target.value }))
+                    }
+                  />
+                </label>
+              </div>
+              <div className="page-module-actions compact-pills">
+                <span className="pill">Corrección puntual</span>
+                <span className="pill">SKU o Alegra ID</span>
+              </div>
+              <div className="connection-card-actions">
                 <button
                   className="btn primary"
                   type="button"
-                  disabled={ordersWebhookActionKey === "create" || !activeStore.providers.shopify?.shopDomain}
-                  onClick={() => {
-                    void runOrdersWebhookAction("create");
-                  }}
+                  disabled={loadingKey === "product-tracking"}
+                  onClick={() => void runProductManualTrackingUpdate()}
                 >
-                  {ordersWebhookActionKey === "create" ? "Recreando..." : "Recrear webhooks"}
+                  {loadingKey === "product-tracking" ? "Actualizando..." : "Guardar tracking"}
                 </button>
                 <button
                   className="btn ghost"
                   type="button"
-                  disabled={ordersWebhookActionKey === "delete" || !activeStore.providers.shopify?.shopDomain}
+                  disabled={loadingKey === "product-oversell"}
+                  onClick={() => void runProductManualOversellUpdate()}
+                >
+                  {loadingKey === "product-oversell" ? "Actualizando..." : "Guardar sobreventa"}
+                </button>
+                <button
+                  className="btn ghost"
+                  type="button"
                   onClick={() => {
-                    void runOrdersWebhookAction("delete");
+                    setProductManualControlForm(defaultProductManualControlForm);
                   }}
                 >
-                  {ordersWebhookActionKey === "delete" ? "Limpiando..." : "Limpiar webhooks"}
+                  Limpiar
                 </button>
               </div>
-              {ordersWebhookMessage ? <p className="connection-inline-note">{ordersWebhookMessage}</p> : null}
             </div>
-            <div className="store-configs-grid">
-              <label className="store-config-field">
-                <span>Modo Shopify → Contable</span>
-                <select
-                  className="input"
-                  value={ordersToAlegraOptions.mode}
-                  onChange={(event) =>
-                    setOrdersToAlegraOptions((current) => ({
-                      ...current,
-                      mode:
-                        event.target.value === "contact_only" ||
-                        event.target.value === "db_only" ||
-                        event.target.value === "off"
-                          ? event.target.value
-                          : "invoice",
-                    }))
-                  }
-                >
-                  <option value="invoice">Facturar en Contable</option>
-                  <option value="contact_only">Solo contacto</option>
-                  <option value="db_only">Solo base interna</option>
-                  <option value="off">Apagado</option>
-                </select>
-                <small>Define la profundidad de la corrida manual antes de lanzar el masivo o el pedido puntual.</small>
-              </label>
-              <BooleanChoice
-                label="Generar factura"
-                value={ordersToAlegraOptions.generateInvoice}
-                onChange={(next) => setOrdersToAlegraOptions((current) => ({ ...current, generateInvoice: next }))}
-                positive="Sí"
-                negative="No"
-                disabled={ordersToAlegraOptions.mode !== "invoice"}
-                help="Sobrescribe solo esta corrida manual aunque la tienda tenga otro default."
-              />
-              <BooleanChoice
-                label="Ignorar reglas logísticas"
-                value={ordersToAlegraOptions.skipRules}
-                onChange={(next) => setOrdersToAlegraOptions((current) => ({ ...current, skipRules: next }))}
-                positive="Sí"
-                negative="No"
-                help="Permite registrar el pedido aun si una regla operativa lo bloquearía."
-              />
-              <BooleanChoice
-                label="Crear pedido en E-commerce"
-                value={invoicesToShopifyOptions.createShopifyOrder}
-                onChange={(next) =>
-                  setInvoicesToShopifyOptions((current) => ({ ...current, createShopifyOrder: next }))
-                }
-                positive="Sí"
-                negative="No"
-                help="Si lo apagas, usa solo la carga a base desde Contable."
-              />
-              <label className="store-config-field">
-                <span>Crear como</span>
-                <select
-                  className="input"
-                  value={invoicesToShopifyOptions.mode}
-                  disabled={!invoicesToShopifyOptions.createShopifyOrder}
-                  onChange={(event) =>
-                    setInvoicesToShopifyOptions((current) => ({
-                      ...current,
-                      mode: event.target.value === "active" ? "active" : "draft",
-                    }))
-                  }
-                >
-                  <option value="draft">Borrador</option>
-                  <option value="active">Activo</option>
-                </select>
-                <small>Replica el control del flujo viejo para decidir si la factura crea draft o pedido activo.</small>
-              </label>
-            </div>
-            <div className="connection-card-actions">
-              <button
-                className="btn primary"
-                type="button"
-                disabled={loadingKey === "orders"}
-                onClick={() =>
-                  void runStreamAction(
-                    "orders",
-                    "Pedidos Shopify → Contable",
-                    "/api/sync/orders",
-                    {
-                      shopDomain: activeStore.providers.shopify?.shopDomain,
-                      mode: ordersToAlegraOptions.mode,
-                      generateInvoice:
-                        ordersToAlegraOptions.mode === "invoice" ? ordersToAlegraOptions.generateInvoice : false,
-                      skipRules: ordersToAlegraOptions.skipRules,
-                      filters: {
-                        dateStart: ordersRange.dateStart || undefined,
-                        dateEnd: ordersRange.dateEnd || undefined,
-                        limit: ordersRange.limit ? Number(ordersRange.limit) : undefined,
-                        orderNumber: ordersRange.orderNumber.trim() || undefined,
-                      },
-                    },
-                    {
-                      stoppable: true,
-                      onPayload: (payload) => {
-                        if (payload.type === "start") {
-                          setStreamState((current) =>
-                            current?.key === "orders"
-                              ? {
-                                  ...current,
-                                  syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
-                                  progress: 0,
-                                  detail: `Preparando ${Number(payload.total || 0)} pedidos...`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "progress") {
-                          const total = Number(payload.total || 0);
-                          const processed = Number(payload.processed || 0);
-                          setStreamState((current) =>
-                            current?.key === "orders"
-                              ? {
-                                  ...current,
-                                  syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
-                                  progress: toPercent(processed, total),
-                                  detail: `Procesados ${processed}/${total || "?"} · Facturados ${Number(payload.synced || 0)} · Existentes ${Number(payload.skipped || 0)} · Fallidos ${Number(payload.failed || 0)}`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "canceled") {
-                          setStreamState((current) =>
-                            current?.key === "orders"
-                              ? { ...current, detail: "Sincronización de pedidos detenida.", stoppable: false }
-                              : current
-                          );
-                          setMessage("Sincronización de pedidos detenida.");
-                          return;
-                        }
-                        if (payload.type === "complete") {
-                          setStreamState((current) =>
-                            current?.key === "orders"
-                              ? {
-                                  ...current,
-                                  progress: 100,
-                                  detail: `Procesados ${Number(payload.processed || 0)} · Facturados ${Number(payload.synced || 0)} · Existentes ${Number(payload.skipped || 0)} · Fallidos ${Number(payload.failed || 0)}`,
-                                  stoppable: false,
-                                }
-                              : current
-                          );
-                          setMessage(
-                            `Pedidos listos. Procesados ${Number(payload.processed || 0)} · Facturados ${Number(payload.synced || 0)} · Existentes ${Number(payload.skipped || 0)} · Fallidos ${Number(payload.failed || 0)}`
-                          );
-                          return;
-                        }
-                        if (payload.type === "error") {
-                          throw new Error(String(payload.error || "No se pudo sincronizar pedidos."));
-                        }
-                      },
+          </details>
+        ) : null}
+
+        {visibleGroups.includes("orders") ? (
+          <details className="settings-collapsible store-config-field-span-2" open>
+            <summary className="settings-collapsible-summary">
+              <strong>Pedidos y facturas</strong>
+              <span>Entrada, retorno y puntuales</span>
+            </summary>
+            <div className="settings-subsection">
+              <div className="store-configs-grid">
+                <label className="store-config-field">
+                  <span>Fecha inicio</span>
+                  <input
+                    className="input"
+                    type="date"
+                    value={ordersRange.dateStart}
+                    onChange={(event) => setOrdersRange((current) => ({ ...current, dateStart: event.target.value }))}
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Fecha fin</span>
+                  <input
+                    className="input"
+                    type="date"
+                    value={ordersRange.dateEnd}
+                    onChange={(event) => setOrdersRange((current) => ({ ...current, dateEnd: event.target.value }))}
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Límite</span>
+                  <input
+                    className="input"
+                    type="number"
+                    min={1}
+                    placeholder="100"
+                    value={ordersRange.limit}
+                    onChange={(event) => setOrdersRange((current) => ({ ...current, limit: event.target.value }))}
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Pedido puntual</span>
+                  <input
+                    className="input"
+                    value={ordersRange.orderNumber}
+                    placeholder="#12345"
+                    onChange={(event) => setOrdersRange((current) => ({ ...current, orderNumber: event.target.value }))}
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Factura puntual en {accountingLabel}</span>
+                  <input
+                    className="input"
+                    value={invoiceRange.alegraInvoiceId}
+                    placeholder="Alegra ID 12345"
+                    onChange={(event) =>
+                      setInvoiceRange((current) => ({ ...current, alegraInvoiceId: event.target.value }))
                     }
-                  )
-                }
-              >
-                {loadingKey === "orders" ? "Procesando..." : "Sincronizar pedidos"}
-              </button>
-              {streamState?.key === "orders" && streamState.stoppable ? (
-                <button className="btn ghost" type="button" onClick={() => void stopStreamAction("orders")}>
-                  Detener
+                  />
+                </label>
+              </div>
+              <div className="page-module-actions compact-pills">
+                <span className={`pill ${effectiveSync.orders.shopifyEnabled ? "pill-ok" : ""}`}>
+                  {commerceLabel} → {accountingLabel} {orderModeLabel(ordersToAlegraOptions.mode)}
+                </span>
+                <span className={`pill ${effectiveSync.orders.alegraEnabled ? "pill-ok" : ""}`}>
+                  {accountingLabel} → {commerceLabel}{" "}
+                  {invoicesToShopifyOptions.createShopifyOrder
+                    ? invoicesToShopifyOptions.mode === "active"
+                      ? invoiceReturnModeLabel("active")
+                      : invoiceReturnModeLabel("draft")
+                    : "Solo base"}
+                </span>
+              </div>
+              <div className="settings-subsection">
+                <div className="settings-subsection-head">
+                  <div>
+                    <strong>Webhooks</strong>
+                    <span>Revisa cobertura.</span>
+                  </div>
+                  {ordersWebhookStatus ? (
+                    <span
+                      className={`pill ${
+                        ordersWebhookStatus.ok ? "pill-ok" : ordersWebhookStatus.connected ? "pill-warn" : "pill-bad"
+                      }`}
+                    >
+                      {ordersWebhookStatus.ok
+                        ? "Completos"
+                        : `${ordersWebhookStatus.connected}/${ordersWebhookStatus.total}`}
+                    </span>
+                  ) : (
+                    <span className="pill">{ordersWebhookLoading ? "Consultando..." : "Sin datos"}</span>
+                  )}
+                </div>
+                <div className="page-module-actions compact-pills">
+                  <span className="pill">
+                    Eventos {ordersWebhookStatus?.connected || 0}/{ordersWebhookStatus?.total || 0}
+                  </span>
+                  {ordersWebhookStatus?.missing?.length ? (
+                    <span className="pill pill-warn">Faltan {ordersWebhookStatus.missing.join(", ")}</span>
+                  ) : (
+                    <span className="pill pill-ok">Cobertura lista</span>
+                  )}
+                </div>
+                <div className="connection-tech-list">
+                  <div className="connection-tech-item">
+                    <span>Callback</span>
+                    <strong>{ordersWebhookStatus?.callbackUrl || "Verifica al consultar"}</strong>
+                  </div>
+                  <div className="connection-tech-item">
+                    <span>Siguiente paso</span>
+                    <strong>
+                      {ordersWebhookStatus?.missing?.length ? "Recrear antes de correr pedidos." : "Cobertura lista."}
+                    </strong>
+                  </div>
+                </div>
+                <div className="connection-card-actions">
+                  <button
+                    className="btn ghost"
+                    type="button"
+                    disabled={ordersWebhookLoading}
+                    onClick={() => {
+                      void refreshOrdersWebhookStatus();
+                    }}
+                  >
+                    Revisar estado
+                  </button>
+                  <button
+                    className="btn primary"
+                    type="button"
+                    disabled={ordersWebhookActionKey === "create" || !activeStore.providers.shopify?.shopDomain}
+                    onClick={() => {
+                      void runOrdersWebhookAction("create");
+                    }}
+                  >
+                    {ordersWebhookActionKey === "create" ? "Recreando..." : "Recrear webhooks"}
+                  </button>
+                  <button
+                    className="btn ghost"
+                    type="button"
+                    disabled={ordersWebhookActionKey === "delete" || !activeStore.providers.shopify?.shopDomain}
+                    onClick={() => {
+                      void runOrdersWebhookAction("delete");
+                    }}
+                  >
+                    {ordersWebhookActionKey === "delete" ? "Limpiando..." : "Limpiar webhooks"}
+                  </button>
+                </div>
+                {ordersWebhookMessage ? <p className="connection-inline-note">{ordersWebhookMessage}</p> : null}
+              </div>
+              <div className="store-configs-grid">
+                <label className="store-config-field">
+                  <span>{commerceLabel} → {accountingLabel}</span>
+                  <select
+                    className="input"
+                    value={ordersToAlegraOptions.mode}
+                    onChange={(event) =>
+                      setOrdersToAlegraOptions((current) => ({
+                        ...current,
+                        mode:
+                          event.target.value === "contact_only" ||
+                          event.target.value === "db_only" ||
+                          event.target.value === "off"
+                            ? event.target.value
+                            : "invoice",
+                      }))
+                    }
+                  >
+                    <option value="invoice">Crear factura</option>
+                    <option value="contact_only">Solo contacto</option>
+                    <option value="db_only">Guardar pedido</option>
+                    <option value="off">Apagado</option>
+                  </select>
+                </label>
+                <BooleanChoice
+                  label={`Facturar en ${accountingLabel}`}
+                  value={ordersToAlegraOptions.generateInvoice}
+                  onChange={(next) => setOrdersToAlegraOptions((current) => ({ ...current, generateInvoice: next }))}
+                  positive="Sí"
+                  negative="No"
+                  disabled={ordersToAlegraOptions.mode !== "invoice"}
+                />
+                <BooleanChoice
+                  label="Ignorar reglas"
+                  value={ordersToAlegraOptions.skipRules}
+                  onChange={(next) => setOrdersToAlegraOptions((current) => ({ ...current, skipRules: next }))}
+                  positive="Sí"
+                  negative="No"
+                />
+                <BooleanChoice
+                  label={`Crear en ${commerceLabel}`}
+                  value={invoicesToShopifyOptions.createShopifyOrder}
+                  onChange={(next) =>
+                    setInvoicesToShopifyOptions((current) => ({ ...current, createShopifyOrder: next }))
+                  }
+                  positive="Sí"
+                  negative="No"
+                />
+                <label className="store-config-field">
+                  <span>Retorno</span>
+                  <select
+                    className="input"
+                    value={invoicesToShopifyOptions.mode}
+                    disabled={!invoicesToShopifyOptions.createShopifyOrder}
+                    onChange={(event) =>
+                      setInvoicesToShopifyOptions((current) => ({
+                        ...current,
+                        mode: event.target.value === "active" ? "active" : "draft",
+                      }))
+                    }
+                  >
+                    <option value="draft">Crear borrador</option>
+                    <option value="active">Crear activo</option>
+                  </select>
+                </label>
+              </div>
+              <div className="connection-card-actions">
+                <button
+                  className="btn primary"
+                  type="button"
+                  disabled={loadingKey === "orders"}
+                  onClick={() =>
+                    void runStreamAction(
+                      "orders",
+                      `Pedidos ${commerceLabel} → ${accountingLabel}`,
+                      "/api/sync/orders",
+                      {
+                        shopDomain: activeStore.providers.shopify?.shopDomain,
+                        mode: ordersToAlegraOptions.mode,
+                        generateInvoice:
+                          ordersToAlegraOptions.mode === "invoice" ? ordersToAlegraOptions.generateInvoice : false,
+                        skipRules: ordersToAlegraOptions.skipRules,
+                        filters: {
+                          dateStart: ordersRange.dateStart || undefined,
+                          dateEnd: ordersRange.dateEnd || undefined,
+                          limit: ordersRange.limit ? Number(ordersRange.limit) : undefined,
+                          orderNumber: ordersRange.orderNumber.trim() || undefined,
+                        },
+                      },
+                      {
+                        stoppable: true,
+                        onPayload: (payload) => {
+                          if (payload.type === "start") {
+                            setStreamState((current) =>
+                              current?.key === "orders"
+                                ? {
+                                    ...current,
+                                    syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
+                                    progress: 0,
+                                    detail: `Preparando ${Number(payload.total || 0)} pedidos...`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "progress") {
+                            const total = Number(payload.total || 0);
+                            const processed = Number(payload.processed || 0);
+                            setStreamState((current) =>
+                              current?.key === "orders"
+                                ? {
+                                    ...current,
+                                    syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
+                                    progress: toPercent(processed, total),
+                                    detail: `Procesados ${processed}/${total || "?"} · Facturados ${Number(payload.synced || 0)} · Existentes ${Number(payload.skipped || 0)} · Fallidos ${Number(payload.failed || 0)}`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "canceled") {
+                            setStreamState((current) =>
+                              current?.key === "orders"
+                                ? { ...current, detail: "Sincronización de pedidos detenida.", stoppable: false }
+                                : current
+                            );
+                            setMessage("Sincronización de pedidos detenida.");
+                            return;
+                          }
+                          if (payload.type === "complete") {
+                            setStreamState((current) =>
+                              current?.key === "orders"
+                                ? {
+                                    ...current,
+                                    progress: 100,
+                                    detail: `Procesados ${Number(payload.processed || 0)} · Facturados ${Number(payload.synced || 0)} · Existentes ${Number(payload.skipped || 0)} · Fallidos ${Number(payload.failed || 0)}`,
+                                    stoppable: false,
+                                  }
+                                : current
+                            );
+                            setMessage(
+                              `Pedidos listos. Procesados ${Number(payload.processed || 0)} · Facturados ${Number(payload.synced || 0)} · Existentes ${Number(payload.skipped || 0)} · Fallidos ${Number(payload.failed || 0)}`
+                            );
+                            return;
+                          }
+                          if (payload.type === "error") {
+                            throw new Error(String(payload.error || "No se pudo sincronizar pedidos."));
+                          }
+                        },
+                      }
+                    )
+                  }
+                >
+                  {loadingKey === "orders" ? "Procesando..." : "Correr pedidos"}
                 </button>
-              ) : null}
-              <button
-                className="btn ghost"
-                type="button"
-                onClick={() => {
-                  setOrdersRange(defaultOrdersRange);
-                  setInvoiceRange(defaultInvoiceRange);
-                  setOrdersToAlegraOptions({
-                    mode: effectiveSync.orders.shopifyToAlegra,
-                    generateInvoice: activeConfig?.invoice?.generateInvoice ?? defaults.invoice.generateInvoice,
-                    skipRules: false,
-                  });
-                }}
-              >
-                Limpiar
-              </button>
-              <button
-                className="btn ghost"
-                type="button"
-                disabled={loadingKey === "invoices" || !invoicesToShopifyOptions.createShopifyOrder}
-                onClick={() =>
-                  void runStreamAction(
-                    "invoices",
-                    "Facturas Contable → E-commerce",
-                    "/api/sync/invoices",
-                    {
-                      shopDomain: activeStore.providers.shopify?.shopDomain,
-                      mode: invoicesToShopifyOptions.mode,
-                      filters: {
+                {streamState?.key === "orders" && streamState.stoppable ? (
+                  <button className="btn ghost" type="button" onClick={() => void stopStreamAction("orders")}>
+                    Detener
+                  </button>
+                ) : null}
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() => {
+                    setOrdersRange(defaultOrdersRange);
+                    setInvoiceRange(defaultInvoiceRange);
+                    setOrdersToAlegraOptions({
+                      mode: effectiveSync.orders.shopifyToAlegra,
+                      generateInvoice: activeConfig?.invoice?.generateInvoice ?? defaults.invoice.generateInvoice,
+                      skipRules: false,
+                    });
+                  }}
+                >
+                  Limpiar
+                </button>
+                <button
+                  className="btn ghost"
+                  type="button"
+                  disabled={loadingKey === "invoices" || !invoicesToShopifyOptions.createShopifyOrder}
+                  onClick={() =>
+                    void runStreamAction(
+                      "invoices",
+                      `Facturas ${accountingLabel} → ${commerceLabel}`,
+                      "/api/sync/invoices",
+                      {
+                        shopDomain: activeStore.providers.shopify?.shopDomain,
+                        mode: invoicesToShopifyOptions.mode,
+                        filters: {
+                          dateStart: invoiceRange.dateStart || ordersRange.dateStart || undefined,
+                          dateEnd: invoiceRange.dateEnd || ordersRange.dateEnd || undefined,
+                          limit:
+                            invoiceRange.limit || ordersRange.limit
+                              ? Number(invoiceRange.limit || ordersRange.limit)
+                              : undefined,
+                          alegraInvoiceId: invoiceRange.alegraInvoiceId.trim() || undefined,
+                        },
+                      },
+                      {
+                        stoppable: true,
+                        onPayload: (payload) => {
+                          if (payload.type === "start") {
+                            setStreamState((current) =>
+                              current?.key === "invoices"
+                                ? {
+                                    ...current,
+                                    syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
+                                    progress: 0,
+                                    detail: `Preparando ${Number(payload.total || 0)} facturas...`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "progress") {
+                            const total = Number(payload.total || 0);
+                            const processed = Number(payload.processed || 0);
+                            setStreamState((current) =>
+                              current?.key === "invoices"
+                                ? {
+                                    ...current,
+                                    syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
+                                    progress: toPercent(processed, total),
+                                    detail: `Procesadas ${processed}/${total || "?"} · Creadas ${Number(payload.created || 0)} · Omitidas ${Number(payload.skipped || 0)} · Fallidas ${Number(payload.failed || 0)}`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "canceled") {
+                            setStreamState((current) =>
+                              current?.key === "invoices"
+                                ? { ...current, detail: "Retorno de facturas detenido.", stoppable: false }
+                                : current
+                            );
+                            setMessage("Retorno de facturas detenido.");
+                            return;
+                          }
+                          if (payload.type === "complete") {
+                            setStreamState((current) =>
+                              current?.key === "invoices"
+                                ? {
+                                    ...current,
+                                    progress: 100,
+                                    detail: `Procesadas ${Number(payload.processed || 0)} · Creadas ${Number(payload.created || 0)} · Omitidas ${Number(payload.skipped || 0)} · Fallidas ${Number(payload.failed || 0)}`,
+                                    stoppable: false,
+                                  }
+                                : current
+                            );
+                            setMessage(
+                              `Facturas listas. Procesadas ${Number(payload.processed || 0)} · Creadas ${Number(payload.created || 0)} · Omitidas ${Number(payload.skipped || 0)} · Fallidas ${Number(payload.failed || 0)}`
+                            );
+                            return;
+                          }
+                          if (payload.type === "error") {
+                            throw new Error(String(payload.error || "No se pudo sincronizar facturas."));
+                          }
+                        },
+                      }
+                    )
+                  }
+                >
+                  {loadingKey === "invoices"
+                    ? "Procesando..."
+                    : invoiceRange.alegraInvoiceId.trim()
+                      ? "Crear desde factura puntual"
+                      : "Crear desde facturas"}
+                </button>
+                {streamState?.key === "invoices" && streamState.stoppable ? (
+                  <button className="btn ghost" type="button" onClick={() => void stopStreamAction("invoices")}>
+                    Detener
+                  </button>
+                ) : null}
+                <button
+                  className="btn ghost"
+                  type="button"
+                  disabled={loadingKey === "invoices-backfill"}
+                  onClick={() =>
+                    void runStreamAction(
+                      "invoices-backfill",
+                      `Carga base desde ${accountingLabel}`,
+                      "/api/backfill/orders",
+                      {
+                        source: "alegra",
+                        shopDomain: activeStore.providers.shopify?.shopDomain,
                         dateStart: invoiceRange.dateStart || ordersRange.dateStart || undefined,
                         dateEnd: invoiceRange.dateEnd || ordersRange.dateEnd || undefined,
                         limit:
                           invoiceRange.limit || ordersRange.limit
                             ? Number(invoiceRange.limit || ordersRange.limit)
                             : undefined,
-                        alegraInvoiceId: invoiceRange.alegraInvoiceId.trim() || undefined,
                       },
-                    },
-                    {
-                      stoppable: true,
-                      onPayload: (payload) => {
-                        if (payload.type === "start") {
-                          setStreamState((current) =>
-                            current?.key === "invoices"
-                              ? {
-                                  ...current,
-                                  syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
-                                  progress: 0,
-                                  detail: `Preparando ${Number(payload.total || 0)} facturas...`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "progress") {
-                          const total = Number(payload.total || 0);
-                          const processed = Number(payload.processed || 0);
-                          setStreamState((current) =>
-                            current?.key === "invoices"
-                              ? {
-                                  ...current,
-                                  syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
-                                  progress: toPercent(processed, total),
-                                  detail: `Procesadas ${processed}/${total || "?"} · Creadas ${Number(payload.created || 0)} · Omitidas ${Number(payload.skipped || 0)} · Fallidas ${Number(payload.failed || 0)}`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "canceled") {
-                          setStreamState((current) =>
-                            current?.key === "invoices"
-                              ? { ...current, detail: "Retorno de facturas detenido.", stoppable: false }
-                              : current
-                          );
-                          setMessage("Retorno de facturas detenido.");
-                          return;
-                        }
-                        if (payload.type === "complete") {
-                          setStreamState((current) =>
-                            current?.key === "invoices"
-                              ? {
-                                  ...current,
-                                  progress: 100,
-                                  detail: `Procesadas ${Number(payload.processed || 0)} · Creadas ${Number(payload.created || 0)} · Omitidas ${Number(payload.skipped || 0)} · Fallidas ${Number(payload.failed || 0)}`,
-                                  stoppable: false,
-                                }
-                              : current
-                          );
-                          setMessage(
-                            `Facturas listas. Procesadas ${Number(payload.processed || 0)} · Creadas ${Number(payload.created || 0)} · Omitidas ${Number(payload.skipped || 0)} · Fallidas ${Number(payload.failed || 0)}`
-                          );
-                          return;
-                        }
-                        if (payload.type === "error") {
-                          throw new Error(String(payload.error || "No se pudo sincronizar facturas."));
-                        }
-                      },
-                    }
-                  )
-                }
-              >
-                {loadingKey === "invoices"
-                  ? "Procesando..."
-                  : invoiceRange.alegraInvoiceId.trim()
-                    ? "Crear pedido desde factura puntual"
-                    : "Crear pedidos desde facturas"}
-              </button>
-              {streamState?.key === "invoices" && streamState.stoppable ? (
-                <button className="btn ghost" type="button" onClick={() => void stopStreamAction("invoices")}>
-                  Detener
-                </button>
-              ) : null}
-              <button
-                className="btn ghost"
-                type="button"
-                disabled={loadingKey === "invoices-backfill"}
-                onClick={() =>
-                  void runStreamAction(
-                    "invoices-backfill",
-                    "Carga histórica desde Contable",
-                    "/api/backfill/orders",
-                    {
-                      source: "alegra",
-                      shopDomain: activeStore.providers.shopify?.shopDomain,
-                      dateStart: invoiceRange.dateStart || ordersRange.dateStart || undefined,
-                      dateEnd: invoiceRange.dateEnd || ordersRange.dateEnd || undefined,
-                      limit:
-                        invoiceRange.limit || ordersRange.limit
-                          ? Number(invoiceRange.limit || ordersRange.limit)
-                          : undefined,
-                    },
-                    {
-                      stoppable: true,
-                      onPayload: (payload) => {
-                        if (payload.type === "start") {
-                          setStreamState((current) =>
-                            current?.key === "invoices-backfill"
-                              ? {
-                                  ...current,
-                                  syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
-                                  progress: 0,
-                                  detail: "Leyendo facturas desde Contable...",
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "progress") {
-                          const total = Number(payload.total || 0);
-                          const processed = Number(payload.processed || 0);
-                          setStreamState((current) =>
-                            current?.key === "invoices-backfill"
-                              ? {
-                                  ...current,
-                                  syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
-                                  progress: toPercent(processed, total),
-                                  detail: `Procesadas ${processed}/${total || "?"} · Páginas ${Number(payload.pages || 0)}`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "canceled") {
-                          setStreamState((current) =>
-                            current?.key === "invoices-backfill"
-                              ? { ...current, detail: "Carga histórica detenida.", stoppable: false }
-                              : current
-                          );
-                          setMessage("Carga histórica de facturas detenida.");
-                          return;
-                        }
-                        if (payload.type === "complete") {
-                          const alegra = payload.alegra && typeof payload.alegra === "object" ? payload.alegra : null;
-                          const processed = Number((alegra as { processed?: number } | null)?.processed || 0);
-                          setStreamState((current) =>
-                            current?.key === "invoices-backfill"
-                              ? {
-                                  ...current,
-                                  progress: 100,
-                                  detail: `Facturas cargadas desde Contable: ${processed}`,
-                                  stoppable: false,
-                                }
-                              : current
-                          );
-                          setMessage(`Carga histórica lista. Facturas desde Contable: ${processed}`);
-                          return;
-                        }
-                        if (payload.type === "error") {
-                          throw new Error(String(payload.error || "No se pudo cargar desde Contable."));
-                        }
-                      },
-                    }
-                  )
-                }
-              >
-                {loadingKey === "invoices-backfill" ? "Procesando..." : "Cargar desde Contable"}
-              </button>
-              {streamState?.key === "invoices-backfill" && streamState.stoppable ? (
-                <button className="btn ghost" type="button" onClick={() => void stopStreamAction("invoices-backfill")}>
-                  Detener
-                </button>
-              ) : null}
-              <button
-                className="btn ghost"
-                type="button"
-                onClick={() => {
-                  setOrdersRange(defaultOrdersRange);
-                  setInvoiceRange(defaultInvoiceRange);
-                  setInvoicesToShopifyOptions({
-                    createShopifyOrder: effectiveSync.orders.alegraToShopify !== "off",
-                    mode: effectiveSync.orders.alegraToShopify === "active" ? "active" : "draft",
-                  });
-                }}
-              >
-                Limpiar retorno
-              </button>
-              <a className="btn ghost" href="/operations">
-                Abrir mesa operativa
-              </a>
-            </div>
-          </div>
-        </details>
-
-        <details className="settings-collapsible store-config-field-span-2" open>
-          <summary className="settings-collapsible-summary">
-            <strong>Productos Contable → E-commerce</strong>
-            <span>Catálogo inicial o reproceso por fechas hacia Shopify</span>
-          </summary>
-          <div className="settings-subsection">
-            <div className="store-configs-grid">
-              <label className="store-config-field">
-                <span>Fecha inicio</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={productsRange.dateStart}
-                  onChange={(event) => setProductsRange((current) => ({ ...current, dateStart: event.target.value }))}
-                />
-              </label>
-              <label className="store-config-field">
-                <span>Fecha fin</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={productsRange.dateEnd}
-                  onChange={(event) => setProductsRange((current) => ({ ...current, dateEnd: event.target.value }))}
-                />
-              </label>
-              <label className="store-config-field">
-                <span>Límite</span>
-                <input
-                  className="input"
-                  type="number"
-                  min={1}
-                  placeholder="100"
-                  value={productsRange.limit}
-                  onChange={(event) => setProductsRange((current) => ({ ...current, limit: event.target.value }))}
-                />
-              </label>
-              <label className="store-config-field">
-                <span>SKU / Barcode / referencia</span>
-                <input
-                  className="input"
-                  value={productsRange.query}
-                  placeholder="SKU-001 o 770123..."
-                  onChange={(event) => setProductsRange((current) => ({ ...current, query: event.target.value }))}
-                />
-                <small>Activa búsqueda puntual o reintento fino sin recorrer todo el catálogo.</small>
-              </label>
-              <label className="store-config-field">
-                <span>Concurrencia</span>
-                <input
-                  className="input"
-                  type="number"
-                  min={1}
-                  max={10}
-                  placeholder="5"
-                  value={productsRange.batchSize}
-                  onChange={(event) => setProductsRange((current) => ({ ...current, batchSize: event.target.value }))}
-                />
-                <small>Cuántos workers publican o actualizan en paralelo en esta corrida.</small>
-              </label>
-            </div>
-            <div className="page-module-actions compact-pills">
-              <span className={`pill ${productsToShopifyOptions.publishOnSync ? "pill-ok" : ""}`}>
-                Publicar {productsToShopifyOptions.publishOnSync ? "encendido" : "apagado"}
-              </span>
-              <span className={`pill ${productsToShopifyOptions.updateExisting ? "pill-ok" : ""}`}>
-                Actualizar {productsToShopifyOptions.updateExisting ? "encendido" : "apagado"}
-              </span>
-              <span className={`pill ${productsToShopifyOptions.trackInventory ? "pill-ok" : ""}`}>
-                Inventario {productsToShopifyOptions.trackInventory ? "activo" : "apagado"}
-              </span>
-              <span className={`pill ${productsToShopifyOptions.onlyWithImages ? "pill-ok" : ""}`}>
-                Imágenes {productsToShopifyOptions.onlyWithImages ? "requeridas" : "opcionales"}
-              </span>
-              <span className="pill">
-                {productsRange.query.trim()
-                  ? `Filtro puntual ${productsRange.query.trim()}`
-                  : `Concurrencia ${productsRange.batchSize || "5"}`}
-              </span>
-            </div>
-            <div className="store-configs-grid">
-              <BooleanChoice
-                label="Solo activos"
-                value={productsToShopifyOptions.onlyActive}
-                onChange={(next) => setProductsToShopifyOptions((current) => ({ ...current, onlyActive: next }))}
-                positive="Sí"
-                negative="No"
-              />
-              <BooleanChoice
-                label="Solo con fotos"
-                value={productsToShopifyOptions.onlyWithImages}
-                onChange={(next) => setProductsToShopifyOptions((current) => ({ ...current, onlyWithImages: next }))}
-                positive="Sí"
-                negative="No"
-              />
-              <BooleanChoice
-                label="Actualizar existentes"
-                value={productsToShopifyOptions.updateExisting}
-                onChange={(next) => setProductsToShopifyOptions((current) => ({ ...current, updateExisting: next }))}
-                positive="Sí"
-                negative="No"
-              />
-              <BooleanChoice
-                label="Publicar en E-commerce"
-                value={productsToShopifyOptions.publishOnSync}
-                onChange={(next) => setProductsToShopifyOptions((current) => ({ ...current, publishOnSync: next }))}
-                positive="Sí"
-                negative="No"
-              />
-              <label className="store-config-field">
-                <span>Estado al publicar</span>
-                <select
-                  className="input"
-                  value={productsToShopifyOptions.publishStatus}
-                  disabled={!productsToShopifyOptions.publishOnSync}
-                  onChange={(event) =>
-                    setProductsToShopifyOptions((current) => ({
-                      ...current,
-                      publishStatus: event.target.value === "active" ? "active" : "draft",
-                    }))
+                      {
+                        stoppable: true,
+                        onPayload: (payload) => {
+                          if (payload.type === "start") {
+                            setStreamState((current) =>
+                              current?.key === "invoices-backfill"
+                                ? {
+                                    ...current,
+                                    syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
+                                    progress: 0,
+                                    detail: `Leyendo facturas desde ${accountingLabel}...`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "progress") {
+                            const total = Number(payload.total || 0);
+                            const processed = Number(payload.processed || 0);
+                            setStreamState((current) =>
+                              current?.key === "invoices-backfill"
+                                ? {
+                                    ...current,
+                                    syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
+                                    progress: toPercent(processed, total),
+                                    detail: `Procesadas ${processed}/${total || "?"} · Páginas ${Number(payload.pages || 0)}`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "canceled") {
+                            setStreamState((current) =>
+                              current?.key === "invoices-backfill"
+                                ? { ...current, detail: "Carga histórica detenida.", stoppable: false }
+                                : current
+                            );
+                            setMessage("Carga histórica de facturas detenida.");
+                            return;
+                          }
+                          if (payload.type === "complete") {
+                            const alegra = payload.alegra && typeof payload.alegra === "object" ? payload.alegra : null;
+                            const processed = Number((alegra as { processed?: number } | null)?.processed || 0);
+                            setStreamState((current) =>
+                              current?.key === "invoices-backfill"
+                                ? {
+                                    ...current,
+                                    progress: 100,
+                                    detail: `Facturas cargadas desde ${accountingLabel}: ${processed}`,
+                                    stoppable: false,
+                                  }
+                                : current
+                            );
+                            setMessage(`Carga base lista. Facturas desde ${accountingLabel}: ${processed}`);
+                            return;
+                          }
+                          if (payload.type === "error") {
+                            throw new Error(String(payload.error || `No se pudo cargar desde ${accountingLabel}.`));
+                          }
+                        },
+                      }
+                    )
                   }
                 >
-                  <option value="draft">Borrador</option>
-                  <option value="active">Activo</option>
-                </select>
-              </label>
-              <BooleanChoice
-                label="Seguimiento de inventario"
-                value={productsToShopifyOptions.trackInventory}
-                onChange={(next) => setProductsToShopifyOptions((current) => ({ ...current, trackInventory: next }))}
-                positive="Sí"
-                negative="No"
-              />
-              <BooleanChoice
-                label="Permitir sobreventa"
-                value={productsToShopifyOptions.allowOversell}
-                onChange={(next) => setProductsToShopifyOptions((current) => ({ ...current, allowOversell: next }))}
-                positive="Sí"
-                negative="No"
-                disabled={!productsToShopifyOptions.trackInventory}
-              />
-              <BooleanChoice
-                label="Publicar existencias"
-                value={productsToShopifyOptions.includeInventory}
-                onChange={(next) => setProductsToShopifyOptions((current) => ({ ...current, includeInventory: next }))}
-                positive="Sí"
-                negative="No"
-              />
-              <BooleanChoice
-                label="Solo ya publicados"
-                value={productsToShopifyOptions.onlyPublishedInShopify}
-                onChange={(next) =>
-                  setProductsToShopifyOptions((current) => ({ ...current, onlyPublishedInShopify: next }))
-                }
-                positive="Sí"
-                negative="No"
-                disabled={!productsToShopifyOptions.publishOnSync}
-              />
-              <div className="store-config-field store-config-field-span-2">
-                <span>Bodegas para stock (masivo)</span>
-                <small>Si no eliges nada aquí, usamos las bodegas guardadas en la tienda activa.</small>
-                <div className="store-warehouse-card">
-                  <div className="store-warehouse-head">
-                    <strong>{productsToShopifyWarehouseSummary}</strong>
-                    <span>{`${warehouseItems.length} disponibles`}</span>
-                  </div>
-                  <div className="store-warehouse-grid">
-                    {warehouseItems.length ? (
-                      warehouseItems.map((warehouse) => {
-                        const checked = productsToShopifyWarehouseIds.includes(warehouse.id);
-                        return (
-                          <label className="store-warehouse-option" key={`sync-${warehouse.id}`}>
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={(event) =>
-                                setProductsToShopifyWarehouseIds((current) => {
-                                  const next = new Set(current);
-                                  if (event.target.checked) next.add(warehouse.id);
-                                  else next.delete(warehouse.id);
-                                  return Array.from(next).sort((left, right) => left.localeCompare(right, "es"));
-                                })
-                              }
-                            />
-                            <span>{warehouse.name}</span>
-                          </label>
-                        );
-                      })
-                    ) : (
-                      <p className="connection-inline-note">Sin bodegas disponibles para esta tienda.</p>
-                    )}
-                  </div>
-                  <div className="connection-card-actions">
-                    <button
-                      className="btn ghost btn-compact"
-                      type="button"
-                      onClick={() => setProductsToShopifyWarehouseIds(warehouseItems.map((item) => item.id))}
-                    >
-                      Seleccionar todas
-                    </button>
-                    <button
-                      className="btn ghost btn-compact"
-                      type="button"
-                      onClick={() => setProductsToShopifyWarehouseIds([])}
-                    >
-                      Usar configuración guardada
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <label className="store-config-field">
-                <span>Fecha ajustes</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={inventoryAdjustmentsForm.date}
-                  onChange={(event) =>
-                    setInventoryAdjustmentsForm((current) => ({ ...current, date: event.target.value }))
-                  }
-                />
-                <small>Déjalo vacío para usar la fecha de hoy.</small>
-              </label>
-              <label className="store-config-field">
-                <span>Inicio manual</span>
-                <input
-                  className="input"
-                  type="number"
-                  min={0}
-                  placeholder="0"
-                  value={inventoryAdjustmentsForm.start}
-                  onChange={(event) =>
-                    setInventoryAdjustmentsForm((current) => ({ ...current, start: event.target.value }))
-                  }
-                />
-                <small>Útil para retomar una página concreta del ajuste manual.</small>
-              </label>
-              <label className="store-config-field">
-                <span>Límite manual</span>
-                <input
-                  className="input"
-                  type="number"
-                  min={1}
-                  placeholder="30"
-                  value={inventoryAdjustmentsForm.limit}
-                  onChange={(event) =>
-                    setInventoryAdjustmentsForm((current) => ({ ...current, limit: event.target.value }))
-                  }
-                />
-              </label>
-              <BooleanChoice
-                label="Auto-publicar en esta corrida"
-                value={inventoryAdjustmentsForm.autoPublish}
-                onChange={(next) => setInventoryAdjustmentsForm((current) => ({ ...current, autoPublish: next }))}
-                positive="Sí"
-                negative="No"
-                help="Respeta o sobreescribe el comportamiento del worker automático para esta ejecución manual."
-              />
-            </div>
-            <div className="connection-card-actions">
-              <button
-                className="btn primary"
-                type="button"
-                disabled={loadingKey === "products-to-shopify"}
-                onClick={() =>
-                  void runStreamAction(
-                    "products-to-shopify",
-                    "Productos Contable → E-commerce",
-                    "/api/sync/products",
-                    {
-                      shopDomain: activeStore.providers.shopify?.shopDomain,
-                      mode:
-                        productsRange.dateStart ||
-                        productsRange.dateEnd ||
-                        productsRange.limit ||
-                        productsRange.query.trim()
-                          ? "filtered"
-                          : "full",
-                      batchSize: productsRange.batchSize ? Number(productsRange.batchSize) : undefined,
-                      filters: {
-                        dateStart: productsRange.dateStart || undefined,
-                        dateEnd: productsRange.dateEnd || undefined,
-                        limit: productsRange.limit ? Number(productsRange.limit) : undefined,
-                        query: productsRange.query.trim() || undefined,
-                        onlyActive: productsToShopifyOptions.onlyActive,
-                        onlyWithImages: productsToShopifyOptions.onlyWithImages,
-                        includeInventory: productsToShopifyOptions.includeInventory,
-                        warehouseIds: productsToShopifyWarehouseIds.length
-                          ? productsToShopifyWarehouseIds
-                          : effectiveRules.warehouseIds,
-                      },
-                      settings: {
-                        publishOnSync: productsToShopifyOptions.publishOnSync,
-                        updateExisting: productsToShopifyOptions.updateExisting,
-                        trackInventory: productsToShopifyOptions.trackInventory,
-                        allowOversell: productsToShopifyOptions.allowOversell,
-                        status: productsToShopifyOptions.publishStatus,
-                        includeImages: productsToShopifyOptions.onlyWithImages,
-                        onlyPublishedInShopify: productsToShopifyOptions.onlyPublishedInShopify,
-                      },
-                    },
-                    {
-                      stoppable: true,
-                      onPayload: (payload) => {
-                        const syncId = typeof payload.syncId === "string" ? payload.syncId : undefined;
-                        if (payload.type === "start") {
-                          setStreamState((current) =>
-                            current?.key === "products-to-shopify"
-                              ? {
-                                  ...current,
-                                  syncId,
-                                  progress: 0,
-                                  detail: `Preparando ${Number(payload.total || 0)} items...`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "progress") {
-                          const total = Number(payload.total || 0);
-                          const processed = Number(payload.processed || 0);
-                          const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
-                          setStreamState((current) =>
-                            current?.key === "products-to-shopify"
-                              ? {
-                                  ...current,
-                                  syncId: syncId || current.syncId,
-                                  progress: percent,
-                                  detail: `Procesados ${processed}/${total || "?"} · Publicados ${Number(payload.published || 0)} · Actualizados ${Number(payload.updated || 0)} · Fallidos ${Number(payload.failed || 0)}`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "rate_limit") {
-                          setStreamState((current) =>
-                            current?.key === "products-to-shopify"
-                              ? {
-                                  ...current,
-                                  detail: `Esperando límite de Contable... reintento ${Number(payload.retries || 0)} en ${Math.round(
-                                    Number(payload.waitMs || 0) / 1000
-                                  )}s`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "batch_start") {
-                          setStreamState((current) =>
-                            current?.key === "products-to-shopify"
-                              ? {
-                                  ...current,
-                                  detail: `Batch ${Number(payload.batchNumber || 0)}/${
-                                    Number(payload.totalBatches || 0) || "?"
-                                  } · Items ${Number(payload.rangeStart || 0)}-${Number(payload.rangeEnd || 0)}`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "batch_error") {
-                          setStreamState((current) =>
-                            current?.key === "products-to-shopify"
-                              ? {
-                                  ...current,
-                                  detail: `Batch con error HTTP ${Number(payload.status || 0)}. Reintentando siguiente tramo...`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "canceled") {
-                          setStreamState((current) =>
-                            current?.key === "products-to-shopify"
-                              ? {
-                                  ...current,
-                                  progress: current.progress,
-                                  detail: "Sincronizador detenido.",
-                                  stoppable: false,
-                                }
-                              : current
-                          );
-                          setMessage("Sincronizador de productos detenido.");
-                          return;
-                        }
-                        if (payload.type === "complete") {
-                          const inventoryAdjustments =
-                            payload.inventoryAdjustments && typeof payload.inventoryAdjustments === "object"
-                              ? (payload.inventoryAdjustments as {
-                                  skipped?: boolean;
-                                  reason?: string;
-                                  adjusted?: number;
-                                })
-                              : null;
-                          const inventoryDetail = inventoryAdjustments
-                            ? inventoryAdjustments.skipped
-                              ? inventoryAdjustments.reason === "include_inventory_off"
-                                ? " · Inventario omitido por configuración"
-                                : inventoryAdjustments.reason === "publish_off"
-                                  ? " · Inventario omitido porque publicar está apagado"
-                                  : ""
-                              : typeof inventoryAdjustments.adjusted === "number"
-                                ? ` · Ajustes de inventario ${inventoryAdjustments.adjusted}`
-                                : ""
-                            : "";
-                          setStreamState((current) =>
-                            current?.key === "products-to-shopify"
-                              ? {
-                                  ...current,
-                                  progress: 100,
-                                  detail: `Procesados ${Number(payload.processed || 0)} · Publicados ${Number(payload.published || 0)} · Actualizados ${Number(payload.updated || 0)} · Fallidos ${Number(payload.failed || 0)}${inventoryDetail}`,
-                                  stoppable: false,
-                                }
-                              : current
-                          );
-                          setMessage(
-                            `Productos Shopify listos. Procesados ${Number(payload.processed || 0)} · Publicados ${Number(payload.published || 0)} · Actualizados ${Number(payload.updated || 0)} · Fallidos ${Number(payload.failed || 0)}${inventoryDetail}`
-                          );
-                          return;
-                        }
-                        if (payload.type === "error") {
-                          throw new Error(String(payload.error || "No se pudo sincronizar productos."));
-                        }
-                      },
-                    }
-                  )
-                }
-              >
-                {loadingKey === "products-to-shopify" ? "Procesando..." : "Sincronizar productos"}
-              </button>
-              {streamState?.key === "products-to-shopify" && streamState.stoppable ? (
+                  {loadingKey === "invoices-backfill" ? "Procesando..." : "Cargar base"}
+                </button>
+                {streamState?.key === "invoices-backfill" && streamState.stoppable ? (
+                  <button
+                    className="btn ghost"
+                    type="button"
+                    onClick={() => void stopStreamAction("invoices-backfill")}
+                  >
+                    Detener
+                  </button>
+                ) : null}
                 <button
                   className="btn ghost"
                   type="button"
-                  onClick={() => void stopStreamAction("products-to-shopify")}
-                >
-                  Detener
-                </button>
-              ) : null}
-              <button
-                className="btn ghost"
-                type="button"
-                disabled={loadingKey === "inventory-adjustments"}
-                onClick={() =>
-                  void runStreamAction(
-                    "inventory-adjustments",
-                    "Ajustes de inventario",
-                    "/api/sync/inventory-adjustments",
-                    {
-                      shopDomain: activeStore.providers.shopify?.shopDomain,
-                      autoPublish: inventoryAdjustmentsForm.autoPublish,
-                      date: inventoryAdjustmentsForm.date || undefined,
-                      start: inventoryAdjustmentsForm.start ? Number(inventoryAdjustmentsForm.start) : undefined,
-                      limit: inventoryAdjustmentsForm.limit ? Number(inventoryAdjustmentsForm.limit) : undefined,
-                    },
-                    {
-                      stoppable: true,
-                      onPayload: (payload) => {
-                        if (payload.type === "start") {
-                          setStreamState((current) =>
-                            current?.key === "inventory-adjustments"
-                              ? { ...current, progress: 0, detail: "Preparando lectura de ajustes..." }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "adjustments_page") {
-                          setStreamState((current) =>
-                            current?.key === "inventory-adjustments"
-                              ? {
-                                  ...current,
-                                  detail: `Leyendo ajustes · Inicio ${Number(payload.start || 0)} · Página ${Number(
-                                    payload.fetched || 0
-                                  )} · Acumulados ${Number(payload.loaded || 0)}`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "adjustments_loaded") {
-                          const totalItems = Number(payload.itemCount || 0);
-                          setStreamState((current) =>
-                            current?.key === "inventory-adjustments"
-                              ? {
-                                  ...current,
-                                  progress: totalItems > 0 && payload.autoPublish === false ? 100 : 0,
-                                  detail:
-                                    payload.autoPublish === false
-                                      ? `Ajustes ${Number(payload.adjustmentsCount || 0)} · Items ${totalItems} · Publicación manual desactivada`
-                                      : `Ajustes ${Number(payload.adjustmentsCount || 0)} · Items ${totalItems} listos para publicar`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "publish_batch") {
-                          const processed = Number(payload.processed || 0);
-                          const total = Number(payload.total || 0);
-                          setStreamState((current) =>
-                            current?.key === "inventory-adjustments"
-                              ? {
-                                  ...current,
-                                  progress: total > 0 ? toPercent(processed, total) : current.progress,
-                                  detail: `Publicados ${Number(payload.synced || 0)} · Fallidos ${Number(
-                                    payload.failed || 0
-                                  )} · Procesados ${processed}/${total || "?"}`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "complete") {
-                          setStreamState((current) =>
-                            current?.key === "inventory-adjustments"
-                              ? {
-                                  ...current,
-                                  progress: 100,
-                                  detail: `Ajustes ${Number(payload.adjustmentsCount || 0)} · Items ${Number(
-                                    payload.itemCount || 0
-                                  )} · Publicados ${Number(payload.synced || 0)} · Fallidos ${Number(
-                                    payload.failed || 0
-                                  )}`,
-                                  stoppable: false,
-                                }
-                              : current
-                          );
-                          setMessage(
-                            `Inventario listo. Ajustes ${Number(payload.adjustmentsCount || 0)} · Items ${Number(
-                              payload.itemCount || 0
-                            )} · Publicados ${Number(payload.synced || 0)} · Fallidos ${Number(payload.failed || 0)}`
-                          );
-                          return;
-                        }
-                        if (payload.type === "error") {
-                          throw new Error(String(payload.error || "No se pudo ejecutar ajustes de inventario."));
-                        }
-                      },
-                    }
-                  )
-                }
-              >
-                {loadingKey === "inventory-adjustments" ? "Procesando..." : "Ajustes de inventario ahora"}
-              </button>
-              <button
-                className="btn ghost"
-                type="button"
-                onClick={() => {
-                  setProductsRange(defaultProductsSyncRange);
-                  setProductsToShopifyOptions({
-                    onlyActive: effectiveRules.onlyActiveItems,
-                    onlyWithImages: effectiveRules.includeImages,
-                    updateExisting: effectiveRules.updateInShopify,
-                    publishOnSync: effectiveRules.createInShopify || effectiveRules.updateInShopify,
-                    publishStatus: effectiveRules.autoPublishStatus,
-                    trackInventory: effectiveRules.trackInventory,
-                    allowOversell: effectiveRules.allowOversell,
-                    includeInventory: effectiveRules.publishOnStock,
-                    onlyPublishedInShopify: false,
-                  });
-                  setProductsToShopifyWarehouseIds([]);
-                  setInventoryAdjustmentsForm(
-                    defaultInventoryAdjustmentsForm(effectiveRules.inventoryAdjustmentsAutoPublish)
-                  );
-                }}
-              >
-                Limpiar corrida
-              </button>
-              <a className="btn ghost" href="/products">
-                Abrir catálogo operativo
-              </a>
-            </div>
-          </div>
-        </details>
-
-        <details className="settings-collapsible store-config-field-span-2" open>
-          <summary className="settings-collapsible-summary">
-            <strong>Productos E-commerce → Contable</strong>
-            <span>Reproceso por fechas desde Shopify hacia Alegra</span>
-          </summary>
-          <div className="settings-subsection">
-            <div className="store-configs-grid">
-              <label className="store-config-field">
-                <span>Fecha inicio</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={productsBackRange.dateStart}
-                  onChange={(event) =>
-                    setProductsBackRange((current) => ({ ...current, dateStart: event.target.value }))
-                  }
-                />
-              </label>
-              <label className="store-config-field">
-                <span>Fecha fin</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={productsBackRange.dateEnd}
-                  onChange={(event) => setProductsBackRange((current) => ({ ...current, dateEnd: event.target.value }))}
-                />
-              </label>
-              <label className="store-config-field">
-                <span>Límite</span>
-                <input
-                  className="input"
-                  type="number"
-                  min={1}
-                  placeholder="100"
-                  value={productsBackRange.limit}
-                  onChange={(event) => setProductsBackRange((current) => ({ ...current, limit: event.target.value }))}
-                />
-              </label>
-            </div>
-            <div className="page-module-actions compact-pills">
-              <span className={`pill ${effectiveSync.products.shopifyEnabled ? "pill-ok" : ""}`}>
-                Automático {effectiveSync.products.shopifyEnabled ? "activo" : "apagado"}
-              </span>
-              <span className={`pill ${productsToAlegraOptions.createInAlegra ? "pill-ok" : ""}`}>
-                Crear en Contable {productsToAlegraOptions.createInAlegra ? "sí" : "no"}
-              </span>
-              <span className={`pill ${productsToAlegraOptions.updateInAlegra ? "pill-ok" : ""}`}>
-                Actualizar en Contable {productsToAlegraOptions.updateInAlegra ? "sí" : "no"}
-              </span>
-              <span className={`pill ${productsToAlegraOptions.includeInventory ? "pill-ok" : ""}`}>
-                Incluir inventario {productsToAlegraOptions.includeInventory ? "sí" : "no"}
-              </span>
-            </div>
-            <div className="store-configs-grid">
-              <BooleanChoice
-                label="Crear nuevos en Contable"
-                value={productsToAlegraOptions.createInAlegra}
-                onChange={(next) => setProductsToAlegraOptions((current) => ({ ...current, createInAlegra: next }))}
-                positive="Sí"
-                negative="No"
-              />
-              <BooleanChoice
-                label="Actualizar existentes"
-                value={productsToAlegraOptions.updateInAlegra}
-                onChange={(next) => setProductsToAlegraOptions((current) => ({ ...current, updateInAlegra: next }))}
-                positive="Sí"
-                negative="No"
-              />
-              <BooleanChoice
-                label="Incluir inventario"
-                value={productsToAlegraOptions.includeInventory}
-                onChange={(next) => setProductsToAlegraOptions((current) => ({ ...current, includeInventory: next }))}
-                positive="Sí"
-                negative="No"
-              />
-              <label className="store-config-field">
-                <span>Prioridad de identificación</span>
-                <select
-                  className="input"
-                  value={productsToAlegraOptions.matchPriority}
-                  onChange={(event) =>
-                    setProductsToAlegraOptions((current) => ({
-                      ...current,
-                      matchPriority: event.target.value === "barcode_sku" ? "barcode_sku" : "sku_barcode",
-                    }))
-                  }
-                >
-                  <option value="sku_barcode">SKU → Barcode</option>
-                  <option value="barcode_sku">Barcode → SKU</option>
-                </select>
-              </label>
-              <label className="store-config-field">
-                <span>Bodega destino</span>
-                <select
-                  className="input"
-                  value={productsToAlegraOptions.warehouseId}
-                  disabled={!productsToAlegraOptions.includeInventory}
-                  onChange={(event) =>
-                    setProductsToAlegraOptions((current) => ({ ...current, warehouseId: event.target.value }))
-                  }
-                >
-                  <option value="">Seleccionar...</option>
-                  {warehouseItems.map((warehouse) => (
-                    <option key={warehouse.id} value={warehouse.id}>
-                      {warehouse.name}
-                    </option>
-                  ))}
-                </select>
-                <small>Obligatoria cuando incluyes inventario en la sincronización manual.</small>
-              </label>
-            </div>
-            <div className="connection-card-actions">
-              <button
-                className="btn primary"
-                type="button"
-                disabled={loadingKey === "products-to-alegra" || !activeStore.providers.shopify?.shopDomain}
-                onClick={() =>
-                  void runStreamAction(
-                    "products-to-alegra",
-                    "Productos E-commerce → Contable",
-                    "/api/sync/products/shopify-to-alegra",
-                    {
-                      shopDomain: activeStore.providers.shopify?.shopDomain || "",
-                      filters: {
-                        dateStart: productsBackRange.dateStart || undefined,
-                        dateEnd: productsBackRange.dateEnd || undefined,
-                        limit: productsBackRange.limit ? Number(productsBackRange.limit) : undefined,
-                      },
-                      settings: {
-                        createInAlegra: productsToAlegraOptions.createInAlegra,
-                        updateInAlegra: productsToAlegraOptions.updateInAlegra,
-                        includeInventory: productsToAlegraOptions.includeInventory,
-                        warehouseId: productsToAlegraOptions.warehouseId || undefined,
-                        matchPriority: productsToAlegraOptions.matchPriority,
-                      },
-                    },
-                    {
-                      stoppable: true,
-                      onPayload: (payload) => {
-                        const syncId = typeof payload.syncId === "string" ? payload.syncId : undefined;
-                        if (payload.type === "start") {
-                          setStreamState((current) =>
-                            current?.key === "products-to-alegra"
-                              ? {
-                                  ...current,
-                                  syncId,
-                                  progress: 0,
-                                  detail: `Preparando ${Number(payload.totalVariants || 0)} variantes...`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "progress") {
-                          const total = Number(payload.totalVariants || 0);
-                          const processed = Number(payload.processed || 0);
-                          const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
-                          setStreamState((current) =>
-                            current?.key === "products-to-alegra"
-                              ? {
-                                  ...current,
-                                  syncId: syncId || current.syncId,
-                                  progress: percent,
-                                  detail: `Procesados ${processed}/${total || "?"} · Creados ${Number(payload.created || 0)} · Actualizados ${Number(payload.updated || 0)} · Fallidos ${Number(payload.failed || 0)}`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "canceled") {
-                          setStreamState((current) =>
-                            current?.key === "products-to-alegra"
-                              ? { ...current, detail: "Sincronizador detenido.", stoppable: false }
-                              : current
-                          );
-                          setMessage("Sincronizador Shopify → Alegra detenido.");
-                          return;
-                        }
-                        if (payload.type === "done" || payload.type === "summary") {
-                          const total = Number(payload.totalVariants || payload.processed || 0);
-                          const processed = Number(payload.processed || 0);
-                          const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 100;
-                          setStreamState((current) =>
-                            current?.key === "products-to-alegra"
-                              ? {
-                                  ...current,
-                                  progress: percent,
-                                  detail: `Procesados ${processed}/${total || "?"} · Creados ${Number(payload.created || 0)} · Actualizados ${Number(payload.updated || 0)} · Fallidos ${Number(payload.failed || 0)}`,
-                                  stoppable: false,
-                                }
-                              : current
-                          );
-                          setMessage(
-                            `Productos a Contable listos. Procesados ${processed} · Creados ${Number(payload.created || 0)} · Actualizados ${Number(payload.updated || 0)} · Fallidos ${Number(payload.failed || 0)}`
-                          );
-                          return;
-                        }
-                        if (payload.type === "error") {
-                          throw new Error(String(payload.error || "No se pudo sincronizar a Contable."));
-                        }
-                      },
-                    }
-                  )
-                }
-              >
-                {loadingKey === "products-to-alegra" ? "Procesando..." : "Sincronizar a Contable"}
-              </button>
-              {streamState?.key === "products-to-alegra" && streamState.stoppable ? (
-                <button className="btn ghost" type="button" onClick={() => void stopStreamAction("products-to-alegra")}>
-                  Detener
-                </button>
-              ) : null}
-              <button
-                className="btn ghost"
-                type="button"
-                onClick={() => {
-                  setProductsBackRange(defaultRange);
-                  setProductsToAlegraOptions({
-                    createInAlegra: effectiveSync.products.createInAlegra,
-                    updateInAlegra: effectiveSync.products.updateInAlegra,
-                    includeInventory: effectiveSync.products.includeInventory,
-                    matchPriority: effectiveSync.products.matchPriority,
-                    warehouseId: effectiveSync.products.warehouseId,
-                  });
-                }}
-              >
-                Limpiar corrida
-              </button>
-              <a className="btn ghost" href="/products">
-                Abrir catálogo operativo
-              </a>
-            </div>
-          </div>
-        </details>
-
-        <details className="settings-collapsible store-config-field-span-2" open>
-          <summary className="settings-collapsible-summary">
-            <strong>Carga histórica de catálogo</strong>
-            <span>Recupera catálogo base desde Contable, E-commerce o ambos hacia la base operativa nueva</span>
-          </summary>
-          <div className="settings-subsection">
-            <div className="store-configs-grid">
-              <label className="store-config-field">
-                <span>Origen</span>
-                <select
-                  className="input"
-                  value={productsCatalogRange.source}
-                  onChange={(event) =>
-                    setProductsCatalogRange((current) => ({
-                      ...current,
-                      source:
-                        event.target.value === "shopify" || event.target.value === "alegra"
-                          ? event.target.value
-                          : "both",
-                    }))
-                  }
-                >
-                  <option value="both">Ambos</option>
-                  <option value="alegra">Contable</option>
-                  <option value="shopify">E-commerce</option>
-                </select>
-              </label>
-              <label className="store-config-field">
-                <span>Fecha inicio</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={productsCatalogRange.dateStart}
-                  onChange={(event) =>
-                    setProductsCatalogRange((current) => ({ ...current, dateStart: event.target.value }))
-                  }
-                />
-              </label>
-              <label className="store-config-field">
-                <span>Fecha fin</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={productsCatalogRange.dateEnd}
-                  onChange={(event) =>
-                    setProductsCatalogRange((current) => ({ ...current, dateEnd: event.target.value }))
-                  }
-                />
-              </label>
-              <label className="store-config-field">
-                <span>Límite</span>
-                <input
-                  className="input"
-                  type="number"
-                  min={1}
-                  placeholder="200"
-                  value={productsCatalogRange.limit}
-                  onChange={(event) =>
-                    setProductsCatalogRange((current) => ({ ...current, limit: event.target.value }))
-                  }
-                />
-              </label>
-              <label className="store-config-field">
-                <span>Estado Contable</span>
-                <select
-                  className="input"
-                  value={productsCatalogRange.alegraStatus}
-                  onChange={(event) =>
-                    setProductsCatalogRange((current) => ({
-                      ...current,
-                      alegraStatus:
-                        event.target.value === "active" || event.target.value === "inactive" ? event.target.value : "",
-                    }))
-                  }
-                >
-                  <option value="">Todos</option>
-                  <option value="active">Activos</option>
-                  <option value="inactive">Inactivos</option>
-                </select>
-              </label>
-              <label className="store-config-field">
-                <span>Lectura desde caché</span>
-                <select
-                  className="input"
-                  value={productsCatalogRange.useCache ? "yes" : "no"}
-                  onChange={(event) =>
-                    setProductsCatalogRange((current) => ({
-                      ...current,
-                      useCache: event.target.value !== "no",
-                    }))
-                  }
-                >
-                  <option value="yes">Sí</option>
-                  <option value="no">No</option>
-                </select>
-              </label>
-              <label className="store-config-field">
-                <span>Solo publicados en E-commerce</span>
-                <select
-                  className="input"
-                  value={productsCatalogRange.shopifyPublishedOnly ? "yes" : "no"}
-                  onChange={(event) =>
-                    setProductsCatalogRange((current) => ({
-                      ...current,
-                      shopifyPublishedOnly: event.target.value !== "no",
-                    }))
-                  }
-                >
-                  <option value="no">No</option>
-                  <option value="yes">Sí</option>
-                </select>
-              </label>
-            </div>
-            <div className="page-module-actions compact-pills">
-              <span className="pill">Base shared del catálogo</span>
-              <span className="pill">Útil para reconstrucción inicial</span>
-              <span className="pill">No publica por sí solo</span>
-            </div>
-            <div className="connection-card-actions">
-              <button
-                className="btn primary"
-                type="button"
-                disabled={loadingKey === "products-backfill"}
-                onClick={() =>
-                  void runStreamAction(
-                    "products-backfill",
-                    "Carga histórica de catálogo",
-                    "/api/backfill/products",
-                    {
-                      source: productsCatalogRange.source,
-                      shopDomain: activeStore.providers.shopify?.shopDomain,
-                      dateStart: productsCatalogRange.dateStart || undefined,
-                      dateEnd: productsCatalogRange.dateEnd || undefined,
-                      limit: productsCatalogRange.limit ? Number(productsCatalogRange.limit) : undefined,
-                      alegraStatus: productsCatalogRange.alegraStatus || undefined,
-                      useCache: productsCatalogRange.useCache,
-                      shopifyPublishedOnly: productsCatalogRange.shopifyPublishedOnly,
-                    },
-                    {
-                      stoppable: true,
-                      onPayload: (payload) => {
-                        if (payload.type === "start") {
-                          setStreamState((current) =>
-                            current?.key === "products-backfill"
-                              ? {
-                                  ...current,
-                                  syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
-                                  progress: 0,
-                                  detail: "Preparando carga histórica...",
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "progress") {
-                          const processed = Number(payload.processed || 0);
-                          const total = Number(payload.total || 0);
-                          setStreamState((current) =>
-                            current?.key === "products-backfill"
-                              ? {
-                                  ...current,
-                                  syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
-                                  progress: total > 0 ? toPercent(processed, total) : current.progress,
-                                  detail: `${String(payload.source || "origen")} · Procesados ${processed}/${total || "?"} · Páginas ${Number(payload.pages || 0)}`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "canceled") {
-                          setStreamState((current) =>
-                            current?.key === "products-backfill"
-                              ? { ...current, detail: "Carga histórica detenida.", stoppable: false }
-                              : current
-                          );
-                          setMessage("Carga histórica de catálogo detenida.");
-                          return;
-                        }
-                        if (payload.type === "complete") {
-                          const alegra =
-                            payload.results && typeof payload.results === "object"
-                              ? ((
-                                  payload.results as {
-                                    alegra?: { processed?: number };
-                                    shopify?: { processed?: number };
-                                  }
-                                ).alegra ?? null)
-                              : null;
-                          const shopify =
-                            payload.results && typeof payload.results === "object"
-                              ? ((
-                                  payload.results as {
-                                    alegra?: { processed?: number };
-                                    shopify?: { processed?: number };
-                                  }
-                                ).shopify ?? null)
-                              : null;
-                          setStreamState((current) =>
-                            current?.key === "products-backfill"
-                              ? {
-                                  ...current,
-                                  progress: 100,
-                                  detail: `Contable ${Number(alegra?.processed || 0)} · E-commerce ${Number(shopify?.processed || 0)}`,
-                                  stoppable: false,
-                                }
-                              : current
-                          );
-                          setMessage(
-                            `Catálogo base listo. Contable ${Number(alegra?.processed || 0)} · E-commerce ${Number(shopify?.processed || 0)}`
-                          );
-                          return;
-                        }
-                        if (payload.type === "error") {
-                          throw new Error(String(payload.error || "No se pudo cargar catálogo base."));
-                        }
-                      },
-                    }
-                  )
-                }
-              >
-                {loadingKey === "products-backfill" ? "Cargando..." : "Cargar catálogo base"}
-              </button>
-              {streamState?.key === "products-backfill" && streamState.stoppable ? (
-                <button className="btn ghost" type="button" onClick={() => void stopStreamAction("products-backfill")}>
-                  Detener
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </details>
-
-        <details className="settings-collapsible store-config-field-span-2" open>
-          <summary className="settings-collapsible-summary">
-            <strong>Imágenes de producto</strong>
-            <span>Carga o reemplaza imágenes por SKU o código de barras con progreso visible</span>
-          </summary>
-          <div className="settings-subsection">
-            <div className="store-configs-grid">
-              <label className="store-config-field">
-                <span>Archivo CSV</span>
-                <input
-                  className="input"
-                  type="file"
-                  accept=".csv,text/csv"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (!file) return;
-                    void loadProductImagesFile(file).catch((error) => {
-                      setProductImageErrors([]);
-                      setMessage(error instanceof Error ? error.message : "No se pudo leer el CSV.");
+                  onClick={() => {
+                    setOrdersRange(defaultOrdersRange);
+                    setInvoiceRange(defaultInvoiceRange);
+                    setInvoicesToShopifyOptions({
+                      createShopifyOrder: effectiveSync.orders.alegraToShopify !== "off",
+                      mode: effectiveSync.orders.alegraToShopify === "active" ? "active" : "draft",
                     });
-                    event.currentTarget.value = "";
                   }}
-                />
-                <small>
-                  Columnas sugeridas: <code>sku</code> o <code>barcode</code> y <code>images</code>. También acepta{" "}
-                  <code>image_1</code>, <code>image_2</code>...
-                </small>
-              </label>
-              <label className="store-config-field">
-                <span>Buscar por</span>
-                <select
-                  className="input"
-                  value={productImagesForm.matchBy}
-                  onChange={(event) =>
-                    setProductImagesForm((current) => ({
-                      ...current,
-                      matchBy: event.target.value === "barcode" ? "barcode" : "sku",
-                    }))
-                  }
                 >
-                  <option value="sku">SKU</option>
-                  <option value="barcode">Código de barras</option>
-                </select>
-              </label>
-              <label className="store-config-field">
-                <span>Modo</span>
-                <select
-                  className="input"
-                  value={productImagesForm.mode}
-                  onChange={(event) =>
-                    setProductImagesForm((current) => ({
-                      ...current,
-                      mode: event.target.value === "replace" ? "replace" : "append",
-                    }))
-                  }
-                >
-                  <option value="append">Agregar</option>
-                  <option value="replace">Reemplazar</option>
-                </select>
-              </label>
-              <label className="store-config-field">
-                <span>Publicar al cargar</span>
-                <select
-                  className="input"
-                  value={productImagesForm.publishEnabled ? productImagesForm.publishStatus : "off"}
-                  onChange={(event) =>
-                    setProductImagesForm((current) => ({
-                      ...current,
-                      publishEnabled: event.target.value !== "off",
-                      publishStatus: event.target.value === "active" ? "active" : "draft",
-                    }))
-                  }
-                >
-                  <option value="off">No publicar</option>
-                  <option value="draft">Publicar como borrador</option>
-                  <option value="active">Publicar como activo</option>
-                </select>
-              </label>
-              <label className="store-config-field">
-                <span>Aplicar a variante</span>
-                <select
-                  className="input"
-                  value={productImagesForm.attachVariant ? "yes" : "no"}
-                  onChange={(event) =>
-                    setProductImagesForm((current) => ({
-                      ...current,
-                      attachVariant: event.target.value !== "no",
-                    }))
-                  }
-                >
-                  <option value="yes">Sí</option>
-                  <option value="no">No</option>
-                </select>
-              </label>
-              <label className="store-config-field">
-                <span>Modo seguro</span>
-                <select
-                  className="input"
-                  value={productImagesForm.dryRun ? "dry" : "real"}
-                  onChange={(event) =>
-                    setProductImagesForm((current) => ({
-                      ...current,
-                      dryRun: event.target.value === "dry",
-                    }))
-                  }
-                >
-                  <option value="real">Ejecutar cambios</option>
-                  <option value="dry">Simular primero</option>
-                </select>
-              </label>
-              <label className="store-config-field store-config-field-span-2">
-                <span>Filas</span>
-                <textarea
-                  className="textarea-control"
-                  rows={8}
-                  value={productImagesForm.rowsText}
-                  placeholder="SKU-001|https://cdn.ejemplo.com/1.jpg,https://cdn.ejemplo.com/2.jpg|Portada producto"
-                  onChange={(event) =>
-                    setProductImagesForm((current) => ({ ...current, rowsText: event.target.value }))
-                  }
-                />
-                <small>Una fila por producto: identificador | url1,url2 | texto alternativo opcional.</small>
-              </label>
-            </div>
-            <div className="page-module-actions compact-pills">
-              <span className="pill">Máximo 500 filas</span>
-              <span className="pill">Hasta 10 URLs por fila</span>
-              <span className="pill">{parseProductImageRows(productImagesForm.rowsText).length} filas válidas</span>
-            </div>
-            <div className="connection-card-actions">
-              <button className="btn ghost" type="button" onClick={downloadProductImagesTemplate}>
-                Descargar plantilla
-              </button>
-              <button
-                className="btn ghost"
-                type="button"
-                onClick={downloadProductImagesErrors}
-                disabled={!productImageErrors.length}
-              >
-                Descargar errores
-              </button>
-              <button
-                className="btn ghost"
-                type="button"
-                onClick={() => {
-                  setProductImagesForm(defaultProductImagesForm);
-                  setProductImageErrors([]);
-                }}
-              >
-                Limpiar
-              </button>
-              <button
-                className="btn primary"
-                type="button"
-                disabled={loadingKey === "product-images" || !activeStore.providers.shopify?.shopDomain}
-                onClick={() => {
-                  const rows = parseProductImageRows(productImagesForm.rowsText);
-                  if (!rows.length) {
-                    setMessage("No hay filas válidas para cargar imágenes.");
-                    return;
-                  }
-                  if (productImagesForm.mode === "replace") {
-                    const confirmed = window.confirm(
-                      "Modo Reemplazar elimina fotos existentes antes de subir las nuevas. ¿Seguro?"
-                    );
-                    if (!confirmed) return;
-                  }
-                  if (productImagesForm.publishEnabled) {
-                    const confirmed = window.confirm(
-                      `Cambiar estado del producto está activo. ¿Seguro que quieres forzar estado = ${productImagesForm.publishStatus}?`
-                    );
-                    if (!confirmed) return;
-                  }
-                  setProductImageErrors([]);
-                  void runStreamAction(
-                    "product-images",
-                    "Imágenes de producto",
-                    "/api/sync/product-images",
-                    {
-                      shopDomain: activeStore.providers.shopify?.shopDomain || "",
-                      matchBy: productImagesForm.matchBy,
-                      attachVariant: productImagesForm.attachVariant,
-                      mode: productImagesForm.mode,
-                      publishEnabled: productImagesForm.publishEnabled,
-                      publishStatus: productImagesForm.publishStatus,
-                      dryRun: productImagesForm.dryRun,
-                      rows,
-                    },
-                    {
-                      stoppable: true,
-                      onPayload: (payload) => {
-                        const syncId = typeof payload.syncId === "string" ? payload.syncId : undefined;
-                        if (payload.type === "start") {
-                          setStreamState((current) =>
-                            current?.key === "product-images"
-                              ? {
-                                  ...current,
-                                  syncId,
-                                  progress: 0,
-                                  detail: `Preparando ${Number(payload.total || 0)} filas...`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "progress") {
-                          const total = Number(payload.total || 0);
-                          const processed = Number(payload.processed || 0);
-                          setStreamState((current) =>
-                            current?.key === "product-images"
-                              ? {
-                                  ...current,
-                                  syncId: syncId || current.syncId,
-                                  progress: toPercent(processed, total),
-                                  detail: `Procesadas ${processed}/${total || "?"} · Encontradas ${Number(payload.matched || 0)} · Fotos ${Number(payload.imagesUploaded || 0)} · Omitidas ${Number(payload.skipped || 0)} · Fallidas ${Number(payload.failed || 0)}`,
-                                }
-                              : current
-                          );
-                          return;
-                        }
-                        if (payload.type === "stopped") {
-                          setStreamState((current) =>
-                            current?.key === "product-images"
-                              ? { ...current, detail: "Carga de imágenes detenida.", stoppable: false }
-                              : current
-                          );
-                          setMessage("Carga de imágenes detenida.");
-                          return;
-                        }
-                        if (payload.type === "done") {
-                          setStreamState((current) =>
-                            current?.key === "product-images"
-                              ? {
-                                  ...current,
-                                  progress: 100,
-                                  detail: `Procesadas ${Number(payload.processed || 0)} · Encontradas ${Number(payload.matched || 0)} · Fotos ${Number(payload.imagesUploaded || 0)} · Omitidas ${Number(payload.skipped || 0)} · Fallidas ${Number(payload.failed || 0)}`,
-                                  stoppable: false,
-                                }
-                              : current
-                          );
-                          setMessage(String(payload.message || "Carga de imágenes completada."));
-                          return;
-                        }
-                        if (payload.type === "row_error") {
-                          const rowError = String(payload.message || "").trim();
-                          if (rowError) {
-                            setProductImageErrors((current) => [...current, rowError].slice(0, 200));
-                          }
-                          setStreamState((current) =>
-                            current?.key === "product-images"
-                              ? { ...current, detail: rowError || current.detail }
-                              : current
-                          );
-                        }
-                      },
-                    }
-                  );
-                }}
-              >
-                {loadingKey === "product-images" ? "Procesando..." : "Sincronizar imágenes"}
-              </button>
-              {streamState?.key === "product-images" && streamState.stoppable ? (
-                <button className="btn ghost" type="button" onClick={() => void stopStreamAction("product-images")}>
-                  Detener
+                  Limpiar
                 </button>
+                <a className="btn ghost" href="/operations">
+                  Ir a incidencias
+                </a>
+              </div>
+            </div>
+          </details>
+        ) : null}
+
+        {visibleGroups.includes("products") ? (
+          <details className="settings-collapsible store-config-field-span-2" open>
+            <summary className="settings-collapsible-summary">
+              <strong>{accountingLabel} → {commerceLabel}</strong>
+              <span>Inicial, fecha o SKU</span>
+            </summary>
+            <div className="settings-subsection">
+              <div className="store-configs-grid">
+                <label className="store-config-field">
+                  <span>Fecha inicio</span>
+                  <input
+                    className="input"
+                    type="date"
+                    value={productsRange.dateStart}
+                    onChange={(event) => setProductsRange((current) => ({ ...current, dateStart: event.target.value }))}
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Fecha fin</span>
+                  <input
+                    className="input"
+                    type="date"
+                    value={productsRange.dateEnd}
+                    onChange={(event) => setProductsRange((current) => ({ ...current, dateEnd: event.target.value }))}
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Límite</span>
+                  <input
+                    className="input"
+                    type="number"
+                    min={1}
+                    placeholder="100"
+                    value={productsRange.limit}
+                    onChange={(event) => setProductsRange((current) => ({ ...current, limit: event.target.value }))}
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>SKU / Barcode / referencia</span>
+                  <input
+                    className="input"
+                    value={productsRange.query}
+                    placeholder="SKU-001 o 770123..."
+                    onChange={(event) => setProductsRange((current) => ({ ...current, query: event.target.value }))}
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Concurrencia</span>
+                  <input
+                    className="input"
+                    type="number"
+                    min={1}
+                    max={10}
+                    placeholder="5"
+                    value={productsRange.batchSize}
+                    onChange={(event) => setProductsRange((current) => ({ ...current, batchSize: event.target.value }))}
+                  />
+                </label>
+              </div>
+              <div className="page-module-actions compact-pills">
+                <span className={`pill ${productsToShopifyOptions.publishOnSync ? "pill-ok" : ""}`}>
+                  Publicar en {commerceLabel} {productsToShopifyOptions.publishOnSync ? "sí" : "no"}
+                </span>
+                <span className={`pill ${productsToShopifyOptions.updateExisting ? "pill-ok" : ""}`}>
+                  Actualizar en {commerceLabel} {productsToShopifyOptions.updateExisting ? "sí" : "no"}
+                </span>
+                <span className={`pill ${productsToShopifyOptions.trackInventory ? "pill-ok" : ""}`}>
+                  Stock en {commerceLabel} {productsToShopifyOptions.trackInventory ? "sí" : "no"}
+                </span>
+                <span className={`pill ${productsToShopifyOptions.onlyWithImages ? "pill-ok" : ""}`}>
+                  Fotos {productsToShopifyOptions.onlyWithImages ? "sí" : "no"}
+                </span>
+                <span className="pill">
+                  {productsRange.query.trim()
+                    ? `Puntual ${productsRange.query.trim()}`
+                    : `Lotes ${productsRange.batchSize || "5"}`}
+                </span>
+              </div>
+              <details className="settings-collapsible settings-collapsible-inline">
+                <summary className="settings-collapsible-summary">
+                  <strong>Publicación y stock</strong>
+                  <span>Opciones avanzadas</span>
+                </summary>
+                <div className="settings-subsection settings-subsection-nested">
+                  <div className="store-configs-grid">
+                    <BooleanChoice
+                      label="Solo activos"
+                      value={productsToShopifyOptions.onlyActive}
+                      onChange={(next) => setProductsToShopifyOptions((current) => ({ ...current, onlyActive: next }))}
+                      positive="Sí"
+                      negative="No"
+                    />
+                    <BooleanChoice
+                      label="Solo con fotos"
+                      value={productsToShopifyOptions.onlyWithImages}
+                      onChange={(next) =>
+                        setProductsToShopifyOptions((current) => ({ ...current, onlyWithImages: next }))
+                      }
+                      positive="Sí"
+                      negative="No"
+                    />
+                    <BooleanChoice
+                      label="Actualizar existentes"
+                      value={productsToShopifyOptions.updateExisting}
+                      onChange={(next) =>
+                        setProductsToShopifyOptions((current) => ({ ...current, updateExisting: next }))
+                      }
+                      positive="Sí"
+                      negative="No"
+                    />
+                    <BooleanChoice
+                      label="Publicar en tienda"
+                      value={productsToShopifyOptions.publishOnSync}
+                      onChange={(next) =>
+                        setProductsToShopifyOptions((current) => ({ ...current, publishOnSync: next }))
+                      }
+                      positive="Sí"
+                      negative="No"
+                    />
+                    <label className="store-config-field">
+                      <span>Estado</span>
+                      <select
+                        className="input"
+                        value={productsToShopifyOptions.publishStatus}
+                        disabled={!productsToShopifyOptions.publishOnSync}
+                        onChange={(event) =>
+                          setProductsToShopifyOptions((current) => ({
+                            ...current,
+                            publishStatus: event.target.value === "active" ? "active" : "draft",
+                          }))
+                        }
+                      >
+                    <option value="draft">Borrador</option>
+                    <option value="active">Activo</option>
+                  </select>
+                </label>
+                    <BooleanChoice
+                      label="Track de stock"
+                      value={productsToShopifyOptions.trackInventory}
+                      onChange={(next) =>
+                        setProductsToShopifyOptions((current) => ({ ...current, trackInventory: next }))
+                      }
+                      positive="Sí"
+                      negative="No"
+                    />
+                    <BooleanChoice
+                      label="Permitir sobreventa"
+                      value={productsToShopifyOptions.allowOversell}
+                      onChange={(next) =>
+                        setProductsToShopifyOptions((current) => ({ ...current, allowOversell: next }))
+                      }
+                      positive="Sí"
+                      negative="No"
+                      disabled={!productsToShopifyOptions.trackInventory}
+                    />
+                    <BooleanChoice
+                      label="Mover stock"
+                      value={productsToShopifyOptions.includeInventory}
+                      onChange={(next) =>
+                        setProductsToShopifyOptions((current) => ({ ...current, includeInventory: next }))
+                      }
+                      positive="Sí"
+                      negative="No"
+                    />
+                    <BooleanChoice
+                      label="Solo publicados"
+                      value={productsToShopifyOptions.onlyPublishedInShopify}
+                      onChange={(next) =>
+                        setProductsToShopifyOptions((current) => ({ ...current, onlyPublishedInShopify: next }))
+                      }
+                      positive="Sí"
+                      negative="No"
+                      disabled={!productsToShopifyOptions.publishOnSync}
+                    />
+                    <div className="store-config-field store-config-field-span-2">
+                      <span>Bodegas de stock</span>
+                      <div className="store-warehouse-card">
+                        <div className="store-warehouse-head">
+                          <strong>{productsToShopifyWarehouseSummary}</strong>
+                          <span>{`${warehouseItems.length} disponibles`}</span>
+                        </div>
+                        <div className="store-warehouse-grid">
+                          {warehouseItems.length ? (
+                            warehouseItems.map((warehouse) => {
+                              const checked = productsToShopifyWarehouseIds.includes(warehouse.id);
+                              return (
+                                <label className="store-warehouse-option" key={`sync-${warehouse.id}`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(event) =>
+                                      setProductsToShopifyWarehouseIds((current) => {
+                                        const next = new Set(current);
+                                        if (event.target.checked) next.add(warehouse.id);
+                                        else next.delete(warehouse.id);
+                                        return Array.from(next).sort((left, right) => left.localeCompare(right, "es"));
+                                      })
+                                    }
+                                  />
+                                  <span>{warehouse.name}</span>
+                                </label>
+                              );
+                            })
+                          ) : (
+                            <p className="connection-inline-note">Sin bodegas disponibles para esta tienda.</p>
+                          )}
+                        </div>
+                        <div className="connection-card-actions">
+                          <button
+                            className="btn ghost btn-compact"
+                            type="button"
+                            onClick={() => setProductsToShopifyWarehouseIds(warehouseItems.map((item) => item.id))}
+                          >
+                            Seleccionar todas
+                          </button>
+                          <button
+                            className="btn ghost btn-compact"
+                            type="button"
+                            onClick={() => setProductsToShopifyWarehouseIds([])}
+                          >
+                            Usar guardada
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <label className="store-config-field">
+                      <span>Fecha stock</span>
+                      <input
+                        className="input"
+                        type="date"
+                        value={inventoryAdjustmentsForm.date}
+                        onChange={(event) =>
+                          setInventoryAdjustmentsForm((current) => ({ ...current, date: event.target.value }))
+                        }
+                      />
+                    </label>
+                    <label className="store-config-field">
+                      <span>Inicio</span>
+                      <input
+                        className="input"
+                        type="number"
+                        min={0}
+                        placeholder="0"
+                        value={inventoryAdjustmentsForm.start}
+                        onChange={(event) =>
+                          setInventoryAdjustmentsForm((current) => ({ ...current, start: event.target.value }))
+                        }
+                      />
+                    </label>
+                    <label className="store-config-field">
+                      <span>Límite</span>
+                      <input
+                        className="input"
+                        type="number"
+                        min={1}
+                        placeholder="30"
+                        value={inventoryAdjustmentsForm.limit}
+                        onChange={(event) =>
+                          setInventoryAdjustmentsForm((current) => ({ ...current, limit: event.target.value }))
+                        }
+                      />
+                    </label>
+                    <BooleanChoice
+                      label="Auto-publicar"
+                      value={inventoryAdjustmentsForm.autoPublish}
+                      onChange={(next) => setInventoryAdjustmentsForm((current) => ({ ...current, autoPublish: next }))}
+                      positive="Sí"
+                      negative="No"
+                    />
+                  </div>
+                </div>
+              </details>
+              <div className="connection-card-actions">
+                <button
+                  className="btn primary"
+                  type="button"
+                  disabled={loadingKey === "products-to-shopify"}
+                  onClick={() =>
+                    void runStreamAction(
+                      "products-to-shopify",
+                      `Productos ${accountingLabel} → ${commerceLabel}`,
+                      "/api/sync/products",
+                      {
+                        shopDomain: activeStore.providers.shopify?.shopDomain,
+                        mode:
+                          productsRange.dateStart ||
+                          productsRange.dateEnd ||
+                          productsRange.limit ||
+                          productsRange.query.trim()
+                            ? "filtered"
+                            : "full",
+                        batchSize: productsRange.batchSize ? Number(productsRange.batchSize) : undefined,
+                        filters: {
+                          dateStart: productsRange.dateStart || undefined,
+                          dateEnd: productsRange.dateEnd || undefined,
+                          limit: productsRange.limit ? Number(productsRange.limit) : undefined,
+                          query: productsRange.query.trim() || undefined,
+                          onlyActive: productsToShopifyOptions.onlyActive,
+                          onlyWithImages: productsToShopifyOptions.onlyWithImages,
+                          includeInventory: productsToShopifyOptions.includeInventory,
+                          warehouseIds: productsToShopifyWarehouseIds.length
+                            ? productsToShopifyWarehouseIds
+                            : effectiveRules.warehouseIds,
+                        },
+                        settings: {
+                          publishOnSync: productsToShopifyOptions.publishOnSync,
+                          updateExisting: productsToShopifyOptions.updateExisting,
+                          trackInventory: productsToShopifyOptions.trackInventory,
+                          allowOversell: productsToShopifyOptions.allowOversell,
+                          status: productsToShopifyOptions.publishStatus,
+                          includeImages: productsToShopifyOptions.onlyWithImages,
+                          onlyPublishedInShopify: productsToShopifyOptions.onlyPublishedInShopify,
+                        },
+                      },
+                      {
+                        stoppable: true,
+                        onPayload: (payload) => {
+                          const syncId = typeof payload.syncId === "string" ? payload.syncId : undefined;
+                          if (payload.type === "start") {
+                            setStreamState((current) =>
+                              current?.key === "products-to-shopify"
+                                ? {
+                                    ...current,
+                                    syncId,
+                                    progress: 0,
+                                    detail: `Preparando ${Number(payload.total || 0)} items...`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "progress") {
+                            const total = Number(payload.total || 0);
+                            const processed = Number(payload.processed || 0);
+                            const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
+                            setStreamState((current) =>
+                              current?.key === "products-to-shopify"
+                                ? {
+                                    ...current,
+                                    syncId: syncId || current.syncId,
+                                    progress: percent,
+                                    detail: `Procesados ${processed}/${total || "?"} · Publicados ${Number(payload.published || 0)} · Actualizados ${Number(payload.updated || 0)} · Fallidos ${Number(payload.failed || 0)}`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "rate_limit") {
+                            setStreamState((current) =>
+                              current?.key === "products-to-shopify"
+                                ? {
+                                    ...current,
+                                    detail: `Esperando límite de ${accountingLabel}... reintento ${Number(payload.retries || 0)} en ${Math.round(
+                                      Number(payload.waitMs || 0) / 1000
+                                    )}s`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "batch_start") {
+                            setStreamState((current) =>
+                              current?.key === "products-to-shopify"
+                                ? {
+                                    ...current,
+                                    detail: `Batch ${Number(payload.batchNumber || 0)}/${
+                                      Number(payload.totalBatches || 0) || "?"
+                                    } · Items ${Number(payload.rangeStart || 0)}-${Number(payload.rangeEnd || 0)}`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "batch_error") {
+                            setStreamState((current) =>
+                              current?.key === "products-to-shopify"
+                                ? {
+                                    ...current,
+                                    detail: `Batch con error HTTP ${Number(payload.status || 0)}. Reintentando siguiente tramo...`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "canceled") {
+                            setStreamState((current) =>
+                              current?.key === "products-to-shopify"
+                                ? {
+                                    ...current,
+                                    progress: current.progress,
+                                    detail: "Sincronizador detenido.",
+                                    stoppable: false,
+                                  }
+                                : current
+                            );
+                            setMessage("Sincronizador de productos detenido.");
+                            return;
+                          }
+                          if (payload.type === "complete") {
+                            const inventoryAdjustments =
+                              payload.inventoryAdjustments && typeof payload.inventoryAdjustments === "object"
+                                ? (payload.inventoryAdjustments as {
+                                    skipped?: boolean;
+                                    reason?: string;
+                                    adjusted?: number;
+                                  })
+                                : null;
+                            const inventoryDetail = inventoryAdjustments
+                              ? inventoryAdjustments.skipped
+                                ? inventoryAdjustments.reason === "include_inventory_off"
+                                  ? " · Inventario omitido por configuración"
+                                  : inventoryAdjustments.reason === "publish_off"
+                                    ? " · Inventario omitido porque publicar está apagado"
+                                    : ""
+                                : typeof inventoryAdjustments.adjusted === "number"
+                                  ? ` · Ajustes de inventario ${inventoryAdjustments.adjusted}`
+                                  : ""
+                              : "";
+                            setStreamState((current) =>
+                              current?.key === "products-to-shopify"
+                                ? {
+                                    ...current,
+                                    progress: 100,
+                                    detail: `Procesados ${Number(payload.processed || 0)} · Publicados ${Number(payload.published || 0)} · Actualizados ${Number(payload.updated || 0)} · Fallidos ${Number(payload.failed || 0)}${inventoryDetail}`,
+                                    stoppable: false,
+                                  }
+                                : current
+                            );
+                            setMessage(
+                              `Productos Shopify listos. Procesados ${Number(payload.processed || 0)} · Publicados ${Number(payload.published || 0)} · Actualizados ${Number(payload.updated || 0)} · Fallidos ${Number(payload.failed || 0)}${inventoryDetail}`
+                            );
+                            return;
+                          }
+                          if (payload.type === "error") {
+                            throw new Error(String(payload.error || "No se pudo sincronizar productos."));
+                          }
+                        },
+                      }
+                    )
+                  }
+                >
+                  {loadingKey === "products-to-shopify" ? "Procesando..." : "Sincronizar productos"}
+                </button>
+                {streamState?.key === "products-to-shopify" && streamState.stoppable ? (
+                  <button
+                    className="btn ghost"
+                    type="button"
+                    onClick={() => void stopStreamAction("products-to-shopify")}
+                  >
+                    Detener
+                  </button>
+                ) : null}
+                <button
+                  className="btn ghost"
+                  type="button"
+                  disabled={loadingKey === "inventory-adjustments"}
+                  onClick={() =>
+                    void runStreamAction(
+                      "inventory-adjustments",
+                      "Ajustes de inventario",
+                      "/api/sync/inventory-adjustments",
+                      {
+                        shopDomain: activeStore.providers.shopify?.shopDomain,
+                        autoPublish: inventoryAdjustmentsForm.autoPublish,
+                        date: inventoryAdjustmentsForm.date || undefined,
+                        start: inventoryAdjustmentsForm.start ? Number(inventoryAdjustmentsForm.start) : undefined,
+                        limit: inventoryAdjustmentsForm.limit ? Number(inventoryAdjustmentsForm.limit) : undefined,
+                      },
+                      {
+                        stoppable: true,
+                        onPayload: (payload) => {
+                          if (payload.type === "start") {
+                            setStreamState((current) =>
+                              current?.key === "inventory-adjustments"
+                                ? { ...current, progress: 0, detail: "Preparando lectura de ajustes..." }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "adjustments_page") {
+                            setStreamState((current) =>
+                              current?.key === "inventory-adjustments"
+                                ? {
+                                    ...current,
+                                    detail: `Leyendo ajustes · Inicio ${Number(payload.start || 0)} · Página ${Number(
+                                      payload.fetched || 0
+                                    )} · Acumulados ${Number(payload.loaded || 0)}`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "adjustments_loaded") {
+                            const totalItems = Number(payload.itemCount || 0);
+                            setStreamState((current) =>
+                              current?.key === "inventory-adjustments"
+                                ? {
+                                    ...current,
+                                    progress: totalItems > 0 && payload.autoPublish === false ? 100 : 0,
+                                    detail:
+                                      payload.autoPublish === false
+                                        ? `Ajustes ${Number(payload.adjustmentsCount || 0)} · Items ${totalItems} · Publicación manual desactivada`
+                                        : `Ajustes ${Number(payload.adjustmentsCount || 0)} · Items ${totalItems} listos para publicar`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "publish_batch") {
+                            const processed = Number(payload.processed || 0);
+                            const total = Number(payload.total || 0);
+                            setStreamState((current) =>
+                              current?.key === "inventory-adjustments"
+                                ? {
+                                    ...current,
+                                    progress: total > 0 ? toPercent(processed, total) : current.progress,
+                                    detail: `Publicados ${Number(payload.synced || 0)} · Fallidos ${Number(
+                                      payload.failed || 0
+                                    )} · Procesados ${processed}/${total || "?"}`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "complete") {
+                            setStreamState((current) =>
+                              current?.key === "inventory-adjustments"
+                                ? {
+                                    ...current,
+                                    progress: 100,
+                                    detail: `Ajustes ${Number(payload.adjustmentsCount || 0)} · Items ${Number(
+                                      payload.itemCount || 0
+                                    )} · Publicados ${Number(payload.synced || 0)} · Fallidos ${Number(
+                                      payload.failed || 0
+                                    )}`,
+                                    stoppable: false,
+                                  }
+                                : current
+                            );
+                            setMessage(
+                              `Inventario listo. Ajustes ${Number(payload.adjustmentsCount || 0)} · Items ${Number(
+                                payload.itemCount || 0
+                              )} · Publicados ${Number(payload.synced || 0)} · Fallidos ${Number(payload.failed || 0)}`
+                            );
+                            return;
+                          }
+                          if (payload.type === "error") {
+                            throw new Error(String(payload.error || "No se pudo ejecutar ajustes de inventario."));
+                          }
+                        },
+                      }
+                    )
+                  }
+                >
+                  {loadingKey === "inventory-adjustments" ? "Procesando..." : "Ajustes de inventario ahora"}
+                </button>
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() => {
+                    setProductsRange(defaultProductsSyncRange);
+                    setProductsToShopifyOptions({
+                      onlyActive: effectiveRules.onlyActiveItems,
+                      onlyWithImages: effectiveRules.includeImages,
+                      updateExisting: effectiveRules.updateInShopify,
+                      publishOnSync: effectiveRules.createInShopify || effectiveRules.updateInShopify,
+                      publishStatus: effectiveRules.autoPublishStatus,
+                      trackInventory: effectiveRules.trackInventory,
+                      allowOversell: effectiveRules.allowOversell,
+                      includeInventory: effectiveRules.publishOnStock,
+                      onlyPublishedInShopify: false,
+                    });
+                    setProductsToShopifyWarehouseIds([]);
+                    setInventoryAdjustmentsForm(
+                      defaultInventoryAdjustmentsForm(effectiveRules.inventoryAdjustmentsAutoPublish)
+                    );
+                  }}
+                >
+                  Limpiar
+                </button>
+                <a className="btn ghost" href="/products">
+                  Ir a productos
+                </a>
+              </div>
+            </div>
+          </details>
+        ) : null}
+
+        {visibleGroups.includes("products") ? (
+          <details className="settings-collapsible store-config-field-span-2" open>
+            <summary className="settings-collapsible-summary">
+              <strong>{commerceLabel} → {accountingLabel}</strong>
+              <span>Fecha y retorno</span>
+            </summary>
+            <div className="settings-subsection">
+              <div className="store-configs-grid">
+                <label className="store-config-field">
+                  <span>Fecha inicio</span>
+                  <input
+                    className="input"
+                    type="date"
+                    value={productsBackRange.dateStart}
+                    onChange={(event) =>
+                      setProductsBackRange((current) => ({ ...current, dateStart: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Fecha fin</span>
+                  <input
+                    className="input"
+                    type="date"
+                    value={productsBackRange.dateEnd}
+                    onChange={(event) =>
+                      setProductsBackRange((current) => ({ ...current, dateEnd: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Límite</span>
+                  <input
+                    className="input"
+                    type="number"
+                    min={1}
+                    placeholder="100"
+                    value={productsBackRange.limit}
+                    onChange={(event) => setProductsBackRange((current) => ({ ...current, limit: event.target.value }))}
+                  />
+                </label>
+              </div>
+              <div className="page-module-actions compact-pills">
+                <span className={`pill ${effectiveSync.products.shopifyEnabled ? "pill-ok" : ""}`}>
+                  Auto {commerceLabel} {"->"} {accountingLabel} {effectiveSync.products.shopifyEnabled ? "sí" : "no"}
+                </span>
+                <span className={`pill ${productsToAlegraOptions.createInAlegra ? "pill-ok" : ""}`}>
+                  Crear en {accountingLabel} {productsToAlegraOptions.createInAlegra ? "sí" : "no"}
+                </span>
+                <span className={`pill ${productsToAlegraOptions.updateInAlegra ? "pill-ok" : ""}`}>
+                  Actualizar en {accountingLabel} {productsToAlegraOptions.updateInAlegra ? "sí" : "no"}
+                </span>
+                <span className={`pill ${productsToAlegraOptions.includeInventory ? "pill-ok" : ""}`}>
+                  Stock a {accountingLabel} {productsToAlegraOptions.includeInventory ? "sí" : "no"}
+                </span>
+              </div>
+              <details className="settings-collapsible settings-collapsible-inline">
+                <summary className="settings-collapsible-summary">
+                  <strong>Match y destino</strong>
+                  <span>Opciones avanzadas</span>
+                </summary>
+                <div className="settings-subsection settings-subsection-nested">
+                  <div className="store-configs-grid">
+                    <BooleanChoice
+                      label={`Crear en ${accountingLabel}`}
+                      value={productsToAlegraOptions.createInAlegra}
+                      onChange={(next) =>
+                        setProductsToAlegraOptions((current) => ({ ...current, createInAlegra: next }))
+                      }
+                      positive="Sí"
+                      negative="No"
+                    />
+                    <BooleanChoice
+                      label="Actualizar"
+                      value={productsToAlegraOptions.updateInAlegra}
+                      onChange={(next) =>
+                        setProductsToAlegraOptions((current) => ({ ...current, updateInAlegra: next }))
+                      }
+                      positive="Sí"
+                      negative="No"
+                    />
+                    <BooleanChoice
+                      label="Incluir stock"
+                      value={productsToAlegraOptions.includeInventory}
+                      onChange={(next) =>
+                        setProductsToAlegraOptions((current) => ({ ...current, includeInventory: next }))
+                      }
+                      positive="Sí"
+                      negative="No"
+                    />
+                    <label className="store-config-field">
+                      <span>Prioridad</span>
+                      <select
+                        className="input"
+                        value={productsToAlegraOptions.matchPriority}
+                        onChange={(event) =>
+                          setProductsToAlegraOptions((current) => ({
+                            ...current,
+                            matchPriority: event.target.value === "barcode_sku" ? "barcode_sku" : "sku_barcode",
+                          }))
+                        }
+                      >
+                        <option value="sku_barcode">SKU → Barcode</option>
+                        <option value="barcode_sku">Barcode → SKU</option>
+                      </select>
+                    </label>
+                    <label className="store-config-field">
+                      <span>Bodega destino</span>
+                      <select
+                        className="input"
+                        value={productsToAlegraOptions.warehouseId}
+                        disabled={!productsToAlegraOptions.includeInventory}
+                        onChange={(event) =>
+                          setProductsToAlegraOptions((current) => ({ ...current, warehouseId: event.target.value }))
+                        }
+                      >
+                        <option value="">Seleccionar...</option>
+                        {warehouseItems.map((warehouse) => (
+                          <option key={warehouse.id} value={warehouse.id}>
+                            {warehouse.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              </details>
+              <div className="connection-card-actions">
+                <button
+                  className="btn primary"
+                  type="button"
+                  disabled={loadingKey === "products-to-alegra" || !activeStore.providers.shopify?.shopDomain}
+                  onClick={() =>
+                    void runStreamAction(
+                      "products-to-alegra",
+                      `Productos ${commerceLabel} → ${accountingLabel}`,
+                      "/api/sync/products/shopify-to-alegra",
+                      {
+                        shopDomain: activeStore.providers.shopify?.shopDomain || "",
+                        filters: {
+                          dateStart: productsBackRange.dateStart || undefined,
+                          dateEnd: productsBackRange.dateEnd || undefined,
+                          limit: productsBackRange.limit ? Number(productsBackRange.limit) : undefined,
+                        },
+                        settings: {
+                          createInAlegra: productsToAlegraOptions.createInAlegra,
+                          updateInAlegra: productsToAlegraOptions.updateInAlegra,
+                          includeInventory: productsToAlegraOptions.includeInventory,
+                          warehouseId: productsToAlegraOptions.warehouseId || undefined,
+                          matchPriority: productsToAlegraOptions.matchPriority,
+                        },
+                      },
+                      {
+                        stoppable: true,
+                        onPayload: (payload) => {
+                          const syncId = typeof payload.syncId === "string" ? payload.syncId : undefined;
+                          if (payload.type === "start") {
+                            setStreamState((current) =>
+                              current?.key === "products-to-alegra"
+                                ? {
+                                    ...current,
+                                    syncId,
+                                    progress: 0,
+                                    detail: `Preparando ${Number(payload.totalVariants || 0)} variantes...`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "progress") {
+                            const total = Number(payload.totalVariants || 0);
+                            const processed = Number(payload.processed || 0);
+                            const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
+                            setStreamState((current) =>
+                              current?.key === "products-to-alegra"
+                                ? {
+                                    ...current,
+                                    syncId: syncId || current.syncId,
+                                    progress: percent,
+                                    detail: `Procesados ${processed}/${total || "?"} · Creados ${Number(payload.created || 0)} · Actualizados ${Number(payload.updated || 0)} · Fallidos ${Number(payload.failed || 0)}`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "canceled") {
+                            setStreamState((current) =>
+                              current?.key === "products-to-alegra"
+                                ? { ...current, detail: "Sincronizador detenido.", stoppable: false }
+                                : current
+                            );
+                            setMessage(`Sincronizador ${commerceLabel} → ${accountingLabel} detenido.`);
+                            return;
+                          }
+                          if (payload.type === "done" || payload.type === "summary") {
+                            const total = Number(payload.totalVariants || payload.processed || 0);
+                            const processed = Number(payload.processed || 0);
+                            const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 100;
+                            setStreamState((current) =>
+                              current?.key === "products-to-alegra"
+                                ? {
+                                    ...current,
+                                    progress: percent,
+                                    detail: `Procesados ${processed}/${total || "?"} · Creados ${Number(payload.created || 0)} · Actualizados ${Number(payload.updated || 0)} · Fallidos ${Number(payload.failed || 0)}`,
+                                    stoppable: false,
+                                  }
+                                : current
+                            );
+                            setMessage(
+                              `Productos a ${accountingLabel} listos. Procesados ${processed} · Creados ${Number(payload.created || 0)} · Actualizados ${Number(payload.updated || 0)} · Fallidos ${Number(payload.failed || 0)}`
+                            );
+                            return;
+                          }
+                          if (payload.type === "error") {
+                            throw new Error(String(payload.error || `No se pudo sincronizar a ${accountingLabel}.`));
+                          }
+                        },
+                      }
+                    )
+                  }
+                >
+                  {loadingKey === "products-to-alegra" ? "Procesando..." : `Sincronizar a ${accountingLabel}`}
+                </button>
+                {streamState?.key === "products-to-alegra" && streamState.stoppable ? (
+                  <button
+                    className="btn ghost"
+                    type="button"
+                    onClick={() => void stopStreamAction("products-to-alegra")}
+                  >
+                    Detener
+                  </button>
+                ) : null}
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() => {
+                    setProductsBackRange(defaultRange);
+                    setProductsToAlegraOptions({
+                      createInAlegra: effectiveSync.products.createInAlegra,
+                      updateInAlegra: effectiveSync.products.updateInAlegra,
+                      includeInventory: effectiveSync.products.includeInventory,
+                      matchPriority: effectiveSync.products.matchPriority,
+                      warehouseId: effectiveSync.products.warehouseId,
+                    });
+                  }}
+                >
+                  Limpiar
+                </button>
+                <a className="btn ghost" href="/products">
+                  Ir a productos
+                </a>
+              </div>
+            </div>
+          </details>
+        ) : null}
+
+        {visibleGroups.includes("products") ? (
+          <details className="settings-collapsible store-config-field-span-2">
+            <summary className="settings-collapsible-summary">
+              <strong>Carga histórica de catálogo</strong>
+              <span>Base</span>
+            </summary>
+            <div className="settings-subsection">
+              <div className="store-configs-grid">
+                <label className="store-config-field">
+                  <span>Origen</span>
+                  <select
+                    className="input"
+                    value={productsCatalogRange.source}
+                    onChange={(event) =>
+                      setProductsCatalogRange((current) => ({
+                        ...current,
+                        source:
+                          event.target.value === "shopify" || event.target.value === "alegra"
+                            ? event.target.value
+                            : "both",
+                      }))
+                    }
+                  >
+                    <option value="both">Ambos</option>
+                    <option value="alegra">{accountingLabel}</option>
+                    <option value="shopify">{commerceLabel}</option>
+                  </select>
+                </label>
+                <label className="store-config-field">
+                  <span>Fecha inicio</span>
+                  <input
+                    className="input"
+                    type="date"
+                    value={productsCatalogRange.dateStart}
+                    onChange={(event) =>
+                      setProductsCatalogRange((current) => ({ ...current, dateStart: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Fecha fin</span>
+                  <input
+                    className="input"
+                    type="date"
+                    value={productsCatalogRange.dateEnd}
+                    onChange={(event) =>
+                      setProductsCatalogRange((current) => ({ ...current, dateEnd: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Límite</span>
+                  <input
+                    className="input"
+                    type="number"
+                    min={1}
+                    placeholder="200"
+                    value={productsCatalogRange.limit}
+                    onChange={(event) =>
+                      setProductsCatalogRange((current) => ({ ...current, limit: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Estado {accountingLabel}</span>
+                  <select
+                    className="input"
+                    value={productsCatalogRange.alegraStatus}
+                    onChange={(event) =>
+                      setProductsCatalogRange((current) => ({
+                        ...current,
+                        alegraStatus:
+                          event.target.value === "active" || event.target.value === "inactive"
+                            ? event.target.value
+                            : "",
+                      }))
+                    }
+                  >
+                    <option value="">Todos</option>
+                    <option value="active">Activos</option>
+                    <option value="inactive">Inactivos</option>
+                  </select>
+                </label>
+                <label className="store-config-field">
+                  <span>Lectura desde caché</span>
+                  <select
+                    className="input"
+                    value={productsCatalogRange.useCache ? "yes" : "no"}
+                    onChange={(event) =>
+                      setProductsCatalogRange((current) => ({
+                        ...current,
+                        useCache: event.target.value !== "no",
+                      }))
+                    }
+                  >
+                    <option value="yes">Sí</option>
+                    <option value="no">No</option>
+                  </select>
+                </label>
+                <label className="store-config-field">
+                  <span>Solo publicados en {commerceLabel}</span>
+                  <select
+                    className="input"
+                    value={productsCatalogRange.shopifyPublishedOnly ? "yes" : "no"}
+                    onChange={(event) =>
+                      setProductsCatalogRange((current) => ({
+                        ...current,
+                        shopifyPublishedOnly: event.target.value !== "no",
+                      }))
+                    }
+                  >
+                    <option value="no">No</option>
+                    <option value="yes">Sí</option>
+                  </select>
+                </label>
+              </div>
+              <div className="page-module-actions compact-pills">
+                <span className="pill">Carga inicial</span>
+                <span className="pill">No publica</span>
+              </div>
+              <div className="connection-card-actions">
+                <button
+                  className="btn primary"
+                  type="button"
+                  disabled={loadingKey === "products-backfill"}
+                  onClick={() =>
+                    void runStreamAction(
+                      "products-backfill",
+                      "Carga histórica de catálogo",
+                      "/api/backfill/products",
+                      {
+                        source: productsCatalogRange.source,
+                        shopDomain: activeStore.providers.shopify?.shopDomain,
+                        dateStart: productsCatalogRange.dateStart || undefined,
+                        dateEnd: productsCatalogRange.dateEnd || undefined,
+                        limit: productsCatalogRange.limit ? Number(productsCatalogRange.limit) : undefined,
+                        alegraStatus: productsCatalogRange.alegraStatus || undefined,
+                        useCache: productsCatalogRange.useCache,
+                        shopifyPublishedOnly: productsCatalogRange.shopifyPublishedOnly,
+                      },
+                      {
+                        stoppable: true,
+                        onPayload: (payload) => {
+                          if (payload.type === "start") {
+                            setStreamState((current) =>
+                              current?.key === "products-backfill"
+                                ? {
+                                    ...current,
+                                    syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
+                                    progress: 0,
+                                    detail: "Preparando carga histórica...",
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "progress") {
+                            const processed = Number(payload.processed || 0);
+                            const total = Number(payload.total || 0);
+                            setStreamState((current) =>
+                              current?.key === "products-backfill"
+                                ? {
+                                    ...current,
+                                    syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
+                                    progress: total > 0 ? toPercent(processed, total) : current.progress,
+                                    detail: `${String(payload.source || "origen")} · Procesados ${processed}/${total || "?"} · Páginas ${Number(payload.pages || 0)}`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "canceled") {
+                            setStreamState((current) =>
+                              current?.key === "products-backfill"
+                                ? { ...current, detail: "Carga histórica detenida.", stoppable: false }
+                                : current
+                            );
+                            setMessage("Carga histórica de catálogo detenida.");
+                            return;
+                          }
+                          if (payload.type === "complete") {
+                            const alegra =
+                              payload.results && typeof payload.results === "object"
+                                ? ((
+                                    payload.results as {
+                                      alegra?: { processed?: number };
+                                      shopify?: { processed?: number };
+                                    }
+                                  ).alegra ?? null)
+                                : null;
+                            const shopify =
+                              payload.results && typeof payload.results === "object"
+                                ? ((
+                                    payload.results as {
+                                      alegra?: { processed?: number };
+                                      shopify?: { processed?: number };
+                                    }
+                                  ).shopify ?? null)
+                                : null;
+                            setStreamState((current) =>
+                              current?.key === "products-backfill"
+                                ? {
+                                    ...current,
+                                    progress: 100,
+                                    detail: `${accountingLabel} ${Number(alegra?.processed || 0)} · ${commerceLabel} ${Number(shopify?.processed || 0)}`,
+                                    stoppable: false,
+                                  }
+                                : current
+                            );
+                            setMessage(
+                              `Catálogo base listo. ${accountingLabel} ${Number(alegra?.processed || 0)} · ${commerceLabel} ${Number(shopify?.processed || 0)}`
+                            );
+                            return;
+                          }
+                          if (payload.type === "error") {
+                            throw new Error(String(payload.error || "No se pudo cargar catálogo base."));
+                          }
+                        },
+                      }
+                    )
+                  }
+                >
+                  {loadingKey === "products-backfill" ? "Cargando..." : "Cargar base"}
+                </button>
+                {streamState?.key === "products-backfill" && streamState.stoppable ? (
+                  <button
+                    className="btn ghost"
+                    type="button"
+                    onClick={() => void stopStreamAction("products-backfill")}
+                  >
+                    Detener
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </details>
+        ) : null}
+
+        {visibleGroups.includes("products") ? (
+          <details className="settings-collapsible store-config-field-span-2">
+            <summary className="settings-collapsible-summary">
+              <strong>Imágenes de producto</strong>
+              <span>CSV o filas</span>
+            </summary>
+            <div className="settings-subsection">
+              <div className="store-configs-grid">
+                <label className="store-config-field">
+                  <span>Archivo CSV</span>
+                  <input
+                    className="input"
+                    type="file"
+                    accept=".csv,text/csv"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      void loadProductImagesFile(file).catch((error) => {
+                        setProductImageErrors([]);
+                        setMessage(error instanceof Error ? error.message : "No se pudo leer el CSV.");
+                      });
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </label>
+                <label className="store-config-field">
+                  <span>Buscar por</span>
+                  <select
+                    className="input"
+                    value={productImagesForm.matchBy}
+                    onChange={(event) =>
+                      setProductImagesForm((current) => ({
+                        ...current,
+                        matchBy: event.target.value === "barcode" ? "barcode" : "sku",
+                      }))
+                    }
+                  >
+                    <option value="sku">SKU</option>
+                    <option value="barcode">Código de barras</option>
+                  </select>
+                </label>
+                <label className="store-config-field">
+                  <span>Modo</span>
+                  <select
+                    className="input"
+                    value={productImagesForm.mode}
+                    onChange={(event) =>
+                      setProductImagesForm((current) => ({
+                        ...current,
+                        mode: event.target.value === "replace" ? "replace" : "append",
+                      }))
+                    }
+                  >
+                    <option value="append">Agregar</option>
+                    <option value="replace">Reemplazar</option>
+                  </select>
+                </label>
+                <label className="store-config-field store-config-field-span-2">
+                  <span>Filas</span>
+                  <textarea
+                    className="textarea-control"
+                    rows={8}
+                    value={productImagesForm.rowsText}
+                    placeholder="SKU-001|https://cdn.ejemplo.com/1.jpg,https://cdn.ejemplo.com/2.jpg|Portada producto"
+                    onChange={(event) =>
+                      setProductImagesForm((current) => ({ ...current, rowsText: event.target.value }))
+                    }
+                  />
+                </label>
+              </div>
+              <details className="settings-collapsible settings-collapsible-inline">
+                <summary className="settings-collapsible-summary">
+                  <strong>Publicación e importación</strong>
+                  <span>Opciones avanzadas</span>
+                </summary>
+                <div className="settings-subsection settings-subsection-nested">
+                  <div className="store-configs-grid">
+                    <label className="store-config-field">
+                      <span>Publicar al cargar</span>
+                      <select
+                        className="input"
+                        value={productImagesForm.publishEnabled ? productImagesForm.publishStatus : "off"}
+                        onChange={(event) =>
+                          setProductImagesForm((current) => ({
+                            ...current,
+                            publishEnabled: event.target.value !== "off",
+                            publishStatus: event.target.value === "active" ? "active" : "draft",
+                          }))
+                        }
+                      >
+                        <option value="off">No publicar</option>
+                        <option value="draft">Publicar como borrador</option>
+                        <option value="active">Publicar como activo</option>
+                      </select>
+                    </label>
+                    <label className="store-config-field">
+                      <span>Aplicar a variante</span>
+                      <select
+                        className="input"
+                        value={productImagesForm.attachVariant ? "yes" : "no"}
+                        onChange={(event) =>
+                          setProductImagesForm((current) => ({
+                            ...current,
+                            attachVariant: event.target.value !== "no",
+                          }))
+                        }
+                      >
+                        <option value="yes">Sí</option>
+                        <option value="no">No</option>
+                      </select>
+                    </label>
+                    <label className="store-config-field">
+                      <span>Modo seguro</span>
+                      <select
+                        className="input"
+                        value={productImagesForm.dryRun ? "dry" : "real"}
+                        onChange={(event) =>
+                          setProductImagesForm((current) => ({
+                            ...current,
+                            dryRun: event.target.value === "dry",
+                          }))
+                        }
+                      >
+                        <option value="real">Ejecutar cambios</option>
+                        <option value="dry">Simular primero</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              </details>
+              <div className="page-module-actions compact-pills">
+                <span className="pill">Hasta 500 filas</span>
+                <span className="pill">10 URLs por fila</span>
+                <span className="pill">{parseProductImageRows(productImagesForm.rowsText).length} filas válidas</span>
+              </div>
+              <div className="connection-card-actions">
+                <button className="btn ghost" type="button" onClick={downloadProductImagesTemplate}>
+                  Descargar plantilla
+                </button>
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={downloadProductImagesErrors}
+                  disabled={!productImageErrors.length}
+                >
+                  Descargar errores
+                </button>
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() => {
+                    setProductImagesForm(defaultProductImagesForm);
+                    setProductImageErrors([]);
+                  }}
+                >
+                  Limpiar
+                </button>
+                <button
+                  className="btn primary"
+                  type="button"
+                  disabled={loadingKey === "product-images" || !activeStore.providers.shopify?.shopDomain}
+                  onClick={() => {
+                    const rows = parseProductImageRows(productImagesForm.rowsText);
+                    if (!rows.length) {
+                      setMessage("No hay filas válidas para cargar imágenes.");
+                      return;
+                    }
+                    if (productImagesForm.mode === "replace") {
+                      const confirmed = window.confirm(
+                        "Modo Reemplazar elimina fotos existentes antes de subir las nuevas. ¿Seguro?"
+                      );
+                      if (!confirmed) return;
+                    }
+                    if (productImagesForm.publishEnabled) {
+                      const confirmed = window.confirm(
+                        `Cambiar estado del producto está activo. ¿Seguro que quieres forzar estado = ${productImagesForm.publishStatus}?`
+                      );
+                      if (!confirmed) return;
+                    }
+                    setProductImageErrors([]);
+                    void runStreamAction(
+                      "product-images",
+                      "Imágenes de producto",
+                      "/api/sync/product-images",
+                      {
+                        shopDomain: activeStore.providers.shopify?.shopDomain || "",
+                        matchBy: productImagesForm.matchBy,
+                        attachVariant: productImagesForm.attachVariant,
+                        mode: productImagesForm.mode,
+                        publishEnabled: productImagesForm.publishEnabled,
+                        publishStatus: productImagesForm.publishStatus,
+                        dryRun: productImagesForm.dryRun,
+                        rows,
+                      },
+                      {
+                        stoppable: true,
+                        onPayload: (payload) => {
+                          const syncId = typeof payload.syncId === "string" ? payload.syncId : undefined;
+                          if (payload.type === "start") {
+                            setStreamState((current) =>
+                              current?.key === "product-images"
+                                ? {
+                                    ...current,
+                                    syncId,
+                                    progress: 0,
+                                    detail: `Preparando ${Number(payload.total || 0)} filas...`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "progress") {
+                            const total = Number(payload.total || 0);
+                            const processed = Number(payload.processed || 0);
+                            setStreamState((current) =>
+                              current?.key === "product-images"
+                                ? {
+                                    ...current,
+                                    syncId: syncId || current.syncId,
+                                    progress: toPercent(processed, total),
+                                    detail: `Procesadas ${processed}/${total || "?"} · Encontradas ${Number(payload.matched || 0)} · Fotos ${Number(payload.imagesUploaded || 0)} · Omitidas ${Number(payload.skipped || 0)} · Fallidas ${Number(payload.failed || 0)}`,
+                                  }
+                                : current
+                            );
+                            return;
+                          }
+                          if (payload.type === "stopped") {
+                            setStreamState((current) =>
+                              current?.key === "product-images"
+                                ? { ...current, detail: "Carga de imágenes detenida.", stoppable: false }
+                                : current
+                            );
+                            setMessage("Carga de imágenes detenida.");
+                            return;
+                          }
+                          if (payload.type === "done") {
+                            setStreamState((current) =>
+                              current?.key === "product-images"
+                                ? {
+                                    ...current,
+                                    progress: 100,
+                                    detail: `Procesadas ${Number(payload.processed || 0)} · Encontradas ${Number(payload.matched || 0)} · Fotos ${Number(payload.imagesUploaded || 0)} · Omitidas ${Number(payload.skipped || 0)} · Fallidas ${Number(payload.failed || 0)}`,
+                                    stoppable: false,
+                                  }
+                                : current
+                            );
+                            setMessage(String(payload.message || "Carga de imágenes completada."));
+                            return;
+                          }
+                          if (payload.type === "row_error") {
+                            const rowError = String(payload.message || "").trim();
+                            if (rowError) {
+                              setProductImageErrors((current) => [...current, rowError].slice(0, 200));
+                            }
+                            setStreamState((current) =>
+                              current?.key === "product-images"
+                                ? { ...current, detail: rowError || current.detail }
+                                : current
+                            );
+                          }
+                        },
+                      }
+                    );
+                  }}
+                >
+                  {loadingKey === "product-images" ? "Procesando..." : "Sincronizar imágenes"}
+                </button>
+                {streamState?.key === "product-images" && streamState.stoppable ? (
+                  <button className="btn ghost" type="button" onClick={() => void stopStreamAction("product-images")}>
+                    Detener
+                  </button>
+                ) : null}
+              </div>
+              {productImageErrors.length ? (
+                <pre className="sync-error-log">{productImageErrors.slice(0, 60).join("\n")}</pre>
               ) : null}
             </div>
-            <pre className="sync-error-log">
-              {productImageErrors.length ? productImageErrors.slice(0, 60).join("\n") : "Sin errores."}
-            </pre>
-          </div>
-        </details>
+          </details>
+        ) : null}
       </div>
 
       {streamState ? (

@@ -1,6 +1,12 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import type { AdminWebProductsListDto } from "../../../packages/shared/src/admin-web";
+import type { ConnectionsWorkspace } from "../lib/connections-workspace";
+import { InfoHint } from "./ui/info-hint";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
+import { StoreSyncActionsPanel } from "./store-sync-actions-panel";
 import { StatusPill } from "./ui/status-pill";
 
 const PAGE_SIZE = 30;
@@ -16,11 +22,18 @@ export function ProductsPage({
   result,
   query,
   start,
+  workspace,
 }: {
   result: AdminWebProductsListDto;
   query: string;
   start: number;
+  workspace: ConnectionsWorkspace;
 }) {
+  const [selectedStoreId, setSelectedStoreId] = useState<number | null>(workspace.stores[0]?.id ?? null);
+  const selectedStore = useMemo(
+    () => workspace.stores.find((store) => store.id === selectedStoreId) ?? workspace.stores[0] ?? null,
+    [selectedStoreId, workspace.stores]
+  );
   const rows = result.items;
   const prevStart = Math.max(0, start - PAGE_SIZE);
   const nextStart = start + PAGE_SIZE;
@@ -31,7 +44,7 @@ export function ProductsPage({
     <section className="page-stack">
       <PageHeader
         title="Productos y servicios"
-        subtitle="Catálogo operativo con foco en lectura rápida, stock y matching."
+        subtitle="Catálogo y corridas manuales por tienda."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -39,6 +52,48 @@ export function ProductsPage({
             <span>Productos y servicios</span>
           </>
         }
+      />
+
+      <section className="card page-module-shell page-module-shell-compact products-sync-shell">
+        <div className="page-module-head">
+          <div>
+            <strong>
+              Manual por tienda{" "}
+              <InfoHint label="Aquí viven la carga inicial, corridas por fecha, puntuales y stock por bodegas." />
+            </strong>
+            <span>Inicial, por fecha o puntual.</span>
+          </div>
+          <div className="page-module-actions">
+            <label className="field">
+              <span>Tienda</span>
+              <select
+                className="input"
+                value={selectedStore?.id ?? ""}
+                onChange={(event) => setSelectedStoreId(Number(event.target.value || ""))}
+              >
+                {workspace.stores.map((store) => (
+                  <option key={store.id} value={store.id}>
+                    {store.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+        <div className="page-module-actions compact-pills sync-quick-pills">
+          <span className="pill pill-info">Inicial</span>
+          <span className="pill">Por fecha</span>
+          <span className="pill">SKU / barcode</span>
+          <span className="pill">Stock / bodegas</span>
+        </div>
+      </section>
+
+      <StoreSyncActionsPanel
+        stores={workspace.stores}
+        storeConfigs={workspace.storeConfigs}
+        defaults={workspace.storeConfigDefaults}
+        activeStoreId={selectedStoreId}
+        visibleGroups={["products"]}
       />
 
       <section className="card metrics-shell metrics-shell-compact">

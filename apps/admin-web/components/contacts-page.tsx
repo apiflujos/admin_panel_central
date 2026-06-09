@@ -1,6 +1,12 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import type { AdminWebContactsListDto } from "../../../packages/shared/src/admin-web";
+import type { ConnectionsWorkspace } from "../lib/connections-workspace";
+import { InfoHint } from "./ui/info-hint";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
+import { StoreSyncActionsPanel } from "./store-sync-actions-panel";
 import { StatusPill } from "./ui/status-pill";
 
 const PAGE_SIZE = 20;
@@ -11,13 +17,20 @@ export function ContactsPage({
   status,
   source,
   offset,
+  workspace,
 }: {
   result: AdminWebContactsListDto;
   query: string;
   status: string;
   source: string;
   offset: number;
+  workspace: ConnectionsWorkspace;
 }) {
+  const [selectedStoreId, setSelectedStoreId] = useState<number | null>(workspace.stores[0]?.id ?? null);
+  const selectedStore = useMemo(
+    () => workspace.stores.find((store) => store.id === selectedStoreId) ?? workspace.stores[0] ?? null,
+    [selectedStoreId, workspace.stores]
+  );
   const syncedCount = result.items.filter((item) => item.syncStatus === "synced").length;
   const pendingCount = result.items.length - syncedCount;
   const recentCount = result.items.filter(
@@ -32,7 +45,7 @@ export function ContactsPage({
     <section className="page-stack">
       <PageHeader
         title="Contactos"
-        subtitle="Base comercial normalizada y estado de sincronización."
+        subtitle="Base comercial."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -40,6 +53,47 @@ export function ContactsPage({
             <span>Contactos</span>
           </>
         }
+      />
+
+      <section className="card page-module-shell page-module-shell-compact">
+        <div className="page-module-head">
+          <div>
+            <strong>
+              Sincronización manual <InfoHint label="Aquí van la carga inicial, corridas por fecha y detención de contactos." />
+            </strong>
+            <span>Inicial, fecha y stop.</span>
+          </div>
+          <div className="page-module-actions">
+            <label className="field">
+              <span>Tienda</span>
+              <select
+                className="input"
+                value={selectedStore?.id ?? ""}
+                onChange={(event) => setSelectedStoreId(Number(event.target.value || ""))}
+              >
+                {workspace.stores.map((store) => (
+                  <option key={store.id} value={store.id}>
+                    {store.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+        <div className="page-module-actions compact-pills">
+          <span className="pill pill-info">Carga inicial</span>
+          <span className="pill">Por fecha</span>
+          <span className="pill">Crear o actualizar</span>
+          <span className="pill">Detener corrida</span>
+        </div>
+      </section>
+
+      <StoreSyncActionsPanel
+        stores={workspace.stores}
+        storeConfigs={workspace.storeConfigs}
+        defaults={workspace.storeConfigDefaults}
+        activeStoreId={selectedStoreId}
+        visibleGroups={["contacts"]}
       />
 
       <PageToolbar
@@ -139,7 +193,9 @@ export function ContactsPage({
       <section className="card page-module-shell page-module-shell-compact">
         <div className="page-module-head">
           <div>
-            <strong>Directorio operativo</strong>
+            <strong>
+              Directorio operativo <InfoHint label="Úsalo para conciliación rápida, soporte y revisión de pendientes." />
+            </strong>
             <span>
               Mostrando {offset + 1}–{Math.min(offset + PAGE_SIZE, result.total)} de {result.total} contactos listos
               para conciliación y soporte.
