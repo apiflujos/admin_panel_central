@@ -70,53 +70,8 @@ const defaultDraft: CriticalStoreConfigDraft = {
   minStock: 0,
   generateInvoice: false,
   shopifyToAlegra: "db_only",
-  alegraToShopify: "draft",
+  alegraToShopify: "off",
 };
-
-function formatOrderEntryMode(value: CriticalStoreConfig["sync"]["orders"]["shopifyToAlegra"]) {
-  switch (value) {
-    case "db_only":
-      return "Guardar pedido";
-    case "contact_only":
-      return "Solo contacto";
-    case "invoice":
-      return "Crear factura";
-    case "off":
-      return "Apagado";
-    default:
-      return value;
-  }
-}
-
-function formatOrderReturnMode(value: CriticalStoreConfig["sync"]["orders"]["alegraToShopify"]) {
-  switch (value) {
-    case "draft":
-      return "Crear borrador";
-    case "active":
-      return "Crear activo";
-    case "off":
-      return "Apagado";
-    default:
-      return value;
-  }
-}
-
-function formatTransferStrategy(value: CriticalStoreConfig["transfers"]["strategy"] | CriticalStoreConfig["transfers"]["fallbackStrategy"]) {
-  switch (value) {
-    case "manual":
-      return "Manual";
-    case "consolidation":
-      return "Consolidar";
-    case "priority":
-      return "Prioridad";
-    case "max_stock":
-      return "Mayor stock";
-    case "":
-      return "";
-    default:
-      return value;
-  }
-}
 
 function normalizeIdList(values: string[]) {
   return [...values]
@@ -198,14 +153,12 @@ export function StoreConfigsCriticalPanel({
   defaults,
   activeStoreId,
   onStoreConfigSaved,
-  mode = "all",
 }: {
   stores: WorkspaceStore[];
   storeConfigs: CriticalStoreConfig[];
   defaults: ConnectionsWorkspace["storeConfigDefaults"];
   activeStoreId: number | null;
   onStoreConfigSaved: (nextConfig: CriticalStoreConfig) => void;
-  mode?: "all" | "inventory";
 }) {
   const [draft, setDraft] = useState<CriticalStoreConfigDraft>(defaultDraft);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -265,7 +218,6 @@ export function StoreConfigsCriticalPanel({
     [activeConfig, baseDraft, draft]
   );
   const invoiceModeAlreadyActive = activeConfig?.sync.orders.shopifyToAlegra === "invoice";
-  const accountingLabel = activeStore?.providers.alegra ? "Alegra" : "Contabilidad";
   const effectiveConfig = useMemo(
     () =>
       activeStore
@@ -569,15 +521,11 @@ export function StoreConfigsCriticalPanel({
   }
 
   return (
-    <section className="card connection-card settings-density-compact">
+    <section className="card connection-card">
       <div className="connection-card-head">
         <div>
-          <h3>{mode === "inventory" ? "Inventario y bodegas" : "Sincronización crítica por tienda"}</h3>
-          <p>
-            {mode === "inventory"
-              ? "Activo, cron y publicación."
-              : "Sync e inventario."}
-          </p>
+          <h3>Sincronización crítica por tienda</h3>
+          <p>Reglas operativas clave de la tienda: sincronización, logística, inventario y publicación.</p>
         </div>
         {activeStore ? <span className="pill">Tienda #{activeStore.id}</span> : null}
       </div>
@@ -589,86 +537,86 @@ export function StoreConfigsCriticalPanel({
       {readiness ? <StoreConfigsReadiness readiness={readiness} /> : null}
 
       <div className="store-configs-grid">
-        {mode === "all" ? (
-          <div className="settings-subsection store-config-field-span-2">
-            <div className="settings-subsection-head">
-              <strong>Flujo core</strong>
-              <span>Base</span>
-            </div>
-            <div className="store-configs-grid">
-              <BooleanChoice
-                label="Sync activo"
-                value={draft.trackInventory ? true : draft.syncEnabled}
-                onChange={(next) =>
-                  setDraft((current) => ({
-                    ...current,
-                    syncEnabled: next,
-                  }))
-                }
-                positive="Activa"
-                negative="Pausada"
-                help="Pausa la operación sin desmontar la conexión. Si controlas inventario, queda activa por diseño."
-                disabled={draft.trackInventory}
-              />
-
-              <label className="store-config-field">
-                <span>Shopify → Alegra</span>
-                <select
-                  className="input"
-                  value={draft.shopifyToAlegra}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      shopifyToAlegra: event.target.value as CriticalStoreConfig["sync"]["orders"]["shopifyToAlegra"],
-                    }))
-                  }
-                >
-                  <option value="db_only">Guardar pedido</option>
-                  <option value="contact_only">Solo contacto</option>
-                  {invoiceModeAlreadyActive ? <option value="invoice">Crear factura</option> : null}
-                  <option value="off">Apagado</option>
-                </select>
-              </label>
-
-              <label className="store-config-field">
-                <span>Alegra → Shopify</span>
-                <select
-                  className="input"
-                  value={draft.alegraToShopify}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      alegraToShopify: event.target.value as CriticalStoreConfig["sync"]["orders"]["alegraToShopify"],
-                    }))
-                  }
-                >
-                  <option value="off">Apagado</option>
-                  <option value="draft">Crear borrador</option>
-                  <option value="active">Crear activo</option>
-                </select>
-              </label>
-
-              <BooleanChoice
-                label="Factura activa"
-                value={draft.generateInvoice}
-                onChange={(next) =>
-                  setDraft((current) => ({
-                    ...current,
-                    generateInvoice: next,
-                  }))
-                }
-                positive="Sí"
-                negative="No"
-                help="Activa la intención de facturar; los catálogos y pagos se resuelven en facturación global."
-              />
-            </div>
+        <div className="settings-subsection store-config-field-span-2">
+          <div className="settings-subsection-head">
+            <strong>Flujo core</strong>
+            <span>Gating principal entre Shopify, Alegra y factura por tienda</span>
           </div>
-        ) : null}
+          <div className="store-configs-grid">
+            <BooleanChoice
+              label="Sincronización operativa"
+              value={draft.trackInventory ? true : draft.syncEnabled}
+              onChange={(next) =>
+                setDraft((current) => ({
+                  ...current,
+                  syncEnabled: next,
+                }))
+              }
+              positive="Activa"
+              negative="Pausada"
+              help="Pausa la operación sin desmontar la conexión. Si controlas inventario, queda activa por diseño."
+              disabled={draft.trackInventory}
+            />
+
+            <label className="store-config-field">
+              <span>Shopify → Alegra</span>
+              <select
+                className="input"
+                value={draft.shopifyToAlegra}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    shopifyToAlegra: event.target.value as CriticalStoreConfig["sync"]["orders"]["shopifyToAlegra"],
+                  }))
+                }
+              >
+                <option value="db_only">Solo base de datos</option>
+                <option value="contact_only">Solo contacto</option>
+                {invoiceModeAlreadyActive ? <option value="invoice">Factura</option> : null}
+                <option value="off">Apagado</option>
+              </select>
+              <small>Elige si el pedido solo se registra, crea contacto o factura cuando ya esté habilitado.</small>
+            </label>
+
+            <label className="store-config-field">
+              <span>Alegra → Shopify</span>
+              <select
+                className="input"
+                value={draft.alegraToShopify}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    alegraToShopify: event.target.value as CriticalStoreConfig["sync"]["orders"]["alegraToShopify"],
+                  }))
+                }
+              >
+                <option value="off">Apagado</option>
+                <option value="draft">Borrador</option>
+                <option value="active">Activo</option>
+              </select>
+              <small>Controla si el flujo inverso crea borradores o publica productos visibles.</small>
+            </label>
+
+            <BooleanChoice
+              label="Generar factura"
+              value={draft.generateInvoice}
+              onChange={(next) =>
+                setDraft((current) => ({
+                  ...current,
+                  generateInvoice: next,
+                }))
+              }
+              positive="Sí"
+              negative="No"
+              help="Activa la intención de facturar; los catálogos y pagos se resuelven en facturación global."
+            />
+          </div>
+        </div>
 
         <details className="settings-collapsible store-config-field-span-2">
           <summary className="settings-collapsible-summary">
             <strong>Traslados y destino</strong>
-            <span>Origen y destino</span>
+            <span>Resolución logística para bodegas, prioridades y reparto de stock</span>
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
@@ -687,7 +635,7 @@ export function StoreConfigsCriticalPanel({
               />
 
               <label className="store-config-field">
-                <span>Destino</span>
+                <span>Modo de destino</span>
                 <select
                   className="input"
                   value={draft.destinationMode}
@@ -703,6 +651,7 @@ export function StoreConfigsCriticalPanel({
                   <option value="auto">Auto</option>
                   <option value="rule">Por regla</option>
                 </select>
+                <small>Define cómo se elige la bodega de destino en cada operación.</small>
               </label>
 
               <BooleanChoice
@@ -765,6 +714,7 @@ export function StoreConfigsCriticalPanel({
                     </option>
                   ))}
                 </select>
+                <small>Se usa cuando necesitas priorizar una bodega frente a otras.</small>
               </label>
 
               <label className="store-config-field">
@@ -785,6 +735,7 @@ export function StoreConfigsCriticalPanel({
                   <option value="max_stock">Mayor stock</option>
                   <option value="random">Balanceado</option>
                 </select>
+                <small>Solo aplica cuando varias bodegas cumplen las mismas condiciones.</small>
               </label>
 
               <BooleanChoice
@@ -821,25 +772,13 @@ export function StoreConfigsCriticalPanel({
                 <small>Umbral mínimo para considerar una bodega como elegible.</small>
               </label>
             </div>
-            <div className="page-module-actions compact-pills">
-              <span className={`pill ${draft.syncEnabled ? "pill-ok" : "pill-warn"}`}>
-                Sync {draft.syncEnabled ? "activo" : "pausado"}
-              </span>
-              <span className="pill">Entrada {formatOrderEntryMode(draft.shopifyToAlegra)}</span>
-              <span className={`pill ${draft.alegraToShopify !== "off" ? "pill-ok" : ""}`}>
-                Retorno {formatOrderReturnMode(draft.alegraToShopify)}
-              </span>
-              <span className={`pill ${draft.generateInvoice ? "pill-ok" : ""}`}>
-                Factura {draft.generateInvoice ? "activa" : "apagada"}
-              </span>
-            </div>
           </div>
         </details>
 
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Inventario y automatización</strong>
-            <span>Frecuencia y stock</span>
+            <span>Ajustes, sobreventa, webhooks y creación o publicación automática</span>
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
@@ -858,7 +797,7 @@ export function StoreConfigsCriticalPanel({
               />
 
               <label className="store-config-field">
-                <span>Cron de revisión</span>
+                <span>Frecuencia de ajustes</span>
                 <select
                   className="input"
                   value={String(draft.inventoryAdjustmentsIntervalMinutes)}
@@ -873,10 +812,13 @@ export function StoreConfigsCriticalPanel({
                   <option value="10">Cada 10 minutos</option>
                   <option value="15">Cada 15 minutos</option>
                 </select>
+                <small>
+                  Replica la programación del worker de inventario que antes solo se veía en el flujo heredado.
+                </small>
               </label>
 
               <BooleanChoice
-                label={`Activo en ${accountingLabel}`}
+                label="Controlar inventario"
                 value={draft.trackInventory}
                 onChange={(next) =>
                   setDraft((current) => ({
@@ -892,7 +834,7 @@ export function StoreConfigsCriticalPanel({
               />
 
               <BooleanChoice
-                label="Sobreventa"
+                label="Permitir sobreventa"
                 value={draft.trackInventory ? draft.allowOversell : false}
                 onChange={(next) =>
                   setDraft((current) => ({
@@ -907,7 +849,7 @@ export function StoreConfigsCriticalPanel({
               />
 
               <BooleanChoice
-                label="Webhook activo"
+                label="Automatizar por webhook"
                 value={draft.webhookItemsEnabled}
                 onChange={(next) =>
                   setDraft((current) => ({
@@ -921,7 +863,7 @@ export function StoreConfigsCriticalPanel({
               />
 
               <BooleanChoice
-                label="Crear en tienda"
+                label="Crear en Shopify"
                 value={draft.createInShopify}
                 onChange={(next) =>
                   setDraft((current) => ({
@@ -935,7 +877,7 @@ export function StoreConfigsCriticalPanel({
               />
 
               <BooleanChoice
-                label="Actualizar en tienda"
+                label="Actualizar en Shopify"
                 value={draft.updateInShopify}
                 onChange={(next) =>
                   setDraft((current) => ({
@@ -959,20 +901,8 @@ export function StoreConfigsCriticalPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help={`Evita publicar productos sin imágenes cuando el catálogo viene desde ${accountingLabel}.`}
+                help="Evita publicar productos sin imágenes cuando el catálogo viene desde Contable."
               />
-            </div>
-            <div className="page-module-actions compact-pills">
-              <span className={`pill ${draft.inventoryAdjustmentsEnabled ? "pill-ok" : "pill-warn"}`}>
-                Ajustes {draft.inventoryAdjustmentsEnabled ? "activos" : "pausados"}
-              </span>
-              <span className="pill">Cron {draft.inventoryAdjustmentsIntervalMinutes} min</span>
-              <span className={`pill ${draft.trackInventory ? "pill-ok" : ""}`}>
-                Inventario en {accountingLabel} {draft.trackInventory ? "activo" : "apagado"}
-              </span>
-              <span className={`pill ${draft.publishOnStock ? "pill-ok" : ""}`}>
-                Publicar con stock {draft.publishOnStock ? "sí" : "no"}
-              </span>
             </div>
           </div>
         </details>
@@ -980,12 +910,13 @@ export function StoreConfigsCriticalPanel({
         <details className="settings-collapsible store-config-field-span-2">
           <summary className="settings-collapsible-summary">
             <strong>Bodegas y publicación final</strong>
-            <span>Selección y publicación</span>
+            <span>Selección efectiva de bodegas y reglas finales de publicación automática</span>
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
               <div className="store-config-field store-config-field-span-2">
-                <span>Bodegas activas</span>
+                <span>Bodegas de inventario</span>
+                <small>Sin selección explícita, la tienda opera con todas las bodegas disponibles.</small>
                 <div className="store-warehouse-card">
                   <div className="store-warehouse-head">
                     <strong>{warehouseSummary}</strong>
@@ -1059,7 +990,11 @@ export function StoreConfigsCriticalPanel({
               </div>
 
               <div className="store-config-field store-config-field-span-2">
-                <span>Bodegas origen</span>
+                <span>Bodegas origen para traslados</span>
+                <small>
+                  Sin selección explícita, la tienda opera con todas las bodegas disponibles. La estrategia avanzada
+                  sigue preservada desde la superficie heredada.
+                </small>
                 <div className="store-warehouse-card">
                   <div className="store-warehouse-head">
                     <strong>{transferOriginSummary}</strong>
@@ -1104,11 +1039,11 @@ export function StoreConfigsCriticalPanel({
                   </div>
                   <div className="connection-card-actions">
                     <span>
-                      Estrategia actual: <strong>{formatTransferStrategy(transferStrategy)}</strong>
+                      Estrategia actual: <strong>{transferStrategy}</strong>
                       {transferFallbackStrategy ? (
                         <>
                           {" "}
-                          · Respaldo <strong>{formatTransferStrategy(transferFallbackStrategy)}</strong>
+                          · Respaldo <strong>{transferFallbackStrategy}</strong>
                         </>
                       ) : null}
                       {draft.priorityWarehouseId ? (
@@ -1186,7 +1121,7 @@ export function StoreConfigsCriticalPanel({
               />
 
               <label className="store-config-field">
-                <span>Estado al publicar</span>
+                <span>Estado de auto-publicación</span>
                 <select
                   className="input"
                   value={draft.autoPublishStatus}
@@ -1200,10 +1135,11 @@ export function StoreConfigsCriticalPanel({
                   <option value="draft">Borrador</option>
                   <option value="active">Activo</option>
                 </select>
+                <small>Define si la publicación automática deja el ítem como borrador o activo.</small>
               </label>
 
               <BooleanChoice
-                label="Solo activos"
+                label="Solo ítems activos"
                 value={draft.onlyActiveItems}
                 onChange={(next) =>
                   setDraft((current) => ({

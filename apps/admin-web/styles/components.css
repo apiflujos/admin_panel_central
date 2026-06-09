@@ -103,26 +103,25 @@
 }
 
 .stage-guide-shell {
-  gap: 8px;
-  padding: 12px;
+  gap: 10px;
 }
 
 .stage-guide-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px;
 }
 
 .stage-guide-card {
-  padding: 9px 10px;
+  padding: 12px 14px;
   border: 1px solid var(--panel-border);
-  border-radius: 14px;
+  border-radius: 16px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 244, 255, 0.94));
 }
 
 .stage-guide-card strong {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-strong);
 }
 
@@ -393,13 +392,13 @@
 }
 
 .provider-mark {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #fff;
   border: 1px solid var(--panel-border);
-  padding: 4px;
+  padding: 5px;
   box-shadow: 0 10px 20px rgba(35, 24, 58, 0.05);
 }
 
@@ -414,9 +413,9 @@
 }
 
 .connection-card {
-  padding: 10px;
+  padding: 12px;
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .connection-card-dense {
@@ -428,18 +427,18 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
 
 .connection-card h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-strong);
 }
 
 .connection-card p {
-  margin: 2px 0 0;
-  font-size: 10px;
+  margin: 4px 0 0;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -447,7 +446,7 @@
 .connection-card-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -462,7 +461,7 @@
 }
 
 .connection-card-actions span {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -472,7 +471,7 @@
 
 .connection-inline-note {
   margin: 0;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -502,12 +501,12 @@
 .store-configs-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .store-config-field {
   display: grid;
-  gap: 4px;
+  gap: 6px;
 }
 
 .store-config-field-span-2 {
@@ -515,20 +514,20 @@
 }
 
 .store-config-field span {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-strong);
 }
 
 .store-config-field small {
-  font-size: 9px;
+  font-size: 10px;
   color: var(--text-faint);
-  line-height: 1.25;
+  line-height: 1.35;
 }
 
 .settings-subsection {
   display: grid;
-  gap: 6px;
-  padding: 8px;
+  gap: 10px;
+  padding: 12px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--panel) 94%, white 6%);
@@ -538,23 +537,23 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .settings-subsection-head strong {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-strong);
 }
 
 .settings-subsection-head span {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-faint);
 }
 
 .settings-collapsible {
   border: 1px solid var(--panel-border);
-  border-radius: 14px;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.9);
 }
 
@@ -563,8 +562,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 10px;
+  padding: 12px 14px;
   cursor: pointer;
 }
 
@@ -575,31 +574,17 @@
 .settings-collapsible-summary strong {
   display: block;
   color: var(--text-strong);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .settings-collapsible-summary span {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .settings-collapsible > .settings-subsection {
-  margin: 0 6px 6px;
-}
-
-.settings-collapsible-inline {
-  border-style: dashed;
-  border-color: color-mix(in srgb, var(--panel-border) 78%, white 22%);
-}
-
-.settings-collapsible-inline .settings-collapsible-summary {
-  padding: 7px 9px;
-}
-
-.settings-subsection-nested {
-  padding: 7px;
-  background: color-mix(in srgb, var(--panel) 96%, white 4%);
+  margin: 0 10px 10px;
 }
 
 .store-config-field select.input-control,
@@ -609,8 +594,8 @@
 
 .store-warehouse-card {
   display: grid;
-  gap: 5px;
-  padding: 7px;
+  gap: 8px;
+  padding: 10px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
   background: #fff;
@@ -629,27 +614,27 @@
 }
 
 .store-warehouse-head strong {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-strong);
 }
 
 .store-warehouse-head span {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-faint);
 }
 
 .store-warehouse-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
+  gap: 6px;
 }
 
 .store-warehouse-option {
   display: flex;
   align-items: center;
   gap: 6px;
-  min-height: 26px;
-  padding: 4px 7px;
+  min-height: 30px;
+  padding: 6px 9px;
   border: 1px solid var(--panel-border);
   border-radius: 999px;
   background: color-mix(in srgb, var(--panel) 92%, white 8%);
@@ -660,7 +645,7 @@
 }
 
 .store-warehouse-option span {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text);
 }
 
@@ -670,13 +655,13 @@
 
 .connection-tech-list {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .connection-tech-item {
   display: grid;
-  gap: 3px;
-  padding: 8px 10px;
+  gap: 4px;
+  padding: 10px 12px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
   background: #fff;
@@ -1282,52 +1267,42 @@
 }
 
 .page-module-shell {
-  padding: 10px;
+  padding: 14px;
   display: grid;
-  gap: 8px;
+  gap: 12px;
 }
 
 .page-module-shell-compact {
-  padding: 9px;
-  gap: 6px;
-}
-
-.products-sync-shell {
-  gap: 8px;
+  padding: 12px;
+  gap: 10px;
 }
 
 .page-module-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .page-module-head strong {
   display: block;
   color: var(--text-strong);
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .page-module-head span {
   display: block;
-  margin-top: 1px;
+  margin-top: 3px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .page-module-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
-}
-
-.sync-quick-pills .pill {
-  height: 24px;
-  padding-inline: 9px;
-  font-size: 10px;
 }
 
 .config-active-store-shell {
@@ -1375,7 +1350,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--panel-border);
   border-radius: 16px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 244, 255, 0.94));
@@ -1385,7 +1360,7 @@
 .config-summary-main {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   flex-wrap: wrap;
 }
 
@@ -1405,20 +1380,20 @@
 }
 
 .config-summary-strip .provider-mark {
-  width: 38px;
-  height: 38px;
-  padding: 4px;
-  border-radius: 10px;
+  width: 42px;
+  height: 42px;
+  padding: 5px;
+  border-radius: 12px;
 }
 
 .config-summary-strip .provider-mark-row {
-  gap: 8px;
+  gap: 10px;
 }
 
 .config-active-store-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) auto minmax(0, 1fr) auto;
-  gap: 8px;
+  gap: 10px;
   align-items: end;
 }
 
@@ -1431,105 +1406,6 @@
 
 .config-active-store-copy {
   justify-content: flex-end;
-}
-
-.settings-connections-shell {
-  gap: 10px;
-}
-
-.settings-connections-shell .page-module-head {
-  gap: 10px;
-}
-
-.settings-connections-shell .page-module-head span,
-.settings-connections-shell .settings-subsection-head span {
-  font-size: 11px;
-}
-
-.settings-inline-row {
-  display: flex;
-  align-items: center;
-}
-
-.settings-mini-help {
-  border: 1px dashed var(--panel-border);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.72);
-}
-
-.settings-mini-help summary {
-  list-style: none;
-  cursor: pointer;
-  padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.settings-mini-help summary::-webkit-details-marker {
-  display: none;
-}
-
-.settings-mini-help-body {
-  display: grid;
-  gap: 6px;
-  padding: 0 10px 10px;
-}
-
-.settings-mini-help-body p {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.45;
-  color: var(--muted);
-}
-
-.settings-density-compact .connection-inline-note,
-.settings-density-compact .store-config-field small,
-.settings-density-compact .integration-hub-copy {
-  display: none;
-}
-
-.settings-density-compact .page-module-head p,
-.settings-density-compact .connection-card-head p {
-  font-size: 9px;
-  line-height: 1.15;
-}
-
-.settings-density-compact .settings-subsection {
-  gap: 7px;
-  padding: 7px;
-}
-
-.settings-density-compact .settings-subsection-head span,
-.settings-density-compact .settings-collapsible-summary span,
-.settings-density-compact .config-summary-copy span {
-  font-size: 9px;
-}
-
-.settings-density-compact .config-brand-strip-meta span {
-  display: none;
-}
-
-.products-sync-shell .page-module-head strong {
-  font-size: 12px;
-}
-
-.products-sync-shell .page-module-head span {
-  font-size: 9px;
-}
-
-.settings-density-compact .settings-mini-help summary {
-  padding: 4px 8px;
-  font-size: 9.5px;
-}
-
-.settings-density-compact .settings-mini-help-body {
-  gap: 4px;
-  padding: 0 8px 8px;
-}
-
-.settings-density-compact .settings-mini-help-body p {
-  font-size: 9.5px;
 }
 
 .marketing-store-grid {
@@ -1584,13 +1460,13 @@
 .integration-hub-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 10px;
 }
 
 .integration-hub-card {
-  padding: 9px;
+  padding: 12px;
   display: grid;
-  gap: 6px;
+  gap: 10px;
   align-content: start;
 }
 
@@ -1603,14 +1479,14 @@
 
 .integration-hub-head strong {
   display: block;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-strong);
 }
 
 .integration-hub-head span {
   display: block;
   margin-top: 2px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 
@@ -1624,13 +1500,13 @@
 .integration-hub-meta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .operational-workspace-shell {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .operational-hub-grid {
@@ -1641,9 +1517,9 @@
 
 .operational-hub-card {
   display: grid;
-  gap: 6px;
+  gap: 10px;
   align-content: start;
-  padding: 8px;
+  padding: 12px;
 }
 
 .channels-diagnostics-shell {
@@ -1651,7 +1527,7 @@
 }
 
 .channels-diagnostics-shell .settings-collapsible-summary {
-  padding: 8px 10px;
+  padding: 14px 16px;
 }
 
 .channels-diagnostics-shell .settings-collapsible-summary .pill {

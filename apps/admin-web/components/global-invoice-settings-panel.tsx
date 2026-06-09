@@ -270,20 +270,20 @@ export function GlobalInvoiceSettingsPanel({
       <div className="connection-card-head">
         <div>
           <h3>Factura global</h3>
-          <p>Factura, pago y e-factura.</p>
+          <p>Valores globales de facturación, pago y e-factura para el cliente.</p>
         </div>
         <div className="connection-card-actions">
           <span className={`pill ${alegraConnected ? "pill-ok" : "pill-warn"}`}>
             {alegraConnected ? "Alegra conectada" : "Alegra pendiente"}
           </span>
-          {activeStore ? <span className="pill">{activeStore.name}</span> : null}
+          {activeStore ? <span className="pill">Contexto · {activeStore.name}</span> : null}
         </div>
       </div>
 
       <div className="settings-subsection">
         <div className="settings-subsection-head">
-          <strong>Comportamiento base</strong>
-          <span>Reglas base</span>
+          <strong>Defaults de comportamiento</strong>
+          <span>Toggles base para facturación y e-factura</span>
         </div>
         <div className="store-configs-grid">
           <BooleanChoice
@@ -317,11 +317,11 @@ export function GlobalInvoiceSettingsPanel({
           />
 
           <div className="store-config-field">
-            <span>Ajustes avanzados</span>
+            <span>Superficie heredada</span>
             <a className="btn ghost btn-compact" href="/legacy/settings/connections">
-              Ver ajustes avanzados
+              Abrir flujo heredado
             </a>
-            <small>Solo si te falta un ajuste muy específico que aún no exista en esta vista.</small>
+            <small>Úsalo solo si necesitas el builder heredado de observaciones o un ajuste aún no migrado.</small>
           </div>
         </div>
       </div>
@@ -329,15 +329,16 @@ export function GlobalInvoiceSettingsPanel({
       <details className="settings-collapsible" open>
         <summary className="settings-collapsible-summary">
           <strong>Catálogos Alegra</strong>
-          <span>Documento y recaudo</span>
+          <span>Documento y recaudo resueltos con la cuenta de la tienda activa</span>
         </summary>
         <div className="settings-subsection">
           <div className="settings-subsection-head">
             <strong>Documento</strong>
-            <span>Base fiscal</span>
+            <span>Defaults fiscales y de emisión</span>
           </div>
           <p className="connection-inline-note">
-            Estos catálogos salen de la cuenta Alegra de la tienda activa.
+            Estos catálogos salen de la cuenta Alegra asociada a la tienda activa; si cambias de tienda, cambia el
+            contexto disponible.
           </p>
           <div className="store-configs-grid">
             {renderSelect(
@@ -345,7 +346,7 @@ export function GlobalInvoiceSettingsPanel({
               settings.resolutionId,
               resolutions,
               (value) => setSettings((current) => ({ ...current, resolutionId: value })),
-              { allowEmpty: true, emptyLabel: "No usar", help: "Se toma de la cuenta Alegra activa." }
+              { allowEmpty: true, emptyLabel: "No usar", help: "Se resuelve por la cuenta Alegra de la tienda activa." }
             )}
             {renderSelect(
               "Centro de costo",
@@ -400,12 +401,12 @@ export function GlobalInvoiceSettingsPanel({
       <details className="settings-collapsible">
         <summary className="settings-collapsible-summary">
           <strong>Observaciones</strong>
-          <span>Texto adicional y bloques reutilizables para la factura</span>
+          <span>Builder avanzado del template persistido</span>
         </summary>
         <div className="settings-subsection">
           <div className="store-configs-grid">
             <div className="store-config-field store-config-field-span-2">
-              <span>Bloques de observación</span>
+              <span>Builder de observaciones</span>
               <div className="store-warehouse-grid">
                 {observationOptions.map((option) => (
                   <label className="store-warehouse-option" key={option.key}>
@@ -419,7 +420,7 @@ export function GlobalInvoiceSettingsPanel({
                   </label>
                 ))}
               </div>
-              <small>Arma el texto final combinando bloques reutilizables.</small>
+              <small>Compone el texto final usando bloques reutilizables.</small>
             </div>
 
             <label className="store-config-field store-config-field-span-2">

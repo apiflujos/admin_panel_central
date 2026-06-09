@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { ConnectionsWorkspace } from "../lib/connections-workspace";
 import { StoreMarketingConfigPanel } from "./store-marketing-config-panel";
 import { ProviderMark } from "./ui/provider-mark";
+import { StageGuide } from "./ui/stage-guide";
 
 export function SettingsMarketingPage({ workspace }: { workspace: ConnectionsWorkspace }) {
   const marketingStores = useMemo(
@@ -23,7 +24,7 @@ export function SettingsMarketingPage({ workspace }: { workspace: ConnectionsWor
         <div>
           <p className="eyebrow">Configuración</p>
           <h1>Marketing</h1>
-          <p>Pixel y webhooks por tienda.</p>
+          <p>Configuración de pixel y webhooks por tienda Shopify, en un flujo corto y verificable.</p>
         </div>
         <div className="page-header-actions">
           <a className="btn ghost" href="/settings/connections">
@@ -50,11 +51,29 @@ export function SettingsMarketingPage({ workspace }: { workspace: ConnectionsWor
         </article>
       </section>
 
+      <StageGuide
+        title="Flujo del submódulo"
+        description="Primero eliges la tienda. Luego copias o rotas el script, después administras webhooks y al final pasas a la analítica cuando la configuración esté sana."
+        items={[
+          "Selecciona la tienda Shopify que vas a operar.",
+          "Copia script, revisa key y confirma webhooks.",
+          "Solo entra a analítica cuando la configuración quede sana.",
+        ]}
+        next={
+          <>
+            <span className="pill pill-info">1. Seleccionar tienda</span>
+            <span className="pill">2. Instalar script</span>
+            <span className="pill">3. Validar webhooks</span>
+            <span className="pill">4. Ir a analítica</span>
+          </>
+        }
+      />
+
       <section className="page-module-shell page-module-shell-compact">
         <div className="settings-subsection">
           <div className="settings-subsection-head">
             <strong>Tienda objetivo</strong>
-            <span>Elige la tienda Shopify.</span>
+            <span>Define sobre qué tienda Shopify operas el pixel y los webhooks.</span>
           </div>
           <div className="config-active-store-grid marketing-store-grid">
             <label className="field">

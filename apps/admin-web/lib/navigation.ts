@@ -6,13 +6,14 @@ export type AppNavigationItem = {
 };
 
 export const appNavigation: AppNavigationItem[] = [
-  { label: "Métricas", href: "/", section: "operacion", icon: "ME" },
-  { label: "Pedidos", href: "/orders", section: "operacion", icon: "PD" },
-  { label: "Facturas", href: "/invoices", section: "operacion", icon: "FT" },
-  { label: "Contactos", href: "/contacts", section: "operacion", icon: "CT" },
-  { label: "Productos", href: "/products", section: "operacion", icon: "PR" },
-  { label: "Marketing", href: "/marketing", section: "operacion", icon: "MK" },
-  { label: "Configuración", href: "/settings/connections", section: "sistema", icon: "CF" },
-  { label: "Super Admin", href: "/superadmin", section: "sistema", icon: "SA" },
-  { label: "Logs de API", href: "/logs", section: "sistema", icon: "LG" },
+  { label: "Métricas", href: "/", section: "operacion", icon: "◈" },
+  { label: "Pedidos", href: "/orders", section: "operacion", icon: "◫" },
+  { label: "Operaciones", href: "/operations", section: "operacion", icon: "◌" },
+  { label: "Facturas", href: "/invoices", section: "operacion", icon: "◻" },
+  { label: "Contactos", href: "/contacts", section: "operacion", icon: "◎" },
+  { label: "Productos", href: "/products", section: "operacion", icon: "▦" },
+  { label: "Marketing", href: "/marketing", section: "operacion", icon: "◬" },
+  { label: "Configuración", href: "/settings/connections", section: "sistema", icon: "◉" },
+  { label: "Super Admin", href: "/superadmin", section: "sistema", icon: "◈" },
+  { label: "Logs de API", href: "/logs", section: "sistema", icon: "≡" },
 ];

@@ -1,14 +1,8 @@
-"use client";
-
-import { useMemo, useState } from "react";
 import type { AdminWebOrdersListDto } from "../../../packages/shared/src/admin-web";
-import type { ConnectionsWorkspace } from "../lib/connections-workspace";
 import { toneForStatus } from "../lib/status";
 import { DataTable } from "./ui/data-table";
-import { InfoHint } from "./ui/info-hint";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
-import { StoreSyncActionsPanel } from "./store-sync-actions-panel";
 import { StatusPill } from "./ui/status-pill";
 
 const PAGE_SIZE = 20;
@@ -17,19 +11,11 @@ export function OrdersPage({
   result,
   query,
   offset,
-  workspace,
 }: {
   result: AdminWebOrdersListDto;
   query: string;
   offset: number;
-  workspace: ConnectionsWorkspace;
 }) {
-  const [selectedStoreId, setSelectedStoreId] = useState<number | null>(workspace.stores[0]?.id ?? null);
-  const selectedStore = useMemo(
-    () => workspace.stores.find((store) => store.id === selectedStoreId) ?? workspace.stores[0] ?? null,
-    [selectedStoreId, workspace.stores]
-  );
-  const accountingLabel = selectedStore?.providers.alegra ? "Alegra" : "Contabilidad";
   const prevOffset = Math.max(0, offset - PAGE_SIZE);
   const nextOffset = offset + PAGE_SIZE;
   const hasNext = nextOffset < result.total;
@@ -39,7 +25,7 @@ export function OrdersPage({
     <section className="page-stack">
       <PageHeader
         title="Pedidos"
-        subtitle="Pedidos y facturas."
+        subtitle="Seguimiento compacto de pedidos, facturación y pendientes operativos."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -47,48 +33,6 @@ export function OrdersPage({
             <span>Pedidos</span>
           </>
         }
-      />
-
-      <section className="card page-module-shell page-module-shell-compact">
-        <div className="page-module-head">
-          <div>
-            <strong>
-              Sincronización manual{" "}
-              <InfoHint label={`Aquí van corridas por fecha, pedido puntual y retorno desde ${accountingLabel}.`} />
-            </strong>
-            <span>Fecha, puntual y retorno.</span>
-          </div>
-          <div className="page-module-actions">
-            <label className="field">
-              <span>Tienda</span>
-              <select
-                className="input"
-                value={selectedStore?.id ?? ""}
-                onChange={(event) => setSelectedStoreId(Number(event.target.value || ""))}
-              >
-                {workspace.stores.map((store) => (
-                  <option key={store.id} value={store.id}>
-                    {store.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </div>
-        <div className="page-module-actions compact-pills">
-          <span className="pill pill-info">Por fecha</span>
-          <span className="pill">Pedido puntual</span>
-          <span className="pill">Retorno desde {accountingLabel}</span>
-          <span className="pill">Webhooks y stop</span>
-        </div>
-      </section>
-
-      <StoreSyncActionsPanel
-        stores={workspace.stores}
-        storeConfigs={workspace.storeConfigs}
-        defaults={workspace.storeConfigDefaults}
-        activeStoreId={selectedStoreId}
-        visibleGroups={["orders"]}
       />
 
       <PageToolbar
@@ -165,9 +109,7 @@ export function OrdersPage({
       <section className="card page-module-shell page-module-shell-compact">
         <div className="page-module-head">
           <div>
-            <strong>
-              Pipeline de pedidos <InfoHint label="Úsalo para revisar estados, facturación y pendientes visibles en la página actual." />
-            </strong>
+            <strong>Pipeline de pedidos</strong>
             <span>
               Mostrando {offset + 1}–{Math.min(offset + PAGE_SIZE, result.total)} de {result.total}
             </span>

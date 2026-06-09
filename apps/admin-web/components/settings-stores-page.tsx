@@ -8,6 +8,7 @@ import type { ConnectionsWorkspace, WorkspaceStore } from "../lib/connections-wo
 import { createStore, deleteStore } from "../lib/api";
 import { PageHeader } from "./ui/page-header";
 import { ProviderMark } from "./ui/provider-mark";
+import { StageGuide } from "./ui/stage-guide";
 
 export function SettingsStoresPage({ workspace }: { workspace: ConnectionsWorkspace }) {
   const router = useRouter();
@@ -59,7 +60,7 @@ export function SettingsStoresPage({ workspace }: { workspace: ConnectionsWorksp
     <section className="page-stack">
       <PageHeader
         title="Tiendas"
-        subtitle="Alta base por tienda."
+        subtitle="Alta mínima de tiendas y salto directo al flujo de conexiones por tienda."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -81,8 +82,10 @@ export function SettingsStoresPage({ workspace }: { workspace: ConnectionsWorksp
       <section className="page-module-shell page-module-shell-compact">
         <div className="page-module-head">
           <div>
-            <h3>Alta base</h3>
-            <p>Crea la tienda y sigue con conexiones.</p>
+            <h3>Paso 1. Alta base</h3>
+            <p>
+              Crea la tienda y luego salta directo al flujo de conexiones para completar Shopify, WooCommerce o Alegra.
+            </p>
           </div>
         </div>
         <form className="store-inline-form" onSubmit={handleCreateStore}>
@@ -100,6 +103,17 @@ export function SettingsStoresPage({ workspace }: { workspace: ConnectionsWorksp
         </form>
         {statusMessage ? <p className="connection-status-note">{statusMessage}</p> : null}
       </section>
+
+      <StageGuide
+        title="Paso 2. Continuar por tienda"
+        description="Selecciona la tienda que vas a conectar o ajustar. La limpieza queda como acción secundaria."
+        items={["1. Elegir tienda", "2. Conectar proveedores", "3. Ajustar operación"]}
+        next={
+          <a className="btn ghost btn-compact" href="/settings/connections">
+            Ir al flujo de conexiones
+          </a>
+        }
+      />
 
       <section className="connections-grid connections-grid-dense">
         {workspace.stores.map((store) => {

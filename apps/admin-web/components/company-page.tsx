@@ -32,7 +32,7 @@ export function CompanyPage({ initialCompany }: { initialCompany: AdminWebCompan
     <section className="page-stack">
       <PageHeader
         title="Empresa"
-        subtitle="Perfil y marca."
+        subtitle="Perfil maestro y branding secundario del cliente dentro de la superficie principal."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -42,7 +42,7 @@ export function CompanyPage({ initialCompany }: { initialCompany: AdminWebCompan
         }
         actions={
           <a className="btn ghost" href="/legacy/settings">
-            Ver ajustes avanzados
+            Abrir ajustes heredados
           </a>
         }
       />
@@ -108,7 +108,7 @@ export function CompanyPage({ initialCompany }: { initialCompany: AdminWebCompan
             <div className="record-card-head">
               <div>
                 <h4>Checklist mínimo</h4>
-                <p>Base del perfil.</p>
+                <p>Paridad básica del perfil empresarial.</p>
               </div>
             </div>
             <div className="record-card-body">

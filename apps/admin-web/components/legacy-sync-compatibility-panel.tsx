@@ -73,10 +73,10 @@ export function LegacySyncCompatibilityPanel() {
     <section className="card connection-card">
       <div className="connection-card-head">
         <div>
-          <h3>Soporte avanzado restante</h3>
-          <p>Estos flujos siguen como respaldo mientras cerramos el traspaso final.</p>
+          <h3>Compatibilidad heredada restante</h3>
+          <p>Estos flujos avanzados todavía viven en la superficie heredada mientras cerramos el traspaso final.</p>
         </div>
-        <span className="pill pill-warn">Respaldo</span>
+        <span className="pill pill-warn">Fallback controlado</span>
       </div>
 
       <div className="store-configs-grid">
@@ -102,7 +102,7 @@ export function LegacySyncCompatibilityPanel() {
             Los modos Shopify → Alegra y Alegra → Shopify ya vuelven a estar expuestos en la superficie nueva.
           </p>
           <p className="connection-inline-note">
-            Queda solo para diagnóstico fino o lectura histórica.
+            El flujo heredado solo conserva casos de diagnóstico fino o lectura histórica.
           </p>
         </article>
 
@@ -116,7 +116,7 @@ export function LegacySyncCompatibilityPanel() {
             nueva.
           </p>
           <p className="connection-inline-note">
-            Queda como respaldo, no como operación principal.
+            La compatibilidad heredada queda como respaldo, no como operación principal.
           </p>
         </article>
 
@@ -129,7 +129,7 @@ export function LegacySyncCompatibilityPanel() {
             La superficie nueva ya vuelve a exponer carga histórica de catálogo e imágenes por SKU o código de barras.
           </p>
           <p className="connection-inline-note">
-            Queda solo como respaldo si necesitas diagnóstico puntual.
+            El flujo heredado queda solo como respaldo si necesitas diagnóstico puntual.
           </p>
         </article>
 
@@ -160,7 +160,7 @@ export function LegacySyncCompatibilityPanel() {
           Refrescar checkpoint
         </button>
         <a className="btn ghost" href="/legacy/settings/connections">
-          Ver ajustes avanzados
+          Abrir flujo heredado
         </a>
       </div>
     </section>

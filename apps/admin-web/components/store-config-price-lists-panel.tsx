@@ -148,10 +148,10 @@ export function StoreConfigPriceListsPanel({
         sync: activeConfig?.sync ?? defaults.sync,
       });
       setSaveState("saved");
-      setSaveMessage("Listas de precio guardadas por tienda.");
+      setSaveMessage("Price lists guardadas por tienda.");
     } catch (error) {
       setSaveState("error");
-      setSaveMessage(error instanceof Error ? error.message : "No se pudo guardar el bloque de listas de precio.");
+      setSaveMessage(error instanceof Error ? error.message : "No se pudo guardar el bloque de price lists.");
     }
   }
 
@@ -159,8 +159,8 @@ export function StoreConfigPriceListsPanel({
     <section className="card connection-card">
       <div className="connection-card-head">
         <div>
-          <h3>Listas de precio por tienda</h3>
-          <p>Precios de Alegra por tienda.</p>
+          <h3>Price lists por tienda</h3>
+          <p>Pricing de Alegra aislado del resto de la configuración operativa.</p>
         </div>
         {activeStore ? <span className="pill">Store #{activeStore.id}</span> : null}
       </div>
@@ -250,7 +250,7 @@ export function StoreConfigPriceListsPanel({
           disabled={!activeStore || !dirty || saveState === "saving"}
           onClick={() => void persist()}
         >
-          {saveState === "saving" ? "Guardando..." : "Guardar listas de precio"}
+          {saveState === "saving" ? "Guardando..." : "Guardar price lists"}
         </button>
         {saveMessage ? <span>{saveMessage}</span> : null}
       </div>
