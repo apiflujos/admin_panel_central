@@ -431,7 +431,6 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
                 <div className="store-readiness store-readiness-warn">
                   <div className="store-readiness-head">
                     <strong>Datos pendientes</strong>
-                    <span>Guardado no equivale a listo para facturar</span>
                   </div>
                   <ul className="store-readiness-list">
                     {einvoiceModal.missing.map((item) => (
@@ -460,7 +459,7 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
                   }
                   positive="Sí"
                   negative="No"
-                  help="Activa la emisión electrónica para este pedido cuando el cliente la haya solicitado."
+                  help="Activa la emisión electrónica para este pedido."
                 />
                 <label className="store-config-field">
                   <span>Razón social</span>
@@ -594,10 +593,8 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
                 </label>
               </div>
               <div className="connection-card-actions">
-                <span>
-                  {einvoiceModal.einvoiceEnabled
-                    ? "La e-factura está habilitada globalmente."
-                    : "La e-factura sigue deshabilitada globalmente."}
+                <span className={einvoiceModal.einvoiceEnabled ? "pill pill-ok" : "pill pill-warn"}>
+                  E-factura global {einvoiceModal.einvoiceEnabled ? "activa" : "inactiva"}
                 </span>
                 <button
                   className="btn primary btn-compact"

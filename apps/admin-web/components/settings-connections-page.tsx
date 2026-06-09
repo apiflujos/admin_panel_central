@@ -1018,10 +1018,6 @@ export function SettingsConnectionsPage({
               </button>
             </div>
             <div className="modal-body">
-              <p className="modal-intro">
-                Resumen consolidado de la conexión elegida. Úsalo para entender estado, canal y último movimiento antes
-                de ir al flujo operativo correspondiente.
-              </p>
               <div className="provider-mark-row">
                 <ProviderMark provider={selected.provider} />
                 <StatusPill tone={toneForStatus(selected.status)} small>
@@ -1533,29 +1529,15 @@ export function SettingsConnectionsPage({
               </button>
             </div>
             <div className="modal-body">
-              <p className="modal-intro">
-                Crea primero la tienda en la base activa. Después vuelves al flujo de conexiones para completar Shopify,
-                WooCommerce, Alegra o Ads.
-              </p>
-              <div className="settings-subsection">
-                <div className="settings-subsection-head">
-                  <div>
-                    <strong>Datos base</strong>
-                    <span>Alta mínima para registrar una nueva tienda en la base activa.</span>
-                  </div>
-                </div>
-                <label className="connection-form-row">
-                  <span>Nombre</span>
-                  <input
-                    className="input"
-                    value={newStoreName}
-                    onChange={(event) => setNewStoreName(event.target.value)}
-                  />
-                </label>
-                <p className="connection-form-hint">
-                  Usa un nombre operativo claro. Será el contexto visible para configuración, facturación y marketing.
-                </p>
-              </div>
+              <label className="connection-form-row">
+                <span>Nombre</span>
+                <input
+                  className="input"
+                  value={newStoreName}
+                  onChange={(event) => setNewStoreName(event.target.value)}
+                  placeholder="Nombre operativo de la tienda"
+                />
+              </label>
               <div className="page-module-actions">
                 <button
                   className="btn primary"
@@ -1586,42 +1568,32 @@ export function SettingsConnectionsPage({
               </button>
             </div>
             <div className="modal-body">
-              <p className="modal-intro">
-                Reingresa el dominio y las llaves activas de WooCommerce. Esta reconexión se usa para restablecer sync y
-                lecturas de pedidos o catálogo.
-              </p>
-              <div className="settings-subsection">
-                <div className="settings-subsection-head">
-                  <div>
-                    <strong>Credenciales</strong>
-                    <span>Actualiza dominio y llaves de acceso para restablecer la conexión.</span>
-                  </div>
-                </div>
-                <label className="connection-form-row">
-                  <span>Dominio</span>
-                  <input className="input" value={wooDomain} onChange={(event) => setWooDomain(event.target.value)} />
-                </label>
-                <p className="connection-form-hint">
-                  Debe apuntar al sitio base donde expone la API REST de WooCommerce.
-                </p>
-                <label className="connection-form-row">
-                  <span>Consumer Key</span>
-                  <input
-                    className="input"
-                    value={wooConsumerKey}
-                    onChange={(event) => setWooConsumerKey(event.target.value)}
-                  />
-                </label>
-                <label className="connection-form-row">
-                  <span>Consumer Secret</span>
-                  <input
-                    className="input"
-                    type="password"
-                    value={wooConsumerSecret}
-                    onChange={(event) => setWooConsumerSecret(event.target.value)}
-                  />
-                </label>
-              </div>
+              <label className="connection-form-row">
+                <span>Dominio</span>
+                <input
+                  className="input"
+                  value={wooDomain}
+                  onChange={(event) => setWooDomain(event.target.value)}
+                  placeholder="https://mitienda.com"
+                />
+              </label>
+              <label className="connection-form-row">
+                <span>Consumer Key</span>
+                <input
+                  className="input"
+                  value={wooConsumerKey}
+                  onChange={(event) => setWooConsumerKey(event.target.value)}
+                />
+              </label>
+              <label className="connection-form-row">
+                <span>Consumer Secret</span>
+                <input
+                  className="input"
+                  type="password"
+                  value={wooConsumerSecret}
+                  onChange={(event) => setWooConsumerSecret(event.target.value)}
+                />
+              </label>
               <div className="page-module-actions">
                 <button
                   className="btn primary"
@@ -1652,42 +1624,24 @@ export function SettingsConnectionsPage({
               </button>
             </div>
             <div className="modal-body">
-              <p className="modal-intro">
-                Primero eliges el modo de reconexión. Luego reutilizas una cuenta ya registrada o cargas credenciales
-                nuevas para dejar disponible el catálogo de facturación.
-              </p>
-              <div className="settings-subsection">
-                <div className="settings-subsection-head">
-                  <div>
-                    <strong>Modo de reconexión</strong>
-                    <span>Selecciona si reutilizas una cuenta registrada o si cargas credenciales nuevas.</span>
-                  </div>
-                </div>
-                <div className="page-module-actions">
-                  <button
-                    className={`btn ${alegraMode === "existing" ? "primary" : "ghost"}`}
-                    type="button"
-                    onClick={() => setAlegraMode("existing")}
-                  >
-                    Cuenta existente
-                  </button>
-                  <button
-                    className={`btn ${alegraMode === "manual" ? "primary" : "ghost"}`}
-                    type="button"
-                    onClick={() => setAlegraMode("manual")}
-                  >
-                    Credenciales nuevas
-                  </button>
-                </div>
+              <div className="page-module-actions">
+                <button
+                  className={`btn ${alegraMode === "existing" ? "primary" : "ghost"} btn-compact`}
+                  type="button"
+                  onClick={() => setAlegraMode("existing")}
+                >
+                  Cuenta existente
+                </button>
+                <button
+                  className={`btn ${alegraMode === "manual" ? "primary" : "ghost"} btn-compact`}
+                  type="button"
+                  onClick={() => setAlegraMode("manual")}
+                >
+                  Credenciales nuevas
+                </button>
               </div>
               {alegraMode === "existing" ? (
                 <div className="settings-subsection">
-                  <div className="settings-subsection-head">
-                    <div>
-                      <strong>Cuenta registrada</strong>
-                      <span>Reutiliza una cuenta Alegra ya presente en el tenant.</span>
-                    </div>
-                  </div>
                   <label className="connection-form-row">
                     <span>Cuenta</span>
                     <select
@@ -1703,18 +1657,9 @@ export function SettingsConnectionsPage({
                       ))}
                     </select>
                   </label>
-                  <p className="connection-form-hint">
-                    Reutiliza esta opción cuando la cuenta ya existe en el tenant y solo quieres volver a enlazarla.
-                  </p>
                 </div>
               ) : (
                 <div className="settings-subsection">
-                  <div className="settings-subsection-head">
-                    <div>
-                      <strong>Credenciales nuevas</strong>
-                      <span>Usa este flujo cuando la cuenta todavía no existe en la base activa.</span>
-                    </div>
-                  </div>
                   <label className="connection-form-row">
                     <span>Email</span>
                     <input
@@ -1723,9 +1668,6 @@ export function SettingsConnectionsPage({
                       onChange={(event) => setAlegraEmail(event.target.value)}
                     />
                   </label>
-                  <p className="connection-form-hint">
-                    Usa este modo solo cuando la cuenta todavía no existe en la base activa o cambió completamente.
-                  </p>
                   <label className="connection-form-row">
                     <span>API Key</span>
                     <input
