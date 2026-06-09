@@ -249,7 +249,7 @@ export function StoreSyncModulesPanel({
                   <option value="email_document_phone">Email → Documento → Teléfono</option>
                   <option value="phone_document_email">Teléfono → Documento → Email</option>
                 </select>
-                <small>Reproduce la lógica anterior para evitar duplicados antes de crear contactos nuevos.</small>
+                <small>Orden de match para evitar duplicados antes de crear.</small>
               </label>
             </div>
             <div className="page-module-actions">
@@ -369,19 +369,18 @@ export function StoreSyncModulesPanel({
               </div>
               {draft.orders.shopifyEnabled && ordersWebhookStatus && !ordersWebhookStatus.ok ? (
                 <p className="connection-inline-note connection-inline-note-error">
-                  Shopify automático está activo, pero faltan webhooks. Recréelos desde el bloque operativo de Pedidos
-                  antes de depender del flujo en tiempo real.
+                  Sync automático activo pero faltan webhooks. Recréelos antes de usar el flujo en tiempo real.
                 </p>
               ) : null}
               {draft.orders.alegraEnabled ? (
                 <div className="connection-tech-list">
                   <div className="connection-tech-item">
                     <span>Webhook esperado en Contable</span>
-                    <strong>{alegraWebhookUrl || "Selecciona una tienda con Shopify para construir la URL."}</strong>
+                    <strong>{alegraWebhookUrl || "Conecta Shopify para construir la URL."}</strong>
                   </div>
                   <div className="connection-tech-item">
                     <span>Eventos a escuchar</span>
-                    <strong>invoice.created e invoice.updated sobre la tienda activa.</strong>
+                    <strong>invoice.created e invoice.updated.</strong>
                   </div>
                 </div>
               ) : null}
@@ -475,7 +474,7 @@ export function StoreSyncModulesPanel({
                   }
                   placeholder="ID de bodega"
                 />
-                <small>Se usa cuando el sync E-commerce → Contable también mueve existencias.</small>
+                <small>Aplica cuando el sync E-commerce → Contable mueve existencias.</small>
               </label>
             </div>
             <div className="page-module-actions">

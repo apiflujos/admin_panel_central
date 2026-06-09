@@ -821,15 +821,6 @@ export function StoreSyncActionsPanel({
                 />
               </label>
             </div>
-            <div className="page-module-actions compact-pills">
-              <span className={`pill ${contactsBulkOptions.shopifyToAlegra ? "pill-ok" : ""}`}>
-                E-commerce → Contable
-              </span>
-              <span className={`pill ${contactsBulkOptions.alegraToShopify ? "pill-ok" : ""}`}>
-                Contable → E-commerce
-              </span>
-              <span className="pill">Prioridad {effectiveSync.contacts.matchPriority.join(" / ")}</span>
-            </div>
             <div className="store-configs-grid">
               <BooleanChoice
                 label="Permitir E-commerce → Contable"
@@ -1067,7 +1058,7 @@ export function StoreSyncActionsPanel({
                     }))
                   }
                 />
-                <small>Solo aplica si activas tracking en Contable para este ajuste manual.</small>
+                <small>Solo si activas tracking en Contable.</small>
               </label>
               <label className="store-config-field">
                 <span>Unidad en Contable</span>
@@ -1167,27 +1158,14 @@ export function StoreSyncActionsPanel({
                     setInvoiceRange((current) => ({ ...current, alegraInvoiceId: event.target.value }))
                   }
                 />
-                <small>Si lo llenas, el retorno usa esa factura puntual en vez del rango.</small>
+                <small>Si lo llenas, usa la factura puntual en vez del rango.</small>
               </label>
-            </div>
-            <div className="page-module-actions compact-pills">
-              <span className={`pill ${effectiveSync.orders.shopifyEnabled ? "pill-ok" : ""}`}>
-                Shopify → Contable {orderModeLabel(ordersToAlegraOptions.mode)}
-              </span>
-              <span className={`pill ${effectiveSync.orders.alegraEnabled ? "pill-ok" : ""}`}>
-                Alegra → Shopify{" "}
-                {invoicesToShopifyOptions.createShopifyOrder
-                  ? invoicesToShopifyOptions.mode === "active"
-                    ? "Pedido activo"
-                    : "Borrador"
-                  : "Solo base interna"}
-              </span>
             </div>
             <div className="settings-subsection">
               <div className="settings-subsection-head">
                 <div>
                   <strong>Webhooks Shopify para pedidos</strong>
-                  <span>Valida primero los eventos base antes de lanzar masivos o retorno desde Contable.</span>
+                  <span>Valida los eventos antes de lanzar masivos.</span>
                 </div>
                 {ordersWebhookStatus ? (
                   <span
@@ -1284,7 +1262,7 @@ export function StoreSyncActionsPanel({
                   <option value="db_only">Solo base interna</option>
                   <option value="off">Apagado</option>
                 </select>
-                <small>Define la profundidad de la corrida manual antes de lanzar el masivo o el pedido puntual.</small>
+                <small>Define la profundidad de la corrida manual.</small>
               </label>
               <BooleanChoice
                 label="Generar factura"
@@ -1693,7 +1671,7 @@ export function StoreSyncActionsPanel({
                   placeholder="SKU-001 o 770123..."
                   onChange={(event) => setProductsRange((current) => ({ ...current, query: event.target.value }))}
                 />
-                <small>Activa búsqueda puntual o reintento fino sin recorrer todo el catálogo.</small>
+                <small>Búsqueda puntual o reintento sin recorrer todo el catálogo.</small>
               </label>
               <label className="store-config-field">
                 <span>Concurrencia</span>
@@ -1706,27 +1684,8 @@ export function StoreSyncActionsPanel({
                   value={productsRange.batchSize}
                   onChange={(event) => setProductsRange((current) => ({ ...current, batchSize: event.target.value }))}
                 />
-                <small>Cuántos workers publican o actualizan en paralelo en esta corrida.</small>
+                <small>Workers en paralelo para esta corrida.</small>
               </label>
-            </div>
-            <div className="page-module-actions compact-pills">
-              <span className={`pill ${productsToShopifyOptions.publishOnSync ? "pill-ok" : ""}`}>
-                Publicar {productsToShopifyOptions.publishOnSync ? "encendido" : "apagado"}
-              </span>
-              <span className={`pill ${productsToShopifyOptions.updateExisting ? "pill-ok" : ""}`}>
-                Actualizar {productsToShopifyOptions.updateExisting ? "encendido" : "apagado"}
-              </span>
-              <span className={`pill ${productsToShopifyOptions.trackInventory ? "pill-ok" : ""}`}>
-                Inventario {productsToShopifyOptions.trackInventory ? "activo" : "apagado"}
-              </span>
-              <span className={`pill ${productsToShopifyOptions.onlyWithImages ? "pill-ok" : ""}`}>
-                Imágenes {productsToShopifyOptions.onlyWithImages ? "requeridas" : "opcionales"}
-              </span>
-              <span className="pill">
-                {productsRange.query.trim()
-                  ? `Filtro puntual ${productsRange.query.trim()}`
-                  : `Concurrencia ${productsRange.batchSize || "5"}`}
-              </span>
             </div>
             <div className="store-configs-grid">
               <BooleanChoice
@@ -1808,7 +1767,7 @@ export function StoreSyncActionsPanel({
               />
               <div className="store-config-field store-config-field-span-2">
                 <span>Bodegas para stock (masivo)</span>
-                <small>Si no eliges nada aquí, usamos las bodegas guardadas en la tienda activa.</small>
+                <small>Sin selección, usa las bodegas guardadas en la tienda.</small>
                 <div className="store-warehouse-card">
                   <div className="store-warehouse-head">
                     <strong>{productsToShopifyWarehouseSummary}</strong>
@@ -1882,7 +1841,7 @@ export function StoreSyncActionsPanel({
                     setInventoryAdjustmentsForm((current) => ({ ...current, start: event.target.value }))
                   }
                 />
-                <small>Útil para retomar una página concreta del ajuste manual.</small>
+                <small>Para retomar una página concreta.</small>
               </label>
               <label className="store-config-field">
                 <span>Límite manual</span>
@@ -2260,20 +2219,6 @@ export function StoreSyncActionsPanel({
                 />
               </label>
             </div>
-            <div className="page-module-actions compact-pills">
-              <span className={`pill ${effectiveSync.products.shopifyEnabled ? "pill-ok" : ""}`}>
-                Automático {effectiveSync.products.shopifyEnabled ? "activo" : "apagado"}
-              </span>
-              <span className={`pill ${productsToAlegraOptions.createInAlegra ? "pill-ok" : ""}`}>
-                Crear en Contable {productsToAlegraOptions.createInAlegra ? "sí" : "no"}
-              </span>
-              <span className={`pill ${productsToAlegraOptions.updateInAlegra ? "pill-ok" : ""}`}>
-                Actualizar en Contable {productsToAlegraOptions.updateInAlegra ? "sí" : "no"}
-              </span>
-              <span className={`pill ${productsToAlegraOptions.includeInventory ? "pill-ok" : ""}`}>
-                Incluir inventario {productsToAlegraOptions.includeInventory ? "sí" : "no"}
-              </span>
-            </div>
             <div className="store-configs-grid">
               <BooleanChoice
                 label="Crear nuevos en Contable"
@@ -2329,7 +2274,7 @@ export function StoreSyncActionsPanel({
                     </option>
                   ))}
                 </select>
-                <small>Obligatoria cuando incluyes inventario en la sincronización manual.</small>
+                <small>Obligatoria si incluyes inventario.</small>
               </label>
             </div>
             <div className="connection-card-actions">
@@ -2568,11 +2513,6 @@ export function StoreSyncActionsPanel({
                   <option value="yes">Sí</option>
                 </select>
               </label>
-            </div>
-            <div className="page-module-actions compact-pills">
-              <span className="pill">Base shared del catálogo</span>
-              
-              <span className="pill">No publica por sí solo</span>
             </div>
             <div className="connection-card-actions">
               <button
