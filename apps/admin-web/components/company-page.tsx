@@ -42,7 +42,7 @@ export function CompanyPage({ initialCompany }: { initialCompany: AdminWebCompan
         }
         actions={
           <a className="btn ghost" href="/legacy/settings">
-            Abrir ajustes heredados
+            Configuración avanzada
           </a>
         }
       />

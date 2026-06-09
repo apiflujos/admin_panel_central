@@ -74,7 +74,7 @@ export function UsersPage({
         }
         actions={
           <a className="btn ghost" href="/legacy/settings">
-            Abrir ajustes heredados
+            Configuración avanzada
           </a>
         }
       />

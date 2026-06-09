@@ -139,7 +139,7 @@ export async function AppShell({
               <span className="nav-icon" aria-hidden="true">
                 <ExternalLink size={16} strokeWidth={1.75} />
               </span>
-              <span className="nav-label">Ajustes heredados</span>
+              <span className="nav-label">Configuración avanzada</span>
             </a>
 
             {session ? (

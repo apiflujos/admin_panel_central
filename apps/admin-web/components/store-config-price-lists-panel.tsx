@@ -157,14 +157,6 @@ export function StoreConfigPriceListsPanel({
 
   return (
     <section className="card connection-card">
-      <div className="connection-card-head">
-        <div>
-          <h3>Price lists por tienda</h3>
-          <p>Pricing de Alegra aislado del resto de la configuración operativa.</p>
-        </div>
-        {activeStore ? <span className="pill">Store #{activeStore.id}</span> : null}
-      </div>
-
       {!activeStore ? (
         <p className="connection-inline-note">Selecciona una tienda para editar sus listas de precio.</p>
       ) : (

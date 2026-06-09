@@ -80,25 +80,13 @@ export function StoreSyncAutomationPanel({
   if (!activeStore) {
     return (
       <section className="card connection-card">
-        <div className="connection-card-head">
-          <div>
-            <h3>Automatización activa</h3>
-            <p>Selecciona una tienda para revisar qué corre en automático y cuál fue el último movimiento.</p>
-          </div>
-        </div>
+        <p className="connection-inline-note">Selecciona una tienda para revisar la automatización.</p>
       </section>
     );
   }
 
   return (
     <section className="card connection-card">
-      <div className="connection-card-head">
-        <div>
-          <h3>Automatización activa</h3>
-          <p>Estado rápido de procesos automáticos por tienda, con checkpoint visible para inventario.</p>
-        </div>
-        <span className="pill">Tienda #{activeStore.id}</span>
-      </div>
 
       <div className="operational-hub-grid">
         <article className="card operational-hub-card">
@@ -108,7 +96,7 @@ export function StoreSyncAutomationPanel({
               <span>Sincronización automática y creación en ambos sentidos.</span>
             </div>
             <span className={`pill ${effectiveSync.contacts.enabled ? "pill-ok" : "pill-warn"}`}>
-              {effectiveSync.contacts.enabled ? "Activo" : "Pausado"}
+              {effectiveSync.contacts.enabled ? "Activo" : "Inactivo"}
             </span>
           </div>
           <div className="page-module-actions compact-pills">
@@ -129,7 +117,7 @@ export function StoreSyncAutomationPanel({
               <span>Direcciones y modo de ejecución automática por tienda.</span>
             </div>
             <span className={`pill ${effectiveSync.orders.shopifyEnabled ? "pill-ok" : "pill-warn"}`}>
-              {effectiveSync.orders.shopifyEnabled ? "Pedidos activos" : "Pedidos pausados"}
+              {effectiveSync.orders.shopifyEnabled ? "Pedidos activos" : "Pedidos inactivos"}
             </span>
           </div>
           <div className="page-module-actions compact-pills">
@@ -150,7 +138,7 @@ export function StoreSyncAutomationPanel({
               <span>Automatización de catálogo entre Contable y E-commerce.</span>
             </div>
             <span className={`pill ${effectiveRules.syncEnabled ? "pill-ok" : "pill-warn"}`}>
-              {effectiveRules.syncEnabled ? "Sync activo" : "Sync pausado"}
+              {effectiveRules.syncEnabled ? "Sync activo" : "Sync inactivo"}
             </span>
           </div>
           <div className="page-module-actions compact-pills">
@@ -171,7 +159,7 @@ export function StoreSyncAutomationPanel({
               <span>Checkpoint y frecuencia del worker para ajustes de inventario.</span>
             </div>
             <span className={`pill ${effectiveRules.inventoryAdjustmentsEnabled ? "pill-ok" : "pill-warn"}`}>
-              {effectiveRules.inventoryAdjustmentsEnabled ? "Worker activo" : "Worker pausado"}
+              {effectiveRules.inventoryAdjustmentsEnabled ? "Worker activo" : "Worker inactivo"}
             </span>
           </div>
           <div className="page-module-actions compact-pills">

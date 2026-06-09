@@ -977,8 +977,8 @@ export function SettingsConnectionsPage({
               <section className="page-module-shell connection-section-shell">
                 <div className="page-module-head">
                   <div>
-                    <strong>Superficies heredadas restantes</strong>
-                    <span>Úsalas solo cuando el ajuste todavía no viva completo en la superficie nueva.</span>
+                    <strong>Atajos a configuración avanzada</strong>
+                    <span>Stores y marketing en su vista detallada.</span>
                   </div>
                   <div className="page-module-actions">
                     <span className="pill pill-warn">Respaldo activo</span>

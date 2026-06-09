@@ -522,14 +522,6 @@ export function StoreConfigsCriticalPanel({
 
   return (
     <section className="card connection-card">
-      <div className="connection-card-head">
-        <div>
-          <h3>Sincronización crítica por tienda</h3>
-          <p>Reglas operativas clave de la tienda: sincronización, logística, inventario y publicación.</p>
-        </div>
-        {activeStore ? <span className="pill">Tienda #{activeStore.id}</span> : null}
-      </div>
-
       {!activeStore ? (
         <p className="connection-inline-note">Selecciona una tienda para editar su configuración crítica.</p>
       ) : null}
@@ -553,7 +545,7 @@ export function StoreConfigsCriticalPanel({
                 }))
               }
               positive="Activa"
-              negative="Pausada"
+              negative="Inactivo"
               help="Pausa la operación sin desmontar la conexión. Si controlas inventario, queda activa por diseño."
               disabled={draft.trackInventory}
             />
@@ -812,9 +804,7 @@ export function StoreConfigsCriticalPanel({
                   <option value="10">Cada 10 minutos</option>
                   <option value="15">Cada 15 minutos</option>
                 </select>
-                <small>
-                  Replica la programación del worker de inventario que antes solo se veía en el flujo heredado.
-                </small>
+                <small>Define cada cuánto se reconsulta inventario para ajustes automáticos.</small>
               </label>
 
               <BooleanChoice
@@ -991,10 +981,7 @@ export function StoreConfigsCriticalPanel({
 
               <div className="store-config-field store-config-field-span-2">
                 <span>Bodegas origen para traslados</span>
-                <small>
-                  Sin selección explícita, la tienda opera con todas las bodegas disponibles. La estrategia avanzada
-                  sigue preservada desde la superficie heredada.
-                </small>
+                <small>Sin selección explícita, la tienda opera con todas las bodegas disponibles.</small>
                 <div className="store-warehouse-card">
                   <div className="store-warehouse-head">
                     <strong>{transferOriginSummary}</strong>

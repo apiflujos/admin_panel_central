@@ -775,25 +775,13 @@ export function StoreSyncActionsPanel({
   if (!activeStore) {
     return (
       <section className="card connection-card">
-        <div className="connection-card-head">
-          <div>
-            <h3>Ejecuciones manuales y masivas</h3>
-            <p>Selecciona una tienda para recuperar la operación manual dentro de la superficie nueva.</p>
-          </div>
-        </div>
+        <p className="connection-inline-note">Selecciona una tienda para ejecutar corridas manuales.</p>
       </section>
     );
   }
 
   return (
     <section className="card connection-card">
-      <div className="connection-card-head">
-        <div>
-          <h3>Ejecuciones manuales y masivas</h3>
-          <p>Acciona sincronizaciones por fecha y sentido sin salir de la configuración de la tienda activa.</p>
-        </div>
-        <span className="pill">Tienda #{activeStore.id}</span>
-      </div>
 
       <div className="store-configs-grid">
         <details className="settings-collapsible store-config-field-span-2" open>
@@ -1000,7 +988,7 @@ export function StoreSyncActionsPanel({
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Ajustes finos por producto</strong>
-            <span>Corrige tracking y sobreventa por SKU o Alegra ID sin salir a la superficie heredada.</span>
+            <span>Corrige tracking y sobreventa por SKU o Alegra ID.</span>
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
@@ -1033,7 +1021,7 @@ export function StoreSyncActionsPanel({
                   setProductManualControlForm((current) => ({ ...current, trackInventoryShopify: next }))
                 }
                 positive="Activo"
-                negative="Pausado"
+                negative="Inactivo"
               />
               <BooleanChoice
                 label="Tracking en Contable"
@@ -1042,7 +1030,7 @@ export function StoreSyncActionsPanel({
                   setProductManualControlForm((current) => ({ ...current, trackInventoryAlegra: next }))
                 }
                 positive="Activo"
-                negative="Pausado"
+                negative="Inactivo"
               />
               <BooleanChoice
                 label="Sobreventa en E-commerce"

@@ -166,14 +166,6 @@ export function StoreSyncModulesPanel({
 
   return (
     <section className="card connection-card">
-      <div className="connection-card-head">
-        <div>
-          <h3>Módulos de sincronización por tienda</h3>
-          <p>Recupera la lógica bidireccional de productos, pedidos y contactos dentro de la superficie nueva.</p>
-        </div>
-        {activeStore ? <span className="pill">Tienda #{activeStore.id}</span> : null}
-      </div>
-
       {!activeStore ? (
         <p className="connection-inline-note">Selecciona una tienda para editar sus sincronizaciones.</p>
       ) : null}
@@ -193,7 +185,7 @@ export function StoreSyncModulesPanel({
                   setDraft((current) => ({ ...current, contacts: { ...current.contacts, enabled: next } }))
                 }
                 positive="Activo"
-                negative="Pausado"
+                negative="Inactivo"
                 help="Controla si la sincronización de contactos queda habilitada en segundo plano."
               />
               <BooleanChoice
@@ -265,29 +257,6 @@ export function StoreSyncModulesPanel({
                 Ejecutar masivo desde contactos
               </a>
             </div>
-            <div className="settings-subsection">
-              <div className="settings-subsection-head">
-                <div>
-                  <strong>Comportamiento automático</strong>
-                  <span>
-                    El flujo en segundo plano usa esta prioridad y estos toggles para evitar duplicados o altas no
-                    deseadas.
-                  </span>
-                </div>
-                <span className={`pill ${draft.contacts.enabled ? "pill-ok" : "pill-warn"}`}>
-                  {draft.contacts.enabled ? "Automático activo" : "Automático pausado"}
-                </span>
-              </div>
-              <div className="page-module-actions compact-pills">
-                <span className={`pill ${draft.contacts.fromShopify ? "pill-ok" : ""}`}>E-commerce → Contable</span>
-                <span className={`pill ${draft.contacts.fromAlegra ? "pill-ok" : ""}`}>Contable → E-commerce</span>
-                <span className="pill">Prioridad {draft.contacts.matchPriority.join(" / ")}</span>
-              </div>
-              <p className="connection-inline-note">
-                Si desactivas “Crear” en un sentido, el sistema solo actualiza coincidencias existentes; no genera
-                contactos nuevos en esa corrida automática.
-              </p>
-            </div>
           </div>
         </details>
 
@@ -305,7 +274,7 @@ export function StoreSyncModulesPanel({
                   setDraft((current) => ({ ...current, orders: { ...current.orders, shopifyEnabled: next } }))
                 }
                 positive="Activo"
-                negative="Pausado"
+                negative="Inactivo"
                 help="Habilita el flujo principal de pedidos desde Shopify hacia Alegra."
               />
               <label className="store-config-field">
@@ -338,7 +307,7 @@ export function StoreSyncModulesPanel({
                   setDraft((current) => ({ ...current, orders: { ...current.orders, alegraEnabled: next } }))
                 }
                 positive="Activo"
-                negative="Pausado"
+                negative="Inactivo"
                 help="Controla si el flujo inverso desde facturas de Alegra queda disponible."
               />
               <label className="store-config-field">
@@ -392,12 +361,6 @@ export function StoreSyncModulesPanel({
                 )}
               </div>
               <div className="page-module-actions compact-pills">
-                <span className={`pill ${draft.orders.shopifyEnabled ? "pill-ok" : ""}`}>
-                  Automático pedidos {draft.orders.shopifyEnabled ? "activo" : "pausado"}
-                </span>
-                <span className={`pill ${draft.orders.alegraEnabled ? "pill-ok" : ""}`}>
-                  Automático facturas {draft.orders.alegraEnabled ? "activo" : "pausado"}
-                </span>
                 {ordersWebhookStatus?.missing?.length ? (
                   <span className="pill pill-warn">Faltan {ordersWebhookStatus.missing.join(", ")}</span>
                 ) : (
@@ -441,7 +404,7 @@ export function StoreSyncModulesPanel({
                   setDraft((current) => ({ ...current, products: { ...current.products, shopifyEnabled: next } }))
                 }
                 positive="Activo"
-                negative="Pausado"
+                negative="Inactivo"
                 help="Habilita la sincronización automática desde Shopify hacia Contable."
               />
               <BooleanChoice
@@ -496,7 +459,7 @@ export function StoreSyncModulesPanel({
                   <option value="sku_barcode">SKU → Barcode</option>
                   <option value="barcode_sku">Barcode → SKU</option>
                 </select>
-                <small>Recupera la lógica previa para decidir el primer criterio de match antes de crear.</small>
+                <small>Define el primer criterio de match antes de crear un item nuevo.</small>
               </label>
               <label className="store-config-field">
                 <span>Bodega destino en Contable</span>
@@ -519,32 +482,6 @@ export function StoreSyncModulesPanel({
               <a className="btn ghost btn-compact" href="/products">
                 Ejecutar masivo desde products
               </a>
-            </div>
-            <div className="settings-subsection">
-              <div className="settings-subsection-head">
-                <div>
-                  <strong>Comportamiento automático</strong>
-                  <span>
-                    Resume cómo reaccionará el flujo Shopify → Contable cuando lleguen productos nuevos o
-                    actualizaciones.
-                  </span>
-                </div>
-                <span className={`pill ${draft.products.shopifyEnabled ? "pill-ok" : "pill-warn"}`}>
-                  {draft.products.shopifyEnabled ? "Automático activo" : "Automático pausado"}
-                </span>
-              </div>
-              <div className="page-module-actions compact-pills">
-                <span className={`pill ${draft.products.createInAlegra ? "pill-ok" : ""}`}>Crear en Contable</span>
-                <span className={`pill ${draft.products.updateInAlegra ? "pill-ok" : ""}`}>Actualizar en Contable</span>
-                <span className={`pill ${draft.products.includeInventory ? "pill-ok" : ""}`}>Mover inventario</span>
-                <span className="pill">
-                  Match {draft.products.matchPriority === "barcode_sku" ? "Barcode → SKU" : "SKU → Barcode"}
-                </span>
-              </div>
-              <p className="connection-inline-note">
-                Si apagas “Crear en Contable”, el automático solo actualiza coincidencias existentes. Si apagas “Incluir
-                inventario”, el flujo crea o actualiza catálogo sin tocar existencias.
-              </p>
             </div>
           </div>
         </details>

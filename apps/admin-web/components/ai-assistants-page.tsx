@@ -110,7 +110,7 @@ export function AiAssistantsPage({ initialAssistants }: { initialAssistants: Adm
         }
         actions={
           <a className="btn ghost" href="/legacy/settings">
-            Abrir ajustes heredados
+            Configuración avanzada
           </a>
         }
       />
@@ -129,7 +129,7 @@ export function AiAssistantsPage({ initialAssistants }: { initialAssistants: Adm
         <article className="metric-card metric-card-amber">
           <span className="metric-label">Cobertura</span>
           <strong className="metric-value">Next</strong>
-          <span className="metric-note">Legacy solo para casos de respaldo</span>
+          <span className="metric-note">Respaldo</span>
         </article>
       </section>
 
@@ -137,7 +137,7 @@ export function AiAssistantsPage({ initialAssistants }: { initialAssistants: Adm
         <div className="page-module-head">
           <div>
             <h3>{editingId ? "Editar asistente" : "Crear asistente"}</h3>
-            <p>Los asistentes ya pueden administrarse aquí sin depender del flujo heredado.</p>
+            <p>Configura asistentes vinculados a n8n para el cliente.</p>
           </div>
           <div className="page-module-actions">
             <span className="pill pill-info">Gestión directa</span>
@@ -186,7 +186,7 @@ export function AiAssistantsPage({ initialAssistants }: { initialAssistants: Adm
               value={form.is_active}
               onChange={(next) => setForm((c) => ({ ...c, is_active: next }))}
               positive="Activo"
-              negative="Pausado"
+              negative="Inactivo"
               help="Define si el asistente queda disponible para ejecución y orquestación."
             />
           </div>

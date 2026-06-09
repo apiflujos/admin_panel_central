@@ -317,11 +317,11 @@ export function GlobalInvoiceSettingsPanel({
           />
 
           <div className="store-config-field">
-            <span>Superficie heredada</span>
+            <span>Configuración avanzada</span>
             <a className="btn ghost btn-compact" href="/legacy/settings/connections">
-              Abrir flujo heredado
+              Abrir
             </a>
-            <small>Úsalo solo si necesitas el builder heredado de observaciones o un ajuste aún no migrado.</small>
+            <small>Builder avanzado de observaciones y opciones que no están aquí.</small>
           </div>
         </div>
       </div>
