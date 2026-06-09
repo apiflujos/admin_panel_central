@@ -176,6 +176,9 @@
   transform: translateY(-50%);
   color: var(--muted);
   pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pill {

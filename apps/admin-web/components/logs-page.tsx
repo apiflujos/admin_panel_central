@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import type { AdminWebLogsListDto } from "../../../packages/shared/src/admin-web";
 import { DataTable } from "./ui/data-table";
 import { PageHeader } from "./ui/page-header";
@@ -41,9 +42,7 @@ export function LogsPage({ result }: { result: AdminWebLogsListDto }) {
               <input type="hidden" name="entity" value={result.filters.entity || ""} />
               <input type="hidden" name="direction" value={result.filters.direction || ""} />
               <div className="input-with-icon">
-                <span className="input-icon" aria-hidden="true">
-                  ⌕
-                </span>
+                <span className="input-icon" aria-hidden="true"><Search size={14} strokeWidth={1.75} /></span>
                 <input
                   className="input"
                   type="search"

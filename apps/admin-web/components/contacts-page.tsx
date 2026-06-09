@@ -1,3 +1,5 @@
+import { Search } from "lucide-react";
+
 import type { AdminWebContactsListDto } from "../../../packages/shared/src/admin-web";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
@@ -48,9 +50,7 @@ export function ContactsPage({
             <input type="hidden" name="status" value={status} />
             <input type="hidden" name="source" value={source} />
             <div className="input-with-icon">
-              <span className="input-icon" aria-hidden="true">
-                ⌕
-              </span>
+              <span className="input-icon" aria-hidden="true"><Search size={14} strokeWidth={1.75} /></span>
               <input
                 className="input"
                 type="search"
@@ -91,7 +91,7 @@ export function ContactsPage({
                 className="btn ghost btn-compact"
                 href={`/contacts?query=${encodeURIComponent(query)}&status=${encodeURIComponent(status)}&source=${encodeURIComponent(source)}&offset=${prevOffset}`}
               >
-                ← Anterior
+                Anterior
               </a>
             ) : null}
             {hasNext ? (
@@ -99,7 +99,7 @@ export function ContactsPage({
                 className="btn primary btn-compact"
                 href={`/contacts?query=${encodeURIComponent(query)}&status=${encodeURIComponent(status)}&source=${encodeURIComponent(source)}&offset=${nextOffset}`}
               >
-                Siguiente →
+                Siguiente
               </a>
             ) : null}
           </>

@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import type { AdminWebProductRowDto, AdminWebProductsListDto } from "../../../packages/shared/src/admin-web";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
@@ -97,9 +98,7 @@ export function ProductsPage({
           search={
             <form method="get">
               <div className="input-with-icon">
-                <span className="input-icon" aria-hidden="true">
-                  ⌕
-                </span>
+                <span className="input-icon" aria-hidden="true"><Search size={14} strokeWidth={1.75} /></span>
                 <input
                   className="input"
                   type="search"
@@ -126,7 +125,7 @@ export function ProductsPage({
                   className="btn ghost btn-compact"
                   href={`/products?query=${encodeURIComponent(query)}&start=${prevStart}`}
                 >
-                  ← Anterior
+                  Anterior
                 </a>
               )}
               {hasNext && (
@@ -134,7 +133,7 @@ export function ProductsPage({
                   className="btn primary btn-compact"
                   href={`/products?query=${encodeURIComponent(query)}&start=${nextStart}`}
                 >
-                  Siguiente →
+                  Siguiente
                 </a>
               )}
             </>

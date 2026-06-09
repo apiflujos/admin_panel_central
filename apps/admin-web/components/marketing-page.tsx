@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import type {
   AdminWebMarketingCampaignDto,
   AdminWebMarketingChannelDto,
@@ -47,9 +48,7 @@ export function MarketingPage({ overview }: { overview: AdminWebMarketingOvervie
               <input type="hidden" name="from" value={overview.from} />
               <input type="hidden" name="to" value={overview.to} />
               <div className="input-with-icon">
-                <span className="input-icon" aria-hidden="true">
-                  ⌕
-                </span>
+                <span className="input-icon" aria-hidden="true"><Search size={14} strokeWidth={1.75} /></span>
                 <input
                   className="input"
                   type="search"

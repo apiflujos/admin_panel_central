@@ -1,3 +1,5 @@
+import { Search } from "lucide-react";
+
 import type { AdminWebOrdersListDto } from "../../../packages/shared/src/admin-web";
 import { toneForStatus } from "../lib/status";
 import { DataTable } from "./ui/data-table";
@@ -39,9 +41,7 @@ export function OrdersPage({
         search={
           <form method="get">
             <div className="input-with-icon">
-              <span className="input-icon" aria-hidden="true">
-                ⌕
-              </span>
+              <span className="input-icon" aria-hidden="true"><Search size={14} strokeWidth={1.75} /></span>
               <input
                 className="input"
                 type="search"
@@ -68,7 +68,7 @@ export function OrdersPage({
                 className="btn ghost btn-compact"
                 href={`/orders?query=${encodeURIComponent(query)}&offset=${prevOffset}`}
               >
-                ← Anterior
+                Anterior
               </a>
             )}
             {hasNext && (
@@ -76,7 +76,7 @@ export function OrdersPage({
                 className="btn primary btn-compact"
                 href={`/orders?query=${encodeURIComponent(query)}&offset=${nextOffset}`}
               >
-                Siguiente →
+                Siguiente
               </a>
             )}
           </>
