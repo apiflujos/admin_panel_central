@@ -24,7 +24,10 @@ services:
       retries: 10
 
   app:
-    build: .
+    image: admin_panel_central-backend:local
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "3006:3006"
     env_file: .env
@@ -53,9 +56,9 @@ services:
     restart: unless-stopped
 
   worker:
-    build: .
-    env_file: .env
+    image: admin_panel_central-backend:local
     command: npm run start:workers
+    env_file: .env
     environment:
       RUN_WORKERS_IN_WEB: "false"
       DATABASE_URL: postgresql://admin:admin@postgres:5432/admin-central-olivashoes
@@ -66,9 +69,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      app:
+        condition: service_started
     restart: unless-stopped
 
   admin-web:
+    image: admin_panel_central-admin-web:local
     build:
       context: .
       dockerfile: apps/admin-web/Dockerfile

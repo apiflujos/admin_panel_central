@@ -1,7 +1,14 @@
 node_modules
 dist
+*.tsbuildinfo
 .env
 cookies.txt
 recursos/
 public/data/*
 !public/data/.gitkeep
+docuemntos/
+/Logos/
+/*.xlsx
+/*.xls
+/*.pdf
+/*.zip
