@@ -787,7 +787,7 @@ export function StoreSyncActionsPanel({
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Contactos</strong>
-            <span>Masivo E-commerce ↔ Contable con dirección y creación controladas por tienda</span>
+            <span>Carga histórica de contactos por rango</span>
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
@@ -1081,10 +1081,7 @@ export function StoreSyncActionsPanel({
                 />
               </label>
             </div>
-            <div className="page-module-actions compact-pills">
-              <span className="pill">Útil para correcciones puntuales sin relanzar todo el catálogo</span>
-              <span className="pill">Puedes usar solo SKU, solo Alegra ID o ambos</span>
-            </div>
+            <small className="connection-inline-note">Sirve para correcciones puntuales sin relanzar el catálogo. Puedes usar solo SKU, solo Alegra ID o ambos.</small>
             <div className="connection-card-actions">
               <button
                 className="btn primary"
@@ -1118,7 +1115,7 @@ export function StoreSyncActionsPanel({
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Pedidos y facturas</strong>
-            <span>Masivos por rango para pedidos Shopify → Alegra y facturas Alegra → Shopify</span>
+            <span>Carga histórica de pedidos y facturas por rango</span>
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
@@ -1332,7 +1329,7 @@ export function StoreSyncActionsPanel({
                   <option value="draft">Borrador</option>
                   <option value="active">Activo</option>
                 </select>
-                <small>Replica el control del flujo viejo para decidir si la factura crea draft o pedido activo.</small>
+                <small>Define si la factura regresa como borrador o pedido activo.</small>
               </label>
             </div>
             <div className="connection-card-actions">
@@ -2462,7 +2459,7 @@ export function StoreSyncActionsPanel({
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Carga histórica de catálogo</strong>
-            <span>Recupera catálogo base desde Contable, E-commerce o ambos hacia la base operativa nueva</span>
+            <span>Carga inicial de catálogo desde Contable o E-commerce</span>
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
@@ -2574,7 +2571,7 @@ export function StoreSyncActionsPanel({
             </div>
             <div className="page-module-actions compact-pills">
               <span className="pill">Base shared del catálogo</span>
-              <span className="pill">Útil para reconstrucción inicial</span>
+              
               <span className="pill">No publica por sí solo</span>
             </div>
             <div className="connection-card-actions">
@@ -2693,7 +2690,7 @@ export function StoreSyncActionsPanel({
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Imágenes de producto</strong>
-            <span>Carga o reemplaza imágenes por SKU o código de barras con progreso visible</span>
+            <span>Carga o reemplaza imágenes por SKU o código de barras</span>
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">

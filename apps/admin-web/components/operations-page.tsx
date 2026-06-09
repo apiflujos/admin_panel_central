@@ -197,14 +197,6 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
             />
           </div>
         }
-        filters={
-          <>
-            <span className="pill pill-info">Todas · {rows.items.length}</span>
-            <span className="pill">Facturadas · {rows.summary.invoicedCount}</span>
-            <span className="pill">Fallidas · {rows.summary.failedCount}</span>
-            <span className="pill">E-factura pendiente · {rows.summary.einvoicePendingCount}</span>
-          </>
-        }
         views={
           <>
             <button
@@ -212,28 +204,28 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
               type="button"
               onClick={() => setStatusView("")}
             >
-              Todas
+              Todas · {rows.items.length}
             </button>
             <button
               className={statusView === "invoiced" ? "pill pill-info" : "pill"}
               type="button"
               onClick={() => setStatusView("invoiced")}
             >
-              Facturadas
+              Facturadas · {rows.summary.invoicedCount}
             </button>
             <button
               className={statusView === "failed" ? "pill pill-info" : "pill"}
               type="button"
               onClick={() => setStatusView("failed")}
             >
-              Fallidas
+              Fallidas · {rows.summary.failedCount}
             </button>
             <button
               className={statusView === "pending" ? "pill pill-info" : "pill"}
               type="button"
               onClick={() => setStatusView("pending")}
             >
-              Pendientes
+              Pendientes · {rows.summary.einvoicePendingCount}
             </button>
           </>
         }
@@ -259,44 +251,7 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
         </p>
       ) : null}
 
-      <section className="metrics-kpis metrics-kpis-tight metrics-kpis-compact">
-        <article className="metrics-kpi metrics-kpi-primary">
-          <p className="stat-label">Items</p>
-          <strong>{rows.items.length}</strong>
-          <span className="stat-note">Últimos 7 días por defecto</span>
-        </article>
-        <article className="metrics-kpi metrics-kpi-success">
-          <p className="stat-label">Facturadas</p>
-          <strong>{rows.summary.invoicedCount}</strong>
-          <span className="stat-note">Con vínculo contable y e-factura</span>
-        </article>
-        <article className="metrics-kpi metrics-kpi-danger">
-          <p className="stat-label">Con error</p>
-          <strong>{rows.summary.failedCount}</strong>
-          <span className="stat-note">Pendientes de reintento</span>
-        </article>
-        <article className="metrics-kpi metrics-kpi-warning">
-          <p className="stat-label">E-factura pendiente</p>
-          <strong>{rows.summary.einvoicePendingCount}</strong>
-          <span className="stat-note">Datos fiscales por completar</span>
-        </article>
-      </section>
-
       <section className="card page-module-shell page-module-shell-compact">
-        <div className="page-module-head">
-          <div>
-            <strong>Mesa operativa</strong>
-            <span>{filteredRows.length} operaciones visibles para facturar, sincronizar, cobrar o anular.</span>
-          </div>
-          <div className="page-module-actions">
-            <span className="pill">Vista {statusView || "Todas"}</span>
-            <span className="pill">Resultados {filteredRows.length}</span>
-          </div>
-        </div>
-        <p className="connection-inline-note">
-          Atiende primero errores y e-factura pendiente; después sincroniza, factura o emite el cobro según el caso.
-        </p>
-
         <DataTable
           columns={[
             {

@@ -1073,7 +1073,7 @@ export function StoreConfigsCriticalPanel({
                   </div>
                   {!transferOriginsEditable ? (
                     <p className="connection-inline-note">
-                      La selección de orígenes queda en solo lectura mientras la tienda use una estrategia avanzada.
+                      Orígenes en solo lectura mientras la estrategia avanzada esté activa.
                     </p>
                   ) : null}
                 </div>
@@ -1158,11 +1158,7 @@ export function StoreConfigsCriticalPanel({
       </div>
 
       <div className="connection-card-actions">
-        <span>
-          {activeConfig
-            ? "Configuración específica de esta tienda ya persistida."
-            : "Esta tienda aún no tiene configuración propia; el formulario parte de defaults globales y el primer guardado la crea."}
-        </span>
+        {!activeConfig ? <span>Sin configuración propia; usa defaults globales.</span> : null}
         <button
           className="btn primary btn-compact"
           type="button"
@@ -1176,11 +1172,6 @@ export function StoreConfigsCriticalPanel({
       {saveMessage ? (
         <p className={`connection-inline-note${saveState === "error" ? " connection-inline-note-error" : ""}`}>
           {saveMessage}
-        </p>
-      ) : null}
-      {!invoiceModeAlreadyActive ? (
-        <p className="connection-inline-note">
-          El modo factura directo de Shopify a Alegra sigue controlado aparte hasta terminar de migrar sus validaciones.
         </p>
       ) : null}
     </section>
