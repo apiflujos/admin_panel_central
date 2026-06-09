@@ -1,0 +1,486 @@
+# Candidatos de borrado vs bloqueo - clones Alegra olivashoes
+
+Filtro aplicado: solo clones claros de los 6 lotes.
+
+- Candidatos con inventario 0 en cache: `462`
+- Bloqueados por inventario > 0 o cantidad desconocida: `12`
+
+## Borrar potencialmente despues de validar movimientos/documentos
+
+- `17073` | ABDALA TIGRE - CAMEL / 36 | qty cache: 0
+- `17772` | ABDALA TIGRE - CAMEL / 36 | qty cache: 0
+- `17830` | ABDALA TIGRE - CAMEL / 36 | qty cache: 0
+- `18296` | ABDALA TIGRE - CAMEL / 36 | qty cache: 0
+- `17343` | ABDALA TIGRE - CAMEL / 37 | qty cache: 0
+- `18410` | ABDALA TIGRE - CAMEL / 37 | qty cache: 0
+- `18754` | ABDALA TIGRE - CAMEL / 37 | qty cache: 0
+- `18762` | ABDALA TIGRE - CAMEL / 37 | qty cache: 0
+- `18763` | ABDALA TIGRE - CAMEL / 37 | qty cache: 0
+- `18778` | ABDALA TIGRE - CAMEL / 37 | qty cache: 0
+- `18780` | ABDALA TIGRE - CAMEL / 37 | qty cache: 0
+- `19093` | ABDALA TIGRE - CAMEL / 37 | qty cache: 0
+- `19096` | ABDALA TIGRE - CAMEL / 37 | qty cache: 0
+- `19104` | ABDALA TIGRE - CAMEL / 37 | qty cache: 0
+- `19113` | ABDALA TIGRE - CAMEL / 37 | qty cache: 0
+- `19123` | ABDALA TIGRE - CAMEL / 37 | qty cache: 0
+- `19124` | ABDALA TIGRE - CAMEL / 37 | qty cache: 0
+- `19130` | ABDALA TIGRE - CAMEL / 37 | qty cache: 0
+- `17514` | ABDALA TIGRE - CAMEL / 38 | qty cache: 0
+- `17515` | ABDALA TIGRE - CAMEL / 38 | qty cache: 0
+- `18222` | ABDALA TIGRE - CAMEL / 38 | qty cache: 0
+- `17348` | ABDALA TIGRE - CAMEL / 39 | qty cache: 0
+- `17516` | ABDALA TIGRE - CAMEL / 39 | qty cache: 0
+- `17961` | ABDALA TIGRE - CAMEL / 39 | qty cache: 0
+- `18297` | ABDALA TIGRE - CAMEL / 39 | qty cache: 0
+- `18633` | ABDALA TIGRE - CAMEL / 39 | qty cache: 0
+- `18634` | ABDALA TIGRE - CAMEL / 39 | qty cache: 0
+- `18764` | ABDALA TIGRE - CAMEL / 39 | qty cache: 0
+- `19095` | ABDALA TIGRE - CAMEL / 39 | qty cache: 0
+- `19107` | ABDALA TIGRE - CAMEL / 39 | qty cache: 0
+- `19115` | ABDALA TIGRE - CAMEL / 39 | qty cache: 0
+- `19125` | ABDALA TIGRE - CAMEL / 39 | qty cache: 0
+- `19135` | ABDALA TIGRE - CAMEL / 39 | qty cache: 0
+- `19136` | ABDALA TIGRE - CAMEL / 39 | qty cache: 0
+- `19175` | ABDALA TIGRE - CAMEL / 39 | qty cache: 0
+- `17078` | ABDALA TIGRE - CAMEL / 40 | qty cache: 0
+- `17339` | ABDALA TIGRE - CAMEL / 40 | qty cache: 0
+- `17352` | ABDALA TIGRE - CAMEL / 40 | qty cache: 0
+- `17758` | ABDALA TIGRE - CAMEL / 40 | qty cache: 0
+- `17775` | ABDALA TIGRE - CAMEL / 40 | qty cache: 0
+- `17834` | ABDALA TIGRE - CAMEL / 40 | qty cache: 0
+- `17859` | ABDALA TIGRE - CAMEL / 40 | qty cache: 0
+- `17948` | ABDALA TIGRE - CAMEL / 40 | qty cache: 0
+- `18156` | ABDALA TIGRE - CAMEL / 40 | qty cache: 0
+- `18224` | ABDALA TIGRE - CAMEL / 40 | qty cache: 0
+- `17085` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `17336` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `17350` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `17756` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `17757` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `17776` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `17835` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `17949` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `17988` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `17989` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `18155` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `18226` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `18756` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `19242` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `19243` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `19244` | ABDALA TIGRE - CREMA / 35 | qty cache: 0
+- `17079` | ABDALA TIGRE - CREMA / 36 | qty cache: 0
+- `17344` | ABDALA TIGRE - CREMA / 36 | qty cache: 0
+- `17520` | ABDALA TIGRE - CREMA / 36 | qty cache: 0
+- `17779` | ABDALA TIGRE - CREMA / 36 | qty cache: 0
+- `17837` | ABDALA TIGRE - CREMA / 36 | qty cache: 0
+- `17860` | ABDALA TIGRE - CREMA / 36 | qty cache: 0
+- `17861` | ABDALA TIGRE - CREMA / 36 | qty cache: 0
+- `17950` | ABDALA TIGRE - CREMA / 36 | qty cache: 0
+- `17951` | ABDALA TIGRE - CREMA / 36 | qty cache: 0
+- `17086` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `17347` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `17780` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `17838` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `17952` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `17992` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `18229` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `18230` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `18385` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `18386` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `18414` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `18640` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `18767` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `18786` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `19247` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `19248` | ABDALA TIGRE - CREMA / 39 | qty cache: 0
+- `17080` | ABDALA TIGRE - CREMA / 40 | qty cache: 0
+- `17953` | ABDALA TIGRE - CREMA / 40 | qty cache: 0
+- `18160` | ABDALA TIGRE - CREMA / 40 | qty cache: 0
+- `18231` | ABDALA TIGRE - CREMA / 40 | qty cache: 0
+- `18383` | ABDALA TIGRE - CREMA / 40 | qty cache: 0
+- `18393` | ABDALA TIGRE - CREMA / 40 | qty cache: 0
+- `18416` | ABDALA TIGRE - CREMA / 40 | qty cache: 0
+- `18641` | ABDALA TIGRE - CREMA / 40 | qty cache: 0
+- `18768` | ABDALA TIGRE - CREMA / 40 | qty cache: 0
+- `18892` | ABDALA TIGRE - CREMA / 40 | qty cache: 0
+- `19249` | ABDALA TIGRE - CREMA / 40 | qty cache: 0
+- `17082` | ABRIL - NEGRO / 36 | qty cache: 0
+- `18233` | ABRIL - NEGRO / 36 | qty cache: 0
+- `17083` | ABRIL - NEGRO / 37 | qty cache: 0
+- `17357` | ABRIL - NEGRO / 37 | qty cache: 0
+- `17763` | ABRIL - NEGRO / 37 | qty cache: 0
+- `17781` | ABRIL - NEGRO / 37 | qty cache: 0
+- `18161` | ABRIL - NEGRO / 37 | qty cache: 0
+- `18417` | ABRIL - NEGRO / 37 | qty cache: 0
+- `18789` | ABRIL - NEGRO / 37 | qty cache: 0
+- `17089` | ABRIL - NEGRO / 38 | qty cache: 0
+- `17524` | ABRIL - NEGRO / 38 | qty cache: 0
+- `18234` | ABRIL - NEGRO / 38 | qty cache: 0
+- `18770` | ABRIL - NEGRO / 38 | qty cache: 0
+- `17087` | ABRIL - NEGRO / 39 | qty cache: 0
+- `17782` | ABRIL - NEGRO / 39 | qty cache: 0
+- `17840` | ABRIL - NEGRO / 39 | qty cache: 0
+- `17865` | ABRIL - NEGRO / 39 | qty cache: 0
+- `17971` | ABRIL - NEGRO / 39 | qty cache: 0
+- `17995` | ABRIL - NEGRO / 39 | qty cache: 0
+- `18392` | ABRIL - NEGRO / 39 | qty cache: 0
+- `18418` | ABRIL - NEGRO / 39 | qty cache: 0
+- `18897` | ABRIL - NEGRO / 39 | qty cache: 0
+- `17526` | ABRIL - NEGRO / 40 | qty cache: 0
+- `17764` | ABRIL - NEGRO / 40 | qty cache: 0
+- `18235` | ABRIL - NEGRO / 40 | qty cache: 0
+- `18419` | ABRIL - NEGRO / 40 | qty cache: 0
+- `17525` | ABRIL - TAUPE / 35 | qty cache: 0
+- `17765` | ABRIL - TAUPE / 35 | qty cache: 0
+- `17783` | ABRIL - TAUPE / 35 | qty cache: 0
+- `17841` | ABRIL - TAUPE / 35 | qty cache: 0
+- `17866` | ABRIL - TAUPE / 35 | qty cache: 0
+- `18236` | ABRIL - TAUPE / 37 | qty cache: 0
+- `17094` | ABRIL - TAUPE / 38 | qty cache: 0
+- `17528` | ABRIL - TAUPE / 38 | qty cache: 0
+- `17093` | ABRIL - TAUPE / 39 | qty cache: 0
+- `17869` | ABRIL - TAUPE / 39 | qty cache: 0
+- `17998` | ABRIL - TAUPE / 39 | qty cache: 0
+- `18163` | ABRIL - TAUPE / 39 | qty cache: 0
+- `17097` | ABRIL - TAUPE / 40 | qty cache: 0
+- `17785` | ABRIL - TAUPE / 40 | qty cache: 0
+- `17098` | ACACIA - CRUDO / 35 | qty cache: 0
+- `17529` | ACACIA - CRUDO / 35 | qty cache: 0
+- `17844` | ACACIA - CRUDO / 35 | qty cache: 0
+- `17976` | ACACIA - CRUDO / 35 | qty cache: 0
+- `18000` | ACACIA - CRUDO / 35 | qty cache: 0
+- `18237` | ACACIA - CRUDO / 35 | qty cache: 0
+- `18390` | ACACIA - CRUDO / 35 | qty cache: 0
+- `18649` | ACACIA - CRUDO / 35 | qty cache: 0
+- `17099` | ACACIA - CRUDO / 36 | qty cache: 0
+- `17360` | ACACIA - CRUDO / 36 | qty cache: 0
+- `17530` | ACACIA - CRUDO / 36 | qty cache: 0
+- `17786` | ACACIA - CRUDO / 36 | qty cache: 0
+- `17977` | ACACIA - CRUDO / 36 | qty cache: 0
+- `18239` | ACACIA - CRUDO / 36 | qty cache: 0
+- `18420` | ACACIA - CRUDO / 36 | qty cache: 0
+- `18771` | ACACIA - CRUDO / 36 | qty cache: 0
+- `17100` | ACACIA - CRUDO / 37 | qty cache: 0
+- `17614` | ACACIA - CRUDO / 37 | qty cache: 0
+- `17787` | ACACIA - CRUDO / 37 | qty cache: 0
+- `17845` | ACACIA - CRUDO / 37 | qty cache: 0
+- `18164` | ACACIA - CRUDO / 37 | qty cache: 0
+- `18650` | ACACIA - CRUDO / 37 | qty cache: 0
+- `17102` | ACACIA - CRUDO / 38 | qty cache: 0
+- `17531` | ACACIA - CRUDO / 38 | qty cache: 0
+- `18238` | ACACIA - CRUDO / 38 | qty cache: 0
+- `17101` | ACACIA - CRUDO / 39 | qty cache: 0
+- `17361` | ACACIA - CRUDO / 39 | qty cache: 0
+- `17615` | ACACIA - CRUDO / 39 | qty cache: 0
+- `17870` | ACACIA - CRUDO / 39 | qty cache: 0
+- `17978` | ACACIA - CRUDO / 39 | qty cache: 0
+- `17103` | ACACIA - CRUDO / 40 | qty cache: 0
+- `17363` | ACACIA - CRUDO / 40 | qty cache: 0
+- `17788` | ACACIA - CRUDO / 40 | qty cache: 0
+- `17846` | ACACIA - CRUDO / 40 | qty cache: 0
+- `17979` | ACACIA - CRUDO / 40 | qty cache: 0
+- `18240` | ACACIA - CRUDO / 40 | qty cache: 0
+- `17104` | ACACIA - MIEL / 35 | qty cache: 0
+- `17532` | ACACIA - MIEL / 35 | qty cache: 0
+- `17789` | ACACIA - MIEL / 35 | qty cache: 0
+- `17847` | ACACIA - MIEL / 35 | qty cache: 0
+- `17871` | ACACIA - MIEL / 35 | qty cache: 0
+- `18421` | ACACIA - MIEL / 35 | qty cache: 0
+- `17108` | ACACIA - MIEL / 36 | qty cache: 0
+- `17364` | ACACIA - MIEL / 36 | qty cache: 0
+- `17980` | ACACIA - MIEL / 36 | qty cache: 0
+- `18001` | ACACIA - MIEL / 36 | qty cache: 0
+- `18165` | ACACIA - MIEL / 36 | qty cache: 0
+- `18395` | ACACIA - MIEL / 36 | qty cache: 0
+- `18798` | ACACIA - MIEL / 36 | qty cache: 0
+- `17105` | ACACIA - MIEL / 37 | qty cache: 0
+- `17616` | ACACIA - MIEL / 37 | qty cache: 0
+- `17848` | ACACIA - MIEL / 37 | qty cache: 0
+- `17872` | ACACIA - MIEL / 37 | qty cache: 0
+- `18396` | ACACIA - MIEL / 37 | qty cache: 0
+- `18422` | ACACIA - MIEL / 37 | qty cache: 0
+- `18769` | ACACIA - MIEL / 37 | qty cache: 0
+- `17110` | ACACIA - MIEL / 38 | qty cache: 0
+- `17790` | ACACIA - MIEL / 38 | qty cache: 0
+- `18166` | ACACIA - MIEL / 38 | qty cache: 0
+- `17107` | ACACIA - MIEL / 39 | qty cache: 0
+- `17981` | ACACIA - MIEL / 39 | qty cache: 0
+- `18167` | ACACIA - MIEL / 39 | qty cache: 0
+- `17378` | ADEL - BEIGE / 37 | qty cache: 0
+- `17556` | ADEL - BEIGE / 37 | qty cache: 0
+- `17140` | ADEL - BEIGE / 38 | qty cache: 0
+- `18258` | ADEL - BEIGE / 38 | qty cache: 0
+- `17142` | ADEL - CHAMPAÑA / 35 | qty cache: 0
+- `18667` | ADEL - CHAMPAÑA / 35 | qty cache: 0
+- `18825` | ADEL - CHAMPAÑA / 35 | qty cache: 0
+- `18932` | ADEL - CHAMPAÑA / 35 | qty cache: 0
+- `18023` | ADEL - CORAL / 35 | qty cache: 0
+- `18193` | ADEL - CORAL / 35 | qty cache: 0
+- `18346` | ADEL - CORAL / 35 | qty cache: 0
+- `17894` | ADEL - CORAL / 36 | qty cache: 0
+- `17382` | ADEL - CORAL / 40 | qty cache: 0
+- `17643` | ADEL - CORAL / 40 | qty cache: 0
+- `17813` | ADEL - CORAL / 40 | qty cache: 0
+- `18028` | ADEL - CORAL / 40 | qty cache: 0
+- `18448` | ADEL - CORAL / 40 | qty cache: 0
+- `17388` | ADEL - PLOMO / 38 | qty cache: 0
+- `17569` | ADEL - PLOMO / 38 | qty cache: 0
+- `17644` | ADEL - PLOMO / 38 | qty cache: 0
+- `17817` | ADEL - PLOMO / 38 | qty cache: 0
+- `17899` | ADEL - PLOMO / 38 | qty cache: 0
+- `18354` | ADELE - COROZO / 35 | qty cache: 0
+- `17162` | ADELE - COROZO / 36 | qty cache: 0
+- `17390` | ADELE - COROZO / 36 | qty cache: 0
+- `17392` | ADELE - COROZO / 36 | qty cache: 0
+- `18031` | ADELE - COROZO / 36 | qty cache: 0
+- `17160` | ADELE - COROZO / 39 | qty cache: 0
+- `17819` | ADELE - COROZO / 39 | qty cache: 0
+- `17165` | ADELE - COROZO / 40 | qty cache: 0
+- `18454` | ADELE - COROZO / 40 | qty cache: 0
+- `18842` | ADELE - COROZO / 40 | qty cache: 0
+- `17168` | ADELE - DORADO / 39 | qty cache: 0
+- `17822` | ADELE - DORADO / 39 | qty cache: 0
+- `18202` | ADELE - DORADO / 39 | qty cache: 0
+- `17572` | ADELE - DORADO / 40 | qty cache: 0
+- `18034` | ADELE - DORADO / 40 | qty cache: 0
+- `17574` | ADELE - NUDE / 38 | qty cache: 0
+- `17824` | ADELE - NUDE / 38 | qty cache: 0
+- `18458` | ADELE - NUDE / 38 | qty cache: 0
+- `18813` | ADELE - NUDE / 38 | qty cache: 0
+- `17825` | ADELE - NUDE / 40 | qty cache: 0
+- `18204` | ADELE - NUDE / 40 | qty cache: 0
+- `18275` | ADELE - NUDE / 40 | qty cache: 0
+- `18461` | ADELE - NUDE / 40 | qty cache: 0
+- `17826` | ADELINA - CHAMPAÑA / 35 | qty cache: 0
+- `17905` | ADELINA - CHAMPAÑA / 35 | qty cache: 0
+- `18205` | ADELINA - CHAMPAÑA / 35 | qty cache: 0
+- `17909` | ADELINA - CHAMPAÑA / 39 | qty cache: 0
+- `18039` | ADELINA - CHAMPAÑA / 39 | qty cache: 0
+- `18364` | ADELINA - CHAMPAÑA / 39 | qty cache: 0
+- `18679` | ADELINA - CHAMPAÑA / 39 | qty cache: 0
+- `17579` | ADELINA - CHAMPAÑA / 40 | qty cache: 0
+- `17578` | ADELINA - ORO ROSA / 37 | qty cache: 0
+- `18041` | ADELINA - ORO ROSA / 37 | qty cache: 0
+- `18042` | ADELINA - ORO ROSA / 37 | qty cache: 0
+- `18366` | ADELINA - ORO ROSA / 37 | qty cache: 0
+- `18471` | ADELINA - ORO ROSA / 37 | qty cache: 0
+- `18860` | ADELINA - ORO ROSA / 40 | qty cache: 0
+- `18945` | ADELINA - ORO ROSA / 40 | qty cache: 0
+- `18046` | ADI - ARENA / 35 | qty cache: 0
+- `18285` | ADI - ARENA / 35 | qty cache: 0
+- `18286` | ADI - ARENA / 35 | qty cache: 0
+- `18469` | ADI - ARENA / 35 | qty cache: 0
+- `17918` | ADI - ARENA / 38 | qty cache: 0
+- `18047` | ADI - ARENA / 38 | qty cache: 0
+- `18048` | ADI - ARENA / 38 | qty cache: 0
+- `18684` | ADI - ARENA / 38 | qty cache: 0
+- `18834` | ADI - ARENA / 38 | qty cache: 0
+- `18835` | ADI - ARENA / 38 | qty cache: 0
+- `17920` | ADI - ARENA / 40 | qty cache: 0
+- `18050` | ADI - ARENA / 40 | qty cache: 0
+- `17584` | ADI - BEIGE / 35 | qty cache: 0
+- `18837` | ADI - BEIGE / 35 | qty cache: 0
+- `18290` | ADI - BEIGE / 36 | qty cache: 0
+- `17198` | ADI - BEIGE / 38 | qty cache: 0
+- `17406` | ADI - BEIGE / 38 | qty cache: 0
+- `18051` | ADI - BEIGE / 38 | qty cache: 0
+- `17199` | ADI - BEIGE / 39 | qty cache: 0
+- `17922` | ADI - BEIGE / 39 | qty cache: 0
+- `18052` | ADI - BEIGE / 39 | qty cache: 0
+- `17205` | ADI - MOSTAZA / 36 | qty cache: 0
+- `17410` | ADI - MOSTAZA / 36 | qty cache: 0
+- `18053` | ADI - MOSTAZA / 36 | qty cache: 0
+- `18963` | ADI - MOSTAZA / 36 | qty cache: 0
+- `17203` | ADI - MOSTAZA / 37 | qty cache: 0
+- `17658` | ADI - MOSTAZA / 37 | qty cache: 0
+- `17208` | ADI - NEGRO / 35 | qty cache: 0
+- `17660` | ADI - NEGRO / 35 | qty cache: 0
+- `18054` | ADI - NEGRO / 35 | qty cache: 0
+- `18871` | ADI - NEGRO / 35 | qty cache: 0
+- `18874` | ADI - NEGRO / 36 | qty cache: 0
+- `18480` | ADI - NEGRO / 39 | qty cache: 0
+- `17211` | ADI - NEGRO / 40 | qty cache: 0
+- `17927` | ADI - NEGRO / 40 | qty cache: 0
+- `18479` | ADI - NEGRO / 40 | qty cache: 0
+- `18483` | ADI - PALO DE ROSA / 37 | qty cache: 0
+- `18484` | ADI - PALO DE ROSA / 37 | qty cache: 0
+- `17217` | ADI - PALO DE ROSA / 38 | qty cache: 0
+- `17412` | ADI - PALO DE ROSA / 38 | qty cache: 0
+- `18880` | ADI - PALO DE ROSA / 38 | qty cache: 0
+- `17413` | ADINA - BEIGE / 35 | qty cache: 0
+- `17595` | ADINA - BEIGE / 35 | qty cache: 0
+- `17663` | ADINA - BEIGE / 35 | qty cache: 0
+- `17929` | ADINA - BEIGE / 35 | qty cache: 0
+- `17221` | ADINA - BEIGE / 36 | qty cache: 0
+- `17220` | ADINA - BEIGE / 40 | qty cache: 0
+- `18488` | ADINA - BEIGE / 40 | qty cache: 0
+- `17597` | ADINA - VERDE OLIVA / 35 | qty cache: 0
+- `17668` | ADINA - VERDE OLIVA / 35 | qty cache: 0
+- `18855` | ADINA - VERDE OLIVA / 35 | qty cache: 0
+- `18975` | ADINA - VERDE OLIVA / 35 | qty cache: 0
+- `18064` | ADINA - VERDE OLIVA / 38 | qty cache: 0
+- `18305` | ADINA - VERDE OLIVA / 38 | qty cache: 0
+- `17227` | ADINA - VERDE OLIVA / 39 | qty cache: 0
+- `18306` | ADINA - VERDE OLIVA / 39 | qty cache: 0
+- `18858` | ADINA - VERDE OLIVA / 39 | qty cache: 0
+- `18859` | ADINA - VERDE OLIVA / 39 | qty cache: 0
+- `17419` | ADORACION - BEIGE / 35 | qty cache: 0
+- `18862` | ADORACION - BEIGE / 35 | qty cache: 0
+- `18885` | ADORACION - BEIGE / 35 | qty cache: 0
+- `17599` | ADORACION - BEIGE / 36 | qty cache: 0
+- `17669` | ADORACION - BEIGE / 36 | qty cache: 0
+- `17228` | ADORACION - BEIGE / 39 | qty cache: 0
+- `17940` | ADORACION - BEIGE / 39 | qty cache: 0
+- `17231` | ADORACION - BEIGE / 40 | qty cache: 0
+- `18068` | ADORACION - BEIGE / 40 | qty cache: 0
+- `18502` | ADORACION - BEIGE / 40 | qty cache: 0
+- `19651` | ADORACION - NUEZ / 35 | qty cache: 0
+- `18072` | ADORACION - NUEZ / 40 | qty cache: 0
+- `18717` | ADORACION - NUEZ / 40 | qty cache: 0
+- `17237` | AELEN - BRONCE / 35 | qty cache: 0
+- `18865` | AELEN - BRONCE / 39 | qty cache: 0
+- `17241` | AELEN - BRONCE / 40 | qty cache: 0
+- `18315` | AELEN - BRONCE / 40 | qty cache: 0
+- `18722` | AELEN - BRONCE / 40 | qty cache: 0
+- `18723` | AELEN - BRONCE / 40 | qty cache: 0
+- `17424` | AELEN - PLOMO / 40 | qty cache: 0
+- `18512` | AELEN - PLOMO / 40 | qty cache: 0
+- `17608` | AGAPE - DORADO / 36 | qty cache: 0
+- `18078` | AGAPE - DORADO / 36 | qty cache: 0
+- `17680` | AGAPE - DORADO / 37 | qty cache: 0
+- `18898` | AGAPE - DORADO / 37 | qty cache: 0
+- `18516` | AGAPE - DORADO / 38 | qty cache: 0
+- `17682` | AGAPE - DORADO / 40 | qty cache: 0
+- `18080` | AGAPE - DORADO / 40 | qty cache: 0
+- `18514` | AGAPE - DORADO / 40 | qty cache: 0
+- `17249` | AGATA - CAMEL / 35 | qty cache: 0
+- `17429` | AGATA - CAMEL / 35 | qty cache: 0
+- `18081` | AGATA - CAMEL / 39 | qty cache: 0
+- `17254` | AGATA - CAMEL / 40 | qty cache: 0
+- `17260` | AGATA - DORADO / 35 | qty cache: 0
+- `17430` | AGATA - DORADO / 35 | qty cache: 0
+- `17256` | AGATA - DORADO / 39 | qty cache: 0
+- `18082` | AGATA - DORADO / 39 | qty cache: 0
+- `18739` | AGATA - DORADO / 39 | qty cache: 0
+- `18905` | AGATA - DORADO / 39 | qty cache: 0
+- `17261` | AGATA - DORADO / 40 | qty cache: 0
+- `18083` | AGATA - DORADO / 40 | qty cache: 0
+- `18515` | AGATA - DORADO / 40 | qty cache: 0
+- `19604` | Agustina - Nude | qty cache: 0
+- `19589` | Agustina - Rojo | qty cache: 0
+- `18085` | AIDA - DORADO / 37 | qty cache: 0
+- `18886` | AIDA - DORADO / 38 | qty cache: 0
+- `17264` | AIDA - DORADO / 39 | qty cache: 0
+- `18087` | AIDA - DORADO / 39 | qty cache: 0
+- `18907` | AIDA - DORADO / 39 | qty cache: 0
+- `17437` | AIDA - ORO ROSA / 37 | qty cache: 0
+- `17618` | AIDA - ORO ROSA / 37 | qty cache: 0
+- `18522` | AIDA - ORO ROSA / 37 | qty cache: 0
+- `17435` | AIDA - ORO ROSA / 38 | qty cache: 0
+- `18523` | AIDA - ORO ROSA / 38 | qty cache: 0
+- `17267` | AIDE - BEIGE / 35 | qty cache: 0
+- `17439` | AIDE - BEIGE / 35 | qty cache: 0
+- `18091` | AIDE - BEIGE / 35 | qty cache: 0
+- `18334` | AIDE - BEIGE / 35 | qty cache: 0
+- `18524` | AIDE - BEIGE / 35 | qty cache: 0
+- `18888` | AIDE - BEIGE / 35 | qty cache: 0
+- `18893` | AIDE - BEIGE / 38 | qty cache: 0
+- `18913` | AIDE - BEIGE / 38 | qty cache: 0
+- `19006` | AIDE - BEIGE / 38 | qty cache: 0
+- `17270` | AIDE - BEIGE / 39 | qty cache: 0
+- `17623` | AIDE - BEIGE / 39 | qty cache: 0
+- `18527` | AIDE - BEIGE / 39 | qty cache: 0
+- `18531` | AIDE - CORAL / 35 | qty cache: 0
+- `18895` | AIDE - CORAL / 35 | qty cache: 0
+- `17276` | AIDE - CORAL / 36 | qty cache: 0
+- `17443` | AIDE - CORAL / 36 | qty cache: 0
+- `18901` | AIDE - CORAL / 36 | qty cache: 0
+- `17447` | AINARA BAJA - BEIGE / 38 | qty cache: 0
+- `18102` | AINARA BAJA - BEIGE / 40 | qty cache: 0
+- `17699` | AINARA BAJA - TERRACOTA / 35 | qty cache: 0
+- `18101` | AINARA BAJA - TERRACOTA / 35 | qty cache: 0
+- `17453` | AINARA BAJA - TERRACOTA / 36 | qty cache: 0
+- `17700` | AINARA BAJA - TERRACOTA / 36 | qty cache: 0
+- `17286` | AINARA BAJA - TERRACOTA / 40 | qty cache: 0
+- `17448` | AINARA BAJA - TERRACOTA / 40 | qty cache: 0
+- `18349` | AINARA BAJA - TERRACOTA / 40 | qty cache: 0
+- `18537` | AINARA BAJA - TERRACOTA / 40 | qty cache: 0
+- `17285` | AISHA - NUEZ / 35 | qty cache: 0
+- `17288` | AISHA - NUEZ / 38 | qty cache: 0
+- `18539` | AISHA - NUEZ / 38 | qty cache: 0
+- `18914` | AISHA - NUEZ / 38 | qty cache: 0
+- `17287` | AISHA - NUEZ / 39 | qty cache: 0
+- `17454` | AISHA - NUEZ / 39 | qty cache: 0
+- `18105` | AISHA - NUEZ / 39 | qty cache: 0
+- `19656` | Aisha - Palo De Rosa | qty cache: 0
+- `17295` | AISHA - PALO DE ROSA / 36 | qty cache: 0
+- `18541` | AISHA - PALO DE ROSA / 36 | qty cache: 0
+- `17292` | AISHA - PALO DE ROSA / 37 | qty cache: 0
+- `19586` | Aitana Baja Cuero - Arena | qty cache: 0
+- `17456` | AITANA BAJA CUERO - ARENA / 35 | qty cache: 0
+- `17458` | AITANA BAJA CUERO - ARENA / 35 | qty cache: 0
+- `17702` | AITANA BAJA CUERO - ARENA / 35 | qty cache: 0
+- `17299` | AITANA BAJA CUERO - ARENA / 36 | qty cache: 0
+- `17634` | AITANA BAJA CUERO - ARENA / 36 | qty cache: 0
+- `17459` | AITANA BAJA CUERO - ARENA / 39 | qty cache: 0
+- `18110` | AITANA BAJA CUERO - ARENA / 39 | qty cache: 0
+- `19023` | AITANA BAJA CUERO - ARENA / 39 | qty cache: 0
+- `17303` | AITANA BAJA CUERO - ARENA / 40 | qty cache: 0
+- `17703` | AITANA BAJA CUERO - ARENA / 40 | qty cache: 0
+- `18112` | AITANA BAJA CUERO - ARENA / 40 | qty cache: 0
+- `17464` | AKIRA - BEIGE / 37 | qty cache: 0
+- `19013` | AKIRA - BEIGE / 37 | qty cache: 0
+- `17305` | AKIRA - BEIGE / 38 | qty cache: 0
+- `17307` | AKIRA - BEIGE / 38 | qty cache: 0
+- `17705` | AKIRA - BEIGE / 38 | qty cache: 0
+- `18116` | AKIRA - BEIGE / 38 | qty cache: 0
+- `17309` | AKIRA - BEIGE / 40 | qty cache: 0
+- `17461` | AKIRA - BEIGE / 40 | qty cache: 0
+- `17308` | AKIRA - NEGRO / 35 | qty cache: 0
+- `17641` | AKIRA - NEGRO / 35 | qty cache: 0
+- `18548` | AKIRA - NEGRO / 35 | qty cache: 0
+- `17314` | AKIRA - NEGRO / 40 | qty cache: 0
+- `18115` | AKIRA - NEGRO / 40 | qty cache: 0
+- `18361` | AKIRA - NEGRO / 40 | qty cache: 0
+- `18552` | AKIRA - NEGRO / 40 | qty cache: 0
+- `18944` | AKIRA - NEGRO / 40 | qty cache: 0
+- `19027` | AKIRA - NEGRO / 40 | qty cache: 0
+- `16040` | Alesha - Crema | qty cache: 0
+- `18126` | Alesha - Crema | qty cache: 0
+- `18567` | Alesha - Crema | qty cache: 0
+- `19625` | Alpargata Lety Textil - Beige | qty cache: 0
+- `19611` | Alpargata Lety Textil - Cocoa | qty cache: 0
+- `19629` | ALPARGATA MAFALDA TEXTIL - NEGRO X CRUDO | qty cache: 0
+- `16021` | Anabelle - Dorado | qty cache: 0
+- `19653` | Anabelle - Lila | qty cache: 0
+- `16038` | Anabelle - Plata | qty cache: 0
+- `16035` | Dafna - Dorado | qty cache: 0
+- `15835` | Dafna - Plata | qty cache: 0
+- `16063` | Dakota - Talco | qty cache: 0
+- `16062` | Dakota - Taupe | qty cache: 0
+- `16116` | Dalia - Almendra | qty cache: 0
+- `16068` | Dalia - Bronce | qty cache: 0
+- `16113` | Danila - Blanco | qty cache: 0
+- `16117` | Danila - Chita | qty cache: 0
+- `16103` | Danila - Leopardo | qty cache: 0
+- `16089` | Donatella Textil - Azul | qty cache: 0
+- `16083` | Donatella Textil - Champaña | qty cache: 0
+- `16048` | Donatella Textil - Perla | qty cache: 0
+- `16018` | Enriqueta - Mani | qty cache: 0
+- `15837` | Enriqueta - Palo de Rosa | qty cache: 0
+- `16080` | Flor - Amarillo | qty cache: 0
+
+## Bloqueados
+
+- `19590` | Alpargata Lety Textil - Negro | qty cache: 3
+- `19579` | Alpargata Mafalda Textil - Crudo | qty cache: 4
+- `19580` | Alpargata Mafalda Textil - Jean Claro | qty cache: 3
+- `19645` | Alpargata Mafalda Textil - Nude x Café | qty cache: 2
+- `12027` | Dafna - Dorado | qty cache: desconocida
+- `12026` | Dafna - Plata | qty cache: desconocida
+- `15898` | Dakota - Arena | qty cache: 1
+- `12049` | Dalia - Almendra | qty cache: desconocida
+- `12048` | Dalia - Bronce | qty cache: desconocida
+- `15889` | Enriqueta - Café | qty cache: 1
+- `15948` | Flor - Arena | qty cache: 2
+- `15842` | Flor - Vinotinto | qty cache: 2

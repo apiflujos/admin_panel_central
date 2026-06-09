@@ -1,0 +1,74 @@
+# Resultado de inactivacion - clones Alegra olivashoes
+
+- Inicio: 2026-05-08T17:43:59.895Z
+- Fin: 2026-05-08T17:47:06.972Z
+- Total solicitados: 463
+- Inactivados: 399
+- Fallidos: 64
+
+## Fallidos
+
+- `id | nombre | http 200 | `
+- `17528 | ABRIL - TAUPE / 38 | http 429 | {"message":"Too Many request","code":429}`
+- `17093 | ABRIL - TAUPE / 39 | http 429 | {"message":"Too Many request","code":429}`
+- `17998 | ABRIL - TAUPE / 39 | http 429 | {"message":"Too Many request","code":429}`
+- `17869 | ABRIL - TAUPE / 39 | http 429 | {"message":"Too Many request","code":429}`
+- `18163 | ABRIL - TAUPE / 39 | http 429 | {"message":"Too Many request","code":429}`
+- `17785 | ABRIL - TAUPE / 40 | http 429 | {"message":"Too Many request","code":429}`
+- `17097 | ABRIL - TAUPE / 40 | http 429 | {"message":"Too Many request","code":429}`
+- `17098 | ACACIA - CRUDO / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `17529 | ACACIA - CRUDO / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `17844 | ACACIA - CRUDO / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `17976 | ACACIA - CRUDO / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `18000 | ACACIA - CRUDO / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `18237 | ACACIA - CRUDO / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `18390 | ACACIA - CRUDO / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `18649 | ACACIA - CRUDO / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `17099 | ACACIA - CRUDO / 36 | http 429 | {"message":"Too Many request","code":429}`
+- `17360 | ACACIA - CRUDO / 36 | http 429 | {"message":"Too Many request","code":429}`
+- `17786 | ACACIA - CRUDO / 36 | http 429 | {"message":"Too Many request","code":429}`
+- `17977 | ACACIA - CRUDO / 36 | http 429 | {"message":"Too Many request","code":429}`
+- `17530 | ACACIA - CRUDO / 36 | http 429 | {"message":"Too Many request","code":429}`
+- `18239 | ACACIA - CRUDO / 36 | http 429 | {"message":"Too Many request","code":429}`
+- `17198 | ADI - BEIGE / 38 | http 429 | {"message":"Too Many request","code":429}`
+- `17406 | ADI - BEIGE / 38 | http 429 | {"message":"Too Many request","code":429}`
+- `18051 | ADI - BEIGE / 38 | http 429 | {"message":"Too Many request","code":429}`
+- `17199 | ADI - BEIGE / 39 | http 429 | {"message":"Too Many request","code":429}`
+- `17922 | ADI - BEIGE / 39 | http 429 | {"message":"Too Many request","code":429}`
+- `18052 | ADI - BEIGE / 39 | http 429 | {"message":"Too Many request","code":429}`
+- `17205 | ADI - MOSTAZA / 36 | http 429 | {"message":"Too Many request","code":429}`
+- `17410 | ADI - MOSTAZA / 36 | http 429 | {"message":"Too Many request","code":429}`
+- `18053 | ADI - MOSTAZA / 36 | http 429 | {"message":"Too Many request","code":429}`
+- `17203 | ADI - MOSTAZA / 37 | http 429 | {"message":"Too Many request","code":429}`
+- `18963 | ADI - MOSTAZA / 36 | http 429 | {"message":"Too Many request","code":429}`
+- `17208 | ADI - NEGRO / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `17658 | ADI - MOSTAZA / 37 | http 429 | {"message":"Too Many request","code":429}`
+- `17660 | ADI - NEGRO / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `18054 | ADI - NEGRO / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `18871 | ADI - NEGRO / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `18874 | ADI - NEGRO / 36 | http 429 | {"message":"Too Many request","code":429}`
+- `18480 | ADI - NEGRO / 39 | http 429 | {"message":"Too Many request","code":429}`
+- `17211 | ADI - NEGRO / 40 | http 429 | {"message":"Too Many request","code":429}`
+- `18479 | ADI - NEGRO / 40 | http 429 | {"message":"Too Many request","code":429}`
+- `18483 | ADI - PALO DE ROSA / 37 | http 429 | {"message":"Too Many request","code":429}`
+- `17927 | ADI - NEGRO / 40 | http 429 | {"message":"Too Many request","code":429}`
+- `18484 | ADI - PALO DE ROSA / 37 | http 429 | {"message":"Too Many request","code":429}`
+- `17412 | ADI - PALO DE ROSA / 38 | http 429 | {"message":"Too Many request","code":429}`
+- `18880 | ADI - PALO DE ROSA / 38 | http 429 | {"message":"Too Many request","code":429}`
+- `17217 | ADI - PALO DE ROSA / 38 | http 429 | {"message":"Too Many request","code":429}`
+- `17663 | ADINA - BEIGE / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `17413 | ADINA - BEIGE / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `17929 | ADINA - BEIGE / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `17595 | ADINA - BEIGE / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `17221 | ADINA - BEIGE / 36 | http 429 | {"message":"Too Many request","code":429}`
+- `17220 | ADINA - BEIGE / 40 | http 429 | {"message":"Too Many request","code":429}`
+- `17597 | ADINA - VERDE OLIVA / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `18488 | ADINA - BEIGE / 40 | http 429 | {"message":"Too Many request","code":429}`
+- `17668 | ADINA - VERDE OLIVA / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `18975 | ADINA - VERDE OLIVA / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `18855 | ADINA - VERDE OLIVA / 35 | http 429 | {"message":"Too Many request","code":429}`
+- `18064 | ADINA - VERDE OLIVA / 38 | http 429 | {"message":"Too Many request","code":429}`
+- `18305 | ADINA - VERDE OLIVA / 38 | http 429 | {"message":"Too Many request","code":429}`
+- `17227 | ADINA - VERDE OLIVA / 39 | http 429 | {"message":"Too Many request","code":429}`
+- `18306 | ADINA - VERDE OLIVA / 39 | http 429 | {"message":"Too Many request","code":429}`
+- `18858 | ADINA - VERDE OLIVA / 39 | http 429 | {"message":"Too Many request","code":429}`
