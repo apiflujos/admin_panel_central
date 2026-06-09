@@ -1,15 +1,65 @@
-import type { AdminWebProductsListDto } from "../../../packages/shared/src/admin-web";
+import type { AdminWebProductRowDto, AdminWebProductsListDto } from "../../../packages/shared/src/admin-web";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { StatusPill } from "./ui/status-pill";
 
 const PAGE_SIZE = 30;
 
-function buildProductMonogram(name: string) {
-  const cleaned = name.trim();
-  if (!cleaned) return "AF";
-  const parts = cleaned.split(/\s+/).slice(0, 2);
-  return parts.map((part) => part[0]?.toUpperCase() || "").join("") || "AF";
+type ProductGroup = {
+  key: string;
+  name: string;
+  reference: string;
+  variantCount: number;
+  totalStock: number;
+  matchedCount: number;
+  pendingCount: number;
+  shopifyProductIds: string[];
+  variants: AdminWebProductRowDto[];
+};
+
+function groupProducts(rows: AdminWebProductRowDto[]): ProductGroup[] {
+  const groups = new Map<string, ProductGroup>();
+  for (const row of rows) {
+    const baseName = (row.name || "").trim() || "Sin nombre";
+    const reference = (row.reference || "").trim();
+    const key = reference ? `${baseName}__${reference}` : baseName;
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        key,
+        name: baseName,
+        reference,
+        variantCount: 0,
+        totalStock: 0,
+        matchedCount: 0,
+        pendingCount: 0,
+        shopifyProductIds: [],
+        variants: [],
+      };
+      groups.set(key, group);
+    }
+    group.variantCount += 1;
+    group.totalStock += typeof row.inventoryQuantity === "number" ? row.inventoryQuantity : 0;
+    if (row.shopifyProductId) {
+      group.matchedCount += 1;
+      if (!group.shopifyProductIds.includes(row.shopifyProductId)) {
+        group.shopifyProductIds.push(row.shopifyProductId);
+      }
+    } else {
+      group.pendingCount += 1;
+    }
+    group.variants.push(row);
+  }
+  return Array.from(groups.values());
+}
+
+function formatDate(value: string | null): string {
+  if (!value) return "—";
+  try {
+    return new Date(value).toLocaleDateString("es-CO");
+  } catch {
+    return "—";
+  }
 }
 
 export function ProductsPage({
@@ -22,6 +72,7 @@ export function ProductsPage({
   start: number;
 }) {
   const rows = result.items;
+  const groups = groupProducts(rows);
   const prevStart = Math.max(0, start - PAGE_SIZE);
   const nextStart = start + PAGE_SIZE;
   const hasNext = nextStart < result.total;
@@ -109,69 +160,112 @@ export function ProductsPage({
         </section>
 
         <div className="table-meta">
-          Mostrando {start + 1}–{Math.min(start + PAGE_SIZE, result.total)} de {result.total}
+          Mostrando {start + 1}–{Math.min(start + PAGE_SIZE, result.total)} de {result.total} · {groups.length} productos
+          padre
         </div>
-        <p className="connection-inline-note">
-          Revisa primero pendientes de matching y luego productos con stock para acelerar decisiones de publicación.
-        </p>
 
-        <section className="products-card-grid products-card-grid-compact">
-          {rows.length ? (
-            rows.map((row) => (
-              <article className="card product-card product-card-compact" key={row.id}>
-                <div className="product-card-media">
-                  <span>{buildProductMonogram(row.name)}</span>
-                </div>
-
-                <div className="product-card-body">
-                  <div className="product-card-head">
-                    <div>
-                      <h3>{row.name}</h3>
-                      <p>
-                        {row.reference || row.sku || "Sin referencia"} · {row.source || "Catálogo"}
-                      </p>
-                    </div>
-                    <strong className="product-card-stock">{row.inventoryQuantity ?? 0} uds</strong>
-                  </div>
-
-                  <div className="product-card-meta">
-                    {row.shopifyProductId ? (
-                      <StatusPill tone="success" small>
-                        Matcheado
-                      </StatusPill>
-                    ) : (
-                      <StatusPill tone="warning" small>
-                        Pendiente
-                      </StatusPill>
-                    )}
-                    {row.alegraStatus ? <span className="pill">{row.alegraStatus}</span> : null}
-                    {row.shopifyStatus ? <span className="pill pill-info">{row.shopifyStatus}</span> : null}
-                  </div>
-
-                  <div className="product-card-details">
-                    <div>
-                      <span>SKU</span>
-                      <strong>{row.sku || "—"}</strong>
-                    </div>
-                    <div>
-                      <span>Fuente</span>
-                      <strong>{row.source || "—"}</strong>
-                    </div>
-                    <div>
-                      <span>Actualizado</span>
-                      <strong>{row.updatedAt ? new Date(row.updatedAt).toLocaleDateString("es-CO") : "—"}</strong>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            ))
-          ) : (
-            <div className="metrics-empty-state">
-              <strong>Sin resultados</strong>
-              <p>No encontramos productos con los filtros actuales.</p>
+        {groups.length ? (
+          <div className="products-table">
+            <div className="products-table-head">
+              <span className="products-table-col-toggle" aria-hidden="true" />
+              <span>Producto</span>
+              <span>Referencia</span>
+              <span className="products-table-col-num">Variantes</span>
+              <span className="products-table-col-num">Stock</span>
+              <span>Estado</span>
+              <span>Actualizado</span>
             </div>
-          )}
-        </section>
+
+            {groups.map((group) => {
+              const lastUpdate = group.variants.reduce<string | null>((acc, variant) => {
+                if (!variant.updatedAt) return acc;
+                if (!acc) return variant.updatedAt;
+                return variant.updatedAt > acc ? variant.updatedAt : acc;
+              }, null);
+              const allMatched = group.matchedCount === group.variantCount;
+              const partiallyMatched = group.matchedCount > 0 && !allMatched;
+
+              return (
+                <details className="products-table-group" key={group.key}>
+                  <summary className="products-table-row products-table-row-parent">
+                    <span className="products-table-col-toggle" aria-hidden="true">
+                      ▸
+                    </span>
+                    <span className="products-table-cell-name">
+                      <strong>{group.name}</strong>
+                      <small>
+                        {group.shopifyProductIds.length > 0
+                          ? `${group.shopifyProductIds.length} producto(s) Shopify`
+                          : "Sin Shopify"}
+                      </small>
+                    </span>
+                    <span className="products-table-cell-ref">{group.reference || "—"}</span>
+                    <span className="products-table-col-num">{group.variantCount}</span>
+                    <span className="products-table-col-num">{group.totalStock}</span>
+                    <span>
+                      {allMatched ? (
+                        <StatusPill tone="success" small>
+                          Matcheado
+                        </StatusPill>
+                      ) : partiallyMatched ? (
+                        <StatusPill tone="warning" small>
+                          {group.matchedCount}/{group.variantCount}
+                        </StatusPill>
+                      ) : (
+                        <StatusPill tone="warning" small>
+                          Pendiente
+                        </StatusPill>
+                      )}
+                    </span>
+                    <span>{formatDate(lastUpdate)}</span>
+                  </summary>
+
+                  <div className="products-table-variants">
+                    <div className="products-table-variants-head">
+                      <span>SKU</span>
+                      <span>Alegra ID</span>
+                      <span>Shopify ID</span>
+                      <span className="products-table-col-num">Stock</span>
+                      <span>Alegra</span>
+                      <span>Shopify</span>
+                      <span>Actualizado</span>
+                    </div>
+                    {group.variants.map((variant) => (
+                      <div className="products-table-variant-row" key={variant.id}>
+                        <span>{variant.sku || "—"}</span>
+                        <span>{variant.alegraItemId || "—"}</span>
+                        <span>{variant.shopifyProductId || "—"}</span>
+                        <span className="products-table-col-num">
+                          {variant.inventoryQuantity ?? 0}
+                        </span>
+                        <span>
+                          {variant.alegraStatus ? (
+                            <span className="pill pill-mini">{variant.alegraStatus}</span>
+                          ) : (
+                            "—"
+                          )}
+                        </span>
+                        <span>
+                          {variant.shopifyStatus ? (
+                            <span className="pill pill-mini pill-info">{variant.shopifyStatus}</span>
+                          ) : (
+                            "—"
+                          )}
+                        </span>
+                        <span>{formatDate(variant.updatedAt)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="metrics-empty-state">
+            <strong>Sin resultados</strong>
+            <p>No encontramos productos con los filtros actuales.</p>
+          </div>
+        )}
       </section>
     </section>
   );
