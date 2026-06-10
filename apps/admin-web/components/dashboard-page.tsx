@@ -90,7 +90,7 @@ export function DashboardPage({ overview }: { overview: AdminWebDashboardOvervie
             <div className="metrics-highlight-grid metrics-highlight-grid-compact">
               {highlights.length ? (
                 highlights.map((row) => (
-                  <article className="metrics-highlight-card metrics-highlight-row" key={row.id}>
+                  <article className="metrics-highlight-card" key={row.id}>
                     <div className="metrics-highlight-top">
                       <span className="metrics-highlight-kind">{row.kind}</span>
                       <StatusPill tone={toneForStatus(row.status)} small>

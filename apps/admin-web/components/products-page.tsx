@@ -168,7 +168,7 @@ export function ProductsPage({
 
               return (
                 <details className="products-table-group" key={group.key}>
-                  <summary className="products-table-row products-table-row-parent">
+                  <summary className="products-table-row">
                     <span className="products-table-col-toggle" aria-hidden="true">
                       ▸
                     </span>

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import type { ConnectionsWorkspace } from "../lib/connections-workspace";
 import { StoreMarketingConfigPanel } from "./store-marketing-config-panel";
+import { PageHeader } from "./ui/page-header";
 import { ProviderMark } from "./ui/provider-mark";
 
 export function SettingsMarketingPage({ workspace }: { workspace: ConnectionsWorkspace }) {
@@ -19,18 +20,24 @@ export function SettingsMarketingPage({ workspace }: { workspace: ConnectionsWor
 
   return (
     <section className="page-stack">
-      <section className="page-header-standard">
-        <div>
-          <p className="eyebrow">Configuración</p>
-          <h1>Marketing</h1>
-          <p>Pixel y webhooks por tienda Shopify.</p>
-        </div>
-        <div className="page-header-actions">
+      <PageHeader
+        title="Marketing"
+        subtitle="Pixel y webhooks por tienda Shopify."
+        breadcrumbs={
+          <>
+            <a href="/">Inicio</a>
+            <span>/</span>
+            <a href="/settings/connections">Conexiones</a>
+            <span>/</span>
+            <span>Marketing</span>
+          </>
+        }
+        actions={
           <a className="btn ghost" href="/settings/connections">
             Volver a conexiones
           </a>
-        </div>
-      </section>
+        }
+      />
 
       <section className="metrics-kpis-tight metrics-kpis-compact">
         <article className="metric-card metric-card-violet">
