@@ -5,10 +5,10 @@ import type { StoreConfigReadiness } from "../lib/store-config-readiness";
 export function StoreConfigsReadiness({ readiness }: { readiness: StoreConfigReadiness }) {
   const title =
     readiness.level === "ok"
-      ? "Readiness estable"
+      ? "Listo para guardar"
       : readiness.level === "critical"
-        ? "Readiness bloqueante"
-        : "Readiness en atención";
+        ? "Bloqueado"
+        : "Atención";
 
   const toneClass =
     readiness.level === "ok"
@@ -21,7 +21,7 @@ export function StoreConfigsReadiness({ readiness }: { readiness: StoreConfigRea
     <section className={`store-readiness ${toneClass}`}>
       <div className="store-readiness-head">
         <strong>{title}</strong>
-        <span>{readiness.canSave ? "Guardado permitido" : "Guardar bloqueado"}</span>
+        <span>{readiness.canSave ? "Puede guardar" : "Guardar bloqueado"}</span>
       </div>
       {readiness.messages.length ? (
         <ul className="store-readiness-list">
@@ -30,7 +30,7 @@ export function StoreConfigsReadiness({ readiness }: { readiness: StoreConfigRea
           ))}
         </ul>
       ) : (
-        <p className="connection-inline-note">La combinación actual no expone riesgos inmediatos del bloque portado.</p>
+        <p className="connection-inline-note">Sin riesgos detectados.</p>
       )}
     </section>
   );

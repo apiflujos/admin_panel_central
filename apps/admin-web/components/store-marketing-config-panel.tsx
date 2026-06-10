@@ -210,7 +210,7 @@ export function StoreMarketingConfigPanel({
                 Copiar script
               </button>
             </div>
-            <small>Pégalo en `theme.liquid`. Sin esto no hay sesiones ni atribución.</small>
+            <small>Pégalo en `theme.liquid`.</small>
           </label>
 
           <label className="store-config-field store-config-field-span-2">

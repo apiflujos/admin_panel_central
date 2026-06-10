@@ -320,7 +320,7 @@ export function GlobalInvoiceSettingsPanel({
             <a className="btn ghost btn-compact" href="/legacy/settings/connections">
               Abrir
             </a>
-            <small>Builder avanzado de observaciones y opciones que no están aquí.</small>
+            <small>Opciones avanzadas no disponibles aquí.</small>
           </div>
         </div>
       </div>
@@ -411,7 +411,7 @@ export function GlobalInvoiceSettingsPanel({
                   </label>
                 ))}
               </div>
-              <small>Compone el texto final usando bloques reutilizables.</small>
+              <small>Texto final compuesto por bloques.</small>
             </div>
 
             <label className="store-config-field store-config-field-span-2">

@@ -2748,7 +2748,7 @@ export function StoreSyncActionsPanel({
                     setProductImagesForm((current) => ({ ...current, rowsText: event.target.value }))
                   }
                 />
-                <small>Una fila por producto: identificador | url1,url2 | texto alternativo opcional.</small>
+                <small>identificador | url1,url2 | alt (opcional)</small>
               </label>
             </div>
             <div className="page-module-actions compact-pills">

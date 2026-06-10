@@ -174,7 +174,7 @@ export function StoreSyncModulesPanel({
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Contactos</strong>
-            <span>Automático y match por prioridad entre E-commerce y Contable</span>
+            <span>Match automático entre E-commerce y Contable</span>
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
@@ -263,7 +263,7 @@ export function StoreSyncModulesPanel({
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Pedidos y facturación</strong>
-            <span>Dirección del sync entre Shopify y Alegra, y retorno de facturas hacia Shopify</span>
+            <span>Dirección del sync y retorno de facturas</span>
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
@@ -298,7 +298,7 @@ export function StoreSyncModulesPanel({
                   <option value="invoice">Factura</option>
                   <option value="off">Apagado</option>
                 </select>
-                <small>Define si el pedido solo se registra, crea contacto o factura en Alegra.</small>
+                <small>Pedido: registra, crea contacto o factura.</small>
               </label>
               <BooleanChoice
                 label="Facturas Contable → E-commerce"
@@ -330,7 +330,7 @@ export function StoreSyncModulesPanel({
                   <option value="draft">Borrador</option>
                   <option value="active">Activo</option>
                 </select>
-                <small>Decide si las facturas de Alegra regresan como borrador o como orden activa.</small>
+                <small>Facturas vuelven como borrador o activo.</small>
               </label>
             </div>
             <div className="page-module-actions">
@@ -392,7 +392,7 @@ export function StoreSyncModulesPanel({
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Productos E-commerce → Contable</strong>
-            <span>Creación, actualización, inventario y prioridad de match desde Shopify hacia Alegra</span>
+            <span>Crear, actualizar, inventario y match Shopify → Alegra</span>
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">

@@ -567,7 +567,7 @@ export function StoreConfigsCriticalPanel({
                 {invoiceModeAlreadyActive ? <option value="invoice">Factura</option> : null}
                 <option value="off">Apagado</option>
               </select>
-              <small>Elige si el pedido solo se registra, crea contacto o factura cuando ya esté habilitado.</small>
+              <small>Pedido: registra, crea contacto o factura.</small>
             </label>
 
             <label className="store-config-field">
@@ -586,7 +586,7 @@ export function StoreConfigsCriticalPanel({
                 <option value="draft">Borrador</option>
                 <option value="active">Activo</option>
               </select>
-              <small>Controla si el flujo inverso crea borradores o publica productos visibles.</small>
+              <small>Flujo inverso: borrador o producto visible.</small>
             </label>
 
             <BooleanChoice
@@ -706,7 +706,7 @@ export function StoreConfigsCriticalPanel({
                     </option>
                   ))}
                 </select>
-                <small>Se usa cuando necesitas priorizar una bodega frente a otras.</small>
+                <small>Prioridad sobre otras bodegas.</small>
               </label>
 
               <label className="store-config-field">
@@ -727,7 +727,7 @@ export function StoreConfigsCriticalPanel({
                   <option value="max_stock">Mayor stock</option>
                   <option value="random">Balanceado</option>
                 </select>
-                <small>Solo aplica cuando varias bodegas cumplen las mismas condiciones.</small>
+                <small>Cuando hay empate entre bodegas.</small>
               </label>
 
               <BooleanChoice
@@ -761,7 +761,7 @@ export function StoreConfigsCriticalPanel({
                   }
                   disabled={!draft.enabled}
                 />
-                <small>Umbral mínimo para considerar una bodega como elegible.</small>
+                <small>Mínimo para considerar elegible.</small>
               </label>
             </div>
           </div>
@@ -804,7 +804,7 @@ export function StoreConfigsCriticalPanel({
                   <option value="10">Cada 10 minutos</option>
                   <option value="15">Cada 15 minutos</option>
                 </select>
-                <small>Define cada cuánto se reconsulta inventario para ajustes automáticos.</small>
+                <small>Frecuencia de reconsulta de inventario.</small>
               </label>
 
               <BooleanChoice
@@ -1122,7 +1122,7 @@ export function StoreConfigsCriticalPanel({
                   <option value="draft">Borrador</option>
                   <option value="active">Activo</option>
                 </select>
-                <small>Define si la publicación automática deja el ítem como borrador o activo.</small>
+                <small>Estado del ítem en publicación automática.</small>
               </label>
 
               <BooleanChoice
