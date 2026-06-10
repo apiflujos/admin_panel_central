@@ -225,49 +225,9 @@
   border-color: var(--status-info);
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.stats-grid-tight {
-  gap: 8px;
-}
-
-.stats-grid-4 {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.stat-card,
-.table-card {
-  padding: 9px 10px;
-  background: #ffffff;
-}
-
-.table-card .dataTable {
-  margin-top: 6px;
-}
-
 .dataTable-wrap {
   width: 100%;
   overflow-x: auto;
-}
-
-.stat-card strong {
-  display: block;
-  margin: 3px 0 4px;
-  font-size: 13px;
-  color: var(--text-strong);
-}
-
-.stat-card-mini {
-  padding-top: 8px;
-  padding-bottom: 8px;
-}
-
-.stat-card-mini strong {
-  margin: 3px 0 0;
 }
 
 .store-inline-form {
@@ -422,17 +382,11 @@
   color: var(--muted);
 }
 
-.connection-card-meta,
 .connection-card-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-}
-
-.connection-section {
-  display: grid;
-  gap: 10px;
 }
 
 .connection-section-shell {
@@ -845,65 +799,6 @@
   gap: 8px;
 }
 
-.metrics-filters {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid var(--panel-border);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(10px);
-}
-
-.metrics-filter-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.metrics-filter-group-dates {
-  margin-left: auto;
-}
-
-.metrics-filter {
-  display: grid;
-  gap: 3px;
-  min-width: 112px;
-}
-
-.metrics-filter span {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-strong);
-}
-
-.metrics-segment,
-.metrics-tab {
-  justify-content: flex-start;
-}
-
-.metrics-segment.is-active,
-.metrics-tab.is-active {
-  background: linear-gradient(135deg, rgba(112, 76, 182, 0.14), rgba(112, 76, 182, 0.06));
-  border-color: rgba(112, 76, 182, 0.26);
-  color: var(--primary);
-}
-
-.metrics-tabs {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.metrics-tab {
-  min-height: 26px;
-  padding-inline: 10px;
-}
-
 .metrics-kpis {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -1002,10 +897,6 @@
   gap: 6px;
 }
 
-.metric-card-compact {
-  min-height: 96px;
-}
-
 .metric-card-violet {
   background: linear-gradient(180deg, rgba(124, 58, 237, 0.08) 0%, #fff 100%);
 }
@@ -1016,10 +907,6 @@
 
 .metric-card-amber {
   background: linear-gradient(180deg, rgba(245, 158, 11, 0.09) 0%, #fff 100%);
-}
-
-.metric-card-rose {
-  background: linear-gradient(180deg, rgba(225, 74, 102, 0.08) 0%, #fff 100%);
 }
 
 .metric-label,
@@ -1270,87 +1157,6 @@
   gap: 10px;
 }
 
-.config-brand-strip {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.config-brand-strip-logo {
-  width: 128px;
-  height: 34px;
-  object-fit: contain;
-  object-position: left center;
-}
-
-.config-brand-strip-avatar {
-  width: 38px;
-  height: 38px;
-  margin-left: auto;
-  object-fit: contain;
-}
-
-.config-brand-strip-meta {
-  display: grid;
-  gap: 2px;
-}
-
-.config-brand-strip-meta strong {
-  font-size: 15px;
-  color: var(--text-strong);
-}
-
-.config-brand-strip-meta span {
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.config-summary-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--panel-border);
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 244, 255, 0.94));
-  flex-wrap: wrap;
-}
-
-.config-summary-main {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
-.config-summary-copy {
-  display: grid;
-  gap: 2px;
-}
-
-.config-summary-copy strong {
-  font-size: 15px;
-  color: var(--text-strong);
-}
-
-.config-summary-copy span {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.config-summary-strip .provider-mark {
-  width: 42px;
-  height: 42px;
-  padding: 5px;
-  border-radius: 12px;
-}
-
-.config-summary-strip .provider-mark-row {
-  gap: 10px;
-}
-
 .config-active-store-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) auto minmax(0, 1fr) auto;
@@ -1377,10 +1183,6 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-}
-
-.provider-shortcuts-compact {
-  gap: 8px;
 }
 
 .provider-shortcuts-modal {
