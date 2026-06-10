@@ -153,40 +153,19 @@
   font-size: 10px;
 }
 
-.pill-success {
+.pill-ok {
   background: var(--status-success-bg);
   color: var(--status-success);
   border-color: var(--status-success);
 }
 
-.pill-ok,
-.pill-success {
-  background: var(--status-success-bg);
-  color: var(--status-success);
-  border-color: var(--status-success);
-}
-
-.pill-warning {
+.pill-warn {
   background: var(--status-warning-bg);
   color: var(--status-warning);
   border-color: var(--status-warning);
 }
 
-.pill-warn,
-.pill-warning {
-  background: var(--status-warning-bg);
-  color: var(--status-warning);
-  border-color: var(--status-warning);
-}
-
-.pill-error {
-  background: var(--status-danger-bg);
-  color: var(--status-danger);
-  border-color: var(--status-danger);
-}
-
-.pill-bad,
-.pill-error {
+.pill-bad {
   background: var(--status-danger-bg);
   color: var(--status-danger);
   border-color: var(--status-danger);
