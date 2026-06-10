@@ -906,7 +906,7 @@ export function StoreConfigsCriticalPanel({
             <div className="store-configs-grid">
               <div className="store-config-field store-config-field-span-2">
                 <span>Bodegas de inventario</span>
-                <small>Sin selección explícita, la tienda opera con todas las bodegas disponibles.</small>
+                <small>Sin selección = todas las bodegas.</small>
                 <div className="store-warehouse-card">
                   <div className="store-warehouse-head">
                     <strong>{warehouseSummary}</strong>
@@ -981,7 +981,7 @@ export function StoreConfigsCriticalPanel({
 
               <div className="store-config-field store-config-field-span-2">
                 <span>Bodegas origen para traslados</span>
-                <small>Sin selección explícita, la tienda opera con todas las bodegas disponibles.</small>
+                <small>Sin selección = todas las bodegas.</small>
                 <div className="store-warehouse-card">
                   <div className="store-warehouse-head">
                     <strong>{transferOriginSummary}</strong>

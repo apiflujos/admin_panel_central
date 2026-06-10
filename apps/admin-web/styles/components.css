@@ -102,29 +102,6 @@
   flex-wrap: wrap;
 }
 
-.stage-guide-shell {
-  gap: 10px;
-}
-
-.stage-guide-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.stage-guide-card {
-  padding: 12px 14px;
-  border: 1px solid var(--panel-border);
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 244, 255, 0.94));
-}
-
-.stage-guide-card strong {
-  display: block;
-  font-size: 12px;
-  color: var(--text-strong);
-}
-
 .input,
 .input-control {
   min-height: var(--control-height);
@@ -788,13 +765,6 @@
   gap: 10px;
 }
 
-.modal-intro {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--muted);
-}
-
 .modal-body .provider-mark-row {
   align-items: center;
   justify-content: flex-start;
@@ -1253,18 +1223,6 @@
   font-size: 12px;
 }
 
-.products-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.products-card-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
 .metrics-kpis-tight {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -1525,22 +1483,6 @@
   padding: 12px;
 }
 
-.channels-diagnostics-shell {
-  margin-top: 4px;
-}
-
-.channels-diagnostics-shell .settings-collapsible-summary {
-  padding: 14px 16px;
-}
-
-.channels-diagnostics-shell .settings-collapsible-summary .pill {
-  white-space: nowrap;
-}
-
-.channels-diagnostics-shell .connection-section {
-  padding: 0 10px 10px;
-}
-
 .entity-cell {
   display: grid;
   gap: 3px;
@@ -1704,114 +1646,6 @@
   }
 }
 
-.product-card {
-  overflow: hidden;
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 244, 255, 0.94));
-}
-
-.products-card-grid-compact {
-  gap: 10px;
-}
-
-.product-card-compact {
-  border-radius: 18px;
-}
-
-.product-card-media {
-  min-height: 178px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #271f2e 0%, #352940 100%);
-}
-
-.product-card-compact .product-card-media {
-  min-height: 118px;
-}
-
-.product-card-media span {
-  font-size: 62px;
-  line-height: 1;
-  font-weight: 800;
-  color: #d1b173;
-  letter-spacing: -0.05em;
-}
-
-.product-card-compact .product-card-media span {
-  font-size: 44px;
-}
-
-.product-card-body {
-  padding: 14px 14px 16px;
-  display: grid;
-  gap: 12px;
-}
-
-.product-card-compact .product-card-body {
-  padding: 10px 10px 12px;
-  gap: 8px;
-}
-
-.product-card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.product-card-head h3 {
-  margin: 0;
-  font-size: 16px;
-  color: var(--text-strong);
-}
-
-.product-card-head p {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.product-card-stock {
-  color: var(--primary);
-  font-size: 24px;
-  white-space: nowrap;
-}
-
-.product-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.product-card-details {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--panel-border);
-}
-
-.product-card-compact .product-card-details {
-  gap: 6px;
-  padding-top: 6px;
-}
-
-.product-card-details span {
-  display: block;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-faint);
-  margin-bottom: 4px;
-}
-
-.product-card-details strong {
-  font-size: 12px;
-  color: var(--text-strong);
-}
-
 .app-state-shell {
   min-height: 100vh;
   display: flex;
@@ -1897,9 +1731,6 @@
   .settings-grid,
   .metrics-highlight-grid,
   .metrics-highlight-grid-compact,
-  .stage-guide-grid,
-  .products-summary-grid,
-  .products-card-grid,
   .provider-shortcuts,
   .config-active-store-grid,
   .integration-hub-grid,
@@ -1954,14 +1785,10 @@
   .settings-grid,
   .metrics-highlight-grid,
   .metrics-highlight-grid-compact,
-  .stage-guide-grid,
-  .products-summary-grid,
-  .products-card-grid,
   .provider-shortcuts,
   .config-active-store-grid,
   .integration-hub-grid,
   .operational-hub-grid,
-  .product-card-details,
   .record-grid,
   .record-card-meta,
   .store-warehouse-grid {
