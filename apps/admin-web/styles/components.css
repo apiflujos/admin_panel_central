@@ -40,52 +40,28 @@
   color: var(--text-strong);
 }
 
-.btn-primary {
+.btn.primary {
   background: var(--primary);
   color: #fff;
   border-color: transparent;
 }
 
-.btn.primary,
-.btn.btn-primary {
-  background: var(--primary);
-  color: #fff;
-  border-color: transparent;
-}
-
-.btn-primary:hover {
+.btn.primary:hover {
   background: var(--brand-primary-700);
   color: #fff;
   border-color: transparent;
 }
 
-.btn-ghost {
+.btn.ghost {
   background: #ffffff;
   border-color: var(--panel-border);
   color: var(--text);
 }
 
-.btn.ghost,
-.btn.btn-ghost {
-  background: #ffffff;
-  border-color: var(--panel-border);
-  color: var(--text);
-}
-
-.btn-ghost:hover {
+.btn.ghost:hover {
   background: #f8f9fa;
   border-color: var(--stroke-strong);
   color: var(--text-strong);
-}
-
-.btn-icon-only {
-  width: 28px;
-  min-width: 28px;
-  height: 28px;
-  min-height: 28px;
-  padding: 0;
-  gap: 0;
-  border-radius: 6px;
 }
 
 .btn-compact {
@@ -102,8 +78,7 @@
   flex-wrap: wrap;
 }
 
-.input,
-.input-control {
+.input {
   min-height: var(--control-height);
   padding: 0 var(--control-padding-x);
   border-radius: var(--radius-lg);
@@ -116,13 +91,11 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
-.input::placeholder,
-.input-control::placeholder {
+.input::placeholder {
   color: var(--form-placeholder);
 }
 
-.input:focus,
-.input-control:focus {
+.input:focus {
   outline: 2px solid color-mix(in srgb, var(--primary-soft) 88%, transparent);
   border-color: var(--primary);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-soft) 42%, transparent);
@@ -142,7 +115,7 @@
   width: 100%;
 }
 
-.input-with-icon .input-control {
+.input-with-icon .input {
   padding-left: 34px;
 }
 
@@ -521,8 +494,8 @@
   margin: 0 10px 10px;
 }
 
-.store-config-field select.input-control,
-.store-config-field input.input-control {
+.store-config-field select.input,
+.store-config-field input.input {
   width: 100%;
 }
 
@@ -1518,13 +1491,8 @@
 }
 
 @media (max-width: 1080px) {
-  .metrics-filters,
   .metrics-panels {
     grid-template-columns: 1fr;
-  }
-
-  .metrics-filter-group-dates {
-    margin-left: 0;
   }
 
   .metrics-kpis,
@@ -1540,8 +1508,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .stats-grid,
-  .stats-grid-4,
   .connections-grid,
   .store-configs-grid,
   .store-warehouse-grid {
@@ -1563,20 +1529,6 @@
     padding: 12px;
   }
 
-  .metrics-filters {
-    padding: 12px;
-  }
-
-  .metrics-filter-group {
-    width: 100%;
-    gap: 8px;
-  }
-
-  .metrics-filter {
-    min-width: 0;
-    width: 100%;
-  }
-
   .metrics-bar-row {
     grid-template-columns: 1fr;
   }
@@ -1595,15 +1547,6 @@
   .record-card-meta,
   .store-warehouse-grid {
     grid-template-columns: 1fr;
-  }
-
-  .config-brand-strip {
-    align-items: flex-start;
-  }
-
-  .config-brand-strip-logo {
-    width: 108px;
-    height: 28px;
   }
 
   .segmented-toggle {
