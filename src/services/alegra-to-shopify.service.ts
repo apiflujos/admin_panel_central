@@ -282,13 +282,6 @@ export async function syncAlegraInventoryPayloadToShopify(payload: AlegraInvento
     }
   }
   if (!mapped || !mapped.shopifyInventoryItemId) {
-    await createSyncLog({
-      entity: "inventory",
-      direction: "alegra->shopify",
-      status: "warn",
-      message: "Missing Shopify mapping for inventory",
-      request: { alegraItemId },
-    });
     return { handled: false, reason: "missing_mapping" };
   }
 

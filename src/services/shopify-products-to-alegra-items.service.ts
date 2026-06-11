@@ -2,6 +2,7 @@ import { buildSyncContext } from "./sync-context";
 import { createSyncLog } from "./logs.service";
 import { getMappingByShopifyId, getMappingByShopifyInventoryItemId, saveMapping } from "./mapping.service";
 import { getStoreConfigForDomain } from "./store-configs.service";
+import { clearSyncCheckpoint, getSyncCheckpoint, saveSyncCheckpoint } from "./sync-checkpoints.service";
 import type { ShopifyProduct } from "../connectors/shopify";
 import { getPool } from "../db";
 import {
@@ -86,6 +87,19 @@ function extractAlegraListItems(payload: unknown) {
   return items as Array<Record<string, unknown>>;
 }
 
+function isRateLimitError(error: unknown): boolean {
+  const message = String((error as { message?: string })?.message || "").toLowerCase();
+  if (!message) return false;
+  return (
+    message.includes("429") ||
+    message.includes("too many requests") ||
+    message.includes("rate limit") ||
+    message.includes("rate_limit")
+  );
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 async function findAlegraItemByIdentifier(ctx: Awaited<ReturnType<typeof buildSyncContext>>, identifier: string) {
   const value = String(identifier || "").trim();
   if (!value) return null;
@@ -106,6 +120,7 @@ async function findAlegraItemByIdentifier(ctx: Awaited<ReturnType<typeof buildSy
     { ...baseParams, query: value },
   ];
 
+  let rateLimitBackoffMs = 2000;
   for (const params of attempts) {
     try {
       const response = await ctx.alegra.searchItems(params);
@@ -119,7 +134,11 @@ async function findAlegraItemByIdentifier(ctx: Awaited<ReturnType<typeof buildSy
         metadata: true,
       });
       return full as Record<string, unknown>;
-    } catch {
+    } catch (error) {
+      if (isRateLimitError(error)) {
+        await sleep(rateLimitBackoffMs);
+        rateLimitBackoffMs = Math.min(rateLimitBackoffMs * 2, 16000);
+      }
       // try next attempt
     }
   }
@@ -489,6 +508,7 @@ export async function syncShopifyProductsToAlegraBulk(params: {
   config?: Partial<ProductSyncConfig>;
   isCanceled?: () => boolean | Promise<boolean>;
   onEvent?: (payload: Record<string, unknown>) => void;
+  resume?: boolean;
 }) {
   const shopDomain = String(params.shopDomain || "").trim();
   if (!shopDomain) throw new Error("shopDomain requerido.");
@@ -522,15 +542,53 @@ export async function syncShopifyProductsToAlegraBulk(params: {
   let skipped = 0;
   let failed = 0;
 
-  onEvent({ type: "start", totalProducts, totalVariants });
-  for (const product of products) {
+  const checkpointEntity = `products_to_alegra:${shopDomain}`;
+  let resumeFromIndex = 0;
+  if (params.resume !== false) {
+    try {
+      const checkpoint = await getSyncCheckpoint(checkpointEntity);
+      if (checkpoint && checkpoint.total === totalProducts && checkpoint.lastStart > 0) {
+        resumeFromIndex = Math.min(checkpoint.lastStart, totalProducts);
+      } else if (checkpoint) {
+        await clearSyncCheckpoint(checkpointEntity);
+      }
+    } catch {
+      // ignore checkpoint read errors
+    }
+  } else {
+    try {
+      await clearSyncCheckpoint(checkpointEntity);
+    } catch {
+      // ignore
+    }
+  }
+
+  onEvent({ type: "start", totalProducts, totalVariants, resumeFromIndex });
+  for (let productIndex = 0; productIndex < products.length; productIndex += 1) {
+    const product = products[productIndex];
+    if (productIndex < resumeFromIndex) {
+      const variantsCount = Array.isArray(product?.variants?.edges) ? product.variants.edges.length : 0;
+      processed += variantsCount;
+      skipped += variantsCount;
+      continue;
+    }
     if (await isCanceled()) {
+      try {
+        await saveSyncCheckpoint({ entity: checkpointEntity, lastStart: productIndex, total: totalProducts });
+      } catch {
+        // ignore checkpoint save errors
+      }
       onEvent({ type: "canceled", processed, created, updated, skipped, failed });
       return { ok: false, canceled: true, processed, created, updated, skipped, failed, totalProducts, totalVariants };
     }
     const variants = Array.isArray(product?.variants?.edges) ? product.variants.edges : [];
     for (const edge of variants) {
       if (await isCanceled()) {
+        try {
+          await saveSyncCheckpoint({ entity: checkpointEntity, lastStart: productIndex, total: totalProducts });
+        } catch {
+          // ignore checkpoint save errors
+        }
         onEvent({ type: "canceled", processed, created, updated, skipped, failed });
         return {
           ok: false,
@@ -569,6 +627,22 @@ export async function syncShopifyProductsToAlegraBulk(params: {
         onEvent({ type: "progress", processed, totalVariants, created, updated, skipped, failed });
       }
     }
+    if ((productIndex + 1) % 25 === 0) {
+      try {
+        await saveSyncCheckpoint({
+          entity: checkpointEntity,
+          lastStart: productIndex + 1,
+          total: totalProducts,
+        });
+      } catch {
+        // ignore checkpoint save errors
+      }
+    }
+  }
+  try {
+    await clearSyncCheckpoint(checkpointEntity);
+  } catch {
+    // ignore checkpoint clear errors
   }
   onEvent({ type: "done", processed, totalVariants, created, updated, skipped, failed });
   return { ok: true, processed, totalProducts, totalVariants, created, updated, skipped, failed };
