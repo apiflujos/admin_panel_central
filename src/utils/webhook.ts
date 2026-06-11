@@ -26,9 +26,12 @@ export function verifyShopifyHmac(rawBody: Buffer, signature: string) {
 }
 
 export function verifyAlegraSignature(rawBody: Buffer, signature: string) {
-  const secret = process.env.ALEGRA_WEBHOOK_SECRET || "";
+  const secret = String(process.env.ALEGRA_WEBHOOK_SECRET || "").trim();
   if (!secret) {
-    return true;
+    if (String(process.env.ALLOW_UNVERIFIED_ALEGRA_WEBHOOKS || "").toLowerCase() === "true") {
+      return true;
+    }
+    return false;
   }
   if (!rawBody) {
     return false;

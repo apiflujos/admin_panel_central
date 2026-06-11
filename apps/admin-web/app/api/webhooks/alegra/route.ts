@@ -4,6 +4,7 @@ import { createSyncLog } from "../../../../../../src/services/logs.service";
 import { processRetryQueue } from "../../../../../../src/services/retry-queue.service";
 import { shopifyStoreExists } from "../../../../../../src/services/store-connections.service";
 import { enqueueWebhookEvent } from "../../../../../../src/services/sync.service";
+import { recordWebhookReceipt } from "../../../../../../src/services/webhook-receipts.service";
 import { verifyAlegraSignature } from "../../../../../../src/utils/webhook";
 import { routeHandler } from "../../../../lib/route-handler";
 
@@ -69,6 +70,24 @@ export const POST = routeHandler(async (req: Request) => {
       },
     });
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
+  }
+
+  const webhookId = String(
+    req.headers.get("x-alegra-webhook-id") ||
+      req.headers.get("x-alegra-delivery-id") ||
+      body?.id ||
+      ""
+  ).trim();
+  if (webhookId) {
+    const fresh = await recordWebhookReceipt({
+      source: "alegra",
+      webhookId,
+      topic: eventType,
+      shopDomain,
+    });
+    if (!fresh) {
+      return NextResponse.json({ status: "duplicate" }, { status: 200 });
+    }
   }
 
   const raw = body || {};

@@ -4,6 +4,7 @@ import { createSyncLog } from "../../../../../../src/services/logs.service";
 import { processRetryQueue } from "../../../../../../src/services/retry-queue.service";
 import { shopifyStoreExists } from "../../../../../../src/services/store-connections.service";
 import { enqueueWebhookEvent } from "../../../../../../src/services/sync.service";
+import { recordWebhookReceipt } from "../../../../../../src/services/webhook-receipts.service";
 import { verifyShopifyHmac } from "../../../../../../src/utils/webhook";
 import { routeHandler } from "../../../../lib/route-handler";
 
@@ -48,6 +49,18 @@ export const POST = routeHandler(async (req: Request) => {
       },
     });
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
+  }
+
+  if (webhookId) {
+    const fresh = await recordWebhookReceipt({
+      source: "shopify",
+      webhookId,
+      topic,
+      shopDomain,
+    });
+    if (!fresh) {
+      return NextResponse.json({ status: "duplicate" }, { status: 200 });
+    }
   }
 
   const body = parseWebhookBody(rawBody);
