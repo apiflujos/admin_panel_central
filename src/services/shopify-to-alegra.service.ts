@@ -56,6 +56,29 @@ type ForceSyncOptions = {
 };
 
 export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload, options?: ForceSyncOptions) {
+  const orderId = extractOrderId(payload);
+  const shopDomain = payload.__shopDomain || "";
+  if (!orderId) {
+    return syncShopifyOrderToAlegraInner(payload, options);
+  }
+  const { getPool } = await import("../db");
+  const pool = getPool();
+  const lockKey = `shopify-order:${shopDomain}:${orderId}`;
+  const client = await pool.connect();
+  try {
+    await client.query("SELECT pg_advisory_lock(hashtext($1))", [lockKey]);
+    return await syncShopifyOrderToAlegraInner(payload, options);
+  } finally {
+    try {
+      await client.query("SELECT pg_advisory_unlock(hashtext($1))", [lockKey]);
+    } catch {
+      // ignore unlock failures
+    }
+    client.release();
+  }
+}
+
+async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, options?: ForceSyncOptions) {
   const ctx = await buildSyncContext(payload.__shopDomain);
   const { getOrgId, getPool } = await import("../db");
   const pool = getPool();
