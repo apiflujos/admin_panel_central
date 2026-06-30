@@ -66,13 +66,96 @@ curl -sS http://localhost:3200/api/health
 
 Login en `http://localhost:3200/auth/login` con `ADMIN_EMAIL` / `ADMIN_PASSWORD` definidos en `.env.becam`.
 
-## Deploy en servidor
+## Deploy producción con PM2
 
-Sigue el flujo de `docs/DEPLOY.md`, ajustando:
-- `cd /opt/apps/admin-central-becam`
-- `git checkout client/becam`
-- `.env` apunta a la BD productiva de becam (no usar `.env.becam` del repo de dev)
-- PM2: `pm2 restart admin-central-becam`
+### Primera instalación en servidor
+
+```bash
+sudo mkdir -p /opt/apps/admin-central-becam
+sudo chown $USER /opt/apps/admin-central-becam
+cd /opt/apps/admin-central-becam
+
+git clone https://github.com/apiflujos/admin_panel_central.git .
+git checkout client/becam
+
+cp .env.becam.example .env
+nano .env   # rellenar valores reales (NO usar .env.becam.example tal cual)
+
+npm ci
+npm ci --prefix apps/admin-web
+npm run build
+SKIP_NEXT_VALIDATION=1 npm run build:admin-web
+npm run db:migrate
+
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup   # seguir las instrucciones para que sobreviva reboots
+```
+
+### Procesos PM2
+
+`ecosystem.config.js` levanta 3 procesos:
+
+| Nombre PM2 | Puerto | Script |
+|---|---|---|
+| `becam-api` | 3007 | `dist/src/server.js` |
+| `becam-admin-web` | 3200 | `apps/admin-web/.next/standalone/.../server.js` |
+| `becam-workers` | — | `dist/apps/workers/src/bootstrap.js` |
+
+### Despliegues posteriores
+
+```bash
+cd /opt/apps/admin-central-becam
+./scripts/deploy-becam.sh
+```
+
+El script encadena: `git fetch + pull` → `npm ci` → `build` → `db:migrate` → `pm2 reload` → smoke (`/health` + `/api/health`).
+
+### Rollback
+
+```bash
+./scripts/deploy-becam.sh rollback <COMMIT_ESTABLE>
+```
+
+### Solo smoke
+
+```bash
+./scripts/deploy-becam.sh smoke
+```
+
+### Monitoreo
+
+```bash
+pm2 status
+pm2 logs becam-api --lines 200
+pm2 logs becam-admin-web --lines 200
+pm2 logs becam-workers --lines 200
+pm2 monit                # vista TUI con CPU/memoria
+```
+
+### Reverse proxy (Nginx ejemplo)
+
+```nginx
+server {
+  server_name becam.tudominio.com;
+  listen 443 ssl http2;
+  # ... ssl_certificate y ssl_certificate_key ...
+
+  location /api/webhooks/ {
+    proxy_pass http://127.0.0.1:3007;   # backend recibe webhooks directamente
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+  }
+
+  location / {
+    proxy_pass http://127.0.0.1:3200;   # admin-web sirve el resto
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+  }
+}
+```
+
+Con esto `APP_HOST=https://becam.tudominio.com` en `.env` permite que los webhooks de Shopify lleguen con HTTPS público.
 
 ## Actualizar con cambios de olivashoes o main
 

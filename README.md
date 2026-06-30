@@ -1,258 +1,277 @@
-# Admin Central Platform
+# Integración Alegra ↔ Shopify
 
-Starter scaffolding for the integration middleware and dashboard API.
+Plataforma multi-tenant que sincroniza catálogo, inventario, contactos, órdenes y facturación entre **Shopify** y **Alegra** (más opcional WooCommerce y plataformas de Ads). Cada cliente vive en su propia rama `client/<nombre>` con su propia base de datos `admin-central-<nombre>` y su propio stack aislado.
 
-## AI agents (required reading)
+- **Backend**: Node.js + Express + Postgres + Redis + BullMQ
+- **Frontend**: Next.js 15 (App Router) bajo `apps/admin-web`
+- **Workers**: BullMQ + pollers en `apps/workers`
+- **Multi-tenant**: una rama por cliente, una BD por cliente
 
-If you are an AI agent (Codex/Gemini/Claude/etc), **read these files before coding**:
+---
 
+## Clientes en este repo
+
+| Cliente | Rama | DB | Compose | Puertos local |
+|---|---|---|---|---|
+| **olivashoes** | `client/olivashoes` | `admin-central-olivashoes` | `docker-compose.yml` | app **3006**, admin-web **3100** |
+| **becam** | `client/becam` | `admin-central-becam` | `docker-compose.becam.yml` | app **3007**, admin-web **3200** |
+
+> Ambos clientes pueden correr a la vez en la misma máquina sin chocar (puertos, contenedores y volúmenes separados).
+
+---
+
+## Quick start — cliente becam (local)
+
+```bash
+# 1. Clonar y entrar
+git clone https://github.com/apiflujos/admin_panel_central.git
+cd admin_panel_central
+git checkout client/becam
+
+# 2. Configurar variables del cliente
+cp .env.becam.example .env.becam
+# Editar .env.becam con: ADMIN_EMAIL, ADMIN_PASSWORD, CRYPTO_KEY_BASE64,
+# SHOPIFY_API_KEY/SECRET, SHOPIFY_WEBHOOK_SECRET, ALEGRA_WEBHOOK_SECRET, etc.
+
+# 3. Levantar el stack aislado
+docker compose -f docker-compose.becam.yml up -d --build
+
+# 4. Migraciones
+docker compose -f docker-compose.becam.yml exec app npm run db:migrate
+
+# 5. Smoke
+curl http://localhost:3007/health           # backend
+curl http://localhost:3200/api/health       # admin-web
+```
+
+Login en `http://localhost:3200/auth/login`.
+
+---
+
+## Deploy producción con PM2 — cliente becam
+
+### Requisitos del servidor
+- Node.js ≥ 22 LTS
+- PM2 global (`npm i -g pm2`)
+- Postgres ≥ 14 accesible (BD `admin-central-becam` creada)
+- Redis ≥ 6 accesible
+- HTTPS público (Nginx/Caddy/Cloudflare) apuntando al puerto del admin-web
+
+### Primera instalación
+
+```bash
+# 1. Estructura recomendada
+sudo mkdir -p /opt/apps/admin-central-becam
+sudo chown $USER /opt/apps/admin-central-becam
+cd /opt/apps/admin-central-becam
+
+# 2. Clonar y posicionar en la rama
+git clone https://github.com/apiflujos/admin_panel_central.git .
+git checkout client/becam
+
+# 3. .env productivo (NO se commitea)
+cp .env.becam.example .env
+nano .env   # rellenar valores reales del cliente
+
+# 4. Instalar y compilar
+npm ci
+npm run build
+npm run build:admin-web
+
+# 5. Migraciones contra la BD productiva
+npm run db:migrate
+
+# 6. Arrancar PM2 con el ecosystem incluido
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup    # seguir las instrucciones que imprime para systemd
+
+# 7. Verificar
+curl http://localhost:3007/health
+curl http://localhost:3200/api/health
+pm2 status
+```
+
+### Procesos PM2
+
+Definidos en `ecosystem.config.js`:
+
+| Nombre PM2 | Comando | Puerto | Notas |
+|---|---|---|---|
+| `becam-api` | `npm run start` | 3007 | Backend Express + rutas legacy |
+| `becam-admin-web` | `npm --prefix apps/admin-web run start` | 3200 | Next.js standalone |
+| `becam-workers` | `npm run start:workers` | — | Pollers + BullMQ |
+
+### Despliegues subsiguientes
+
+```bash
+cd /opt/apps/admin-central-becam
+./scripts/deploy-becam.sh
+```
+
+El script hace `git pull` → `npm ci` → `build` → `db:migrate` → `pm2 reload` → smoke.
+
+### Rollback
+
+```bash
+./scripts/deploy-becam.sh rollback <COMMIT_ESTABLE>
+# o manualmente:
+git checkout <COMMIT_ESTABLE>
+npm ci && npm run build && pm2 reload ecosystem.config.js
+```
+
+---
+
+## Migraciones
+
+Tracker: tabla `schema_migrations` (filename + applied_at).
+
+| # | Archivo | Descripción |
+|---|---|---|
+| 001 | `001_baseline.sql` | Tablas iniciales (organizations, users, mappings, sync_logs, etc) |
+| 002 | `002_connection_tests.sql` | Histórico de tests de conexión |
+| 003 | `003_stores.sql` | Multi-tienda por organización |
+| 004 | `004_store_configs_store_id.sql` | Config por tienda |
+| 005 | `005_shopify_oauth_states_alegra.sql` | OAuth Shopify + vínculo Alegra |
+| 006 | `006_inventory_rules_allow_oversell.sql` | Reglas de inventario |
+| 007 | `007_ai_assistants.sql` | Asistentes AI |
+| 008 | `008_credentials_unique_updated_at.sql` | Unique constraint + auditoría |
+| 009 | `009_missing_indexes.sql` | Indexes faltantes |
+| 010 | `010_sync_runs.sql` | Tracking de runs de sync con cancel |
+| 011 | `011_products_payload_json.sql` | JSONB en products |
+| 012 | `012_webhook_receipts.sql` | Dedup de webhooks |
+
+`npm run db:migrate` aplica las pendientes en orden. **El app NO auto-aplica schema.**
+
+---
+
+## Variables `.env` clave
+
+Ver `.env.becam.example` para la lista completa. Mínimas para arrancar:
+
+| Variable | Por qué |
+|---|---|
+| `APP_HOST` | URL pública con esquema (`https://...`). La usan OAuth y webhooks |
+| `APP_PORT` | Puerto del backend (becam: `3006` interno, expuesto en `3007`) |
+| `ADMIN_WEB_URL` | URL pública del frontend |
+| `DATABASE_URL` | Postgres (admin-central-becam) |
+| `REDIS_URL` | **Obligatorio**, sin esto el app no arranca |
+| `CRYPTO_KEY_BASE64` | 32 bytes b64. **No cambiar** una vez hay credenciales cifradas en BD |
+| `CSRF_SECRET` | String largo aleatorio |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap del admin inicial |
+| `SHOPIFY_API_KEY/SECRET/WEBHOOK_SECRET` | Shopify OAuth + webhooks |
+| `ALEGRA_WEBHOOK_SECRET` | Verificación de webhooks Alegra |
+| `RUN_WORKERS_IN_WEB` | `false` cuando los workers corren en proceso aparte |
+
+> Generar `CRYPTO_KEY_BASE64`:
+> `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
+
+---
+
+## Smoke post-deploy
+
+```bash
+# Salud básica
+curl https://<dominio-cliente>/health
+curl https://<dominio-cliente>/api/health
+
+# Login + endpoints (necesita .env del cliente)
+npm run qa:smoke
+BASE_URL=https://<dominio-cliente> ADMIN_EMAIL=<email> ADMIN_PASSWORD=<pass> npm run qa:admin-web
+```
+
+Rutas para revisar manualmente en producción:
+- `/` (dashboard)
+- `/products` (tabla padre + variantes)
+- `/orders`, `/invoices`, `/contacts`, `/operations`
+- `/settings/connections` (estado Shopify/Alegra/Ads)
+- `/logs` (sync_logs)
+
+---
+
+## Comandos útiles
+
+```bash
+# Estado de procesos
+pm2 status
+pm2 logs becam-api --lines 100
+pm2 logs becam-admin-web --lines 100
+pm2 logs becam-workers --lines 100
+
+# Recargar sin downtime
+pm2 reload ecosystem.config.js
+
+# Ver memoria/CPU
+pm2 monit
+
+# Apagado total (mantenimiento)
+pm2 stop ecosystem.config.js
+```
+
+---
+
+## Hardenings de producción ya aplicados
+
+La rama `client/becam` (derivada de `client/olivashoes`) incluye:
+
+- **Advisory lock por orden** en webhooks Shopify (`pg_advisory_lock`) — sin races entre entregas concurrentes.
+- **Dedup de webhooks** por `x-shopify-webhook-id` / `x-alegra-webhook-id` (tabla `webhook_receipts`).
+- **`verifyAlegraSignature` endurecido**: rechaza sin firma a menos que `ALLOW_UNVERIFIED_ALEGRA_WEBHOOKS=true`.
+- **Backoff exponencial** (2s→4s→8s→16s) en búsquedas Alegra ante 429.
+- **Checkpoints** cada 25 productos en bulk products→alegra (resume tras cancel/error).
+- **Restart unless-stopped** en todos los contenedores Docker.
+
+---
+
+## Estructura
+
+```
+/
+├── apps/
+│   ├── admin-web/          Next.js 15 frontend
+│   └── workers/            BullMQ + pollers
+├── packages/
+│   ├── domain/             Lógica de dominio pura (pricing, matching)
+│   └── shared/             DTOs entre backend y frontend
+├── src/
+│   ├── api/                Rutas Express legacy
+│   ├── services/           Lógica de sync Shopify ↔ Alegra
+│   ├── connectors/         Clientes Shopify/Alegra/WooCommerce
+│   ├── jobs/               BullMQ jobs
+│   ├── db/migrations/      SQL migrations numeradas
+│   └── scripts/            db-migrate + helpers CLI
+├── docs/
+│   ├── DEPLOY.md           Guía multi-tenant general
+│   ├── CLIENT_BECAM.md     Guía específica de becam
+│   └── INTEGRATIONS.md     Integraciones Shopify/Alegra
+├── docker-compose.yml      Stack local olivashoes (3006/3100)
+├── docker-compose.becam.yml Stack local becam (3007/3200)
+├── ecosystem.config.js     Configuración PM2 para becam
+├── scripts/deploy-becam.sh Script de deploy + rollback
+└── .env.becam.example      Template de variables becam
+```
+
+---
+
+## Documentación adicional
+
+- [docs/DEPLOY.md](docs/DEPLOY.md) — Guía multi-tenant general
+- [docs/CLIENT_BECAM.md](docs/CLIENT_BECAM.md) — Operación día a día becam
+- [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) — Detalles Shopify/Alegra
+- [docs/QA.md](docs/QA.md) — Smoke checks
+- [docs/TRANSITION_STATUS.md](docs/TRANSITION_STATUS.md) — Estado del rework admin-web
+
+---
+
+## Para agentes IA
+
+Antes de tocar código, leer:
 - `AGENTS.md`
 - `docs/DEPLOY.md`
-- `docs/INTEGRATIONS.md`
-- `docs/QA.md`
-- `.env.example`
-- `docs/RECONSTRUCTION_BLUEPRINT.md`
-- `docs/RECONSTRUCTION_BACKLOG.md`
-- `docs/TRANSITION_STATUS.md`
-- `docs/CLIENT_OLIVASHOES_STANDARDIZATION_PLAN.md`
-- `docs/QA_CLIENT_OLIVASHOES.md`
-
-Before changing any code, **ask the human** if the change is for:
-
-- `main` (base comun), or
-- a specific client branch (`client/<cliente>`).
-
-For frontend/UI work in `main`, use `Design System v4.html` as the visual source of truth. Reuse the canonical classes from that document (`.btn`, `.input`, `.pill`, `.page-header-standard`, `.page-toolbar`, `.dataTable`) before creating new patterns.
-
-## Reconstrucción
-
-La reconstrucción total del sistema en `main` se está guiando por:
-
-- [docs/RECONSTRUCTION_BLUEPRINT.md](docs/RECONSTRUCTION_BLUEPRINT.md)
-- [docs/RECONSTRUCTION_BACKLOG.md](docs/RECONSTRUCTION_BACKLOG.md)
-
-Arquitectura objetivo:
-
-- `apps/admin-web`
-- `apps/integration-api`
-- `apps/workers`
-- `packages/shared`
-- `packages/domain`
-
-Frontend operativo:
-
-- Arquitectura objetivo: `apps/admin-web`.
-- Estado actual en `client/olivashoes`: la superficie principal visible ya corre mayormente en `apps/admin-web`.
-- El runtime `src/server.ts + public/* + src/api/*` sigue preservando la lógica y sobrevive como fallback explícito bajo `/legacy/*`.
-- Ver estado de transición en `docs/TRANSITION_STATUS.md`.
-- Ver plan específico de portado en `docs/CLIENT_OLIVASHOES_STANDARDIZATION_PLAN.md`.
-
-## Quick start
-
-1. Copy `.env.example` to `.env` and fill the values (use it as source of truth).
-2. Install dependencies: `npm install`
-3. Run dev server: `npm run dev`
-
-En `client/olivashoes`, el arranque operativo actual combina:
-
-1. correr migraciones (`npm run db:migrate` o `docker compose run --rm app npm run db:migrate`)
-2. levantar backend (`npm run dev` o `docker compose up -d app worker`)
-3. validar `GET /health`
-4. acceder por `/auth/login` o `/`
-
-Si también vas a validar el frontend nuevo:
-
-1. levantar `admin-web` (`npm run dev:admin-web` o `docker compose up -d admin-web`)
-2. validar `GET /api/health` en `http://localhost:3100`
-
-El fallback legacy explícito sigue disponible en `/legacy/*` mientras termina la paridad funcional.
-
-## Deploy (Render)
-
-- Blueprint: `render.yaml` (web + worker + Postgres).
-- Health check: `GET /health`
-- Important env vars to set in Render:
-  - `APP_HOST`: base URL (ej: `https://<tu-servicio>.onrender.com` o tu dominio, incluye esquema)
-  - `APP_PORT` (puerto de la app)
-  - `CRYPTO_KEY_BASE64`: 32 bytes en base64 (no lo cambies si ya tienes credenciales cifradas en la BD)
-    - Generar (una sola vez): `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
-  - `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SHOPIFY_SCOPES`
-  - `ADMIN_EMAIL`, `ADMIN_PASSWORD`
-  - `DATABASE_SSL=true` (si usas Postgres de Render)
-  - `REDIS_URL` (obligatorio)
-
-## Database migrations
-
-- After filling `.env`, run:
-  - Prod/CI: `npm run build && npm run db:migrate`
-  - Local: `npm run db:migrate:dev`
-- Migrations are tracked in `schema_migrations`.
-- The app does not auto-apply schema changes at runtime.
-
-Orden recomendado de despliegue:
-
-1. `npm ci`
-2. `npm run build`
-3. `npm run db:migrate`
-4. reiniciar procesos (`pm2`, Docker o el supervisor que uses)
-5. correr smoke:
-   - backend: `npm run qa:smoke`
-   - frontend nuevo: `npm run qa:admin-web`
-
-El smoke visual debe ejecutarse únicamente contra `admin-web`.
-
-## External datastores
-
-- Postgres (principal): `DATABASE_URL` (required).
-- Postgres (MIM): `MIM_DATABASE_URL` (optional, used when called).
-- MongoDB: `MONGO_URL` (optional, used when called).
-- Redis cache/queues: `REDIS_URL` (required; app fails to start if missing).
-
-## Postgres pool (optional)
-
-- `DB_POOL_MAX` (default: 5)
-- `DB_POOL_IDLE_TIMEOUT_MS` (default: 30000)
-- `DB_POOL_CONNECTION_TIMEOUT_MS` (default: 5000)
-- `DB_APP_NAME` (identificador visible en `pg_stat_activity`)
-
-## Public files / uploads
-
-- Folder: `public/data/`
-- Se usa para archivos que el cliente sube o consume vía rutas públicas.
-- El contenido se ignora en Git (`public/data/*`), solo se versiona la carpeta.
-
-### MIM Postgres + MongoDB (sin migraciones)
-
-- **No se ejecutan migraciones** sobre MIM ni Mongo. Se asume que **las estructuras ya existen**.
-- Uso previsto: **consultas** y **ediciones puntuales** sobre datos existentes (ej: aprobaciones).
-- Cuando se creen modelos/servicios para estas conexiones, deben:
-  - Evitar `CREATE/ALTER/DROP`.
-  - Documentar claramente qué tablas/colecciones se leen o actualizan.
-
-## Per-client database naming
-
-- Base DB name pattern: `admin-central-<CLIENTE>`
-- For each cliente:
-  - Create a Postgres DB named `admin-central-<CLIENTE>`.
-  - Point the service env var `DATABASE_URL` to that DB.
-  - Keep `APP_ORG_ID` consistent with the tenant record if you use it.
-
-## QA (smoke)
-
-- Checklist: `docs/QA.md`
-- Script (requiere `QA_TOKEN` o `ADMIN_EMAIL`/`ADMIN_PASSWORD`):
-  - `BASE_URL=https://<tu-servicio>.onrender.com QA_TOKEN=<token> SHOP_DOMAIN=<tu-tienda.myshopify.com> npm run qa:smoke`
-  - valida superficie normal (`/auth/login`, `/`) y compatibilidad legacy (`/login.html`, `/dashboard`)
-- Frontend nuevo (`admin-web`):
-  - `BASE_URL=http://localhost:3100 ADMIN_EMAIL=<email> ADMIN_PASSWORD=<pass> npm run qa:admin-web`
-
-## Preparar inventario desde Excel
-
-Para normalizar un Excel de inventario/precios y dejarlo listo para cruce con Shopify:
-
-```bash
-npm run inventory:prepare:xlsx -- "Actualizacion Precios e Inventarios 29abr26 (1).xlsx" --warehouse="Bodega Pagina Web"
-```
-
-Salida:
-
-- `Descargas/preparados-shopify/<archivo>.prepared.json`
-- `Descargas/preparados-shopify/<archivo>.prepared.csv`
-- `Descargas/preparados-shopify/<archivo>.summary.json`
-
-Notas:
-
-- Usa por defecto la hoja `item`.
-- Toma solo filas de variantes (`Nombre` con formato `Producto / Variante`).
-- La columna base para match es `Referencia`.
-- La bodega se puede cambiar con `--warehouse=<nombre>` o `XLSX_WAREHOUSE_NAME`.
-- La implementacion operativa ya vive en `src/scripts/prepare-shopify-inventory-from-xlsx.ts` y `src/services/xlsx-inventory-preparation.service.ts`.
-
-## Publicar inventario de Excel en Shopify
-
-Para preparar el Excel, resolver match contra variantes de Shopify y actualizar inventario:
-
-```bash
-npm run inventory:publish:xlsx -- "Actualizacion Precios e Inventarios 29abr26 (1).xlsx" --warehouse="Bodega Pagina Web" --apply
-```
-
-Atajo mas simple, usando automaticamente el Excel mas reciente `Actualizacion Precios e Inventarios 29abr26*.xlsx`:
-
-```bash
-npm run inventory:publish:web
-```
-
-Sin aplicar cambios, para revisar el match primero:
-
-```bash
-npm run inventory:publish:xlsx -- "Actualizacion Precios e Inventarios 29abr26 (1).xlsx" --warehouse="Bodega Pagina Web"
-```
-
-Dry run simple:
-
-```bash
-npm run inventory:publish:web:dry
-```
-
-Notas:
-
-- Si existen `SHOPIFY_DOMAIN` y `SHOPIFY_ACCESS_TOKEN`, el script usa esas credenciales.
-- Si no existen, intenta leer la conexión Shopify guardada desde la BD usando `DATABASE_URL`, `APP_ORG_ID` y `CRYPTO_KEY_BASE64`.
-- Si no se pasa `SHOPIFY_LOCATION_ID`, el script intenta resolver la ubicación principal en Shopify.
-- Genera un reporte JSON en `Descargas/preparados-shopify/*.shopify-inventory-report.json`.
-- La implementacion operativa ya vive en `src/scripts/publish-shopify-inventory-from-xlsx.ts` y `src/services/shopify-inventory-publication.service.ts`.
-
-## Notes
-
-- Webhook endpoint: `POST /api/webhooks/shopify`
-- Webhook endpoint: `POST /api/webhooks/alegra`
-- Mass sync (Alegra → Shopify): `POST /api/sync/invoices` (crea pedidos/borradores desde facturas Alegra)
-- Shopify client uses GraphQL Admin API (see `src/connectors/shopify.ts`)
-- Health check: `GET /health`
-- Health check (DB): `GET /health/db`
-- Schema migrations live in `src/db/migrations/`.
-- Roadmap: integrar WooCommerce y otras fuentes de pedidos más adelante (ver `docs/INTEGRATIONS.md`).
-- `APP_HOST` es la única URL pública usada por OAuth y webhooks.
-- Branding: ApiFlujos siempre visible; el cliente puede configurar su logo en `Perfil empresa`.
-- En `client/olivashoes`, el branding operativo actual sigue sirviéndose también desde `public/`.
-- `apps/admin-web` debe absorber ese comportamiento antes de retirar el legacy.
-- Super Admin (ApiFlujos): grupo de usuarios con acceso global. Se gestionan en `Super Admin > Usuarios ApiFlujos` (`/api/sa/users`).
-- Solo super admin ApiFlujos puede asignar/cambiar roles de usuarios.
-
-## Marketing & Analytics (Enterprise)
-
-- Shopify webhooks (HMAC): `POST /api/marketing/webhooks/shopify`
-  - Topics soportados: `orders/create`, `orders/paid`, `checkouts/create`, `checkouts/update`, `customers/create`
-- Pixel (key-gated):
-  - Script: `GET /api/marketing/pixel.js?key=...` (instalar en `theme.liquid` antes de `</body>`)
-  - Collector: `POST /api/marketing/collect?key=...`
-- Sync/backfill (admin):
-  - `POST /api/marketing/sync/orders` body: `{ "shopDomain": "tu-tienda.myshopify.com", "sinceDate": "YYYY-MM-DD", "maxOrders": 1500 }`
-  - `POST /api/marketing/metrics/recompute` body: `{ "shopDomain": "...", "from": "YYYY-MM-DD", "to": "YYYY-MM-DD" }`
-- Dashboard/insights (authed):
-  - `GET /api/marketing/dashboard?shopDomain=...&from=YYYY-MM-DD&to=YYYY-MM-DD`
-  - `GET /api/marketing/insights?shopDomain=...&from=YYYY-MM-DD&to=YYYY-MM-DD`
-- GraphQL interno (authed): `POST /api/marketing/graphql` query: `executiveDashboard(shopDomain, from, to)`
-
-## Required env vars for sync
-
-- `APP_ORG_ID`, `DATABASE_URL`, `CRYPTO_KEY_BASE64`
-- `SHOPIFY_WEBHOOK_SECRET` (required for Shopify webhook validation; si no lo pones, se usa `SHOPIFY_API_SECRET`)
-- `ALEGRA_WEBHOOK_SECRET` (optional, for signature validation)
-  - Debug only: `ALLOW_UNVERIFIED_SHOPIFY_WEBHOOKS=true` (acepta webhooks sin firma incluso en production; no recomendado)
-
-## Credential storage
-
-- Shopify and Alegra credentials are stored encrypted in `credentials.data_encrypted`.
-- Use the dashboard endpoint `PUT /api/settings` to save credentials.
-  - Payload: `{ shopify: { shopDomain, accessToken, locationId, apiVersion }, alegra: { email, apiKey, warehouseId } }`
-
-## Current limitations
-
-- Mapping service uses Postgres (`sync_mappings`); apply migrations before running sync.
-
-## Integration docs
-
-- `docs/INTEGRATIONS.md`
-- `docs/DEPLOY.md`
-- `docs/QA.md`
+- `.env.example` (template general) o `.env.becam.example` (becam)
+
+Y **preguntar al humano** si el cambio va en:
+- `main` (base común — no se despliega)
+- `client/olivashoes`
+- `client/becam`
+- u otra rama de cliente
