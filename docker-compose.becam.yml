@@ -1,0 +1,123 @@
+name: admin-central-becam
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: admin-central-becam-postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: admin-central-becam
+    volumes:
+      - postgres_data_becam:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d admin-central-becam"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: admin-central-becam-redis
+    volumes:
+      - redis_data_becam:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    image: admin-central-becam-backend:local
+    container_name: admin-central-becam-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3007:3006"
+    env_file: .env.becam
+    environment:
+      APP_PORT: "3006"
+      RUN_WORKERS_IN_WEB: "false"
+      DATABASE_URL: postgresql://admin:admin@postgres:5432/admin-central-becam
+      REDIS_URL: redis://redis:6379
+      DATABASE_SSL: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3006/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  worker:
+    image: admin-central-becam-backend:local
+    container_name: admin-central-becam-worker
+    command: npm run start:workers
+    env_file: .env.becam
+    environment:
+      RUN_WORKERS_IN_WEB: "false"
+      DATABASE_URL: postgresql://admin:admin@postgres:5432/admin-central-becam
+      REDIS_URL: redis://redis:6379
+      DATABASE_SSL: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_started
+    restart: unless-stopped
+
+  admin-web:
+    image: admin-central-becam-admin-web:local
+    container_name: admin-central-becam-admin-web
+    build:
+      context: .
+      dockerfile: apps/admin-web/Dockerfile
+    ports:
+      - "3200:3000"
+    env_file: .env.becam
+    environment:
+      APP_HOST: http://app:3006
+      ADMIN_WEB_URL: http://localhost:3200
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      DATABASE_URL: postgresql://admin:admin@postgres:5432/admin-central-becam
+      REDIS_URL: redis://redis:6379
+      DATABASE_SSL: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  postgres_data_becam:
+  redis_data_becam:
