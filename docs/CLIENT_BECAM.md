@@ -71,25 +71,53 @@ Login en `http://localhost:3200/auth/login` con `ADMIN_EMAIL` / `ADMIN_PASSWORD`
 ### Primera instalación en servidor
 
 ```bash
-sudo mkdir -p /opt/apps/admin-central-becam
-sudo chown $USER /opt/apps/admin-central-becam
-cd /opt/apps/admin-central-becam
+sudo mkdir -p /srv/apiflujos/becam
+sudo chown $USER /srv/apiflujos/becam
+cd /srv/apiflujos/becam
 
-git clone https://github.com/apiflujos/admin_panel_central.git .
+gh repo clone apiflujos/admin_panel_central
+cd admin_panel_central
 git checkout client/becam
 
-cp .env.becam.example .env
-nano .env   # rellenar valores reales (NO usar .env.becam.example tal cual)
+# Primera ejecución: crea /srv/apiflujos/becam/.deploy.env y pide los secrets
+./scripts/deploy-becam.sh
+```
 
-npm ci
-npm ci --prefix apps/admin-web
-npm run build
-SKIP_NEXT_VALIDATION=1 npm run build:admin-web
-npm run db:migrate
+Edita el archivo generado:
 
-pm2 start ecosystem.config.js
-pm2 save
-pm2 startup   # seguir las instrucciones para que sobreviva reboots
+```bash
+nano /srv/apiflujos/becam/.deploy.env
+```
+
+Completa:
+
+```text
+DATABASE_PASSWORD=tu_password_postgres
+DATABASE_ADMIN_PASSWORD=tu_password_admin_postgres
+ADMIN_PASSWORD=tu_password_admin_app
+```
+
+Vuelve a ejecutar:
+
+```bash
+./scripts/deploy-becam.sh
+```
+
+El script hace automáticamente:
+
+1. `git pull origin client/becam`
+2. `npm ci` (raíz + `apps/admin-web`)
+3. Crea la base de datos `admin-central-becam` si no existe
+4. Genera `.env` desde `.env.becam.example` (con secrets aleatorios)
+5. `npm run build` + `SKIP_NEXT_VALIDATION=1 npm run build:admin-web`
+6. `npm run db:migrate`
+7. `pm2 start` o `pm2 reload ecosystem.config.js`
+8. Smoke tests (`/health` y `/api/health`)
+
+Para que PM2 sobreviva reboots:
+
+```bash
+pm2 startup   # seguir las instrucciones que imprime
 ```
 
 ### Procesos PM2
@@ -105,11 +133,9 @@ pm2 startup   # seguir las instrucciones para que sobreviva reboots
 ### Despliegues posteriores
 
 ```bash
-cd /opt/apps/admin-central-becam
+cd /srv/apiflujos/becam/admin_panel_central
 ./scripts/deploy-becam.sh
 ```
-
-El script encadena: `git fetch + pull` → `npm ci` → `build` → `db:migrate` → `pm2 reload` → smoke (`/health` + `/api/health`).
 
 ### Rollback
 

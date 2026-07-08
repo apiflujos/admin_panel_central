@@ -33,60 +33,21 @@ Estructura recomendada:
 
 ### Despliegue automatizado
 
-El repo incluye `scripts/deploy.sh` para desplegar/actualizar un cliente con un solo comando.
+Cada cliente puede tener su propio script de deploy. Para **Becam** existe `scripts/deploy-becam.sh` que automatiza todo el flujo: pull, instalación, creación de base de datos, generación de `.env`, build, migraciones y recarga PM2.
 
-Requisitos previos:
+Ver instrucciones detalladas en [`docs/CLIENT_BECAM.md`](CLIENT_BECAM.md#deploy-producción-con-pm2).
 
-- PM2 instalado globalmente (`npm i -g pm2`).
-- `psql` disponible en el servidor (para crear la base de datos si no existe).
-
-#### Primer despliegue (Becam)
-
-El script tiene los valores fijos de Becam (`becam.apiflujos.com`, puerto `3001`, base `admin-central-becam`).
-La primera vez crea un archivo de configuración local fuera del repo con los secrets:
+Resumen:
 
 ```bash
 cd /srv/apiflujos/becam/admin_panel_central
-./scripts/deploy.sh
+./scripts/deploy-becam.sh
 ```
 
-Esto creará `/srv/apiflujos/becam/.deploy.env`. Edítalo:
+La primera ejecución crea `/srv/apiflujos/becam/.deploy.env`; complétalo y vuelve a ejecutar. Después, cada deploy es:
 
 ```bash
-nano /srv/apiflujos/becam/.deploy.env
-```
-
-Completa los passwords:
-
-```text
-DATABASE_PASSWORD=tu_password_postgres
-DATABASE_ADMIN_PASSWORD=tu_password_admin_postgres
-ADMIN_PASSWORD=tu_password_admin_app
-```
-
-Luego vuelve a ejecutar:
-
-```bash
-./scripts/deploy.sh
-```
-
-El script realiza:
-
-1. Verifica que esté en la branch `client/<cliente>`.
-2. Hace `git pull origin client/<cliente>`.
-3. Instala dependencias con `npm ci`.
-4. Crea la base de datos `admin-central-becam` si no existe.
-5. Genera `.env` si no existe (con secrets aleatorios) o lo conserva si ya existe.
-6. Compila con `npm run build`.
-7. Ejecuta migraciones con `npm run db:migrate`.
-8. Inicia o recarga el proceso en PM2 (`admin-central-becam`).
-9. Guarda la lista de PM2 (`pm2 save`).
-
-#### Despliegues posteriores
-
-```bash
-cd /srv/apiflujos/becam/admin_panel_central
-./scripts/deploy.sh
+./scripts/deploy-becam.sh
 ```
 
 ### Despliegue manual
