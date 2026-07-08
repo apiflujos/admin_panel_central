@@ -26,21 +26,70 @@
 Estructura recomendada:
 
 ```
-/opt/apps/
-  admin-central-<cliente>/
+/srv/apiflujos/
+  <cliente>/
+    admin_panel_central/
 ```
 
-Pasos por cliente:
+### Despliegue automatizado
+
+El repo incluye `scripts/deploy.sh` para desplegar/actualizar un cliente con un solo comando.
+
+Requisitos previos:
+
+- PM2 instalado globalmente (`npm i -g pm2`).
+- Base de datos Postgres creada previamente (convención: `admin-central-<CLIENTE>`).
+- Variables requeridas exportadas la primera vez (para generar `.env`).
+
+Variables requeridas la primera ejecución:
+
+- `APP_HOST`: URL pública del cliente (ej. `https://admin-becam.ejemplo.com`).
+- `DATABASE_URL`: URL de Postgres (ej. `postgresql://user:pass@host:5432/admin-central-becam`).
+- `ADMIN_EMAIL`: email del super admin inicial.
+- `ADMIN_PASSWORD`: password del super admin inicial.
+
+Ejemplo para Becam:
+
+```bash
+cd /srv/apiflujos/becam/admin_panel_central
+
+APP_HOST=https://admin-becam.ejemplo.com \
+DATABASE_URL=postgresql://user:password@localhost:5432/admin-central-becam \
+ADMIN_EMAIL=admin@becam.com \
+ADMIN_PASSWORD='CambiaMe123!' \
+  ./scripts/deploy.sh
+```
+
+El script realiza:
+
+1. Verifica que esté en la branch `client/<cliente>`.
+2. Hace `git pull origin client/<cliente>`.
+3. Instala dependencias con `npm ci`.
+4. Genera `.env` si no existe (con secrets aleatorios) o lo conserva si ya existe.
+5. Compila con `npm run build`.
+6. Ejecuta migraciones con `npm run db:migrate`.
+7. Inicia o recarga el proceso en PM2 (`admin-central-<cliente>`).
+8. Guarda la lista de PM2 (`pm2 save`).
+
+En despliegues posteriores basta con exportar las mismas variables o, si `.env` ya existe, ejecutar directamente:
+
+```bash
+./scripts/deploy.sh
+```
+
+### Despliegue manual
+
+Si prefieres no usar el script automatizado:
 
 ```
-cd /opt/apps/admin-central-<cliente>
+cd /srv/apiflujos/<cliente>/admin_panel_central
 git fetch
 git checkout client/<cliente>
 git pull
 npm ci
 npm run build
 npm run db:migrate
-# reiniciar servicio
+# reiniciar servicio con PM2 o systemd
 ```
 
 ## Despliegue con PM2
