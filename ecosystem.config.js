@@ -7,9 +7,21 @@
 // Para otros clientes, cada rama trae su propio ecosystem.*.js si aplica.
 
 const path = require("path");
+const fs = require("fs");
 
 const cwd = path.resolve(__dirname);
 const adminWebCwd = path.join(cwd, "apps", "admin-web");
+
+// PM2 no lee .env por sí solo y el standalone de Next.js tampoco.
+// Precargamos .env (repo root) y lo propagamos como env a cada app.
+// El backend y los workers también lo importan por dotenv/config, así que
+// esto solo agrega redundancia segura para ellos.
+const envFilePath = path.join(cwd, ".env");
+const envFromFile = fs.existsSync(envFilePath)
+  ? require("dotenv").parse(fs.readFileSync(envFilePath, "utf8"))
+  : {};
+
+const shared = { ...envFromFile, NODE_ENV: "production" };
 
 module.exports = {
   apps: [
@@ -20,7 +32,7 @@ module.exports = {
       instances: 1,
       exec_mode: "fork",
       env: {
-        NODE_ENV: "production",
+        ...shared,
         APP_PORT: "3007",
         RUN_WORKERS_IN_WEB: "false",
       },
@@ -41,7 +53,7 @@ module.exports = {
       instances: 1,
       exec_mode: "fork",
       env: {
-        NODE_ENV: "production",
+        ...shared,
         PORT: "3200",
         HOSTNAME: "0.0.0.0",
       },
@@ -62,7 +74,7 @@ module.exports = {
       instances: 1,
       exec_mode: "fork",
       env: {
-        NODE_ENV: "production",
+        ...shared,
         RUN_WORKERS_IN_WEB: "false",
       },
       max_memory_restart: "768M",

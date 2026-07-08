@@ -96,11 +96,13 @@ pm2 status
 
 Definidos en `ecosystem.config.js`:
 
-| Nombre PM2 | Comando | Puerto | Notas |
+| Nombre PM2 | Script | Puerto | Notas |
 |---|---|---|---|
-| `becam-api` | `npm run start` | 3007 | Backend Express + rutas legacy |
-| `becam-admin-web` | `npm --prefix apps/admin-web run start` | 3200 | Next.js standalone |
-| `becam-workers` | `npm run start:workers` | — | Pollers + BullMQ |
+| `becam-api` | `dist/src/server.js` | 3007 | Backend Express + rutas legacy |
+| `becam-admin-web` | `apps/admin-web/.next/standalone/apps/admin-web/server.js` | 3200 | Next.js standalone |
+| `becam-workers` | `dist/apps/workers/src/bootstrap.js` | — | Pollers + BullMQ |
+
+> `ecosystem.config.js` precarga `.env` desde la raíz del repo y lo propaga a los 3 procesos como `env`. Esto es indispensable para el admin-web standalone (Next.js no lee `.env` en runtime) y refuerza al backend/workers.
 
 ### Despliegues subsiguientes
 
