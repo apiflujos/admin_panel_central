@@ -4,17 +4,17 @@
 #
 # Usage:
 #   cd /srv/apiflujos/becam/admin_panel_central
-#   APP_HOST=https://admin-becam.ejemplo.com \
-#   DATABASE_URL=postgresql://user:pass@host:5432/admin-central-becam \
-#   ADMIN_EMAIL=admin@becam.com \
-#   ADMIN_PASSWORD='Str0ngP@ss' \
-#     ./scripts/deploy.sh
+#   ./scripts/deploy.sh
 #
-# On first run the script generates a .env file from the exported variables.
-# On later runs it keeps the existing .env and only pulls, builds, migrates and
-# reloads the PM2 process.
+# The first time it creates /srv/apiflujos/becam/.deploy.env, asks you to fill
+# the Postgres/admin secrets, and exits. Once that file is complete, every run
+# is fully automatic: it ensures the database exists, generates .env, builds,
+# migrates and starts/reloads the PM2 process.
 #
-# The database must already exist; migrations are applied with npm run db:migrate.
+# Hard-coded values for Becam:
+#   APP_HOST=https://becam.apiflujos.com
+#   APP_PORT=3001
+#   DATABASE_NAME=admin-central-becam
 
 set -euo pipefail
 
@@ -26,6 +26,14 @@ NC='\033[0m'
 
 REQUIRED_BRANCH="client/becam"
 APP_NAME="admin-central-becam"
+
+# Fixed Becam configuration
+APP_HOST="https://becam.apiflujos.com"
+APP_PORT="3001"
+DATABASE_NAME="admin-central-becam"
+
+# External config file with secrets (outside the repo)
+DEPLOY_CONFIG="/srv/apiflujos/becam/.deploy.env"
 
 echo -e "${BLUE}=== Deploy ${APP_NAME} ===${NC}"
 
@@ -62,31 +70,103 @@ if [ "${CURRENT_BRANCH}" != "${REQUIRED_BRANCH}" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Pull latest code
+# 2. Load or create deploy config
+# ---------------------------------------------------------------------------
+if [ ! -f "${DEPLOY_CONFIG}" ]; then
+  echo -e "${YELLOW}→ Creando archivo de configuración ${DEPLOY_CONFIG}...${NC}"
+  mkdir -p "$(dirname "${DEPLOY_CONFIG}")"
+  cat > "${DEPLOY_CONFIG}" <<'EOF'
+# Configuración local de despliegue para Becam
+# Este archivo NO se versiona y vive fuera del repositorio.
+# Completa los passwords y vuelve a ejecutar ./scripts/deploy.sh
+
+# Postgres (para la aplicación)
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USER=apiflujos
+DATABASE_PASSWORD=
+
+# Postgres admin (usado solo para crear la base de datos si no existe)
+DATABASE_ADMIN_USER=postgres
+DATABASE_ADMIN_PASSWORD=
+
+# Primer usuario admin de la plataforma
+ADMIN_EMAIL=admin@becam.com
+ADMIN_PASSWORD=
+EOF
+  chmod 600 "${DEPLOY_CONFIG}"
+  echo -e "${RED}⚠ Completa ${DEPLOY_CONFIG} con los passwords y vuelve a ejecutar este script.${NC}"
+  exit 1
+fi
+
+# shellcheck source=/dev/null
+source "${DEPLOY_CONFIG}"
+
+# Validate required config values
+: "${DATABASE_HOST:?${DEPLOY_CONFIG} no define DATABASE_HOST}"
+: "${DATABASE_PORT:?${DEPLOY_CONFIG} no define DATABASE_PORT}"
+: "${DATABASE_USER:?${DEPLOY_CONFIG} no define DATABASE_USER}"
+: "${DATABASE_PASSWORD:?${DEPLOY_CONFIG} no define DATABASE_PASSWORD}"
+: "${DATABASE_ADMIN_USER:?${DEPLOY_CONFIG} no define DATABASE_ADMIN_USER}"
+: "${DATABASE_ADMIN_PASSWORD:?${DEPLOY_CONFIG} no define DATABASE_ADMIN_PASSWORD}"
+: "${ADMIN_EMAIL:?${DEPLOY_CONFIG} no define ADMIN_EMAIL}"
+: "${ADMIN_PASSWORD:?${DEPLOY_CONFIG} no define ADMIN_PASSWORD}"
+
+DATABASE_URL="postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"
+DATABASE_ADMIN_URL="postgresql://${DATABASE_ADMIN_USER}:${DATABASE_ADMIN_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/postgres"
+
+# ---------------------------------------------------------------------------
+# 3. Pull latest code
 # ---------------------------------------------------------------------------
 echo -e "${YELLOW}→ Pull de origin/${REQUIRED_BRANCH}...${NC}"
 git pull origin "${REQUIRED_BRANCH}"
 
 # ---------------------------------------------------------------------------
-# 3. Install dependencies
+# 4. Install dependencies
 # ---------------------------------------------------------------------------
 echo -e "${YELLOW}→ Instalando dependencias (npm ci)...${NC}"
 npm ci
 
 # ---------------------------------------------------------------------------
-# 4. Generate .env if missing
+# 5. Ensure database exists
+# ---------------------------------------------------------------------------
+ensure_database_exists() {
+  if ! command -v psql >/dev/null 2>&1; then
+    echo -e "${RED}Error: psql no está instalado. Crea la base de datos manualmente:${NC}"
+    echo "  CREATE DATABASE \"${DATABASE_NAME}\";"
+    exit 1
+  fi
+
+  echo -e "${YELLOW}→ Verificando base de datos ${DATABASE_NAME}...${NC}"
+  local exists
+  exists=$(PGPASSWORD="${DATABASE_ADMIN_PASSWORD}" psql \
+    "${DATABASE_ADMIN_URL}" \
+    -tc "SELECT 1 FROM pg_database WHERE datname='${DATABASE_NAME}';" 2>/dev/null | tr -d ' \n' || true)
+
+  if [ "${exists}" = "1" ]; then
+    echo -e "${GREEN}✓ Base de datos ${DATABASE_NAME} ya existe${NC}"
+  else
+    echo -e "${YELLOW}→ Creando base de datos ${DATABASE_NAME}...${NC}"
+    PGPASSWORD="${DATABASE_ADMIN_PASSWORD}" psql \
+      "${DATABASE_ADMIN_URL}" \
+      -c "CREATE DATABASE \"${DATABASE_NAME}\";" >/dev/null 2>&1 || {
+        echo -e "${RED}Error: No se pudo crear la base de datos.${NC}"
+        echo -e "Verifica que ${DATABASE_ADMIN_USER} tenga permisos de CREATE DATABASE y que el password sea correcto."
+        exit 1
+      }
+    echo -e "${GREEN}✓ Base de datos ${DATABASE_NAME} creada${NC}"
+  fi
+}
+
+ensure_database_exists
+
+# ---------------------------------------------------------------------------
+# 6. Generate .env if missing
 # ---------------------------------------------------------------------------
 if [ ! -f ".env" ]; then
-  echo -e "${YELLOW}→ .env no existe. Generando a partir de variables de entorno...${NC}"
-
-  # Required values (script fails fast with a clear message)
-  : "${APP_HOST:?Variable APP_HOST no definida. Ej: https://admin-becam.ejemplo.com}"
-  : "${DATABASE_URL:?Variable DATABASE_URL no definida. Ej: postgresql://user:pass@host:5432/admin-central-becam}"
-  : "${ADMIN_EMAIL:?Variable ADMIN_EMAIL no definida}"
-  : "${ADMIN_PASSWORD:?Variable ADMIN_PASSWORD no definida}"
+  echo -e "${YELLOW}→ .env no existe. Generando...${NC}"
 
   # Optional values with sensible defaults
-  APP_PORT="${APP_PORT:-3001}"
   REDIS_URL="${REDIS_URL:-redis://127.0.0.1:6379}"
   NODE_ENV="${NODE_ENV:-production}"
   SHOPIFY_API_VERSION="${SHOPIFY_API_VERSION:-2024-10}"
@@ -240,19 +320,19 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 5. Build
+# 7. Build
 # ---------------------------------------------------------------------------
 echo -e "${YELLOW}→ Compilando TypeScript...${NC}"
 npm run build
 
 # ---------------------------------------------------------------------------
-# 6. Database migrations
+# 8. Database migrations
 # ---------------------------------------------------------------------------
 echo -e "${YELLOW}→ Ejecutando migraciones...${NC}"
 npm run db:migrate
 
 # ---------------------------------------------------------------------------
-# 7. PM2 start or reload
+# 9. PM2 start or reload
 # ---------------------------------------------------------------------------
 echo -e "${YELLOW}→ Gestionando proceso PM2 (${APP_NAME})...${NC}"
 if pm2 list 2>/dev/null | grep -q "${APP_NAME}"; then
@@ -266,8 +346,9 @@ pm2 save || true
 echo ""
 echo -e "${GREEN}=== Despliegue completado ===${NC}"
 echo -e "Proceso: ${APP_NAME}"
-echo -e "Puerto:  $(grep '^APP_PORT=' .env | cut -d= -f2)"
-echo -e "Host:    $(grep '^APP_HOST=' .env | cut -d= -f2)"
+echo -e "Puerto:  ${APP_PORT}"
+echo -e "Host:    ${APP_HOST}"
+echo -e "Base:    ${DATABASE_NAME}"
 echo ""
 echo -e "Comandos útiles:"
 echo -e "  pm2 logs ${APP_NAME}"

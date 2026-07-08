@@ -38,26 +38,36 @@ El repo incluye `scripts/deploy.sh` para desplegar/actualizar un cliente con un 
 Requisitos previos:
 
 - PM2 instalado globalmente (`npm i -g pm2`).
-- Base de datos Postgres creada previamente (convención: `admin-central-<CLIENTE>`).
-- Variables requeridas exportadas la primera vez (para generar `.env`).
+- `psql` disponible en el servidor (para crear la base de datos si no existe).
 
-Variables requeridas la primera ejecución:
+#### Primer despliegue (Becam)
 
-- `APP_HOST`: URL pública del cliente (ej. `https://admin-becam.ejemplo.com`).
-- `DATABASE_URL`: URL de Postgres (ej. `postgresql://user:pass@host:5432/admin-central-becam`).
-- `ADMIN_EMAIL`: email del super admin inicial.
-- `ADMIN_PASSWORD`: password del super admin inicial.
-
-Ejemplo para Becam:
+El script tiene los valores fijos de Becam (`becam.apiflujos.com`, puerto `3001`, base `admin-central-becam`).
+La primera vez crea un archivo de configuración local fuera del repo con los secrets:
 
 ```bash
 cd /srv/apiflujos/becam/admin_panel_central
+./scripts/deploy.sh
+```
 
-APP_HOST=https://admin-becam.ejemplo.com \
-DATABASE_URL=postgresql://user:password@localhost:5432/admin-central-becam \
-ADMIN_EMAIL=admin@becam.com \
-ADMIN_PASSWORD='CambiaMe123!' \
-  ./scripts/deploy.sh
+Esto creará `/srv/apiflujos/becam/.deploy.env`. Edítalo:
+
+```bash
+nano /srv/apiflujos/becam/.deploy.env
+```
+
+Completa los passwords:
+
+```text
+DATABASE_PASSWORD=tu_password_postgres
+DATABASE_ADMIN_PASSWORD=tu_password_admin_postgres
+ADMIN_PASSWORD=tu_password_admin_app
+```
+
+Luego vuelve a ejecutar:
+
+```bash
+./scripts/deploy.sh
 ```
 
 El script realiza:
@@ -65,15 +75,17 @@ El script realiza:
 1. Verifica que esté en la branch `client/<cliente>`.
 2. Hace `git pull origin client/<cliente>`.
 3. Instala dependencias con `npm ci`.
-4. Genera `.env` si no existe (con secrets aleatorios) o lo conserva si ya existe.
-5. Compila con `npm run build`.
-6. Ejecuta migraciones con `npm run db:migrate`.
-7. Inicia o recarga el proceso en PM2 (`admin-central-<cliente>`).
-8. Guarda la lista de PM2 (`pm2 save`).
+4. Crea la base de datos `admin-central-becam` si no existe.
+5. Genera `.env` si no existe (con secrets aleatorios) o lo conserva si ya existe.
+6. Compila con `npm run build`.
+7. Ejecuta migraciones con `npm run db:migrate`.
+8. Inicia o recarga el proceso en PM2 (`admin-central-becam`).
+9. Guarda la lista de PM2 (`pm2 save`).
 
-En despliegues posteriores basta con exportar las mismas variables o, si `.env` ya existe, ejecutar directamente:
+#### Despliegues posteriores
 
 ```bash
+cd /srv/apiflujos/becam/admin_panel_central
 ./scripts/deploy.sh
 ```
 
