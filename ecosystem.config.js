@@ -23,6 +23,10 @@ const envFromFile = fs.existsSync(envFilePath)
 
 const shared = { ...envFromFile, NODE_ENV: "production" };
 
+// Ports can be overridden via .env (deploy-becam.sh writes them).
+const appPort = shared.APP_PORT || process.env.APP_PORT || "3007";
+const adminWebPort = shared.ADMIN_WEB_PORT || process.env.ADMIN_WEB_PORT || "3200";
+
 module.exports = {
   apps: [
     {
@@ -33,7 +37,7 @@ module.exports = {
       exec_mode: "fork",
       env: {
         ...shared,
-        APP_PORT: "3007",
+        APP_PORT: appPort,
         RUN_WORKERS_IN_WEB: "false",
       },
       max_memory_restart: "512M",
@@ -54,7 +58,7 @@ module.exports = {
       exec_mode: "fork",
       env: {
         ...shared,
-        PORT: "3200",
+        PORT: adminWebPort,
         HOSTNAME: "0.0.0.0",
       },
       max_memory_restart: "512M",

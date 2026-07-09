@@ -26,6 +26,7 @@ REQUIRED_BRANCH="client/becam"
 APP_NAME="becam"
 APP_HOST="https://becam.apiflujos.com"
 ADMIN_WEB_URL="https://becam.apiflujos.com"
+# Ports are read from .deploy.env (defaults below)
 APP_PORT="3007"
 ADMIN_WEB_PORT="3200"
 # DATABASE_NAME is read from .deploy.env (default: admin-central-becam)
@@ -36,6 +37,33 @@ DEPLOY_CONFIG="/srv/apiflujos/becam/.deploy.env"
 usage() {
   echo "Usage: $0 [deploy|smoke|rollback <commit>]"
   exit 1
+}
+
+# ---------------------------------------------------------------------------
+# Port detection
+# ---------------------------------------------------------------------------
+find_free_port() {
+  local start="${1:-3000}"
+  local end="${2:-4000}"
+  local port
+  for port in $(seq "${start}" "${end}"); do
+    if ! ss -tln 2>/dev/null | grep -qE "[:\.]${port}\s"; then
+      echo "${port}"
+      return 0
+    fi
+  done
+  err "No se encontró puerto libre entre ${start} y ${end}"
+  return 1
+}
+
+update_deploy_config() {
+  local key="${1}"
+  local value="${2}"
+  if grep -qE "^#?${key}=" "${DEPLOY_CONFIG}"; then
+    sed -i "s/^#?${key}=.*/${key}=${value}/" "${DEPLOY_CONFIG}"
+  else
+    echo "${key}=${value}" >> "${DEPLOY_CONFIG}"
+  fi
 }
 
 log() {
@@ -87,6 +115,10 @@ load_deploy_config() {
 # Este archivo NO se versiona y vive fuera del repositorio.
 # Completa los valores y vuelve a ejecutar ./scripts/deploy-becam.sh
 
+# Puertos (déjalos en blanco para detección automática)
+APP_PORT=
+ADMIN_WEB_PORT=
+
 # Postgres (para la aplicación)
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
@@ -120,6 +152,18 @@ EOF
   : "${ADMIN_PASSWORD:?${DEPLOY_CONFIG} no define ADMIN_PASSWORD}"
 
   DATABASE_NAME="${DATABASE_NAME:-admin-central-becam}"
+
+  # Auto-detect free ports if not configured
+  if [ -z "${APP_PORT:-}" ]; then
+    APP_PORT=$(find_free_port 3000 3010)
+    update_deploy_config APP_PORT "${APP_PORT}"
+    ok "Puerto libre para API detectado: ${APP_PORT}"
+  fi
+  if [ -z "${ADMIN_WEB_PORT:-}" ]; then
+    ADMIN_WEB_PORT=$(find_free_port 3100 3110)
+    update_deploy_config ADMIN_WEB_PORT "${ADMIN_WEB_PORT}"
+    ok "Puerto libre para admin-web detectado: ${ADMIN_WEB_PORT}"
+  fi
 
   DATABASE_URL="postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"
   DATABASE_ADMIN_URL="postgresql://${DATABASE_ADMIN_USER}:${DATABASE_ADMIN_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/postgres"
@@ -182,6 +226,7 @@ ensure_env() {
     -e "s|^APP_HOST=.*|APP_HOST=${APP_HOST}|" \
     -e "s|^APP_PORT=.*|APP_PORT=${APP_PORT}|" \
     -e "s|^ADMIN_WEB_URL=.*|ADMIN_WEB_URL=${ADMIN_WEB_URL}|" \
+    -e "s|^ADMIN_WEB_PORT=.*|ADMIN_WEB_PORT=${ADMIN_WEB_PORT}|" \
     -e "s|^DATABASE_URL=.*|DATABASE_URL=${DATABASE_URL}|" \
     -e "s|^CRYPTO_KEY_BASE64=.*|CRYPTO_KEY_BASE64=${CRYPTO_KEY_BASE64}|" \
     -e "s|^CSRF_SECRET=.*|CSRF_SECRET=${CSRF_SECRET}|" \
@@ -231,6 +276,10 @@ do_deploy() {
   pm2 save || true
 
   ok "Deploy completado"
+
+  log "Esperando 10 segundos a que los servicios arranquen..."
+  sleep 10
+
   do_smoke
 }
 
@@ -259,6 +308,11 @@ do_smoke() {
 
   if [ "$api_ok" = true ] && [ "$web_ok" = true ]; then
     ok "Smoke exitoso"
+    echo ""
+    echo "URLs públicas (configurar en Nginx Proxy Manager):"
+    echo "  ${APP_HOST}/api/*  -> http://127.0.0.1:${APP_PORT}"
+    echo "  ${APP_HOST}/health -> http://127.0.0.1:${APP_PORT}"
+    echo "  ${APP_HOST}/*      -> http://127.0.0.1:${ADMIN_WEB_PORT}"
   else
     err "Smoke falló. Revisa: pm2 logs"
     exit 1
