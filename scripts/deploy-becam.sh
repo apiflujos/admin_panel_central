@@ -28,7 +28,7 @@ APP_HOST="https://becam.apiflujos.com"
 ADMIN_WEB_URL="https://becam.apiflujos.com"
 APP_PORT="3007"
 ADMIN_WEB_PORT="3200"
-DATABASE_NAME="admin-central-becam"
+# DATABASE_NAME is read from .deploy.env (default: admin-central-becam)
 
 # External config file with secrets (outside the repo)
 DEPLOY_CONFIG="/srv/apiflujos/becam/.deploy.env"
@@ -85,11 +85,12 @@ load_deploy_config() {
     cat > "${DEPLOY_CONFIG}" <<'EOF'
 # Configuración local de despliegue para Becam
 # Este archivo NO se versiona y vive fuera del repositorio.
-# Completa los passwords y vuelve a ejecutar ./scripts/deploy-becam.sh
+# Completa los valores y vuelve a ejecutar ./scripts/deploy-becam.sh
 
 # Postgres (para la aplicación)
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
+DATABASE_NAME=admin-central-becam
 DATABASE_USER=apiflujos
 DATABASE_PASSWORD=
 
@@ -117,6 +118,8 @@ EOF
   : "${DATABASE_ADMIN_PASSWORD:?${DEPLOY_CONFIG} no define DATABASE_ADMIN_PASSWORD}"
   : "${ADMIN_EMAIL:?${DEPLOY_CONFIG} no define ADMIN_EMAIL}"
   : "${ADMIN_PASSWORD:?${DEPLOY_CONFIG} no define ADMIN_PASSWORD}"
+
+  DATABASE_NAME="${DATABASE_NAME:-admin-central-becam}"
 
   DATABASE_URL="postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"
   DATABASE_ADMIN_URL="postgresql://${DATABASE_ADMIN_USER}:${DATABASE_ADMIN_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/postgres"

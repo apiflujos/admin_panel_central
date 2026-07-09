@@ -92,6 +92,8 @@ nano /srv/apiflujos/becam/.deploy.env
 Completa:
 
 ```text
+DATABASE_HOST=IP_O_HOST_DE_POSTGRES
+DATABASE_NAME=admin-central-becam   # o el nombre real de tu BD, ej. becam_db
 DATABASE_PASSWORD=tu_password_postgres
 DATABASE_ADMIN_PASSWORD=tu_password_admin_postgres
 ADMIN_PASSWORD=tu_password_admin_app
