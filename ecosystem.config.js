@@ -59,7 +59,7 @@ module.exports = {
       env: {
         ...shared,
         PORT: adminWebPort,
-        HOSTNAME: "0.0.0.0",
+        HOSTNAME: "127.0.0.1",
       },
       max_memory_restart: "512M",
       autorestart: true,

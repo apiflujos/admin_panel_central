@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import helmet from "helmet";
 import morgan from "morgan";
+import { createProxyMiddleware } from "http-proxy-middleware";
 import { router } from "./api/routes";
 import { shopifyOAuthCallback, startShopifyOAuth } from "./api/shopify-oauth.controller";
 import { startInventoryAdjustmentsPoller } from "./jobs/inventory-adjustments";
@@ -196,6 +197,32 @@ app.get("/legacy/settings/:pane", (req, res) => {
 app.get("/legacy/__sa", requirePageSuperAdmin, (req, res) => renderIndex(req, res, "legacy-surface"));
 
 app.use("/api", router);
+
+// Proxy everything else to the Next.js admin-web app so the whole platform
+// is exposed through a single external port (APP_PORT).
+const adminWebPort = process.env.ADMIN_WEB_PORT;
+if (adminWebPort && Number(adminWebPort) > 0) {
+  const adminWebTarget = `http://127.0.0.1:${adminWebPort}`;
+  console.log(`[proxy] routing non-API traffic to admin-web at ${adminWebTarget}`);
+  app.use(
+    createProxyMiddleware({
+      target: adminWebTarget,
+      changeOrigin: true,
+      ws: true,
+      pathFilter: (pathname) => {
+        // Backend paths are handled directly by this server.
+        const backendPrefixes = ["/api/", "/health", "/webhooks/", "/auth"];
+        if (backendPrefixes.some((p) => pathname.startsWith(p) || pathname === p)) {
+          return false;
+        }
+        // Legacy static UI remains served by this server from public/.
+        if (pathname.startsWith("/legacy/")) return false;
+        return true;
+      },
+    })
+  );
+}
+
 app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error("Unhandled error:", err);
   if (res.headersSent) {

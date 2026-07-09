@@ -299,20 +299,20 @@ do_smoke() {
     err "API /health NO responde en puerto ${APP_PORT}"
   fi
 
-  if curl -fsS "http://127.0.0.1:${ADMIN_WEB_PORT}/api/health" >/dev/null 2>&1; then
-    ok "Admin-web /api/health responde en puerto ${ADMIN_WEB_PORT}"
+  if curl -fsS "http://127.0.0.1:${APP_PORT}/" >/dev/null 2>&1; then
+    ok "Admin-web responde a través del puerto único ${APP_PORT}"
     web_ok=true
   else
-    err "Admin-web /api/health NO responde en puerto ${ADMIN_WEB_PORT}"
+    err "Admin-web NO responde a través del puerto ${APP_PORT}"
   fi
 
   if [ "$api_ok" = true ] && [ "$web_ok" = true ]; then
     ok "Smoke exitoso"
     echo ""
-    echo "URLs públicas (configurar en Nginx Proxy Manager):"
-    echo "  ${APP_HOST}/api/*  -> http://127.0.0.1:${APP_PORT}"
-    echo "  ${APP_HOST}/health -> http://127.0.0.1:${APP_PORT}"
-    echo "  ${APP_HOST}/*      -> http://127.0.0.1:${ADMIN_WEB_PORT}"
+    echo "Puerto público único para Becam: ${APP_PORT}"
+    echo "Configura en Nginx Proxy Manager:"
+    echo "  ${APP_HOST}  -> http://127.0.0.1:${APP_PORT}"
+    echo "El admin-web corre internamente en 127.0.0.1:${ADMIN_WEB_PORT} (no accesible desde fuera)."
   else
     err "Smoke falló. Revisa: pm2 logs"
     exit 1
