@@ -129,31 +129,32 @@ EOF
 # Ensure database exists
 # ---------------------------------------------------------------------------
 ensure_database_exists() {
+  log "Verificando base de datos ${DATABASE_NAME}..."
+
+  # First try to connect to the target database directly.
+  # This avoids needing permissions on the 'postgres' system database.
+  if PGPASSWORD="${DATABASE_PASSWORD}" psql "${DATABASE_URL}" -c "SELECT 1;" >/dev/null 2>&1; then
+    ok "Base de datos ${DATABASE_NAME} ya existe y es accesible"
+    return 0
+  fi
+
+  warn "Base de datos ${DATABASE_NAME} no accesible. Intentando crearla..."
+
   if ! command -v psql >/dev/null 2>&1; then
     err "psql no está instalado. Crea la base de datos manualmente:"
     echo "  CREATE DATABASE \"${DATABASE_NAME}\";"
     exit 1
   fi
 
-  log "Verificando base de datos ${DATABASE_NAME}..."
-  local exists
-  exists=$(PGPASSWORD="${DATABASE_ADMIN_PASSWORD}" psql \
+  PGPASSWORD="${DATABASE_ADMIN_PASSWORD}" psql \
     "${DATABASE_ADMIN_URL}" \
-    -tc "SELECT 1 FROM pg_database WHERE datname='${DATABASE_NAME}';" 2>/dev/null | tr -d ' \n' || true)
-
-  if [ "${exists}" = "1" ]; then
-    ok "Base de datos ${DATABASE_NAME} ya existe"
-  else
-    warn "Creando base de datos ${DATABASE_NAME}..."
-    PGPASSWORD="${DATABASE_ADMIN_PASSWORD}" psql \
-      "${DATABASE_ADMIN_URL}" \
-      -c "CREATE DATABASE \"${DATABASE_NAME}\";" >/dev/null 2>&1 || {
-        err "No se pudo crear la base de datos."
-        echo "Verifica que ${DATABASE_ADMIN_USER} tenga permisos de CREATE DATABASE y que el password sea correcto."
-        exit 1
-      }
-    ok "Base de datos ${DATABASE_NAME} creada"
-  fi
+    -c "CREATE DATABASE \"${DATABASE_NAME}\";" >/dev/null 2>&1 || {
+      err "No se pudo crear la base de datos."
+      echo "Verifica que ${DATABASE_ADMIN_USER} tenga permisos de CREATE DATABASE y que el password sea correcto."
+      echo "Si la base de datos ya existe, verifica que DATABASE_PASSWORD y DATABASE_URL sean correctos."
+      exit 1
+    }
+  ok "Base de datos ${DATABASE_NAME} creada"
 }
 
 # ---------------------------------------------------------------------------
