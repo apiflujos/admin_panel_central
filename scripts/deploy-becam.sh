@@ -205,38 +205,57 @@ ensure_database_exists() {
 # Generate .env
 # ---------------------------------------------------------------------------
 ensure_env() {
-  if [ -f ".env" ]; then
-    ok ".env ya existe, no se modifica"
-    return 0
+  local env_changed=false
+
+  if [ ! -f ".env" ]; then
+    log "Generando .env desde .env.becam.example..."
+    if [ ! -f ".env.becam.example" ]; then
+      err "No se encontró .env.becam.example"
+      exit 1
+    fi
+    cp .env.becam.example .env
+    env_changed=true
   fi
 
-  log "Generando .env..."
-
-  if [ ! -f ".env.becam.example" ]; then
-    err "No se encontró .env.becam.example"
-    exit 1
+  # Generate secure secrets if placeholders are still present
+  if grep -qE '^CRYPTO_KEY_BASE64=(GENERATE_32B_BASE64|)$' .env; then
+    CRYPTO_KEY_BASE64=$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")
+    sed -i "s|^CRYPTO_KEY_BASE64=.*|CRYPTO_KEY_BASE64=${CRYPTO_KEY_BASE64}|" .env
+    env_changed=true
+  fi
+  if grep -qE '^CSRF_SECRET=(CHANGE_ME_LONG_RANDOM|)$' .env; then
+    CSRF_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+    sed -i "s|^CSRF_SECRET=.*|CSRF_SECRET=${CSRF_SECRET}|" .env
+    env_changed=true
   fi
 
-  # Generate secure secrets
-  CRYPTO_KEY_BASE64=$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")
-  CSRF_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
-
-  # Start from the Becam template and replace the fixed + secret values
-  sed \
-    -e "s|^APP_HOST=.*|APP_HOST=${APP_HOST}|" \
-    -e "s|^APP_PORT=.*|APP_PORT=${APP_PORT}|" \
-    -e "s|^ADMIN_WEB_URL=.*|ADMIN_WEB_URL=${ADMIN_WEB_URL}|" \
-    -e "s|^ADMIN_WEB_PORT=.*|ADMIN_WEB_PORT=${ADMIN_WEB_PORT}|" \
-    -e "s|^DATABASE_URL=.*|DATABASE_URL=${DATABASE_URL}|" \
-    -e "s|^CRYPTO_KEY_BASE64=.*|CRYPTO_KEY_BASE64=${CRYPTO_KEY_BASE64}|" \
-    -e "s|^CSRF_SECRET=.*|CSRF_SECRET=${CSRF_SECRET}|" \
-    -e "s|^ADMIN_EMAIL=.*|ADMIN_EMAIL=${ADMIN_EMAIL}|" \
-    -e "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASSWORD}|" \
-    -e "s|^RUN_WORKERS_IN_WEB=.*|RUN_WORKERS_IN_WEB=false|" \
-    .env.becam.example > .env
+  # Ensure fixed/known values are correct; add them if missing
+  local key value
+  for key in APP_HOST APP_PORT ADMIN_WEB_URL ADMIN_WEB_PORT DATABASE_URL ADMIN_EMAIL ADMIN_PASSWORD RUN_WORKERS_IN_WEB; do
+    case "$key" in
+      APP_HOST) value="${APP_HOST}" ;;
+      APP_PORT) value="${APP_PORT}" ;;
+      ADMIN_WEB_URL) value="${ADMIN_WEB_URL}" ;;
+      ADMIN_WEB_PORT) value="${ADMIN_WEB_PORT}" ;;
+      DATABASE_URL) value="${DATABASE_URL}" ;;
+      ADMIN_EMAIL) value="${ADMIN_EMAIL}" ;;
+      ADMIN_PASSWORD) value="${ADMIN_PASSWORD}" ;;
+      RUN_WORKERS_IN_WEB) value="false" ;;
+    esac
+    if grep -qE "^${key}=" .env; then
+      sed -i "s|^${key}=.*|${key}=${value}|" .env
+    else
+      echo "${key}=${value}" >> .env
+      env_changed=true
+    fi
+  done
 
   chmod 600 .env
-  ok ".env generado en $(pwd)/.env"
+  if [ "$env_changed" = true ]; then
+    ok ".env actualizado en $(pwd)/.env"
+  else
+    ok ".env ya existe y está completo, no se modifica"
+  fi
 }
 
 # ---------------------------------------------------------------------------
