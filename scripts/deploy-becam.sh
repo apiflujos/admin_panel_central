@@ -297,7 +297,16 @@ do_deploy() {
   npm run build
 
   log "Compilando admin-web..."
+  # Clean previous build so Next.js does not reuse stale ADMIN_WEB_URL values.
+  rm -rf apps/admin-web/.next
   SKIP_NEXT_VALIDATION=1 npm run build:admin-web
+
+  # Sanity check: the generated HTML must not reference localhost.
+  if grep -rE 'https?://localhost:3200' apps/admin-web/.next 2>/dev/null | head -1; then
+    err "El build de admin-web aún contiene referencias a localhost:3200."
+    err "Verifica que ADMIN_WEB_URL en .env sea https://becam.apiflujos.com"
+    exit 1
+  fi
 
   log "Ejecutando migraciones..."
   npm run db:migrate
