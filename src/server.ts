@@ -24,7 +24,24 @@ if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
 }
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:"],
+        fontSrc: ["'self'"],
+        connectSrc: ["'self'"],
+        mediaSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'self'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+  })
+);
 const stripQuery = (url: string) => url.split("?")[0] || url;
 app.use(
   morgan((tokens: any, req: any, res: any) => {
@@ -50,6 +67,21 @@ app.use(
     },
   })
 );
+
+const adminWebPort = process.env.ADMIN_WEB_PORT;
+const adminWebTarget = adminWebPort && Number(adminWebPort) > 0 ? `http://127.0.0.1:${adminWebPort}` : null;
+
+// Proxy Next.js static assets before the legacy public/ handler.
+if (adminWebTarget) {
+  console.log(`[proxy] routing /_next/* to admin-web at ${adminWebTarget}`);
+  app.use(
+    "/_next",
+    createProxyMiddleware({
+      target: adminWebTarget,
+      changeOrigin: true,
+    })
+  );
+}
 
 const publicDir = path.resolve("public");
 app.get("/login.html", (_req, res) => res.redirect(302, "/auth/login"));
@@ -200,9 +232,7 @@ app.use("/api", router);
 
 // Proxy everything else to the Next.js admin-web app so the whole platform
 // is exposed through a single external port (APP_PORT).
-const adminWebPort = process.env.ADMIN_WEB_PORT;
-if (adminWebPort && Number(adminWebPort) > 0) {
-  const adminWebTarget = `http://127.0.0.1:${adminWebPort}`;
+if (adminWebTarget) {
   console.log(`[proxy] routing non-API traffic to admin-web at ${adminWebTarget}`);
   app.use(
     createProxyMiddleware({
