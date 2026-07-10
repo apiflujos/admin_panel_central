@@ -250,11 +250,14 @@ ensure_env() {
     fi
   done
 
-  # Force ADMIN_WEB_URL to the public domain even if it was set to localhost
-  if grep -qE '^ADMIN_WEB_URL=http://localhost' .env; then
+  # Always force ADMIN_WEB_URL to the public domain so Next.js generates
+  # correct absolute URLs for scripts/stylesheets.
+  local current_admin_web_url
+  current_admin_web_url=$(grep '^ADMIN_WEB_URL=' .env | cut -d= -f2)
+  if [ "${current_admin_web_url}" != "${APP_HOST}" ]; then
     sed -i "s|^ADMIN_WEB_URL=.*|ADMIN_WEB_URL=${APP_HOST}|" .env
     env_changed=true
-    ok "ADMIN_WEB_URL corregido a ${APP_HOST}"
+    ok "ADMIN_WEB_URL corregido de ${current_admin_web_url} a ${APP_HOST}"
   fi
 
   chmod 600 .env
