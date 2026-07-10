@@ -77,7 +77,7 @@ if (adminWebTarget) {
     "/_next",
     createProxyMiddleware({
       target: adminWebTarget,
-      changeOrigin: true,
+      changeOrigin: false,
     })
   );
 }
@@ -236,7 +236,7 @@ if (adminWebTarget) {
   app.use(
     createProxyMiddleware({
       target: adminWebTarget,
-      changeOrigin: true,
+      changeOrigin: false,
       ws: true,
       pathFilter: (pathname) => {
         // Backend paths handled directly by this server.
