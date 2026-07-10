@@ -59,6 +59,12 @@ export async function AppShell({
   session?: AuthSessionDto | null;
   activeHref?: string;
 }) {
+  // Guard: pages using AppShell require a session. This prevents a flash of
+  // the logged-in shell before the server redirects an unauthenticated user.
+  if (!session) {
+    return null;
+  }
+
   const brand = await getServerCompanyBrand();
   const normalizedCompanyName = brand.companyName.trim();
   const hasDistinctClientBrand = Boolean(brand.logoBase64) || normalizedCompanyName.toLowerCase() !== "apiflujos";
