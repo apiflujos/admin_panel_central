@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 
-import { ExternalLink, LogOut } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 import { appNavigation } from "../lib/navigation";
 import { getServerCompanyBrand } from "../lib/server-api";
 import type { AuthSessionDto } from "../../../packages/shared/src/admin-web";
+import { LogoutButton } from "./logout-button";
 
 function renderSection(section: "operacion" | "sistema") {
   return section === "operacion" ? "Operación" : null;
@@ -148,16 +149,7 @@ export async function AppShell({
               <span className="nav-label">Configuración avanzada</span>
             </a>
 
-            {session ? (
-              <form action="/api/session/logout" method="post">
-                <button className="sidebarExit" type="submit">
-                  <span className="nav-icon" aria-hidden="true">
-                    <LogOut size={16} strokeWidth={1.75} />
-                  </span>
-                  <span className="nav-label">Salir</span>
-                </button>
-              </form>
-            ) : null}
+            {session ? <LogoutButton /> : null}
           </div>
         </div>
       </aside>
