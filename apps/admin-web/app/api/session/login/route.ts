@@ -61,12 +61,15 @@ export async function POST(request: NextRequest) {
   try {
     const { email, password, remember } = await parseLoginBody(request);
 
+    console.log("[session/login] received email=", email, "password_len=", password.length, "remember=", remember);
+
     if (!email || !password) {
       console.warn("[session/login] missing email or password");
-      return NextResponse.redirect(new URL("/auth/login?error=1", resolveAdminWebOrigin(request)), 303);
+      return NextResponse.redirect(new URL("/auth/login?error=missing", resolveAdminWebOrigin(request)), 303);
     }
 
     const result = await authenticateUser(email, password, remember);
+    console.log("[session/login] authenticateUser result=", result ? "ok" : "null");
     if (!result) {
       console.warn("[session/login] authentication failed for", email);
       return NextResponse.redirect(new URL("/auth/login?error=1", resolveAdminWebOrigin(request)), 303);
@@ -82,9 +85,10 @@ export async function POST(request: NextRequest) {
       path: "/",
       maxAge: Math.floor(result.maxAgeMs / 1000),
     });
+    console.log("[session/login] cookie set, redirecting to /");
     return response;
   } catch (error) {
     console.error("[session/login] unexpected error:", error);
-    return NextResponse.redirect(new URL("/auth/login?error=1", resolveAdminWebOrigin(request)), 303);
+    return NextResponse.redirect(new URL("/auth/login?error=exception", resolveAdminWebOrigin(request)), 303);
   }
 }
