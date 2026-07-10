@@ -4,18 +4,18 @@
 //   pm2 reload ecosystem.config.js
 //   pm2 status
 //
-// Para otros clientes, cada rama trae su propio ecosystem.*.js si aplica.
+// Nota: el admin-web Next.js corre como middleware dentro del proceso
+// becam-api, por lo que no hay un proceso separado ni un puerto interno
+// adicional. El dominio público apunta únicamente a APP_PORT.
 
 const path = require("path");
 const fs = require("fs");
 
 const cwd = path.resolve(__dirname);
-const adminWebCwd = path.join(cwd, "apps", "admin-web");
 
-// PM2 no lee .env por sí solo y el standalone de Next.js tampoco.
-// Precargamos .env (repo root) y lo propagamos como env a cada app.
-// El backend y los workers también lo importan por dotenv/config, así que
-// esto solo agrega redundancia segura para ellos.
+// PM2 no lee .env por sí solo. Precargamos .env (repo root) y lo propagamos
+// como env a cada app. El backend y los workers también lo importan por
+// dotenv/config, así que esto solo agrega redundancia segura.
 const envFilePath = path.join(cwd, ".env");
 const envFromFile = fs.existsSync(envFilePath)
   ? require("dotenv").parse(fs.readFileSync(envFilePath, "utf8"))
@@ -23,9 +23,8 @@ const envFromFile = fs.existsSync(envFilePath)
 
 const shared = { ...envFromFile, NODE_ENV: "production" };
 
-// Ports can be overridden via .env (deploy-becam.sh writes them).
+// Public port for the combined backend + admin-web server.
 const appPort = shared.APP_PORT || process.env.APP_PORT || "3007";
-const adminWebPort = shared.ADMIN_WEB_PORT || process.env.ADMIN_WEB_PORT || "3200";
 
 module.exports = {
   apps: [
@@ -40,34 +39,13 @@ module.exports = {
         APP_PORT: appPort,
         RUN_WORKERS_IN_WEB: "false",
       },
-      max_memory_restart: "512M",
+      max_memory_restart: "1G",
       autorestart: true,
       watch: false,
-      kill_timeout: 10000,
-      listen_timeout: 30000,
+      kill_timeout: 15000,
+      listen_timeout: 60000,
       out_file: "logs/becam-api.out.log",
       error_file: "logs/becam-api.err.log",
-      merge_logs: true,
-      time: true,
-    },
-    {
-      name: "becam-admin-web",
-      cwd: adminWebCwd,
-      script: ".next/standalone/apps/admin-web/server.js",
-      instances: 1,
-      exec_mode: "fork",
-      env: {
-        ...shared,
-        PORT: adminWebPort,
-        HOSTNAME: "127.0.0.1",
-      },
-      max_memory_restart: "512M",
-      autorestart: true,
-      watch: false,
-      kill_timeout: 10000,
-      listen_timeout: 30000,
-      out_file: "../../logs/becam-admin-web.out.log",
-      error_file: "../../logs/becam-admin-web.err.log",
       merge_logs: true,
       time: true,
     },

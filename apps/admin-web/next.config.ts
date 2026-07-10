@@ -5,7 +5,8 @@ const skipBuildValidation = process.env.SKIP_NEXT_VALIDATION === "1";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  output: "standalone",
+  // The admin-web runs as a middleware inside the Express backend, so we use
+  // the standard Next.js build instead of the standalone server.
   outputFileTracingRoot: path.join(__dirname, "../.."),
   serverExternalPackages: ["pg", "ioredis", "bullmq", "mongodb", "graphql"],
   eslint: {

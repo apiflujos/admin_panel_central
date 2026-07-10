@@ -26,9 +26,8 @@ REQUIRED_BRANCH="client/becam"
 APP_NAME="becam"
 APP_HOST="https://becam.apiflujos.com"
 ADMIN_WEB_URL="https://becam.apiflujos.com"
-# Ports are read from .deploy.env (defaults below)
+# Public port is read from .deploy.env (default below)
 APP_PORT="3007"
-ADMIN_WEB_PORT="3200"
 # DATABASE_NAME is read from .deploy.env (default: admin-central-becam)
 
 # External config file with secrets (outside the repo)
@@ -153,16 +152,11 @@ EOF
 
   DATABASE_NAME="${DATABASE_NAME:-admin-central-becam}"
 
-  # Auto-detect free ports if not configured.
+  # Auto-detect free public port if not configured.
   if [ -z "${APP_PORT:-}" ]; then
     APP_PORT=$(find_free_port 3000 3010)
     update_deploy_config APP_PORT "${APP_PORT}"
     ok "Puerto libre para API detectado: ${APP_PORT}"
-  fi
-  if [ -z "${ADMIN_WEB_PORT:-}" ]; then
-    ADMIN_WEB_PORT=$(find_free_port 3100 3110)
-    update_deploy_config ADMIN_WEB_PORT "${ADMIN_WEB_PORT}"
-    ok "Puerto libre para admin-web detectado: ${ADMIN_WEB_PORT}"
   fi
 
   DATABASE_URL="postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"
@@ -236,12 +230,11 @@ ensure_env() {
 
   # Ensure fixed/known values are correct; add them if missing
   local key value
-  for key in APP_HOST APP_PORT ADMIN_WEB_URL ADMIN_WEB_PORT DATABASE_URL ADMIN_EMAIL ADMIN_PASSWORD RUN_WORKERS_IN_WEB; do
+  for key in APP_HOST APP_PORT ADMIN_WEB_URL DATABASE_URL ADMIN_EMAIL ADMIN_PASSWORD RUN_WORKERS_IN_WEB; do
     case "$key" in
       APP_HOST) value="${APP_HOST}" ;;
       APP_PORT) value="${APP_PORT}" ;;
       ADMIN_WEB_URL) value="${APP_HOST}" ;;
-      ADMIN_WEB_PORT) value="${ADMIN_WEB_PORT}" ;;
       DATABASE_URL) value="${DATABASE_URL}" ;;
       ADMIN_EMAIL) value="${ADMIN_EMAIL}" ;;
       ADMIN_PASSWORD) value="${ADMIN_PASSWORD}" ;;
@@ -313,31 +306,21 @@ do_deploy() {
     exit 1
   fi
 
-  # Copy static assets into the standalone output. Next.js standalone does not
-  # include them automatically, and without this the standalone server returns
-  # 404 for /_next/static/* if it is ever reached directly.
-  log "Copiando estáticos al directorio standalone..."
-  mkdir -p apps/admin-web/.next/standalone/apps/admin-web/.next
-  rm -rf apps/admin-web/.next/standalone/apps/admin-web/.next/static
-  cp -r apps/admin-web/.next/static apps/admin-web/.next/standalone/apps/admin-web/.next/
-  if [ -d "apps/admin-web/public" ]; then
-    rm -rf apps/admin-web/.next/standalone/apps/admin-web/public
-    cp -r apps/admin-web/public apps/admin-web/.next/standalone/apps/admin-web/
-  fi
-  ok "Estáticos copiados"
-
   log "Validando artefactos de build..."
   test -f dist/src/server.js || { err "No se encontró dist/src/server.js"; exit 1; }
   test -f dist/apps/workers/src/bootstrap.js || { err "No se encontró dist/apps/workers/src/bootstrap.js"; exit 1; }
-  test -f apps/admin-web/.next/standalone/apps/admin-web/server.js || { err "No se encontró el servidor standalone de admin-web"; exit 1; }
-  test -d apps/admin-web/.next/standalone/apps/admin-web/.next/static || { err "No se copiaron los estáticos de admin-web"; exit 1; }
+  test -d apps/admin-web/.next || { err "No se encontró el build de admin-web"; exit 1; }
   ok "Artefactos de build validados"
 
   log "Ejecutando migraciones..."
   npm run db:migrate
 
   log "Gestionando procesos PM2..."
-  if pm2 list 2>/dev/null | grep -qE "becam-api|becam-admin-web|becam-workers"; then
+  # Remove the old separate admin-web process if it still exists from a
+  # previous deployment.
+  pm2 delete becam-admin-web 2>/dev/null || true
+
+  if pm2 list 2>/dev/null | grep -qE "becam-api|becam-workers"; then
     pm2 reload ecosystem.config.js
   else
     pm2 start ecosystem.config.js
@@ -370,10 +353,10 @@ do_smoke() {
   fi
 
   if curl -fsS "http://127.0.0.1:${APP_PORT}/auth/login" >/dev/null 2>&1; then
-    ok "Admin-web responde a través del puerto único ${APP_PORT}"
+    ok "Admin-web responde en el puerto único ${APP_PORT}"
     web_ok=true
   else
-    err "Admin-web NO responde a través del puerto ${APP_PORT}"
+    err "Admin-web NO responde en el puerto ${APP_PORT}"
   fi
 
   # Verify that a real Next.js static asset is served with the correct MIME type.
@@ -385,9 +368,9 @@ do_smoke() {
     warn "No se pudo verificar el asset estático de Next.js"
   fi
 
-  # Verify the admin-web login/session endpoint is reachable through the proxy.
+  # Verify the admin-web login/session endpoint is reachable.
   if curl -fsS -X POST "http://127.0.0.1:${APP_PORT}/api/session/login" -o /dev/null -w '%{http_code}' | grep -qE '30[23]|400'; then
-    ok "Endpoint /api/session/login es alcanzable a través del proxy"
+    ok "Endpoint /api/session/login es alcanzable"
   else
     warn "Endpoint /api/session/login no respondió como se esperaba"
   fi

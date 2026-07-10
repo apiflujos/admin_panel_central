@@ -4,7 +4,7 @@ import path from "path";
 import fs from "fs";
 import helmet from "helmet";
 import morgan from "morgan";
-import { createProxyMiddleware } from "http-proxy-middleware";
+import type { NextFunction, Request, Response } from "express";
 import { router } from "./api/routes";
 import { shopifyOAuthCallback, startShopifyOAuth } from "./api/shopify-oauth.controller";
 import { startInventoryAdjustmentsPoller } from "./jobs/inventory-adjustments";
@@ -70,12 +70,36 @@ app.use(
   })
 );
 
-const adminWebPort = process.env.ADMIN_WEB_PORT;
-const adminWebTarget = adminWebPort && Number(adminWebPort) > 0 ? `http://127.0.0.1:${adminWebPort}` : null;
 const publicDir = path.resolve("public");
+const adminWebDir = path.resolve("apps/admin-web");
 
 // ---------------------------------------------------------------------------
-// 1. Health checks (no proxy, no auth)
+// Initialize Next.js as an Express middleware.
+// This is the single-port architecture: Express owns the public port and
+// delegates non-API requests to Next.js.
+// ---------------------------------------------------------------------------
+async function initAdminWeb(): Promise<(req: Request, res: Response) => void> {
+  const nextModulePath = path.join(adminWebDir, "node_modules", "next");
+  if (!fs.existsSync(nextModulePath)) {
+    throw new Error(`Next.js not found at ${nextModulePath}. Run npm ci --prefix apps/admin-web`);
+  }
+
+  const nextBuildDir = path.join(adminWebDir, ".next");
+  if (!fs.existsSync(nextBuildDir)) {
+    throw new Error(`Next.js build not found at ${nextBuildDir}. Run npm run build:admin-web`);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const next = require(nextModulePath);
+  const nextApp = next({ dev: false, dir: adminWebDir });
+  const handle = nextApp.getRequestHandler();
+  await nextApp.prepare();
+  console.log("[admin-web] Next.js middleware ready");
+  return (req: Request, res: Response) => handle(req, res);
+}
+
+// ---------------------------------------------------------------------------
+// 1. Health checks
 // ---------------------------------------------------------------------------
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
@@ -115,52 +139,7 @@ app.get("/health/db", async (_req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// 2. Next.js static assets — served directly from the build output.
-//    This avoids proxying to the standalone server, which has repeatedly
-//    returned 307 redirects when the static files were not copied into the
-//    standalone directory.
-// ---------------------------------------------------------------------------
-const nextStaticDir = path.resolve("apps/admin-web/.next/static");
-if (fs.existsSync(nextStaticDir)) {
-  app.use(
-    "/_next/static",
-    express.static(nextStaticDir, {
-      maxAge: "1y",
-      immutable: true,
-    })
-  );
-} else if (adminWebTarget) {
-  console.warn("[server] Next.js static assets not found at", nextStaticDir, "— falling back to proxy");
-  app.use(
-    "/_next/static",
-    createProxyMiddleware({
-      target: adminWebTarget,
-      changeOrigin: false,
-    })
-  );
-}
-
-// ---------------------------------------------------------------------------
-// 3. Shared public assets (branding, favicon, etc.).
-//    These live in public/ and are used by both the legacy and the new UI.
-// ---------------------------------------------------------------------------
-app.use(
-  "/assets",
-  express.static(path.join(publicDir, "assets"), {
-    maxAge: "1d",
-  })
-);
-app.use(
-  "/brands",
-  express.static(path.join(publicDir, "brands"), {
-    maxAge: "1d",
-  })
-);
-app.use("/favicon.png", express.static(path.join(publicDir, "favicon.png"), { maxAge: "1d" }));
-app.use("/brand.json", express.static(path.join(publicDir, "brand.json"), { maxAge: "1m" }));
-
-// ---------------------------------------------------------------------------
-// 4. Clean URL redirects for legacy HTML files.
+// 2. Clean URL redirects for legacy HTML files.
 // ---------------------------------------------------------------------------
 app.get("/login.html", (_req, res) => res.redirect(302, "/auth/login"));
 app.get("/index.html", (_req, res) => res.redirect(302, "/"));
@@ -169,50 +148,25 @@ app.get("/users.html", (_req, res) => res.redirect(302, "/users"));
 app.get("/ai-assistants.html", (_req, res) => res.redirect(302, "/ai-assistants"));
 
 // ---------------------------------------------------------------------------
-// 5. Legacy OAuth endpoints (must stay in Express).
+// 3. Legacy OAuth endpoints (must stay in Express).
 // ---------------------------------------------------------------------------
 app.get("/auth", startShopifyOAuth);
 app.get("/auth/callback", shopifyOAuthCallback);
 
 // ---------------------------------------------------------------------------
-// 6. Admin-web own API endpoints.
-//    The new frontend mounts its login/session and its data API under these
-//    prefixes. They must reach the Next.js standalone server, not Express.
-// ---------------------------------------------------------------------------
-if (adminWebTarget) {
-  console.log(`[proxy] routing /api/session/* and /api/admin-web/* to admin-web at ${adminWebTarget}`);
-  app.use(
-    "/api/session",
-    createProxyMiddleware({
-      target: adminWebTarget,
-      changeOrigin: false,
-    })
-  );
-  app.use(
-    "/api/admin-web",
-    createProxyMiddleware({
-      target: adminWebTarget,
-      changeOrigin: false,
-    })
-  );
-}
-
-// ---------------------------------------------------------------------------
-// 7. Express REST API (default owner of /api/*).
+// 4. Express REST API.
 // ---------------------------------------------------------------------------
 app.use("/api", router);
 
 // ---------------------------------------------------------------------------
-// 8. Legacy fallback UI.
-//    Only exposed under /legacy/*. When admin-web is configured, the new
-//    frontend owns the root paths. The legacy surface is kept as an emergency
-//    fallback and is protected server-side so it never flashes a logged-in
-//    shell for an anonymous visitor.
+// 5. Legacy fallback UI.
+//    Kept only under /legacy/*. Protected server-side so it never flashes a
+//    logged-in shell for an anonymous visitor.
 // ---------------------------------------------------------------------------
 const indexHtmlPath = path.join(publicDir, "index.html");
 const loginHtmlPath = path.join(publicDir, "login.html");
 
-function getSessionToken(req: express.Request): string | null {
+function getSessionToken(req: Request): string | null {
   const header = req.headers.cookie || "";
   for (const part of header.split(";")) {
     const trimmed = part.trim();
@@ -223,7 +177,7 @@ function getSessionToken(req: express.Request): string | null {
   return null;
 }
 
-async function requirePageSession(req: express.Request, res: express.Response, next: express.NextFunction) {
+async function requirePageSession(req: Request, res: Response, next: NextFunction) {
   const token = getSessionToken(req);
   if (!token) {
     res.redirect(302, "/auth/login");
@@ -243,7 +197,7 @@ async function requirePageSession(req: express.Request, res: express.Response, n
   }
 }
 
-function renderIndex(req: express.Request, res: express.Response, bodyClass?: string) {
+function renderIndex(req: Request, res: Response, bodyClass?: string) {
   try {
     let html = fs.readFileSync(indexHtmlPath, "utf8");
     const sessionToken = getSessionToken(req);
@@ -308,8 +262,7 @@ app.get("/legacy/settings/:pane", requirePageSession, (req, res) => {
 app.get("/legacy/__sa", requirePageSuperAdmin, requirePageSession, (req, res) => renderIndex(req, res, "legacy-surface"));
 
 // Serve remaining legacy static files (app.js, styles.css, login.js, etc.)
-// without allowing index.html to be used as a fallback. This keeps the legacy
-// UI functional under /legacy/* while preventing it from hijacking the root.
+// without allowing index.html to be used as a fallback.
 app.use(
   express.static(publicDir, {
     index: false,
@@ -323,41 +276,9 @@ app.use(
 );
 
 // ---------------------------------------------------------------------------
-// 9. Catch-all proxy to the Next.js admin-web app.
-//    When admin-web is not configured, the legacy index becomes the fallback.
+// 6. Global error handler.
 // ---------------------------------------------------------------------------
-if (adminWebTarget) {
-  console.log(`[proxy] routing remaining non-API traffic to admin-web at ${adminWebTarget}`);
-  app.use(
-    createProxyMiddleware({
-      target: adminWebTarget,
-      changeOrigin: false,
-      ws: true,
-      pathFilter: (pathname) => {
-        // Backend paths handled directly by this server.
-        if (pathname.startsWith("/api/")) return false;
-        if (pathname === "/health" || pathname === "/health/db") return false;
-        if (pathname.startsWith("/_next/static")) return false;
-        if (pathname.startsWith("/assets/")) return false;
-        if (pathname.startsWith("/brands/")) return false;
-        if (pathname === "/favicon.png" || pathname === "/brand.json") return false;
-        // Legacy OAuth endpoints stay in Express.
-        if (pathname === "/auth" || pathname === "/auth/callback") return false;
-        // Legacy fallback UI stays in Express.
-        if (pathname.startsWith("/legacy/")) return false;
-        return true;
-      },
-    })
-  );
-} else {
-  console.log("[server] ADMIN_WEB_PORT not configured; using legacy index.html as fallback");
-  app.get("/", (req, res) => renderIndex(req, res));
-}
-
-// ---------------------------------------------------------------------------
-// 10. Global error handler.
-// ---------------------------------------------------------------------------
-app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
   console.error("Unhandled error:", err);
   if (res.headersSent) {
     next(err);
@@ -367,7 +288,7 @@ app.use((err: unknown, _req: express.Request, res: express.Response, next: expre
 });
 
 // ---------------------------------------------------------------------------
-// 11. Start server and background jobs.
+// 7. Start server and background jobs.
 // ---------------------------------------------------------------------------
 const port = Number(process.env.APP_PORT || process.env.PORT || 10000);
 const host = "0.0.0.0";
@@ -376,44 +297,54 @@ const runWorkersInWeb =
     .trim()
     .toLowerCase() !== "false";
 
-const server = app.listen(port, host, () => {
-  console.log("-------------------------------------------");
-  console.log(`Server listening on http://${host}:${port}`);
-  console.log("-------------------------------------------");
-  ensureSaDefaults().catch((error) => console.error("[sa] bootstrap failed", error));
-  if (runWorkersInWeb) {
-    console.log("[workers] running inside web process");
-    startInventoryAdjustmentsPoller();
-    startOrdersSyncPoller();
-    startProductsSyncPoller();
-    startRetryQueuePoller();
-    startMarketingJobs();
-    startBillingReportCron();
-    return;
-  }
-  console.log("[workers] skipped in web process (RUN_WORKERS_IN_WEB=false)");
-});
+async function startServer() {
+  const adminWebHandle = await initAdminWeb();
 
-// ---------------------------------------------------------------------------
-// 12. Graceful shutdown.
-// ---------------------------------------------------------------------------
-async function closeResources() {
-  console.log("[shutdown] closing HTTP server...");
-  server.close(() => {
-    console.log("[shutdown] HTTP server closed");
+  // Everything else is handled by Next.js.
+  app.use((req, res) => adminWebHandle(req, res));
+
+  const server = app.listen(port, host, () => {
+    console.log("-------------------------------------------");
+    console.log(`Server listening on http://${host}:${port}`);
+    console.log("-------------------------------------------");
+    ensureSaDefaults().catch((error) => console.error("[sa] bootstrap failed", error));
+    if (runWorkersInWeb) {
+      console.log("[workers] running inside web process");
+      startInventoryAdjustmentsPoller();
+      startOrdersSyncPoller();
+      startProductsSyncPoller();
+      startRetryQueuePoller();
+      startMarketingJobs();
+      startBillingReportCron();
+      return;
+    }
+    console.log("[workers] skipped in web process (RUN_WORKERS_IN_WEB=false)");
   });
-  try {
-    await getPool().end();
-    console.log("[shutdown] Postgres pool closed");
-  } catch (error) {
-    console.error("[shutdown] failed to close Postgres pool:", error);
+
+  // Graceful shutdown.
+  async function closeResources() {
+    console.log("[shutdown] closing HTTP server...");
+    server.close(() => {
+      console.log("[shutdown] HTTP server closed");
+    });
+    try {
+      await getPool().end();
+      console.log("[shutdown] Postgres pool closed");
+    } catch (error) {
+      console.error("[shutdown] failed to close Postgres pool:", error);
+    }
   }
+
+  process.on("SIGTERM", () => {
+    closeResources().finally(() => process.exit(0));
+  });
+
+  process.on("SIGINT", () => {
+    closeResources().finally(() => process.exit(0));
+  });
 }
 
-process.on("SIGTERM", () => {
-  closeResources().finally(() => process.exit(0));
-});
-
-process.on("SIGINT", () => {
-  closeResources().finally(() => process.exit(0));
+startServer().catch((error) => {
+  console.error("[server] failed to start:", error);
+  process.exit(1);
 });
