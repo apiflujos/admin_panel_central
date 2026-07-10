@@ -230,7 +230,7 @@ ensure_env() {
 
   # Ensure fixed/known values are correct; add them if missing
   local key value
-  for key in APP_HOST APP_PORT ADMIN_WEB_URL DATABASE_URL ADMIN_EMAIL ADMIN_PASSWORD RUN_WORKERS_IN_WEB; do
+  for key in APP_HOST APP_PORT ADMIN_WEB_URL DATABASE_URL ADMIN_EMAIL ADMIN_PASSWORD RUN_WORKERS_IN_WEB DB_POOL_MAX; do
     case "$key" in
       APP_HOST) value="${APP_HOST}" ;;
       APP_PORT) value="${APP_PORT}" ;;
@@ -239,6 +239,7 @@ ensure_env() {
       ADMIN_EMAIL) value="${ADMIN_EMAIL}" ;;
       ADMIN_PASSWORD) value="${ADMIN_PASSWORD}" ;;
       RUN_WORKERS_IN_WEB) value="false" ;;
+      DB_POOL_MAX) value="3" ;;
     esac
     if grep -qE "^${key}=" .env; then
       sed -i "s|^${key}=.*|${key}=${value}|" .env
@@ -247,6 +248,12 @@ ensure_env() {
       env_changed=true
     fi
   done
+
+  # Ensure connection timeout is reasonable to avoid hanging during DB pressure.
+  if ! grep -qE "^DB_POOL_CONNECTION_TIMEOUT_MS=" .env; then
+    echo "DB_POOL_CONNECTION_TIMEOUT_MS=10000" >> .env
+    env_changed=true
+  fi
 
   # Always force ADMIN_WEB_URL to the public domain so Next.js generates
   # correct absolute URLs for scripts/stylesheets.
