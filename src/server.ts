@@ -162,10 +162,8 @@ function mountAdminWeb(prefix: string, handle: (req: Request, res: Response) => 
   app.use(prefix, (req, res) => handle(req, res));
 }
 
-// ---------------------------------------------------------------------------
-// 5. Express REST API.
-// ---------------------------------------------------------------------------
-app.use("/api", router);
+// Note: app.use("/api", router) is intentionally registered inside startServer()
+// so that /api/session and /api/admin-web are mounted before it.
 
 // ---------------------------------------------------------------------------
 // 5. Legacy fallback UI.
@@ -309,8 +307,12 @@ const runWorkersInWeb =
 async function startServer() {
   const adminWebHandle = await initAdminWeb();
 
+  // Admin-web owned API prefixes first.
   mountAdminWeb("/api/session", adminWebHandle);
   mountAdminWeb("/api/admin-web", adminWebHandle);
+
+  // Express REST API for everything else under /api.
+  app.use("/api", router);
 
   // Everything else is handled by Next.js.
   app.use((req, res) => adminWebHandle(req, res));
