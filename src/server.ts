@@ -154,7 +154,16 @@ app.get("/auth", startShopifyOAuth);
 app.get("/auth/callback", shopifyOAuthCallback);
 
 // ---------------------------------------------------------------------------
-// 4. Express REST API.
+// 4. Admin-web owned API prefixes.
+//    These route handlers live inside apps/admin-web/app/api and must reach
+//    Next.js before falling into the Express router.
+// ---------------------------------------------------------------------------
+function mountAdminWeb(prefix: string, handle: (req: Request, res: Response) => void) {
+  app.use(prefix, (req, res) => handle(req, res));
+}
+
+// ---------------------------------------------------------------------------
+// 5. Express REST API.
 // ---------------------------------------------------------------------------
 app.use("/api", router);
 
@@ -299,6 +308,9 @@ const runWorkersInWeb =
 
 async function startServer() {
   const adminWebHandle = await initAdminWeb();
+
+  mountAdminWeb("/api/session", adminWebHandle);
+  mountAdminWeb("/api/admin-web", adminWebHandle);
 
   // Everything else is handled by Next.js.
   app.use((req, res) => adminWebHandle(req, res));
