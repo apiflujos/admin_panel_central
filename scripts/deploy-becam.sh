@@ -153,15 +153,16 @@ EOF
 
   DATABASE_NAME="${DATABASE_NAME:-admin-central-becam}"
 
-  # Ports must be explicitly configured. Auto-detection is dangerous because
-  # the reverse proxy (Nginx Proxy Manager) is configured out-of-band.
+  # Auto-detect free ports if not configured.
   if [ -z "${APP_PORT:-}" ]; then
-    err "APP_PORT no está definido en ${DEPLOY_CONFIG}. Configúralo explícitamente."
-    exit 1
+    APP_PORT=$(find_free_port 3000 3010)
+    update_deploy_config APP_PORT "${APP_PORT}"
+    ok "Puerto libre para API detectado: ${APP_PORT}"
   fi
   if [ -z "${ADMIN_WEB_PORT:-}" ]; then
-    err "ADMIN_WEB_PORT no está definido en ${DEPLOY_CONFIG}. Configúralo explícitamente."
-    exit 1
+    ADMIN_WEB_PORT=$(find_free_port 3100 3110)
+    update_deploy_config ADMIN_WEB_PORT "${ADMIN_WEB_PORT}"
+    ok "Puerto libre para admin-web detectado: ${ADMIN_WEB_PORT}"
   fi
 
   DATABASE_URL="postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"
