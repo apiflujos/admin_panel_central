@@ -235,7 +235,7 @@ ensure_env() {
     case "$key" in
       APP_HOST) value="${APP_HOST}" ;;
       APP_PORT) value="${APP_PORT}" ;;
-      ADMIN_WEB_URL) value="${ADMIN_WEB_URL}" ;;
+      ADMIN_WEB_URL) value="${APP_HOST}" ;;
       ADMIN_WEB_PORT) value="${ADMIN_WEB_PORT}" ;;
       DATABASE_URL) value="${DATABASE_URL}" ;;
       ADMIN_EMAIL) value="${ADMIN_EMAIL}" ;;
@@ -249,6 +249,13 @@ ensure_env() {
       env_changed=true
     fi
   done
+
+  # Force ADMIN_WEB_URL to the public domain even if it was set to localhost
+  if grep -qE '^ADMIN_WEB_URL=http://localhost' .env; then
+    sed -i "s|^ADMIN_WEB_URL=.*|ADMIN_WEB_URL=${APP_HOST}|" .env
+    env_changed=true
+    ok "ADMIN_WEB_URL corregido a ${APP_HOST}"
+  fi
 
   chmod 600 .env
   if [ "$env_changed" = true ]; then
