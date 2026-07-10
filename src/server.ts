@@ -210,11 +210,12 @@ if (adminWebPort && Number(adminWebPort) > 0) {
       changeOrigin: true,
       ws: true,
       pathFilter: (pathname) => {
-        // Backend paths are handled directly by this server.
-        const backendPrefixes = ["/api/", "/health", "/webhooks/", "/auth"];
-        if (backendPrefixes.some((p) => pathname.startsWith(p) || pathname === p)) {
-          return false;
-        }
+        // Backend paths handled directly by this server.
+        if (pathname.startsWith("/api/")) return false;
+        if (pathname === "/health" || pathname === "/health/db") return false;
+        if (pathname.startsWith("/webhooks/")) return false;
+        // Only these legacy /auth routes belong to the backend.
+        if (pathname === "/auth" || pathname === "/auth/callback") return false;
         // Legacy static UI remains served by this server from public/.
         if (pathname.startsWith("/legacy/")) return false;
         return true;
