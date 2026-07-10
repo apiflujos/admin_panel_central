@@ -256,6 +256,13 @@ ensure_env() {
   else
     ok ".env ya existe y está completo, no se modifica"
   fi
+
+  echo ""
+  echo "Valores clave en .env:"
+  echo "  APP_HOST=$(grep '^APP_HOST=' .env | cut -d= -f2)"
+  echo "  APP_PORT=$(grep '^APP_PORT=' .env | cut -d= -f2)"
+  echo "  ADMIN_WEB_URL=$(grep '^ADMIN_WEB_URL=' .env | cut -d= -f2)"
+  echo "  ADMIN_WEB_PORT=$(grep '^ADMIN_WEB_PORT=' .env | cut -d= -f2)"
 }
 
 # ---------------------------------------------------------------------------
