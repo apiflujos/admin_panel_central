@@ -16,20 +16,77 @@ import type { CriticalStoreConfig } from "./connections-workspace";
 
 const apiBase = process.env.APP_HOST ? `${process.env.APP_HOST.replace(/\/$/, "")}/api` : "/api";
 
+let cachedCsrfToken: string | null = null;
+
+async function fetchCsrfToken(): Promise<string | null> {
+  if (cachedCsrfToken) return cachedCsrfToken;
+  try {
+    const res = await fetch(`${apiBase}/auth/csrf`, {
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data && typeof data.token === "string") {
+      cachedCsrfToken = data.token;
+      return cachedCsrfToken;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function isMutatingMethod(method?: string): boolean {
+  if (!method) return false;
+  const m = method.toUpperCase();
+  return m === "POST" || m === "PUT" || m === "PATCH" || m === "DELETE";
+}
+
+function redirectToLogin() {
+  if (typeof window !== "undefined") {
+    window.location.href = "/auth/login";
+  }
+}
+
 type JsonRequestOptions = RequestInit & {
   path: string;
 };
 
 async function requestJson<T>({ path, headers, ...init }: JsonRequestOptions): Promise<T> {
+  const method = init.method || "GET";
+  const isMutation = isMutatingMethod(method);
+
+  const reqHeaders: Record<string, string> = {
+    ...(headers || {}),
+  };
+  if (method !== "GET" && method !== "HEAD") {
+    reqHeaders["Content-Type"] = "application/json";
+  }
+  if (isMutation) {
+    const csrf = await fetchCsrfToken();
+    if (csrf) {
+      reqHeaders["x-csrf-token"] = csrf;
+    }
+  }
+
   const response = await fetch(`${apiBase}${path}`, {
     ...init,
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(headers || {}),
-    },
+    headers: reqHeaders,
     cache: "no-store",
   });
+
+  if (response.status === 401) {
+    cachedCsrfToken = null;
+    redirectToLogin();
+    throw new Error("api_request_failed:401");
+  }
+
+  if (response.status === 403) {
+    // CSRF may have rotated; clear cache so the next attempt fetches a fresh token.
+    cachedCsrfToken = null;
+  }
 
   if (!response.ok) {
     throw new Error(`api_request_failed:${response.status}`);

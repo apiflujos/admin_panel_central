@@ -153,16 +153,15 @@ EOF
 
   DATABASE_NAME="${DATABASE_NAME:-admin-central-becam}"
 
-  # Auto-detect free ports if not configured
+  # Ports must be explicitly configured. Auto-detection is dangerous because
+  # the reverse proxy (Nginx Proxy Manager) is configured out-of-band.
   if [ -z "${APP_PORT:-}" ]; then
-    APP_PORT=$(find_free_port 3000 3010)
-    update_deploy_config APP_PORT "${APP_PORT}"
-    ok "Puerto libre para API detectado: ${APP_PORT}"
+    err "APP_PORT no está definido en ${DEPLOY_CONFIG}. Configúralo explícitamente."
+    exit 1
   fi
   if [ -z "${ADMIN_WEB_PORT:-}" ]; then
-    ADMIN_WEB_PORT=$(find_free_port 3100 3110)
-    update_deploy_config ADMIN_WEB_PORT "${ADMIN_WEB_PORT}"
-    ok "Puerto libre para admin-web detectado: ${ADMIN_WEB_PORT}"
+    err "ADMIN_WEB_PORT no está definido en ${DEPLOY_CONFIG}. Configúralo explícitamente."
+    exit 1
   fi
 
   DATABASE_URL="postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}"
@@ -206,6 +205,11 @@ ensure_database_exists() {
 # ---------------------------------------------------------------------------
 ensure_env() {
   local env_changed=false
+
+  # Backup the existing .env before mutating it.
+  if [ -f ".env" ]; then
+    cp .env ".env.backup.$(date +%Y%m%d%H%M%S)"
+  fi
 
   if [ ! -f ".env" ]; then
     log "Generando .env desde .env.becam.example..."
@@ -308,6 +312,26 @@ do_deploy() {
     exit 1
   fi
 
+  # Copy static assets into the standalone output. Next.js standalone does not
+  # include them automatically, and without this the standalone server returns
+  # 404 for /_next/static/* if it is ever reached directly.
+  log "Copiando estáticos al directorio standalone..."
+  mkdir -p apps/admin-web/.next/standalone/apps/admin-web/.next
+  rm -rf apps/admin-web/.next/standalone/apps/admin-web/.next/static
+  cp -r apps/admin-web/.next/static apps/admin-web/.next/standalone/apps/admin-web/.next/
+  if [ -d "apps/admin-web/public" ]; then
+    rm -rf apps/admin-web/.next/standalone/apps/admin-web/public
+    cp -r apps/admin-web/public apps/admin-web/.next/standalone/apps/admin-web/
+  fi
+  ok "Estáticos copiados"
+
+  log "Validando artefactos de build..."
+  test -f dist/src/server.js || { err "No se encontró dist/src/server.js"; exit 1; }
+  test -f dist/apps/workers/src/bootstrap.js || { err "No se encontró dist/apps/workers/src/bootstrap.js"; exit 1; }
+  test -f apps/admin-web/.next/standalone/apps/admin-web/server.js || { err "No se encontró el servidor standalone de admin-web"; exit 1; }
+  test -d apps/admin-web/.next/standalone/apps/admin-web/.next/static || { err "No se copiaron los estáticos de admin-web"; exit 1; }
+  ok "Artefactos de build validados"
+
   log "Ejecutando migraciones..."
   npm run db:migrate
 
@@ -344,11 +368,27 @@ do_smoke() {
     err "API /health NO responde en puerto ${APP_PORT}"
   fi
 
-  if curl -fsS "http://127.0.0.1:${APP_PORT}/" >/dev/null 2>&1; then
+  if curl -fsS "http://127.0.0.1:${APP_PORT}/auth/login" >/dev/null 2>&1; then
     ok "Admin-web responde a través del puerto único ${APP_PORT}"
     web_ok=true
   else
     err "Admin-web NO responde a través del puerto ${APP_PORT}"
+  fi
+
+  # Verify that a real Next.js static asset is served with the correct MIME type.
+  local css_file
+  css_file=$(find apps/admin-web/.next/static/css -name '*.css' | head -n 1 | sed 's|apps/admin-web/.next/static||')
+  if [ -n "${css_file}" ] && curl -fsS "http://127.0.0.1:${APP_PORT}/_next/static${css_file}" >/dev/null 2>&1; then
+    ok "Asset estático de Next.js responde correctamente"
+  else
+    warn "No se pudo verificar el asset estático de Next.js"
+  fi
+
+  # Verify the admin-web login/session endpoint is reachable through the proxy.
+  if curl -fsS -X POST "http://127.0.0.1:${APP_PORT}/api/session/login" -o /dev/null -w '%{http_code}' | grep -qE '30[23]|400'; then
+    ok "Endpoint /api/session/login es alcanzable a través del proxy"
+  else
+    warn "Endpoint /api/session/login no respondió como se esperaba"
   fi
 
   if [ "$api_ok" = true ] && [ "$web_ok" = true ]; then

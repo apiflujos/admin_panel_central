@@ -17,6 +17,7 @@ import { ensureSaDefaults } from "./sa/sa.bootstrap";
 import { requirePageSuperAdmin } from "./api/page-auth";
 import { getPool } from "./db";
 import { createCsrfToken } from "./utils/csrf";
+import { getSessionUser } from "./services/auth.service";
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use(
     },
   })
 );
+
 const stripQuery = (url: string) => url.split("?")[0] || url;
 app.use(
   morgan((tokens: any, req: any, res: any) => {
@@ -58,6 +60,7 @@ app.use(
     ].join(" ");
   })
 );
+
 app.use(
   express.json({
     limit: "2mb",
@@ -69,42 +72,11 @@ app.use(
 
 const adminWebPort = process.env.ADMIN_WEB_PORT;
 const adminWebTarget = adminWebPort && Number(adminWebPort) > 0 ? `http://127.0.0.1:${adminWebPort}` : null;
-
-// Proxy Next.js static assets before the legacy public/ handler.
-if (adminWebTarget) {
-  console.log(`[proxy] routing /_next/* to admin-web at ${adminWebTarget}`);
-  app.use(
-    "/_next",
-    createProxyMiddleware({
-      target: adminWebTarget,
-      changeOrigin: false,
-    })
-  );
-}
-
 const publicDir = path.resolve("public");
-app.get("/login.html", (_req, res) => res.redirect(302, "/auth/login"));
-app.get("/index.html", (_req, res) => res.redirect(302, "/"));
-app.get("/company.html", (_req, res) => res.redirect(302, "/company"));
-app.get("/users.html", (_req, res) => res.redirect(302, "/users"));
-app.get("/ai-assistants.html", (_req, res) => res.redirect(302, "/ai-assistants"));
-app.use(
-  express.static(publicDir, {
-    setHeaders: (res, filePath) => {
-      const lower = filePath.toLowerCase();
-      if (lower.endsWith(".html")) {
-        res.setHeader("Cache-Control", "no-store");
-        return;
-      }
-      if (lower.endsWith("/app.js") || lower.endsWith("/styles.css")) {
-        // Always revalidate core assets to avoid stale UI after deploys.
-        res.setHeader("Cache-Control", "no-cache, must-revalidate");
-      }
-    },
-  })
-);
 
-// Endpoint de salud para Render
+// ---------------------------------------------------------------------------
+// 1. Health checks (no proxy, no auth)
+// ---------------------------------------------------------------------------
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
@@ -142,9 +114,101 @@ app.get("/health/db", async (_req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// 2. Next.js static assets — served directly from the build output.
+//    This avoids proxying to the standalone server, which has repeatedly
+//    returned 307 redirects when the static files were not copied into the
+//    standalone directory.
+// ---------------------------------------------------------------------------
+const nextStaticDir = path.resolve("apps/admin-web/.next/static");
+if (fs.existsSync(nextStaticDir)) {
+  app.use(
+    "/_next/static",
+    express.static(nextStaticDir, {
+      maxAge: "1y",
+      immutable: true,
+    })
+  );
+} else if (adminWebTarget) {
+  console.warn("[server] Next.js static assets not found at", nextStaticDir, "— falling back to proxy");
+  app.use(
+    "/_next/static",
+    createProxyMiddleware({
+      target: adminWebTarget,
+      changeOrigin: false,
+    })
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 3. Shared public assets (branding, favicon, etc.).
+//    These live in public/ and are used by both the legacy and the new UI.
+// ---------------------------------------------------------------------------
+app.use(
+  "/assets",
+  express.static(path.join(publicDir, "assets"), {
+    maxAge: "1d",
+  })
+);
+app.use(
+  "/brands",
+  express.static(path.join(publicDir, "brands"), {
+    maxAge: "1d",
+  })
+);
+app.use("/favicon.png", express.static(path.join(publicDir, "favicon.png"), { maxAge: "1d" }));
+app.use("/brand.json", express.static(path.join(publicDir, "brand.json"), { maxAge: "1m" }));
+
+// ---------------------------------------------------------------------------
+// 4. Clean URL redirects for legacy HTML files.
+// ---------------------------------------------------------------------------
+app.get("/login.html", (_req, res) => res.redirect(302, "/auth/login"));
+app.get("/index.html", (_req, res) => res.redirect(302, "/"));
+app.get("/company.html", (_req, res) => res.redirect(302, "/company"));
+app.get("/users.html", (_req, res) => res.redirect(302, "/users"));
+app.get("/ai-assistants.html", (_req, res) => res.redirect(302, "/ai-assistants"));
+
+// ---------------------------------------------------------------------------
+// 5. Legacy OAuth endpoints (must stay in Express).
+// ---------------------------------------------------------------------------
 app.get("/auth", startShopifyOAuth);
 app.get("/auth/callback", shopifyOAuthCallback);
 
+// ---------------------------------------------------------------------------
+// 6. Admin-web own API endpoints.
+//    The new frontend mounts its login/session and its data API under these
+//    prefixes. They must reach the Next.js standalone server, not Express.
+// ---------------------------------------------------------------------------
+if (adminWebTarget) {
+  console.log(`[proxy] routing /api/session/* and /api/admin-web/* to admin-web at ${adminWebTarget}`);
+  app.use(
+    "/api/session",
+    createProxyMiddleware({
+      target: adminWebTarget,
+      changeOrigin: false,
+    })
+  );
+  app.use(
+    "/api/admin-web",
+    createProxyMiddleware({
+      target: adminWebTarget,
+      changeOrigin: false,
+    })
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 7. Express REST API (default owner of /api/*).
+// ---------------------------------------------------------------------------
+app.use("/api", router);
+
+// ---------------------------------------------------------------------------
+// 8. Legacy fallback UI.
+//    Only exposed under /legacy/*. When admin-web is configured, the new
+//    frontend owns the root paths. The legacy surface is kept as an emergency
+//    fallback and is protected server-side so it never flashes a logged-in
+//    shell for an anonymous visitor.
+// ---------------------------------------------------------------------------
 const indexHtmlPath = path.join(publicDir, "index.html");
 const loginHtmlPath = path.join(publicDir, "login.html");
 
@@ -159,10 +223,29 @@ function getSessionToken(req: express.Request): string | null {
   return null;
 }
 
+async function requirePageSession(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const token = getSessionToken(req);
+  if (!token) {
+    res.redirect(302, "/auth/login");
+    return;
+  }
+  try {
+    const user = await getSessionUser(token);
+    if (!user) {
+      res.redirect(302, "/auth/login");
+      return;
+    }
+    (req as any).sessionUser = user;
+    next();
+  } catch (error) {
+    console.error("[page-auth] session validation failed:", error);
+    res.redirect(302, "/auth/login");
+  }
+}
+
 function renderIndex(req: express.Request, res: express.Response, bodyClass?: string) {
   try {
     let html = fs.readFileSync(indexHtmlPath, "utf8");
-    // Inject CSRF token so the frontend never needs a separate fetch
     const sessionToken = getSessionToken(req);
     const csrf = sessionToken ? (createCsrfToken(sessionToken) ?? "") : "";
     html = html.replace("</head>", `<meta name="csrf-token" content="${csrf}">\n</head>`);
@@ -195,9 +278,7 @@ function renderIndex(req: express.Request, res: express.Response, bodyClass?: st
 app.get("/dashboard", (_req, res) => res.redirect(302, "/"));
 app.get("/settings", (_req, res) => res.redirect(302, "/settings/connections"));
 app.get("/settings/:pane", (req, res) => {
-  const pane = String(req.params.pane || "")
-    .trim()
-    .toLowerCase();
+  const pane = String(req.params.pane || "").trim().toLowerCase();
   if (pane === "connections" || pane === "stores" || pane === "marketing") {
     res.redirect(302, `/settings/${pane}`);
     return;
@@ -205,16 +286,15 @@ app.get("/settings/:pane", (req, res) => {
   res.redirect(302, `/legacy/settings/${pane}`);
 });
 app.get("/__sa", requirePageSuperAdmin, (_req, res) => res.redirect(302, "/superadmin"));
-app.get("/legacy/dashboard", (req, res) => renderIndex(req, res, "legacy-surface"));
+
+app.get("/legacy/dashboard", requirePageSession, (req, res) => renderIndex(req, res, "legacy-surface"));
 app.get("/legacy/login", (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.sendFile(loginHtmlPath);
 });
-app.get("/legacy/settings", (_req, res) => res.redirect(302, "/legacy/settings/connections"));
-app.get("/legacy/settings/:pane", (req, res) => {
-  const pane = String(req.params.pane || "")
-    .trim()
-    .toLowerCase();
+app.get("/legacy/settings", requirePageSession, (_req, res) => res.redirect(302, "/legacy/settings/connections"));
+app.get("/legacy/settings/:pane", requirePageSession, (req, res) => {
+  const pane = String(req.params.pane || "").trim().toLowerCase();
   if (pane === "connections" || pane === "stores" || pane === "marketing") {
     if (pane !== "connections") {
       res.redirect(302, "/legacy/settings/connections");
@@ -225,14 +305,29 @@ app.get("/legacy/settings/:pane", (req, res) => {
   }
   renderIndex(req, res, "force-settings legacy-surface");
 });
-app.get("/legacy/__sa", requirePageSuperAdmin, (req, res) => renderIndex(req, res, "legacy-surface"));
+app.get("/legacy/__sa", requirePageSuperAdmin, requirePageSession, (req, res) => renderIndex(req, res, "legacy-surface"));
 
-app.use("/api", router);
+// Serve remaining legacy static files (app.js, styles.css, login.js, etc.)
+// without allowing index.html to be used as a fallback. This keeps the legacy
+// UI functional under /legacy/* while preventing it from hijacking the root.
+app.use(
+  express.static(publicDir, {
+    index: false,
+    setHeaders: (res, filePath) => {
+      const lower = filePath.toLowerCase();
+      if (lower.endsWith("/app.js") || lower.endsWith("/styles.css")) {
+        res.setHeader("Cache-Control", "no-cache, must-revalidate");
+      }
+    },
+  })
+);
 
-// Proxy everything else to the Next.js admin-web app so the whole platform
-// is exposed through a single external port (APP_PORT).
+// ---------------------------------------------------------------------------
+// 9. Catch-all proxy to the Next.js admin-web app.
+//    When admin-web is not configured, the legacy index becomes the fallback.
+// ---------------------------------------------------------------------------
 if (adminWebTarget) {
-  console.log(`[proxy] routing non-API traffic to admin-web at ${adminWebTarget}`);
+  console.log(`[proxy] routing remaining non-API traffic to admin-web at ${adminWebTarget}`);
   app.use(
     createProxyMiddleware({
       target: adminWebTarget,
@@ -242,17 +337,26 @@ if (adminWebTarget) {
         // Backend paths handled directly by this server.
         if (pathname.startsWith("/api/")) return false;
         if (pathname === "/health" || pathname === "/health/db") return false;
-        if (pathname.startsWith("/webhooks/")) return false;
-        // Only these legacy /auth routes belong to the backend.
+        if (pathname.startsWith("/_next/static")) return false;
+        if (pathname.startsWith("/assets/")) return false;
+        if (pathname.startsWith("/brands/")) return false;
+        if (pathname === "/favicon.png" || pathname === "/brand.json") return false;
+        // Legacy OAuth endpoints stay in Express.
         if (pathname === "/auth" || pathname === "/auth/callback") return false;
-        // Legacy static UI remains served by this server from public/.
+        // Legacy fallback UI stays in Express.
         if (pathname.startsWith("/legacy/")) return false;
         return true;
       },
     })
   );
+} else {
+  console.log("[server] ADMIN_WEB_PORT not configured; using legacy index.html as fallback");
+  app.get("/", (req, res) => renderIndex(req, res));
 }
 
+// ---------------------------------------------------------------------------
+// 10. Global error handler.
+// ---------------------------------------------------------------------------
 app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error("Unhandled error:", err);
   if (res.headersSent) {
@@ -262,7 +366,9 @@ app.use((err: unknown, _req: express.Request, res: express.Response, next: expre
   res.status(500).json({ error: "internal_error" });
 });
 
-// Importante: Usar APP_PORT si está definido, sino PORT.
+// ---------------------------------------------------------------------------
+// 11. Start server and background jobs.
+// ---------------------------------------------------------------------------
 const port = Number(process.env.APP_PORT || process.env.PORT || 10000);
 const host = "0.0.0.0";
 const runWorkersInWeb =
@@ -270,7 +376,7 @@ const runWorkersInWeb =
     .trim()
     .toLowerCase() !== "false";
 
-app.listen(port, host, () => {
+const server = app.listen(port, host, () => {
   console.log("-------------------------------------------");
   console.log(`Server listening on http://${host}:${port}`);
   console.log("-------------------------------------------");
@@ -286,4 +392,28 @@ app.listen(port, host, () => {
     return;
   }
   console.log("[workers] skipped in web process (RUN_WORKERS_IN_WEB=false)");
+});
+
+// ---------------------------------------------------------------------------
+// 12. Graceful shutdown.
+// ---------------------------------------------------------------------------
+async function closeResources() {
+  console.log("[shutdown] closing HTTP server...");
+  server.close(() => {
+    console.log("[shutdown] HTTP server closed");
+  });
+  try {
+    await getPool().end();
+    console.log("[shutdown] Postgres pool closed");
+  } catch (error) {
+    console.error("[shutdown] failed to close Postgres pool:", error);
+  }
+}
+
+process.on("SIGTERM", () => {
+  closeResources().finally(() => process.exit(0));
+});
+
+process.on("SIGINT", () => {
+  closeResources().finally(() => process.exit(0));
 });
