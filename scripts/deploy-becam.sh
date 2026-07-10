@@ -258,6 +258,14 @@ ensure_env() {
     ok "ADMIN_WEB_URL corregido de ${current_admin_web_url} a ${APP_HOST}"
   fi
 
+  # Remove the obsolete ADMIN_WEB_PORT variable from previous deployments.
+  # The admin-web now runs as middleware inside the Express process.
+  if grep -qE '^ADMIN_WEB_PORT=' .env; then
+    sed -i '/^ADMIN_WEB_PORT=/d' .env
+    env_changed=true
+    ok "ADMIN_WEB_PORT obsoleto eliminado de .env"
+  fi
+
   chmod 600 .env
   if [ "$env_changed" = true ]; then
     ok ".env actualizado en $(pwd)/.env"
