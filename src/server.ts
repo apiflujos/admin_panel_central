@@ -70,15 +70,7 @@ app.use(
 const adminWebPort = process.env.ADMIN_WEB_PORT;
 const adminWebTarget = adminWebPort && Number(adminWebPort) > 0 ? `http://127.0.0.1:${adminWebPort}` : null;
 
-// Serve Next.js static assets directly from the build output.
-// This avoids relying on the admin-web proxy for static files.
-const nextStaticDir = path.resolve("apps/admin-web/.next/static");
-if (fs.existsSync(nextStaticDir)) {
-  console.log(`[static] serving /_next/static from ${nextStaticDir}`);
-  app.use("/_next/static", express.static(nextStaticDir));
-}
-
-// Proxy remaining Next.js assets (if any) before the legacy public/ handler.
+// Proxy Next.js static assets before the legacy public/ handler.
 if (adminWebTarget) {
   console.log(`[proxy] routing /_next/* to admin-web at ${adminWebTarget}`);
   app.use(
