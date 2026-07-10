@@ -53,13 +53,30 @@ type JsonRequestOptions = RequestInit & {
   path: string;
 };
 
+function normalizeHeaders(headers: HeadersInit | undefined): Record<string, string> {
+  if (!headers) return {};
+  if (headers instanceof Headers) {
+    const result: Record<string, string> = {};
+    headers.forEach((value, key) => {
+      result[key] = value;
+    });
+    return result;
+  }
+  if (Array.isArray(headers)) {
+    const result: Record<string, string> = {};
+    for (const [key, value] of headers) {
+      result[key] = value;
+    }
+    return result;
+  }
+  return { ...(headers as Record<string, string>) };
+}
+
 async function requestJson<T>({ path, headers, ...init }: JsonRequestOptions): Promise<T> {
   const method = init.method || "GET";
   const isMutation = isMutatingMethod(method);
 
-  const reqHeaders: Record<string, string> = {
-    ...(headers || {}),
-  };
+  const reqHeaders: Record<string, string> = normalizeHeaders(headers);
   if (method !== "GET" && method !== "HEAD") {
     reqHeaders["Content-Type"] = "application/json";
   }

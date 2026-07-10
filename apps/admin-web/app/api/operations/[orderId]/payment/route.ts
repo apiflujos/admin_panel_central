@@ -8,7 +8,9 @@ import { requireRouteAdmin } from "../../../../../lib/route-auth";
 const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
   try {
     await createSyncLog(payload);
-  } catch {}
+  } catch {
+    /* ignore log failures */
+  }
 };
 
 export const POST = routeHandler(async (_req: Request, ctx) => {

@@ -8,7 +8,9 @@ import { requireRouteAdmin } from "../../../../../lib/route-auth";
 const safeCreateLog = async (payload: Parameters<typeof createSyncLog>[0]) => {
   try {
     await createSyncLog(payload);
-  } catch {}
+  } catch {
+    /* ignore log failures */
+  }
 };
 
 const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : "No disponible");

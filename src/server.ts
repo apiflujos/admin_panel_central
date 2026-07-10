@@ -238,12 +238,14 @@ function renderIndex(req: Request, res: Response, bodyClass?: string) {
 
 app.get("/dashboard", (_req, res) => res.redirect(302, "/"));
 app.get("/settings", (_req, res) => res.redirect(302, "/settings/connections"));
-app.get("/settings/:pane", (req, res) => {
+app.get("/settings/:pane", (req, res, next) => {
   const pane = String(req.params.pane || "").trim().toLowerCase();
+  // These settings panes are handled by the new admin-web.
   if (pane === "connections" || pane === "stores" || pane === "marketing") {
-    res.redirect(302, `/settings/${pane}`);
+    next();
     return;
   }
+  // Legacy fallback for any other settings pane.
   res.redirect(302, `/legacy/settings/${pane}`);
 });
 app.get("/__sa", requirePageSuperAdmin, (_req, res) => res.redirect(302, "/superadmin"));
