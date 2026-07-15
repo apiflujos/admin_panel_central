@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { ConnectionStatusDto, SettingsOverviewDto } from "../../../packages/shared/src/admin-web";
 import type { ConnectionsWorkspace } from "../lib/connections-workspace";
-import { copyStoreConfigFrom } from "../lib/api";
+import { apiFetch, copyStoreConfigFrom } from "../lib/api";
 import { toneForStatus } from "../lib/status";
 import { GlobalInvoiceSettingsPanel } from "./global-invoice-settings-panel";
 import { LegacySyncCompatibilityPanel } from "./legacy-sync-compatibility-panel";
@@ -294,9 +294,8 @@ export function SettingsConnectionsPage({
     setActionLoadingKey(`webhooks:${action}`);
     setStatusMessage("");
     try {
-      const response = await fetch(action === "create" ? "/api/shopify/webhooks" : "/api/shopify/webhooks/delete", {
+      const response = await apiFetch(action === "create" ? "/api/shopify/webhooks" : "/api/shopify/webhooks/delete", {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ shopDomain }),
       });
@@ -339,9 +338,8 @@ export function SettingsConnectionsPage({
       } else {
         path = `/api/connections/alegra/${storeId}`;
       }
-      const response = await fetch(path, {
+      const response = await apiFetch(path, {
         method: "DELETE",
-        credentials: "include",
       });
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) {
@@ -371,9 +369,8 @@ export function SettingsConnectionsPage({
     setActionLoadingKey("store:create");
     setStatusMessage("");
     try {
-      const response = await fetch("/api/stores", {
+      const response = await apiFetch("/api/stores", {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newStoreName.trim() }),
       });
@@ -520,9 +517,8 @@ export function SettingsConnectionsPage({
     setActionLoadingKey("reconnect:woocommerce");
     setStatusMessage("");
     try {
-      const response = await fetch("/api/woocommerce/connections", {
+      const response = await apiFetch("/api/woocommerce/connections", {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           storeId: selectedStore.id,
@@ -562,9 +558,8 @@ export function SettingsConnectionsPage({
               apiKey: alegraApiKey,
               environment: alegraEnvironment,
             };
-      const response = await fetch("/api/connections", {
+      const response = await apiFetch("/api/connections", {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           storeId: selectedStore.id,

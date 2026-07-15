@@ -72,6 +72,34 @@ function normalizeHeaders(headers: HeadersInit | undefined): Record<string, stri
   return { ...(headers as Record<string, string>) };
 }
 
+/**
+ * CSRF-aware fetch for absolute `/api/...` paths. Injects the `x-csrf-token`
+ * header on mutating requests (POST/PUT/PATCH/DELETE) and always sends the
+ * session cookie. Returns the raw Response so callers keep full control over
+ * parsing and streaming. Use this instead of raw `fetch()` for any mutating
+ * call that hits the Express `/api` router, which enforces CSRF.
+ */
+export async function apiFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const method = (init.method || "GET").toUpperCase();
+  const headers = normalizeHeaders(init.headers);
+  if (isMutatingMethod(method)) {
+    const csrf = await fetchCsrfToken();
+    if (csrf) {
+      headers["x-csrf-token"] = csrf;
+    }
+  }
+  const response = await fetch(url, {
+    ...init,
+    credentials: "include",
+    headers,
+  });
+  if (response.status === 403) {
+    // CSRF may have rotated; drop the cache so the next attempt refetches it.
+    cachedCsrfToken = null;
+  }
+  return response;
+}
+
 async function requestJson<T>({ path, headers, ...init }: JsonRequestOptions): Promise<T> {
   const method = init.method || "GET";
   const isMutation = isMutatingMethod(method);

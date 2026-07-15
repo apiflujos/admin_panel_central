@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { ConnectionsWorkspace, CriticalStoreConfig, WorkspaceStore } from "../lib/connections-workspace";
 import {
+  apiFetch,
   createShopifyWebhooks,
   deleteShopifyWebhooks,
   getShopifyWebhookStatus,
@@ -572,9 +573,8 @@ export function StoreSyncActionsPanel({
       stoppable: options?.stoppable === true,
     });
     try {
-      const response = await fetch(`${path}${path.includes("?") ? "&" : "?"}stream=1`, {
+      const response = await apiFetch(`${path}${path.includes("?") ? "&" : "?"}stream=1`, {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...payload, stream: true }),
         signal: controller.signal,
