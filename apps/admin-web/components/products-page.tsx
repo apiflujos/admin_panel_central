@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
 import type { AdminWebProductRowDto, AdminWebProductsListDto } from "../../../packages/shared/src/admin-web";
+import { ProductPublishButton } from "./product-publish-button";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { StatusPill } from "./ui/status-pill";
@@ -227,10 +228,10 @@ export function ProductsPage({
                           )}
                         </span>
                         <span>
-                          {variant.shopifyStatus ? (
-                            <span className="pill pill-mini pill-info">{variant.shopifyStatus}</span>
+                          {variant.shopifyProductId ? (
+                            <span className="pill pill-mini pill-info">{variant.shopifyStatus || "En Shopify"}</span>
                           ) : (
-                            "—"
+                            <ProductPublishButton alegraItemId={variant.alegraItemId} />
                           )}
                         </span>
                         <span>{formatDate(variant.updatedAt)}</span>

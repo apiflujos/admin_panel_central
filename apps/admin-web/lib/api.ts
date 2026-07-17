@@ -528,6 +528,30 @@ export async function updateProductTracking(payload: {
   });
 }
 
+/**
+ * Publish a single Alegra product to Shopify (one-by-one). Uses apiFetch so the
+ * backend's real error message (e.g. "Shopify no conectado") reaches the UI
+ * instead of the generic api_request_failed thrown by requestJson.
+ */
+export async function publishProductToShopify(payload: {
+  alegraId: string;
+  shopDomain?: string;
+}): Promise<{ ok: true; shopify?: Record<string, unknown> }> {
+  const response = await apiFetch("/api/shopify/publish", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = (await response.json().catch(() => ({}))) as {
+    error?: string;
+    shopify?: Record<string, unknown>;
+  };
+  if (!response.ok) {
+    throw new Error(data.error || `publish_failed:${response.status}`);
+  }
+  return { ok: true, shopify: data.shopify };
+}
+
 export async function runInventoryAdjustmentsSync(payload: {
   shopDomain?: string;
   autoPublish?: boolean;

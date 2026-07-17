@@ -18,6 +18,7 @@
     "typecheck:admin-web": "npm --prefix apps/admin-web run typecheck",
     "qa:smoke": "node scripts/qa-smoke.js",
     "qa:admin-web": "node scripts/qa-admin-web.js",
+    "qa:integration": "node scripts/qa-integration-actions.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
