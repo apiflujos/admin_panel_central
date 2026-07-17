@@ -16,12 +16,58 @@ type ProductsListServiceItem = {
   name?: unknown;
   reference?: unknown;
   sku?: unknown;
+  barcode?: unknown;
   status_alegra?: unknown;
   status_shopify?: unknown;
   inventory_quantity?: unknown;
   source?: unknown;
   updated_at?: unknown;
+  payload_json?: unknown;
 };
+
+function extractImageUrl(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const record = payload as Record<string, unknown>;
+  const fromArray = (value: unknown): string | null => {
+    if (!Array.isArray(value) || !value.length) return null;
+    const first = value[0];
+    if (typeof first === "string") return first;
+    if (first && typeof first === "object") {
+      const obj = first as Record<string, unknown>;
+      const url = obj.url || obj.src || obj.image;
+      return typeof url === "string" ? url : null;
+    }
+    return null;
+  };
+  const fromObject = (value: unknown): string | null => {
+    if (!value || typeof value !== "object") return null;
+    const obj = value as Record<string, unknown>;
+    const url = obj.src || obj.url;
+    return typeof url === "string" ? url : null;
+  };
+  return (
+    fromArray(record.images) ||
+    fromObject(record.image) ||
+    (typeof record.imageUrl === "string" ? record.imageUrl : null) ||
+    null
+  );
+}
+
+function extractBarcode(row: ProductsListServiceItem): string | null {
+  if (row.barcode) return String(row.barcode);
+  const payload = row.payload_json;
+  if (payload && typeof payload === "object") {
+    const record = payload as Record<string, unknown>;
+    if (record.barcode) return String(record.barcode);
+    const customFields = Array.isArray(record.customFields) ? record.customFields : [];
+    const match = customFields.find((field) => {
+      const name = String((field as Record<string, unknown>)?.name || "");
+      return /codigo de barras|código de barras|barcode/i.test(name);
+    }) as Record<string, unknown> | undefined;
+    if (match && match.value) return String(match.value);
+  }
+  return null;
+}
 
 type ProductsListServiceResult = {
   items: ProductsListServiceItem[];
@@ -89,6 +135,8 @@ export function toAdminWebProductRowDto(row: ProductsListServiceItem): AdminWebP
     name: String(row.name || ""),
     reference: String(row.reference || ""),
     sku: String(row.sku || ""),
+    barcode: extractBarcode(row),
+    imageUrl: extractImageUrl(row.payload_json),
     alegraStatus: row.status_alegra ? String(row.status_alegra) : null,
     shopifyStatus: row.status_shopify ? String(row.status_shopify) : null,
     inventoryQuantity: row.inventory_quantity === null || row.inventory_quantity === undefined ? null : Number(row.inventory_quantity),

@@ -70,6 +70,13 @@ function itemWarehouses(item) {
   return ids.length ? ids : null;
 }
 
+function itemBarcode(item) {
+  if (item && item.barcode) return String(item.barcode);
+  const custom = Array.isArray(item && item.customFields) ? item.customFields : [];
+  const match = custom.find((field) => /codigo de barras|código de barras|barcode/i.test(String(field && field.name)));
+  return match && match.value ? String(match.value) : null;
+}
+
 function invoiceSummary(inv) {
   const items = inv && inv.items;
   if (!Array.isArray(items) || !items.length) return null;
@@ -88,13 +95,13 @@ async function seedItems(pool) {
       `INSERT INTO products
          (organization_id, shop_domain, source, alegra_item_id, name, reference, sku,
           status_alegra, inventory_quantity, warehouse_ids, source_updated_at,
-          sync_status, last_sync_at, payload_json, created_at, updated_at)
-       VALUES ($1,$2,'alegra',$3,$4,$5,$6,$7,$8,$9,NOW(),'synced',NOW(),$10,NOW(),NOW())
+          sync_status, last_sync_at, payload_json, barcode, created_at, updated_at)
+       VALUES ($1,$2,'alegra',$3,$4,$5,$6,$7,$8,$9,NOW(),'synced',NOW(),$10,$11,NOW(),NOW())
        ON CONFLICT (organization_id, shop_domain, alegra_item_id) DO UPDATE SET
          name=EXCLUDED.name, reference=EXCLUDED.reference, sku=EXCLUDED.sku,
          status_alegra=EXCLUDED.status_alegra, inventory_quantity=EXCLUDED.inventory_quantity,
          warehouse_ids=EXCLUDED.warehouse_ids, payload_json=EXCLUDED.payload_json,
-         sync_status='synced', last_sync_at=NOW(), updated_at=NOW()`,
+         barcode=EXCLUDED.barcode, sync_status='synced', last_sync_at=NOW(), updated_at=NOW()`,
       [
         ORG_ID,
         SHOP_DOMAIN,
@@ -106,6 +113,7 @@ async function seedItems(pool) {
         itemQuantity(it),
         itemWarehouses(it),
         JSON.stringify(it),
+        itemBarcode(it),
       ]
     );
     n++;

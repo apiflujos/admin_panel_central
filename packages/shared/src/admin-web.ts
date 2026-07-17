@@ -45,6 +45,8 @@ export type AdminWebProductRowDto = {
   name: string;
   reference: string;
   sku: string;
+  barcode: string | null;
+  imageUrl: string | null;
   alegraStatus: string | null;
   shopifyStatus: string | null;
   inventoryQuantity: number | null;

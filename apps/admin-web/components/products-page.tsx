@@ -166,6 +166,7 @@ export function ProductsPage({
               }, null);
               const allMatched = group.matchedCount === group.variantCount;
               const partiallyMatched = group.matchedCount > 0 && !allMatched;
+              const groupImage = group.variants.find((variant) => variant.imageUrl)?.imageUrl || null;
 
               return (
                 <details className="products-table-group" key={group.key}>
@@ -173,13 +174,43 @@ export function ProductsPage({
                     <span className="products-table-col-toggle" aria-hidden="true">
                       ▸
                     </span>
-                    <span className="products-table-cell-name">
-                      <strong>{group.name}</strong>
-                      <small>
-                        {group.shopifyProductIds.length > 0
-                          ? `${group.shopifyProductIds.length} producto(s) Shopify`
-                          : "Sin Shopify"}
-                      </small>
+                    <span className="products-table-cell-name" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {groupImage ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={groupImage}
+                          alt=""
+                          width={30}
+                          height={30}
+                          style={{ borderRadius: 4, objectFit: "cover", flexShrink: 0 }}
+                        />
+                      ) : (
+                        <span
+                          aria-hidden="true"
+                          title="Sin foto"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 30,
+                            height: 30,
+                            borderRadius: 4,
+                            flexShrink: 0,
+                            background: "var(--panel-border, #e5e7eb)",
+                            fontSize: 12,
+                          }}
+                        >
+                          📦
+                        </span>
+                      )}
+                      <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                        <strong>{group.name}</strong>
+                        <small>
+                          {group.shopifyProductIds.length > 0
+                            ? `${group.shopifyProductIds.length} producto(s) Shopify`
+                            : "Sin Shopify"}
+                        </small>
+                      </span>
                     </span>
                     <span className="products-table-cell-ref">{group.reference || "—"}</span>
                     <span className="products-table-col-num">{group.variantCount}</span>
@@ -214,7 +245,12 @@ export function ProductsPage({
                     </div>
                     {group.variants.map((variant) => (
                       <div className="products-table-variant-row" key={variant.id}>
-                        <span>{variant.sku || "—"}</span>
+                        <span>
+                          {variant.sku || "—"}
+                          {variant.barcode ? (
+                            <small style={{ display: "block", opacity: 0.7 }}>CB: {variant.barcode}</small>
+                          ) : null}
+                        </span>
                         <span>{variant.alegraItemId || "—"}</span>
                         <span>{variant.shopifyProductId || "—"}</span>
                         <span className="products-table-col-num">
