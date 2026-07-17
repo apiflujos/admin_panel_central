@@ -517,6 +517,45 @@
   overflow-y: auto;
 }
 
+.cron-reference-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cron-reference-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--panel-border, #e5e7eb);
+  border-radius: 6px;
+}
+
+.cron-reference-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+}
+
+.cron-reference-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.cron-reference-env {
+  font-size: 11px;
+  opacity: 0.75;
+  background: var(--panel-border, #eef1f5);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
 .store-warehouse-option {
   display: flex;
   align-items: center;

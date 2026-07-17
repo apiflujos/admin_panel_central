@@ -7,6 +7,7 @@ import type { ConnectionsWorkspace } from "../lib/connections-workspace";
 import { apiFetch, copyStoreConfigFrom } from "../lib/api";
 import { toneForStatus } from "../lib/status";
 import { GlobalInvoiceSettingsPanel } from "./global-invoice-settings-panel";
+import { CronScheduleReferencePanel } from "./cron-schedule-reference-panel";
 import { LegacySyncCompatibilityPanel } from "./legacy-sync-compatibility-panel";
 import { StoreConfigPriceListsPanel } from "./store-config-price-lists-panel";
 import { StoreConfigsCriticalPanel } from "./store-configs-critical-panel";
@@ -950,6 +951,7 @@ export function SettingsConnectionsPage({
                   defaults={workspaceState.storeConfigDefaults}
                   activeStoreId={selectedStoreId}
                 />
+                <CronScheduleReferencePanel />
               </details>
 
               <details className="settings-panel-collapse">

@@ -217,7 +217,6 @@ export function StoreConfigsCriticalPanel({
     () => !isDraftEqual(draft, activeConfig ? toDraft(activeConfig) : baseDraft),
     [activeConfig, baseDraft, draft]
   );
-  const invoiceModeAlreadyActive = activeConfig?.sync.orders.shopifyToAlegra === "invoice";
   const effectiveConfig = useMemo(
     () =>
       activeStore
@@ -261,8 +260,6 @@ export function StoreConfigsCriticalPanel({
         ...effectiveConfig.sync,
         orders: {
           ...effectiveConfig.sync.orders,
-          shopifyToAlegra: draft.shopifyToAlegra,
-          alegraToShopify: draft.alegraToShopify,
         },
       },
       transfers: {
@@ -431,8 +428,16 @@ export function StoreConfigsCriticalPanel({
               activeConfig?.sync.orders.alegraEnabled ??
               effectiveConfig?.sync.orders.alegraEnabled ??
               defaults.sync.orders.alegraEnabled,
-            shopifyToAlegra: draft.shopifyToAlegra,
-            alegraToShopify: draft.alegraToShopify,
+            // Owned by the "Módulos por tienda" panel; echo the persisted value so
+            // this panel never overwrites the order sync mode with a stale edit.
+            shopifyToAlegra:
+              activeConfig?.sync.orders.shopifyToAlegra ??
+              effectiveConfig?.sync.orders.shopifyToAlegra ??
+              defaults.sync.orders.shopifyToAlegra,
+            alegraToShopify:
+              activeConfig?.sync.orders.alegraToShopify ??
+              effectiveConfig?.sync.orders.alegraToShopify ??
+              defaults.sync.orders.alegraToShopify,
           },
           products: activeConfig?.sync.products ?? effectiveConfig?.sync.products ?? defaults.sync.products,
         },
@@ -506,8 +511,16 @@ export function StoreConfigsCriticalPanel({
               activeConfig?.sync.orders.alegraEnabled ??
               effectiveConfig?.sync.orders.alegraEnabled ??
               defaults.sync.orders.alegraEnabled,
-            shopifyToAlegra: draft.shopifyToAlegra,
-            alegraToShopify: draft.alegraToShopify,
+            // Owned by the "Módulos por tienda" panel; echo the persisted value so
+            // this panel never overwrites the order sync mode with a stale edit.
+            shopifyToAlegra:
+              activeConfig?.sync.orders.shopifyToAlegra ??
+              effectiveConfig?.sync.orders.shopifyToAlegra ??
+              defaults.sync.orders.shopifyToAlegra,
+            alegraToShopify:
+              activeConfig?.sync.orders.alegraToShopify ??
+              effectiveConfig?.sync.orders.alegraToShopify ??
+              defaults.sync.orders.alegraToShopify,
           },
           products: activeConfig?.sync.products ?? effectiveConfig?.sync.products ?? defaults.sync.products,
         },
@@ -550,44 +563,10 @@ export function StoreConfigsCriticalPanel({
               disabled={draft.trackInventory}
             />
 
-            <label className="store-config-field">
-              <span>Shopify → Alegra</span>
-              <select
-                className="input"
-                value={draft.shopifyToAlegra}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    shopifyToAlegra: event.target.value as CriticalStoreConfig["sync"]["orders"]["shopifyToAlegra"],
-                  }))
-                }
-              >
-                <option value="db_only">Solo base de datos</option>
-                <option value="contact_only">Solo contacto</option>
-                {invoiceModeAlreadyActive ? <option value="invoice">Factura</option> : null}
-                <option value="off">Apagado</option>
-              </select>
-              <small>Pedido: registra, crea contacto o factura.</small>
-            </label>
-
-            <label className="store-config-field">
-              <span>Alegra → Shopify</span>
-              <select
-                className="input"
-                value={draft.alegraToShopify}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    alegraToShopify: event.target.value as CriticalStoreConfig["sync"]["orders"]["alegraToShopify"],
-                  }))
-                }
-              >
-                <option value="off">Apagado</option>
-                <option value="draft">Borrador</option>
-                <option value="active">Activo</option>
-              </select>
-              <small>Flujo inverso: borrador o producto visible.</small>
-            </label>
+            {/* El modo de sync de pedidos (Shopify → Alegra / Alegra → Shopify) se
+                configura únicamente en el panel "Módulos por tienda" para evitar
+                controles duplicados. Aquí solo se muestran las reglas propias de
+                esta configuración crítica. */}
 
             <BooleanChoice
               label="Generar factura"
