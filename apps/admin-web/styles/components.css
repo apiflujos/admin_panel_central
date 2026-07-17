@@ -513,6 +513,8 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
 }
 
 .store-warehouse-option {

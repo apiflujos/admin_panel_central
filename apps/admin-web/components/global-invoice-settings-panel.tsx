@@ -63,7 +63,9 @@ function mapCatalogOptions(payload: { items?: Array<Record<string, unknown>>; er
   if (payload.error) {
     throw new Error(payload.error);
   }
-  return (payload.items || []).map(normalizeOption).filter(Boolean) as CatalogOption[];
+  return ((payload.items || []).map(normalizeOption).filter(Boolean) as CatalogOption[]).sort((left, right) =>
+    String(left.label || "").localeCompare(String(right.label || ""), "es")
+  );
 }
 
 function parseObservationTemplate(template: string) {
