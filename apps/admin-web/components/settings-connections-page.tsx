@@ -534,6 +534,9 @@ export function SettingsConnectionsPage({
       }
       await refreshWorkspace();
       setReconnectKind(null);
+      if (isConnectionFlowOpen) {
+        closeConnectionFlow();
+      }
       setStatusMessage("WooCommerce actualizado.");
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo actualizar WooCommerce.");
@@ -572,6 +575,9 @@ export function SettingsConnectionsPage({
       }
       await refreshWorkspace();
       setReconnectKind(null);
+      if (isConnectionFlowOpen) {
+        closeConnectionFlow();
+      }
       setStatusMessage("Alegra asociado o actualizado.");
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo actualizar Alegra.");
@@ -1069,6 +1075,12 @@ export function SettingsConnectionsPage({
                 <span className={`pill ${connectionWizardStep === "form" ? "pill-info" : ""}`}>4. Configurar</span>
               </div>
 
+              {statusMessage ? (
+                <p className="connection-inline-note" role="status" aria-live="polite">
+                  {statusMessage}
+                </p>
+              ) : null}
+
               {connectionWizardStep === "store" ? (
                 <div className="settings-subsection">
                   <div className="settings-subsection-head">
@@ -1358,8 +1370,13 @@ export function SettingsConnectionsPage({
                         />
                       </label>
                       <div className="page-module-actions">
-                        <button className="btn primary" type="button" onClick={() => void reconnectWooCommerce()}>
-                          Guardar WooCommerce
+                        <button
+                          className="btn primary"
+                          type="button"
+                          disabled={actionLoadingKey === "reconnect:woocommerce"}
+                          onClick={() => void reconnectWooCommerce()}
+                        >
+                          {actionLoadingKey === "reconnect:woocommerce" ? "Guardando…" : "Guardar WooCommerce"}
                         </button>
                       </div>
                     </>
@@ -1415,8 +1432,13 @@ export function SettingsConnectionsPage({
                         </>
                       )}
                       <div className="page-module-actions">
-                        <button className="btn primary" type="button" onClick={() => void reconnectAlegra()}>
-                          Guardar Alegra
+                        <button
+                          className="btn primary"
+                          type="button"
+                          disabled={actionLoadingKey === "reconnect:alegra"}
+                          onClick={() => void reconnectAlegra()}
+                        >
+                          {actionLoadingKey === "reconnect:alegra" ? "Guardando…" : "Guardar Alegra"}
                         </button>
                       </div>
                     </>
