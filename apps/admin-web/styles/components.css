@@ -367,6 +367,17 @@
   color: var(--muted);
 }
 
+.connection-mode-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.connection-mode-toggle .btn {
+  flex: 1 1 160px;
+}
+
 .connection-form-row {
   display: grid;
   gap: 6px;

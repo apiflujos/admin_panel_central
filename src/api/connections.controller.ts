@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { getOrgId } from "../db";
 import { isTenantModuleEnabled } from "../sa/sa.repository";
 import { createSyncLog } from "../services/logs.service";
+import { validateConnections } from "../services/connectivity.service";
 import {
   deleteStoreConnection,
   deleteStoreConnectionByDomain,
@@ -62,10 +63,24 @@ export async function createConnection(req: Request, res: Response) {
     const shopDomain = payload?.shopify?.shopDomain || "";
     const storeId = Number.isFinite(payload?.storeId) ? payload.storeId : undefined;
     if (shopDomain) {
+      const accessToken = payload?.shopify?.accessToken || "";
+      // Conexion por token de app privada (Admin API). Validamos el token contra
+      // Shopify antes de persistirlo para no guardar credenciales invalidas: un
+      // token sin permisos solo fallaria despues, al sincronizar.
+      if (accessToken) {
+        const validation = await validateConnections({
+          shopify: { shopDomain, accessToken, apiVersion: payload?.shopify?.apiVersion },
+        });
+        const shopifyResult = validation.results.find((entry) => entry.provider === "shopify");
+        if (!shopifyResult || shopifyResult.status !== "ok") {
+          const detail = shopifyResult?.message ? `: ${shopifyResult.message}` : "";
+          throw new Error(`Token de Shopify invalido${detail}`);
+        }
+      }
       result = await upsertStoreConnection({
         storeName: payload?.storeName || "",
         shopDomain,
-        accessToken: payload?.shopify?.accessToken || "",
+        accessToken,
         alegra: payload?.alegra || undefined,
         storeId,
       });

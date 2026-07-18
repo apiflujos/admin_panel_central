@@ -95,6 +95,8 @@ export function SettingsConnectionsPage({
   const [copySourceStoreId, setCopySourceStoreId] = useState<number | null>(null);
   const [reconnectKind, setReconnectKind] = useState<"shopify" | "woocommerce" | "alegra" | null>(null);
   const [shopifyDomainInput, setShopifyDomainInput] = useState("");
+  const [shopifyConnectMode, setShopifyConnectMode] = useState<"oauth" | "token">("oauth");
+  const [shopifyTokenInput, setShopifyTokenInput] = useState("");
   const [wooDomain, setWooDomain] = useState("");
   const [wooConsumerKey, setWooConsumerKey] = useState("");
   const [wooConsumerSecret, setWooConsumerSecret] = useState("");
@@ -508,6 +510,51 @@ export function SettingsConnectionsPage({
       params.set("alegraAccountId", String(alegraMatch.id));
     }
     window.location.href = `/api/auth/shopify?${params.toString()}`;
+  }
+
+  async function connectShopifyWithToken() {
+    if (!selectedStore) {
+      setStatusMessage("Selecciona una tienda.");
+      return;
+    }
+    const shopDomain = shopifyDomainInput.trim();
+    if (!shopDomain) {
+      setStatusMessage("Dominio Shopify requerido.");
+      return;
+    }
+    const accessToken = shopifyTokenInput.trim();
+    if (!accessToken) {
+      setStatusMessage("Access token de Shopify requerido.");
+      return;
+    }
+    setActionLoadingKey("connect:shopify-token");
+    setStatusMessage("");
+    try {
+      const response = await apiFetch("/api/connections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeId: selectedStore.id,
+          storeName: selectedStore.name,
+          shopify: { shopDomain, accessToken },
+        }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || `shopify_token_connect_failed:${response.status}`);
+      }
+      await refreshWorkspace();
+      setShopifyTokenInput("");
+      setReconnectKind(null);
+      if (isConnectionFlowOpen) {
+        closeConnectionFlow();
+      }
+      setStatusMessage("Shopify conectado con token de app privada.");
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "No se pudo conectar Shopify con token.");
+    } finally {
+      setActionLoadingKey("");
+    }
   }
 
   async function reconnectWooCommerce() {
@@ -1322,6 +1369,27 @@ export function SettingsConnectionsPage({
 
                   {connectionWizardPlatform === "shopify" ? (
                     <>
+                      <div className="connection-mode-toggle" role="tablist" aria-label="Método de conexión Shopify">
+                        <button
+                          type="button"
+                          role="tab"
+                          aria-selected={shopifyConnectMode === "oauth"}
+                          className={`btn ${shopifyConnectMode === "oauth" ? "primary" : "ghost"}`}
+                          onClick={() => setShopifyConnectMode("oauth")}
+                        >
+                          OAuth (recomendado)
+                        </button>
+                        <button
+                          type="button"
+                          role="tab"
+                          aria-selected={shopifyConnectMode === "token"}
+                          className={`btn ${shopifyConnectMode === "token" ? "primary" : "ghost"}`}
+                          onClick={() => setShopifyConnectMode("token")}
+                        >
+                          Token de app privada
+                        </button>
+                      </div>
+
                       <label className="connection-form-row">
                         <span>Shop domain</span>
                         <input
@@ -1334,11 +1402,43 @@ export function SettingsConnectionsPage({
                       <p className="connection-form-hint">
                         No uses el dominio custom público; aquí debes registrar el dominio técnico de Shopify.
                       </p>
-                      <div className="page-module-actions">
-                        <button className="btn primary" type="button" onClick={startShopifyConnection}>
-                          Conectar Shopify
-                        </button>
-                      </div>
+
+                      {shopifyConnectMode === "oauth" ? (
+                        <div className="page-module-actions">
+                          <button className="btn primary" type="button" onClick={startShopifyConnection}>
+                            Conectar Shopify
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <label className="connection-form-row">
+                            <span>Admin API access token</span>
+                            <input
+                              className="input"
+                              type="password"
+                              value={shopifyTokenInput}
+                              onChange={(event) => setShopifyTokenInput(event.target.value)}
+                              placeholder="shpat_…"
+                              autoComplete="off"
+                            />
+                          </label>
+                          <p className="connection-form-hint">
+                            Token de una app custom/privada de Shopify (Admin API). Se valida contra Shopify y se
+                            guarda cifrado. Requiere los scopes de lectura/escritura de productos, pedidos e
+                            inventario.
+                          </p>
+                          <div className="page-module-actions">
+                            <button
+                              className="btn primary"
+                              type="button"
+                              onClick={connectShopifyWithToken}
+                              disabled={actionLoadingKey === "connect:shopify-token"}
+                            >
+                              {actionLoadingKey === "connect:shopify-token" ? "Validando…" : "Conectar con token"}
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </>
                   ) : null}
 
