@@ -444,12 +444,17 @@ export function SettingsConnectionsPage({
       setAlegraEmail(account?.email || "");
       setAlegraApiKey("");
       setAlegraEnvironment(account?.environment || "prod");
+      setConnectionWizardPlatform("alegra");
+      setConnectionWizardStep("form");
+      setConnectionWizardGroup("accounting");
+      setIsConnectionFlowOpen(true);
     }
     setReconnectKind(kind);
   }
 
   function closeConnectionFlow() {
     setIsConnectionFlowOpen(false);
+    setReconnectKind(null);
     setConnectionWizardStep("store");
     setConnectionWizardGroup(null);
     setConnectionWizardPlatform(null);
@@ -465,10 +470,14 @@ export function SettingsConnectionsPage({
       setConnectionWizardPlatform(null);
       return;
     }
+    if (platform === "alegra") {
+      openReconnect("alegra");
+      return;
+    }
     setConnectionWizardPlatform(platform);
     setConnectionWizardStep("form");
     setConnectionWizardGroup(
-      platform === "shopify" || platform === "woocommerce" ? "commerce" : platform === "alegra" ? "accounting" : "ads"
+      platform === "shopify" || platform === "woocommerce" ? "commerce" : "ads"
     );
   }
 
@@ -596,6 +605,14 @@ export function SettingsConnectionsPage({
   async function reconnectAlegra() {
     if (!selectedStore) {
       setStatusMessage("Selecciona una tienda.");
+      return;
+    }
+    if (alegraMode === "existing" && !alegraAccountId) {
+      setStatusMessage("Selecciona una cuenta Alegra.");
+      return;
+    }
+    if (alegraMode === "manual" && (!alegraEmail.trim() || !alegraApiKey.trim())) {
+      setStatusMessage("Email y API key de Alegra son obligatorios.");
       return;
     }
     setActionLoadingKey("reconnect:alegra");
