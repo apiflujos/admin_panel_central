@@ -31,6 +31,8 @@ type ConnectionWizardPlatform =
   | "tiktok-ads"
   | "shopify-marketing";
 
+type ConnectionModalState = { kind: "closed" } | { kind: "connection" } | { kind: "create-store" };
+
 function wizardPlatformHint(platform: ConnectionWizardPlatform | null) {
   if (platform === "shopify") {
     return "Usa el dominio técnico `myshopify.com`.";
@@ -84,8 +86,7 @@ export function SettingsConnectionsPage({
   const [selectedStoreId, setSelectedStoreId] = useState<number | null>(workspace.stores[0]?.id ?? null);
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [actionLoadingKey, setActionLoadingKey] = useState<string>("");
-  const [isCreateStoreOpen, setIsCreateStoreOpen] = useState(false);
-  const [isConnectionFlowOpen, setIsConnectionFlowOpen] = useState(false);
+  const [modal, setModal] = useState<ConnectionModalState>({ kind: "closed" });
   const [activeStage, setActiveStage] = useState<ConfigFlowStage>("channels");
   const [connectionWizardStep, setConnectionWizardStep] = useState<ConnectionWizardStep>("store");
   const [connectionWizardGroup, setConnectionWizardGroup] = useState<ConnectionWizardGroup | null>(null);
@@ -123,7 +124,7 @@ export function SettingsConnectionsPage({
   useEffect(() => {
     if (previousStoreIdRef.current === selectedStoreId) return;
     previousStoreIdRef.current = selectedStoreId;
-    if (isConnectionFlowOpen) {
+    if (modal.kind === "connection") {
       setShopifyTokenInput("");
       setWooConsumerKey("");
       setWooConsumerSecret("");
@@ -134,7 +135,7 @@ export function SettingsConnectionsPage({
         workspaceState.stores.find((store) => store.id === selectedStoreId)?.providers.shopify?.shopDomain || ""
       );
     }
-  }, [selectedStoreId, isConnectionFlowOpen]);
+  }, [selectedStoreId, modal.kind, workspaceState.stores]);
   useEffect(() => {
     if (!callbackState) return;
     if (callbackState.oauthError) {
@@ -242,13 +243,22 @@ export function SettingsConnectionsPage({
         setSelectedStoreId(next.stores[0]?.id ?? null);
       }
       setNewStoreName("");
-      setIsCreateStoreOpen(false);
+      setModal({ kind: "closed" });
       setStatusMessage("Tienda creada.");
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo crear la tienda.");
     } finally {
       setActionLoadingKey("");
     }
+  }
+
+  function openCreateStore() {
+    setModal({ kind: "create-store" });
+  }
+
+  function closeCreateStore() {
+    setModal({ kind: "closed" });
+    setNewStoreName("");
   }
 
   async function copyStoreConfig() {
@@ -284,7 +294,7 @@ export function SettingsConnectionsPage({
 
   function openReconnect(kind: "woocommerce" | "alegra") {
     // WooCommerce y Alegra reutilizan el wizard unificado en su paso de formulario.
-    setIsConnectionFlowOpen(true);
+    setModal({ kind: "connection" });
     setConnectionWizardStep("form");
     setWizardOpenedFromCard(true);
     if (kind === "woocommerce") {
@@ -309,7 +319,7 @@ export function SettingsConnectionsPage({
   }
 
   function closeConnectionFlow() {
-    setIsConnectionFlowOpen(false);
+    setModal({ kind: "closed" });
     setConnectionWizardStep("store");
     setConnectionWizardGroup(null);
     setConnectionWizardPlatform(null);
@@ -329,7 +339,7 @@ export function SettingsConnectionsPage({
   function openConnectionFlow(
     platform?: "shopify" | "woocommerce" | "alegra" | "google-ads" | "meta-ads" | "tiktok-ads" | "shopify-marketing"
   ) {
-    setIsConnectionFlowOpen(true);
+    setModal({ kind: "connection" });
     if (!platform) {
       setConnectionWizardStep("store");
       setConnectionWizardGroup(null);
@@ -406,11 +416,13 @@ export function SettingsConnectionsPage({
       if (!response.ok) {
         throw new Error(payload.error || `shopify_token_connect_failed:${response.status}`);
       }
-      await refreshWorkspace();
-      setShopifyTokenInput("");
-      if (isConnectionFlowOpen) {
-        closeConnectionFlow();
+      const next = await refreshWorkspace();
+      const connectedStore = next.stores.find((store) => store.id === selectedStore.id);
+      if (connectedStore?.providers.shopify?.status !== "connected") {
+        throw new Error("Shopify se guardó, pero el estado no quedó conectado. Revisa las credenciales.");
       }
+      setShopifyTokenInput("");
+      closeConnectionFlow();
       setStatusMessage(`Shopify conectado a ${shopDomain}.`);
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo conectar Shopify con token.");
@@ -457,12 +469,14 @@ export function SettingsConnectionsPage({
       if (!response.ok) {
         throw new Error(payload.error || `woocommerce_reconnect_failed:${response.status}`);
       }
-      await refreshWorkspace();
+      const next = await refreshWorkspace();
+      const connectedStore = next.stores.find((store) => store.id === selectedStore.id);
+      if (connectedStore?.providers.woocommerce?.status !== "connected") {
+        throw new Error("WooCommerce se guardó, pero el estado no quedó conectado. Revisa las credenciales.");
+      }
       setWooConsumerKey("");
       setWooConsumerSecret("");
-      if (isConnectionFlowOpen) {
-        closeConnectionFlow();
-      }
+      closeConnectionFlow();
       setStatusMessage("WooCommerce actualizado.");
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo actualizar WooCommerce.");
@@ -522,12 +536,14 @@ export function SettingsConnectionsPage({
       if (!response.ok) {
         throw new Error(payload.error || `alegra_reconnect_failed:${response.status}`);
       }
-      await refreshWorkspace();
+      const next = await refreshWorkspace();
+      const connectedStore = next.stores.find((store) => store.id === selectedStore.id);
+      if (connectedStore?.providers.alegra?.status !== "connected") {
+        throw new Error("Alegra se guardó, pero el estado no quedó conectado. Revisa las credenciales.");
+      }
       setAlegraApiKey("");
       setAlegraEmail("");
-      if (isConnectionFlowOpen) {
-        closeConnectionFlow();
-      }
+      closeConnectionFlow();
       setStatusMessage("Alegra asociado o actualizado.");
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo actualizar Alegra.");
@@ -624,7 +640,7 @@ export function SettingsConnectionsPage({
             >
               Refrescar
             </button>
-            <button className="btn primary btn-compact" type="button" onClick={() => setIsCreateStoreOpen(true)}>
+            <button className="btn primary btn-compact" type="button" onClick={openCreateStore}>
               Crear tienda
             </button>
             <button className="btn primary btn-compact" type="button" onClick={() => openConnectionFlow()}>
@@ -951,7 +967,7 @@ export function SettingsConnectionsPage({
       ) : null}
 
 
-      {isConnectionFlowOpen ? (
+      {modal.kind === "connection" ? (
         <div className="modal-backdrop" role="presentation" onClick={closeConnectionFlow}>
           <div
             className="modal-card modal-card-wide"
@@ -998,7 +1014,7 @@ export function SettingsConnectionsPage({
                         Aún no hay tiendas creadas. Crea una para poder asociar conexiones.
                       </p>
                       <div className="page-module-actions">
-                        <button className="btn primary" type="button" onClick={() => setIsCreateStoreOpen(true)}>
+                        <button className="btn primary" type="button" onClick={openCreateStore}>
                           Crear tienda
                         </button>
                       </div>
@@ -1018,7 +1034,7 @@ export function SettingsConnectionsPage({
                       </select>
 
                       <div className="page-module-actions">
-                        <button className="btn ghost" type="button" onClick={() => setIsCreateStoreOpen(true)}>
+                        <button className="btn ghost" type="button" onClick={openCreateStore}>
                           Crear tienda
                         </button>
                         <button
@@ -1539,15 +1555,15 @@ export function SettingsConnectionsPage({
         </div>
       ) : null}
 
-      {isCreateStoreOpen ? (
-        <div className="modal-backdrop" role="presentation" onClick={() => setIsCreateStoreOpen(false)}>
+      {modal.kind === "create-store" ? (
+        <div className="modal-backdrop" role="presentation" onClick={closeCreateStore}>
           <div className="modal-card" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <div>
                 <p className="modal-kicker">Tienda</p>
                 <h3>Crear tienda</h3>
               </div>
-              <button className="btn ghost btn-compact" type="button" onClick={() => setIsCreateStoreOpen(false)}>
+              <button className="btn ghost btn-compact" type="button" onClick={closeCreateStore}>
                 Cerrar
               </button>
             </div>
