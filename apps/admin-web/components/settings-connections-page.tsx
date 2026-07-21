@@ -93,7 +93,6 @@ export function SettingsConnectionsPage({
   const [connectionWizardPlatform, setConnectionWizardPlatform] = useState<ConnectionWizardPlatform | null>(null);
   const [newStoreName, setNewStoreName] = useState("");
   const [copySourceStoreId, setCopySourceStoreId] = useState<number | null>(null);
-  const [reconnectKind, setReconnectKind] = useState<"shopify" | "woocommerce" | "alegra" | null>(null);
   const [shopifyDomainInput, setShopifyDomainInput] = useState("");
   const [shopifyConnectMode, setShopifyConnectMode] = useState<"oauth" | "token">("oauth");
   const [shopifyTokenInput, setShopifyTokenInput] = useState("");
@@ -430,31 +429,37 @@ export function SettingsConnectionsPage({
   }
 
   function openReconnect(kind: "shopify" | "woocommerce" | "alegra") {
+    if (kind === "shopify") {
+      // Shopify reconnect siempre va por OAuth: redirige al endpoint de auth.
+      void reconnectShopify();
+      return;
+    }
+    // WooCommerce y Alegra reutilizan el wizard unificado en su paso de formulario.
+    setIsConnectionFlowOpen(true);
+    setConnectionWizardStep("form");
     if (kind === "woocommerce") {
       setWooDomain(selectedStore?.providers.woocommerce?.shopDomain || "");
       setWooConsumerKey("");
       setWooConsumerSecret("");
+      setConnectionWizardPlatform("woocommerce");
+      setConnectionWizardGroup("commerce");
+      return;
     }
-    if (kind === "alegra") {
-      const account =
-        workspaceState.alegraAccounts.find((item) => item.storeId === selectedStore?.id) ||
-        workspaceState.alegraAccounts[0];
-      setAlegraMode(account ? "existing" : "manual");
-      setAlegraAccountId(account ? String(account.id) : "");
-      setAlegraEmail(account?.email || "");
-      setAlegraApiKey("");
-      setAlegraEnvironment(account?.environment || "prod");
-      setConnectionWizardPlatform("alegra");
-      setConnectionWizardStep("form");
-      setConnectionWizardGroup("accounting");
-      setIsConnectionFlowOpen(true);
-    }
-    setReconnectKind(kind);
+    // alegra
+    const account =
+      workspaceState.alegraAccounts.find((item) => item.storeId === selectedStore?.id) ||
+      workspaceState.alegraAccounts[0];
+    setAlegraMode(account ? "existing" : "manual");
+    setAlegraAccountId(account ? String(account.id) : "");
+    setAlegraEmail(account?.email || "");
+    setAlegraApiKey("");
+    setAlegraEnvironment(account?.environment || "prod");
+    setConnectionWizardPlatform("alegra");
+    setConnectionWizardGroup("accounting");
   }
 
   function closeConnectionFlow() {
     setIsConnectionFlowOpen(false);
-    setReconnectKind(null);
     setConnectionWizardStep("store");
     setConnectionWizardGroup(null);
     setConnectionWizardPlatform(null);
@@ -470,14 +475,16 @@ export function SettingsConnectionsPage({
       setConnectionWizardPlatform(null);
       return;
     }
-    if (platform === "alegra") {
-      openReconnect("alegra");
+    if (platform === "woocommerce" || platform === "alegra") {
+      // Salto directo al formulario para evitar pasos redundantes cuando el botón
+      // de la tarjeta ya eligió plataforma explícitamente.
+      openReconnect(platform);
       return;
     }
     setConnectionWizardPlatform(platform);
     setConnectionWizardStep("form");
     setConnectionWizardGroup(
-      platform === "shopify" || platform === "woocommerce" ? "commerce" : "ads"
+      platform === "shopify" ? "commerce" : "ads"
     );
   }
 
@@ -554,7 +561,6 @@ export function SettingsConnectionsPage({
       }
       await refreshWorkspace();
       setShopifyTokenInput("");
-      setReconnectKind(null);
       if (isConnectionFlowOpen) {
         closeConnectionFlow();
       }
@@ -590,7 +596,6 @@ export function SettingsConnectionsPage({
         throw new Error(payload.error || `woocommerce_reconnect_failed:${response.status}`);
       }
       await refreshWorkspace();
-      setReconnectKind(null);
       if (isConnectionFlowOpen) {
         closeConnectionFlow();
       }
@@ -639,7 +644,6 @@ export function SettingsConnectionsPage({
         throw new Error(payload.error || `alegra_reconnect_failed:${response.status}`);
       }
       await refreshWorkspace();
-      setReconnectKind(null);
       if (isConnectionFlowOpen) {
         closeConnectionFlow();
       }
@@ -1691,157 +1695,6 @@ export function SettingsConnectionsPage({
         </div>
       ) : null}
 
-      {reconnectKind === "woocommerce" ? (
-        <div className="modal-backdrop" role="presentation" onClick={() => setReconnectKind(null)}>
-          <div className="modal-card" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <p className="modal-kicker">Reconexión</p>
-                <h3>WooCommerce</h3>
-              </div>
-              <button className="btn ghost btn-compact" type="button" onClick={() => setReconnectKind(null)}>
-                Cerrar
-              </button>
-            </div>
-            <div className="modal-body">
-              <label className="connection-form-row">
-                <span>Dominio</span>
-                <input
-                  className="input"
-                  value={wooDomain}
-                  onChange={(event) => setWooDomain(event.target.value)}
-                  placeholder="https://mitienda.com"
-                />
-              </label>
-              <label className="connection-form-row">
-                <span>Consumer Key</span>
-                <input
-                  className="input"
-                  value={wooConsumerKey}
-                  onChange={(event) => setWooConsumerKey(event.target.value)}
-                />
-              </label>
-              <label className="connection-form-row">
-                <span>Consumer Secret</span>
-                <input
-                  className="input"
-                  type="password"
-                  value={wooConsumerSecret}
-                  onChange={(event) => setWooConsumerSecret(event.target.value)}
-                />
-              </label>
-              <div className="page-module-actions">
-                <button
-                  className="btn primary"
-                  type="button"
-                  disabled={actionLoadingKey === "reconnect:woocommerce"}
-                  onClick={() => {
-                    void reconnectWooCommerce();
-                  }}
-                >
-                  Guardar conexión
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {reconnectKind === "alegra" ? (
-        <div className="modal-backdrop" role="presentation" onClick={() => setReconnectKind(null)}>
-          <div className="modal-card" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <p className="modal-kicker">Reconexión</p>
-                <h3>Alegra</h3>
-              </div>
-              <button className="btn ghost btn-compact" type="button" onClick={() => setReconnectKind(null)}>
-                Cerrar
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="page-module-actions">
-                <button
-                  className={`btn ${alegraMode === "existing" ? "primary" : "ghost"} btn-compact`}
-                  type="button"
-                  onClick={() => setAlegraMode("existing")}
-                >
-                  Cuenta existente
-                </button>
-                <button
-                  className={`btn ${alegraMode === "manual" ? "primary" : "ghost"} btn-compact`}
-                  type="button"
-                  onClick={() => setAlegraMode("manual")}
-                >
-                  Credenciales nuevas
-                </button>
-              </div>
-              {alegraMode === "existing" ? (
-                <div className="settings-subsection">
-                  <label className="connection-form-row">
-                    <span>Cuenta</span>
-                    <select
-                      className="input"
-                      value={alegraAccountId}
-                      onChange={(event) => setAlegraAccountId(event.target.value)}
-                    >
-                      <option value="">Selecciona una cuenta</option>
-                      {workspaceState.alegraAccounts.map((account) => (
-                        <option key={account.id} value={account.id}>
-                          {account.email} · {account.environment}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-              ) : (
-                <div className="settings-subsection">
-                  <label className="connection-form-row">
-                    <span>Email</span>
-                    <input
-                      className="input"
-                      value={alegraEmail}
-                      onChange={(event) => setAlegraEmail(event.target.value)}
-                    />
-                  </label>
-                  <label className="connection-form-row">
-                    <span>API Key</span>
-                    <input
-                      className="input"
-                      type="password"
-                      value={alegraApiKey}
-                      onChange={(event) => setAlegraApiKey(event.target.value)}
-                    />
-                  </label>
-                  <label className="connection-form-row">
-                    <span>Entorno</span>
-                    <select
-                      className="input"
-                      value={alegraEnvironment}
-                      onChange={(event) => setAlegraEnvironment(event.target.value)}
-                    >
-                      <option value="prod">Producción</option>
-                      <option value="sandbox">Pruebas</option>
-                    </select>
-                  </label>
-                </div>
-              )}
-              <div className="page-module-actions">
-                <button
-                  className="btn primary"
-                  type="button"
-                  disabled={actionLoadingKey === "reconnect:alegra"}
-                  onClick={() => {
-                    void reconnectAlegra();
-                  }}
-                >
-                  Guardar conexión
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 }
