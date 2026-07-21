@@ -1,9 +1,4 @@
-import type { ConnectionStatusDto } from "../../../packages/shared/src/admin-web";
-import {
-  getServerConnectionsStatus,
-  getServerConnectionsWorkspace,
-  getServerSettingsOverview,
-} from "../lib/server-api";
+import { getServerConnectionsWorkspace } from "../lib/server-api";
 import { SettingsConnectionsPage } from "./settings-connections-page";
 
 export async function SettingsConnectionsPageContent({
@@ -17,16 +12,9 @@ export async function SettingsConnectionsPageContent({
   };
   initialStoreId?: number | null;
 }) {
-  const [overview, connectionsResult, workspace] = await Promise.all([
-    getServerSettingsOverview(),
-    getServerConnectionsStatus(),
-    getServerConnectionsWorkspace(),
-  ]);
-  const connections = connectionsResult.items.map((row: ConnectionStatusDto) => ({ ...row, id: row.key }));
+  const workspace = await getServerConnectionsWorkspace();
   return (
     <SettingsConnectionsPage
-      overview={overview}
-      connections={connections}
       workspace={workspace}
       callbackState={callbackState}
       initialStoreId={initialStoreId}

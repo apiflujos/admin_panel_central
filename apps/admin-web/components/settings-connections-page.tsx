@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { ConnectionStatusDto, SettingsOverviewDto } from "../../../packages/shared/src/admin-web";
 import type { ConnectionsWorkspace } from "../lib/connections-workspace";
 import { apiFetch, copyStoreConfigFrom } from "../lib/api";
 import { toneForStatus } from "../lib/status";
@@ -19,16 +18,6 @@ import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { ProviderMark } from "./ui/provider-mark";
 import { StatusPill } from "./ui/status-pill";
-
-type ConnectionRow = ConnectionStatusDto & { id: string };
-
-type WebhookStatus = {
-  ok: boolean;
-  total: number;
-  connected: number;
-  missing: string[];
-  callbackUrl?: string;
-};
 
 type ConfigFlowStage = "channels" | "operations" | "invoice" | "marketing" | "legacy";
 type ConnectionWizardStep = "store" | "group" | "platform" | "form";
@@ -61,15 +50,28 @@ function wizardPlatformHint(platform: ConnectionWizardPlatform | null) {
   return "Completa los datos mínimos para abrir la conexión.";
 }
 
+function buildShopifyOAuthParams(
+  store: { id: number; name: string },
+  shopDomain: string,
+  workspace: ConnectionsWorkspace
+): URLSearchParams {
+  const params = new URLSearchParams({
+    shop: shopDomain,
+    storeId: String(store.id),
+    storeName: store.name,
+  });
+  const alegraMatch = workspace.alegraAccounts.find((account) => account.storeId === store.id);
+  if (alegraMatch) {
+    params.set("alegraAccountId", String(alegraMatch.id));
+  }
+  return params;
+}
+
 export function SettingsConnectionsPage({
-  overview,
-  connections,
   workspace,
   callbackState,
   initialStoreId,
 }: {
-  overview: SettingsOverviewDto;
-  connections: ConnectionRow[];
   workspace: ConnectionsWorkspace;
   callbackState?: {
     onboard?: string;
@@ -78,12 +80,9 @@ export function SettingsConnectionsPage({
   };
   initialStoreId?: number | null;
 }) {
-  const [selected, setSelected] = useState<ConnectionRow | null>(null);
   const [workspaceState, setWorkspaceState] = useState<ConnectionsWorkspace>(workspace);
   const [selectedStoreId, setSelectedStoreId] = useState<number | null>(workspace.stores[0]?.id ?? null);
   const [statusMessage, setStatusMessage] = useState<string>("");
-  const [webhookStatus, setWebhookStatus] = useState<WebhookStatus | null>(null);
-  const [webhookLoading, setWebhookLoading] = useState(false);
   const [actionLoadingKey, setActionLoadingKey] = useState<string>("");
   const [isCreateStoreOpen, setIsCreateStoreOpen] = useState(false);
   const [isConnectionFlowOpen, setIsConnectionFlowOpen] = useState(false);
@@ -136,7 +135,6 @@ export function SettingsConnectionsPage({
       );
     }
   }, [selectedStoreId, isConnectionFlowOpen]);
-
   useEffect(() => {
     if (!callbackState) return;
     if (callbackState.oauthError) {
@@ -181,59 +179,6 @@ export function SettingsConnectionsPage({
     });
   }, [copyableSourceStores]);
 
-  const commerceRows = workspaceState.stores.flatMap(
-    (store) =>
-      [
-        store.providers.shopify
-          ? {
-              key: `shopify:${store.id}`,
-              provider: "Shopify",
-              storeName: store.name,
-              label: store.providers.shopify.label,
-              status: store.providers.shopify.status,
-              detail: store.providers.shopify.detail,
-              secondary: store.providers.shopify.shopDomain || "",
-            }
-          : null,
-        store.providers.woocommerce
-          ? {
-              key: `woocommerce:${store.id}`,
-              provider: "WooCommerce",
-              storeName: store.name,
-              label: store.providers.woocommerce.label,
-              status: store.providers.woocommerce.status,
-              detail: store.providers.woocommerce.detail,
-              secondary: store.providers.woocommerce.shopDomain || "",
-            }
-          : null,
-      ].filter(Boolean) as Array<{
-        key: string;
-        provider: string;
-        storeName: string;
-        label: string;
-        status: ConnectionStatusDto["status"];
-        detail: string;
-        secondary: string;
-        storeId: number;
-      }>
-  );
-  const accountingRows = workspaceState.stores
-    .filter((store) => store.providers.alegra)
-    .map((store) => ({
-      key: `alegra:${store.id}`,
-      provider: "Alegra",
-      storeName: store.name,
-      label: store.providers.alegra?.label || "",
-      status: store.providers.alegra?.status || "disconnected",
-      detail: store.providers.alegra?.detail || "Sin configurar",
-      storeId: store.id,
-    }));
-  const selectedCommerceRows = selectedStore
-    ? commerceRows.filter((row) => row.storeId === selectedStore.id)
-    : commerceRows;
-  const selectedAccountingRows = selectedStore
-    ? accountingRows.filter((row) => row.storeId === selectedStore.id)
-    : accountingRows;
   const selectedShopifyProvider = selectedStore?.providers.shopify ?? null;
   const selectedWooProvider = selectedStore?.providers.woocommerce ?? null;
   const selectedAlegraProvider = selectedStore?.providers.alegra ?? null;
@@ -270,118 +215,6 @@ export function SettingsConnectionsPage({
       return next.stores.some((store) => store.id === current) ? current : (next.stores[0]?.id ?? null);
     });
     return next;
-  }
-
-  async function loadWebhookStatus(shopDomain: string) {
-    setWebhookLoading(true);
-    setStatusMessage("");
-    try {
-      const response = await fetch(`/api/shopify/webhooks/status?shopDomain=${encodeURIComponent(shopDomain)}`, {
-        credentials: "include",
-        cache: "no-store",
-      });
-      const payload = (await response.json()) as WebhookStatus | { error?: string };
-      if (!response.ok) {
-        throw new Error((payload as { error?: string }).error || `webhook_status_failed:${response.status}`);
-      }
-      setWebhookStatus(payload as WebhookStatus);
-    } catch (error) {
-      setWebhookStatus(null);
-      setStatusMessage(error instanceof Error ? error.message : "No se pudo consultar webhooks.");
-    } finally {
-      setWebhookLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    const shopDomain = selectedStore?.providers.shopify?.shopDomain;
-    if (!shopDomain) {
-      setWebhookStatus(null);
-      return;
-    }
-    void loadWebhookStatus(shopDomain);
-  }, [selectedStore?.id, selectedStore?.providers.shopify?.shopDomain]);
-
-  useEffect(() => {
-    // Solo sincroniza cuando el wizard no está abierto; si lo está, deja que el usuario edite.
-    if (isConnectionFlowOpen) return;
-    setShopifyDomainInput(selectedStore?.providers.shopify?.shopDomain || "");
-  }, [selectedStore?.id, selectedStore?.providers.shopify?.shopDomain, isConnectionFlowOpen]);
-
-  async function runWebhookAction(action: "create" | "delete") {
-    const shopDomain = selectedStore?.providers.shopify?.shopDomain;
-    if (!shopDomain) {
-      setStatusMessage("Selecciona una tienda con Shopify conectado.");
-      return;
-    }
-    setActionLoadingKey(`webhooks:${action}`);
-    setStatusMessage("");
-    try {
-      const response = await apiFetch(action === "create" ? "/api/shopify/webhooks" : "/api/shopify/webhooks/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shopDomain }),
-      });
-      const payload = (await response.json()) as { error?: string; deleted?: number; total?: number; ok?: boolean };
-      if (!response.ok) {
-        throw new Error(payload.error || `webhook_${action}_failed:${response.status}`);
-      }
-      setStatusMessage(
-        action === "create"
-          ? "Webhooks creados o actualizados."
-          : `Webhooks eliminados ${payload.deleted ?? 0}/${payload.total ?? 0}.`
-      );
-      await Promise.all([refreshWorkspace(), loadWebhookStatus(shopDomain)]);
-    } catch (error) {
-      setStatusMessage(
-        error instanceof Error ? error.message : `No se pudo ${action === "create" ? "crear" : "eliminar"} webhooks.`
-      );
-    } finally {
-      setActionLoadingKey("");
-    }
-  }
-
-  async function disconnectProvider(
-    provider: "shopify" | "woocommerce" | "alegra",
-    storeId: number,
-    shopDomain?: string
-  ) {
-    const confirmed = window.confirm(`Confirma desconectar ${provider} de esta tienda.`);
-    if (!confirmed) return;
-    setActionLoadingKey(`disconnect:${provider}:${storeId}`);
-    setStatusMessage("");
-    try {
-      let path = "";
-      if (provider === "shopify") {
-        if (!shopDomain) throw new Error("Dominio Shopify faltante.");
-        path = `/api/connections/domain/${encodeURIComponent(shopDomain)}`;
-      } else if (provider === "woocommerce") {
-        if (!shopDomain) throw new Error("Dominio WooCommerce faltante.");
-        path = `/api/woocommerce/connections/${encodeURIComponent(shopDomain)}`;
-      } else {
-        path = `/api/connections/alegra/${storeId}`;
-      }
-      const response = await apiFetch(path, {
-        method: "DELETE",
-      });
-      const payload = (await response.json()) as { error?: string };
-      if (!response.ok) {
-        throw new Error(payload.error || `disconnect_failed:${response.status}`);
-      }
-      setStatusMessage(`${provider} desconectado.`);
-      const nextWorkspace = await refreshWorkspace();
-      if (
-        provider === "shopify" &&
-        selectedStoreId &&
-        !nextWorkspace.stores.find((store) => store.id === selectedStoreId)?.providers.shopify
-      ) {
-        setWebhookStatus(null);
-      }
-    } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "No se pudo desconectar.");
-    } finally {
-      setActionLoadingKey("");
-    }
   }
 
   async function createStore() {
@@ -449,12 +282,7 @@ export function SettingsConnectionsPage({
     }
   }
 
-  function openReconnect(kind: "shopify" | "woocommerce" | "alegra") {
-    if (kind === "shopify") {
-      // Shopify reconnect siempre va por OAuth: redirige al endpoint de auth.
-      void reconnectShopify();
-      return;
-    }
+  function openReconnect(kind: "woocommerce" | "alegra") {
     // WooCommerce y Alegra reutilizan el wizard unificado en su paso de formulario.
     setIsConnectionFlowOpen(true);
     setConnectionWizardStep("form");
@@ -522,24 +350,6 @@ export function SettingsConnectionsPage({
     setConnectionWizardGroup(platform === "shopify" ? "commerce" : "ads");
   }
 
-  async function reconnectShopify() {
-    const shopDomain = selectedStore?.providers.shopify?.shopDomain;
-    if (!selectedStore || !shopDomain) {
-      setStatusMessage("Selecciona una tienda con dominio Shopify.");
-      return;
-    }
-    const params = new URLSearchParams({
-      shop: shopDomain,
-      storeId: String(selectedStore.id),
-      storeName: selectedStore.name,
-    });
-    const alegraMatch = workspaceState.alegraAccounts.find((account) => account.storeId === selectedStore.id);
-    if (alegraMatch) {
-      params.set("alegraAccountId", String(alegraMatch.id));
-    }
-    window.location.href = `/api/auth/shopify?${params.toString()}`;
-  }
-
   function startShopifyConnection() {
     if (!selectedStore) {
       setStatusMessage("Selecciona una tienda.");
@@ -554,16 +364,7 @@ export function SettingsConnectionsPage({
       setStatusMessage("Dominio Shopify debe verse como 'mitienda.myshopify.com'.");
       return;
     }
-    const params = new URLSearchParams({
-      shop: shopDomain,
-      storeId: String(selectedStore.id),
-      storeName: selectedStore.name,
-    });
-    const alegraMatch = workspaceState.alegraAccounts.find((account) => account.storeId === selectedStore.id);
-    if (alegraMatch) {
-      params.set("alegraAccountId", String(alegraMatch.id));
-    }
-    window.location.href = `/api/auth/shopify?${params.toString()}`;
+    window.location.href = `/api/auth/shopify?${buildShopifyOAuthParams(selectedStore, shopDomain, workspaceState).toString()}`;
   }
 
   async function connectShopifyWithToken() {
@@ -1149,56 +950,6 @@ export function SettingsConnectionsPage({
         </section>
       ) : null}
 
-
-      {selected ? (
-        <div className="modal-backdrop" role="presentation" onClick={() => setSelected(null)}>
-          <div
-            className="modal-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="connection-modal-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="modal-header">
-              <div>
-                <p className="modal-kicker">Conexión</p>
-                <h3 id="connection-modal-title">{selected.label || selected.provider}</h3>
-              </div>
-              <button className="btn ghost btn-compact" type="button" onClick={() => setSelected(null)}>
-                Cerrar
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="provider-mark-row">
-                <ProviderMark provider={selected.provider} />
-                <StatusPill tone={toneForStatus(selected.status)} small>
-                  {selected.status === "connected"
-                    ? "Activa"
-                    : selected.status === "attention"
-                      ? "Atención"
-                      : "Desconectada"}
-                </StatusPill>
-              </div>
-              <div className="modal-row">
-                <span>Proveedor</span>
-                <strong>{selected.provider}</strong>
-              </div>
-              <div className="modal-row">
-                <span>Estado</span>
-                <strong>{selected.status}</strong>
-              </div>
-              <div className="modal-row">
-                <span>Detalle</span>
-                <strong>{selected.detail}</strong>
-              </div>
-              <div className="modal-row">
-                <span>Último movimiento</span>
-                <strong>{selected.lastSyncAt?.slice(0, 19).replace("T", " ") ?? "Sin registro"}</strong>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {isConnectionFlowOpen ? (
         <div className="modal-backdrop" role="presentation" onClick={closeConnectionFlow}>
