@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { ConnectionStatusDto, SettingsOverviewDto } from "../../../packages/shared/src/admin-web";
 import type { ConnectionsWorkspace } from "../lib/connections-workspace";
@@ -96,6 +96,7 @@ export function SettingsConnectionsPage({
   const [shopifyDomainInput, setShopifyDomainInput] = useState("");
   const [shopifyConnectMode, setShopifyConnectMode] = useState<"oauth" | "token">("oauth");
   const [shopifyTokenInput, setShopifyTokenInput] = useState("");
+  const [wizardOpenedFromCard, setWizardOpenedFromCard] = useState(false);
   const [wooDomain, setWooDomain] = useState("");
   const [wooConsumerKey, setWooConsumerKey] = useState("");
   const [wooConsumerSecret, setWooConsumerSecret] = useState("");
@@ -117,6 +118,24 @@ export function SettingsConnectionsPage({
       return current ?? workspace.stores[0]?.id ?? null;
     });
   }, [initialStoreId, workspace]);
+
+  // Cambio de tienda con wizard abierto: limpia credenciales para no filtrar entre tiendas.
+  const previousStoreIdRef = useRef<number | null>(selectedStoreId);
+  useEffect(() => {
+    if (previousStoreIdRef.current === selectedStoreId) return;
+    previousStoreIdRef.current = selectedStoreId;
+    if (isConnectionFlowOpen) {
+      setShopifyTokenInput("");
+      setWooConsumerKey("");
+      setWooConsumerSecret("");
+      setAlegraEmail("");
+      setAlegraApiKey("");
+      setAlegraAccountId("");
+      setShopifyDomainInput(
+        workspaceState.stores.find((store) => store.id === selectedStoreId)?.providers.shopify?.shopDomain || ""
+      );
+    }
+  }, [selectedStoreId, isConnectionFlowOpen]);
 
   useEffect(() => {
     if (!callbackState) return;
@@ -284,8 +303,10 @@ export function SettingsConnectionsPage({
   }, [selectedStore?.id, selectedStore?.providers.shopify?.shopDomain]);
 
   useEffect(() => {
+    // Solo sincroniza cuando el wizard no está abierto; si lo está, deja que el usuario edite.
+    if (isConnectionFlowOpen) return;
     setShopifyDomainInput(selectedStore?.providers.shopify?.shopDomain || "");
-  }, [selectedStore?.id, selectedStore?.providers.shopify?.shopDomain]);
+  }, [selectedStore?.id, selectedStore?.providers.shopify?.shopDomain, isConnectionFlowOpen]);
 
   async function runWebhookAction(action: "create" | "delete") {
     const shopDomain = selectedStore?.providers.shopify?.shopDomain;
@@ -437,6 +458,7 @@ export function SettingsConnectionsPage({
     // WooCommerce y Alegra reutilizan el wizard unificado en su paso de formulario.
     setIsConnectionFlowOpen(true);
     setConnectionWizardStep("form");
+    setWizardOpenedFromCard(true);
     if (kind === "woocommerce") {
       setWooDomain(selectedStore?.providers.woocommerce?.shopDomain || "");
       setWooConsumerKey("");
@@ -463,6 +485,17 @@ export function SettingsConnectionsPage({
     setConnectionWizardStep("store");
     setConnectionWizardGroup(null);
     setConnectionWizardPlatform(null);
+    setWizardOpenedFromCard(false);
+    // Limpia credenciales en memoria: el wizard las vuelve a pedir si las necesita.
+    setShopifyTokenInput("");
+    setWooConsumerKey("");
+    setWooConsumerSecret("");
+    setAlegraEmail("");
+    setAlegraApiKey("");
+    setAlegraAccountId("");
+    setGoogleAdsCustomerId("");
+    setMetaAdsAccountId("");
+    setTiktokAdsAdvertiserId("");
   }
 
   function openConnectionFlow(
@@ -473,19 +506,20 @@ export function SettingsConnectionsPage({
       setConnectionWizardStep("store");
       setConnectionWizardGroup(null);
       setConnectionWizardPlatform(null);
+      setWizardOpenedFromCard(false);
       return;
     }
     if (platform === "woocommerce" || platform === "alegra") {
       // Salto directo al formulario para evitar pasos redundantes cuando el botón
       // de la tarjeta ya eligió plataforma explícitamente.
+      setWizardOpenedFromCard(true);
       openReconnect(platform);
       return;
     }
+    setWizardOpenedFromCard(false);
     setConnectionWizardPlatform(platform);
     setConnectionWizardStep("form");
-    setConnectionWizardGroup(
-      platform === "shopify" ? "commerce" : "ads"
-    );
+    setConnectionWizardGroup(platform === "shopify" ? "commerce" : "ads");
   }
 
   async function reconnectShopify() {
@@ -511,9 +545,13 @@ export function SettingsConnectionsPage({
       setStatusMessage("Selecciona una tienda.");
       return;
     }
-    const shopDomain = shopifyDomainInput.trim();
+    const shopDomain = shopifyDomainInput.trim().toLowerCase();
     if (!shopDomain) {
       setStatusMessage("Dominio Shopify requerido.");
+      return;
+    }
+    if (!/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i.test(shopDomain)) {
+      setStatusMessage("Dominio Shopify debe verse como 'mitienda.myshopify.com'.");
       return;
     }
     const params = new URLSearchParams({
@@ -533,14 +571,22 @@ export function SettingsConnectionsPage({
       setStatusMessage("Selecciona una tienda.");
       return;
     }
-    const shopDomain = shopifyDomainInput.trim();
+    const shopDomain = shopifyDomainInput.trim().toLowerCase();
     if (!shopDomain) {
       setStatusMessage("Dominio Shopify requerido.");
+      return;
+    }
+    if (!/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i.test(shopDomain)) {
+      setStatusMessage("Dominio Shopify debe verse como 'mitienda.myshopify.com'.");
       return;
     }
     const accessToken = shopifyTokenInput.trim();
     if (!accessToken) {
       setStatusMessage("Access token de Shopify requerido.");
+      return;
+    }
+    if (!/^shpat_[a-zA-Z0-9]+$/.test(accessToken)) {
+      setStatusMessage("Access token de Shopify debe empezar con 'shpat_'.");
       return;
     }
     setActionLoadingKey("connect:shopify-token");
@@ -564,7 +610,7 @@ export function SettingsConnectionsPage({
       if (isConnectionFlowOpen) {
         closeConnectionFlow();
       }
-      setStatusMessage("Shopify conectado con token de app privada.");
+      setStatusMessage(`Shopify conectado a ${shopDomain}.`);
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo conectar Shopify con token.");
     } finally {
@@ -577,6 +623,21 @@ export function SettingsConnectionsPage({
       setStatusMessage("Selecciona una tienda.");
       return;
     }
+    const domain = wooDomain.trim();
+    const consumerKey = wooConsumerKey.trim();
+    const consumerSecret = wooConsumerSecret.trim();
+    if (!domain) {
+      setStatusMessage("Dominio WooCommerce requerido.");
+      return;
+    }
+    if (!consumerKey) {
+      setStatusMessage("Consumer key de WooCommerce requerida.");
+      return;
+    }
+    if (!consumerSecret) {
+      setStatusMessage("Consumer secret de WooCommerce requerido.");
+      return;
+    }
     setActionLoadingKey("reconnect:woocommerce");
     setStatusMessage("");
     try {
@@ -586,9 +647,9 @@ export function SettingsConnectionsPage({
         body: JSON.stringify({
           storeId: selectedStore.id,
           storeName: selectedStore.name,
-          shopDomain: wooDomain,
-          consumerKey: wooConsumerKey,
-          consumerSecret: wooConsumerSecret,
+          shopDomain: domain,
+          consumerKey,
+          consumerSecret,
         }),
       });
       const payload = (await response.json()) as { error?: string };
@@ -596,6 +657,8 @@ export function SettingsConnectionsPage({
         throw new Error(payload.error || `woocommerce_reconnect_failed:${response.status}`);
       }
       await refreshWorkspace();
+      setWooConsumerKey("");
+      setWooConsumerSecret("");
       if (isConnectionFlowOpen) {
         closeConnectionFlow();
       }
@@ -612,23 +675,38 @@ export function SettingsConnectionsPage({
       setStatusMessage("Selecciona una tienda.");
       return;
     }
-    if (alegraMode === "existing" && !alegraAccountId) {
-      setStatusMessage("Selecciona una cuenta Alegra.");
-      return;
-    }
-    if (alegraMode === "manual" && (!alegraEmail.trim() || !alegraApiKey.trim())) {
-      setStatusMessage("Email y API key de Alegra son obligatorios.");
-      return;
+    if (alegraMode === "existing") {
+      if (!alegraAccountId) {
+        setStatusMessage("Selecciona una cuenta Alegra.");
+        return;
+      }
+      const known = workspaceState.alegraAccounts.some((account) => String(account.id) === alegraAccountId);
+      if (!known) {
+        setStatusMessage("La cuenta Alegra seleccionada ya no está disponible.");
+        setAlegraAccountId("");
+        return;
+      }
+    } else {
+      const email = alegraEmail.trim();
+      const apiKey = alegraApiKey.trim();
+      if (!email || !apiKey) {
+        setStatusMessage("Email y API key de Alegra son obligatorios.");
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setStatusMessage("Email de Alegra con formato inválido.");
+        return;
+      }
     }
     setActionLoadingKey("reconnect:alegra");
     setStatusMessage("");
     try {
       const alegraPayload =
-        alegraMode === "existing" && alegraAccountId
+        alegraMode === "existing"
           ? { accountId: Number(alegraAccountId) }
           : {
-              email: alegraEmail,
-              apiKey: alegraApiKey,
+              email: alegraEmail.trim(),
+              apiKey: alegraApiKey.trim(),
               environment: alegraEnvironment,
             };
       const response = await apiFetch("/api/connections", {
@@ -644,6 +722,8 @@ export function SettingsConnectionsPage({
         throw new Error(payload.error || `alegra_reconnect_failed:${response.status}`);
       }
       await refreshWorkspace();
+      setAlegraApiKey("");
+      setAlegraEmail("");
       if (isConnectionFlowOpen) {
         closeConnectionFlow();
       }
@@ -1082,7 +1162,7 @@ export function SettingsConnectionsPage({
             <div className="modal-header">
               <div>
                 <p className="modal-kicker">Conexión</p>
-                <h3 id="connection-modal-title">{selected.label}</h3>
+                <h3 id="connection-modal-title">{selected.label || selected.provider}</h3>
               </div>
               <button className="btn ghost btn-compact" type="button" onClick={() => setSelected(null)}>
                 Cerrar
@@ -1138,12 +1218,14 @@ export function SettingsConnectionsPage({
               </button>
             </div>
             <div className="modal-body">
-              <div className="page-module-actions wizard-progress">
-                <span className={`pill ${connectionWizardStep === "store" ? "pill-info" : ""}`}>1. Tienda</span>
-                <span className={`pill ${connectionWizardStep === "group" ? "pill-info" : ""}`}>2. Grupo</span>
-                <span className={`pill ${connectionWizardStep === "platform" ? "pill-info" : ""}`}>3. Plataforma</span>
-                <span className={`pill ${connectionWizardStep === "form" ? "pill-info" : ""}`}>4. Configurar</span>
-              </div>
+              {!wizardOpenedFromCard ? (
+                <div className="page-module-actions wizard-progress">
+                  <span className={`pill ${connectionWizardStep === "store" ? "pill-info" : ""}`}>1. Tienda</span>
+                  <span className={`pill ${connectionWizardStep === "group" ? "pill-info" : ""}`}>2. Grupo</span>
+                  <span className={`pill ${connectionWizardStep === "platform" ? "pill-info" : ""}`}>3. Plataforma</span>
+                  <span className={`pill ${connectionWizardStep === "form" ? "pill-info" : ""}`}>4. Configurar</span>
+                </div>
+              ) : null}
 
               {statusMessage ? (
                 <p className="connection-inline-note" role="status" aria-live="polite">
@@ -1159,26 +1241,46 @@ export function SettingsConnectionsPage({
                       <span>Elige la tienda para esta conexión.</span>
                     </div>
                   </div>
-                  <select
-                    className="input"
-                    value={selectedStore?.id ?? ""}
-                    onChange={(event) => setSelectedStoreId(Number(event.target.value || ""))}
-                  >
-                    {workspaceState.stores.map((store) => (
-                      <option key={`wizard-store:${store.id}`} value={store.id}>
-                        {store.name}
-                      </option>
-                    ))}
-                  </select>
-                  
-                  <div className="page-module-actions">
-                    <button className="btn ghost" type="button" onClick={() => setIsCreateStoreOpen(true)}>
-                      Crear tienda
-                    </button>
-                    <button className="btn primary" type="button" onClick={() => setConnectionWizardStep("group")}>
-                      Continuar
-                    </button>
-                  </div>
+                  {workspaceState.stores.length === 0 ? (
+                    <>
+                      <p className="connection-inline-note">
+                        Aún no hay tiendas creadas. Crea una para poder asociar conexiones.
+                      </p>
+                      <div className="page-module-actions">
+                        <button className="btn primary" type="button" onClick={() => setIsCreateStoreOpen(true)}>
+                          Crear tienda
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <select
+                        className="input"
+                        value={selectedStore?.id ?? ""}
+                        onChange={(event) => setSelectedStoreId(Number(event.target.value || ""))}
+                      >
+                        {workspaceState.stores.map((store) => (
+                          <option key={`wizard-store:${store.id}`} value={store.id}>
+                            {store.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      <div className="page-module-actions">
+                        <button className="btn ghost" type="button" onClick={() => setIsCreateStoreOpen(true)}>
+                          Crear tienda
+                        </button>
+                        <button
+                          className="btn primary"
+                          type="button"
+                          disabled={!selectedStore}
+                          onClick={() => setConnectionWizardStep("group")}
+                        >
+                          Continuar
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : null}
 
@@ -1471,6 +1573,8 @@ export function SettingsConnectionsPage({
                           className="input"
                           value={wooDomain}
                           onChange={(event) => setWooDomain(event.target.value)}
+                          placeholder="https://mitienda.com"
+                          autoComplete="off"
                         />
                       </label>
                       <p className="connection-form-hint">
@@ -1482,14 +1586,17 @@ export function SettingsConnectionsPage({
                           className="input"
                           value={wooConsumerKey}
                           onChange={(event) => setWooConsumerKey(event.target.value)}
+                          autoComplete="off"
                         />
                       </label>
                       <label className="connection-form-row">
                         <span>Consumer secret</span>
                         <input
                           className="input"
+                          type="password"
                           value={wooConsumerSecret}
                           onChange={(event) => setWooConsumerSecret(event.target.value)}
+                          autoComplete="off"
                         />
                       </label>
                       <div className="page-module-actions">
@@ -1512,7 +1619,17 @@ export function SettingsConnectionsPage({
                         <select
                           className="input"
                           value={alegraMode}
-                          onChange={(event) => setAlegraMode(event.target.value === "manual" ? "manual" : "existing")}
+                          onChange={(event) => {
+                            const next = event.target.value === "manual" ? "manual" : "existing";
+                            setAlegraMode(next);
+                            // Limpia credenciales al alternar modos para no mezclar.
+                            if (next === "existing") {
+                              setAlegraEmail("");
+                              setAlegraApiKey("");
+                            } else {
+                              setAlegraAccountId("");
+                            }
+                          }}
                         >
                           <option value="existing">Usar cuenta existente</option>
                           <option value="manual">Ingresar credenciales</option>
@@ -1540,16 +1657,21 @@ export function SettingsConnectionsPage({
                             <span>Email</span>
                             <input
                               className="input"
+                              type="email"
                               value={alegraEmail}
                               onChange={(event) => setAlegraEmail(event.target.value)}
+                              placeholder="contacto@empresa.com"
+                              autoComplete="off"
                             />
                           </label>
                           <label className="connection-form-row">
                             <span>API key</span>
                             <input
                               className="input"
+                              type="password"
                               value={alegraApiKey}
                               onChange={(event) => setAlegraApiKey(event.target.value)}
+                              autoComplete="off"
                             />
                           </label>
                         </>
@@ -1645,8 +1767,18 @@ export function SettingsConnectionsPage({
                   ) : null}
 
                   <div className="page-module-actions">
-                    <button className="btn ghost" type="button" onClick={() => setConnectionWizardStep("platform")}>
-                      Volver
+                    <button
+                      className="btn ghost"
+                      type="button"
+                      onClick={() => {
+                        if (wizardOpenedFromCard) {
+                          closeConnectionFlow();
+                        } else {
+                          setConnectionWizardStep("platform");
+                        }
+                      }}
+                    >
+                      {wizardOpenedFromCard ? "Cancelar" : "Volver"}
                     </button>
                   </div>
                 </div>
