@@ -2,6 +2,7 @@ import { getOrgId, getPool } from "../db";
 
 type ContactInput = {
   shopDomain?: string | null;
+  storeId?: number | null;
   shopifyId?: string | number | null;
   alegraId?: string | number | null;
   name?: string | null;
@@ -23,6 +24,8 @@ export async function upsertContact(input: ContactInput) {
   const pool = getPool();
   const orgId = getOrgId();
   const shopDomain = normalizeShopDomain(input.shopDomain || "");
+  const storeId =
+    typeof input.storeId === "number" && Number.isFinite(input.storeId) && input.storeId > 0 ? input.storeId : null;
   const shopifyId = input.shopifyId ? String(input.shopifyId) : null;
   const alegraId = input.alegraId ? String(input.alegraId) : null;
   const name = input.name ? String(input.name) : null;
@@ -36,12 +39,17 @@ export async function upsertContact(input: ContactInput) {
     return { skipped: true, reason: "missing_identifiers" };
   }
 
+  // Store-scoped match when storeId is provided (collapses Alegra + Shopify
+  // contacts of the same store by shopify_id / alegra_id / email); otherwise the
+  // historical shop_domain scope.
+  const scopeClause = storeId !== null ? "store_id = $2" : "shop_domain = $2";
+  const scopeValue: number | string = storeId !== null ? storeId : shopDomain;
   const existing = await pool.query<{ id: number }>(
     `
     SELECT id
     FROM contacts
     WHERE organization_id = $1
-      AND shop_domain = $2
+      AND ${scopeClause}
       AND (
         shopify_id = $3
         OR alegra_id = $4
@@ -49,7 +57,7 @@ export async function upsertContact(input: ContactInput) {
       )
     LIMIT 1
     `,
-    [orgId, shopDomain, shopifyId, alegraId, email]
+    [orgId, scopeValue, shopifyId, alegraId, email]
   );
 
   if (existing.rows.length) {
@@ -57,6 +65,7 @@ export async function upsertContact(input: ContactInput) {
       `
       UPDATE contacts
       SET shop_domain = COALESCE(NULLIF($2, ''), shop_domain),
+          store_id = COALESCE($11, store_id),
           shopify_id = COALESCE($3, shopify_id),
           alegra_id = COALESCE($4, alegra_id),
           name = COALESCE($5, name),
@@ -75,7 +84,7 @@ export async function upsertContact(input: ContactInput) {
           updated_at = NOW()
       WHERE id = $1
       `,
-      [existing.rows[0].id, shopDomain, shopifyId, alegraId, name, email, phone, doc, address, source]
+      [existing.rows[0].id, shopDomain, shopifyId, alegraId, name, email, phone, doc, address, source, storeId]
     );
     return { updated: true };
   }
@@ -84,10 +93,10 @@ export async function upsertContact(input: ContactInput) {
   await pool.query(
     `
     INSERT INTO contacts
-      (organization_id, shop_domain, shopify_id, alegra_id, name, email, phone, doc, address, source, sync_status, last_sync_at)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())
+      (organization_id, shop_domain, shopify_id, alegra_id, name, email, phone, doc, address, source, sync_status, store_id, last_sync_at)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW())
     `,
-    [orgId, shopDomain, shopifyId, alegraId, name, email, phone, doc, address, source, syncStatus]
+    [orgId, shopDomain, shopifyId, alegraId, name, email, phone, doc, address, source, syncStatus, storeId]
   );
   return { created: true };
 }

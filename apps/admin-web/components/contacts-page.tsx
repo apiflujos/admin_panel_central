@@ -4,6 +4,7 @@ import type { AdminWebContactsListDto } from "../../../packages/shared/src/admin
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { StatusPill } from "./ui/status-pill";
+import { SyncContactsButton } from "./sync-contacts-button";
 
 const PAGE_SIZE = 20;
 
@@ -86,6 +87,7 @@ export function ContactsPage({
         }
         actions={
           <>
+            <SyncContactsButton />
             {hasPrev ? (
               <a
                 className="btn ghost btn-compact"

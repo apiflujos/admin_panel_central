@@ -53,6 +53,7 @@ export async function syncAlegraItemToShopify(alegraItemId: string, shopDomain?:
       source: "alegra",
     }),
     shopDomain: ctx.shopDomain,
+    storeId: ctx.storeId,
   });
   if (!ctx.syncEnabled) {
     return { skipped: true, reason: "sync_disabled" };
@@ -85,7 +86,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
     availableQuantity,
     source: "alegra",
   });
-  await upsertProduct({ ...baseProductInput, shopDomain: ctx.shopDomain });
+  await upsertProduct({ ...baseProductInput, shopDomain: ctx.shopDomain, storeId: ctx.storeId });
   if (!ctx.syncEnabled) {
     return { skipped: true, reason: "sync_disabled" };
   }
@@ -128,6 +129,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
       await upsertProduct({
         ...baseProductInput,
         shopDomain: ctx.shopDomain,
+    storeId: ctx.storeId,
         shopifyId: matched.productId,
         statusShopify: resolvedShopifyStatus,
       });
@@ -188,6 +190,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
     await upsertProduct({
       ...baseProductInput,
       shopDomain: ctx.shopDomain,
+    storeId: ctx.storeId,
       shopifyId: productId,
       statusShopify: resolvedShopifyStatus,
     });
@@ -214,6 +217,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
   await upsertProduct({
     ...baseProductInput,
     shopDomain: ctx.shopDomain,
+    storeId: ctx.storeId,
     shopifyId: mapped.shopifyProductId,
     statusShopify: resolvedShopifyStatus,
   });
@@ -247,6 +251,7 @@ export async function syncAlegraInventoryPayloadToShopify(payload: AlegraInvento
   if (!ctx.updateInShopify) {
     await upsertProduct({
       shopDomain: ctx.shopDomain,
+    storeId: ctx.storeId,
       alegraId: alegraItemId,
       inventoryQuantity: availableQuantity ?? undefined,
       statusAlegra: payload.status || null,
@@ -257,6 +262,7 @@ export async function syncAlegraInventoryPayloadToShopify(payload: AlegraInvento
   if (!ctx.syncEnabled) {
     await upsertProduct({
       shopDomain: ctx.shopDomain,
+    storeId: ctx.storeId,
       alegraId: alegraItemId,
       inventoryQuantity: availableQuantity ?? undefined,
       statusAlegra: payload.status || null,
@@ -344,6 +350,7 @@ export async function syncAlegraInventoryPayloadToShopify(payload: AlegraInvento
 
   await upsertProduct({
     shopDomain: ctx.shopDomain,
+    storeId: ctx.storeId,
     alegraId: alegraItemId,
     inventoryQuantity: availableQuantity,
     statusAlegra: itemStatus || null,

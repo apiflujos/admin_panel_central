@@ -48,7 +48,12 @@ import {
   removeAlegraConnection,
 } from "./connections.controller";
 import { createStoreHandler, deleteStoreHandler, listStoresHandler, updateStoreHandler } from "./stores.controller";
-import { importAlegraProductsHandler, stopAlegraProductsImportHandler } from "./alegra-import.controller";
+import {
+  importAlegraContactsHandler,
+  importAlegraProductsHandler,
+  stopAlegraContactsImportHandler,
+  stopAlegraProductsImportHandler,
+} from "./alegra-import.controller";
 import { listConnectionTestsHandler } from "./connection-tests.controller";
 import { copyStoreConfigHandler, listStoreConfigsHandler, saveStoreConfigHandler } from "./store-configs.controller";
 import {
@@ -290,6 +295,8 @@ router.post("/sync/inventory-adjustments", requireAdmin, wrap(syncInventoryAdjus
 router.post("/sync/inventory-baseline", requireAdmin, wrap(syncPublishedInventoryBaselineHandler));
 router.post("/sync/stores/products", requireAdmin, wrap(syncStoreProductsHandler));
 router.post("/sync/contacts", requireAdmin, wrap(syncContactHandler));
+router.post("/sync/contacts/from-alegra", requireAdmin, wrap(importAlegraContactsHandler));
+router.post("/sync/contacts/from-alegra/stop", requireAdmin, wrap(stopAlegraContactsImportHandler));
 router.post("/sync/contacts/bulk", requireAdmin, wrap(syncContactsBulkHandler));
 router.post("/sync/contacts/bulk/stop", requireAdmin, wrap(stopContactsBulkSyncHandler));
 router.get("/contacts", wrap(listContactsHandler));

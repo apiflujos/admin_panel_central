@@ -22,6 +22,7 @@ type SyncContext = {
   shopify: ShopifyClient;
   alegra: AlegraClient;
   shopDomain: string;
+  storeId?: number;
   shopifyLocationId?: string;
   webhookItemsEnabled: boolean;
   syncEnabled: boolean;
@@ -82,6 +83,14 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
     .trim()
     .replace(/^https?:\/\//, "")
     .replace(/\/.*$/, "");
+  const storeIdRow = await pool.query<{ store_id: number | null }>(
+    `SELECT store_id FROM shopify_stores WHERE organization_id = $1 AND shop_domain = $2 ORDER BY created_at DESC LIMIT 1`,
+    [orgId, resolvedDomain]
+  );
+  const resolvedStoreId =
+    storeIdRow.rows[0]?.store_id != null && Number.isFinite(Number(storeIdRow.rows[0].store_id))
+      ? Number(storeIdRow.rows[0].store_id)
+      : undefined;
   const shopify = new ShopifyClient({
     shopDomain: resolvedDomain,
     accessToken: shopifySettings.accessToken,
@@ -98,6 +107,7 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
       baseUrl: getAlegraBaseUrl(alegraSettings.environment),
     }),
     shopDomain: resolvedDomain,
+    storeId: resolvedStoreId,
     shopifyLocationId: resolvedLocationId || undefined,
     webhookItemsEnabled: (rules as InventoryRules).webhookItemsEnabled !== false,
     syncEnabled: rules.syncEnabled !== false,
