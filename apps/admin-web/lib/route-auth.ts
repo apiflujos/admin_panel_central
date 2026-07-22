@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 
+import { enterOrgContext } from "../../../src/db";
 import { getSessionUser } from "../../../src/services/auth.service";
 
 export type RouteUser = {
@@ -31,7 +32,14 @@ async function readSessionToken(): Promise<string | null> {
 export async function getRouteUser(): Promise<RouteUser | null> {
   const token = await readSessionToken();
   if (!token) return null;
-  return (await getSessionUser(token)) as RouteUser | null;
+  const user = (await getSessionUser(token)) as RouteUser | null;
+  if (user) {
+    const orgId = Number(user.organization_id);
+    if (Number.isInteger(orgId) && orgId > 0) {
+      enterOrgContext(orgId);
+    }
+  }
+  return user;
 }
 
 export async function requireRouteUser(): Promise<RouteUser> {

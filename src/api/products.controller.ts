@@ -2869,23 +2869,28 @@ export async function syncOrdersHandler(req: Request, res: Response) {
       apiVersion: resolveShopifyApiVersion((shopifyCredential as { apiVersion?: string }).apiVersion),
     });
     let orders: ShopifyOrder[] = [];
-    const limit = Number(filters.limit || 0);
+    // Cap duro: cualquier bulk sync se limita a MAX_ORDERS_BULK, incluso si el cliente pide limit=0.
+    // Evita pull-all-history por error del operador o payload malicioso.
+    const MAX_ORDERS_BULK = Math.max(1, Number(process.env.SYNC_ORDERS_MAX_BULK || 5000));
+    const requestedLimit = Number(filters.limit || 0);
+    const limit =
+      requestedLimit > 0 ? Math.min(requestedLimit, MAX_ORDERS_BULK) : MAX_ORDERS_BULK;
     const orderNumber = String(filters.orderNumber || "")
       .replace(/^#/, "")
       .trim();
     if (orderNumber) {
       const query = `name:${orderNumber}`;
-      orders = await client.listAllOrdersByQuery(query);
+      orders = await client.listAllOrdersByQuery(query, limit);
     } else if (filters.dateStart || filters.dateEnd) {
       const parts = [];
       if (filters.dateStart) parts.push(`created_at:>='${filters.dateStart}'`);
       if (filters.dateEnd) parts.push(`created_at:<='${filters.dateEnd}'`);
       const query = parts.join(" ");
-      orders = await client.listAllOrdersByQuery(query, limit > 0 ? limit : undefined);
+      orders = await client.listAllOrdersByQuery(query, limit);
     } else {
-      orders = await client.listAllOrdersByQuery("status:any", limit > 0 ? limit : undefined);
+      orders = await client.listAllOrdersByQuery("status:any", limit);
     }
-    if (limit > 0) {
+    if (orders.length > limit) {
       orders = orders.slice(0, limit);
     }
     const total = orders.length;

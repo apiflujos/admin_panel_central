@@ -17,3 +17,11 @@ docuemntos/
 /*.xls
 /*.pdf
 /*.zip
+
+# Outputs de lint / tsc — no versionar
+lint_*.txt
+tsc_*.txt
+tsc_errors.txt
+
+# Vitest coverage reports
+coverage/

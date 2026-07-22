@@ -1,10 +1,11 @@
-import { getOrgId, getPool } from "../db";
+import { getPool, runWithOrg } from "../db";
 import { retryInvoiceFromLog } from "./operations.service";
 import { processQueuedWebhookEvent, type WebhookEvent, type WebhookSource } from "./sync.service";
 import { updateSyncLog } from "./logs.service";
 
 type RetryRow = {
   id: number;
+  organization_id: number;
   sync_log_id: number;
   entity: string;
   request_json: Record<string, unknown> | null;
@@ -51,25 +52,36 @@ function parseQueuedWebhookEvent(value: unknown): QueuedWebhookEvent | null {
 
 export async function processRetryQueue(limit = 50) {
   const pool = getPool();
-  const orgId = getOrgId();
+
+  // Reaper: rows en `processing` >15 min → vuelven a `pending` para no perderse ante crash del worker.
+  await pool
+    .query(
+      `
+      UPDATE retry_queue
+      SET status = 'pending'
+      WHERE status = 'processing'
+        AND next_run_at < NOW() - INTERVAL '15 minutes'
+      `
+    )
+    .catch(() => undefined);
 
   const client = await pool.connect();
   let rows: RetryRow[];
   try {
     await client.query("BEGIN");
+    // Sin filtro fijo de org — el `organization_id` viene con cada row y se aplica en `runWithOrg`.
     const result = await client.query<RetryRow>(
       `
-      SELECT rq.id, rq.sync_log_id, sl.entity, sl.request_json, sl.retry_count
+      SELECT rq.id, sl.organization_id, rq.sync_log_id, sl.entity, sl.request_json, sl.retry_count
       FROM retry_queue rq
       JOIN sync_logs sl ON sl.id = rq.sync_log_id
-      WHERE sl.organization_id = $1
-        AND rq.status = 'pending'
+      WHERE rq.status = 'pending'
         AND rq.next_run_at <= NOW()
       ORDER BY rq.next_run_at ASC
       FOR UPDATE SKIP LOCKED
-      LIMIT $2
+      LIMIT $1
       `,
-      [orgId, limit]
+      [limit]
     );
     rows = result.rows;
     if (rows.length) {
@@ -94,15 +106,16 @@ export async function processRetryQueue(limit = 50) {
 
   for (const row of rows) {
     const orderId = row.request_json?.orderId;
+    const rowOrgId = Number(row.organization_id);
 
-    try {
+    const attempt = async () => {
       if (row.entity === "order" && (typeof orderId === "string" || typeof orderId === "number")) {
         await retryInvoiceFromLog(String(orderId));
       } else if (row.entity === "webhook") {
         const queuedEvent = parseQueuedWebhookEvent(row.request_json?.webhookEvent);
         if (!queuedEvent) {
           await pool.query(`UPDATE retry_queue SET status = 'skipped' WHERE id = $1`, [row.id]);
-          continue;
+          return "skipped" as const;
         }
         await processQueuedWebhookEvent({
           syncLogId: row.sync_log_id,
@@ -116,9 +129,21 @@ export async function processRetryQueue(limit = 50) {
         });
       } else {
         await pool.query(`UPDATE retry_queue SET status = 'skipped' WHERE id = $1`, [row.id]);
-        continue;
+        return "skipped" as const;
       }
       await pool.query(`UPDATE retry_queue SET status = 'done' WHERE id = $1`, [row.id]);
+      return "done" as const;
+    };
+
+    try {
+      if (Number.isInteger(rowOrgId) && rowOrgId > 0) {
+        await runWithOrg(rowOrgId, attempt);
+      } else {
+        // Row sin org — solo puede ocurrir por data corruption. Salta.
+        console.error(`[retry-queue] row ${row.id} sin organization_id — skipped`);
+        await pool.query(`UPDATE retry_queue SET status = 'skipped' WHERE id = $1`, [row.id]);
+        continue;
+      }
     } catch (error) {
       console.error(`[retry-queue] orderId=${orderId} attempt failed:`, error instanceof Error ? error.message : error);
       const nextRetryCount = row.retry_count + 1;

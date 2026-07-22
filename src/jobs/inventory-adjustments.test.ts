@@ -43,6 +43,12 @@ vi.mock("../services/store-connections.service", () => ({
   listConnectedShopifyDomains: listConnectedShopifyDomainsMock,
 }));
 
+vi.mock("../services/organizations.service", () => ({
+  withEachOrganization: async (fn: (orgId: number) => Promise<void>) => {
+    await fn(1);
+  },
+}));
+
 import { startInventoryAdjustmentsPoller } from "./inventory-adjustments";
 
 describe("inventory-adjustments poller", () => {

@@ -229,18 +229,41 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
     ? (await getMappingByShopifyId("order", orderId)) ||
       (orderGid ? await getMappingByShopifyId("order", orderGid) : undefined)
     : undefined;
-  const existing = (await ctx.alegra.findContactByEmail(effectiveEmail)) as Array<{
-    id: string | number;
-  }>;
+  // Contact matching: primero por mapping (customerId → alegraContactId), luego email como fallback.
+  // Evita colapsar clientes distintos que comparten email (ej: guest checkouts con mismo correo).
+  const customerId = payload.customer?.id ? String(payload.customer.id) : "";
+  const contactMappingRow = customerId
+    ? await getMappingByShopifyId("contact", customerId)
+    : undefined;
+  let existing: Array<{ id: string | number }> = [];
+  if (contactMappingRow?.alegraId) {
+    existing = [{ id: contactMappingRow.alegraId }];
+  } else {
+    existing = (await ctx.alegra.findContactByEmail(effectiveEmail)) as Array<{
+      id: string | number;
+    }>;
+  }
 
   const contactMapping = mapShopifyToAlegraContact(payload, effectiveEmail, {
     einvoiceActive,
     override: override || undefined,
   });
-  const createContactPayload = contactMapping;
+  // Fail-closed: si no hay identificación real, no se crea invoice — el operador debe
+  // cargar override e-invoice con NIT/CC válido antes de reintentar. (Antes: se fabricaba "3000000000").
+  if (!contactMapping.hasRealIdentification) {
+    await createSyncLog({
+      entity: "order",
+      direction: "shopify->alegra",
+      status: "fail",
+      message: "Falta identificación real del cliente. Carga override e-invoice antes de emitir la factura.",
+      request: { orderId, customerEmail: effectiveEmail },
+    });
+    return { handled: false, reason: "missing_customer_identification" };
+  }
+  const { hasRealIdentification: _hasReal, ...createContactPayload } = contactMapping;
   const identification = contactMapping.identification;
   const contactName = contactMapping.name;
-  const contactPayload = contactMapping;
+  const contactPayload = createContactPayload;
 
   let contactId: string;
   if (existing && existing.length > 0) {
@@ -418,7 +441,32 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
   }
 
   let payment = null;
-  if (payload.financial_status === "paid" && invoiceSettings.applyPayment && invoiceId) {
+  // Solo `paid` genera pago full. Estados intermedios se skip explícitamente para evitar
+  // rerun-re-apply del total completo tras un refund parcial o cancelación.
+  const financialStatus = String(payload.financial_status || "").toLowerCase();
+  const paymentAllowedStatuses = new Set(["paid"]);
+  const paymentSkipStatuses = new Set([
+    "partially_paid",
+    "partially_refunded",
+    "refunded",
+    "voided",
+    "pending",
+    "authorized",
+  ]);
+  if (
+    invoiceId &&
+    invoiceSettings.applyPayment &&
+    paymentSkipStatuses.has(financialStatus)
+  ) {
+    await createSyncLog({
+      entity: "order",
+      direction: "shopify->alegra",
+      status: "warn",
+      message: `Payment skipped: financial_status=${financialStatus} (usa acción manual para pagos parciales/refunds)`,
+      request: { orderId: orderId || null },
+    });
+  }
+  if (paymentAllowedStatuses.has(financialStatus) && invoiceSettings.applyPayment && invoiceId) {
     if (!bankAccountId) {
       await createSyncLog({
         entity: "order",
@@ -587,17 +635,21 @@ export function mapShopifyToAlegraContact(
 
   const rawPhone = payload.customer?.phone || "";
   const phoneId = rawPhone.replace(/\D/g, "");
-  const identification =
+  // Nunca fabricamos NIT: si no hay ID real, dejamos vacío para que fail-closed downstream
+  // (Alegra 2035) o el operador cargue un override e-invoice.
+  const derivedIdentification =
     einvoiceActive && override?.idNumber
       ? override.idNumber
       : phoneId.startsWith("57") && phoneId.length > 10
         ? phoneId.slice(2)
-        : phoneId || "3000000000";
+        : phoneId;
+  const hasRealIdentification = Boolean(derivedIdentification && derivedIdentification.length >= 6);
 
   return {
     ...contactPayload,
     identificationType: einvoiceActive && override?.idType ? override.idType : "CC",
-    identification,
+    identification: hasRealIdentification ? derivedIdentification : "",
+    hasRealIdentification,
   };
 }
 

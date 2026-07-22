@@ -1,6 +1,7 @@
 import { ShopifyClient } from "../../../../src/connectors/shopify";
 import { createSyncLog } from "../../../../src/services/logs.service";
 import { mapOrderToPayload } from "../../../../src/services/operations.service";
+import { withEachOrganization } from "../../../../src/services/organizations.service";
 import { syncShopifyOrderToAlegra } from "../../../../src/services/shopify-to-alegra.service";
 import { getSyncCheckpoint, saveSyncCheckpoint } from "../../../../src/services/sync-checkpoints.service";
 import { getShopifyConnectionByDomain, listConnectedShopifyDomains } from "../../../../src/services/store-connections.service";
@@ -43,92 +44,108 @@ export function startOrdersSyncWorker() {
 
   let running = false;
 
+  const runForOrg = async () => {
+    const shopDomains = await listConnectedShopifyDomains();
+    if (!shopDomains.length) return;
+
+    for (const shopDomain of shopDomains) {
+      try {
+        const credential = await getShopifyConnectionByDomain(shopDomain);
+        const client = new ShopifyClient({
+          shopDomain: credential.shopDomain,
+          accessToken: credential.accessToken,
+        });
+
+        const sinceMs = await resolveSince(credential.shopDomain, lookbackMinutes);
+        const query = `status:any updated_at:>='${toIso(sinceMs)}'`;
+        let orders = await client.listAllOrdersByQuery(query, maxOrders > 0 ? maxOrders : undefined);
+        if (maxOrders > 0) {
+          orders = orders.slice(0, maxOrders);
+        }
+        if (!orders.length) continue;
+
+        orders.sort((a, b) => {
+          const left = extractUpdatedAt(a) || 0;
+          const right = extractUpdatedAt(b) || 0;
+          return left - right;
+        });
+
+        let processed = 0;
+        let lastSeen = sinceMs;
+        // `minFailedUpdatedAt` mantiene el updatedAt más viejo entre las órdenes que fallaron,
+        // para NO avanzar el checkpoint más allá de esa marca (así el próximo tick reintenta).
+        let minFailedUpdatedAt: number | null = null;
+        let hadFailure = false;
+        for (let i = 0; i < orders.length; i += batchSize) {
+          const batch = orders.slice(i, i + batchSize);
+          const results = await Promise.allSettled(
+            batch.map(async (order) => {
+              const payload = mapOrderToPayload(order);
+              await syncShopifyOrderToAlegra({
+                ...(payload as Record<string, unknown>),
+                __shopDomain: credential.shopDomain,
+              });
+              processed += 1;
+              const updatedAt = extractUpdatedAt(order);
+              if (updatedAt && updatedAt > lastSeen) lastSeen = updatedAt;
+              return updatedAt;
+            })
+          );
+          results.forEach((result, idx) => {
+            if (result.status === "rejected") {
+              hadFailure = true;
+              const failedUpdatedAt = extractUpdatedAt(batch[idx]);
+              if (failedUpdatedAt != null) {
+                minFailedUpdatedAt =
+                  minFailedUpdatedAt == null ? failedUpdatedAt : Math.min(minFailedUpdatedAt, failedUpdatedAt);
+              }
+            }
+          });
+          if (results.some((result) => result.status === "rejected")) {
+            await safeCreateSyncLog({
+              entity: "orders_sync",
+              direction: "shopify->alegra",
+              status: "fail",
+              message: "Batch orders sync had failures",
+              request: { shopDomain: credential.shopDomain, processed, total: orders.length },
+            });
+          }
+        }
+
+        // Solo avanzamos checkpoint hasta el mínimo failed - 1ms; si no hubo fails, hasta lastSeen.
+        const checkpointValue =
+          hadFailure && minFailedUpdatedAt != null ? Math.max(sinceMs, minFailedUpdatedAt - 1) : lastSeen;
+        await saveSyncCheckpoint({
+          entity: checkpointKey(credential.shopDomain),
+          lastStart: checkpointValue,
+          total: orders.length,
+        });
+        await safeCreateSyncLog({
+          entity: "orders_sync",
+          direction: "shopify->alegra",
+          status: hadFailure ? "fail" : "success",
+          message: hadFailure ? "Orders sync batch completed with failures" : "Orders sync batch completed",
+          request: { shopDomain: credential.shopDomain, processed, total: orders.length },
+          response: { shopDomain: credential.shopDomain, processed, total: orders.length },
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Orders sync poll failed";
+        await safeCreateSyncLog({
+          entity: "orders_sync",
+          direction: "shopify->alegra",
+          status: "fail",
+          message,
+          request: { shopDomain },
+        });
+      }
+    }
+  };
+
   const run = async () => {
     if (running) return;
     running = true;
     try {
-      const shopDomains = await listConnectedShopifyDomains();
-      if (!shopDomains.length) {
-        return;
-      }
-
-      for (const shopDomain of shopDomains) {
-        try {
-          const credential = await getShopifyConnectionByDomain(shopDomain);
-          const client = new ShopifyClient({
-            shopDomain: credential.shopDomain,
-            accessToken: credential.accessToken,
-          });
-
-          const sinceMs = await resolveSince(credential.shopDomain, lookbackMinutes);
-          const query = `status:any updated_at:>='${toIso(sinceMs)}'`;
-          let orders = await client.listAllOrdersByQuery(query, maxOrders > 0 ? maxOrders : undefined);
-          if (maxOrders > 0) {
-            orders = orders.slice(0, maxOrders);
-          }
-          if (!orders.length) {
-            continue;
-          }
-
-          orders.sort((a, b) => {
-            const left = extractUpdatedAt(a) || 0;
-            const right = extractUpdatedAt(b) || 0;
-            return left - right;
-          });
-
-          let processed = 0;
-          let lastSeen = sinceMs;
-          for (let i = 0; i < orders.length; i += batchSize) {
-            const batch = orders.slice(i, i + batchSize);
-            const results = await Promise.allSettled(
-              batch.map(async (order) => {
-                const payload = mapOrderToPayload(order);
-                await syncShopifyOrderToAlegra({
-                  ...(payload as Record<string, unknown>),
-                  __shopDomain: credential.shopDomain,
-                });
-                processed += 1;
-                const updatedAt = extractUpdatedAt(order);
-                if (updatedAt && updatedAt > lastSeen) {
-                  lastSeen = updatedAt;
-                }
-              })
-            );
-            if (results.some((result) => result.status === "rejected")) {
-              await safeCreateSyncLog({
-                entity: "orders_sync",
-                direction: "shopify->alegra",
-                status: "fail",
-                message: "Batch orders sync had failures",
-                request: { shopDomain: credential.shopDomain, processed, total: orders.length },
-              });
-            }
-          }
-
-          await saveSyncCheckpoint({
-            entity: checkpointKey(credential.shopDomain),
-            lastStart: lastSeen,
-            total: orders.length,
-          });
-          await safeCreateSyncLog({
-            entity: "orders_sync",
-            direction: "shopify->alegra",
-            status: "success",
-            message: "Orders sync batch completed",
-            request: { shopDomain: credential.shopDomain, processed, total: orders.length },
-            response: { shopDomain: credential.shopDomain, processed, total: orders.length },
-          });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Orders sync poll failed";
-          await safeCreateSyncLog({
-            entity: "orders_sync",
-            direction: "shopify->alegra",
-            status: "fail",
-            message,
-            request: { shopDomain },
-          });
-        }
-      }
+      await withEachOrganization(runForOrg);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Orders sync poll failed";
       await safeCreateSyncLog({

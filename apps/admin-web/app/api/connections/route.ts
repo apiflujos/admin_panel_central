@@ -30,13 +30,6 @@ export const GET = routeHandler(async () => {
   await requireRouteAdmin();
   try {
     const result = await listStoreConnections();
-    await createSyncLog({
-      entity: "connections_list",
-      direction: "shopify->alegra",
-      status: "success",
-      message: "Conexiones cargadas",
-      response: result as Record<string, unknown>,
-    });
     return NextResponse.json(result);
   } catch (error) {
     const message = getErrorMessage(error);
@@ -46,7 +39,8 @@ export const GET = routeHandler(async () => {
       status: "fail",
       message,
     });
-    return NextResponse.json({ error: message }, { status: 400 });
+    const status = /timeout|econn|ENOTFOUND|EAI_AGAIN|no disponible/i.test(message) ? 502 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 });
 
@@ -62,7 +56,12 @@ export const POST = routeHandler(async (req: Request) => {
     }
     let result: Record<string, unknown> = {};
     const shopDomain = payload?.shopify?.shopDomain || "";
-    const storeId = Number.isFinite(payload?.storeId) ? payload.storeId : undefined;
+    const storeIdRaw = payload?.storeId;
+    const storeIdCoerced = storeIdRaw == null || storeIdRaw === "" ? NaN : Number(storeIdRaw);
+    const storeId = Number.isFinite(storeIdCoerced) && storeIdCoerced > 0 ? storeIdCoerced : undefined;
+    if (shopDomain && !storeId) {
+      throw new Error("Selecciona una tienda para conectar Shopify.");
+    }
     if (shopDomain) {
       result = await upsertStoreConnection({
         storeName: payload?.storeName || "",

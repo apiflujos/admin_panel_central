@@ -42,6 +42,11 @@ vi.mock("./logs.service", () => ({
   updateSyncLog: updateSyncLogMock,
 }));
 
+vi.mock("./idempotency.service", () => ({
+  acquireIdempotencyKey: async () => ({ status: "processing" as const, acquired: true }),
+  markIdempotencyKey: async () => undefined,
+}));
+
 vi.mock("./sync-context", () => ({
   buildSyncContext: buildSyncContextMock,
 }));

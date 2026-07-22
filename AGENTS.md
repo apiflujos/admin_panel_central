@@ -36,15 +36,12 @@ Use this guide to generate correct code changes and documentation.
 - Port: **only** `APP_PORT`
 - Redis: **required** (`REDIS_URL` must exist or app fails to start)
 - Primary Postgres: `DATABASE_URL`
-- Secondary Postgres (MIM): `MIM_DATABASE_URL` (no migrations)
-- MongoDB: `MONGO_URL` (no migrations)
 
 ## Database & migrations
 
 - Only migrations in `src/db/migrations/` should change the main schema.
 - No runtime auto‑repair.
 - Current baseline: `001_baseline.sql`.
-- MIM Postgres + Mongo: **read/write only** on existing structures; **never** run CREATE/ALTER/DROP.
 
 ## Redis
 
@@ -55,9 +52,7 @@ Use this guide to generate correct code changes and documentation.
 
 - `src/server.ts`: app entrypoint
 - `src/db/`: primary Postgres access + migrations runner
-- `src/db/mim.ts`: MIM Postgres pool (secondary DB)
-- `src/mongo/`: Mongo client helpers
-- `src/jobs/`: cron/pollers (marketing, sync, billing)
+- `src/jobs/`: cron/pollers (marketing, sync, billing) — thin re-exports desde `apps/workers/`
 - `src/api/`: HTTP controllers
 - `src/services/`: domain services
 - `public/`: assets usados por la app (versionados)
@@ -75,7 +70,6 @@ Use this guide to generate correct code changes and documentation.
 
 - Shared improvements for **all** clients → add migrations in `main`.
 - Client‑specific schema changes → add migrations **only** in that client's branch.
-- Do not run migrations against MIM Postgres or Mongo.
 
 ## Coding rules for agents
 

@@ -381,6 +381,31 @@ function resolveInvoiceNumber(invoice: Record<string, unknown> | null) {
   return null;
 }
 
+/**
+ * Predicate puro: dada una invoice Alegra y datos del cliente Shopify (email, phone),
+ * indica si corresponden al mismo cliente en la MISMA fecha. Extraído para testabilidad.
+ *
+ * Match estricto: identification === phone (no substring — evita colisiones entre
+ * documentos que se contienen mutuamente).
+ */
+export function invoiceMatchesShopifyCustomer(
+  invoice: Record<string, unknown>,
+  target: { targetDate: string; email: string; phone: string }
+): { matches: boolean; onSameDate: boolean } {
+  const date = String(invoice.date || invoice.datetime || "").slice(0, 10);
+  const onSameDate = date === target.targetDate;
+  if (!onSameDate) return { matches: false, onSameDate };
+  const client = invoice.client as Record<string, unknown> | undefined;
+  const clientEmail = client?.email ? String(client.email) : "";
+  const clientIdentification = client?.identification
+    ? String(client.identification).replace(/\D/g, "")
+    : "";
+  const byEmail =
+    Boolean(target.email) && Boolean(clientEmail) && target.email.toLowerCase() === clientEmail.toLowerCase();
+  const byPhone = Boolean(target.phone) && clientIdentification === target.phone;
+  return { matches: byEmail || byPhone, onSameDate };
+}
+
 async function invoiceExistsInAlegra(ctx: Awaited<ReturnType<typeof buildSyncContext>>, order: ShopifyOrder) {
   const targetDate = String(order.processedAt || "").slice(0, 10);
   if (!targetDate) return false;
@@ -395,15 +420,11 @@ async function invoiceExistsInAlegra(ctx: Awaited<ReturnType<typeof buildSyncCon
     }
     let allOlder = true;
     const match = invoices.find((invoice: Record<string, unknown>) => {
-      const date = String(invoice.date || invoice.datetime || "").slice(0, 10);
-      if (date >= targetDate) allOlder = false;
-      if (date !== targetDate) return false;
-      const client = invoice.client as Record<string, unknown> | undefined;
-      const clientEmail = client?.email ? String(client.email) : "";
-      const clientId = client?.identification ? String(client.identification) : "";
-      const byEmail = email && clientEmail && email.toLowerCase() === clientEmail.toLowerCase();
-      const byPhone = phone && clientId && clientId.replace(/\D/g, "").includes(phone);
-      return byEmail || byPhone;
+      const result = invoiceMatchesShopifyCustomer(invoice, { targetDate, email, phone });
+      if (result.onSameDate || String(invoice.date || invoice.datetime || "").slice(0, 10) > targetDate) {
+        allOlder = false;
+      }
+      return result.matches;
     });
     if (match) return true;
     if (allOlder) break;

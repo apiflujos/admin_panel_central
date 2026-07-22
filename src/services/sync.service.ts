@@ -6,6 +6,7 @@ import {
 import { upsertAlegraItemCacheIfTracked } from "./alegra-items-cache.service";
 import { syncShopifyOrderToAlegra, createInventoryAdjustmentFromRefund } from "./shopify-to-alegra.service";
 import { createSyncLog, updateSyncLog } from "./logs.service";
+import { acquireIdempotencyKey, markIdempotencyKey } from "./idempotency.service";
 import { buildSyncContext } from "./sync-context";
 import { upsertProduct } from "./products.service";
 import { getMappingByShopifyId, getMappingByShopifyInventoryItemId, updateMappingMetadata } from "./mapping.service";
@@ -224,8 +225,23 @@ async function handleShopifyRefund(payload: unknown) {
   const shopDomain = extractShopDomain(payload);
   const ctx = await buildSyncContext(shopDomain);
   const data: ShopifyRefundWebhookPayload = (asRecord(payload) || {}) as ShopifyRefundWebhookPayload;
+  const refundId = (data as { id?: unknown }).id;
+  const idempotencyKey = refundId ? `refund-adjust:${shopDomain}:${String(refundId)}` : "";
+  if (idempotencyKey) {
+    const guard = await acquireIdempotencyKey(idempotencyKey);
+    if (!guard.acquired) {
+      if (guard.status === "completed") {
+        return { handled: false, type: "refund", reason: "already_processed" };
+      }
+      // processing/failed: retryable — dejamos que el retry-queue lo agarre.
+      throw new Error(`Refund idempotency conflict (status=${guard.status}) — will retry`);
+    }
+  }
   try {
     const result = await createInventoryAdjustmentFromRefund(data, ctx.alegraWarehouseId, ctx);
+    if (idempotencyKey) {
+      await markIdempotencyKey(idempotencyKey, "completed").catch(() => undefined);
+    }
     await createSyncLog({
       entity: "refund",
       direction: "shopify->alegra",
@@ -236,6 +252,13 @@ async function handleShopifyRefund(payload: unknown) {
     });
     return { handled: true, type: "refund", result };
   } catch (error) {
+    if (idempotencyKey) {
+      await markIdempotencyKey(
+        idempotencyKey,
+        "failed",
+        error instanceof Error ? error.message : "refund_failed"
+      ).catch(() => undefined);
+    }
     await createSyncLog({
       entity: "refund",
       direction: "shopify->alegra",
@@ -255,6 +278,21 @@ async function handleShopifyInventory(payload: unknown) {
   const available = typeof availableRaw === "number" ? availableRaw : Number(availableRaw);
   if (!inventoryItemId || !Number.isFinite(available)) {
     return { handled: false, reason: "missing_inventory_payload" };
+  }
+
+  // Idempotency por (shop, item, updated_at) — reintentos del mismo update se descartan.
+  const updatedAt = (data.updated_at as string | undefined) || "";
+  const idempotencyKey = updatedAt
+    ? `inventory-update:${shopDomain}:${inventoryItemId}:${updatedAt}`
+    : "";
+  if (idempotencyKey) {
+    const guard = await acquireIdempotencyKey(idempotencyKey);
+    if (!guard.acquired) {
+      if (guard.status === "completed") {
+        return { handled: false, reason: "already_processed" };
+      }
+      throw new Error(`Inventory idempotency conflict (status=${guard.status}) — will retry`);
+    }
   }
 
   const mapping = await getMappingByShopifyInventoryItemId("item", String(inventoryItemId));
@@ -294,6 +332,9 @@ async function handleShopifyInventory(payload: unknown) {
     available,
   });
 
+  if (idempotencyKey) {
+    await markIdempotencyKey(idempotencyKey, "completed").catch(() => undefined);
+  }
   return { handled: true, type: "inventory", inventoryItemId, available, syncToAlegra };
 }
 

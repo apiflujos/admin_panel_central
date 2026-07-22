@@ -14,22 +14,59 @@ export async function createOAuthState(
   nonce: string,
   storeName?: string | null,
   storeId?: number | null,
-  alegraAccountId?: number | null
+  alegraAccountId?: number | null,
+  initiatedByUserId?: number | null
 ) {
   const pool = getPool();
   const orgId = getOrgId();
   await ensureOrganization(pool, orgId);
   const normalized = normalizeShopDomain(shopDomain);
+  if (initiatedByUserId) {
+    await pool.query(
+      `
+      DELETE FROM shopify_oauth_states
+      WHERE organization_id = $1
+        AND shop_domain = $2
+        AND initiated_by_user_id = $3
+      `,
+      [orgId, normalized, initiatedByUserId]
+    );
+  }
   await pool.query(
     `
-    INSERT INTO shopify_oauth_states (organization_id, shop_domain, nonce, store_name, store_id, alegra_account_id, created_at)
-    VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    INSERT INTO shopify_oauth_states (
+      organization_id, shop_domain, nonce,
+      store_name, store_id, alegra_account_id, initiated_by_user_id, created_at
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
     `,
-    [orgId, normalized, nonce, storeName || null, storeId || null, alegraAccountId || null]
+    [
+      orgId,
+      normalized,
+      nonce,
+      storeName || null,
+      storeId || null,
+      alegraAccountId || null,
+      initiatedByUserId || null,
+    ]
   );
 }
 
-export async function consumeOAuthState(shopDomain: string, nonce: string) {
+export type ConsumeOAuthStateResult =
+  | {
+      ok: true;
+      storeName: string;
+      storeId: number | null;
+      alegraAccountId: number | null;
+      initiatedByUserId: number | null;
+    }
+  | { ok: false; reason: "not_found" | "user_mismatch" };
+
+export async function consumeOAuthState(
+  shopDomain: string,
+  nonce: string,
+  expectedUserId?: number | null
+): Promise<ConsumeOAuthStateResult> {
   const pool = getPool();
   const orgId = getOrgId();
   const normalized = normalizeShopDomain(shopDomain);
@@ -46,9 +83,10 @@ export async function consumeOAuthState(shopDomain: string, nonce: string) {
     store_name: string | null;
     store_id: number | null;
     alegra_account_id: number | null;
+    initiated_by_user_id: number | null;
   }>(
     `
-    SELECT id, store_name, store_id, alegra_account_id
+    SELECT id, store_name, store_id, alegra_account_id, initiated_by_user_id
     FROM shopify_oauth_states
     WHERE organization_id = $1
       AND shop_domain = $2
@@ -60,13 +98,21 @@ export async function consumeOAuthState(shopDomain: string, nonce: string) {
     [orgId, normalized, nonce]
   );
   const row = result.rows[0];
-  if (!row?.id) return { ok: false as const };
+  if (!row?.id) return { ok: false, reason: "not_found" };
+  if (
+    row.initiated_by_user_id != null &&
+    expectedUserId != null &&
+    Number(row.initiated_by_user_id) !== Number(expectedUserId)
+  ) {
+    return { ok: false, reason: "user_mismatch" };
+  }
   await pool.query("DELETE FROM shopify_oauth_states WHERE id = $1", [row.id]);
   return {
-    ok: true as const,
+    ok: true,
     storeName: row.store_name || "",
     storeId: row.store_id || null,
     alegraAccountId: row.alegra_account_id || null,
+    initiatedByUserId: row.initiated_by_user_id || null,
   };
 }
 

@@ -7,6 +7,7 @@ import {
   getSessionUser,
   updatePassword,
 } from "../services/auth.service";
+import { enterOrgContext } from "../db";
 import { getSuperAdminEmail } from "../sa/sa.bootstrap";
 import { createCsrfToken, verifyCsrfToken } from "../utils/csrf";
 
@@ -185,6 +186,10 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     return;
   }
   (req as { user?: typeof user }).user = user;
+  const orgId = Number(user.organization_id);
+  if (Number.isInteger(orgId) && orgId > 0) {
+    enterOrgContext(orgId);
+  }
   next();
 }
 

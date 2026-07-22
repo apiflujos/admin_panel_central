@@ -1,9 +1,23 @@
 import crypto from "crypto";
 
+const isProd = () => String(process.env.NODE_ENV || "").toLowerCase() === "production";
+
+function allowUnverified(envKey: string): boolean {
+  if (isProd()) {
+    if (String(process.env[envKey] || "").toLowerCase() === "true") {
+      console.warn(
+        `[webhook] ${envKey}=true set in production — ignored. Webhooks without valid signature will be rejected.`
+      );
+    }
+    return false;
+  }
+  return String(process.env[envKey] || "").toLowerCase() === "true";
+}
+
 export function verifyShopifyHmac(rawBody: Buffer, signature: string) {
   const secret = String(process.env.SHOPIFY_WEBHOOK_SECRET || process.env.SHOPIFY_API_SECRET || "").trim();
   if (!secret) {
-    if (String(process.env.ALLOW_UNVERIFIED_SHOPIFY_WEBHOOKS || "").toLowerCase() === "true") {
+    if (allowUnverified("ALLOW_UNVERIFIED_SHOPIFY_WEBHOOKS")) {
       return true;
     }
     return false;
@@ -28,7 +42,7 @@ export function verifyShopifyHmac(rawBody: Buffer, signature: string) {
 export function verifyAlegraSignature(rawBody: Buffer, signature: string) {
   const secret = String(process.env.ALEGRA_WEBHOOK_SECRET || "").trim();
   if (!secret) {
-    if (String(process.env.ALLOW_UNVERIFIED_ALEGRA_WEBHOOKS || "").toLowerCase() === "true") {
+    if (allowUnverified("ALLOW_UNVERIFIED_ALEGRA_WEBHOOKS")) {
       return true;
     }
     return false;

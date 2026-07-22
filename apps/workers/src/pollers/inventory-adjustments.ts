@@ -1,9 +1,15 @@
 import { syncInventoryAdjustments } from "../../../../src/services/inventory-adjustments.service";
 import { createSyncLog } from "../../../../src/services/logs.service";
+import { withEachOrganization } from "../../../../src/services/organizations.service";
 import { getInventoryAdjustmentsSettings } from "../../../../src/services/settings.service";
 import { getSyncCheckpoint, saveSyncCheckpoint } from "../../../../src/services/sync-checkpoints.service";
 import { getStoreConfigForDomain } from "../../../../src/services/store-configs.service";
 import { listConnectedShopifyDomains } from "../../../../src/services/store-connections.service";
+
+const MAX_DAYS_PER_TICK = Math.max(
+  1,
+  Math.min(Number(process.env.INVENTORY_ADJUSTMENTS_MAX_DAYS_PER_TICK || 30), 90)
+);
 
 const toIsoDate = (value: Date | number) => new Date(value).toISOString().slice(0, 10);
 const checkpointKey = (shopDomain: string) => `inventory_adjustments:${shopDomain}`;
@@ -60,7 +66,9 @@ export function startInventoryAdjustmentsWorker() {
     return;
   }
 
-  const run = async () => {
+  let running = false;
+
+  const runForOrg = async () => {
     let settings: Awaited<ReturnType<typeof getInventoryAdjustmentsSettings>>;
     try {
       settings = await getInventoryAdjustmentsSettings();
@@ -68,24 +76,20 @@ export function startInventoryAdjustmentsWorker() {
       console.error("Inventory adjustments: settings read failed:", error);
       return;
     }
-    if (!settings.enabled || settings.intervalMinutes <= 0) {
-      return;
-    }
+    if (!settings.enabled || settings.intervalMinutes <= 0) return;
 
     const shopDomains = await listConnectedShopifyDomains();
     for (const shopDomain of shopDomains) {
       try {
         const runtime = await resolveStoreRuntime(shopDomain, settings);
-        if (!runtime.enabled || runtime.intervalMinutes <= 0) {
-          continue;
-        }
-        if (!(await shouldRunStore(shopDomain, runtime.intervalMinutes))) {
-          continue;
-        }
+        if (!runtime.enabled || runtime.intervalMinutes <= 0) continue;
+        if (!(await shouldRunStore(shopDomain, runtime.intervalMinutes))) continue;
 
         let currentDate = await resolveStartDate(shopDomain);
         const today = toIsoDate(Date.now());
-        while (currentDate <= today) {
+        let daysThisTick = 0;
+        // Cap días por tick — un checkpoint stale de meses ya no genera cientos de llamadas Alegra por tick.
+        while (currentDate <= today && daysThisTick < MAX_DAYS_PER_TICK) {
           const query = new URLSearchParams();
           query.set("metadata", "true");
           query.set("date", currentDate);
@@ -111,6 +115,7 @@ export function startInventoryAdjustmentsWorker() {
             // ignore logging failures
           }
           currentDate = addDays(currentDate, 1);
+          daysThisTick += 1;
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Inventory adjustments poll failed";
@@ -127,6 +132,16 @@ export function startInventoryAdjustmentsWorker() {
           // ignore logging failures
         }
       }
+    }
+  };
+
+  const run = async () => {
+    if (running) return;
+    running = true;
+    try {
+      await withEachOrganization(runForOrg);
+    } finally {
+      running = false;
     }
   };
 

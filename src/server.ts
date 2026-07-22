@@ -17,7 +17,12 @@ import { ensureSaDefaults } from "./sa/sa.bootstrap";
 import { requirePageSuperAdmin } from "./api/page-auth";
 import { getPool } from "./db";
 import { createCsrfToken } from "./utils/csrf";
+import { assertStartupEnv } from "./utils/env-check";
 import { getSessionUser } from "./services/auth.service";
+
+// Fail-fast: si faltan env vars críticas, no arrancar. Los pollers Shopify usan APP_HOST
+// para construir redirect_uri, así que lo requerimos si se planea recibir OAuth callbacks.
+assertStartupEnv({ requireShopifyOAuth: true });
 
 const app = express();
 
@@ -58,6 +63,23 @@ app.use(
       `"${tokens.referrer(req, res)}"`,
       `"${tokens["user-agent"](req, res)}"`,
     ].join(" ");
+  })
+);
+
+// Webhook paths necesitan el body crudo antes de que JSON parsers lo transformen (para HMAC).
+// Cap 5MB para tolerar órdenes con muchos line items / metafields.
+app.use(
+  "/api/webhooks",
+  express.raw({
+    type: "*/*",
+    limit: "5mb",
+  })
+);
+app.use(
+  "/api/marketing/webhooks/shopify",
+  express.raw({
+    type: "*/*",
+    limit: "5mb",
   })
 );
 

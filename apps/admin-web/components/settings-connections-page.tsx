@@ -35,7 +35,7 @@ type ConnectionModalState = { kind: "closed" } | { kind: "connection" } | { kind
 
 function wizardPlatformHint(platform: ConnectionWizardPlatform | null) {
   if (platform === "shopify") {
-    return "Usa el dominio técnico `myshopify.com`.";
+    return "Usa el dominio técnico myshopify.com.";
   }
   if (platform === "woocommerce") {
     return "Dominio + Consumer Key + Secret.";
@@ -108,6 +108,8 @@ export function SettingsConnectionsPage({
   const [googleAdsCustomerId, setGoogleAdsCustomerId] = useState("");
   const [metaAdsAccountId, setMetaAdsAccountId] = useState("");
   const [tiktokAdsAdvertiserId, setTiktokAdsAdvertiserId] = useState("");
+  const inFlightRef = useRef<Set<string>>(new Set());
+  const workspaceRefreshTokenRef = useRef(0);
 
   useEffect(() => {
     setWorkspaceState(workspace);
@@ -130,12 +132,17 @@ export function SettingsConnectionsPage({
       setWooConsumerSecret("");
       setAlegraEmail("");
       setAlegraApiKey("");
-      setAlegraAccountId("");
+      // Repuebla alegraAccountId con la cuenta de la nueva tienda (si la tiene) —
+      // así el operador no ve un dropdown vacío cuando la tienda destino sí está ligada.
+      const nextAccount = workspaceState.alegraAccounts.find((item) => item.storeId === selectedStoreId);
+      setAlegraAccountId(nextAccount ? String(nextAccount.id) : "");
+      setAlegraMode(nextAccount ? "existing" : "manual");
+      setAlegraEnvironment(nextAccount?.environment || "prod");
       setShopifyDomainInput(
         workspaceState.stores.find((store) => store.id === selectedStoreId)?.providers.shopify?.shopDomain || ""
       );
     }
-  }, [selectedStoreId, modal.kind, workspaceState.stores]);
+  }, [selectedStoreId, modal.kind, workspaceState.stores, workspaceState.alegraAccounts]);
   useEffect(() => {
     if (!callbackState) return;
     if (callbackState.oauthError) {
@@ -202,6 +209,7 @@ export function SettingsConnectionsPage({
   }
 
   async function refreshWorkspace() {
+    const token = ++workspaceRefreshTokenRef.current;
     const response = await fetch("/api/admin-web/connections/workspace", {
       credentials: "include",
       cache: "no-store",
@@ -210,6 +218,8 @@ export function SettingsConnectionsPage({
       throw new Error(`workspace_refresh_failed:${response.status}`);
     }
     const next = (await response.json()) as ConnectionsWorkspace;
+    // Descarta respuestas que llegaron después de una nueva llamada — evita clobber por refrescos rápidos.
+    if (token !== workspaceRefreshTokenRef.current) return next;
     setWorkspaceState(next);
     setSelectedStoreId((current) => {
       if (!current) return next.stores[0]?.id ?? null;
@@ -305,10 +315,8 @@ export function SettingsConnectionsPage({
       setConnectionWizardGroup("commerce");
       return;
     }
-    // alegra
-    const account =
-      workspaceState.alegraAccounts.find((item) => item.storeId === selectedStore?.id) ||
-      workspaceState.alegraAccounts[0];
+    // alegra — solo la cuenta ligada a la tienda seleccionada; sin fallback a la primera cuenta ajena.
+    const account = workspaceState.alegraAccounts.find((item) => item.storeId === selectedStore?.id);
     setAlegraMode(account ? "existing" : "manual");
     setAlegraAccountId(account ? String(account.id) : "");
     setAlegraEmail(account?.email || "");
@@ -331,6 +339,8 @@ export function SettingsConnectionsPage({
     setAlegraEmail("");
     setAlegraApiKey("");
     setAlegraAccountId("");
+    setAlegraMode("existing");
+    setAlegraEnvironment("prod");
     setGoogleAdsCustomerId("");
     setMetaAdsAccountId("");
     setTiktokAdsAdvertiserId("");
@@ -339,6 +349,7 @@ export function SettingsConnectionsPage({
   function openConnectionFlow(
     platform?: "shopify" | "woocommerce" | "alegra" | "google-ads" | "meta-ads" | "tiktok-ads" | "shopify-marketing"
   ) {
+    setStatusMessage("");
     setModal({ kind: "connection" });
     if (!platform) {
       setConnectionWizardStep("store");
@@ -400,7 +411,10 @@ export function SettingsConnectionsPage({
       setStatusMessage("Access token de Shopify debe empezar con 'shpat_'.");
       return;
     }
-    setActionLoadingKey("connect:shopify-token");
+    const inFlightKey = "connect:shopify-token";
+    if (inFlightRef.current.has(inFlightKey)) return;
+    inFlightRef.current.add(inFlightKey);
+    setActionLoadingKey(inFlightKey);
     setStatusMessage("");
     try {
       const response = await apiFetch("/api/connections", {
@@ -427,6 +441,7 @@ export function SettingsConnectionsPage({
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo conectar Shopify con token.");
     } finally {
+      inFlightRef.current.delete("connect:shopify-token");
       setActionLoadingKey("");
     }
   }
@@ -436,22 +451,37 @@ export function SettingsConnectionsPage({
       setStatusMessage("Selecciona una tienda.");
       return;
     }
-    const domain = wooDomain.trim();
+    const domain = wooDomain.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "").toLowerCase();
     const consumerKey = wooConsumerKey.trim();
     const consumerSecret = wooConsumerSecret.trim();
     if (!domain) {
       setStatusMessage("Dominio WooCommerce requerido.");
       return;
     }
+    if (!/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i.test(domain)) {
+      setStatusMessage("Dominio WooCommerce inválido (ej: mitienda.com).");
+      return;
+    }
     if (!consumerKey) {
       setStatusMessage("Consumer key de WooCommerce requerida.");
+      return;
+    }
+    if (!/^ck_[a-f0-9]{20,64}$/i.test(consumerKey)) {
+      setStatusMessage("Consumer key inválida (debe empezar con 'ck_' + hex).");
       return;
     }
     if (!consumerSecret) {
       setStatusMessage("Consumer secret de WooCommerce requerido.");
       return;
     }
-    setActionLoadingKey("reconnect:woocommerce");
+    if (!/^cs_[a-f0-9]{20,64}$/i.test(consumerSecret)) {
+      setStatusMessage("Consumer secret inválido (debe empezar con 'cs_' + hex).");
+      return;
+    }
+    const inFlightKey = "reconnect:woocommerce";
+    if (inFlightRef.current.has(inFlightKey)) return;
+    inFlightRef.current.add(inFlightKey);
+    setActionLoadingKey(inFlightKey);
     setStatusMessage("");
     try {
       const response = await apiFetch("/api/woocommerce/connections", {
@@ -481,6 +511,7 @@ export function SettingsConnectionsPage({
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo actualizar WooCommerce.");
     } finally {
+      inFlightRef.current.delete("reconnect:woocommerce");
       setActionLoadingKey("");
     }
   }
@@ -513,7 +544,10 @@ export function SettingsConnectionsPage({
         return;
       }
     }
-    setActionLoadingKey("reconnect:alegra");
+    const inFlightKey = "reconnect:alegra";
+    if (inFlightRef.current.has(inFlightKey)) return;
+    inFlightRef.current.add(inFlightKey);
+    setActionLoadingKey(inFlightKey);
     setStatusMessage("");
     try {
       const alegraPayload =
@@ -548,6 +582,7 @@ export function SettingsConnectionsPage({
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo actualizar Alegra.");
     } finally {
+      inFlightRef.current.delete("reconnect:alegra");
       setActionLoadingKey("");
     }
   }
@@ -654,7 +689,10 @@ export function SettingsConnectionsPage({
             <select
               className="input"
               value={selectedStore?.id ?? ""}
-              onChange={(event) => setSelectedStoreId(Number(event.target.value || ""))}
+              onChange={(event) => {
+                const parsed = Number(event.target.value);
+                setSelectedStoreId(Number.isFinite(parsed) && parsed > 0 ? parsed : null);
+              }}
             >
               {workspaceState.stores.map((store) => (
                 <option key={store.id} value={store.id}>
@@ -683,7 +721,10 @@ export function SettingsConnectionsPage({
               className="input"
               value={copySourceStoreId ?? ""}
               disabled={!copyableSourceStores.length || !selectedStore}
-              onChange={(event) => setCopySourceStoreId(Number(event.target.value || ""))}
+              onChange={(event) => {
+                const parsed = Number(event.target.value);
+                setCopySourceStoreId(Number.isFinite(parsed) && parsed > 0 ? parsed : null);
+              }}
             >
               {!copyableSourceStores.length ? <option value="">Sin origen disponible</option> : null}
               {copyableSourceStores.map((store) => (
@@ -1024,7 +1065,10 @@ export function SettingsConnectionsPage({
                       <select
                         className="input"
                         value={selectedStore?.id ?? ""}
-                        onChange={(event) => setSelectedStoreId(Number(event.target.value || ""))}
+                        onChange={(event) => {
+                const parsed = Number(event.target.value);
+                setSelectedStoreId(Number.isFinite(parsed) && parsed > 0 ? parsed : null);
+              }}
                       >
                         {workspaceState.stores.map((store) => (
                           <option key={`wizard-store:${store.id}`} value={store.id}>
@@ -1441,6 +1485,17 @@ export function SettingsConnectionsPage({
                               autoComplete="off"
                             />
                           </label>
+                          <label className="connection-form-row">
+                            <span>Entorno</span>
+                            <select
+                              className="input"
+                              value={alegraEnvironment}
+                              onChange={(event) => setAlegraEnvironment(event.target.value)}
+                            >
+                              <option value="prod">Producción</option>
+                              <option value="sandbox">Sandbox</option>
+                            </select>
+                          </label>
                         </>
                       )}
                       <div className="page-module-actions">
@@ -1467,7 +1522,7 @@ export function SettingsConnectionsPage({
                         />
                       </label>
                       <p className="connection-form-hint">
-                        El `Customer ID` define qué cuenta quedará asociada al permiso de Google Ads.
+                        El <code>Customer ID</code> define qué cuenta quedará asociada al permiso de Google Ads.
                       </p>
                       <div className="page-module-actions">
                         <button className="btn primary" type="button" onClick={() => startAdsOAuth("google-ads")}>

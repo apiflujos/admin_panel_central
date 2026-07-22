@@ -218,8 +218,8 @@ export class AlegraClient {
     });
 
     if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Alegra API error: ${response.status} ${text}`);
+      await response.text().catch(() => "");
+      throw new Error(friendlyAlegraError(response.status, path));
     }
 
     return response.json();
@@ -247,10 +247,20 @@ export class AlegraClient {
     });
 
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(`Alegra API error: ${response.status} ${text}`);
+      await response.text().catch(() => "");
+      throw new Error(friendlyAlegraError(response.status, path));
     }
 
     return response;
   }
+}
+
+function friendlyAlegraError(status: number, path: string): string {
+  const suffix = ` (${path})`;
+  if (status === 401) return `Credenciales Alegra rechazadas (401)${suffix}`;
+  if (status === 403) return `Acceso denegado por Alegra (403)${suffix}`;
+  if (status === 404) return `Endpoint Alegra no encontrado (404)${suffix}`;
+  if (status === 429) return `Alegra está limitando peticiones (429)${suffix}`;
+  if (status >= 500) return `Alegra no disponible (${status})${suffix}`;
+  return `Alegra error (${status})${suffix}`;
 }

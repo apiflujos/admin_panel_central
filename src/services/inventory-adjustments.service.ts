@@ -38,7 +38,7 @@ const fetchWithRetry = async (query: URLSearchParams, shopDomain?: string, maxRe
   }
 };
 
-const extractAdjustmentItems = (payload: unknown) => {
+export const extractAdjustmentItems = (payload: unknown) => {
   if (!payload || typeof payload !== "object") return [];
   const data = payload as { items?: unknown[]; data?: unknown[] };
   const items = Array.isArray(data.items) ? data.items : Array.isArray(data.data) ? data.data : [];

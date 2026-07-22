@@ -191,7 +191,12 @@ export async function upsertAlegraItemCache(item: CachedAlegraItem, orgId?: numb
         WHEN $10 THEN COALESCE(EXCLUDED.warehouse_ids, alegra_items_cache.warehouse_ids)
         ELSE alegra_items_cache.warehouse_ids
       END,
-      item_json = COALESCE(alegra_items_cache.item_json, '{}'::jsonb) || EXCLUDED.item_json,
+      -- Cuando el payload trae inventario, reemplaza item_json completo (evita stale nested).
+      -- Si no trae inventario, hace merge shallow para actualizar campos top-level sin perder inventory.
+      item_json = CASE
+        WHEN $10 THEN EXCLUDED.item_json
+        ELSE COALESCE(alegra_items_cache.item_json, '{}'::jsonb) || (EXCLUDED.item_json - 'inventory')
+      END,
       updated_at = NOW(),
       last_seen_at = NOW()
     `,
@@ -231,8 +236,35 @@ export async function upsertAlegraItemCacheIfTracked(item: CachedAlegraItem, org
   if (!item?.id) return;
   const itemId = String(item.id);
   const tracked = await isAlegraItemTracked(itemId, orgId);
-  if (!tracked) return;
+  if (!tracked) {
+    // Bootstrap opcional: si ALEGRA_ITEM_CACHE_BOOTSTRAP_ON_WEBHOOK=true, siembra el item en cache
+    // aunque no estuviera tracked (útil al arrancar en un tenant nuevo).
+    if (String(process.env.ALEGRA_ITEM_CACHE_BOOTSTRAP_ON_WEBHOOK || "").toLowerCase() === "true") {
+      await upsertAlegraItemCache(item, orgId);
+    }
+    return;
+  }
   await upsertAlegraItemCache(item, orgId);
+}
+
+/**
+ * Evict entries de la cache no vistos en `staleDays` días. Corre desde un job de mantenimiento
+ * o desde ops/CLI. Devuelve la cantidad de rows borradas.
+ */
+export async function evictStaleAlegraItemsCache(staleDays = 90, orgId?: number): Promise<number> {
+  if (!Number.isFinite(staleDays) || staleDays <= 0) return 0;
+  const resolvedOrgId = orgId ?? getOrgId();
+  await ensureAlegraItemsCacheTable();
+  const pool = getPool();
+  const result = await pool.query(
+    `
+    DELETE FROM alegra_items_cache
+    WHERE organization_id = $1
+      AND last_seen_at < NOW() - ($2 * INTERVAL '1 day')
+    `,
+    [resolvedOrgId, staleDays]
+  );
+  return result.rowCount || 0;
 }
 
 export async function countAlegraItemsCache(orgId?: number) {

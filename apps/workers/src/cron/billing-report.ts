@@ -60,13 +60,18 @@ export function startBillingReportWorker() {
       const webhook = String(process.env.BILLING_REPORT_WEBHOOK_URL || "").trim();
       if (webhook) {
         try {
-          await fetch(webhook, {
+          const response = await fetch(webhook, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(30_000),
           });
-          console.log("[billing-report] delivered via webhook", { periodKey, reportTo });
-          return;
+          if (!response.ok) {
+            console.error(`[billing-report] webhook returned ${response.status}`);
+          } else {
+            console.log("[billing-report] delivered via webhook", { periodKey, reportTo });
+            return;
+          }
         } catch (error) {
           console.error("[billing-report] webhook failed", error);
         }

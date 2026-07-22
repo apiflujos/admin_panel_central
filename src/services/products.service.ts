@@ -60,9 +60,13 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
     return { skipped: true, reason: "missing_identifiers" };
   }
 
-  const existing = await pool.query<{ id: number }>(
+  const existing = await pool.query<{
+    id: number;
+    alegra_item_id: string | null;
+    shopify_product_id: string | null;
+  }>(
     `
-    SELECT id
+    SELECT id, alegra_item_id, shopify_product_id
     FROM products
     WHERE organization_id = $1
       AND shop_domain = $2
@@ -90,6 +94,25 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
   if (existing.rows.length) {
     if (options?.mode === "insert_only") {
       return { skipped: true, reason: "insert_only" };
+    }
+    // Safeguard: si la row existente ya tiene un alegra_item_id o shopify_product_id
+    // DISTINTO del incoming, NO lo sobrescribimos (evita colapso silencioso de items
+    // diferentes que comparten SKU — típico en catálogos importados de proveedor).
+    const existingAlegraId = existing.rows[0].alegra_item_id;
+    const existingShopifyId = existing.rows[0].shopify_product_id;
+    const safeAlegraId =
+      alegraId && existingAlegraId && String(existingAlegraId) !== String(alegraId)
+        ? null // preserva el existente
+        : alegraId;
+    const safeShopifyId =
+      shopifyId && existingShopifyId && String(existingShopifyId) !== String(shopifyId)
+        ? null
+        : shopifyId;
+    if (safeAlegraId !== alegraId || safeShopifyId !== shopifyId) {
+      console.warn(
+        `[products.upsertProduct] cross-key collision on shop=${shopDomain} sku=${sku || "-"} ref=${reference || "-"}: ` +
+          `existing(alegra=${existingAlegraId} shopify=${existingShopifyId}) vs incoming(alegra=${alegraId} shopify=${shopifyId}) — preserving existing IDs`
+      );
     }
     await pool.query(
       `
@@ -121,8 +144,8 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
       [
         existing.rows[0].id,
         shopDomain,
-        alegraId,
-        shopifyId,
+        safeAlegraId,
+        safeShopifyId,
         name,
         reference,
         sku,

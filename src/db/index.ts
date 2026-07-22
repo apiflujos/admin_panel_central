@@ -1,7 +1,20 @@
+import { AsyncLocalStorage } from "async_hooks";
 import { Pool } from "pg";
 
 let pool: Pool | null = null;
 const schemaChecks = new Set<string>();
+
+type OrgContext = { orgId: number };
+const orgContext = new AsyncLocalStorage<OrgContext>();
+
+export function runWithOrg<T>(orgId: number, fn: () => Promise<T>): Promise<T> {
+  return orgContext.run({ orgId }, fn);
+}
+
+export function enterOrgContext(orgId: number) {
+  if (!Number.isInteger(orgId) || orgId <= 0) return;
+  orgContext.enterWith({ orgId });
+}
 
 function parsePositiveInt(value: string | undefined, fallback: number) {
   if (!value) return fallback;
@@ -177,6 +190,10 @@ export async function ensureConnectionTestsTable(poolInstance: Pool) {
 }
 
 export function getOrgId() {
+  const ctx = orgContext.getStore();
+  if (ctx && Number.isInteger(ctx.orgId) && ctx.orgId > 0) {
+    return ctx.orgId;
+  }
   const raw = process.env.APP_ORG_ID || "1";
   const parsed = Number(raw);
   if (!Number.isInteger(parsed) || parsed <= 0) {

@@ -6,6 +6,7 @@ import {
   type AlegraItem,
 } from "../../../../src/services/alegra-to-shopify.service";
 import { upsertAlegraItemCacheIfTracked } from "../../../../src/services/alegra-items-cache.service";
+import { withEachOrganization } from "../../../../src/services/organizations.service";
 import { buildSyncContext } from "../../../../src/services/sync-context";
 import { getSyncCheckpoint, saveSyncCheckpoint } from "../../../../src/services/sync-checkpoints.service";
 import { listConnectedShopifyDomains } from "../../../../src/services/store-connections.service";
@@ -71,101 +72,113 @@ export function startProductsSyncWorker() {
 
   let running = false;
 
+  const runForOrg = async () => {
+    const shopDomains = await listConnectedShopifyDomains();
+    if (!shopDomains.length) return;
+    for (const shopDomain of shopDomains) {
+      try {
+        const ctx = await buildSyncContext(shopDomain);
+        if (!ctx.webhookItemsEnabled) continue;
+
+        const sinceMs = await resolveSince(ctx.shopDomain, lookbackMinutes);
+        let start = 0;
+        let totalProcessed = 0;
+        let lastSeen = sinceMs;
+        let minFailedUpdatedAt: number | null = null;
+        let hadFailure = false;
+        let keepGoing = true;
+
+        while (keepGoing) {
+          const query = new URLSearchParams();
+          query.set("updated_at_start", toIso(sinceMs));
+          query.set("limit", String(batchLimit));
+          query.set("start", String(start));
+          query.set("metadata", "true");
+          const payload = await ctx.alegra.listItemsUpdatedSince(query.toString());
+          const items = normalizeItemsResponse(payload);
+          if (!items.length) break;
+
+          for (let i = 0; i < items.length; i += batchSize) {
+            const batch = items.slice(i, i + batchSize);
+            const results = await Promise.allSettled(
+              batch.map(async (item) => {
+                if (!hasItemId(item)) return;
+                const resolvedItem = item as AlegraItem;
+                await upsertAlegraItemCacheIfTracked(resolvedItem);
+                await syncAlegraItemPayloadToShopify(resolvedItem, ctx.shopDomain);
+                if (item.inventory) {
+                  await syncAlegraInventoryPayloadToShopify(
+                    {
+                      id: item.id,
+                      status: typeof item.status === "string" ? item.status : undefined,
+                      inventory: item.inventory as unknown as AlegraInventoryPayload["inventory"],
+                    },
+                    ctx.shopDomain
+                  );
+                }
+                totalProcessed += 1;
+                const updatedAt = extractUpdatedAt(item);
+                if (updatedAt && updatedAt > lastSeen) lastSeen = updatedAt;
+              })
+            );
+            results.forEach((result, idx) => {
+              if (result.status === "rejected") {
+                hadFailure = true;
+                const failedAt = extractUpdatedAt(batch[idx]);
+                if (failedAt != null) {
+                  minFailedUpdatedAt = minFailedUpdatedAt == null ? failedAt : Math.min(minFailedUpdatedAt, failedAt);
+                }
+                console.error(
+                  `[products-sync] item failed`,
+                  { shopDomain: ctx.shopDomain, itemId: batch[idx]?.id },
+                  result.reason
+                );
+              }
+            });
+          }
+
+          start += items.length;
+          if (items.length < batchLimit) keepGoing = false;
+        }
+
+        if (totalProcessed > 0) {
+          const checkpointValue =
+            hadFailure && minFailedUpdatedAt != null
+              ? Math.max(sinceMs, minFailedUpdatedAt - 1)
+              : lastSeen;
+          await saveSyncCheckpoint({
+            entity: checkpointKey(ctx.shopDomain),
+            lastStart: checkpointValue,
+            total: totalProcessed,
+          });
+        }
+
+        await safeCreateSyncLog({
+          entity: "products_sync",
+          direction: "alegra->shopify",
+          status: hadFailure ? "fail" : "success",
+          message: hadFailure ? "Products sync batch completed with failures" : "Products sync batch completed",
+          request: { shopDomain: ctx.shopDomain, processed: totalProcessed },
+          response: { shopDomain: ctx.shopDomain, processed: totalProcessed },
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Products sync poll failed";
+        await safeCreateSyncLog({
+          entity: "products_sync",
+          direction: "alegra->shopify",
+          status: "fail",
+          message,
+          request: { shopDomain },
+        });
+      }
+    }
+  };
+
   const run = async () => {
     if (running) return;
     running = true;
     try {
-      const shopDomains = await listConnectedShopifyDomains();
-      if (!shopDomains.length) {
-        return;
-      }
-      for (const shopDomain of shopDomains) {
-        try {
-          const ctx = await buildSyncContext(shopDomain);
-          if (!ctx.webhookItemsEnabled) {
-            continue;
-          }
-
-          const sinceMs = await resolveSince(ctx.shopDomain, lookbackMinutes);
-          let start = 0;
-          let totalProcessed = 0;
-          let lastSeen = sinceMs;
-          let keepGoing = true;
-
-          while (keepGoing) {
-            const query = new URLSearchParams();
-            query.set("updated_at_start", toIso(sinceMs));
-            query.set("limit", String(batchLimit));
-            query.set("start", String(start));
-            query.set("metadata", "true");
-            const payload = await ctx.alegra.listItemsUpdatedSince(query.toString());
-            const items = normalizeItemsResponse(payload);
-            if (!items.length) {
-              break;
-            }
-
-            for (let i = 0; i < items.length; i += batchSize) {
-              const batch = items.slice(i, i + batchSize);
-              await Promise.allSettled(
-                batch.map(async (item) => {
-                  if (!hasItemId(item)) {
-                    return;
-                  }
-                  const resolvedItem = item as AlegraItem;
-                  await upsertAlegraItemCacheIfTracked(resolvedItem);
-                  await syncAlegraItemPayloadToShopify(resolvedItem, ctx.shopDomain);
-                  if (item.inventory) {
-                    await syncAlegraInventoryPayloadToShopify(
-                      {
-                        id: item.id,
-                        status: typeof item.status === "string" ? item.status : undefined,
-                        inventory: item.inventory as unknown as AlegraInventoryPayload["inventory"],
-                      },
-                      ctx.shopDomain
-                    );
-                  }
-                  totalProcessed += 1;
-                  const updatedAt = extractUpdatedAt(item);
-                  if (updatedAt && updatedAt > lastSeen) {
-                    lastSeen = updatedAt;
-                  }
-                })
-              );
-            }
-
-            start += items.length;
-            if (items.length < batchLimit) {
-              keepGoing = false;
-            }
-          }
-
-          if (totalProcessed > 0) {
-            await saveSyncCheckpoint({
-              entity: checkpointKey(ctx.shopDomain),
-              lastStart: lastSeen,
-              total: totalProcessed,
-            });
-          }
-
-          await safeCreateSyncLog({
-            entity: "products_sync",
-            direction: "alegra->shopify",
-            status: "success",
-            message: "Products sync batch completed",
-            request: { shopDomain: ctx.shopDomain, processed: totalProcessed },
-            response: { shopDomain: ctx.shopDomain, processed: totalProcessed },
-          });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Products sync poll failed";
-          await safeCreateSyncLog({
-            entity: "products_sync",
-            direction: "alegra->shopify",
-            status: "fail",
-            message,
-            request: { shopDomain },
-          });
-        }
-      }
+      await withEachOrganization(runForOrg);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Products sync poll failed";
       await safeCreateSyncLog({

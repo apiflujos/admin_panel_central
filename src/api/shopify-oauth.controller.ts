@@ -44,19 +44,10 @@ export function shopifyOAuthStatus(req: Request, res: Response) {
   });
 }
 
-function resolveAppHost(req: Request) {
+function resolveAppHost(_req: Request) {
   const explicit = String(process.env.APP_HOST || "").trim();
-  if (explicit) return explicit.replace(/\/$/, "");
-  const forwardedProto = String(req.headers["x-forwarded-proto"] || "")
-    .split(",")[0]
-    .trim();
-  const forwardedHost = String(req.headers["x-forwarded-host"] || "")
-    .split(",")[0]
-    .trim();
-  const proto = forwardedProto || req.protocol || "https";
-  const host = forwardedHost || String(req.headers.host || "").trim();
-  if (!host) return "";
-  return `${proto}://${host}`.replace(/\/$/, "");
+  if (!explicit) return "";
+  return explicit.replace(/\/$/, "");
 }
 
 function ensureOAuthEnv(req: Request): OAuthEnv {
@@ -92,13 +83,19 @@ function buildHmacMessage(query: Record<string, unknown>) {
 }
 
 function validateHmac(query: Record<string, unknown>, apiSecret: string) {
-  const provided = String(query.hmac || "");
-  if (!provided) return false;
+  const provided = String(query.hmac || "").trim().toLowerCase();
+  if (!provided || !/^[a-f0-9]+$/.test(provided)) return false;
   const message = buildHmacMessage(query);
   const digest = crypto.createHmac("sha256", apiSecret).update(message).digest("hex");
-  const digestBuffer = Buffer.from(digest, "utf8");
-  const providedBuffer = Buffer.from(provided, "utf8");
-  if (digestBuffer.length !== providedBuffer.length) return false;
+  let digestBuffer: Buffer;
+  let providedBuffer: Buffer;
+  try {
+    digestBuffer = Buffer.from(digest, "hex");
+    providedBuffer = Buffer.from(provided, "hex");
+  } catch {
+    return false;
+  }
+  if (digestBuffer.length !== providedBuffer.length || digestBuffer.length === 0) return false;
   return crypto.timingSafeEqual(digestBuffer, providedBuffer);
 }
 
@@ -106,6 +103,7 @@ export async function startShopifyOAuth(req: Request, res: Response) {
   try {
     await assertModuleEnabled("shopify");
     const env = ensureOAuthEnv(req);
+    const user = (req as { user?: { id?: number } }).user;
     const shopParam = String(req.query.shop || "").trim();
     const storeNameParam = String(req.query.storeName || "").trim();
     const storeIdParam = Number(req.query.storeId || "");
@@ -122,7 +120,14 @@ export async function startShopifyOAuth(req: Request, res: Response) {
       const store = await getStoreById(storeId);
       resolvedStoreName = store?.name || null;
     }
-    await createOAuthState(shop, nonce, resolvedStoreName || null, storeId, alegraAccountId);
+    await createOAuthState(
+      shop,
+      nonce,
+      resolvedStoreName || null,
+      storeId,
+      alegraAccountId,
+      user?.id || null
+    );
     const redirectUri = `${env.appHost}/auth/callback`;
     const authorizeUrl =
       `https://${shop}/admin/oauth/authorize` +
@@ -155,9 +160,13 @@ export async function shopifyOAuthCallback(req: Request, res: Response) {
     if (!validateHmac(req.query as Record<string, unknown>, env.apiSecret)) {
       return res.status(400).send("HMAC invalido");
     }
-    const stateResult = await consumeOAuthState(shop, state);
+    const callbackUser = (req as { user?: { id?: number } }).user;
+    const stateResult = await consumeOAuthState(shop, state, callbackUser?.id || null);
     if (!stateResult.ok) {
-      return res.status(400).send("State invalido");
+      const reason = stateResult.reason === "user_mismatch"
+        ? "State pertenece a otro usuario"
+        : "State invalido";
+      return res.status(400).send(reason);
     }
     const tokenResponse = await fetch(`https://${shop}/admin/oauth/access_token`, {
       method: "POST",

@@ -1,8 +1,19 @@
+import { assertPublicHostname } from "../utils/safe-host";
+
 export type WooCommerceConfig = {
   shopDomain: string;
   consumerKey: string;
   consumerSecret: string;
 };
+
+function friendlyWooError(status: number): string {
+  if (status === 401) return "Credenciales WooCommerce rechazadas (401).";
+  if (status === 403) return "Acceso denegado por WooCommerce (403).";
+  if (status === 404) return "Endpoint WooCommerce no encontrado (404).";
+  if (status === 429) return "WooCommerce está limitando peticiones (429).";
+  if (status >= 500) return `WooCommerce no disponible (${status}).`;
+  return `WooCommerce error (${status}).`;
+}
 
 export type WooProductImage = {
   id?: number;
@@ -94,6 +105,8 @@ export class WooCommerceClient {
   }
 
   private async request<T>(path: string, options: WooRequestOptions) {
+    const domain = normalizeShopDomain(this.config.shopDomain);
+    await assertPublicHostname(domain);
     const response = await fetch(`${this.baseUrl}${path}${buildQuery(options.params)}`, {
       method: options.method,
       headers: {
@@ -101,10 +114,11 @@ export class WooCommerceClient {
         Authorization: this.authHeader,
       },
       body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: AbortSignal.timeout(15_000),
     });
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(`WooCommerce error: ${response.status} ${text}`);
+      await response.text().catch(() => "");
+      throw new Error(friendlyWooError(response.status));
     }
     return (await response.json()) as T;
   }

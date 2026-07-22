@@ -60,7 +60,7 @@ Cuando la paridad esté cerrada:
 Estado actual:
 
 - corte lógico del backend `completado`
-- eliminación física de la SPA legacy en `public/` `completado`
+- eliminación física de la SPA legacy en `public/` **`pendiente`** — los archivos siguen presentes y se sirven bajo `/legacy/*` como fallback controlado mientras se valida paridad total con `apps/admin-web` (ver `TRANSITION_STATUS.md`). Programar la baja cuando `apps/admin-web` cubra 100% de las operaciones observadas y no queden llamadas activas al controller `src/api/assistant.controller.ts` desde `public/app.js`.
 
 ## Criterio de terminado
 

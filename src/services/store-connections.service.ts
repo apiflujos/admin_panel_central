@@ -1,5 +1,8 @@
+import type { PoolClient } from "pg";
+
 import { encryptString, decryptString } from "../utils/crypto";
 import { isValidShopDomain } from "./shopify-oauth.service";
+import { testAlegra, testShopify } from "./connectivity.service";
 import { ensureOrganization, getOrgId, getPool } from "../db";
 import { listWooConnections } from "./woocommerce-connections.service";
 
@@ -240,15 +243,9 @@ export async function listStoreConnections() {
     );
     return created.rows[0]?.id || null;
   };
-  if (Number.isFinite(fallbackStoreId)) {
-    await pool.query(
-      `
-      UPDATE alegra_accounts
-      SET store_id = $1
-      WHERE organization_id = $2 AND store_id IS NULL
-      `,
-      [fallbackStoreId, orgId]
-    );
+  {
+    // No more implicit UPDATE alegra_accounts SET store_id = <first store> on every list call —
+    // orphans stay orphan until the operator explicitly links them via the wizard.
   }
   const missingShopify = await pool.query<{
     id: number;
@@ -498,10 +495,7 @@ export async function listStoreConnections() {
 
   const alegraByStore = new Map<number, (typeof mappedAlegraAccounts)[number]>();
   mappedAlegraAccounts.forEach((account) => {
-    let storeId = Number(account.storeId);
-    if (!Number.isFinite(storeId) && fallbackStoreId) {
-      storeId = fallbackStoreId;
-    }
+    const storeId = Number(account.storeId);
     if (!Number.isFinite(storeId)) return;
     alegraByStore.set(storeId, account);
   });
@@ -865,6 +859,20 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
     storeName = desiredName;
   }
   const trimmedToken = input.accessToken?.trim() || "";
+  if (trimmedToken) {
+    try {
+      await testShopify({
+        shopDomain,
+        accessToken: trimmedToken,
+        apiVersion: input.apiVersion || undefined,
+      });
+    } catch (error) {
+      const upstream = error instanceof Error ? error.message : "";
+      throw new Error(
+        `Shopify rechazó las credenciales antes de guardar. ${upstream ? `Detalle: ${upstream}` : ""}`.trim()
+      );
+    }
+  }
   const encryptedPayload = {
     accessToken: trimmedToken,
     locationId: String(input.locationId || "").trim() || undefined,
@@ -992,7 +1000,7 @@ export async function deleteStoreConnectionByDomain(shopDomain: string, options:
   return { deleted: true as const, storeId };
 }
 
-async function purgeMarketingStoreData(pool: ReturnType<typeof getPool>, orgId: number, shopDomain: string) {
+async function purgeMarketingStoreData(pool: PoolClient | ReturnType<typeof getPool>, orgId: number, shopDomain: string) {
   await pool.query(
     `
     DELETE FROM marketing.alerts
@@ -1093,7 +1101,7 @@ async function purgeMarketingStoreData(pool: ReturnType<typeof getPool>, orgId: 
   );
 }
 
-async function purgeStoreData(pool: ReturnType<typeof getPool>, orgId: number, shopDomain: string) {
+async function purgeStoreData(pool: PoolClient | ReturnType<typeof getPool>, orgId: number, shopDomain: string) {
   await pool.query(
     `
     DELETE FROM inventory_transfer_decisions
@@ -1157,22 +1165,23 @@ export async function deleteStoreConnection(storeId: number, options: DeleteStor
 
   const shopDomain = store.rows[0].shop_domain;
 
-  await pool.query("BEGIN");
+  const client = await pool.connect();
   try {
+    await client.query("BEGIN");
     // Always purge marketing rows for this shop (prevents stale dashboards and webhook noise).
-    await purgeMarketingStoreData(pool, orgId, shopDomain);
+    await purgeMarketingStoreData(client, orgId, shopDomain);
 
     if (options.purgeData) {
-      await purgeStoreData(pool, orgId, shopDomain);
+      await purgeStoreData(client, orgId, shopDomain);
     } else {
-      await pool.query(
+      await client.query(
         `
         DELETE FROM shopify_oauth_states
         WHERE organization_id = $1 AND shop_domain = $2
         `,
         [orgId, shopDomain]
       );
-      await pool.query(
+      await client.query(
         `
         DELETE FROM shopify_store_configs
         WHERE organization_id = $1 AND shop_domain = $2
@@ -1181,17 +1190,19 @@ export async function deleteStoreConnection(storeId: number, options: DeleteStor
       );
     }
 
-    await pool.query(
+    await client.query(
       `
       DELETE FROM shopify_stores
       WHERE id = $1 AND organization_id = $2
       `,
       [storeId, orgId]
     );
-    await pool.query("COMMIT");
+    await client.query("COMMIT");
   } catch (error) {
-    await pool.query("ROLLBACK");
+    await client.query("ROLLBACK").catch(() => undefined);
     throw error;
+  } finally {
+    client.release();
   }
 }
 
@@ -1211,11 +1222,28 @@ async function resolveAlegraAccountId(pool: ReturnType<typeof getPool>, orgId: n
       );
       const currentStoreId = existing.rows[0]?.store_id || null;
       if (!currentStoreId) {
-        throw new Error("Alegra debe estar asociado a una tienda.");
+        throw new Error(
+          "Alegra debe estar asociado a una tienda. Reabre el wizard y elige la tienda antes de guardar."
+        );
       }
     }
     const apiKey = input.apiKey?.trim();
     if (apiKey) {
+      const emailForTest = input.email?.trim();
+      if (emailForTest) {
+        try {
+          await testAlegra({
+            email: emailForTest,
+            apiKey,
+            environment: input.environment,
+          });
+        } catch (error) {
+          const upstream = error instanceof Error ? error.message : "";
+          throw new Error(
+            `Alegra rechazó las credenciales antes de guardar. ${upstream ? `Detalle: ${upstream}` : ""}`.trim()
+          );
+        }
+      }
       const encrypted = encryptString(JSON.stringify({ apiKey }));
       await pool.query(
         `
@@ -1245,6 +1273,15 @@ async function resolveAlegraAccountId(pool: ReturnType<typeof getPool>, orgId: n
     throw new Error("Selecciona una tienda para conectar Alegra.");
   }
   const environment = input.environment === "sandbox" ? "sandbox" : "prod";
+
+  try {
+    await testAlegra({ email, apiKey, environment });
+  } catch (error) {
+    const upstream = error instanceof Error ? error.message : "";
+    throw new Error(
+      `Alegra rechazó las credenciales antes de guardar. ${upstream ? `Detalle: ${upstream}` : ""}`.trim()
+    );
+  }
 
   const existing = await pool.query<{ id: number; api_key_encrypted: string }>(
     `

@@ -27,13 +27,6 @@ export const GET = routeHandler(async () => {
   await requireRouteAdmin();
   try {
     const result = await listWooConnections();
-    await createSyncLog({
-      entity: "woocommerce_connections_list",
-      direction: "woocommerce->alegra",
-      status: "success",
-      message: "Conexiones WooCommerce cargadas",
-      response: result as Record<string, unknown>,
-    });
     return NextResponse.json(result);
   } catch (error) {
     const message = getErrorMessage(error);
@@ -43,7 +36,8 @@ export const GET = routeHandler(async () => {
       status: "fail",
       message,
     });
-    return NextResponse.json({ error: message }, { status: 400 });
+    const status = /timeout|econn|ENOTFOUND|EAI_AGAIN|no disponible/i.test(message) ? 502 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 });
 
@@ -52,8 +46,12 @@ export const POST = routeHandler(async (req: Request) => {
   try {
     await assertModuleEnabled("woocommerce");
     const payload = (await req.json()) as Record<string, any>;
-    const storeId = Number.isFinite(payload?.storeId) ? payload.storeId : undefined;
-    const alegraAccountId = Number.isFinite(payload?.alegraAccountId) ? payload.alegraAccountId : undefined;
+    const storeIdRaw = payload?.storeId;
+    const storeIdCoerced = storeIdRaw == null || storeIdRaw === "" ? NaN : Number(storeIdRaw);
+    const storeId = Number.isFinite(storeIdCoerced) && storeIdCoerced > 0 ? storeIdCoerced : undefined;
+    const alegraIdRaw = payload?.alegraAccountId;
+    const alegraIdCoerced = alegraIdRaw == null || alegraIdRaw === "" ? NaN : Number(alegraIdRaw);
+    const alegraAccountId = Number.isFinite(alegraIdCoerced) && alegraIdCoerced > 0 ? alegraIdCoerced : undefined;
     const result = await upsertWooConnection({
       storeName: payload?.storeName || "",
       storeId,

@@ -68,10 +68,24 @@ const resolveInvoiceNumber = (invoice: Record<string, unknown> | null) => {
   return null;
 };
 
-const formatPrice = (value: unknown) => {
+// Currencies sin decimales según ISO 4217 — no se debe emitir "50000.00" para 50 000 COP
+// (Shopify puede rechazar o mostrarlo escalado).
+export const ZERO_DECIMAL_CURRENCIES = new Set([
+  "BIF", "CLP", "DJF", "GNF", "ISK", "JPY", "KMF", "KRW", "PYG",
+  "RWF", "UGX", "UYI", "VND", "VUV", "XAF", "XOF", "XPF",
+  // COP: técnicamente 2 decimales pero en la práctica se maneja sin decimales.
+  "COP",
+]);
+
+export const formatPrice = (value: unknown, currency?: string | null) => {
   const parsed = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(parsed)) return "0.00";
-  return parsed.toFixed(2);
+  if (!Number.isFinite(parsed)) {
+    const ccy = String(currency || "").toUpperCase();
+    return ZERO_DECIMAL_CURRENCIES.has(ccy) ? "0" : "0.00";
+  }
+  const ccy = String(currency || "").toUpperCase();
+  const decimals = ZERO_DECIMAL_CURRENCIES.has(ccy) ? 0 : 2;
+  return parsed.toFixed(decimals);
 };
 
 const resolveNumericId = (id: string) => {
@@ -105,28 +119,71 @@ function buildItemsSummary(items: Array<Record<string, unknown>>) {
     .join(", ");
 }
 
-async function buildShopifyLineItems(items: Array<Record<string, unknown>>): Promise<Array<Record<string, unknown>>> {
+async function buildShopifyLineItems(
+  items: Array<Record<string, unknown>>,
+  shopifyClient?: { findVariantBySku: (sku: string) => Promise<unknown> } | null,
+  currency?: string | null
+): Promise<Array<Record<string, unknown>>> {
   const lineItems: Array<Record<string, unknown>> = [];
   for (const item of items) {
     const quantity = Math.max(1, Math.round(Number(item.quantity ?? item.qty ?? 1) || 1));
     const title = String(item.name || item.description || item.itemName || "Item").trim() || "Item";
     const unitPrice = item.price ?? item.unitPrice ?? item.unit_price ?? item.amount ?? 0;
     const alegraItemId = item.id ? String(item.id) : "";
+    let resolvedVariantId: string | null = null;
+
     if (alegraItemId) {
       const mapping = await getMappingByAlegraId("item", alegraItemId);
       if (mapping?.shopifyId) {
         const numericVariantId = resolveNumericId(mapping.shopifyId);
-        if (numericVariantId) {
-          lineItems.push({
-            variant_id: numericVariantId,
-            quantity,
-            price: formatPrice(unitPrice),
-            title,
-          });
-          continue;
+        if (numericVariantId) resolvedVariantId = String(numericVariantId);
+      }
+    }
+
+    // Fallback: si no hay mapping, intenta encontrar la variante en Shopify por SKU o referencia.
+    // Antes: insertábamos un free-text line (inventory NO decrementaba, reporting roto).
+    if (!resolvedVariantId && shopifyClient) {
+      const skuCandidate =
+        (typeof item.sku === "string" && item.sku) ||
+        (typeof item.reference === "string" && item.reference) ||
+        (typeof item.itemReference === "string" && item.itemReference) ||
+        "";
+      if (skuCandidate) {
+        try {
+          const variantSearch = (await shopifyClient.findVariantBySku(skuCandidate)) as {
+            productVariants?: { edges?: Array<{ node?: { id?: string } }> };
+          };
+          const gid = variantSearch?.productVariants?.edges?.[0]?.node?.id || "";
+          const numericVariantId = resolveNumericId(gid);
+          if (numericVariantId) {
+            resolvedVariantId = String(numericVariantId);
+            // Persiste el hallazgo para próximos runs.
+            if (alegraItemId && gid) {
+              await saveMapping({ entity: "item", alegraId: alegraItemId, shopifyId: gid }).catch(
+                () => undefined
+              );
+            }
+          }
+        } catch (error) {
+          console.warn(
+            `[alegra-invoice-to-shopify] SKU lookup failed sku=${skuCandidate}`,
+            error instanceof Error ? error.message : error
+          );
         }
       }
     }
+
+    if (resolvedVariantId) {
+      lineItems.push({
+        variant_id: resolvedVariantId,
+        quantity,
+        price: formatPrice(unitPrice, currency),
+        title,
+      });
+      continue;
+    }
+
+    // Último recurso: free-text (inventario NO decrementa en Shopify; solo para casos con SKU no mapeable).
     lineItems.push({
       title,
       quantity,
@@ -174,7 +231,7 @@ async function syncSingleInvoice(params: { shopDomain?: string; alegraInvoiceId:
       `alegra_invoice_id_${sanitizeTag(alegraInvoiceId)}`,
       invoiceNumber ? `alegra_invoice_${sanitizeTag(invoiceNumber)}` : "",
     ].filter(Boolean);
-    const lineItems = await buildShopifyLineItems(items);
+    const lineItems = await buildShopifyLineItems(items, ctx.shopify, currency);
     const note = [
       "Origen: Alegra",
       `Factura: ${invoiceNumber || alegraInvoiceId}`,

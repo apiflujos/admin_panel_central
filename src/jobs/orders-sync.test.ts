@@ -48,6 +48,12 @@ vi.mock("../services/store-connections.service", () => ({
   listConnectedShopifyDomains: listConnectedShopifyDomainsMock,
 }));
 
+vi.mock("../services/organizations.service", () => ({
+  withEachOrganization: async (fn: (orgId: number) => Promise<void>) => {
+    await fn(1);
+  },
+}));
+
 import { startOrdersSyncPoller } from "./orders-sync";
 
 describe("orders-sync poller", () => {

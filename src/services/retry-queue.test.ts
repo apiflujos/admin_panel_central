@@ -4,7 +4,7 @@ const {
   connectMock,
   poolQueryMock,
   getPoolMock,
-  getOrgIdMock,
+  runWithOrgMock,
   retryInvoiceFromLogMock,
   processQueuedWebhookEventMock,
   updateSyncLogMock,
@@ -12,7 +12,7 @@ const {
   connectMock: vi.fn(),
   poolQueryMock: vi.fn(),
   getPoolMock: vi.fn(),
-  getOrgIdMock: vi.fn(),
+  runWithOrgMock: vi.fn(),
   retryInvoiceFromLogMock: vi.fn(),
   processQueuedWebhookEventMock: vi.fn(),
   updateSyncLogMock: vi.fn(),
@@ -23,7 +23,7 @@ let clientQueryMock: ReturnType<typeof vi.fn>;
 
 vi.mock("../db", () => ({
   getPool: getPoolMock,
-  getOrgId: getOrgIdMock,
+  runWithOrg: runWithOrgMock,
 }));
 
 vi.mock("./operations.service", () => ({
@@ -41,7 +41,8 @@ vi.mock("./logs.service", () => ({
 describe("retry-queue webhook processing", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getOrgIdMock.mockReturnValue("org-1");
+    // runWithOrg debe invocar directamente al callback en los tests.
+    runWithOrgMock.mockImplementation(async (_orgId: number, fn: () => Promise<unknown>) => fn());
     const releaseMock = vi.fn();
     clientQueryMock = vi.fn();
     clientQueryMock
@@ -72,6 +73,7 @@ describe("retry-queue webhook processing", () => {
         rows: [
           {
             id: 10,
+            organization_id: 1,
             sync_log_id: 20,
             entity: "webhook",
             request_json: {
@@ -113,6 +115,7 @@ describe("retry-queue webhook processing", () => {
         rows: [
           {
             id: 11,
+            organization_id: 1,
             sync_log_id: 21,
             entity: "webhook",
             request_json: {

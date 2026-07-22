@@ -88,46 +88,49 @@ export async function deleteStoreById(storeId: number) {
   const orgId = getOrgId();
   await ensureOrganization(pool, orgId);
 
-  await pool.query("BEGIN");
+  const client = await pool.connect();
   try {
-    await pool.query(
+    await client.query("BEGIN");
+    await client.query(
       `
       DELETE FROM shopify_store_configs
       WHERE organization_id = $1 AND store_id = $2
       `,
       [orgId, storeId]
     );
-    await pool.query(
+    await client.query(
       `
       DELETE FROM shopify_oauth_states
       WHERE organization_id = $1 AND store_id = $2
       `,
       [orgId, storeId]
     );
-    await pool.query(
+    await client.query(
       `
       DELETE FROM alegra_accounts
       WHERE organization_id = $1 AND store_id = $2
       `,
       [orgId, storeId]
     );
-    await pool.query(
+    await client.query(
       `
       DELETE FROM shopify_stores
       WHERE organization_id = $1 AND store_id = $2
       `,
       [orgId, storeId]
     );
-    await pool.query(
+    await client.query(
       `
       DELETE FROM stores
       WHERE organization_id = $1 AND id = $2
       `,
       [orgId, storeId]
     );
-    await pool.query("COMMIT");
+    await client.query("COMMIT");
   } catch (error) {
-    await pool.query("ROLLBACK");
+    await client.query("ROLLBACK").catch(() => undefined);
     throw error;
+  } finally {
+    client.release();
   }
 }

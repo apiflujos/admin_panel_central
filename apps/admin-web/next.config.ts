@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   // The admin-web runs as a middleware inside the Express backend, so we use
   // the standard Next.js build instead of the standalone server.
   outputFileTracingRoot: path.join(__dirname, "../.."),
-  serverExternalPackages: ["pg", "ioredis", "bullmq", "mongodb", "graphql"],
+  serverExternalPackages: ["pg", "ioredis", "bullmq", "graphql"],
   eslint: {
     ignoreDuringBuilds: skipBuildValidation,
   },

@@ -33,6 +33,10 @@ export async function syncMarketingOrders(shopDomain: string, options: SyncOptio
     safeDateKey(stored) ||
     formatDateKey(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
   const maxOrders = Math.max(50, Number(options.maxOrders || process.env.MARKETING_SYNC_MAX_ORDERS || 1500));
+  // Time budget: la sync corta al llegar a MARKETING_SYNC_MAX_MS (default 5min)
+  // aunque queden órdenes por procesar — el próximo tick continúa desde el cursor.
+  const timeBudgetMs = Math.max(30_000, Number(process.env.MARKETING_SYNC_MAX_MS || 300_000));
+  const startedAt = Date.now();
 
   const query = `status:any processed_at:>='${since}'`;
   let cursor: string | null = null;
@@ -42,8 +46,13 @@ export async function syncMarketingOrders(shopDomain: string, options: SyncOptio
   const seenTraffic = new Set<string>();
   const seenCampaigns = new Set<string>();
   let usedMinimal = false;
+  let timedOut = false;
 
   while (hasNext && processed < maxOrders) {
+    if (Date.now() - startedAt > timeBudgetMs) {
+      timedOut = true;
+      break;
+    }
     let page: Awaited<ReturnType<typeof client.gqlOrdersPaged>>;
     try {
       page = await client.gqlOrdersPaged({ query, cursor });
@@ -228,5 +237,5 @@ export async function syncMarketingOrders(shopDomain: string, options: SyncOptio
   }
 
   await setSyncCursor(domain, "orders_since", latestDate);
-  return { shopDomain: domain, since, processed, latestDate, maxOrders, usedMinimal };
+  return { shopDomain: domain, since, processed, latestDate, maxOrders, usedMinimal, timedOut };
 }

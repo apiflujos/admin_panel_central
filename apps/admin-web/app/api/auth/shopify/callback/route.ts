@@ -13,6 +13,7 @@ import {
 } from "../../../../../../../src/services/shopify-oauth.service";
 import { resolveShopifyApiVersion } from "../../../../../../../src/utils/shopify";
 import { routeHandler } from "../../../../../lib/route-handler";
+import { requireRouteAdmin } from "../../../../../lib/route-auth";
 
 type OAuthEnv = {
   apiKey: string;
@@ -38,20 +39,10 @@ async function assertModuleEnabled(moduleKey: string) {
   }
 }
 
-function resolveAppHost(req: Request) {
+function resolveAppHost(_req: Request) {
   const explicit = String(process.env.APP_HOST || "").trim();
-  if (explicit) return explicit.replace(/\/$/, "");
-  const forwardedProto = String(req.headers.get("x-forwarded-proto") || "")
-    .split(",")[0]
-    .trim();
-  const forwardedHost = String(req.headers.get("x-forwarded-host") || "")
-    .split(",")[0]
-    .trim();
-  const url = new URL(req.url);
-  const proto = forwardedProto || url.protocol.replace(/:$/, "") || "https";
-  const host = String(forwardedHost || url.host || "").trim();
-  if (!host) return "";
-  return `${proto}://${host}`.replace(/\/$/, "");
+  if (!explicit) return "";
+  return explicit.replace(/\/$/, "");
 }
 
 function ensureOAuthEnv(req: Request): OAuthEnv {
@@ -83,13 +74,19 @@ function buildHmacMessage(searchParams: URLSearchParams) {
 }
 
 function validateHmac(searchParams: URLSearchParams, apiSecret: string) {
-  const provided = String(searchParams.get("hmac") || "");
-  if (!provided) return false;
+  const provided = String(searchParams.get("hmac") || "").trim().toLowerCase();
+  if (!provided || !/^[a-f0-9]+$/.test(provided)) return false;
   const message = buildHmacMessage(searchParams);
   const digest = crypto.createHmac("sha256", apiSecret).update(message).digest("hex");
-  const digestBuffer = Buffer.from(digest, "utf8");
-  const providedBuffer = Buffer.from(provided, "utf8");
-  if (digestBuffer.length !== providedBuffer.length) return false;
+  let digestBuffer: Buffer;
+  let providedBuffer: Buffer;
+  try {
+    digestBuffer = Buffer.from(digest, "hex");
+    providedBuffer = Buffer.from(provided, "hex");
+  } catch {
+    return false;
+  }
+  if (digestBuffer.length !== providedBuffer.length || digestBuffer.length === 0) return false;
   return crypto.timingSafeEqual(digestBuffer, providedBuffer);
 }
 
@@ -100,7 +97,14 @@ async function registerShopifyWebhooks(params: { client: ShopifyClient; baseUrl:
     DEFAULT_TOPICS.map(async (topic) => {
       try {
         const data = await params.client.createWebhookSubscription(topic, callbackUrl);
-        const response = data.webhookSubscriptionCreate;
+        const response = data?.webhookSubscriptionCreate;
+        if (!response) {
+          return {
+            topic,
+            ok: false,
+            errors: [{ message: "GraphQL vacío o throttled" }],
+          };
+        }
         const errors = response.userErrors || [];
         return {
           topic,
@@ -120,10 +124,12 @@ async function registerShopifyWebhooks(params: { client: ShopifyClient; baseUrl:
     ok: results.every((item) => item.ok),
     callbackUrl,
     items: results,
+    failedTopics: results.filter((r) => !r.ok).map((r) => r.topic),
   };
 }
 
 export const GET = routeHandler(async (req: Request) => {
+  const user = await requireRouteAdmin();
   try {
     await assertModuleEnabled("shopify");
     const env = ensureOAuthEnv(req);
@@ -146,9 +152,12 @@ export const GET = routeHandler(async (req: Request) => {
     if (!validateHmac(searchParams, env.apiSecret)) {
       return new NextResponse("HMAC invalido", { status: 400 });
     }
-    const stateResult = await consumeOAuthState(shop, state);
+    const stateResult = await consumeOAuthState(shop, state, user.id);
     if (!stateResult.ok) {
-      return new NextResponse("State invalido", { status: 400 });
+      const reason = stateResult.reason === "user_mismatch"
+        ? "State pertenece a otro usuario"
+        : "State invalido";
+      return new NextResponse(reason, { status: 400 });
     }
     const tokenResponse = await fetch(`https://${shop}/admin/oauth/access_token`, {
       method: "POST",
@@ -192,7 +201,7 @@ export const GET = routeHandler(async (req: Request) => {
       scopes: tokenPayload.scope || env.scopes,
       alegra: stateResult.alegraAccountId ? { accountId: stateResult.alegraAccountId } : undefined,
     });
-    await registerShopifyWebhooks({
+    const webhookResult = await registerShopifyWebhooks({
       client,
       baseUrl: env.appHost,
     });
@@ -201,11 +210,14 @@ export const GET = routeHandler(async (req: Request) => {
     if ((connectionResult as { isNew?: boolean })?.isNew) {
       redirectUrl.searchParams.set("onboard", normalizedShop);
     }
+    if (!webhookResult.ok && webhookResult.failedTopics.length) {
+      redirectUrl.searchParams.set("webhooks_pending", webhookResult.failedTopics.join(","));
+    }
     return NextResponse.redirect(redirectUrl.toString(), { status: 302 });
   } catch (error) {
     const msg = encodeURIComponent((error as { message?: string })?.message || "OAuth error");
     const redirectUrl = new URL("/settings/connections", req.url);
     redirectUrl.searchParams.set("oauth_error", msg);
-    return NextResponse.redirect(redirectUrl, { status: 302 });
+    return NextResponse.redirect(redirectUrl.toString(), { status: 302 });
   }
 });

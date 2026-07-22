@@ -19,7 +19,7 @@
 
 - Cambios globales (para todos): migraciones en `main`.
 - Cambios específicos (solo un cliente): migraciones en `client/<cliente>`.
-- MIM Postgres y Mongo **no** usan migraciones (solo lectura/escritura sobre estructuras existentes).
+- (Los módulos MIM Postgres y Mongo se retiraron — sin importers reales.)
 
 ## Despliegue por carpeta (servidor)
 
@@ -153,16 +153,66 @@ git checkout client/<cliente>
 git merge main
 ```
 
-## Variables clave
+## Dos capas de credenciales — importante para entender qué va en env vars y qué NO
 
-- `APP_PORT` (único puerto)
-- `APP_HOST` (única URL pública base, incluye esquema; usada por OAuth y webhooks)
-- `ADMIN_WEB_URL` (URL pública del frontend nuevo)
-- `RUN_WORKERS_IN_WEB` (`true` por compatibilidad; poner `false` cuando exista proceso `worker`)
-- `DATABASE_URL` (Postgres principal)
-- `REDIS_URL` (**obligatorio**)
-- `MIM_DATABASE_URL` (opcional, sin migraciones)
-- `MONGO_URL` (opcional, sin migraciones)
+**Capa 1 (env vars) — credenciales de LA APP, una vez por deploy, seteadas por el equipo dev.**
+Son constantes por deploy: la Shopify App que TU equipo publicó en Shopify Partners, el secret de webhooks, la clave de cifrado, la conexión a la DB.
+
+**Capa 2 (wizard de conexiones, cifradas en DB) — credenciales POR CLIENTE / TIENDA.**
+El operador carga desde el UI: `access_token` de la tienda del cliente, email + API key Alegra, consumer key/secret Woo. Se cifran con `CRYPTO_KEY_BASE64` y viven en `shopify_stores.access_token_encrypted` / `alegra_accounts.api_key_encrypted` / tabla `credentials`. **NADA de esto se pone en env vars.**
+
+## Variables de entorno (capa 1)
+
+### Estrictamente obligatorias — fail-fast al startup
+
+Solo estas dos. Sin ellas la app literalmente no puede persistir datos:
+
+- `DATABASE_URL` — Postgres principal
+- `CRYPTO_KEY_BASE64` — clave AES-256-GCM (32 bytes en base64) para cifrar credenciales de tenants
+
+### Opcionales por feature — el server arranca sin ellas, pero la feature no funciona
+
+**Para OAuth Shopify** (si vas a usar el flow OAuth desde el wizard):
+- `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SHOPIFY_SCOPES` — la app Shopify de tu equipo
+- `APP_HOST` — URL pública para el redirect_uri del OAuth callback
+
+Si no las setás, el wizard sigue permitiendo conectar tiendas Shopify por "token manual" (custom app creada en la tienda del cliente). El endpoint `/api/auth/shopify` devuelve `501 Not Implemented` con mensaje claro.
+
+**Para recibir webhooks Shopify:**
+- `SHOPIFY_WEBHOOK_SECRET` — sin ella los webhooks entrantes se rechazan por HMAC inválido. En `NODE_ENV=production` la app loguea warning al startup si falta.
+
+**Para recibir webhooks Alegra:**
+- `ALEGRA_WEBHOOK_SECRET` — mismo criterio.
+
+### Recomendadas (warning en prod si faltan, con defaults)
+
+- `APP_PORT` — único puerto (default 10000)
+- `ADMIN_WEB_URL` — URL pública del frontend nuevo
+- `RUN_WORKERS_IN_WEB` — `true` por compatibilidad; poner `false` cuando exista proceso `worker` dedicado
+- `APP_ORG_ID` — org fallback cuando NO hay sesión (AsyncLocalStorage tiene prioridad — desde Etapa 1)
+- `REDIS_URL` — obligatorio si marketing/BullMQ está habilitado
+- `RETRY_QUEUE_POLL_MS` — default `60000`. Setear `0` para deshabilitar el worker de retry-queue
+- `MARKETING_CRON_TIMEZONE` — default `America/Bogota` (desde Etapa 9)
+- `MARKETING_SYNC_MAX_MS` — default `300000` (5 min); time budget del sync marketing (desde Etapa 14)
+- `SYNC_ORDERS_MAX_BULK` — default `5000`; cap duro de `POST /api/sync/orders` (desde Etapa 11)
+- `INVENTORY_ADJUSTMENTS_MAX_DAYS_PER_TICK` — default `30`; cap del loop de días por tick (desde Etapa 9)
+
+### Bypasses (solo dev)
+
+Estas se ignoran en `NODE_ENV=production` con warning en logs:
+
+- `ALLOW_UNVERIFIED_SHOPIFY_WEBHOOKS=true` — acepta webhooks Shopify sin firma (solo dev)
+- `ALLOW_UNVERIFIED_ALEGRA_WEBHOOKS=true` — idem Alegra (solo dev)
+- `ALLOW_INTERNAL_HOSTS=true` — permite Woo a hostnames privados/localhost (solo dev)
+- `ALEGRA_ITEM_CACHE_BOOTSTRAP_ON_WEBHOOK=true` — siembra cache Alegra items al recibir webhook aunque no estén tracked (útil al arrancar tenant nuevo)
+
+### Migraciones a aplicar
+
+Antes del primer restart tras estas etapas:
+
+```
+npm run db:migrate     # aplica 014_shopify_oauth_states_initiator.sql
+```
 
 ## Cutover a una sola capa frontend
 

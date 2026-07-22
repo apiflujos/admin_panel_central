@@ -27,20 +27,10 @@ async function assertModuleEnabled(moduleKey: string) {
   }
 }
 
-function resolveAppHost(req: Request) {
+function resolveAppHost(_req: Request) {
   const explicit = String(process.env.APP_HOST || "").trim();
-  if (explicit) return explicit.replace(/\/$/, "");
-  const forwardedProto = String(req.headers.get("x-forwarded-proto") || "")
-    .split(",")[0]
-    .trim();
-  const forwardedHost = String(req.headers.get("x-forwarded-host") || "")
-    .split(",")[0]
-    .trim();
-  const url = new URL(req.url);
-  const proto = forwardedProto || url.protocol.replace(/:$/, "") || "https";
-  const host = String(forwardedHost || url.host || "").trim();
-  if (!host) return "";
-  return `${proto}://${host}`.replace(/\/$/, "");
+  if (!explicit) return "";
+  return explicit.replace(/\/$/, "");
 }
 
 function ensureOAuthEnv(req: Request): OAuthEnv {
@@ -55,14 +45,20 @@ function ensureOAuthEnv(req: Request): OAuthEnv {
   if (!scopes) missing.push("SHOPIFY_SCOPES");
   if (!appHost) missing.push("APP_HOST");
   if (missing.length) {
-    throw new Error(`Configuracion OAuth incompleta. Falta: ${missing.join(", ")}`);
+    const err = new Error(
+      `El flow OAuth de Shopify no está configurado en este deploy. Faltan variables de entorno: ${missing.join(
+        ", "
+      )}. Alternativa: en el wizard elegí "Conectar con access token manual" y pegá el access_token de una custom app creada en tu tienda Shopify.`
+    );
+    (err as { statusCode?: number }).statusCode = 501;
+    throw err;
   }
 
   return { apiKey, apiSecret, scopes, appHost };
 }
 
 export const GET = routeHandler(async (req: Request) => {
-  await requireRouteAdmin();
+  const user = await requireRouteAdmin();
   try {
     await assertModuleEnabled("shopify");
     const env = ensureOAuthEnv(req);
@@ -83,7 +79,7 @@ export const GET = routeHandler(async (req: Request) => {
       const store = await getStoreById(storeId);
       resolvedStoreName = store?.name || null;
     }
-    await createOAuthState(shop, nonce, resolvedStoreName || null, storeId, alegraAccountId);
+    await createOAuthState(shop, nonce, resolvedStoreName || null, storeId, alegraAccountId, user.id);
     const redirectUri = `${env.appHost}/api/auth/shopify/callback`;
     const authorizeUrl =
       `https://${shop}/admin/oauth/authorize` +

@@ -53,7 +53,7 @@ const normalizeDomain = (value: string) =>
     .replace(/\/.*$/, "")
     .toLowerCase();
 
-const parsePriceValue = (value?: unknown) => {
+export const parsePriceValue = (value?: unknown) => {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   if (typeof value === "string") {
     const trimmed = value.trim();
@@ -64,20 +64,20 @@ const parsePriceValue = (value?: unknown) => {
   return null;
 };
 
-const normalizePriceListId = (value?: unknown) => {
+export const normalizePriceListId = (value?: unknown) => {
   if (value === undefined || value === null) return "";
   if (typeof value === "string" || typeof value === "number") return String(value).trim();
   return "";
 };
 
-const resolvePriceListId = (price: Record<string, unknown>) => {
+export const resolvePriceListId = (price: Record<string, unknown>) => {
   const raw = price as { priceListId?: unknown; priceList?: { id?: unknown }; id?: unknown };
   return (
     normalizePriceListId(raw.priceListId) || normalizePriceListId(raw.priceList?.id) || normalizePriceListId(raw.id)
   );
 };
 
-const resolveAlegraInventoryQuantity = (inventory?: Record<string, unknown> | null) => {
+export const resolveAlegraInventoryQuantity = (inventory?: Record<string, unknown> | null) => {
   if (!inventory) return null;
   const warehouses = (inventory as { warehouses?: Array<{ availableQuantity?: unknown; quantity?: unknown }> })
     .warehouses;
