@@ -47,7 +47,8 @@ import {
   removeConnectionByDomain,
   removeAlegraConnection,
 } from "./connections.controller";
-import { createStoreHandler, deleteStoreHandler, listStoresHandler } from "./stores.controller";
+import { createStoreHandler, deleteStoreHandler, listStoresHandler, updateStoreHandler } from "./stores.controller";
+import { importAlegraProductsHandler, stopAlegraProductsImportHandler } from "./alegra-import.controller";
 import { listConnectionTestsHandler } from "./connection-tests.controller";
 import { copyStoreConfigHandler, listStoreConfigsHandler, saveStoreConfigHandler } from "./store-configs.controller";
 import {
@@ -78,6 +79,7 @@ import {
   updateProductOversellHandler,
   updateProductTrackingHandler,
   publishShopifyHandler,
+  unpublishShopifyHandler,
   syncInventoryAdjustmentsHandler,
   syncPublishedInventoryBaselineHandler,
   stopProductsSyncHandler,
@@ -238,6 +240,7 @@ router.delete("/connections/:id", requireAdmin, wrap(removeConnection));
 router.delete("/connections/alegra/:storeId", requireAdmin, wrap(removeAlegraConnection));
 router.get("/stores", requireAdmin, wrap(listStoresHandler));
 router.post("/stores", requireAdmin, wrap(createStoreHandler));
+router.put("/stores/:id", requireAdmin, wrap(updateStoreHandler));
 router.delete("/stores/:id", requireAdmin, wrap(deleteStoreHandler));
 router.get("/woocommerce/connections", requireAdmin, wrap(listWooConnectionsHandler));
 router.post("/woocommerce/connections", requireAdmin, wrap(createWooConnectionHandler));
@@ -260,6 +263,7 @@ router.get("/checkpoints/inventory-adjustments", wrap(getInventoryAdjustmentsChe
 router.post("/assistant/query", wrap(assistantQueryHandler));
 router.post("/assistant/execute", wrap(assistantExecuteHandler));
 router.post("/shopify/publish", wrap(publishShopifyHandler));
+router.post("/shopify/unpublish", wrap(unpublishShopifyHandler));
 router.post("/shopify/lookup-batch", wrap(lookupShopifyHandler));
 router.post("/products/oversell", requireAdmin, wrap(updateProductOversellHandler));
 router.post("/products/tracking", requireAdmin, wrap(updateProductTrackingHandler));
@@ -268,6 +272,8 @@ router.post("/shopify/webhooks/delete", requireAdmin, wrap(deleteShopifyWebhooks
 router.get("/shopify/webhooks/status", requireAdmin, wrap(getShopifyWebhooksStatusHandler));
 router.post("/sync/products", requireAdmin, wrap(syncProductsHandler));
 router.post("/sync/products/stop", requireAdmin, wrap(stopProductsSyncHandler));
+router.post("/sync/products/from-alegra", requireAdmin, wrap(importAlegraProductsHandler));
+router.post("/sync/products/from-alegra/stop", requireAdmin, wrap(stopAlegraProductsImportHandler));
 router.post("/sync/products/shopify-to-alegra", requireAdmin, wrap(syncProductsShopifyToAlegraHandler));
 router.post("/sync/products/shopify-to-alegra/stop", requireAdmin, wrap(stopProductsShopifyToAlegraSyncHandler));
 router.post("/sync/product-images", requireAdmin, wrap(syncProductImagesHandler));

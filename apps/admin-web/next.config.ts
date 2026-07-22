@@ -12,8 +12,9 @@ const skipBuildValidation =
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // The admin-web runs as a middleware inside the Express backend, so we use
-  // the standard Next.js build instead of the standalone server.
+  // The admin-web runs as a middleware inside the Express backend (single-port
+  // architecture: `initAdminWeb` in src/server.ts serves the standard `.next`
+  // build), so no standalone output is required.
   outputFileTracingRoot: path.join(__dirname, "../.."),
   serverExternalPackages: ["pg", "ioredis", "bullmq", "graphql"],
   eslint: {

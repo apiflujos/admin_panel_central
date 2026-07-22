@@ -80,6 +80,41 @@ export async function createStore(name: string) {
   }
 }
 
+export async function updateStoreName(storeId: number, name: string) {
+  if (!Number.isFinite(storeId)) {
+    throw new Error("ID de tienda invalido");
+  }
+  const cleaned = String(name || "").trim();
+  if (!cleaned) {
+    throw new Error("Nombre de tienda requerido");
+  }
+  const pool = getPool();
+  const orgId = getOrgId();
+  await ensureOrganization(pool, orgId);
+  try {
+    const result = await pool.query<{ id: number; name: string; created_at: string }>(
+      `
+      UPDATE stores
+      SET name = $3
+      WHERE id = $1 AND organization_id = $2
+      RETURNING id, name, created_at
+      `,
+      [storeId, orgId, cleaned]
+    );
+    if (!result.rows.length) {
+      throw new Error("Tienda no encontrada.");
+    }
+    const row = result.rows[0];
+    return { id: row.id, name: row.name, createdAt: row.created_at };
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";
+    if (code === "23505") {
+      throw new Error("Ya existe una tienda con ese nombre.", { cause: error });
+    }
+    throw error;
+  }
+}
+
 export async function deleteStoreById(storeId: number) {
   if (!Number.isFinite(storeId)) {
     throw new Error("ID de tienda invalido");

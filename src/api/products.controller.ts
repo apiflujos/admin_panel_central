@@ -1534,6 +1534,35 @@ export async function syncPublishedInventoryBaselineHandler(req: Request, res: R
   }
 }
 
+export async function unpublishShopifyHandler(req: Request, res: Response) {
+  const { shopifyProductId, shopDomain } = req.body || {};
+  const productId = String(shopifyProductId || "").trim();
+  if (!productId) {
+    res.status(400).json({ error: "shopifyProductId requerido" });
+    return;
+  }
+  try {
+    const config = await getShopifyConfig(shopDomain ? String(shopDomain) : "");
+    const client = new ShopifyClient({
+      shopDomain: config.shopDomain,
+      accessToken: config.accessToken,
+      apiVersion: resolveShopifyApiVersion(config.apiVersion),
+    });
+    const product = await client.updateProductStatus(productId, false);
+    const pool = getPool();
+    const orgId = getOrgId();
+    await pool.query(
+      `UPDATE products SET status_shopify = 'draft', last_sync_at = NOW(), updated_at = NOW()
+       WHERE organization_id = $1 AND shopify_product_id = $2`,
+      [orgId, productId]
+    );
+    res.status(200).json({ ok: true, shopify: product || { id: productId, status: "DRAFT" } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "No se pudo despublicar";
+    res.status(400).json({ error: message });
+  }
+}
+
 export async function publishShopifyHandler(req: Request, res: Response) {
   const { alegraId, settings = {}, alegraItem, shopDomain } = req.body || {};
   try {

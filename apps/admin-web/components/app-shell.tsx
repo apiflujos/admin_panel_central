@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
 
-import { ExternalLink } from "lucide-react";
-
 import { appNavigation } from "../lib/navigation";
 import { getServerCompanyBrand } from "../lib/server-api";
 import type { AuthSessionDto } from "../../../packages/shared/src/admin-web";
@@ -142,13 +140,6 @@ export async function AppShell({
           <div className="sidebarSpacer" />
 
           <div className="sidebarFooter">
-            <a className="sidebarExit" href="/legacy/settings/stores">
-              <span className="nav-icon" aria-hidden="true">
-                <ExternalLink size={16} strokeWidth={1.75} />
-              </span>
-              <span className="nav-label">Configuración avanzada</span>
-            </a>
-
             {session ? <LogoutButton /> : null}
           </div>
         </div>

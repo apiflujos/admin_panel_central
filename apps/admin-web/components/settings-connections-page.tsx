@@ -31,7 +31,11 @@ type ConnectionWizardPlatform =
   | "tiktok-ads"
   | "shopify-marketing";
 
-type ConnectionModalState = { kind: "closed" } | { kind: "connection" } | { kind: "create-store" };
+type ConnectionModalState =
+  | { kind: "closed" }
+  | { kind: "connection" }
+  | { kind: "create-store" }
+  | { kind: "edit-store" };
 
 function wizardPlatformHint(platform: ConnectionWizardPlatform | null) {
   if (platform === "shopify") {
@@ -269,6 +273,73 @@ export function SettingsConnectionsPage({
   function closeCreateStore() {
     setModal({ kind: "closed" });
     setNewStoreName("");
+  }
+
+  function openEditStore() {
+    if (!selectedStore) {
+      setStatusMessage("Selecciona una tienda.");
+      return;
+    }
+    setNewStoreName(selectedStore.name);
+    setModal({ kind: "edit-store" });
+  }
+
+  async function renameStore() {
+    if (!selectedStore) return;
+    if (!newStoreName.trim()) {
+      setStatusMessage("Nombre de tienda requerido.");
+      return;
+    }
+    setActionLoadingKey("store:update");
+    setStatusMessage("");
+    try {
+      const response = await apiFetch(`/api/stores/${selectedStore.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newStoreName.trim() }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || `store_update_failed:${response.status}`);
+      }
+      await refreshWorkspace();
+      setNewStoreName("");
+      setModal({ kind: "closed" });
+      setStatusMessage("Tienda actualizada.");
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "No se pudo actualizar la tienda.");
+    } finally {
+      setActionLoadingKey("");
+    }
+  }
+
+  async function deleteStore() {
+    if (!selectedStore) {
+      setStatusMessage("Selecciona una tienda.");
+      return;
+    }
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(`¿Eliminar la tienda "${selectedStore.name}"? Esta acción no se puede deshacer.`)
+    ) {
+      return;
+    }
+    setActionLoadingKey("store:delete");
+    setStatusMessage("");
+    try {
+      const response = await apiFetch(`/api/stores/${selectedStore.id}`, { method: "DELETE" });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || `store_delete_failed:${response.status}`);
+      }
+      const next = await refreshWorkspace();
+      setSelectedStoreId(next.stores[0]?.id ?? null);
+      setStatusMessage("Tienda eliminada.");
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "No se pudo eliminar la tienda.");
+    } finally {
+      setActionLoadingKey("");
+    }
   }
 
   async function copyStoreConfig() {
@@ -677,6 +748,24 @@ export function SettingsConnectionsPage({
             </button>
             <button className="btn primary btn-compact" type="button" onClick={openCreateStore}>
               Crear tienda
+            </button>
+            <button
+              className="btn ghost btn-compact"
+              type="button"
+              disabled={!selectedStore}
+              onClick={openEditStore}
+            >
+              Editar
+            </button>
+            <button
+              className="btn ghost btn-compact"
+              type="button"
+              disabled={!selectedStore || actionLoadingKey === "store:delete"}
+              onClick={() => {
+                void deleteStore();
+              }}
+            >
+              Eliminar
             </button>
             <button className="btn primary btn-compact" type="button" onClick={() => openConnectionFlow()}>
               Nueva conexión
@@ -1642,6 +1731,45 @@ export function SettingsConnectionsPage({
                   }}
                 >
                   Crear
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {modal.kind === "edit-store" ? (
+        <div className="modal-backdrop" role="presentation" onClick={closeCreateStore}>
+          <div className="modal-card" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <p className="modal-kicker">Tienda</p>
+                <h3>Editar tienda</h3>
+              </div>
+              <button className="btn ghost btn-compact" type="button" onClick={closeCreateStore}>
+                Cerrar
+              </button>
+            </div>
+            <div className="modal-body">
+              <label className="connection-form-row">
+                <span>Nombre</span>
+                <input
+                  className="input"
+                  value={newStoreName}
+                  onChange={(event) => setNewStoreName(event.target.value)}
+                  placeholder="Nombre operativo de la tienda"
+                />
+              </label>
+              <div className="page-module-actions">
+                <button
+                  className="btn primary"
+                  type="button"
+                  disabled={actionLoadingKey === "store:update"}
+                  onClick={() => {
+                    void renameStore();
+                  }}
+                >
+                  Guardar
                 </button>
               </div>
             </div>

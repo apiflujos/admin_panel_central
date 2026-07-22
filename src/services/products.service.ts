@@ -2,6 +2,7 @@ import { getOrgId, getPool } from "../db";
 
 type ProductInput = {
   shopDomain?: string | null;
+  storeId?: number | null;
   alegraId?: string | number | null;
   shopifyId?: string | number | null;
   name?: string | null;
@@ -36,6 +37,8 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
   const pool = getPool();
   const orgId = getOrgId();
   const shopDomain = normalizeShopDomain(input.shopDomain || "");
+  const storeId =
+    typeof input.storeId === "number" && Number.isFinite(input.storeId) && input.storeId > 0 ? input.storeId : null;
   const alegraId = input.alegraId ? String(input.alegraId) : null;
   const shopifyId = input.shopifyId ? String(input.shopifyId) : null;
   const name = input.name ? String(input.name) : null;
@@ -60,6 +63,12 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
     return { skipped: true, reason: "missing_identifiers" };
   }
 
+  // Scope: when a storeId is provided, match across sources within the store
+  // (so an Alegra-imported row and its Shopify counterpart collapse into one,
+  // regardless of shop_domain). Otherwise fall back to the shop_domain scope,
+  // preserving the historical behavior for existing callers.
+  const scopeClause = storeId !== null ? "store_id = $2" : "shop_domain = $2";
+  const scopeValue: number | string = storeId !== null ? storeId : shopDomain;
   const existing = await pool.query<{
     id: number;
     alegra_item_id: string | null;
@@ -69,7 +78,7 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
     SELECT id, alegra_item_id, shopify_product_id
     FROM products
     WHERE organization_id = $1
-      AND shop_domain = $2
+      AND ${scopeClause}
       AND (
         (alegra_item_id = $3 AND $3 IS NOT NULL)
         OR (shopify_product_id = $4 AND $4 IS NOT NULL)
@@ -88,7 +97,7 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
       END
     LIMIT 1
     `,
-    [orgId, shopDomain, alegraId, shopifyId, reference, sku, barcode]
+    [orgId, scopeValue, alegraId, shopifyId, reference, sku, barcode]
   );
 
   if (existing.rows.length) {
@@ -118,6 +127,7 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
       `
       UPDATE products
       SET shop_domain = COALESCE(NULLIF($2, ''), shop_domain),
+          store_id = COALESCE($16, store_id),
           alegra_item_id = COALESCE($3, alegra_item_id),
           shopify_product_id = COALESCE($4, shopify_product_id),
           name = COALESCE($5, name),
@@ -157,6 +167,7 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
         source,
         payloadJson,
         barcode,
+        storeId,
       ]
     );
     return { updated: true };
@@ -180,6 +191,7 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
     syncStatus,
     payloadJson,
     barcode,
+    storeId,
   ];
 
   if (alegraId) {
@@ -275,8 +287,8 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
   await pool.query(
     `
     INSERT INTO products
-      (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, payload_json, barcode, last_sync_at)
-    VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,$15::jsonb,$16::text,NOW())
+      (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, payload_json, barcode, store_id, last_sync_at)
+    VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,$15::jsonb,$16::text,$17::integer,NOW())
     `,
     insertValues
   );

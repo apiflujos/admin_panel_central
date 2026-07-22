@@ -552,6 +552,25 @@ export async function publishProductToShopify(payload: {
   return { ok: true, shopify: data.shopify };
 }
 
+export async function unpublishProductFromShopify(payload: {
+  shopifyProductId: string;
+  shopDomain?: string;
+}): Promise<{ ok: true; shopify?: Record<string, unknown> }> {
+  const response = await apiFetch("/api/shopify/unpublish", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = (await response.json().catch(() => ({}))) as {
+    error?: string;
+    shopify?: Record<string, unknown>;
+  };
+  if (!response.ok) {
+    throw new Error(data.error || `unpublish_failed:${response.status}`);
+  }
+  return { ok: true, shopify: data.shopify };
+}
+
 export async function runInventoryAdjustmentsSync(payload: {
   shopDomain?: string;
   autoPublish?: boolean;

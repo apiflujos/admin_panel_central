@@ -1,6 +1,7 @@
 import { Search } from "lucide-react";
 import type { AdminWebProductRowDto, AdminWebProductsListDto } from "../../../packages/shared/src/admin-web";
 import { ProductPublishButton } from "./product-publish-button";
+import { SyncProductsButton } from "./sync-products-button";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { StatusPill } from "./ui/status-pill";
@@ -121,6 +122,7 @@ export function ProductsPage({
           }
           actions={
             <>
+              <SyncProductsButton />
               {hasPrev && (
                 <a
                   className="btn ghost btn-compact"
@@ -218,7 +220,7 @@ export function ProductsPage({
                     <span>
                       {allMatched ? (
                         <StatusPill tone="success" small>
-                          Matcheado
+                          Sincronizado
                         </StatusPill>
                       ) : partiallyMatched ? (
                         <StatusPill tone="warning" small>
@@ -264,11 +266,10 @@ export function ProductsPage({
                           )}
                         </span>
                         <span>
-                          {variant.shopifyProductId ? (
-                            <span className="pill pill-mini pill-info">{variant.shopifyStatus || "En Shopify"}</span>
-                          ) : (
-                            <ProductPublishButton alegraItemId={variant.alegraItemId} />
-                          )}
+                          <ProductPublishButton
+                            alegraItemId={variant.alegraItemId}
+                            shopifyProductId={variant.shopifyProductId}
+                          />
                         </span>
                         <span>{formatDate(variant.updatedAt)}</span>
                       </div>

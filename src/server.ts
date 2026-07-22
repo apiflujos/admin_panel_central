@@ -181,7 +181,14 @@ app.get("/auth/callback", shopifyOAuthCallback);
 //    Next.js before falling into the Express router.
 // ---------------------------------------------------------------------------
 function mountAdminWeb(prefix: string, handle: (req: Request, res: Response) => void) {
-  app.use(prefix, (req, res) => handle(req, res));
+  app.use(prefix, (req, res) => {
+    // Express strips the mount `prefix` from req.url, but Next's request handler
+    // routes on req.url — so it would look up e.g. `/connections/workspace`
+    // instead of `/api/admin-web/connections/workspace` and 404. Restore the
+    // full original path (incl. query) before delegating to Next.
+    req.url = req.originalUrl;
+    handle(req, res);
+  });
 }
 
 // Note: app.use("/api", router) is intentionally registered inside startServer()
