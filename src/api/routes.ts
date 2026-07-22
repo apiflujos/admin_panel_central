@@ -50,8 +50,11 @@ import {
 import { createStoreHandler, deleteStoreHandler, listStoresHandler, updateStoreHandler } from "./stores.controller";
 import {
   importAlegraContactsHandler,
+  importAlegraInvoicesHandler,
   importAlegraProductsHandler,
+  listAlegraInvoicesHandler,
   stopAlegraContactsImportHandler,
+  stopAlegraInvoicesImportHandler,
   stopAlegraProductsImportHandler,
 } from "./alegra-import.controller";
 import { listConnectionTestsHandler } from "./connection-tests.controller";
@@ -287,6 +290,9 @@ router.post("/sync/orders", requireAdmin, wrap(syncOrdersHandler));
 router.post("/sync/orders/stop", requireAdmin, wrap(stopOrdersSyncHandler));
 router.post("/sync/invoices", requireAdmin, wrap(syncInvoicesToShopifyHandler));
 router.post("/sync/invoices/stop", requireAdmin, wrap(stopInvoicesSyncHandler));
+router.post("/sync/invoices/from-alegra", requireAdmin, wrap(importAlegraInvoicesHandler));
+router.post("/sync/invoices/from-alegra/stop", requireAdmin, wrap(stopAlegraInvoicesImportHandler));
+router.get("/alegra-invoices", requireAdmin, wrap(listAlegraInvoicesHandler));
 router.post("/backfill/products", requireAdmin, wrap(backfillProductsHandler));
 router.post("/backfill/products/stop", requireAdmin, wrap(stopProductsBackfillHandler));
 router.post("/backfill/orders", requireAdmin, wrap(backfillOrdersHandler));
