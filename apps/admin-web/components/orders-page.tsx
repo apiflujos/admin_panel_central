@@ -6,6 +6,7 @@ import { DataTable } from "./ui/data-table";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { StatusPill } from "./ui/status-pill";
+import { SyncOrdersButton } from "./sync-orders-button";
 
 const PAGE_SIZE = 20;
 
@@ -63,6 +64,7 @@ export function OrdersPage({
         }
         actions={
           <>
+            <SyncOrdersButton />
             {hasPrev && (
               <a
                 className="btn ghost btn-compact"
