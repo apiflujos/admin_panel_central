@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { apiFetch } from "../lib/api";
+import { DataTable } from "./ui/data-table";
 
 type StoreOption = { id: number; name: string; hasAlegra: boolean };
 type Progress = { processed: number; failed: number; scanned: number };
@@ -173,46 +174,59 @@ export function AlegraInvoicesCatalog() {
         </div>
       </div>
 
-      {rows.length ? (
-        <div className="table-scroll" style={{ overflowX: "auto" }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Número</th>
-                <th>Fecha</th>
-                <th>Cliente</th>
-                <th>Documento</th>
-                <th>Estado</th>
-                <th style={{ textAlign: "right" }}>Total</th>
-                <th style={{ textAlign: "right" }}>Saldo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>
-                    {r.number || "—"}
-                    {r.isElectronic ? <span className="pill pill-mini pill-info" style={{ marginLeft: 6 }}>FE</span> : null}
-                  </td>
-                  <td>{r.date || "—"}</td>
-                  <td>{r.clientName || "—"}</td>
-                  <td>{r.clientIdentification || "—"}</td>
-                  <td>
-                    <span className={`pill pill-mini ${r.status === "closed" ? "pill-ok" : ""}`}>{r.status || "—"}</span>
-                  </td>
-                  <td style={{ textAlign: "right" }}>{money(r.total)}</td>
-                  <td style={{ textAlign: "right" }}>{money(r.balance)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="metrics-empty-state">
-          <strong>Sin facturas importadas</strong>
-          <p>Usa “Sincronizar facturas” para traer el catálogo desde Alegra.</p>
-        </div>
-      )}
+      <DataTable<InvoiceRow>
+        rows={rows}
+        getRowKey={(r) => r.id}
+        emptyState="Sin facturas importadas. Usa “Sincronizar facturas” para traer el catálogo desde Alegra."
+        columns={[
+          {
+            key: "number",
+            header: "Factura",
+            render: (r) => (
+              <div className="entity-cell">
+                <strong>
+                  {r.number || "—"}
+                  {r.isElectronic ? (
+                    <span className="pill pill-mini pill-info" style={{ marginLeft: 6 }}>
+                      FE
+                    </span>
+                  ) : null}
+                </strong>
+                <span>{r.date || "Sin fecha"}</span>
+              </div>
+            ),
+          },
+          {
+            key: "client",
+            header: "Cliente",
+            render: (r) => (
+              <div className="entity-cell">
+                <strong>{r.clientName || "—"}</strong>
+                <span>{r.clientIdentification || "Sin documento"}</span>
+              </div>
+            ),
+          },
+          {
+            key: "status",
+            header: "Estado",
+            render: (r) => (
+              <span className={`pill pill-mini ${r.status === "closed" ? "pill-ok" : ""}`}>{r.status || "—"}</span>
+            ),
+          },
+          {
+            key: "total",
+            header: "Total",
+            columnClassName: "dataTable-num",
+            render: (r) => money(r.total),
+          },
+          {
+            key: "balance",
+            header: "Saldo",
+            columnClassName: "dataTable-num",
+            render: (r) => money(r.balance),
+          },
+        ]}
+      />
 
       {open ? (
         <div className="modal-backdrop" role="presentation" onClick={close}>

@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export function LoginPage({ hasError = false }: { hasError?: boolean }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(hasError);
 
@@ -39,8 +37,11 @@ export function LoginPage({ hasError = false }: { hasError?: boolean }) {
         return;
       }
 
-      router.replace("/");
-      router.refresh();
+      // Hard navigation (no soft router.replace) so the just-set os_session cookie
+      // is reliably sent on the next request and the middleware/session read it on
+      // the first try — avoids the "double login" where a soft RSC navigation raced
+      // the freshly set cookie and bounced back to /auth/login.
+      window.location.assign("/");
     } catch {
       setError(true);
       setLoading(false);
