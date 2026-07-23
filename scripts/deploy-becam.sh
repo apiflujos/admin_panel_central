@@ -280,6 +280,20 @@ ensure_env() {
     ok ".env ya existe y está completo, no se modifica"
   fi
 
+  # Aviso no-fatal: variables de Shopify necesarias para el OAuth. El script NO
+  # las inyecta (son secretos); se agregan a mano una vez y aquí se preservan.
+  local missing_shopify=()
+  for skey in SHOPIFY_API_KEY SHOPIFY_API_SECRET SHOPIFY_SCOPES; do
+    if ! grep -qE "^${skey}=.+" .env; then
+      missing_shopify+=("${skey}")
+    fi
+  done
+  if [ "${#missing_shopify[@]}" -gt 0 ]; then
+    warn "Faltan variables de Shopify en .env: ${missing_shopify[*]}"
+    warn "Sin ellas, 'Conectar Shopify' dará: 'Configuración OAuth incompleta'."
+    warn "Agrégalas a $(pwd)/.env y vuelve a ejecutar (o solo 'pm2 reload ecosystem.config.js')."
+  fi
+
   echo ""
   echo "Valores clave en .env:"
   echo "  APP_HOST=$(grep '^APP_HOST=' .env | cut -d= -f2)"
