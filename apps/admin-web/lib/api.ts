@@ -571,6 +571,25 @@ export async function unpublishProductFromShopify(payload: {
   return { ok: true, shopify: data.shopify };
 }
 
+export async function setAlegraItemStatus(payload: {
+  itemId: string;
+  active: boolean;
+  shopDomain?: string;
+  storeId?: number | null;
+}): Promise<{ ok: true; status: "active" | "inactive" }> {
+  const { itemId, ...body } = payload;
+  const response = await apiFetch(`/api/alegra/items/${encodeURIComponent(itemId)}/status`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = (await response.json().catch(() => ({}))) as { error?: string; status?: "active" | "inactive" };
+  if (!response.ok) {
+    throw new Error(data.error || `alegra_status_failed:${response.status}`);
+  }
+  return { ok: true, status: data.status || (payload.active ? "active" : "inactive") };
+}
+
 export async function runInventoryAdjustmentsSync(payload: {
   shopDomain?: string;
   autoPublish?: boolean;

@@ -177,6 +177,7 @@ let activeProductImagesSync: { id: string; canceled: boolean; startedAt: number 
 let activeProductsShopifyToAlegraSync: { id: string; canceled: boolean; startedAt: number } | null = null;
 let activeOrdersSync: { id: string; canceled: boolean; startedAt: number } | null = null;
 let activeProductsBackfillSync: { id: string; canceled: boolean; startedAt: number } | null = null;
+let activeShopifyBulkPublishSync: { id: string; canceled: boolean; startedAt: number } | null = null;
 
 const createSyncId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -191,6 +192,8 @@ const isProductsShopifyToAlegraCanceled = (syncId: string) =>
 const isOrdersSyncCanceled = (syncId: string) => Boolean(activeOrdersSync?.id === syncId && activeOrdersSync.canceled);
 const isProductsBackfillCanceled = (syncId: string) =>
   Boolean(activeProductsBackfillSync?.id === syncId && activeProductsBackfillSync.canceled);
+const isShopifyBulkPublishCanceled = (syncId: string) =>
+  Boolean(activeShopifyBulkPublishSync?.id === syncId && activeShopifyBulkPublishSync.canceled);
 
 async function fetchAlegraWithRetry(
   path: string,
@@ -3804,4 +3807,294 @@ export async function proxyAlegraImageHandler(req: Request, res: Response) {
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : "Image proxy error" });
   }
+}
+
+/**
+ * Activa/desactiva un item en Alegra (1-a-1) y refleja el estado local en `products`.
+ * POST /alegra/items/:itemId/status
+ * Body: { active: boolean, shopDomain?: string, storeId?: number }
+ * Respuesta: { ok: true, status: "active" | "inactive" } | 400 { error }
+ */
+export async function setAlegraItemStatusHandler(req: Request, res: Response) {
+  const itemId = String(req.params.itemId || "").trim();
+  const body = (req.body || {}) as { active?: boolean; shopDomain?: string; storeId?: number | string };
+  if (!itemId) {
+    res.status(400).json({ error: "itemId requerido" });
+    return;
+  }
+  if (typeof body.active !== "boolean") {
+    res.status(400).json({ error: "active (boolean) requerido" });
+    return;
+  }
+  const shopDomain = typeof body.shopDomain === "string" ? body.shopDomain.trim() : "";
+  const storeIdRaw = Number(body.storeId);
+  const storeId = Number.isFinite(storeIdRaw) && storeIdRaw > 0 ? storeIdRaw : undefined;
+  const status = body.active ? "active" : "inactive";
+
+  try {
+    const client = await getAlegraClientForStore(shopDomain || undefined, storeId);
+    await client.updateItem(itemId, { status });
+
+    const pool = getPool();
+    const orgId = getOrgId();
+    const params: Array<string | number> = [orgId, itemId, status];
+    let sql =
+      "UPDATE products SET status_alegra = $3, updated_at = NOW() WHERE organization_id = $1 AND alegra_item_id = $2";
+    if (storeId) {
+      sql += " AND store_id = $4";
+      params.push(storeId);
+    }
+    await pool.query(sql, params);
+
+    res.status(200).json({ ok: true, status });
+    await safeCreateLog({
+      entity: "alegra_item_status",
+      direction: "alegra->shopify",
+      status: "success",
+      message: `Item ${itemId} -> ${status}`,
+      request: { itemId, active: body.active, shopDomain: shopDomain || null, storeId: storeId || null },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "No se pudo actualizar el estado en Alegra";
+    res.status(400).json({ error: message });
+    await safeCreateLog({
+      entity: "alegra_item_status",
+      direction: "alegra->shopify",
+      status: "fail",
+      message,
+      request: { itemId, active: body.active, shopDomain: shopDomain || null, storeId: storeId || null },
+    });
+  }
+}
+
+/**
+ * Publica/despublica MASIVAMENTE productos existentes en Shopify (cambia status ACTIVE/DRAFT).
+ * POST /shopify/publish/bulk
+ * Body: {
+ *   storeId: number,
+ *   shopDomain?: string,
+ *   action: "publish" | "unpublish",
+ *   filter?: { onlyMatched?: boolean, query?: string },
+ *   stream?: boolean
+ * }
+ * Solo recorre productos con shopify_product_id (ya existentes en Shopify).
+ * Stream NDJSON: eventos { type: "start" | "progress" | "done" | "error" }.
+ * Progreso: { processed, failed, skipped, scanned, total }.
+ */
+export async function bulkShopifyPublishHandler(req: Request, res: Response) {
+  const body = (req.body || {}) as {
+    storeId?: number | string;
+    shopDomain?: string;
+    action?: string;
+    filter?: { onlyMatched?: boolean; query?: string };
+    stream?: boolean;
+  };
+  const storeIdRaw = Number(body.storeId);
+  const storeId = Number.isFinite(storeIdRaw) && storeIdRaw > 0 ? storeIdRaw : undefined;
+  const action = body.action === "unpublish" ? "unpublish" : body.action === "publish" ? "publish" : "";
+  const publish = action === "publish";
+  const onlyMatched = body.filter?.onlyMatched === true;
+  const filterQuery = typeof body.filter?.query === "string" ? body.filter.query.trim() : "";
+  const stream = body.stream === true || req.query.stream === "1" || req.query.stream === "true";
+
+  let streamOpen = stream;
+  const sendStream = (payload: Record<string, unknown>) => {
+    if (!streamOpen || res.writableEnded || res.destroyed) return;
+    try {
+      res.write(`${JSON.stringify(payload)}\n`);
+    } catch {
+      streamOpen = false;
+    }
+  };
+
+  if (!action) {
+    res.status(400).json({ error: 'action debe ser "publish" o "unpublish"' });
+    return;
+  }
+  if (!storeId) {
+    res.status(400).json({ error: "storeId requerido" });
+    return;
+  }
+
+  const startedAt = Date.now();
+  const syncId = createSyncId();
+  const nextStatus = publish ? "active" : "draft";
+
+  try {
+    // Resolver shopDomain: usar el del body o derivarlo del storeId.
+    let shopDomain = typeof body.shopDomain === "string" ? body.shopDomain.trim() : "";
+    if (!shopDomain) {
+      const pool = getPool();
+      const orgId = getOrgId();
+      const domainResult = await pool.query<{ shop_domain: string }>(
+        `SELECT shop_domain FROM shopify_stores
+         WHERE organization_id = $1 AND store_id = $2
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [orgId, storeId]
+      );
+      shopDomain = domainResult.rows[0]?.shop_domain || "";
+    }
+    if (!shopDomain) {
+      const message = "No se pudo resolver el shopDomain para el storeId indicado";
+      if (stream) {
+        // No hemos abierto headers de stream todavia; responder como JSON.
+        res.status(400).json({ error: message });
+      } else {
+        res.status(400).json({ error: message });
+      }
+      return;
+    }
+
+    const shopifyConfig = await getShopifyConfig(shopDomain);
+    const client = new ShopifyClient({
+      shopDomain: shopifyConfig.shopDomain,
+      accessToken: shopifyConfig.accessToken,
+      apiVersion: resolveShopifyApiVersion(shopifyConfig.apiVersion),
+    });
+
+    const pool = getPool();
+    const orgId = getOrgId();
+
+    activeShopifyBulkPublishSync = { id: syncId, canceled: false, startedAt };
+
+    if (stream) {
+      res.status(200);
+      res.setHeader("Content-Type", "application/x-ndjson");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders?.();
+      res.on("close", () => {
+        streamOpen = false;
+      });
+    }
+
+    // Recolectar los productos objetivo (con shopify_product_id).
+    type TargetRow = { shopify_product_id: string; alegra_item_id: string | null };
+    const targets: TargetRow[] = [];
+    const seen = new Set<string>();
+    const pageSize = 200;
+    let offset = 0;
+    while (true) {
+      const page = await listProducts({
+        shopDomain,
+        query: filterQuery || undefined,
+        limit: pageSize,
+        offset,
+      });
+      const rows = Array.isArray(page.items) ? page.items : [];
+      for (const row of rows as Array<Record<string, unknown>>) {
+        const shopifyProductId = normalizeText(row.shopify_product_id);
+        const alegraItemId = normalizeText(row.alegra_item_id);
+        if (!shopifyProductId) continue;
+        if (onlyMatched && !alegraItemId) continue;
+        if (seen.has(shopifyProductId)) continue;
+        seen.add(shopifyProductId);
+        targets.push({ shopify_product_id: shopifyProductId, alegra_item_id: alegraItemId });
+      }
+      offset += rows.length;
+      if (rows.length < pageSize) break;
+    }
+
+    const total = targets.length;
+    sendStream({ type: "start", syncId, startedAt, shopDomain, storeId, action, total });
+
+    let processed = 0;
+    let failed = 0;
+    let skipped = 0;
+    const scanned = total;
+    const failedItems: Array<{ shopifyProductId: string; error: string }> = [];
+
+    for (const target of targets) {
+      if (isShopifyBulkPublishCanceled(syncId)) {
+        break;
+      }
+      try {
+        await client.updateProductStatus(target.shopify_product_id, publish);
+        await pool.query(
+          `UPDATE products SET status_shopify = $3, last_sync_at = NOW(), updated_at = NOW()
+           WHERE organization_id = $1 AND shopify_product_id = $2`,
+          [orgId, target.shopify_product_id, nextStatus]
+        );
+        processed += 1;
+      } catch (error) {
+        failed += 1;
+        if (failedItems.length < 100) {
+          failedItems.push({
+            shopifyProductId: target.shopify_product_id,
+            error: toSyncErrorMessage(error),
+          });
+        }
+      }
+      sendStream({ type: "progress", syncId, processed, failed, skipped, scanned, total });
+    }
+
+    const canceled = isShopifyBulkPublishCanceled(syncId);
+    const summary = {
+      ok: true,
+      syncId,
+      startedAt,
+      shopDomain,
+      storeId,
+      action,
+      total,
+      processed,
+      failed,
+      skipped,
+      scanned,
+      canceled,
+      failedItems,
+    };
+
+    if (stream) {
+      sendStream({ type: "done", ...summary });
+      streamOpen = false;
+      res.end();
+    } else {
+      res.status(200).json(summary);
+    }
+
+    await safeCreateLog({
+      entity: "shopify_publish_bulk",
+      direction: "alegra->shopify",
+      status: "success",
+      message: `Bulk ${action}: ${processed} ok, ${failed} fallidos${canceled ? " (cancelado)" : ""}`,
+      request: { storeId, shopDomain, action, filter: body.filter || null },
+      response: summary as unknown as Record<string, unknown>,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Bulk publish error";
+    if (stream && streamOpen) {
+      sendStream({ type: "error", syncId, error: message });
+      streamOpen = false;
+      res.end();
+    } else if (!res.headersSent) {
+      res.status(400).json({ error: message });
+    }
+    await safeCreateLog({
+      entity: "shopify_publish_bulk",
+      direction: "alegra->shopify",
+      status: "fail",
+      message,
+      request: { storeId, shopDomain: body.shopDomain || null, action, filter: body.filter || null },
+    });
+  } finally {
+    if (activeShopifyBulkPublishSync?.id === syncId) {
+      activeShopifyBulkPublishSync = null;
+    }
+  }
+}
+
+export async function stopBulkShopifyPublishHandler(req: Request, res: Response) {
+  const requestedId = String(req.body?.syncId || "").trim();
+  if (!activeShopifyBulkPublishSync) {
+    res.status(200).json({ ok: false, canceled: false, reason: "no_active_sync" });
+    return;
+  }
+  if (requestedId && activeShopifyBulkPublishSync.id !== requestedId) {
+    res.status(200).json({ ok: false, canceled: false, reason: "sync_id_mismatch" });
+    return;
+  }
+  activeShopifyBulkPublishSync.canceled = true;
+  res.status(200).json({ ok: true, canceled: true, syncId: activeShopifyBulkPublishSync.id });
 }

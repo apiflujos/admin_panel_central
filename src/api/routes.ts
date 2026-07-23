@@ -100,6 +100,9 @@ import {
   syncProductsHandler,
   backfillProductsHandler,
   stopProductsBackfillHandler,
+  setAlegraItemStatusHandler,
+  bulkShopifyPublishHandler,
+  stopBulkShopifyPublishHandler,
 } from "./products.controller";
 import {
   createShopifyWebhooksHandler,
@@ -280,6 +283,9 @@ router.post("/assistant/query", wrap(assistantQueryHandler));
 router.post("/assistant/execute", wrap(assistantExecuteHandler));
 router.post("/shopify/publish", wrap(publishShopifyHandler));
 router.post("/shopify/unpublish", wrap(unpublishShopifyHandler));
+router.post("/alegra/items/:itemId/status", requireAdmin, wrap(setAlegraItemStatusHandler));
+router.post("/shopify/publish/bulk", requireAdmin, wrap(bulkShopifyPublishHandler));
+router.post("/shopify/publish/bulk/stop", requireAdmin, wrap(stopBulkShopifyPublishHandler));
 router.post("/shopify/lookup-batch", wrap(lookupShopifyHandler));
 router.post("/products/oversell", requireAdmin, wrap(updateProductOversellHandler));
 router.post("/products/tracking", requireAdmin, wrap(updateProductTrackingHandler));

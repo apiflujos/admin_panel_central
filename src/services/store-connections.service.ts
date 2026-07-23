@@ -121,10 +121,30 @@ export async function getAlegraConnectionByDomain(shopDomain: string) {
     `,
     [orgId, normalized]
   );
-  if (!result.rows.length) {
-    throw new Error(`Alegra no conectado para ${normalized}.`);
+  let row = result.rows[0];
+  // Fallback: cuenta Alegra compartida vía stores.alegra_account_id
+  // (dominio -> tienda -> cuenta), cuando shopify_store_configs no tiene el vínculo.
+  if (!row?.user_email || !row?.api_key_encrypted) {
+    const viaStore = await pool.query<{
+      user_email: string | null;
+      api_key_encrypted: string | null;
+      environment: string | null;
+    }>(
+      `
+      SELECT a.user_email, a.api_key_encrypted, a.environment
+      FROM shopify_stores ss
+      JOIN stores s ON s.id = ss.store_id
+      JOIN alegra_accounts a ON a.id = s.alegra_account_id
+      WHERE ss.organization_id = $1 AND ss.shop_domain = $2
+      ORDER BY ss.created_at DESC
+      LIMIT 1
+      `,
+      [orgId, normalized]
+    );
+    if (viaStore.rows.length) {
+      row = viaStore.rows[0];
+    }
   }
-  const row = result.rows[0];
   if (!row?.user_email || !row?.api_key_encrypted) {
     throw new Error(`Alegra no conectado para ${normalized}.`);
   }
@@ -162,10 +182,14 @@ export async function getAlegraConnectionByStoreId(storeId: number) {
     environment: string | null;
   }>(
     `
-    SELECT user_email, api_key_encrypted, environment
-    FROM alegra_accounts
-    WHERE organization_id = $1 AND store_id = $2
-    ORDER BY created_at DESC
+    SELECT a.user_email, a.api_key_encrypted, a.environment
+    FROM alegra_accounts a
+    WHERE a.organization_id = $1
+      AND (
+        a.id = (SELECT s.alegra_account_id FROM stores s WHERE s.id = $2)
+        OR a.store_id = $2
+      )
+    ORDER BY (a.id = (SELECT s.alegra_account_id FROM stores s WHERE s.id = $2)) DESC, a.created_at DESC
     LIMIT 1
     `,
     [orgId, storeId]

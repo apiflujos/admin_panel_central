@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
 import type { AdminWebProductRowDto, AdminWebProductsListDto } from "../../../packages/shared/src/admin-web";
+import { BulkPublishButton } from "./bulk-publish-button";
 import { ProductPublishButton } from "./product-publish-button";
 import { SyncProductsButton } from "./sync-products-button";
 import { PageHeader } from "./ui/page-header";
@@ -123,6 +124,7 @@ export function ProductsPage({
           actions={
             <>
               <SyncProductsButton />
+              <BulkPublishButton />
               {hasPrev && (
                 <a
                   className="btn ghost btn-compact"
