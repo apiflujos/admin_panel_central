@@ -14,6 +14,7 @@ import { StoreSyncActionsPanel } from "./store-sync-actions-panel";
 import { StoreSyncAutomationPanel } from "./store-sync-automation-panel";
 import { StoreMarketingConfigPanel } from "./store-marketing-config-panel";
 import { StoreSyncModulesPanel } from "./store-sync-modules-panel";
+import { ShopifyAppCredentialsForm } from "./shopify-app-credentials-form";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { ProviderMark } from "./ui/provider-mark";
@@ -730,6 +731,8 @@ export function SettingsConnectionsPage({
           </>
         }
       />
+
+      <ShopifyAppCredentialsForm />
 
       <section className="page-module-shell page-module-shell-compact config-active-store-shell">
         <div className="page-module-head">

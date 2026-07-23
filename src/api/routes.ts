@@ -106,7 +106,13 @@ import {
   deleteShopifyWebhooksHandler,
   getShopifyWebhooksStatusHandler,
 } from "./shopify-webhooks.controller";
-import { shopifyOAuthCallback, shopifyOAuthStatus, startShopifyOAuth } from "./shopify-oauth.controller";
+import {
+  getShopifyAppCredentialsStatus,
+  saveShopifyAppCredentialsHandler,
+  shopifyOAuthCallback,
+  shopifyOAuthStatus,
+  startShopifyOAuth,
+} from "./shopify-oauth.controller";
 import { googleAdsOAuthCallback, googleAdsOAuthStatus, startGoogleAdsOAuth } from "./google-ads-oauth.controller";
 import { metaAdsOAuthCallback, metaAdsOAuthStatus, startMetaAdsOAuth } from "./meta-ads-oauth.controller";
 import { startTikTokAdsOAuth, tiktokAdsOAuthCallback, tiktokAdsOAuthStatus } from "./tiktok-ads-oauth.controller";
@@ -259,6 +265,8 @@ router.post("/store-configs/:storeKey/copy-from", requireAdmin, wrap(copyStoreCo
 router.post("/settings/test", requireAdmin, wrap(testConnections));
 router.put("/settings", requireAdmin, wrap(updateSettings));
 router.get("/settings", requireAdmin, wrap(getSettings));
+router.get("/settings/shopify-app", requireAdmin, wrap(getShopifyAppCredentialsStatus));
+router.put("/settings/shopify-app", requireAdmin, wrap(saveShopifyAppCredentialsHandler));
 router.get("/settings/resolutions", wrap(listResolutions));
 router.get("/alegra/:catalog", wrap(listAlegraCatalog));
 router.get("/metrics", wrap(listMetrics));

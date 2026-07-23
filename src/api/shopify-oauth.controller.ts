@@ -12,6 +12,11 @@ import {
   normalizeShopDomainForOAuth,
 } from "../services/shopify-oauth.service";
 import { registerShopifyWebhooks } from "./shopify-webhooks.controller";
+import {
+  hasShopifyAppCredentials,
+  resolveShopifyOAuthConfig,
+  saveShopifyAppCredentials,
+} from "../services/shopify-app-credentials.service";
 
 type OAuthEnv = {
   apiKey: string;
@@ -27,10 +32,8 @@ async function assertModuleEnabled(moduleKey: string) {
   }
 }
 
-export function shopifyOAuthStatus(req: Request, res: Response) {
-  const apiKey = String(process.env.SHOPIFY_API_KEY || "").trim();
-  const apiSecret = String(process.env.SHOPIFY_API_SECRET || "").trim();
-  const scopes = String(process.env.SHOPIFY_SCOPES || "").trim();
+export async function shopifyOAuthStatus(req: Request, res: Response) {
+  const { apiKey, apiSecret, scopes } = await resolveShopifyOAuthConfig();
   const appHost = resolveAppHost(req);
   const missing: string[] = [];
   if (!apiKey) missing.push("SHOPIFY_API_KEY");
@@ -77,10 +80,8 @@ function resolveAppHost(req: Request) {
   return explicit;
 }
 
-function ensureOAuthEnv(req: Request): OAuthEnv {
-  const apiKey = String(process.env.SHOPIFY_API_KEY || "").trim();
-  const apiSecret = String(process.env.SHOPIFY_API_SECRET || "").trim();
-  const scopes = String(process.env.SHOPIFY_SCOPES || "").trim();
+async function ensureOAuthEnv(req: Request): Promise<OAuthEnv> {
+  const { apiKey, apiSecret, scopes } = await resolveShopifyOAuthConfig();
   const appHost = resolveAppHost(req);
 
   const missing: string[] = [];
@@ -129,7 +130,7 @@ function validateHmac(query: Record<string, unknown>, apiSecret: string) {
 export async function startShopifyOAuth(req: Request, res: Response) {
   try {
     await assertModuleEnabled("shopify");
-    const env = ensureOAuthEnv(req);
+    const env = await ensureOAuthEnv(req);
     const user = (req as { user?: { id?: number } }).user;
     const shopParam = String(req.query.shop || "").trim();
     const storeNameParam = String(req.query.storeName || "").trim();
@@ -171,7 +172,7 @@ export async function startShopifyOAuth(req: Request, res: Response) {
 export async function shopifyOAuthCallback(req: Request, res: Response) {
   try {
     await assertModuleEnabled("shopify");
-    const env = ensureOAuthEnv(req);
+    const env = await ensureOAuthEnv(req);
     if (req.query.error) {
       return res.status(400).send(String(req.query.error_description || req.query.error));
     }
@@ -252,4 +253,28 @@ export async function shopifyOAuthCallback(req: Request, res: Response) {
     }
     return res.status(400).send((error as { message?: string })?.message || "OAuth error");
   }
+}
+
+export async function getShopifyAppCredentialsStatus(_req: Request, res: Response) {
+  const status = await hasShopifyAppCredentials();
+  return res.status(200).json(status);
+}
+
+export async function saveShopifyAppCredentialsHandler(req: Request, res: Response) {
+  const body = (req.body || {}) as {
+    apiKey?: unknown;
+    apiSecret?: unknown;
+    scopes?: unknown;
+  };
+  const apiKey = String(body.apiKey || "").trim();
+  const apiSecret = String(body.apiSecret || "").trim();
+  const scopes = body.scopes === undefined ? undefined : String(body.scopes || "").trim();
+  try {
+    await saveShopifyAppCredentials({ apiKey, apiSecret, scopes });
+  } catch (error) {
+    return res
+      .status(400)
+      .json({ error: (error as { message?: string })?.message || "Datos invalidos" });
+  }
+  return res.status(200).json({ ok: true });
 }

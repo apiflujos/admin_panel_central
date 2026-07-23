@@ -5,6 +5,7 @@ import { useState } from "react";
 export function LoginPage({ hasError = false }: { hasError?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(hasError);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,9 +75,20 @@ export function LoginPage({ hasError = false }: { hasError?: boolean }) {
           <label className="auth-field">
             <span>Contraseña</span>
             <div className="auth-password-row">
-              <input className="input" name="password" type="password" placeholder="" required />
-              <button className="auth-password-toggle" type="button">
-                Ver
+              <input
+                className="input"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder=""
+                required
+              />
+              <button
+                className="auth-password-toggle"
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? "Ocultar" : "Ver"}
               </button>
             </div>
           </label>
