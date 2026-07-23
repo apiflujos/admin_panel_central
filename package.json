@@ -11,6 +11,8 @@
     "build:admin-web": "npm --prefix apps/admin-web run build",
     "start": "node dist/src/server.js",
     "start:workers": "node dist/apps/workers/src/bootstrap.js",
+    "deploy": "bash scripts/deploy-becam.sh",
+    "redeploy": "bash scripts/deploy-becam.sh",
     "start:admin-web": "npm --prefix apps/admin-web run start",
     "db:migrate": "node dist/src/scripts/db-migrate.js",
     "db:migrate:dev": "ts-node-dev --transpile-only --exit-child src/scripts/db-migrate.ts",
