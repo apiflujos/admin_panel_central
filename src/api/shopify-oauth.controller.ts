@@ -44,10 +44,37 @@ export function shopifyOAuthStatus(req: Request, res: Response) {
   });
 }
 
-function resolveAppHost(_req: Request) {
-  const explicit = String(process.env.APP_HOST || "").trim();
-  if (!explicit) return "";
-  return explicit.replace(/\/$/, "");
+/**
+ * Resolve the public app host for OAuth redirect_uri / webhooks.
+ *
+ * The redirect_uri must match the host the user is actually on. With a single
+ * multi-tenant deploy served under many subdomains (becam.apiflujos.com,
+ * oro.apiflujos.com, ...), a fixed APP_HOST would never match, so we derive the
+ * host from the request. For safety we only trust localhost and *.apiflujos.com
+ * hosts (an attacker-controlled Host header can't point OAuth elsewhere), and
+ * fall back to the explicit APP_HOST env otherwise.
+ */
+function resolveAppHost(req: Request) {
+  const explicit = String(process.env.APP_HOST || "").trim().replace(/\/$/, "");
+
+  const forwardedHost = String(req.headers["x-forwarded-host"] || "")
+    .split(",")[0]
+    .trim();
+  const host = (forwardedHost || String(req.headers.host || "").trim()).toLowerCase();
+  const hostname = host.replace(/:\d+$/, "");
+
+  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+  const isTrusted = isLocal || hostname === "apiflujos.com" || hostname.endsWith(".apiflujos.com");
+
+  if (host && isTrusted) {
+    const forwardedProto = String(req.headers["x-forwarded-proto"] || "")
+      .split(",")[0]
+      .trim();
+    const proto = forwardedProto || (isLocal ? "http" : "https");
+    return `${proto}://${host}`.replace(/\/$/, "");
+  }
+
+  return explicit;
 }
 
 function ensureOAuthEnv(req: Request): OAuthEnv {
