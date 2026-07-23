@@ -941,6 +941,30 @@ type DeleteStoreConnectionOptions = {
   purgeData?: boolean;
 };
 
+/**
+ * Resolve the catalog `store_id` (stores.id) for a Shopify shop domain within
+ * the current org context. Returns null when the shop is unknown or not linked
+ * to a catalog store. Used to resolve per-store webhook credentials.
+ */
+export async function getStoreIdByShopDomain(shopDomain: string): Promise<number | null> {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const normalized = normalizeShopDomain(shopDomain || "");
+  if (!normalized) return null;
+  const res = await pool.query<{ store_id: number | null }>(
+    `
+    SELECT store_id
+    FROM shopify_stores
+    WHERE organization_id = $1 AND shop_domain = $2
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId, normalized]
+  );
+  const storeId = Number(res.rows[0]?.store_id);
+  return Number.isInteger(storeId) && storeId > 0 ? storeId : null;
+}
+
 export async function shopifyStoreExists(shopDomain: string) {
   const pool = getPool();
   const orgId = getOrgId();

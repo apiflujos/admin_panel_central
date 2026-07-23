@@ -8,6 +8,7 @@ import {
 import { shopifyStoreExists } from "../services/store-connections.service";
 import { recordWebhookReceipt } from "../services/webhook-receipts.service";
 import { verifyAlegraSignature, verifyShopifyHmac } from "../utils/webhook";
+import { verifyShopifyWebhookHmacForShop } from "../services/shopify-app-credentials.service";
 import { enqueueWebhookEvent } from "../services/sync.service";
 
 /**
@@ -43,9 +44,16 @@ export async function handleShopifyWebhook(req: Request, res: Response) {
   const shopDomain = req.header("X-Shopify-Shop-Domain") || "";
   const webhookId = req.header("X-Shopify-Webhook-Id") || "";
 
-  // HMAC PRIMERO sobre el body crudo — no queries a DB antes de validar (evita DoS amplifier).
+  // HMAC PRIMERO sobre el body crudo. Fast path: secret env/global (sin DB) —
+  // mantiene la protección "sin queries antes de validar" para el caso común.
+  // Fallback per-tienda: si falla y hay shop domain, resolvemos el secret propio
+  // de la app de esa tienda (store→global→env) y reintentamos.
   const rawBuffer = getRawBuffer(req);
-  if (!verifyShopifyHmac(rawBuffer, signature || "")) {
+  let hmacOk = verifyShopifyHmac(rawBuffer, signature || "");
+  if (!hmacOk && shopDomain) {
+    hmacOk = await verifyShopifyWebhookHmacForShop(rawBuffer, signature || "", shopDomain);
+  }
+  if (!hmacOk) {
     console.warn(`[webhook][shopify] invalid HMAC topic=${topic} shopDomain=${shopDomain}`);
     return res.status(401).json({ error: "invalid_signature" });
   }

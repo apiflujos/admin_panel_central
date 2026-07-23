@@ -4,27 +4,32 @@ import { useEffect, useState } from "react";
 
 import { apiFetch } from "../lib/api";
 
-type Status = { configured: boolean; source: "db" | "env" | "none"; apiKeyMasked: string };
+type Status = { configured: boolean; source: "store" | "db" | "env" | "none"; apiKeyMasked: string };
 
 const DEFAULT_SCOPES =
   "read_orders,write_orders,read_products,write_products,read_customers,write_customers,read_inventory,write_inventory";
 
 /**
- * Configura las credenciales del app OAuth de Shopify (API key + secret + scopes)
- * y las guarda en la base de datos (cifradas), en vez de depender del .env del
- * servidor. Lee el estado actual y permite actualizarlas desde el panel.
+ * Configura las credenciales del app OAuth de Shopify (API key + secret + scopes).
+ * Se guardan cifradas en la base de datos, POR TIENDA (cada tienda puede usar su
+ * propio app de Shopify) o de forma global. Resolución en runtime:
+ * por-tienda → global → variables de entorno.
  */
-export function ShopifyAppCredentialsForm() {
+export function ShopifyAppCredentialsForm({ storeId, storeName }: { storeId?: number | null; storeName?: string }) {
   const [status, setStatus] = useState<Status | null>(null);
   const [apiKey, setApiKey] = useState("");
   const [apiSecret, setApiSecret] = useState("");
   const [scopes, setScopes] = useState(DEFAULT_SCOPES);
+  const [scope, setScope] = useState<"store" | "global">(storeId ? "store" : "global");
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
 
+  const effectiveStoreId = scope === "store" ? storeId : null;
+
   async function loadStatus() {
     try {
-      const res = await apiFetch("/api/settings/shopify-app");
+      const qs = effectiveStoreId ? `?storeId=${effectiveStoreId}` : "";
+      const res = await apiFetch(`/api/settings/shopify-app${qs}`);
       if (res.ok) {
         setStatus((await res.json()) as Status);
       }
@@ -35,11 +40,16 @@ export function ShopifyAppCredentialsForm() {
 
   useEffect(() => {
     void loadStatus();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId, scope]);
 
   async function save() {
     if (!apiKey.trim() || !apiSecret.trim()) {
       setNote({ tone: "error", text: "API key y API secret son requeridos." });
+      return;
+    }
+    if (scope === "store" && !storeId) {
+      setNote({ tone: "error", text: "Selecciona una tienda o cambia a 'global'." });
       return;
     }
     setSaving(true);
@@ -48,7 +58,12 @@ export function ShopifyAppCredentialsForm() {
       const res = await apiFetch("/api/settings/shopify-app", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey: apiKey.trim(), apiSecret: apiSecret.trim(), scopes: scopes.trim() }),
+        body: JSON.stringify({
+          apiKey: apiKey.trim(),
+          apiSecret: apiSecret.trim(),
+          scopes: scopes.trim(),
+          ...(effectiveStoreId ? { storeId: effectiveStoreId } : {}),
+        }),
       });
       const payload = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
@@ -56,7 +71,13 @@ export function ShopifyAppCredentialsForm() {
       }
       setApiKey("");
       setApiSecret("");
-      setNote({ tone: "ok", text: "Credenciales de Shopify guardadas en la base de datos." });
+      setNote({
+        tone: "ok",
+        text:
+          scope === "store"
+            ? `Credenciales guardadas para ${storeName || "esta tienda"}.`
+            : "Credenciales globales guardadas.",
+      });
       await loadStatus();
     } catch (error) {
       setNote({ tone: "error", text: error instanceof Error ? error.message : "No se pudo guardar." });
@@ -66,11 +87,13 @@ export function ShopifyAppCredentialsForm() {
   }
 
   const sourceLabel =
-    status?.source === "db"
-      ? "guardadas en la base de datos"
-      : status?.source === "env"
-        ? "tomadas de variables de entorno (.env)"
-        : "sin configurar";
+    status?.source === "store"
+      ? "por tienda (base de datos)"
+      : status?.source === "db"
+        ? "globales (base de datos)"
+        : status?.source === "env"
+          ? "variables de entorno (.env)"
+          : "sin configurar";
 
   return (
     <details className="page-module-shell page-module-shell-compact">
@@ -88,6 +111,25 @@ export function ShopifyAppCredentialsForm() {
         en el Partner Dashboard de Shopify → tu app → Client credentials.
         {status?.apiKeyMasked ? <> Actual: <code>{status.apiKeyMasked}</code></> : null}
       </p>
+
+      <div className="page-module-actions" style={{ marginBottom: 8 }}>
+        <button
+          type="button"
+          className={`btn btn-compact ${scope === "store" ? "primary" : "ghost"}`}
+          disabled={!storeId}
+          onClick={() => setScope("store")}
+          title={!storeId ? "Selecciona una tienda primero" : undefined}
+        >
+          Para {storeName || "esta tienda"}
+        </button>
+        <button
+          type="button"
+          className={`btn btn-compact ${scope === "global" ? "primary" : "ghost"}`}
+          onClick={() => setScope("global")}
+        >
+          Global (todas)
+        </button>
+      </div>
 
       <div className="config-active-store-grid">
         <label className="field">

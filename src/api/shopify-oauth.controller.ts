@@ -80,8 +80,8 @@ function resolveAppHost(req: Request) {
   return explicit;
 }
 
-async function ensureOAuthEnv(req: Request): Promise<OAuthEnv> {
-  const { apiKey, apiSecret, scopes } = await resolveShopifyOAuthConfig();
+async function ensureOAuthEnv(req: Request, storeId?: number | null): Promise<OAuthEnv> {
+  const { apiKey, apiSecret, scopes } = await resolveShopifyOAuthConfig(storeId);
   const appHost = resolveAppHost(req);
 
   const missing: string[] = [];
@@ -130,11 +130,13 @@ function validateHmac(query: Record<string, unknown>, apiSecret: string) {
 export async function startShopifyOAuth(req: Request, res: Response) {
   try {
     await assertModuleEnabled("shopify");
-    const env = await ensureOAuthEnv(req);
+    const storeIdParam = Number(req.query.storeId || "");
+    const storeId = Number.isFinite(storeIdParam) ? storeIdParam : null;
+    // Per-store OAuth app credentials (falls back to global → env).
+    const env = await ensureOAuthEnv(req, storeId);
     const user = (req as { user?: { id?: number } }).user;
     const shopParam = String(req.query.shop || "").trim();
     const storeNameParam = String(req.query.storeName || "").trim();
-    const storeIdParam = Number(req.query.storeId || "");
     const alegraAccountIdParam = Number(req.query.alegraAccountId || "");
     if (!shopParam || !isValidShopDomain(shopParam)) {
       return res.status(400).send("Shop domain invalido");
@@ -142,7 +144,6 @@ export async function startShopifyOAuth(req: Request, res: Response) {
     const shop = normalizeShopDomainForOAuth(shopParam);
     const nonce = crypto.randomBytes(16).toString("hex");
     let resolvedStoreName = storeNameParam || null;
-    const storeId = Number.isFinite(storeIdParam) ? storeIdParam : null;
     const alegraAccountId = Number.isFinite(alegraAccountIdParam) ? alegraAccountIdParam : null;
     if (!resolvedStoreName && storeId) {
       const store = await getStoreById(storeId);
@@ -172,7 +173,6 @@ export async function startShopifyOAuth(req: Request, res: Response) {
 export async function shopifyOAuthCallback(req: Request, res: Response) {
   try {
     await assertModuleEnabled("shopify");
-    const env = await ensureOAuthEnv(req);
     if (req.query.error) {
       return res.status(400).send(String(req.query.error_description || req.query.error));
     }
@@ -185,9 +185,9 @@ export async function shopifyOAuthCallback(req: Request, res: Response) {
     if (!isValidShopDomain(shop)) {
       return res.status(400).send("Shop domain invalido");
     }
-    if (!validateHmac(req.query as Record<string, unknown>, env.apiSecret)) {
-      return res.status(400).send("HMAC invalido");
-    }
+    // Consume the OAuth state first: it validates the nonce + initiating user
+    // and, crucially, recovers the storeId so we can resolve the per-store app
+    // credentials used to verify the HMAC and exchange the token.
     const callbackUser = (req as { user?: { id?: number } }).user;
     const stateResult = await consumeOAuthState(shop, state, callbackUser?.id || null);
     if (!stateResult.ok) {
@@ -195,6 +195,10 @@ export async function shopifyOAuthCallback(req: Request, res: Response) {
         ? "State pertenece a otro usuario"
         : "State invalido";
       return res.status(400).send(reason);
+    }
+    const env = await ensureOAuthEnv(req, stateResult.storeId);
+    if (!validateHmac(req.query as Record<string, unknown>, env.apiSecret)) {
+      return res.status(400).send("HMAC invalido");
     }
     const tokenResponse = await fetch(`https://${shop}/admin/oauth/access_token`, {
       method: "POST",
@@ -255,8 +259,14 @@ export async function shopifyOAuthCallback(req: Request, res: Response) {
   }
 }
 
-export async function getShopifyAppCredentialsStatus(_req: Request, res: Response) {
-  const status = await hasShopifyAppCredentials();
+function parseStoreId(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+export async function getShopifyAppCredentialsStatus(req: Request, res: Response) {
+  const storeId = parseStoreId(req.query.storeId);
+  const status = await hasShopifyAppCredentials(storeId);
   return res.status(200).json(status);
 }
 
@@ -265,12 +275,14 @@ export async function saveShopifyAppCredentialsHandler(req: Request, res: Respon
     apiKey?: unknown;
     apiSecret?: unknown;
     scopes?: unknown;
+    storeId?: unknown;
   };
   const apiKey = String(body.apiKey || "").trim();
   const apiSecret = String(body.apiSecret || "").trim();
   const scopes = body.scopes === undefined ? undefined : String(body.scopes || "").trim();
+  const storeId = parseStoreId(body.storeId);
   try {
-    await saveShopifyAppCredentials({ apiKey, apiSecret, scopes });
+    await saveShopifyAppCredentials({ apiKey, apiSecret, scopes }, storeId);
   } catch (error) {
     return res
       .status(400)

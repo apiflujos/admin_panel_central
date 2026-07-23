@@ -732,7 +732,7 @@ export function SettingsConnectionsPage({
         }
       />
 
-      <ShopifyAppCredentialsForm />
+      <ShopifyAppCredentialsForm storeId={selectedStore?.id ?? null} storeName={selectedStore?.name} />
 
       <section className="page-module-shell page-module-shell-compact config-active-store-shell">
         <div className="page-module-head">

@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { runWithOrg } from "../db";
 import { verifyShopifyHmac } from "../utils/webhook";
+import { verifyShopifyWebhookHmacForShop } from "../services/shopify-app-credentials.service";
 import { ingestShopifyMarketingWebhook } from "../marketing/webhooks/shopify-marketing-webhooks.service";
 import { resolveOrgIdByShopDomain } from "../services/organizations.service";
 import { shopifyStoreExists } from "../services/store-connections.service";
@@ -14,15 +15,18 @@ function header(req: Request, name: string) {
 export async function shopifyMarketingWebhookHandler(req: Request, res: Response) {
   const rawBody = (req as Request & { rawBody?: Buffer }).rawBody || Buffer.from("");
   const signature = header(req, "x-shopify-hmac-sha256");
-  // HMAC PRIMERO.
-  const ok = verifyShopifyHmac(rawBody, signature);
+  const shopDomain = header(req, "x-shopify-shop-domain");
+  // HMAC PRIMERO. Fast path env/global (sin DB); fallback per-tienda si falla.
+  let ok = verifyShopifyHmac(rawBody, signature);
+  if (!ok && shopDomain) {
+    ok = await verifyShopifyWebhookHmacForShop(rawBody, signature, shopDomain);
+  }
   if (!ok) {
     res.status(401).json({ error: "invalid_hmac" });
     return;
   }
 
   const topic = header(req, "x-shopify-topic");
-  const shopDomain = header(req, "x-shopify-shop-domain");
   const webhookId =
     header(req, "x-shopify-webhook-id") || header(req, "x-shopify-delivery-id") || header(req, "x-request-id") || "";
   // Requerimos webhookId real — no sintetizamos con Date.now() (rompía idempotencia y duplicaba attribution).
