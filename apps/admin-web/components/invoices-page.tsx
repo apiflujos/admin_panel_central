@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 
 import type { AdminWebInvoiceRowDto, AdminWebInvoicesListDto } from "../../../packages/shared/src/admin-web";
 import { getInvoicesCatalog } from "../lib/api";
+import { BillingConfigButton } from "./billing-config-button";
 import { DataTable } from "./ui/data-table";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
@@ -119,9 +120,12 @@ export function InvoicesPage({ result }: { result: AdminWebInvoicesListDto }) {
           </>
         }
         actions={
-          <button className="btn primary btn-compact" type="button" onClick={refreshRows} disabled={refreshing}>
-            {refreshing ? "Refrescando..." : "Refrescar"}
-          </button>
+          <>
+            <BillingConfigButton />
+            <button className="btn primary btn-compact" type="button" onClick={refreshRows} disabled={refreshing}>
+              {refreshing ? "Refrescando..." : "Refrescar"}
+            </button>
+          </>
         }
       />
 
