@@ -134,9 +134,10 @@ export async function getAlegraConnectionByDomain(shopDomain: string) {
       SELECT a.user_email, a.api_key_encrypted, a.environment
       FROM shopify_stores ss
       JOIN stores s ON s.id = ss.store_id
-      JOIN alegra_accounts a ON a.id = s.alegra_account_id
+      JOIN alegra_accounts a
+        ON (a.id = s.alegra_account_id OR a.store_id = s.id)
       WHERE ss.organization_id = $1 AND ss.shop_domain = $2
-      ORDER BY ss.created_at DESC
+      ORDER BY (a.id = s.alegra_account_id) DESC, ss.created_at DESC
       LIMIT 1
       `,
       [orgId, normalized]
