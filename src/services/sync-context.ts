@@ -225,18 +225,44 @@ async function loadAlegraSettings(pool: ReturnType<typeof getPool>, orgId: numbe
       `,
       [orgId, domain]
     );
-    if (result.rows.length) {
-      const email = result.rows[0].user_email;
-      const encrypted = result.rows[0].api_key_encrypted;
-      if (!email || !encrypted) {
-        throw new Error(`Alegra no conectado para ${domain}. Ve a Configuracion → Conexiones y conecta Alegra.`);
+    let email = result.rows[0]?.user_email || null;
+    let encrypted = result.rows[0]?.api_key_encrypted || null;
+    let environment = result.rows[0]?.environment || null;
+
+    // Fallback: cuenta compartida vía stores.alegra_account_id (dominio -> tienda
+    // -> cuenta). Cubre el caso de una cuenta Alegra usada por varias tiendas,
+    // donde shopify_store_configs.alegra_account_id no quedó seteado.
+    if (!email || !encrypted) {
+      const viaStore = await pool.query<{
+        user_email: string | null;
+        api_key_encrypted: string | null;
+        environment: string | null;
+      }>(
+        `
+        SELECT a.user_email, a.api_key_encrypted, a.environment
+        FROM shopify_stores ss
+        JOIN stores s ON s.id = ss.store_id
+        JOIN alegra_accounts a ON a.id = s.alegra_account_id
+        WHERE ss.organization_id = $1 AND ss.shop_domain = $2
+        ORDER BY ss.created_at DESC
+        LIMIT 1
+        `,
+        [orgId, domain]
+      );
+      if (viaStore.rows.length) {
+        email = viaStore.rows[0].user_email;
+        encrypted = viaStore.rows[0].api_key_encrypted;
+        environment = viaStore.rows[0].environment;
       }
+    }
+
+    if (email && encrypted) {
       try {
         const decrypted = JSON.parse(decryptString(encrypted));
         return {
           email,
           apiKey: decrypted.apiKey,
-          environment: result.rows[0].environment || "prod",
+          environment: environment || "prod",
         } as ProviderSettings;
       } catch (error) {
         if (isCryptoKeyMisconfigured(error)) throw error;

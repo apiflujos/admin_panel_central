@@ -295,16 +295,18 @@ export async function listStoreConnections() {
            s.access_token_encrypted,
            s.created_at,
            s.store_id,
-           c.alegra_account_id,
+           COALESCE(c.alegra_account_id, st.alegra_account_id) AS alegra_account_id,
            a.user_email,
            a.environment,
            a.api_key_encrypted AS alegra_api_key_encrypted
     FROM shopify_stores s
+    LEFT JOIN stores st
+      ON st.id = s.store_id AND st.organization_id = s.organization_id
     LEFT JOIN shopify_store_configs c
       ON c.organization_id = s.organization_id
      AND c.shop_domain = s.shop_domain
     LEFT JOIN alegra_accounts a
-      ON a.id = c.alegra_account_id
+      ON a.id = COALESCE(c.alegra_account_id, st.alegra_account_id)
     WHERE s.organization_id = $1
     ORDER BY s.created_at DESC
     `,
@@ -332,16 +334,18 @@ export async function listStoreConnections() {
              s.access_token_encrypted,
              s.created_at,
              s.store_id,
-             c.alegra_account_id,
+             COALESCE(c.alegra_account_id, st.alegra_account_id) AS alegra_account_id,
              a.user_email,
              a.environment,
              a.api_key_encrypted AS alegra_api_key_encrypted
       FROM shopify_stores s
+      LEFT JOIN stores st
+        ON st.id = s.store_id AND st.organization_id = s.organization_id
       LEFT JOIN shopify_store_configs c
         ON c.organization_id = s.organization_id
        AND c.shop_domain = s.shop_domain
       LEFT JOIN alegra_accounts a
-        ON a.id = c.alegra_account_id
+        ON a.id = COALESCE(c.alegra_account_id, st.alegra_account_id)
       WHERE s.organization_id = $1
       ORDER BY s.created_at DESC
       `,
@@ -1245,23 +1249,28 @@ async function resolveAlegraAccountId(pool: ReturnType<typeof getPool>, orgId: n
         }
       }
       const encrypted = encryptString(JSON.stringify({ apiKey }));
+      // store_id sólo se setea si aún está vacío (primer vínculo). No se "mueve"
+      // para no romper otra tienda que comparta la misma cuenta.
       await pool.query(
         `
         UPDATE alegra_accounts
         SET api_key_encrypted = $1,
-            store_id = COALESCE($4, store_id)
+            store_id = COALESCE(store_id, $4)
         WHERE organization_id = $2 AND id = $3
         `,
         [encrypted, orgId, input.accountId, storeId]
       );
-    } else if (storeId) {
+    }
+    // Vínculo por-tienda (compartible): varias tiendas pueden apuntar a la misma
+    // cuenta Alegra sin quitársela a las demás.
+    if (storeId) {
       await pool.query(
         `
-        UPDATE alegra_accounts
-        SET store_id = $1
+        UPDATE stores
+        SET alegra_account_id = $1
         WHERE organization_id = $2 AND id = $3
         `,
-        [storeId, orgId, input.accountId]
+        [input.accountId, orgId, storeId]
       );
     }
     return input.accountId;

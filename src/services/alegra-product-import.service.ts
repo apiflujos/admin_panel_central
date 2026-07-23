@@ -15,16 +15,23 @@ import { upsertProduct } from "./products.service";
 export async function resolveAlegraClientForStore(storeId: number): Promise<AlegraClient> {
   const pool = getPool();
   const orgId = getOrgId();
+  // Resolución de la cuenta Alegra de la tienda:
+  //   1) stores.alegra_account_id (cuenta explícita; puede ser compartida entre tiendas)
+  //   2) fallback legacy: alegra_accounts.store_id = storeId
   const account = await pool.query<{
     user_email: string;
     api_key_encrypted: string;
     environment: string | null;
   }>(
     `
-    SELECT user_email, api_key_encrypted, environment
-    FROM alegra_accounts
-    WHERE organization_id = $1 AND store_id = $2
-    ORDER BY id DESC
+    SELECT a.user_email, a.api_key_encrypted, a.environment
+    FROM alegra_accounts a
+    WHERE a.organization_id = $1
+      AND (
+        a.id = (SELECT s.alegra_account_id FROM stores s WHERE s.id = $2)
+        OR a.store_id = $2
+      )
+    ORDER BY (a.id = (SELECT s.alegra_account_id FROM stores s WHERE s.id = $2)) DESC, a.id DESC
     LIMIT 1
     `,
     [orgId, storeId]

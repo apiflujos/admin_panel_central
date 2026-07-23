@@ -199,8 +199,8 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
       await pool.query(
         `
         INSERT INTO products
-          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, payload_json, barcode, last_sync_at)
-        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,$15::jsonb,$16::text,NOW())
+          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, payload_json, barcode, store_id, last_sync_at)
+        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,$15::jsonb,$16::text,$17::integer,NOW())
         ON CONFLICT (organization_id, shop_domain, alegra_item_id) DO NOTHING
         `,
         insertValues
@@ -209,9 +209,10 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
       await pool.query(
         `
         INSERT INTO products
-          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, payload_json, barcode, last_sync_at)
-        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,$15::jsonb,$16::text,NOW())
+          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, payload_json, barcode, store_id, last_sync_at)
+        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,$15::jsonb,$16::text,$17::integer,NOW())
         ON CONFLICT (organization_id, shop_domain, alegra_item_id) DO UPDATE SET
+          store_id = COALESCE(EXCLUDED.store_id, products.store_id),
           shopify_product_id = COALESCE(EXCLUDED.shopify_product_id, products.shopify_product_id),
           name = COALESCE(EXCLUDED.name, products.name),
           reference = COALESCE(EXCLUDED.reference, products.reference),
@@ -244,8 +245,8 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
       await pool.query(
         `
         INSERT INTO products
-          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, payload_json, barcode, last_sync_at)
-        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,$15::jsonb,$16::text,NOW())
+          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, payload_json, barcode, store_id, last_sync_at)
+        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,$15::jsonb,$16::text,$17::integer,NOW())
         ON CONFLICT (organization_id, shop_domain, shopify_product_id) DO NOTHING
         `,
         insertValues
@@ -254,9 +255,10 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
       await pool.query(
         `
         INSERT INTO products
-          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, payload_json, barcode, last_sync_at)
-        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,$15::jsonb,$16::text,NOW())
+          (organization_id, shop_domain, source, alegra_item_id, shopify_product_id, name, reference, sku, status_alegra, status_shopify, inventory_quantity, warehouse_ids, source_updated_at, sync_status, payload_json, barcode, store_id, last_sync_at)
+        VALUES ($1,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::numeric,$12::text[],$13::timestamptz,$14::text,$15::jsonb,$16::text,$17::integer,NOW())
         ON CONFLICT (organization_id, shop_domain, shopify_product_id) DO UPDATE SET
+          store_id = COALESCE(EXCLUDED.store_id, products.store_id),
           alegra_item_id = COALESCE(EXCLUDED.alegra_item_id, products.alegra_item_id),
           name = COALESCE(EXCLUDED.name, products.name),
           reference = COALESCE(EXCLUDED.reference, products.reference),
