@@ -30,8 +30,17 @@ if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
 }
 
+// HSTS solo cuando el sitio se sirve por https (producción). En local el app
+// corre en http://localhost y enviar Strict-Transport-Security haría que el
+// navegador fuerce https para localhost, rompiendo la carga de assets (CSS/JS).
+const servesHttps = String(process.env.APP_HOST || "")
+  .trim()
+  .toLowerCase()
+  .startsWith("https://");
+
 app.use(
   helmet({
+    hsts: servesHttps ? { maxAge: 15552000, includeSubDomains: true } : false,
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
