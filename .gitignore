@@ -25,3 +25,4 @@ tsc_errors.txt
 
 # Vitest coverage reports
 coverage/
+duplicados_belia.csv
