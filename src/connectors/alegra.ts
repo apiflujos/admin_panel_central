@@ -207,24 +207,54 @@ export class AlegraClient {
 
   private async request(path: string, options: { method?: string; body?: Record<string, unknown> } = {}) {
     const auth = Buffer.from(`${this.config.email}:${this.config.apiKey}`).toString("base64");
-    const controller = new AbortController();
     const timeoutMs = Number(process.env.ALEGRA_TIMEOUT_MS || 30000);
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      method: options.method || "GET",
-      headers: {
-        Authorization: `Basic ${auth}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: options.body ? JSON.stringify(options.body) : undefined,
-      signal: controller.signal,
-    }).finally(() => {
-      clearTimeout(timeoutId);
-    });
+    const maxRetries = Math.max(0, Number(process.env.ALEGRA_MAX_RETRIES || 5));
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-    if (!response.ok) {
+    for (let attempt = 0; ; attempt += 1) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      let response: Response;
+      try {
+        response = await fetch(`${this.baseUrl}${path}`, {
+          method: options.method || "GET",
+          headers: {
+            Authorization: `Basic ${auth}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: options.body ? JSON.stringify(options.body) : undefined,
+          signal: controller.signal,
+        });
+      } catch (fetchError) {
+        // Timeout/red: reintenta con backoff antes de propagar.
+        clearTimeout(timeoutId);
+        if (attempt < maxRetries) {
+          await sleep(Math.min(30000, 1000 * 2 ** attempt));
+          continue;
+        }
+        throw fetchError;
+      }
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        // Algunos endpoints (p.ej. DELETE) responden 200/204 con body vacío.
+        const text = await response.text();
+        return text ? JSON.parse(text) : null;
+      }
+
       const detail = await response.text().catch(() => "");
+      // Reintenta ante rate-limit (429) o indisponibilidad temporal (5xx),
+      // respetando Retry-After. Evita la tormenta de fallos y los 429 del match.
+      const retryable = response.status === 429 || (response.status >= 500 && response.status < 600);
+      if (retryable && attempt < maxRetries) {
+        const retryAfter = Number(response.headers.get("retry-after"));
+        const waitMs =
+          Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : Math.min(30000, 1000 * 2 ** attempt);
+        await sleep(waitMs);
+        continue;
+      }
+
       const err = new Error(friendlyAlegraError(response.status, path)) as Error & {
         status?: number;
         detail?: string;
@@ -233,10 +263,6 @@ export class AlegraClient {
       err.detail = detail;
       throw err;
     }
-
-    // Algunos endpoints (p.ej. DELETE) responden 200/204 con body vacío.
-    const text = await response.text();
-    return text ? JSON.parse(text) : null;
   }
 
   private async requestRaw(

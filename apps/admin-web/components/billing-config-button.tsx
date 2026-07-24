@@ -47,8 +47,10 @@ export function BillingConfigButton() {
   const [settings, setSettings] = useState<AdminWebInvoiceSettings>(defaultInvoiceSettings);
   const [resolutions, setResolutions] = useState<CatalogOption[]>([]);
   const [warehouses, setWarehouses] = useState<CatalogOption[]>([]);
+  const [costCenters, setCostCenters] = useState<CatalogOption[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<CatalogOption[]>([]);
   const [bankAccounts, setBankAccounts] = useState<CatalogOption[]>([]);
+  const [catalogWarnings, setCatalogWarnings] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -59,29 +61,41 @@ export function BillingConfigButton() {
     setLoading(true);
     setSaveState("idle");
     setMessage("");
-    Promise.all([
-      getGlobalSettings(),
-      getSettingsResolutions(),
-      getAlegraCatalog("payment-methods"),
-      getAlegraCatalog("bank-accounts"),
-      getAlegraCatalog("warehouses"),
-    ])
-      .then(([globalSettings, resolutionsPayload, paymentMethodsPayload, bankAccountsPayload, warehousesPayload]) => {
+    setCatalogWarnings([]);
+    // Carga resiliente: cada catálogo se carga por separado. Si UNO falla
+    // (p.ej. Alegra 403 en /paymentMethods), los demás igual se muestran.
+    const loadCatalog = async (
+      label: string,
+      loader: () => Promise<Parameters<typeof mapCatalogOptions>[0]>,
+      setter: (opts: CatalogOption[]) => void
+    ) => {
+      try {
+        const payload = await loader();
         if (cancelled) return;
-        setSettings({ ...defaultInvoiceSettings, ...(globalSettings.invoice || {}) });
-        setResolutions(mapCatalogOptions(resolutionsPayload));
-        setPaymentMethods(mapCatalogOptions(paymentMethodsPayload));
-        setBankAccounts(mapCatalogOptions(bankAccountsPayload));
-        setWarehouses(mapCatalogOptions(warehousesPayload));
-      })
-      .catch((error) => {
+        setter(mapCatalogOptions(payload));
+      } catch (error) {
         if (cancelled) return;
-        setSaveState("error");
-        setMessage(error instanceof Error ? error.message : "No se pudo cargar la configuración de facturación.");
+        setter([]);
+        const msg = error instanceof Error ? error.message : "no disponible";
+        setCatalogWarnings((prev) => (prev.includes(`${label}: ${msg}`) ? prev : [...prev, `${label}: ${msg}`]));
+      }
+    };
+
+    getGlobalSettings()
+      .then((globalSettings) => {
+        if (!cancelled) setSettings({ ...defaultInvoiceSettings, ...(globalSettings.invoice || {}) });
       })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      .catch(() => undefined);
+
+    Promise.allSettled([
+      loadCatalog("Resolución", getSettingsResolutions, setResolutions),
+      loadCatalog("Bodega", () => getAlegraCatalog("warehouses"), setWarehouses),
+      loadCatalog("Centro de costo", () => getAlegraCatalog("cost-centers"), setCostCenters),
+      loadCatalog("Método de pago", () => getAlegraCatalog("payment-methods"), setPaymentMethods),
+      loadCatalog("Banco", () => getAlegraCatalog("bank-accounts"), setBankAccounts),
+    ]).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
     return () => {
       cancelled = true;
     };
@@ -132,6 +146,13 @@ export function BillingConfigButton() {
                 <p className="app-state-copy">Cargando configuración...</p>
               ) : (
                 <>
+                  {catalogWarnings.length ? (
+                    <p className="app-state-copy" style={{ color: "var(--warn, #b45309)" }}>
+                      Algunos catálogos de Alegra no cargaron: {catalogWarnings.join(" · ")}. El resto sí se puede
+                      configurar.
+                    </p>
+                  ) : null}
+
                   <label className="connection-form-row">
                     <span>Generar factura</span>
                     <div className="page-module-actions">
@@ -201,6 +222,23 @@ export function BillingConfigButton() {
                           <option value="">No usar</option>
                           {!warehouses.length ? <option value="" disabled>Sin datos</option> : null}
                           {warehouses.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="connection-form-row">
+                        <span>Centro de costo</span>
+                        <select
+                          className="input"
+                          value={settings.costCenterId}
+                          onChange={(e) => setSettings((current) => ({ ...current, costCenterId: e.target.value }))}
+                        >
+                          <option value="">No usar</option>
+                          {!costCenters.length ? <option value="" disabled>Sin datos</option> : null}
+                          {costCenters.map((option) => (
                             <option key={option.value} value={option.value}>
                               {option.label}
                             </option>
