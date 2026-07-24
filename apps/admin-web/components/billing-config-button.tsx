@@ -329,6 +329,21 @@ export function BillingConfigButton() {
                     </>
                   ) : null}
 
+                  {settings.generateInvoice ? (
+                    <label className="connection-form-row">
+                      <span>Observaciones</span>
+                      <textarea
+                        className="input"
+                        rows={2}
+                        value={settings.observationsTemplate}
+                        onChange={(e) =>
+                          setSettings((current) => ({ ...current, observationsTemplate: e.target.value }))
+                        }
+                        placeholder="Nota que aparece en la factura (opcional)"
+                      />
+                    </label>
+                  ) : null}
+
                   {message ? (
                     <p
                       className={

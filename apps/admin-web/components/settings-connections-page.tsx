@@ -5,9 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ConnectionsWorkspace } from "../lib/connections-workspace";
 import { apiFetch, copyStoreConfigFrom } from "../lib/api";
 import { toneForStatus } from "../lib/status";
-import { GlobalInvoiceSettingsPanel } from "./global-invoice-settings-panel";
 import { CronScheduleReferencePanel } from "./cron-schedule-reference-panel";
-import { LegacySyncCompatibilityPanel } from "./legacy-sync-compatibility-panel";
 import { StoreConfigPriceListsPanel } from "./store-config-price-lists-panel";
 import { StoreConfigsCriticalPanel } from "./store-configs-critical-panel";
 import { StoreSyncActionsPanel } from "./store-sync-actions-panel";
@@ -20,7 +18,7 @@ import { PageToolbar } from "./ui/page-toolbar";
 import { ProviderMark } from "./ui/provider-mark";
 import { StatusPill } from "./ui/status-pill";
 
-type ConfigFlowStage = "channels" | "operations" | "invoice" | "marketing" | "legacy";
+type ConfigFlowStage = "channels" | "operations" | "marketing";
 type ConnectionWizardStep = "store" | "group" | "platform" | "form";
 type ConnectionWizardGroup = "commerce" | "accounting" | "ads";
 type ConnectionWizardPlatform =
@@ -983,25 +981,11 @@ export function SettingsConnectionsPage({
                 Operación
               </button>
               <button
-                className={`btn ${activeStage === "invoice" ? "primary" : "ghost"} btn-compact`}
-                type="button"
-                onClick={() => setActiveStage("invoice")}
-              >
-                Facturación
-              </button>
-              <button
                 className={`btn ${activeStage === "marketing" ? "primary" : "ghost"} btn-compact`}
                 type="button"
                 onClick={() => setActiveStage("marketing")}
               >
                 Marketing
-              </button>
-              <button
-                className={`btn ${activeStage === "legacy" ? "primary" : "ghost"} btn-compact`}
-                type="button"
-                onClick={() => setActiveStage("legacy")}
-              >
-                Heredado
               </button>
             </div>
           </div>
@@ -1064,37 +1048,8 @@ export function SettingsConnectionsPage({
             </div>
           ) : null}
 
-          {activeStage === "invoice" ? (
-            <GlobalInvoiceSettingsPanel stores={workspaceState.stores} activeStoreId={selectedStoreId} />
-          ) : null}
-
           {activeStage === "marketing" ? (
             <StoreMarketingConfigPanel stores={workspaceState.stores} activeStoreId={selectedStoreId} />
-          ) : null}
-
-          {activeStage === "legacy" ? (
-            <>
-              <LegacySyncCompatibilityPanel />
-              <section className="page-module-shell connection-section-shell">
-                <div className="page-module-head">
-                  <div>
-                    <strong>Atajos a configuración avanzada</strong>
-                    <span>Stores y marketing en su vista detallada.</span>
-                  </div>
-                  <div className="page-module-actions">
-                    <span className="pill pill-warn">Respaldo activo</span>
-                  </div>
-                </div>
-                <div className="page-module-actions">
-                  <a className="btn ghost" href="/legacy/settings/stores">
-                    Abrir stores heredados
-                  </a>
-                  <a className="btn ghost" href="/settings/marketing">
-                    Abrir Marketing
-                  </a>
-                </div>
-              </section>
-            </>
           ) : null}
         </section>
       ) : null}
