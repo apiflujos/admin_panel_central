@@ -48,6 +48,27 @@ const availableQty = (item: AlegraItem): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Reintenta con backoff exponencial ante timeouts/abortos del API de Alegra.
+async function fetchPage(
+  alegra: { listItems: (o: { limit: number; start: number }) => Promise<unknown> },
+  start: number,
+  pageSize: number
+): Promise<AlegraItem[]> {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      const batch = (await alegra.listItems({ limit: pageSize, start })) as AlegraItem[] | null;
+      return Array.isArray(batch) ? batch : [];
+    } catch (error) {
+      const wait = 1000 * 2 ** attempt;
+      console.log(`  retry start=${start} intento=${attempt + 1} (${(error as Error).message}) esperando ${wait}ms`);
+      await sleep(wait);
+    }
+  }
+  throw new Error(`Fallo persistente al leer Alegra en start=${start}`);
+}
+
 async function main() {
   if (storeId == null || !Number.isFinite(storeId)) {
     console.error("Falta --store-id=<n> (la tienda cuya cuenta Alegra se consulta).");
@@ -69,8 +90,7 @@ async function main() {
     const dupsBorrables: Array<{ id: string; name: string; ref: string; len: number; qty: number }> = [];
 
     for (;;) {
-      const batch = (await alegra.listItems({ limit: pageSize, start })) as AlegraItem[] | null;
-      const items = Array.isArray(batch) ? batch : [];
+      const items = await fetchPage(alegra, start, pageSize);
       if (!items.length) break;
 
       for (const item of items) {
