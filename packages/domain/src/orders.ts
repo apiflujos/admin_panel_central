@@ -21,6 +21,9 @@ type OrdersListServiceItem = {
   updated_at?: unknown;
   alegra_status?: unknown;
   invoice_number?: unknown;
+  total?: unknown;
+  currency?: unknown;
+  shop_domain?: unknown;
 };
 
 type OrdersListServiceResult = {
@@ -86,10 +89,12 @@ export function toAdminWebOrderRowDto(params: {
   override: OrderInvoiceOverrideLike | null;
   einvoiceEnabled: boolean;
   missing: string[];
+  getStoreName?: (shopDomain: string) => string | null;
 }): AdminWebOrderRowDto {
-  const { row, override, einvoiceEnabled, missing } = params;
+  const { row, override, einvoiceEnabled, missing, getStoreName } = params;
   const shopifyId = row.shopify_order_id ? String(row.shopify_order_id) : "";
   const alegraStatus = String(row.alegra_status || (row.alegra_invoice_id ? "facturado" : "pendiente"));
+  const shopDomain = row.shop_domain ? String(row.shop_domain) : null;
 
   return {
     id: shopifyId || "",
@@ -103,6 +108,10 @@ export function toAdminWebOrderRowDto(params: {
     customer: String(row.customer_name || row.customer_email || "-"),
     customerEmail: row.customer_email ? String(row.customer_email) : null,
     products: String(row.products_summary || "-"),
+    total: coerceOptionalNumber(row.total) ?? null,
+    currency: row.currency ? String(row.currency) : null,
+    shopDomain,
+    storeName: shopDomain && getStoreName ? getStoreName(shopDomain) : null,
     alegraStatus,
     invoiceId: row.alegra_invoice_id ? String(row.alegra_invoice_id) : null,
     invoiceNumber: row.invoice_number ? String(row.invoice_number) : null,
@@ -116,6 +125,7 @@ export function toAdminWebOrdersListDto(params: {
   getOverride: (shopifyId: string) => OrderInvoiceOverrideLike | null;
   getMissing: (shopifyId: string, override: OrderInvoiceOverrideLike | null) => string[];
   einvoiceEnabled: boolean;
+  getStoreName?: (shopDomain: string) => string | null;
 }): AdminWebOrdersListDto {
   const items = params.result.items.map((row) => {
     const shopifyId = row.shopify_order_id ? String(row.shopify_order_id) : "";
@@ -126,6 +136,7 @@ export function toAdminWebOrdersListDto(params: {
       override,
       einvoiceEnabled: params.einvoiceEnabled,
       missing,
+      getStoreName: params.getStoreName,
     });
   });
 

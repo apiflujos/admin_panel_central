@@ -242,6 +242,7 @@ export async function listOrders(options: {
            alegra_status,
            invoice_number,
            source,
+           shop_domain,
            updated_at
     FROM orders
     ${whereClause}

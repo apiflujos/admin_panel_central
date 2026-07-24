@@ -46,6 +46,7 @@ export function BillingConfigButton() {
   const [open, setOpen] = useState(false);
   const [settings, setSettings] = useState<AdminWebInvoiceSettings>(defaultInvoiceSettings);
   const [resolutions, setResolutions] = useState<CatalogOption[]>([]);
+  const [warehouses, setWarehouses] = useState<CatalogOption[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<CatalogOption[]>([]);
   const [bankAccounts, setBankAccounts] = useState<CatalogOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -63,13 +64,15 @@ export function BillingConfigButton() {
       getSettingsResolutions(),
       getAlegraCatalog("payment-methods"),
       getAlegraCatalog("bank-accounts"),
+      getAlegraCatalog("warehouses"),
     ])
-      .then(([globalSettings, resolutionsPayload, paymentMethodsPayload, bankAccountsPayload]) => {
+      .then(([globalSettings, resolutionsPayload, paymentMethodsPayload, bankAccountsPayload, warehousesPayload]) => {
         if (cancelled) return;
         setSettings({ ...defaultInvoiceSettings, ...(globalSettings.invoice || {}) });
         setResolutions(mapCatalogOptions(resolutionsPayload));
         setPaymentMethods(mapCatalogOptions(paymentMethodsPayload));
         setBankAccounts(mapCatalogOptions(bankAccountsPayload));
+        setWarehouses(mapCatalogOptions(warehousesPayload));
       })
       .catch((error) => {
         if (cancelled) return;
@@ -170,22 +173,41 @@ export function BillingConfigButton() {
                   </label>
 
                   {settings.generateInvoice ? (
-                    <label className="connection-form-row">
-                      <span>Resolución</span>
-                      <select
-                        className="input"
-                        value={settings.resolutionId}
-                        onChange={(e) => setSettings((current) => ({ ...current, resolutionId: e.target.value }))}
-                      >
-                        <option value="">No usar</option>
-                        {!resolutions.length ? <option value="" disabled>Sin datos</option> : null}
-                        {resolutions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <>
+                      <label className="connection-form-row">
+                        <span>Resolución DIAN</span>
+                        <select
+                          className="input"
+                          value={settings.resolutionId}
+                          onChange={(e) => setSettings((current) => ({ ...current, resolutionId: e.target.value }))}
+                        >
+                          <option value="">No usar</option>
+                          {!resolutions.length ? <option value="" disabled>Sin datos</option> : null}
+                          {resolutions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="connection-form-row">
+                        <span>Bodega</span>
+                        <select
+                          className="input"
+                          value={settings.warehouseId}
+                          onChange={(e) => setSettings((current) => ({ ...current, warehouseId: e.target.value }))}
+                        >
+                          <option value="">No usar</option>
+                          {!warehouses.length ? <option value="" disabled>Sin datos</option> : null}
+                          {warehouses.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </>
                   ) : null}
 
                   <label className="connection-form-row">

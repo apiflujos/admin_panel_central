@@ -74,6 +74,10 @@ export type AdminWebOrderRowDto = {
   customer: string;
   customerEmail: string | null;
   products: string;
+  total: number | null;
+  currency: string | null;
+  shopDomain: string | null;
+  storeName: string | null;
   alegraStatus: string;
   invoiceId: string | null;
   invoiceNumber: string | null;

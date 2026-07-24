@@ -420,13 +420,35 @@ export async function getAlegraClient(accountId?: number) {
     }
   }
   const alegra = await readCredential(pool, orgId, "alegra");
-  if (!alegra?.email || !alegra?.apiKey) {
+  if (alegra?.email && alegra?.apiKey) {
+    return new AlegraClient({
+      email: alegra.email,
+      apiKey: alegra.apiKey,
+      baseUrl: getAlegraBaseUrl(alegra.environment),
+    });
+  }
+  // Fallback multi-tienda: sin credencial legacy global, usa la cuenta real
+  // registrada en alegra_accounts (p.ej. cuenta compartida entre tiendas). Esto
+  // desbloquea los catálogos globales (resoluciones, bodegas, métodos de pago)
+  // que consume el modal de configuración de facturación.
+  const account = await pool.query<{ user_email: string; api_key_encrypted: string; environment: string | null }>(
+    `
+    SELECT user_email, api_key_encrypted, environment
+    FROM alegra_accounts
+    WHERE organization_id = $1
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [orgId]
+  );
+  if (!account.rows.length) {
     throw new Error("Missing Alegra credentials in DB");
   }
+  const decrypted = JSON.parse(decryptString(account.rows[0].api_key_encrypted));
   return new AlegraClient({
-    email: alegra.email,
-    apiKey: alegra.apiKey,
-    baseUrl: getAlegraBaseUrl(alegra.environment),
+    email: account.rows[0].user_email,
+    apiKey: decrypted.apiKey,
+    baseUrl: getAlegraBaseUrl(account.rows[0].environment || "prod"),
   });
 }
 

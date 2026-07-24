@@ -102,6 +102,15 @@ export function OrdersPage({
               ),
             },
             {
+              key: "storeName",
+              header: "Tienda",
+              render: (row) => (
+                <StatusPill tone="info" small>
+                  {row.storeName || "—"}
+                </StatusPill>
+              ),
+            },
+            {
               key: "customer",
               header: "Cliente",
               render: (row) => (
@@ -119,6 +128,21 @@ export function OrdersPage({
                   <strong>{row.products}</strong>
                   <span>{row.shopifyId ? `Shopify ${row.shopifyId}` : "Sin id Shopify"}</span>
                 </div>
+              ),
+            },
+            {
+              key: "total",
+              header: "Total",
+              render: (row) => (
+                <strong>
+                  {typeof row.total === "number"
+                    ? row.total.toLocaleString("es-CO", {
+                        style: "currency",
+                        currency: row.currency || "COP",
+                        maximumFractionDigits: 0,
+                      })
+                    : "—"}
+                </strong>
               ),
             },
             {

@@ -30,9 +30,10 @@ export const GET = routeHandler(async (req: Request) => {
   const orderIds = result.items
     .map((row: (typeof result.items)[number]) => row.shopify_order_id)
     .filter(Boolean) as string[];
-  const [overrides, einvoiceEnabled] = await Promise.all([
+  const [overrides, einvoiceEnabled, storeNames] = await Promise.all([
     listOrderInvoiceOverrides(orderIds),
     loadEinvoiceEnabled(),
+    loadStoreNamesByDomain(),
   ]);
 
   return NextResponse.json(
@@ -44,9 +45,33 @@ export const GET = routeHandler(async (req: Request) => {
           ? validateEinvoiceData((override as OrderInvoiceOverride | null) || null)
           : [],
       einvoiceEnabled,
+      getStoreName: (shopDomain) => storeNames.get(shopDomain.toLowerCase()) || null,
     })
   );
 });
+
+// Mapa dominio Shopify -> nombre de tienda (Belia/Becam), para mostrar la tienda
+// en la lista de pedidos sin exponer el dominio.
+async function loadStoreNamesByDomain(): Promise<Map<string, string>> {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const result = await pool.query<{ shop_domain: string; name: string | null }>(
+    `
+    SELECT ss.shop_domain, s.name
+    FROM shopify_stores ss
+    LEFT JOIN stores s ON s.id = ss.store_id AND s.organization_id = ss.organization_id
+    WHERE ss.organization_id = $1
+    `,
+    [orgId]
+  );
+  const map = new Map<string, string>();
+  for (const row of result.rows) {
+    if (row.shop_domain && row.name) {
+      map.set(String(row.shop_domain).toLowerCase(), String(row.name));
+    }
+  }
+  return map;
+}
 
 async function loadEinvoiceEnabled() {
   const pool = getPool();
