@@ -10,7 +10,6 @@ import { StoreConfigPriceListsPanel } from "./store-config-price-lists-panel";
 import { StoreConfigsCriticalPanel } from "./store-configs-critical-panel";
 import { StoreSyncActionsPanel } from "./store-sync-actions-panel";
 import { StoreSyncAutomationPanel } from "./store-sync-automation-panel";
-import { StoreMarketingConfigPanel } from "./store-marketing-config-panel";
 import { StoreSyncModulesPanel } from "./store-sync-modules-panel";
 import { ShopifyAppCredentialsForm } from "./shopify-app-credentials-form";
 import { PageHeader } from "./ui/page-header";
@@ -18,7 +17,7 @@ import { PageToolbar } from "./ui/page-toolbar";
 import { ProviderMark } from "./ui/provider-mark";
 import { StatusPill } from "./ui/status-pill";
 
-type ConfigFlowStage = "channels" | "operations" | "marketing";
+type ConfigFlowStage = "channels" | "operations";
 type ConnectionWizardStep = "store" | "group" | "platform" | "form";
 type ConnectionWizardGroup = "commerce" | "accounting" | "ads";
 type ConnectionWizardPlatform =
@@ -971,27 +970,7 @@ export function SettingsConnectionsPage({
 
       {isOperationalStage ? (
         <section className="page-module-shell operational-workspace-shell">
-          <div className="page-module-head">
-            <div className="page-module-actions">
-              <button
-                className={`btn ${activeStage === "operations" ? "primary" : "ghost"} btn-compact`}
-                type="button"
-                onClick={() => setActiveStage("operations")}
-              >
-                Operación
-              </button>
-              <button
-                className={`btn ${activeStage === "marketing" ? "primary" : "ghost"} btn-compact`}
-                type="button"
-                onClick={() => setActiveStage("marketing")}
-              >
-                Marketing
-              </button>
-            </div>
-          </div>
-
-          {activeStage === "operations" ? (
-            <div className="operations-panels">
+          <div className="operations-panels">
               <details className="settings-panel-collapse" open>
                 <summary>Módulos por tienda</summary>
                 <StoreSyncModulesPanel
@@ -1046,11 +1025,6 @@ export function SettingsConnectionsPage({
                 />
               </details>
             </div>
-          ) : null}
-
-          {activeStage === "marketing" ? (
-            <StoreMarketingConfigPanel stores={workspaceState.stores} activeStoreId={selectedStoreId} />
-          ) : null}
         </section>
       ) : null}
 
