@@ -192,7 +192,6 @@ export function SettingsConnectionsPage({
   const selectedShopifyProvider = selectedStore?.providers.shopify ?? null;
   const selectedWooProvider = selectedStore?.providers.woocommerce ?? null;
   const selectedAlegraProvider = selectedStore?.providers.alegra ?? null;
-  const connectedAdsCount = workspaceState.ads.filter((ad) => ad.status === "connected").length;
   const connectedCommerceCount = [selectedShopifyProvider, selectedWooProvider].filter(
     (provider) => provider?.status === "connected"
   ).length;
@@ -929,41 +928,6 @@ export function SettingsConnectionsPage({
               </div>
             </article>
 
-            <article className="card integration-hub-card">
-              <div className="integration-hub-head">
-                <div className="provider-mark-row">
-                  <ProviderMark provider="Google Ads" />
-                  <ProviderMark provider="Meta Ads" />
-                  <ProviderMark provider="TikTok Ads" />
-                  <div>
-                    <strong>Marketing</strong>
-                    <span>{selectedStore?.name || "—"}</span>
-                  </div>
-                </div>
-                <StatusPill tone={connectedAdsCount ? "success" : "warning"} small>
-                  {connectedAdsCount ? `${connectedAdsCount} activa(s)` : "Pendiente"}
-                </StatusPill>
-              </div>
-              <p className="integration-hub-copy">
-                Gestiona cuentas publicitarias y luego continúa en marketing para pixel, script y webhooks.
-              </p>
-              <div className="integration-hub-meta">
-                <span className="pill">Ads activas {connectedAdsCount}</span>
-                <span className="pill">Marketing por tienda</span>
-              </div>
-              <div className="connection-card-actions">
-                <button
-                  className="btn primary btn-compact"
-                  type="button"
-                  onClick={() => openConnectionFlow("google-ads")}
-                >
-                  Conectar Ads
-                </button>
-                <a className="btn ghost btn-compact" href="/settings/marketing">
-                  Abrir marketing
-                </a>
-              </div>
-            </article>
           </section>
         </section>
       ) : null}
@@ -1596,17 +1560,9 @@ export function SettingsConnectionsPage({
                   ) : null}
 
                   {connectionWizardPlatform === "shopify-marketing" ? (
-                    <>
-                      <p className="connection-inline-note">
-                        Shopify Marketing ya quedó portado en el submódulo propio. Desde ahí gestionas pixel, script y
-                        webhooks.
-                      </p>
-                      <div className="page-module-actions">
-                        <a className="btn primary" href="/settings/marketing">
-                          Abrir marketing
-                        </a>
-                      </div>
-                    </>
+                    <p className="connection-inline-note">
+                      El submódulo de marketing no está disponible en esta versión.
+                    </p>
                   ) : null}
 
                   <div className="page-module-actions">
