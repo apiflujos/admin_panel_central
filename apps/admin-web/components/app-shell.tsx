@@ -26,7 +26,6 @@ function resolveShellSubtitle(activeHref: string) {
   if (activeHref === "/invoices") return "Control de facturas y estado de emisión.";
   if (activeHref === "/contacts") return "Base comercial y sincronización de clientes.";
   if (activeHref === "/products") return "Catálogo, stock y disponibilidad comercial.";
-  if (activeHref === "/marketing") return "Canales, campañas y atribución del periodo.";
   if (activeHref === "/settings/connections") return "Conexiones, webhooks y configuración troncal.";
   if (activeHref === "/superadmin") return "Control de acceso y soporte ApiFlujos.";
   if (activeHref === "/profile") return "Preferencias personales y seguridad.";
