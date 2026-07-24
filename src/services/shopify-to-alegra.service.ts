@@ -53,6 +53,10 @@ type ForceSyncOptions = {
   generateInvoice?: boolean;
   skipRules?: boolean;
   orderModeOverride?: ShopifyOrderMode;
+  // Fuerza factura electrónica para esta llamada (facturación manual por pedido
+  // "a discreción"), independiente del toggle global. Requiere que el pedido
+  // tenga su override fiscal (einvoiceRequested + datos DIAN).
+  forceEinvoice?: boolean;
 };
 
 export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload, options?: ForceSyncOptions) {
@@ -137,6 +141,9 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
   } else {
     const allowInvoice = invoiceSettings.generateInvoice !== false;
     invoiceSettings.generateInvoice = orderMode === "invoice" ? allowInvoice : false;
+  }
+  if (options?.forceEinvoice) {
+    invoiceSettings.einvoiceEnabled = true;
   }
 
   const missing = buildOrderChecklist(payload, {

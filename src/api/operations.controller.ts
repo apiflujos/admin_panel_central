@@ -156,3 +156,62 @@ export async function saveEinvoiceOverrideHandler(req: Request, res: Response) {
     res.status(400).json({ error: message });
   }
 }
+
+// Facturación manual por pedido "a discreción": genera la factura de UN pedido
+// (reconstruyendo el payload desde Shopify, funciona para pedidos "pendiente").
+// body.electronic = true genera factura electrónica (requiere datos fiscales DIAN).
+export async function generateOrderInvoiceHandler(req: Request, res: Response) {
+  const orderId = req.params.orderId;
+  try {
+    const body = req.body || {};
+    const electronic = Boolean(body.electronic);
+    if (electronic) {
+      await upsertOrderInvoiceOverride(orderId, {
+        orderId,
+        einvoiceRequested: true,
+        idType: body.idType,
+        idNumber: body.idNumber,
+        fiscalName: body.fiscalName,
+        email: body.email,
+        phone: body.phone,
+        address: body.address,
+        city: body.city,
+        state: body.state,
+        country: body.country,
+        zip: body.zip,
+      });
+    }
+    const result = await syncOperation(orderId, { generateInvoice: true, forceEinvoice: electronic });
+    const inner = (result as { result?: { reason?: string; missing?: string[] } }).result;
+    if (inner?.reason === "missing_einvoice_data") {
+      res.status(422).json({ error: "missing_einvoice_data", missing: inner.missing || [] });
+      await safeCreateLog({
+        entity: "invoice_manual",
+        direction: "shopify->alegra",
+        status: "warn",
+        message: "Faltan datos de factura electrónica",
+        request: { orderId },
+      });
+      return;
+    }
+    res.status(200).json(result);
+    await safeCreateLog({
+      entity: "invoice_manual",
+      direction: "shopify->alegra",
+      status: "success",
+      message: electronic ? "Factura electrónica generada (manual)" : "Factura generada (manual)",
+      request: { orderId, electronic },
+      response: result as Record<string, unknown>,
+    });
+  } catch (error) {
+    const message = getErrorMessage(error);
+    res.status(400).json({ error: message });
+    await safeCreateLog({
+      entity: "invoice_manual",
+      direction: "shopify->alegra",
+      status: "fail",
+      message,
+      request: { orderId },
+    });
+  }
+}

@@ -72,6 +72,7 @@ import {
   listOperationsHandler,
   syncOperationHandler,
   retryInvoiceHandler,
+  generateOrderInvoiceHandler,
   seedOperationsHandler,
   getEinvoiceOverrideHandler,
   saveEinvoiceOverrideHandler,
@@ -327,6 +328,7 @@ router.get("/operations", wrap(listOperationsHandler));
 router.post("/operations/seed", wrap(seedOperationsHandler));
 router.post("/operations/:orderId/sync", wrap(syncOperationHandler));
 router.post("/operations/:orderId/invoice", wrap(retryInvoiceHandler));
+router.post("/operations/:orderId/generate-invoice", requireAdmin, wrap(generateOrderInvoiceHandler));
 router.get("/operations/:orderId/einvoice", wrap(getEinvoiceOverrideHandler));
 router.put("/operations/:orderId/einvoice", wrap(saveEinvoiceOverrideHandler));
 router.post("/operations/:orderId/payment", wrap(emitPaymentHandler));

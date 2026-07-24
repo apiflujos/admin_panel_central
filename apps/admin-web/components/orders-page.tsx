@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import type { AdminWebOrdersListDto } from "../../../packages/shared/src/admin-web";
 import { toneForStatus } from "../lib/status";
 import { DataTable } from "./ui/data-table";
+import { OrderInvoiceButton } from "./order-invoice-button";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { StatusPill } from "./ui/status-pill";
@@ -165,6 +166,16 @@ export function OrdersPage({
                   <strong>{row.invoiceNumber || "—"}</strong>
                   <span>{row.invoiceId ? `Alegra ${row.invoiceId}` : "Sin vincular"}</span>
                 </div>
+              ),
+            },
+            {
+              key: "acciones",
+              header: "Acciones",
+              render: (row) => (
+                <OrderInvoiceButton
+                  orderId={row.shopifyId}
+                  alreadyInvoiced={row.alegraStatus === "facturado" || Boolean(row.invoiceId)}
+                />
               ),
             },
           ]}

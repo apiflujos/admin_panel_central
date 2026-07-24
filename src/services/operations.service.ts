@@ -74,8 +74,25 @@ async function listOperationsByQuery(query: string) {
   return { items };
 }
 
-export async function syncOperation(orderId: string) {
-  const ctx = await buildSyncContext();
+// Resuelve el dominio Shopify de un pedido ya guardado (para usar la tienda y
+// cuenta Alegra correctas en entornos multi-tienda).
+async function resolveOrderShopDomain(orderId: string): Promise<string | undefined> {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const res = await pool.query<{ shop_domain: string | null }>(
+    `SELECT shop_domain FROM orders WHERE organization_id = $1 AND shopify_order_id = $2 LIMIT 1`,
+    [orgId, orderId]
+  );
+  const domain = res.rows[0]?.shop_domain;
+  return domain ? String(domain) : undefined;
+}
+
+export async function syncOperation(
+  orderId: string,
+  options?: { generateInvoice?: boolean; skipRules?: boolean; forceEinvoice?: boolean }
+) {
+  const shopDomain = await resolveOrderShopDomain(orderId);
+  const ctx = await buildSyncContext(shopDomain);
   const data = await ctx.shopify.getOrderById(orderId);
   const order = data.order as ShopifyOrder;
   if (!order) {
@@ -83,10 +100,22 @@ export async function syncOperation(orderId: string) {
   }
 
   const payload = mapOrderToPayload(order);
-  const result = await syncShopifyOrderToAlegra({
-    ...(payload as Record<string, unknown>),
-    __shopDomain: ctx.shopDomain,
-  });
+  const hasOptions =
+    options &&
+    (options.generateInvoice !== undefined || options.skipRules !== undefined || options.forceEinvoice !== undefined);
+  const result = await syncShopifyOrderToAlegra(
+    {
+      ...(payload as Record<string, unknown>),
+      __shopDomain: ctx.shopDomain,
+    },
+    hasOptions
+      ? {
+          generateInvoice: options?.generateInvoice,
+          skipRules: options?.skipRules,
+          forceEinvoice: options?.forceEinvoice,
+        }
+      : undefined
+  );
   return { status: "synced", result };
 }
 
