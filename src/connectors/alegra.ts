@@ -80,6 +80,12 @@ export class AlegraClient {
     return this.request(`/items/${id}`, { method: "PUT", body: payload });
   }
 
+  // Borra un ítem en Alegra. Alegra rechaza (409/400) los ítems con movimientos
+  // de venta asociados, así que el borrado masivo debe capturar el error por ítem.
+  async deleteItem(id: string) {
+    return this.request(`/items/${id}`, { method: "DELETE" });
+  }
+
   async listInvoiceResolutions() {
     return this.request(`/invoices/resolutions`);
   }
@@ -218,11 +224,19 @@ export class AlegraClient {
     });
 
     if (!response.ok) {
-      await response.text().catch(() => "");
-      throw new Error(friendlyAlegraError(response.status, path));
+      const detail = await response.text().catch(() => "");
+      const err = new Error(friendlyAlegraError(response.status, path)) as Error & {
+        status?: number;
+        detail?: string;
+      };
+      err.status = response.status;
+      err.detail = detail;
+      throw err;
     }
 
-    return response.json();
+    // Algunos endpoints (p.ej. DELETE) responden 200/204 con body vacío.
+    const text = await response.text();
+    return text ? JSON.parse(text) : null;
   }
 
   private async requestRaw(

@@ -5,15 +5,21 @@
  *   - DUPLICADO  = descripción LARGA (texto de marketing, > umbral).
  *   - CORRECTO   = descripción CORTA (= una marca, p.ej. "Vogue", "Igora").
  *
- * El inventario SOLO es confiable desde Alegra, así que se lee de la respuesta
- * del API (item.inventory.availableQuantity), NO de la BD local. Los duplicados
- * CON inventario NO deben borrarse.
+ * Criterio de borrado = STOCK COMPROMETIDO, no stock disponible.
+ *   Lo que importa NO es cuántas unidades hay hoy, sino si YA SE VENDIÓ algo
+ *   de esa referencia (aparece en una factura). Alegra bloquea el borrado de
+ *   ítems con movimientos de venta. Un ítem sin ventas se detecta porque su
+ *   `availableQuantity` sigue >= `initialQuantity` (nunca hubo salidas).
+ *     · VENDIDO (comprometido, NO borrar) = availableQuantity < initialQuantity.
+ *     · NUNCA VENDIDO (borrable)          = availableQuantity >= initialQuantity.
+ *
+ * Todo se lee del API de Alegra (item.inventory), NO de la BD local.
  *
  * Este script NO borra nada — solo cuenta y reporta:
  *   - total de ítems en Alegra
  *   - duplicados (descripción larga)
- *   - duplicados CON inventario (no borrar)
- *   - duplicados SIN inventario (borrables)
+ *   - duplicados VENDIDOS (comprometidos, no borrar)
+ *   - duplicados NUNCA VENDIDOS (borrables)
  *
  * Uso (necesita DATABASE_URL + CRYPTO_KEY_BASE64 para resolver la cuenta Alegra):
  *   ts-node-dev --transpile-only src/scripts/analyze-alegra-duplicates.ts --store-id=3
@@ -39,14 +45,21 @@ type AlegraItem = {
   name?: string;
   reference?: string;
   description?: string;
-  inventory?: { availableQuantity?: number | string; unit?: string } | null;
+  inventory?: {
+    availableQuantity?: number | string;
+    initialQuantity?: number | string;
+    unit?: string;
+  } | null;
 };
 
-const availableQty = (item: AlegraItem): number => {
-  const q = item.inventory?.availableQuantity;
+const num = (q: unknown): number => {
   const n = typeof q === "number" ? q : Number(q);
   return Number.isFinite(n) ? n : 0;
 };
+const availableQty = (item: AlegraItem): number => num(item.inventory?.availableQuantity);
+const initialQty = (item: AlegraItem): number => num(item.inventory?.initialQuantity);
+// VENDIDO (stock comprometido) = hubo salidas: disponible < inicial.
+const isSold = (item: AlegraItem): boolean => availableQty(item) < initialQty(item);
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -85,10 +98,19 @@ async function main() {
     let start = 0;
     let total = 0;
     let duplicados = 0;
-    let dupConInventario = 0;
-    let dupSinInventario = 0;
-    // Todos los duplicados (para CSV de auditoría/borrado), con flag de inventario.
-    const dups: Array<{ id: string; name: string; ref: string; len: number; qty: number; desc: string }> = [];
+    let dupVendidos = 0;
+    let dupNoVendidos = 0;
+    // Todos los duplicados (para CSV de auditoría/borrado), con flag de venta.
+    const dups: Array<{
+      id: string;
+      name: string;
+      ref: string;
+      len: number;
+      ini: number;
+      avail: number;
+      sold: boolean;
+      desc: string;
+    }> = [];
 
     for (;;) {
       const items = await fetchPage(alegra, start, pageSize);
@@ -100,15 +122,17 @@ async function main() {
         const isDup = desc.length > MIN_DESC;
         if (!isDup) continue;
         duplicados += 1;
-        const qty = availableQty(item);
-        if (qty > 0) dupConInventario += 1;
-        else dupSinInventario += 1;
+        const sold = isSold(item);
+        if (sold) dupVendidos += 1;
+        else dupNoVendidos += 1;
         dups.push({
           id: String(item.id ?? ""),
           name: String(item.name || ""),
           ref: String(item.reference || ""),
           len: desc.length,
-          qty,
+          ini: initialQty(item),
+          avail: availableQty(item),
+          sold,
           desc: desc.slice(0, 120),
         });
       }
@@ -120,10 +144,10 @@ async function main() {
 
     console.log("");
     console.log("========== RESULTADO (desde Alegra) ==========");
-    console.log(`Total ítems en Alegra:            ${total}`);
-    console.log(`Duplicados (descripción larga):   ${duplicados}`);
-    console.log(`  · CON inventario (NO borrar):   ${dupConInventario}`);
-    console.log(`  · SIN inventario (borrables):   ${dupSinInventario}`);
+    console.log(`Total ítems en Alegra:              ${total}`);
+    console.log(`Duplicados (descripción larga):     ${duplicados}`);
+    console.log(`  · VENDIDOS (comprometido, NO borrar): ${dupVendidos}`);
+    console.log(`  · NUNCA vendidos (borrables):         ${dupNoVendidos}`);
     console.log("==============================================");
 
     if (CSV) {
@@ -132,14 +156,18 @@ async function main() {
         return /[",\n]/.test(s) ? `"${s}"` : s;
       };
       console.log("");
-      console.log("alegra_item_id,nombre,referencia,desc_len,inventario_disponible,tiene_inventario,descripcion_120");
+      console.log("alegra_item_id,nombre,referencia,desc_len,stock_inicial,stock_disponible,vendido,descripcion_120");
       dups.forEach((d) =>
-        console.log([d.id, cell(d.name), cell(d.ref), d.len, d.qty, d.qty > 0 ? "SI" : "NO", cell(d.desc)].join(","))
+        console.log(
+          [d.id, cell(d.name), cell(d.ref), d.len, d.ini, d.avail, d.sold ? "SI" : "NO", cell(d.desc)].join(",")
+        )
       );
     } else if (dups.length) {
       console.log("");
       console.log("Muestra de duplicados (hasta 20):");
-      dups.slice(0, 20).forEach((d) => console.log(`  #${d.id} | ${d.name.slice(0, 40)} | inv=${d.qty} | len=${d.len}`));
+      dups
+        .slice(0, 20)
+        .forEach((d) => console.log(`  #${d.id} | ${d.name.slice(0, 40)} | ini=${d.ini} disp=${d.avail} | vendido=${d.sold ? "SI" : "NO"}`));
     }
   });
 }
