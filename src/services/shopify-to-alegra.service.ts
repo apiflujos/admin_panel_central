@@ -47,6 +47,7 @@ type ShopifyOrderPayload = {
   }>;
   shipping_lines?: Array<{ title?: string; price?: string }>;
   financial_status?: string;
+  fulfillment_status?: string | null;
 };
 
 type ForceSyncOptions = {
@@ -144,6 +145,16 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
   }
   if (options?.forceEinvoice) {
     invoiceSettings.einvoiceEnabled = true;
+  }
+  // Trigger "cuando esté preparado": en el flujo automático (webhook/poller), si
+  // está configurado on_fulfilled y el pedido aún NO está fulfilled en Shopify,
+  // NO factura todavía (se guarda como pendiente). La facturación manual por
+  // pedido (options.generateInvoice === true) lo salta a propósito.
+  if (invoiceSettings.invoiceTrigger === "on_fulfilled" && options?.generateInvoice !== true) {
+    const fulfilled = String(payload.fulfillment_status || "").toLowerCase() === "fulfilled";
+    if (!fulfilled) {
+      invoiceSettings.generateInvoice = false;
+    }
   }
 
   const missing = buildOrderChecklist(payload, {
@@ -799,6 +810,9 @@ function resolveInvoiceWarehouseId(
 type InvoiceSettings = {
   generateInvoice: boolean;
   invoiceStatus?: "draft" | "active";
+  // Cuándo facturar: "on_create" (al entrar el pedido, default) u "on_fulfilled"
+  // (solo cuando el pedido está preparado/fulfilled en Shopify).
+  invoiceTrigger?: "on_create" | "on_fulfilled";
   resolutionId: string;
   costCenterId: string;
   warehouseId: string;
@@ -832,9 +846,10 @@ async function loadInvoiceSettings(pool: Pool, orgId: number): Promise<InvoiceSe
     apply_payment: boolean | null;
     observations_template: string | null;
     einvoice_enabled: boolean | null;
+    invoice_trigger: string | null;
   }>(
     `
-    SELECT generate_invoice, resolution_id, cost_center_id, warehouse_id, seller_id, payment_method, bank_account_id, apply_payment, observations_template, einvoice_enabled
+    SELECT generate_invoice, resolution_id, cost_center_id, warehouse_id, seller_id, payment_method, bank_account_id, apply_payment, observations_template, einvoice_enabled, invoice_trigger
     FROM invoice_settings
     WHERE organization_id = $1
     ORDER BY created_at DESC
@@ -846,6 +861,7 @@ async function loadInvoiceSettings(pool: Pool, orgId: number): Promise<InvoiceSe
   if (!result.rows.length) {
     return {
       generateInvoice: false,
+      invoiceTrigger: "on_create",
       resolutionId: "",
       costCenterId: "",
       warehouseId: "",
@@ -861,6 +877,7 @@ async function loadInvoiceSettings(pool: Pool, orgId: number): Promise<InvoiceSe
   const row = result.rows[0];
   return {
     generateInvoice: row.generate_invoice,
+    invoiceTrigger: row.invoice_trigger === "on_fulfilled" ? "on_fulfilled" : "on_create",
     resolutionId: row.resolution_id || "",
     costCenterId: row.cost_center_id || "",
     warehouseId: row.warehouse_id || "",

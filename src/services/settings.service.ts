@@ -54,6 +54,7 @@ type SettingsPayload = {
   };
   invoice?: {
     generateInvoice?: boolean;
+    invoiceTrigger?: "on_create" | "on_fulfilled";
     resolutionId?: string;
     warehouseId?: string;
     costCenterId?: string;
@@ -572,6 +573,7 @@ async function upsertInvoiceSettings(
   orgId: number,
   invoice: {
     generateInvoice?: boolean;
+    invoiceTrigger?: "on_create" | "on_fulfilled";
     resolutionId?: string;
     warehouseId?: string;
     costCenterId?: string;
@@ -607,8 +609,9 @@ async function upsertInvoiceSettings(
           bank_account_id = $7,
           apply_payment = $8,
           observations_template = $9,
-          einvoice_enabled = $10
-      WHERE id = $11
+          einvoice_enabled = $10,
+          invoice_trigger = $11
+      WHERE id = $12
       `,
       [
         invoice.generateInvoice ?? false,
@@ -621,6 +624,7 @@ async function upsertInvoiceSettings(
         invoice.applyPayment ?? false,
         invoice.observationsTemplate || null,
         invoice.einvoiceEnabled ?? false,
+        invoice.invoiceTrigger === "on_fulfilled" ? "on_fulfilled" : "on_create",
         existing.rows[0].id,
       ]
     );
@@ -630,8 +634,8 @@ async function upsertInvoiceSettings(
   await pool.query(
     `
     INSERT INTO invoice_settings
-      (organization_id, generate_invoice, resolution_id, warehouse_id, cost_center_id, seller_id, payment_method, bank_account_id, apply_payment, observations_template, einvoice_enabled)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      (organization_id, generate_invoice, resolution_id, warehouse_id, cost_center_id, seller_id, payment_method, bank_account_id, apply_payment, observations_template, einvoice_enabled, invoice_trigger)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     `,
     [
       orgId,
@@ -645,6 +649,7 @@ async function upsertInvoiceSettings(
       invoice.applyPayment ?? false,
       invoice.observationsTemplate || null,
       invoice.einvoiceEnabled ?? false,
+      invoice.invoiceTrigger === "on_fulfilled" ? "on_fulfilled" : "on_create",
     ]
   );
 }
@@ -934,9 +939,10 @@ async function readInvoiceSettings(pool: ReturnType<typeof getPool>, orgId: numb
     apply_payment: boolean | null;
     observations_template: string | null;
     einvoice_enabled: boolean | null;
+    invoice_trigger: string | null;
   }>(
     `
-    SELECT generate_invoice, resolution_id, warehouse_id, cost_center_id, seller_id, payment_method, bank_account_id, apply_payment, observations_template, einvoice_enabled
+    SELECT generate_invoice, resolution_id, warehouse_id, cost_center_id, seller_id, payment_method, bank_account_id, apply_payment, observations_template, einvoice_enabled, invoice_trigger
     FROM invoice_settings
     WHERE organization_id = $1
     ORDER BY created_at DESC
@@ -948,6 +954,7 @@ async function readInvoiceSettings(pool: ReturnType<typeof getPool>, orgId: numb
   if (!invoice.rows.length) {
     return {
       generateInvoice: false,
+      invoiceTrigger: "on_create" as "on_create" | "on_fulfilled",
       resolutionId: "",
       warehouseId: "",
       costCenterId: "",
@@ -963,6 +970,9 @@ async function readInvoiceSettings(pool: ReturnType<typeof getPool>, orgId: numb
   const row = invoice.rows[0];
   return {
     generateInvoice: row.generate_invoice,
+    invoiceTrigger: (row.invoice_trigger === "on_fulfilled" ? "on_fulfilled" : "on_create") as
+      | "on_create"
+      | "on_fulfilled",
     resolutionId: row.resolution_id || "",
     warehouseId: row.warehouse_id || "",
     costCenterId: row.cost_center_id || "",

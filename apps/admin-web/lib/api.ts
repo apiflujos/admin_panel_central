@@ -912,6 +912,7 @@ export async function saveProfile(payload: {
 
 export type AdminWebInvoiceSettings = {
   generateInvoice: boolean;
+  invoiceTrigger: "on_create" | "on_fulfilled";
   resolutionId: string;
   warehouseId: string;
   costCenterId: string;

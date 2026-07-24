@@ -12,6 +12,7 @@ type CatalogOption = {
 
 const defaultInvoiceSettings: AdminWebInvoiceSettings = {
   generateInvoice: false,
+  invoiceTrigger: "on_create",
   resolutionId: "",
   warehouseId: "",
   costCenterId: "",
@@ -172,6 +173,28 @@ export function BillingConfigButton() {
                       </button>
                     </div>
                   </label>
+
+                  {settings.generateInvoice ? (
+                    <label className="connection-form-row">
+                      <span>Facturar cuando</span>
+                      <div className="page-module-actions">
+                        <button
+                          type="button"
+                          className={`btn btn-compact ${settings.invoiceTrigger !== "on_fulfilled" ? "primary" : "ghost"}`}
+                          onClick={() => setSettings((current) => ({ ...current, invoiceTrigger: "on_create" }))}
+                        >
+                          Al crear el pedido
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-compact ${settings.invoiceTrigger === "on_fulfilled" ? "primary" : "ghost"}`}
+                          onClick={() => setSettings((current) => ({ ...current, invoiceTrigger: "on_fulfilled" }))}
+                        >
+                          Cuando esté preparado
+                        </button>
+                      </div>
+                    </label>
+                  ) : null}
 
                   <label className="connection-form-row">
                     <span>Factura electrónica</span>

@@ -338,6 +338,7 @@ export function mapOrderToPayload(order: ShopifyOrder) {
     name: order.name,
     email: order.email || undefined,
     financial_status: order.displayFinancialStatus || undefined,
+    fulfillment_status: order.displayFulfillmentStatus || undefined,
     payment_gateway_names: Array.isArray(order.paymentGatewayNames)
       ? order.paymentGatewayNames.filter(Boolean)
       : undefined,

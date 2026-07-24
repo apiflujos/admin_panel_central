@@ -97,7 +97,20 @@ export async function ensureOrganization(poolInstance: Pool, orgId: number) {
   );
 }
 
+let invoiceTriggerColumnEnsured = false;
 export async function ensureInvoiceSettingsColumns(poolInstance: Pool) {
+  // Self-healing: crea invoice_trigger si falta, sin depender de correr las
+  // migraciones en el deploy (el server no las corre al arrancar). Idempotente.
+  if (!invoiceTriggerColumnEnsured) {
+    try {
+      await poolInstance.query(
+        `ALTER TABLE invoice_settings ADD COLUMN IF NOT EXISTS invoice_trigger TEXT DEFAULT 'on_create'`
+      );
+      invoiceTriggerColumnEnsured = true;
+    } catch {
+      // Si falla, assertColumns abajo lanzará el error claro de columna faltante.
+    }
+  }
   await assertColumns(poolInstance, "invoice_settings", [
     "organization_id",
     "generate_invoice",
@@ -110,6 +123,7 @@ export async function ensureInvoiceSettingsColumns(poolInstance: Pool) {
     "bank_account_id",
     "apply_payment",
     "einvoice_enabled",
+    "invoice_trigger",
   ]);
 }
 

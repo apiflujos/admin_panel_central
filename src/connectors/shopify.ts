@@ -593,6 +593,7 @@ export type ShopifyOrder = {
   name: string;
   email?: string | null;
   displayFinancialStatus?: string | null;
+  displayFulfillmentStatus?: string | null;
   paymentGatewayNames?: string[] | null;
   updatedAt?: string | null;
   processedAt?: string | null;
@@ -760,6 +761,7 @@ const ORDER_BY_ID_QUERY = `
       name
       email
       displayFinancialStatus
+      displayFulfillmentStatus
       paymentGatewayNames
       updatedAt
       processedAt
@@ -841,6 +843,7 @@ const ORDERS_UPDATED_SINCE_QUERY = `
           name
           email
           displayFinancialStatus
+          displayFulfillmentStatus
           paymentGatewayNames
           updatedAt
           processedAt
@@ -882,6 +885,7 @@ const ORDERS_PAGED_QUERY = `
           name
           email
           displayFinancialStatus
+          displayFulfillmentStatus
           paymentGatewayNames
           updatedAt
           processedAt
