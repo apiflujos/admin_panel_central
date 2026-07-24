@@ -87,7 +87,8 @@ async function main() {
     let duplicados = 0;
     let dupConInventario = 0;
     let dupSinInventario = 0;
-    const dupsBorrables: Array<{ id: string; name: string; ref: string; len: number; qty: number }> = [];
+    // Todos los duplicados (para CSV de auditoría/borrado), con flag de inventario.
+    const dups: Array<{ id: string; name: string; ref: string; len: number; qty: number; desc: string }> = [];
 
     for (;;) {
       const items = await fetchPage(alegra, start, pageSize);
@@ -100,18 +101,16 @@ async function main() {
         if (!isDup) continue;
         duplicados += 1;
         const qty = availableQty(item);
-        if (qty > 0) {
-          dupConInventario += 1;
-        } else {
-          dupSinInventario += 1;
-          dupsBorrables.push({
-            id: String(item.id ?? ""),
-            name: String(item.name || "").slice(0, 45),
-            ref: String(item.reference || ""),
-            len: desc.length,
-            qty,
-          });
-        }
+        if (qty > 0) dupConInventario += 1;
+        else dupSinInventario += 1;
+        dups.push({
+          id: String(item.id ?? ""),
+          name: String(item.name || ""),
+          ref: String(item.reference || ""),
+          len: desc.length,
+          qty,
+          desc: desc.slice(0, 120),
+        });
       }
 
       if (items.length < pageSize) break;
@@ -128,13 +127,19 @@ async function main() {
     console.log("==============================================");
 
     if (CSV) {
+      const cell = (v: unknown) => {
+        const s = String(v ?? "").replace(/"/g, '""');
+        return /[",\n]/.test(s) ? `"${s}"` : s;
+      };
       console.log("");
-      console.log("id,name,reference,desc_len,available_qty");
-      dupsBorrables.forEach((d) => console.log(`${d.id},"${d.name}",${d.ref},${d.len},${d.qty}`));
-    } else if (dupsBorrables.length) {
+      console.log("alegra_item_id,nombre,referencia,desc_len,inventario_disponible,tiene_inventario,descripcion_120");
+      dups.forEach((d) =>
+        console.log([d.id, cell(d.name), cell(d.ref), d.len, d.qty, d.qty > 0 ? "SI" : "NO", cell(d.desc)].join(","))
+      );
+    } else if (dups.length) {
       console.log("");
-      console.log("Muestra de duplicados SIN inventario (borrables, hasta 20):");
-      dupsBorrables.slice(0, 20).forEach((d) => console.log(`  #${d.id} | ${d.name} | ref=${d.ref} | len=${d.len}`));
+      console.log("Muestra de duplicados (hasta 20):");
+      dups.slice(0, 20).forEach((d) => console.log(`  #${d.id} | ${d.name.slice(0, 40)} | inv=${d.qty} | len=${d.len}`));
     }
   });
 }
