@@ -86,17 +86,22 @@ export async function consumeOAuthState(
     initiated_by_user_id: number | null;
   }>(
     `
-    SELECT id, store_name, store_id, alegra_account_id, initiated_by_user_id
+    SELECT id, store_name, store_id, alegra_account_id, initiated_by_user_id, shop_domain
     FROM shopify_oauth_states
     WHERE organization_id = $1
-      AND shop_domain = $2
-      AND nonce = $3
+      AND nonce = $2
       AND created_at >= NOW() - INTERVAL '${MAX_STATE_MINUTES} minutes'
     ORDER BY created_at DESC
     LIMIT 1
     `,
-    [orgId, normalized, nonce]
+    // El nonce (128 bits, un solo uso) es la protección CSRF. NO exigimos que el
+    // shop_domain calce exacto: Shopify puede devolver en el callback un handle
+    // distinto (dominio myshopify vs handle del admin, p.ej. becam-cosmetics vs
+    // mut50d-tj), lo que antes rompía el OAuth con "State invalido". `normalized`
+    // se conserva solo para referencia/log.
+    [orgId, nonce]
   );
+  void normalized;
   const row = result.rows[0];
   if (!row?.id) return { ok: false, reason: "not_found" };
   if (
