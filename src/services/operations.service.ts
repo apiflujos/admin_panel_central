@@ -120,7 +120,12 @@ export async function syncOperation(
 }
 
 export async function retryInvoiceFromLog(orderId: string) {
-  const ctx = await buildSyncContext();
+  // Resuelve el dominio de la tienda del pedido para usar las credenciales Shopify
+  // correctas. Sin esto, buildSyncContext() cae al credential legacy `shopify`
+  // (que NO existe en setups multi-tienda con shopify_stores) y lanza
+  // "Missing Shopify credentials in DB", disparando reintentos infinitos.
+  const shopDomain = await resolveOrderShopDomain(orderId);
+  const ctx = await buildSyncContext(shopDomain);
   const existing = await getMappingByShopifyId("order", orderId);
   if (existing?.alegraId) {
     await markIdempotencyKey(`invoice:${orderId}`, "completed");
