@@ -4,6 +4,7 @@ import { DataTable } from "./ui/data-table";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { StatusPill } from "./ui/status-pill";
+import { SqlConsole } from "./sql-console";
 
 export function SuperAdminPage({ overview }: { overview: AdminWebSuperAdminOverviewDto }) {
   return (
@@ -109,6 +110,8 @@ export function SuperAdminPage({ overview }: { overview: AdminWebSuperAdminOverv
           />
         </section>
       </div>
+
+      <SqlConsole />
     </section>
   );
 }

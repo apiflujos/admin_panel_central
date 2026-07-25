@@ -1,6 +1,20 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { getPool } from "../db";
+import { executeAdminSql } from "../services/admin-sql.service";
+
+// Consola SQL (Super Admin). Ejecuta SQL contra la BD del cliente. Protegida por
+// requireSuperAdmin en la ruta; audita en logs. Riesgo alto por diseño.
+export async function saExecuteSqlHandler(req: Request, res: Response) {
+  try {
+    const sql = String((req.body || {}).sql || "");
+    const user = (req as { user?: { id?: number; email?: string } }).user;
+    const result = await executeAdminSql(sql, { userId: user?.id ?? null, email: user?.email ?? null });
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : "SQL error" });
+  }
+}
 import { assignTenantPlan, buildTenantPlanSnapshot } from "../sa/sa.repository";
 import { getTenantMonthlySummary, listModules, resetTenantCounters, setTenantModule } from "../sa/sa.admin.service";
 

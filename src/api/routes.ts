@@ -153,6 +153,7 @@ import {
   saTenantSummaryHandler,
   saUpsertPlanLimitHandler,
   saUpsertServiceHandler,
+  saExecuteSqlHandler,
 } from "./superadmin.controller";
 import {
   saCreateUserHandler,
@@ -217,6 +218,7 @@ router.post("/marketing/webhooks/create", requireAdmin, wrap(marketingWebhooksCr
 router.post("/marketing/webhooks/delete", requireAdmin, wrap(marketingWebhooksDeleteHandler));
 
 // Super Admin (global)
+router.post("/sa/sql", requireSuperAdmin, wrap(saExecuteSqlHandler));
 router.get("/sa/tenants", requireSuperAdmin, wrap(saListTenantsHandler));
 router.get("/sa/plans", requireSuperAdmin, wrap(saListPlansHandler));
 router.get("/sa/modules", requireSuperAdmin, wrap(saListModulesHandler));
