@@ -405,3 +405,44 @@ export async function listProducts(options: {
     offset,
   };
 }
+
+/**
+ * Elimina productos DUPLICADOS por `alegra_item_id` dentro de la organización.
+ * Causa típica: correr "Desde Alegra" por cada tienda con una cuenta Alegra
+ * COMPARTIDA → el mismo ítem queda como varias filas (una por store_id).
+ *
+ * Regla segura:
+ *   - NUNCA borra filas con Shopify vinculado (matcheadas).
+ *   - Conserva UNA fila por `alegra_item_id`: la que tenga Shopify; si ninguna,
+ *     la más antigua (menor id). Borra el resto (sólo filas sin Shopify).
+ *
+ * Dry-run por defecto; borra sólo con { apply: true }.
+ */
+export async function dedupeAlegraProducts(options?: { apply?: boolean }) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const selectDupes = `
+    SELECT p.id
+    FROM products p
+    WHERE p.organization_id = $1
+      AND p.alegra_item_id IS NOT NULL
+      AND p.shopify_product_id IS NULL
+      AND EXISTS (
+        SELECT 1 FROM products q
+        WHERE q.organization_id = p.organization_id
+          AND q.alegra_item_id = p.alegra_item_id
+          AND q.id <> p.id
+          AND (q.shopify_product_id IS NOT NULL OR q.id < p.id)
+      )
+  `;
+  const countRes = await pool.query<{ n: string }>(
+    `SELECT count(*)::text AS n FROM (${selectDupes}) t`,
+    [orgId]
+  );
+  const duplicates = Number(countRes.rows[0]?.n || 0);
+  if (!options?.apply) {
+    return { dryRun: true, duplicates, deleted: 0 };
+  }
+  const del = await pool.query(`DELETE FROM products WHERE id IN (${selectDupes})`, [orgId]);
+  return { dryRun: false, duplicates, deleted: del.rowCount || 0 };
+}

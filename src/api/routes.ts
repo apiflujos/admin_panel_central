@@ -81,6 +81,7 @@ import { emitPaymentHandler, voidInvoiceHandler } from "./operations-actions.con
 import {
   listAlegraItemsHandler,
   listProductsHandler,
+  dedupeProductsHandler,
   listInventoryAdjustmentsHandler,
   listItemWarehouseSummaryHandler,
   proxyAlegraImageHandler,
@@ -288,6 +289,7 @@ router.post("/alegra/items/:itemId/status", requireAdmin, wrap(setAlegraItemStat
 router.post("/shopify/publish/bulk", requireAdmin, wrap(bulkShopifyPublishHandler));
 router.post("/shopify/publish/bulk/stop", requireAdmin, wrap(stopBulkShopifyPublishHandler));
 router.post("/shopify/lookup-batch", wrap(lookupShopifyHandler));
+router.post("/products/dedupe", requireAdmin, wrap(dedupeProductsHandler));
 router.post("/products/oversell", requireAdmin, wrap(updateProductOversellHandler));
 router.post("/products/tracking", requireAdmin, wrap(updateProductTrackingHandler));
 router.post("/shopify/webhooks", requireAdmin, wrap(createShopifyWebhooksHandler));

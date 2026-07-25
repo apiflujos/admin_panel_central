@@ -28,7 +28,7 @@ import {
   getAlegraConnectionByStoreId,
   getShopifyConnectionByDomain,
 } from "../services/store-connections.service";
-import { upsertProduct, listProducts } from "../services/products.service";
+import { upsertProduct, listProducts, dedupeAlegraProducts } from "../services/products.service";
 import { upsertOrder } from "../services/orders.service";
 import { syncAlegraInventoryById } from "../services/alegra-to-shopify.service";
 
@@ -1112,6 +1112,20 @@ export async function listProductsHandler(req: Request, res: Response) {
     res.status(200).json({ items: result.items, total: result.total });
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : "Products list error" });
+  }
+}
+
+// Limpia productos duplicados por alegra_item_id (cuenta Alegra compartida
+// importada por-tienda). Dry-run por defecto; borra con body/query apply=true.
+// NUNCA borra filas con Shopify vinculado (matcheadas).
+export async function dedupeProductsHandler(req: Request, res: Response) {
+  try {
+    const body = (req.body || {}) as Record<string, unknown>;
+    const apply = body.apply === true || String(req.query.apply || "").toLowerCase() === "true";
+    const result = await dedupeAlegraProducts({ apply });
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : "Dedupe error" });
   }
 }
 
