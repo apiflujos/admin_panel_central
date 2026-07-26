@@ -2,6 +2,25 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 import { getPool } from "../db";
 import { executeAdminSql } from "../services/admin-sql.service";
+import { consolidateDuplicates } from "../services/consolidate-duplicates.service";
+
+// Consolida productos duplicados en Alegra (marca=original vs frase=duplicado):
+// mueve inventario (regla MAX) al original, re-apunta el match y borra/desactiva
+// el duplicado. Simulación por defecto; ejecuta con { apply: true }. `limit`
+// procesa por lotes. Protegido por requireSuperAdmin.
+export async function saConsolidateDuplicatesHandler(req: Request, res: Response) {
+  const schema = z.object({
+    apply: z.boolean().optional(),
+    limit: z.number().int().positive().max(5000).optional(),
+  });
+  try {
+    const body = schema.parse(req.body || {});
+    const report = await consolidateDuplicates({ apply: body.apply, limit: body.limit });
+    res.status(200).json(report);
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : "consolidation_error" });
+  }
+}
 
 // Consola SQL (Super Admin). Ejecuta SQL contra la BD del cliente. Protegida por
 // requireSuperAdmin en la ruta; audita en logs. Riesgo alto por diseño.

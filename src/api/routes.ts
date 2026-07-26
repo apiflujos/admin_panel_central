@@ -154,6 +154,7 @@ import {
   saUpsertPlanLimitHandler,
   saUpsertServiceHandler,
   saExecuteSqlHandler,
+  saConsolidateDuplicatesHandler,
 } from "./superadmin.controller";
 import {
   saCreateUserHandler,
@@ -219,6 +220,7 @@ router.post("/marketing/webhooks/delete", requireAdmin, wrap(marketingWebhooksDe
 
 // Super Admin (global)
 router.post("/sa/sql", requireSuperAdmin, wrap(saExecuteSqlHandler));
+router.post("/sa/consolidate-duplicates", requireSuperAdmin, wrap(saConsolidateDuplicatesHandler));
 router.get("/sa/tenants", requireSuperAdmin, wrap(saListTenantsHandler));
 router.get("/sa/plans", requireSuperAdmin, wrap(saListPlansHandler));
 router.get("/sa/modules", requireSuperAdmin, wrap(saListModulesHandler));
