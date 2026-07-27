@@ -12,10 +12,11 @@ export async function saConsolidateDuplicatesHandler(req: Request, res: Response
   const schema = z.object({
     apply: z.boolean().optional(),
     limit: z.number().int().positive().max(5000).optional(),
+    afterAid: z.number().int().nonnegative().optional(),
   });
   try {
     const body = schema.parse(req.body || {});
-    const report = await consolidateDuplicates({ apply: body.apply, limit: body.limit });
+    const report = await consolidateDuplicates({ apply: body.apply, limit: body.limit, afterAid: body.afterAid });
     res.status(200).json(report);
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : "consolidation_error" });

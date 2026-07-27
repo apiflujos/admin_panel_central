@@ -47,7 +47,10 @@ type ConsolidationReport = {
   itemsDeleted: number;
   itemsDeactivated: number;
   localRowsDeleted: number;
+  heldForInventory: number;
+  heldPairs: Array<{ dup: string; orig: string; adjustments: PairPlan["adjustments"] }>;
   errors: number;
+  lastAid: number;
   details: PairPlan[];
 };
 
@@ -79,9 +82,13 @@ async function resolveShopDomain(pool: ReturnType<typeof getPool>, orgId: number
 async function loadPairs(
   pool: ReturnType<typeof getPool>,
   orgId: number,
-  limit?: number
+  limit?: number,
+  afterAid?: number
 ): Promise<Array<{ dup: string; orig: string }>> {
   // dup = frase (description larga) cuyo reference apunta a un item MARCA existente.
+  // Cursor `afterAid`: procesa solo dups con aid numérico > afterAid, en orden
+  // ascendente. Permite barrer todo en lotes sin re-procesar los apartados.
+  const cursor = Number.isFinite(afterAid) ? Number(afterAid) : 0;
   const res = await pool.query<{ dup: string; orig: string }>(
     `
     WITH it AS (
@@ -96,10 +103,12 @@ async function loadPairs(
     FROM it dup
     JOIN it orig ON orig.aid = dup.ref AND orig.dl <= 25
     WHERE dup.dl > 25
-    ORDER BY dup.aid ASC
+      AND dup.aid ~ '^[0-9]+$'
+      AND dup.aid::int > $2
+    ORDER BY dup.aid::int ASC
     ${limit && limit > 0 ? `LIMIT ${Math.floor(limit)}` : ""}
     `,
-    [orgId]
+    [orgId, cursor]
   );
   return res.rows.map((r) => ({ dup: String(r.dup), orig: String(r.orig) }));
 }
@@ -165,6 +174,7 @@ async function remapMatch(
 export async function consolidateDuplicates(options?: {
   apply?: boolean;
   limit?: number;
+  afterAid?: number;
 }): Promise<ConsolidationReport> {
   const apply = options?.apply === true;
   const limit = options?.limit;
@@ -172,9 +182,8 @@ export async function consolidateDuplicates(options?: {
   const orgId = getOrgId();
   const shopDomain = await resolveShopDomain(pool, orgId);
   const ctx = await buildSyncContext(shopDomain);
-  const today = new Date().toISOString().slice(0, 10);
 
-  const pairs = await loadPairs(pool, orgId, limit);
+  const pairs = await loadPairs(pool, orgId, limit, options?.afterAid);
   const report: ConsolidationReport = {
     dryRun: !apply,
     pairsTotal: pairs.length,
@@ -184,11 +193,16 @@ export async function consolidateDuplicates(options?: {
     itemsDeleted: 0,
     itemsDeactivated: 0,
     localRowsDeleted: 0,
+    heldForInventory: 0,
+    heldPairs: [],
     errors: 0,
+    lastAid: Number.isFinite(options?.afterAid) ? Number(options?.afterAid) : 0,
     details: [],
   };
 
   for (const pair of pairs) {
+    const pairAid = Number(pair.dup);
+    if (Number.isFinite(pairAid) && pairAid > report.lastAid) report.lastAid = pairAid;
     const plan: PairPlan = {
       dup: pair.dup,
       orig: pair.orig,
@@ -204,30 +218,27 @@ export async function consolidateDuplicates(options?: {
         fetchInventory(ctx, pair.orig),
       ]);
       plan.adjustments = computeAdjustments(dupInv, origInv);
+      report.inventoryAdjustments += plan.adjustments.length;
+
+      // SEGURIDAD: si el duplicado tiene MÁS stock que el original en alguna
+      // bodega (delta > 0), NO lo borramos: borrarlo perdería inventario y el
+      // ajuste automático en Alegra falla (400). Se aparta para revisión manual.
+      if (plan.adjustments.length > 0) {
+        plan.alegraAction = "skip";
+        if (report.heldPairs.length < 500) {
+          report.heldPairs.push({ dup: pair.dup, orig: pair.orig, adjustments: plan.adjustments });
+        }
+        report.heldForInventory += 1;
+        report.details.push(plan);
+        continue;
+      }
 
       if (apply) {
-        // 1) Ajustes de inventario en el original (regla MAX).
-        for (const adj of plan.adjustments) {
-          const warehouseNumeric = Number(adj.warehouseId);
-          if (!Number.isFinite(warehouseNumeric)) continue;
-          await ctx.alegra.createInventoryAdjustment({
-            date: today,
-            observations: `Consolidación duplicado ${pair.dup} -> original ${pair.orig}`,
-            items: [
-              {
-                id: Number(pair.orig),
-                quantity: adj.delta,
-                observations: `Consolidación duplicado ${pair.dup}`,
-                warehouse: { id: warehouseNumeric },
-              },
-            ],
-          });
-        }
-        // 2) Re-apuntar el match.
+        // 1) Re-apuntar el match del duplicado al original.
         const remap = await remapMatch(pool, orgId, pair.dup, pair.orig);
         plan.remapped = remap.remapped;
         plan.remapConflictsDropped = remap.conflictsDropped;
-        // 3) Borrar o desactivar el duplicado en Alegra.
+        // 2) Borrar o desactivar el duplicado en Alegra.
         try {
           await ctx.alegra.deleteItem(pair.dup);
           plan.alegraAction = "delete";
@@ -242,7 +253,7 @@ export async function consolidateDuplicates(options?: {
             plan.error = `No se pudo borrar ni desactivar en Alegra: ${e instanceof Error ? e.message : String(e)}`;
           }
         }
-        // 4) Borrar filas locales del duplicado.
+        // 3) Borrar filas locales del duplicado.
         const del = await pool.query(
           `DELETE FROM products WHERE organization_id = $1 AND alegra_item_id = $2`,
           [orgId, pair.dup]
@@ -252,7 +263,6 @@ export async function consolidateDuplicates(options?: {
         report.mappingsRemapped += plan.remapped;
       }
 
-      report.inventoryAdjustments += plan.adjustments.length;
       report.pairsProcessed += 1;
     } catch (error) {
       plan.error = error instanceof Error ? error.message : String(error);
