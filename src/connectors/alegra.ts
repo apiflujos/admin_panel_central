@@ -68,6 +68,14 @@ export class AlegraClient {
     return this.request(`/inventory-adjustments`, { method: "POST", body: payload });
   }
 
+  // Ajuste de inventario con el endpoint y formato que Alegra realmente acepta
+  // (ver scripts/create-alegra-inventory-adjustment.js): /inventory/adjustments
+  // y cada item con `type: "input"`. El método anterior (/inventory-adjustments)
+  // devolvía 400.
+  async createInventoryInputAdjustment(payload: Record<string, unknown>) {
+    return this.request(`/inventory/adjustments`, { method: "POST", body: payload });
+  }
+
   async createInventoryTransfer(payload: Record<string, unknown>) {
     return this.request(`/inventory-transfers`, { method: "POST", body: payload });
   }

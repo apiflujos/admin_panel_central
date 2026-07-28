@@ -25,7 +25,7 @@ import { createSyncLog } from "./logs.service";
 // filas locales, el par ya no reaparece en la siguiente corrida.
 
 type WarehouseQty = { id: string; qty: number };
-type ItemInventory = { warehouses: WarehouseQty[]; flat: number };
+type ItemInventory = { warehouses: WarehouseQty[]; flat: number; unitCost: number };
 
 type PairPlan = {
   dup: string;
@@ -66,7 +66,8 @@ function extractWarehouses(item: Record<string, unknown> | null | undefined): It
     qty: Number(w?.availableQuantity ?? w?.quantity ?? 0) || 0,
   }));
   const flat = Number(inv.availableQuantity ?? inv.quantity ?? 0) || 0;
-  return { warehouses: mapped.filter((w) => w.id), flat };
+  const unitCost = Number((inv as { unitCost?: unknown }).unitCost ?? 0) || 0;
+  return { warehouses: mapped.filter((w) => w.id), flat, unitCost };
 }
 
 async function resolveShopDomain(pool: ReturnType<typeof getPool>, orgId: number): Promise<string> {
@@ -175,13 +176,16 @@ export async function consolidateDuplicates(options?: {
   apply?: boolean;
   limit?: number;
   afterAid?: number;
+  applyInventory?: boolean;
 }): Promise<ConsolidationReport> {
   const apply = options?.apply === true;
+  const applyInventory = options?.applyInventory === true;
   const limit = options?.limit;
   const pool = getPool();
   const orgId = getOrgId();
   const shopDomain = await resolveShopDomain(pool, orgId);
   const ctx = await buildSyncContext(shopDomain);
+  const today = new Date().toISOString().slice(0, 10);
 
   const pairs = await loadPairs(pool, orgId, limit, options?.afterAid);
   const report: ConsolidationReport = {
@@ -220,17 +224,44 @@ export async function consolidateDuplicates(options?: {
       plan.adjustments = computeAdjustments(dupInv, origInv);
       report.inventoryAdjustments += plan.adjustments.length;
 
-      // SEGURIDAD: si el duplicado tiene MÁS stock que el original en alguna
-      // bodega (delta > 0), NO lo borramos: borrarlo perdería inventario y el
-      // ajuste automático en Alegra falla (400). Se aparta para revisión manual.
+      // Si el duplicado tiene MÁS stock que el original en alguna bodega
+      // (delta > 0), hay que subir el inventario del original antes de borrar.
       if (plan.adjustments.length > 0) {
-        plan.alegraAction = "skip";
-        if (report.heldPairs.length < 500) {
-          report.heldPairs.push({ dup: pair.dup, orig: pair.orig, adjustments: plan.adjustments });
+        const hold = () => {
+          plan.alegraAction = "skip";
+          if (report.heldPairs.length < 500) {
+            report.heldPairs.push({ dup: pair.dup, orig: pair.orig, adjustments: plan.adjustments });
+          }
+          report.heldForInventory += 1;
+          report.details.push(plan);
+        };
+        // Sin applyInventory: se apartan para revisión manual (comportamiento por defecto).
+        if (!apply || !applyInventory) {
+          hold();
+          continue;
         }
-        report.heldForInventory += 1;
-        report.details.push(plan);
-        continue;
+        // Con applyInventory: sube el inventario del original (regla MAX) con el
+        // formato correcto (/inventory/adjustments, type: input). Si falla, aparta.
+        try {
+          const items = plan.adjustments.map((adj) => ({
+            id: Number(pair.orig),
+            quantity: adj.delta,
+            type: "input",
+            ...(origInv.unitCost > 0 ? { unitCost: origInv.unitCost } : {}),
+            warehouse: { id: Number(adj.warehouseId) },
+            observations: `Consolidación duplicado ${pair.dup}`,
+          }));
+          await ctx.alegra.createInventoryInputAdjustment({
+            date: today,
+            observations: `Consolidación duplicado ${pair.dup} -> original ${pair.orig}`,
+            items,
+          });
+        } catch (e) {
+          plan.error = `Ajuste inventario falló: ${e instanceof Error ? e.message : String(e)}`;
+          hold();
+          continue;
+        }
+        // Ajuste OK: continúa abajo a re-apuntar match + borrar el duplicado.
       }
 
       if (apply) {

@@ -13,10 +13,16 @@ export async function saConsolidateDuplicatesHandler(req: Request, res: Response
     apply: z.boolean().optional(),
     limit: z.number().int().positive().max(5000).optional(),
     afterAid: z.number().int().nonnegative().optional(),
+    applyInventory: z.boolean().optional(),
   });
   try {
     const body = schema.parse(req.body || {});
-    const report = await consolidateDuplicates({ apply: body.apply, limit: body.limit, afterAid: body.afterAid });
+    const report = await consolidateDuplicates({
+      apply: body.apply,
+      limit: body.limit,
+      afterAid: body.afterAid,
+      applyInventory: body.applyInventory,
+    });
     res.status(200).json(report);
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : "consolidation_error" });
