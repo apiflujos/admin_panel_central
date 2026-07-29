@@ -47,6 +47,16 @@ const normalizeInvoiceStatus = (value: unknown, fallback: unknown): "draft" | "a
   return value === "active" ? "active" : value === "draft" ? "draft" : resolvedFallback;
 };
 
+// Trigger de facturación POR TIENDA: on_create (al crear el pedido) u on_fulfilled
+// (cuando el pedido está preparado). Permite que Becam facture al preparar y Belia
+// al crear. Si la tienda no lo define, usa el valor global (fallback).
+const normalizeInvoiceTrigger = (value: unknown, fallback: unknown): "on_create" | "on_fulfilled" => {
+  const v = String(value ?? "").trim();
+  if (v === "on_fulfilled") return "on_fulfilled";
+  if (v === "on_create") return "on_create";
+  return String(fallback ?? "").trim() === "on_fulfilled" ? "on_fulfilled" : "on_create";
+};
+
 const normalizeObservationsFields = (value: unknown) => {
   if (!Array.isArray(value)) return [];
   const allowed = new Set([
@@ -350,6 +360,10 @@ export async function listStoreConfigs() {
             invoice.einvoiceEnabled,
             normalizeBoolean(invoiceDefaults.einvoiceEnabled, false)
           ),
+          invoiceTrigger: normalizeInvoiceTrigger(
+            invoice.invoiceTrigger,
+            (invoiceDefaults as Record<string, unknown>).invoiceTrigger
+          ),
         },
         sync: buildNormalizedSyncConfig({
           contactSync,
@@ -508,6 +522,10 @@ async function getStoreConfigForStoreId(storeId: number) {
       einvoiceEnabled: normalizeBoolean(
         invoice.einvoiceEnabled,
         normalizeBoolean(invoiceDefaults.einvoiceEnabled, false)
+      ),
+      invoiceTrigger: normalizeInvoiceTrigger(
+        invoice.invoiceTrigger,
+        (invoiceDefaults as Record<string, unknown>).invoiceTrigger
       ),
     },
     sync: buildNormalizedSyncConfig({
