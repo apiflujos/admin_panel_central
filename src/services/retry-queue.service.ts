@@ -109,14 +109,14 @@ export async function processRetryQueue(limit = 50) {
     const rowOrgId = Number(row.organization_id);
 
     const attempt = async () => {
-      if (row.entity === "order" && (typeof orderId === "string" || typeof orderId === "number")) {
-        await retryInvoiceFromLog(String(orderId));
-      } else if (row.entity === "webhook") {
-        const queuedEvent = parseQueuedWebhookEvent(row.request_json?.webhookEvent);
-        if (!queuedEvent) {
-          await pool.query(`UPDATE retry_queue SET status = 'skipped' WHERE id = $1`, [row.id]);
-          return "skipped" as const;
-        }
+      // Preferir SIEMPRE el payload del webhook cuando existe: trae el pedido
+      // completo + __shopDomain, así que se procesa directo. Es lo correcto para
+      // orders/create de pedidos NUEVOS que aún no están en la tabla `orders`
+      // (retryInvoiceFromLog resolvía el dominio desde `orders` y, al no existir
+      // la fila, caía a buildSyncContext() sin dominio -> "Missing Shopify
+      // credentials in DB" y reintentos infinitos).
+      const queuedEvent = parseQueuedWebhookEvent(row.request_json?.webhookEvent);
+      if (queuedEvent) {
         await processQueuedWebhookEvent({
           syncLogId: row.sync_log_id,
           event: {
@@ -127,6 +127,9 @@ export async function processRetryQueue(limit = 50) {
           },
           webhookEventId: queuedEvent.webhookEventId,
         });
+      } else if (row.entity === "order" && (typeof orderId === "string" || typeof orderId === "number")) {
+        // Retry manual sin payload de webhook: reintenta desde el pedido guardado.
+        await retryInvoiceFromLog(String(orderId));
       } else {
         await pool.query(`UPDATE retry_queue SET status = 'skipped' WHERE id = $1`, [row.id]);
         return "skipped" as const;
