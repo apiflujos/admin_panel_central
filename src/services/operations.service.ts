@@ -362,6 +362,8 @@ export function mapOrderToPayload(order: ShopifyOrder) {
                 province: order.shippingAddress.province || undefined,
                 zip: order.shippingAddress.zip || undefined,
                 country_code: order.shippingAddress.countryCodeV2 || undefined,
+                // Cédula del cliente (Becam la recoge en `company` del checkout).
+                company: order.shippingAddress.company || undefined,
               }
             : undefined,
         }

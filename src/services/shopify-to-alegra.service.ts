@@ -35,8 +35,13 @@ type ShopifyOrderPayload = {
       province?: string;
       zip?: string;
       country_code?: string;
+      company?: string;
     };
   };
+  // Becam recoge la cédula del cliente en el campo `company` de la dirección del
+  // checkout (no en el teléfono). Se usa como fuente de identificación.
+  shipping_address?: { company?: string; phone?: string };
+  billing_address?: { company?: string; phone?: string };
   line_items?: Array<{
     sku?: string;
     quantity?: number;
@@ -653,14 +658,21 @@ export function mapShopifyToAlegraContact(
 
   const rawPhone = payload.customer?.phone || "";
   const phoneId = rawPhone.replace(/\D/g, "");
+  const normalizedPhoneId = phoneId.startsWith("57") && phoneId.length > 10 ? phoneId.slice(2) : phoneId;
+  const phoneValid = normalizedPhoneId.length >= 6;
+  // Becam recoge la CÉDULA en el campo `company` de la dirección del checkout.
+  // Se usa como fuente de identificación cuando el teléfono no trae una cédula
+  // válida (muchos clientes dejan el teléfono vacío).
+  const companyRaw =
+    payload.customer?.default_address?.company ||
+    payload.shipping_address?.company ||
+    payload.billing_address?.company ||
+    "";
+  const companyId = String(companyRaw).replace(/\D/g, "");
   // Nunca fabricamos NIT: si no hay ID real, dejamos vacío para que fail-closed downstream
   // (Alegra 2035) o el operador cargue un override e-invoice.
   const derivedIdentification =
-    einvoiceActive && override?.idNumber
-      ? override.idNumber
-      : phoneId.startsWith("57") && phoneId.length > 10
-        ? phoneId.slice(2)
-        : phoneId;
+    einvoiceActive && override?.idNumber ? override.idNumber : phoneValid ? normalizedPhoneId : companyId;
   const hasRealIdentification = Boolean(derivedIdentification && derivedIdentification.length >= 6);
 
   return {

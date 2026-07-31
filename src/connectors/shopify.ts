@@ -603,6 +603,7 @@ export type ShopifyOrder = {
     province?: string | null;
     zip?: string | null;
     countryCodeV2?: string | null;
+    company?: string | null;
   } | null;
   shippingLine?: {
     title?: string | null;
@@ -765,7 +766,7 @@ const ORDER_BY_ID_QUERY = `
       paymentGatewayNames
       updatedAt
       processedAt
-      shippingAddress { address1 city province zip countryCodeV2 }
+      shippingAddress { address1 city province zip countryCodeV2 company }
       shippingLine { title originalPriceSet { shopMoney { amount currencyCode } } }
       totalPriceSet {
         shopMoney { amount currencyCode }
@@ -847,7 +848,7 @@ const ORDERS_UPDATED_SINCE_QUERY = `
           paymentGatewayNames
           updatedAt
           processedAt
-          shippingAddress { address1 city province zip countryCodeV2 }
+          shippingAddress { address1 city province zip countryCodeV2 company }
           shippingLine { title originalPriceSet { shopMoney { amount currencyCode } } }
           totalPriceSet {
             shopMoney { amount currencyCode }
@@ -889,7 +890,7 @@ const ORDERS_PAGED_QUERY = `
           paymentGatewayNames
           updatedAt
           processedAt
-          shippingAddress { address1 city province zip countryCodeV2 }
+          shippingAddress { address1 city province zip countryCodeV2 company }
           shippingLine { title originalPriceSet { shopMoney { amount currencyCode } } }
           totalPriceSet {
             shopMoney { amount currencyCode }
