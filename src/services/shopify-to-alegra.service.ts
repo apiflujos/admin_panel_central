@@ -283,16 +283,34 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
     });
     return { handled: false, reason: "missing_customer_identification" };
   }
-  const { hasRealIdentification: _hasReal, ...createContactPayload } = contactMapping;
+  const { hasRealIdentification: _hasReal, ...rawContact } = contactMapping;
   const identification = contactMapping.identification;
   const contactName = contactMapping.name;
-  const contactPayload = createContactPayload;
+  const contactPayload = rawContact;
+  // Alegra /contacts espera la dirección como OBJETO y rechaza (400) campos
+  // sueltos como city/department/country/postalCode/identificationType a nivel
+  // raíz. Se arma un payload limpio con la estructura que Alegra acepta.
+  const alegraContactPayload: Record<string, unknown> = {
+    name: contactName,
+    ...(identification ? { identification } : {}),
+    ...(rawContact.email ? { email: rawContact.email } : {}),
+    ...(rawContact.phonePrimary ? { phonePrimary: rawContact.phonePrimary } : {}),
+    ...(rawContact.address
+      ? {
+          address: {
+            address: rawContact.address,
+            ...(rawContact.city ? { city: rawContact.city } : {}),
+            ...(rawContact.department ? { department: rawContact.department } : {}),
+          },
+        }
+      : {}),
+  };
 
   let contactId: string;
   if (existing && existing.length > 0) {
     contactId = String(existing[0].id);
     try {
-      await ctx.alegra.updateContact(contactId, createContactPayload);
+      await ctx.alegra.updateContact(contactId, alegraContactPayload);
     } catch (error) {
       const message = (error as { message?: string })?.message || "Contact update failed";
       if (message.includes("2035") || message.toLowerCase().includes("identificaci")) {
@@ -309,7 +327,7 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
     }
   } else {
     try {
-      const created = (await ctx.alegra.createContact(createContactPayload)) as { id: string };
+      const created = (await ctx.alegra.createContact(alegraContactPayload)) as { id: string };
       contactId = String(created.id);
     } catch (error) {
       const message = (error as { message?: string })?.message || "Contact creation failed";
