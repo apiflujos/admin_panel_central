@@ -371,7 +371,10 @@ export async function listProducts(options: {
     `
     SELECT products.id,
            products.alegra_item_id,
-           products.shopify_product_id,
+           -- El match real Shopify↔Alegra vive en sync_mappings, NO en
+           -- products.shopify_product_id (que quedó casi vacío). Se toma de ahí
+           -- para que la vista refleje los productos realmente matcheados.
+           COALESCE(products.shopify_product_id, mm.shopify_id) AS shopify_product_id,
            products.name,
            products.reference,
            products.sku,
@@ -391,6 +394,14 @@ export async function listProducts(options: {
     LEFT JOIN alegra_items_cache
       ON alegra_items_cache.organization_id = products.organization_id
      AND alegra_items_cache.alegra_item_id = products.alegra_item_id
+    LEFT JOIN LATERAL (
+      SELECT sm.shopify_id
+      FROM sync_mappings sm
+      WHERE sm.organization_id = products.organization_id
+        AND sm.entity = 'item'
+        AND sm.alegra_id = products.alegra_item_id
+      LIMIT 1
+    ) mm ON true
     ${whereClause}
     ORDER BY COALESCE(products.source_updated_at, products.updated_at) DESC NULLS LAST
     LIMIT $${idx} OFFSET $${idx + 1}

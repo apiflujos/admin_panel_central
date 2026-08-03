@@ -178,6 +178,21 @@ export async function consolidateDuplicates(options?: {
   afterAid?: number;
   applyInventory?: boolean;
 }): Promise<ConsolidationReport> {
+  // REGLA BECAM: NADA se toca en Alegra (ni borrar, ni desactivar, ni inventario).
+  // El manejo de duplicados y match es SOLO en la plataforma local. Antes esta
+  // herramienta modificaba Alegra; se deshabilita por completo para que no vuelva
+  // a operar sobre Alegra.
+  throw new Error(
+    "Consolidación deshabilitada: no debe tocar Alegra. Duplicados y match se manejan solo en la plataforma local."
+  );
+}
+
+async function consolidateDuplicatesDisabled(options?: {
+  apply?: boolean;
+  limit?: number;
+  afterAid?: number;
+  applyInventory?: boolean;
+}): Promise<ConsolidationReport> {
   const apply = options?.apply === true;
   const applyInventory = options?.applyInventory === true;
   const limit = options?.limit;
