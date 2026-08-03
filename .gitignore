@@ -26,3 +26,6 @@ tsc_errors.txt
 # Vitest coverage reports
 coverage/
 duplicados_belia.csv
+
+# Documentos de otros clientes que no deben ir en este repo
+acta-reunion-canariam.md
