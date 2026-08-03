@@ -263,7 +263,15 @@ export class AlegraClient {
         continue;
       }
 
-      const err = new Error(friendlyAlegraError(response.status, path)) as Error & {
+      // Para errores 4xx (validación), incluir el detalle real de Alegra en el
+      // mensaje: así queda visible en los logs y las detecciones que revisan
+      // error.message (p.ej. "2035" identificación) funcionan.
+      const friendly = friendlyAlegraError(response.status, path);
+      const message =
+        response.status >= 400 && response.status < 500 && detail
+          ? `${friendly}: ${String(detail).replace(/\s+/g, " ").slice(0, 400)}`
+          : friendly;
+      const err = new Error(message) as Error & {
         status?: number;
         detail?: string;
       };
