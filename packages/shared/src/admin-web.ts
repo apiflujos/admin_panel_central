@@ -52,6 +52,8 @@ export type AdminWebProductRowDto = {
   inventoryQuantity: number | null;
   source: string | null;
   updatedAt: string | null;
+  // Tiendas donde el producto está publicado (etiquetas: "Becam", "Belia").
+  stores: string[];
 };
 
 export type AdminWebProductsListDto = {

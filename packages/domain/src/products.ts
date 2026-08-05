@@ -142,6 +142,9 @@ export function toAdminWebProductRowDto(row: ProductsListServiceItem): AdminWebP
     inventoryQuantity: row.inventory_quantity === null || row.inventory_quantity === undefined ? null : Number(row.inventory_quantity),
     source: row.source ? String(row.source) : null,
     updatedAt: row.updated_at ? new Date(String(row.updated_at)).toISOString() : null,
+    stores: Array.isArray((row as { stores?: unknown }).stores)
+      ? ((row as { stores?: unknown[] }).stores as unknown[]).map((s) => String(s)).filter(Boolean)
+      : [],
   };
 }
 

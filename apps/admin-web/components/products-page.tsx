@@ -18,6 +18,7 @@ type ProductGroup = {
   matchedCount: number;
   pendingCount: number;
   shopifyProductIds: string[];
+  stores: string[];
   variants: AdminWebProductRowDto[];
 };
 
@@ -38,9 +39,13 @@ function groupProducts(rows: AdminWebProductRowDto[]): ProductGroup[] {
         matchedCount: 0,
         pendingCount: 0,
         shopifyProductIds: [],
+        stores: [],
         variants: [],
       };
       groups.set(key, group);
+    }
+    for (const store of row.stores || []) {
+      if (store && !group.stores.includes(store)) group.stores.push(store);
     }
     group.variantCount += 1;
     group.totalStock += typeof row.inventoryQuantity === "number" ? row.inventoryQuantity : 0;
@@ -214,6 +219,26 @@ export function ProductsPage({
                             ? `${group.shopifyProductIds.length} producto(s) Shopify`
                             : "Sin Shopify"}
                         </small>
+                        {group.stores.length > 0 && (
+                          <span style={{ display: "flex", gap: 4, marginTop: 2, flexWrap: "wrap" }}>
+                            {group.stores.map((store) => (
+                              <span
+                                key={store}
+                                title={`Publicado en ${store}`}
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 600,
+                                  padding: "1px 7px",
+                                  borderRadius: 999,
+                                  background: "var(--brand-soft, #ede9fe)",
+                                  color: "var(--brand, #6d28d9)",
+                                }}
+                              >
+                                {store}
+                              </span>
+                            ))}
+                          </span>
+                        )}
                       </span>
                     </span>
                     <span className="products-table-cell-ref">{group.reference || "—"}</span>
