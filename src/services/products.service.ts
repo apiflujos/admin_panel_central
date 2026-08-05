@@ -354,6 +354,22 @@ export async function listProducts(options: {
     add("COALESCE(products.source_updated_at, products.updated_at) <= $idx", options.to);
   }
 
+  // Ocultar DUPLICADOS-FRASE: un ítem cuya descripción es una frase larga (la
+  // descripción del producto, estilo Shopify) y cuya `reference` apunta al id de
+  // OTRO ítem (el original con la marca). Se conserva el original-marca; el
+  // duplicado no se muestra en la lista. NO se toca Alegra ni se borra data.
+  where.push(
+    `NOT (
+       length(COALESCE(products.payload_json::jsonb->>'description','')) > 25
+       AND products.reference ~ '^[0-9]{1,7}$'
+       AND EXISTS (
+         SELECT 1 FROM products o2
+         WHERE o2.organization_id = products.organization_id
+           AND o2.alegra_item_id = products.reference
+       )
+     )`
+  );
+
   const limit = Number.isFinite(options.limit) && Number(options.limit) > 0 ? Number(options.limit) : 30;
   const offset = Number.isFinite(options.offset) && Number(options.offset) >= 0 ? Number(options.offset) : 0;
 
