@@ -358,18 +358,29 @@ export async function listProducts(options: {
   const offset = Number.isFinite(options.offset) && Number(options.offset) >= 0 ? Number(options.offset) : 0;
 
   const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  // Contar PRODUCTOS ÚNICOS (no filas). Un producto que está en 2 tiendas es 2
+  // filas pero 1 solo producto en la lista.
   const countResult = await pool.query<{ total: string }>(
     `
     SELECT COUNT(*)::text AS total
-    FROM products
-    ${whereClause}
+    FROM (
+      SELECT 1
+      FROM products
+      ${whereClause}
+      GROUP BY COALESCE(products.alegra_item_id, products.shopify_product_id, products.id::text)
+    ) t
     `,
     params
   );
 
+  // Una sola FILA por producto (aunque esté en varias tiendas), con la lista de
+  // TIENDAS donde está publicado (etiquetas Becam/Belia). Nunca se duplica el
+  // producto en la lista. `stores` = array de nombres de tienda.
   const items = await pool.query(
     `
-    SELECT products.id,
+    SELECT * FROM (
+      SELECT DISTINCT ON (COALESCE(products.alegra_item_id, products.shopify_product_id, products.id::text))
+           products.id,
            products.alegra_item_id,
            -- El match real Shopify↔Alegra vive en sync_mappings, NO en
            -- products.shopify_product_id (que quedó casi vacío). Se toma de ahí
@@ -389,21 +400,34 @@ export async function listProducts(options: {
            END AS payload_json,
            products.source,
            products.source_updated_at,
-           products.updated_at
-    FROM products
-    LEFT JOIN alegra_items_cache
-      ON alegra_items_cache.organization_id = products.organization_id
-     AND alegra_items_cache.alegra_item_id = products.alegra_item_id
-    LEFT JOIN LATERAL (
-      SELECT sm.shopify_id
-      FROM sync_mappings sm
-      WHERE sm.organization_id = products.organization_id
-        AND sm.entity = 'item'
-        AND sm.alegra_id = products.alegra_item_id
-      LIMIT 1
-    ) mm ON true
-    ${whereClause}
-    ORDER BY COALESCE(products.source_updated_at, products.updated_at) DESC NULLS LAST
+           products.updated_at,
+           (
+             SELECT array_agg(DISTINCT ss.store_name ORDER BY ss.store_name)
+             FROM products p2
+             LEFT JOIN shopify_stores ss
+               ON ss.organization_id = p2.organization_id AND ss.store_id = p2.store_id
+             WHERE p2.organization_id = products.organization_id
+               AND COALESCE(p2.alegra_item_id, p2.shopify_product_id, p2.id::text)
+                 = COALESCE(products.alegra_item_id, products.shopify_product_id, products.id::text)
+               AND ss.store_name IS NOT NULL
+           ) AS stores
+      FROM products
+      LEFT JOIN alegra_items_cache
+        ON alegra_items_cache.organization_id = products.organization_id
+       AND alegra_items_cache.alegra_item_id = products.alegra_item_id
+      LEFT JOIN LATERAL (
+        SELECT sm.shopify_id
+        FROM sync_mappings sm
+        WHERE sm.organization_id = products.organization_id
+          AND sm.entity = 'item'
+          AND sm.alegra_id = products.alegra_item_id
+        LIMIT 1
+      ) mm ON true
+      ${whereClause}
+      ORDER BY COALESCE(products.alegra_item_id, products.shopify_product_id, products.id::text),
+               COALESCE(products.source_updated_at, products.updated_at) DESC NULLS LAST
+    ) t
+    ORDER BY COALESCE(t.source_updated_at, t.updated_at) DESC NULLS LAST
     LIMIT $${idx} OFFSET $${idx + 1}
     `,
     [...params, limit, offset]
