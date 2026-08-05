@@ -346,8 +346,24 @@ async function handleShopifyProduct(payload: unknown) {
     const variants = Array.isArray(data.variants) ? data.variants : [];
     const firstVariant = variants[0];
     const sku = asString(firstVariant?.sku) || null;
+    // Resolver store_id para que upsertProduct colapse por TIENDA (la fila importada
+    // de Alegra y la del webhook de Shopify = un solo producto). Sin store_id el
+    // upsert usa scope por shop_domain y NO colapsa -> crea filas duplicadas.
+    // No se debe DUPLICAR el producto: se ASOCIAN sus ids al mismo registro.
+    let storeId: number | undefined;
+    try {
+      const storeRes = await getPool().query<{ store_id: number }>(
+        `SELECT store_id FROM shopify_stores WHERE organization_id = $1 AND shop_domain = $2 ORDER BY created_at DESC LIMIT 1`,
+        [getOrgId(), shopDomain]
+      );
+      const sid = storeRes.rows[0]?.store_id;
+      if (typeof sid === "number" && Number.isFinite(sid) && sid > 0) storeId = sid;
+    } catch {
+      /* si no se resuelve, cae al comportamiento por shop_domain */
+    }
     await upsertProduct({
       shopDomain,
+      storeId,
       shopifyId: productId,
       name: asString(data.title) || null,
       sku,
