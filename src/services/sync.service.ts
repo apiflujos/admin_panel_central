@@ -351,7 +351,10 @@ async function handleShopifyProduct(payload: unknown) {
       shopifyId: productId,
       name: asString(data.title) || null,
       sku,
-      reference: sku,
+      // NO sobreescribir `reference` con el SKU: la referencia/EAN es de Alegra y
+      // no se debe cambiar desde el webhook de Shopify (protegida). Antes esto
+      // pisaba la referencia con el SKU (colisión sku=reference).
+      barcode: asString(firstVariant?.barcode) || null,
       statusShopify: asString(data.status) || null,
       sourceUpdatedAt: asString(data.updated_at) || null,
       source: "shopify",
