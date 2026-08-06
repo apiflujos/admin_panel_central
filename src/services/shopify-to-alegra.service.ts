@@ -899,7 +899,10 @@ export function buildInvoicePayload(
   // obligatorio cuando es CASH; si no hay mapeo por pasarela ni config, "cash".
   const financialStatus = String((payload as { financial_status?: unknown }).financial_status || "").toLowerCase();
   const paymentForm = financialStatus === "paid" || financialStatus === "partially_paid" ? "CASH" : "CREDIT";
-  const paymentMethod = resolvedPaymentMethod || "cash";
+  // Valor real que usa esta cuenta Alegra (visto en 500+ facturas): con CASH el
+  // paymentMethod es "CASH" (mayúscula); con CREDIT se omite. El genérico "cash"
+  // lo rechaza ("El método de pago no es válido").
+  const paymentMethod = resolvedPaymentMethod || (paymentForm === "CASH" ? "CASH" : undefined);
   const orderName = (payload as { name?: unknown }).name ? String((payload as { name?: unknown }).name) : "";
 
   // Impuesto global (tax_rules) como respaldo; el impuesto real de cada línea
@@ -954,7 +957,7 @@ export function buildInvoicePayload(
     seller: settings.sellerId ? { id: Number(settings.sellerId) } : undefined,
     // Forma y método de pago (Colombia): obligatorios en este Alegra.
     paymentForm,
-    paymentMethod,
+    ...(paymentMethod ? { paymentMethod } : {}),
     observations: interpolateObservations(settings.observationsTemplate, payload),
     // Anotación visible en la factura: referencia al pedido de Shopify.
     ...(orderName ? { anotation: `Pedido Shopify ${orderName}` } : {}),
