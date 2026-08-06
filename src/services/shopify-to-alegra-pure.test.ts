@@ -92,10 +92,10 @@ describe("buildInvoicePayload", () => {
       { alegraTaxId: "1" },
       { alegraTaxId: "2" },
     ]);
-    expect(result.items[0]).toHaveProperty("taxes");
-    expect((result.items[0] as { taxes: Array<{ id: number }> }).taxes).toEqual([{ id: 1 }, { id: 2 }]);
-    // shipping también recibe taxes
-    expect((result.items[1] as { taxes: Array<{ id: number }> }).taxes).toEqual([{ id: 1 }, { id: 2 }]);
+    expect(result.items[0]).toHaveProperty("tax");
+    expect((result.items[0] as { tax: Array<{ id: number }> }).tax).toEqual([{ id: 1 }, { id: 2 }]);
+    // shipping también recibe tax
+    expect((result.items[1] as { tax: Array<{ id: number }> }).tax).toEqual([{ id: 1 }, { id: 2 }]);
   });
 
   it("descarta taxRules con alegraTaxId vacío o 0 (queda array vacío)", () => {
@@ -104,7 +104,7 @@ describe("buildInvoicePayload", () => {
       { alegraTaxId: "0" },
       { alegraTaxId: "" },
     ]);
-    expect((result.items[0] as { taxes?: Array<{ id: number }> }).taxes).toEqual([]);
+    expect((result.items[0] as { tax?: Array<{ id: number }> }).tax).toEqual([]);
   });
 
   it("propaga costCenter, seller, warehouse, resolution como {id: number}", () => {

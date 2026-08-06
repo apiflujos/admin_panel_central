@@ -385,7 +385,65 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
   const sourceMapping = await resolvePaymentMappingBySource(pool, orgId, paymentGateways);
   const paymentMethod = sourceMapping?.paymentMethod || invoiceSettings.paymentMethod;
   const bankAccountId = sourceMapping?.accountId || defaultBankAccountId;
-  const invoicePayload = buildInvoicePayload(payload, contactId, effectiveInvoiceSettings, paymentMethod, taxRules);
+  // Alegra exige el id del ítem en cada línea de la factura (code 3065). Se
+  // resuelve por línea: id de Alegra (mapping de la variante → SKU en products)
+  // y el impuesto del ítem (para descontar el IVA del precio con-IVA de Shopify
+  // y aplicarlo como corresponde).
+  const resolvedLines = await Promise.all(
+    (payload.line_items || []).map(async (li) => {
+      const variantId = li.variant_id ? String(li.variant_id) : "";
+      let alegraItemId: string | null = null;
+      if (variantId) {
+        const mapping = await getMappingByShopifyId("item", variantId);
+        if (mapping?.alegraId) alegraItemId = String(mapping.alegraId);
+      }
+      if (!alegraItemId && li.sku) {
+        const bySku = await pool.query<{ alegra_item_id: string | null }>(
+          `SELECT alegra_item_id FROM products
+           WHERE organization_id = $1 AND sku = $2 AND alegra_item_id IS NOT NULL
+           LIMIT 1`,
+          [orgId, String(li.sku)]
+        );
+        if (bySku.rows[0]?.alegra_item_id) alegraItemId = String(bySku.rows[0].alegra_item_id);
+      }
+      let taxId: string | null = null;
+      let taxRate = 0;
+      if (alegraItemId) {
+        const taxRow = await pool.query<{ tax_id: string | null; pct: string | null }>(
+          `SELECT payload_json->'tax'->0->>'id' AS tax_id,
+                  payload_json->'tax'->0->>'percentage' AS pct
+           FROM products
+           WHERE organization_id = $1 AND alegra_item_id = $2
+           LIMIT 1`,
+          [orgId, alegraItemId]
+        );
+        if (taxRow.rows[0]?.tax_id) {
+          taxId = String(taxRow.rows[0].tax_id);
+          taxRate = Number(taxRow.rows[0].pct || 0) / 100;
+        }
+      }
+      return { alegraItemId, taxId, taxRate, sku: li.sku, variantId };
+    })
+  );
+  const unmappedLines = resolvedLines.filter((l) => !l.alegraItemId).map((l) => l.sku || l.variantId || "?");
+  if (invoiceSettings.generateInvoice && unmappedLines.length) {
+    await createSyncLog({
+      entity: "order",
+      direction: "shopify->alegra",
+      status: "fail",
+      message: "Missing Alegra item id for invoice lines",
+      request: { orderId, unmappedLines },
+    });
+    return { handled: false, reason: "missing_item_mapping" };
+  }
+  const invoicePayload = buildInvoicePayload(
+    payload,
+    contactId,
+    effectiveInvoiceSettings,
+    paymentMethod,
+    taxRules,
+    resolvedLines
+  );
   if (!invoiceSettings.generateInvoice) {
     if (orderId) {
       const orderMeta = buildOrderMetaFromPayload(payload);
@@ -821,22 +879,43 @@ export function buildInvoicePayload(
   contactId: string,
   settings: InvoiceSettings,
   paymentMethodOverride?: string,
-  taxRules?: Array<{ alegraTaxId: string }>
+  taxRules?: Array<{ alegraTaxId: string }>,
+  resolvedLines?: Array<{ alegraItemId: string | null; taxId: string | null; taxRate: number }>
 ) {
   const today = new Date().toISOString().slice(0, 10);
   const resolvedPaymentMethod = paymentMethodOverride || settings.paymentMethod;
   const status = settings.invoiceStatus === "draft" ? "draft" : undefined;
-  const taxes =
+  // Impuesto global (tax_rules) como respaldo; el impuesto real de cada línea
+  // sale del ítem de Alegra (resolvedLines[i].taxId). El campo en Alegra es
+  // `tax` (no `taxes`), un array de { id }.
+  const globalTaxes =
     taxRules && taxRules.length
       ? taxRules.map((r) => ({ id: Number(r.alegraTaxId) })).filter((t) => t.id > 0)
       : undefined;
+  // Shopify (Becam) manda precios con IVA INCLUIDO (taxes_included). Alegra
+  // espera el precio BASE (sin IVA) y aplica el impuesto encima. Se descuenta.
+  const taxesIncluded =
+    (payload as { taxes_included?: unknown }).taxes_included === true ||
+    String((payload as { taxes_included?: unknown }).taxes_included ?? "") === "true";
 
-  const lineItems = (payload.line_items || []).map((item) => ({
-    name: item.title || item.sku || "Item",
-    price: item.discounted_price ? Number(item.discounted_price) : item.price ? Number(item.price) : 0,
-    quantity: item.quantity || 1,
-    ...(taxes ? { taxes } : {}),
-  }));
+  const lineItems = (payload.line_items || []).map((item, idx) => {
+    const resolved = resolvedLines?.[idx];
+    const priceIncl = item.discounted_price
+      ? Number(item.discounted_price)
+      : item.price
+        ? Number(item.price)
+        : 0;
+    const rate = resolved?.taxRate || 0;
+    const basePrice = taxesIncluded && rate > 0 ? Number((priceIncl / (1 + rate)).toFixed(2)) : priceIncl;
+    const lineTax = resolved?.taxId ? [{ id: Number(resolved.taxId) }] : globalTaxes;
+    return {
+      ...(resolved?.alegraItemId ? { id: Number(resolved.alegraItemId) } : {}),
+      name: item.title || item.sku || "Item",
+      price: basePrice,
+      quantity: item.quantity || 1,
+      ...(lineTax ? { tax: lineTax } : {}),
+    };
+  });
 
   const shippingItems = (payload.shipping_lines || [])
     .filter((s) => Number(s.price || 0) > 0)
@@ -844,7 +923,7 @@ export function buildInvoicePayload(
       name: s.title || "Envío",
       price: Number(s.price),
       quantity: 1,
-      ...(taxes ? { taxes } : {}),
+      ...(globalTaxes ? { tax: globalTaxes } : {}),
     }));
 
   return {
