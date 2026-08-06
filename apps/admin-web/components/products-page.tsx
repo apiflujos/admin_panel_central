@@ -264,8 +264,8 @@ export function ProductsPage({
 
                   <div className="products-table-variants">
                     <div className="products-table-variants-head">
-                      <span>SKU</span>
-                      <span>Alegra ID</span>
+                      <span>Códigos (SKU · Ref · EAN)</span>
+                      <span>Código Alegra</span>
                       <span>Shopify ID</span>
                       <span className="products-table-col-num">Stock</span>
                       <span>Alegra</span>
@@ -274,11 +274,10 @@ export function ProductsPage({
                     </div>
                     {group.variants.map((variant) => (
                       <div className="products-table-variant-row" key={variant.id}>
-                        <span>
-                          {variant.sku || "—"}
-                          {variant.barcode ? (
-                            <small style={{ display: "block", opacity: 0.7 }}>CB: {variant.barcode}</small>
-                          ) : null}
+                        <span style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                          <span>SKU: {variant.sku || "—"}</span>
+                          <small style={{ opacity: 0.75 }}>Ref: {variant.reference || "—"}</small>
+                          <small style={{ opacity: 0.75 }}>EAN: {variant.barcode || "—"}</small>
                         </span>
                         <span>{variant.alegraItemId || "—"}</span>
                         <span>{variant.shopifyProductId || "—"}</span>
