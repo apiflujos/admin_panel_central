@@ -299,7 +299,6 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
     name: contactName,
     ...(identification
       ? {
-          identification,
           identificationObject: { type: identificationType, number: identification },
         }
       : {}),
@@ -323,6 +322,12 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
       await ctx.alegra.updateContact(contactId, alegraContactPayload);
     } catch (error) {
       const message = (error as { message?: string })?.message || "Contact update failed";
+      console.error(
+        "[alegra-contact-update-fail] payload=",
+        JSON.stringify(alegraContactPayload),
+        "rawError=",
+        JSON.stringify(error, Object.getOwnPropertyNames(error || {}))
+      );
       if (message.includes("2035") || message.toLowerCase().includes("identificaci")) {
         await createSyncLog({
           entity: "order",
@@ -341,6 +346,12 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
       contactId = String(created.id);
     } catch (error) {
       const message = (error as { message?: string })?.message || "Contact creation failed";
+      console.error(
+        "[alegra-contact-create-fail] payload=",
+        JSON.stringify(alegraContactPayload),
+        "rawError=",
+        JSON.stringify(error, Object.getOwnPropertyNames(error || {}))
+      );
       if (message.includes("2035") || message.toLowerCase().includes("identificaci")) {
         await createSyncLog({
           entity: "order",
