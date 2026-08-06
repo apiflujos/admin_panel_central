@@ -322,13 +322,8 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
       await ctx.alegra.updateContact(contactId, alegraContactPayload);
     } catch (error) {
       const message = (error as { message?: string })?.message || "Contact update failed";
-      console.error(
-        "[alegra-contact-update-fail] payload=",
-        JSON.stringify(alegraContactPayload),
-        "rawError=",
-        JSON.stringify(error, Object.getOwnPropertyNames(error || {}))
-      );
-      if (message.includes("2035") || message.toLowerCase().includes("identificaci")) {
+      // Solo 2035 = falta el TIPO de identificación (fail-closed legítimo).
+      if (message.includes("2035")) {
         await createSyncLog({
           entity: "order",
           direction: "shopify->alegra",
@@ -346,13 +341,14 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
       contactId = String(created.id);
     } catch (error) {
       const message = (error as { message?: string })?.message || "Contact creation failed";
-      console.error(
-        "[alegra-contact-create-fail] payload=",
-        JSON.stringify(alegraContactPayload),
-        "rawError=",
-        JSON.stringify(error, Object.getOwnPropertyNames(error || {}))
-      );
-      if (message.includes("2035") || message.toLowerCase().includes("identificaci")) {
+      // 2006 = ya existe un contacto con esa identificación (el cliente estaba en
+      // Alegra pero con otro email, así que el match por email falló). Se REUTILIZA
+      // ese contacto en vez de duplicar; Alegra devuelve su contactId en el error.
+      const duplicateContactId = extractDuplicateContactId(error);
+      if (duplicateContactId) {
+        contactId = duplicateContactId;
+      } else if (message.includes("2035")) {
+        // Solo 2035 = falta el TIPO de identificación (fail-closed legítimo).
         await createSyncLog({
           entity: "order",
           direction: "shopify->alegra",
@@ -361,8 +357,9 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
           request: { orderId },
         });
         return { handled: false, reason: "missing_identification_type" };
+      } else {
+        throw error;
       }
-      throw error;
     }
   }
 
@@ -720,6 +717,27 @@ export function mapShopifyToAlegraContact(
     identification: hasRealIdentification ? derivedIdentification : "",
     hasRealIdentification,
   };
+}
+
+// Alegra responde 400 code 2006 ("Ya existe un contacto con la identificación ...")
+// cuando se intenta crear un contacto cuyo documento ya existe. El detalle del
+// error incluye el contactId existente; se extrae para reutilizarlo en vez de
+// duplicar el contacto.
+function extractDuplicateContactId(error: unknown): string | null {
+  const raw =
+    (error as { detail?: string })?.detail || (error as { message?: string })?.message || "";
+  if (!raw.includes("2006")) return null;
+  const start = raw.indexOf("{");
+  if (start >= 0) {
+    try {
+      const parsed = JSON.parse(raw.slice(start)) as { code?: unknown; contactId?: unknown };
+      if (String(parsed.code) === "2006" && parsed.contactId) return String(parsed.contactId);
+    } catch {
+      /* cae al regex de respaldo */
+    }
+  }
+  const match = raw.match(/"contactId"\s*:\s*"?(\d+)"?/);
+  return match ? match[1] : null;
 }
 
 function buildProductsSummaryFromPayload(payload: ShopifyOrderPayload) {
