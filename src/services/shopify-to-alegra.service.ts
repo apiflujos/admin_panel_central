@@ -290,9 +290,19 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
   // Alegra /contacts espera la dirección como OBJETO y rechaza (400) campos
   // sueltos como city/department/country/postalCode/identificationType a nivel
   // raíz. Se arma un payload limpio con la estructura que Alegra acepta.
+  // La identificación DEBE viajar con su tipo: Alegra Colombia exige
+  // `identificationObject: { type, number }` y responde 2035 ("Missing
+  // identification type") si solo se manda el número suelto. (Bug anterior:
+  // el tipo `CC` se calculaba pero se botaba al armar este payload.)
+  const identificationType = String((rawContact as { identificationType?: unknown }).identificationType || "CC");
   const alegraContactPayload: Record<string, unknown> = {
     name: contactName,
-    ...(identification ? { identification } : {}),
+    ...(identification
+      ? {
+          identification,
+          identificationObject: { type: identificationType, number: identification },
+        }
+      : {}),
     ...(rawContact.email ? { email: rawContact.email } : {}),
     ...(rawContact.phonePrimary ? { phonePrimary: rawContact.phonePrimary } : {}),
     ...(rawContact.address
