@@ -885,6 +885,23 @@ export function buildInvoicePayload(
   const today = new Date().toISOString().slice(0, 10);
   const resolvedPaymentMethod = paymentMethodOverride || settings.paymentMethod;
   const status = settings.invoiceStatus === "draft" ? "draft" : undefined;
+
+  // Fecha de la factura = fecha real del pedido (processed_at/created_at), no
+  // "hoy". Alegra exige date y dueDate (yyyy-MM-dd).
+  const orderDateRaw =
+    (payload as { processed_at?: unknown }).processed_at ||
+    (payload as { created_at?: unknown }).created_at ||
+    null;
+  const invoiceDate = orderDateRaw ? String(orderDateRaw).slice(0, 10) : today;
+
+  // Forma de pago (Colombia, OBLIGATORIA en este Alegra): si el pedido está
+  // pagado → contado (CASH); si no → crédito (CREDIT). paymentMethod es
+  // obligatorio cuando es CASH; si no hay mapeo por pasarela ni config, "cash".
+  const financialStatus = String((payload as { financial_status?: unknown }).financial_status || "").toLowerCase();
+  const paymentForm = financialStatus === "paid" || financialStatus === "partially_paid" ? "CASH" : "CREDIT";
+  const paymentMethod = resolvedPaymentMethod || "cash";
+  const orderName = (payload as { name?: unknown }).name ? String((payload as { name?: unknown }).name) : "";
+
   // Impuesto global (tax_rules) como respaldo; el impuesto real de cada línea
   // sale del ítem de Alegra (resolvedLines[i].taxId). El campo en Alegra es
   // `tax` (no `taxes`), un array de { id }.
@@ -928,15 +945,19 @@ export function buildInvoicePayload(
 
   return {
     client: Number(contactId),
-    date: today,
-    dueDate: today,
+    date: invoiceDate,
+    dueDate: invoiceDate,
     status,
     resolution: settings.resolutionId ? { id: Number(settings.resolutionId) } : undefined,
     costCenter: settings.costCenterId ? { id: Number(settings.costCenterId) } : undefined,
     warehouse: settings.warehouseId ? { id: Number(settings.warehouseId) } : undefined,
     seller: settings.sellerId ? { id: Number(settings.sellerId) } : undefined,
-    paymentMethod: resolvedPaymentMethod || undefined,
+    // Forma y método de pago (Colombia): obligatorios en este Alegra.
+    paymentForm,
+    paymentMethod,
     observations: interpolateObservations(settings.observationsTemplate, payload),
+    // Anotación visible en la factura: referencia al pedido de Shopify.
+    ...(orderName ? { anotation: `Pedido Shopify ${orderName}` } : {}),
     items: [...lineItems, ...shippingItems],
   };
 }
