@@ -884,7 +884,10 @@ export function buildInvoicePayload(
 ) {
   const today = new Date().toISOString().slice(0, 10);
   const resolvedPaymentMethod = paymentMethodOverride || settings.paymentMethod;
-  const status = settings.invoiceStatus === "draft" ? "draft" : undefined;
+  // "open" = factura emitida (no borrador). Sin objeto `stamp` NO se emite
+  // electrónicamente a la DIAN (queda como factura normal). Draft solo si se
+  // configura explícitamente.
+  const status = settings.invoiceStatus === "draft" ? "draft" : "open";
 
   // Fecha de la factura = fecha real del pedido (processed_at/created_at), no
   // "hoy". Alegra exige date y dueDate (yyyy-MM-dd).
@@ -1197,7 +1200,8 @@ async function createPaymentForInvoice(input: {
       },
     ],
     observations: input.observations || undefined,
-    type: "received",
+    // Alegra solo acepta "in" (ingreso) u "out" (egreso). "received" da 4007.
+    type: "in",
   };
   return input.ctx.alegra.createPayment(payload);
 }
