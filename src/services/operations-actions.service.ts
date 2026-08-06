@@ -52,7 +52,8 @@ export async function emitPaymentForOrder(orderId: string) {
     observations:
       interpolateObservations(invoiceSettings.observationsTemplate, orderId, orderInfo.orderName, orderInfo.email) ||
       undefined,
-    type: "received",
+    // Alegra solo acepta "in" (ingreso) u "out" (egreso). "received" da 4007.
+    type: "in",
   };
 
   const result = await ctx.alegra.createPayment(paymentPayload);
