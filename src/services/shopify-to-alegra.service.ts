@@ -57,8 +57,6 @@ type ShopifyOrderPayload = {
   shipping_lines?: Array<{ title?: string; price?: string }>;
   financial_status?: string;
   fulfillment_status?: string | null;
-  // Pasarela(s) de pago de Shopify: se usan para decidir CASH vs CREDIT.
-  payment_gateway_names?: string[];
 };
 
 type ForceSyncOptions = {
