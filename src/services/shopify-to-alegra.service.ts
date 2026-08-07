@@ -583,7 +583,15 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
       request: { orderId: orderId || null },
     });
   }
-  if (paymentAllowedStatuses.has(financialStatus) && invoiceSettings.applyPayment && invoiceId) {
+  // El pago solo se puede registrar sobre una factura EMITIDA (open). Con
+  // "Factura electrónica" en OFF la factura queda en borrador y Alegra rechaza
+  // el pago (4096). Por eso el pago solo se intenta cuando la emisión está ON.
+  if (
+    paymentAllowedStatuses.has(financialStatus) &&
+    invoiceSettings.applyPayment &&
+    invoiceSettings.einvoiceEnabled &&
+    invoiceId
+  ) {
     if (!bankAccountId) {
       await createSyncLog({
         entity: "order",
@@ -884,10 +892,10 @@ export function buildInvoicePayload(
 ) {
   const today = new Date().toISOString().slice(0, 10);
   const resolvedPaymentMethod = paymentMethodOverride || settings.paymentMethod;
-  // "open" = factura emitida (no borrador). Sin objeto `stamp` NO se emite
-  // electrónicamente a la DIAN (queda como factura normal). Draft solo si se
-  // configura explícitamente.
-  const status = settings.invoiceStatus === "draft" ? "draft" : "open";
+  // Controlado por el toggle "Factura electrónica" (einvoiceEnabled):
+  //  - OFF → "draft" (para pruebas desde Shopify, NO se emite a la DIAN).
+  //  - ON  → "open" + objeto `stamp` (se emite electrónicamente a la DIAN).
+  const status = settings.einvoiceEnabled ? "open" : "draft";
 
   // Fecha de la factura = fecha real del pedido (processed_at/created_at), no
   // "hoy". Alegra exige date y dueDate (yyyy-MM-dd).
@@ -964,6 +972,9 @@ export function buildInvoicePayload(
     observations: interpolateObservations(settings.observationsTemplate, payload),
     // Anotación visible en la factura: referencia al pedido de Shopify.
     ...(orderName ? { anotation: `Pedido Shopify ${orderName}` } : {}),
+    // Emisión electrónica a la DIAN: solo cuando el toggle "Factura electrónica"
+    // está en Sí. En OFF NO se manda stamp → la factura queda como borrador.
+    ...(settings.einvoiceEnabled ? { stamp: { generateStamp: true } } : {}),
     items: [...lineItems, ...shippingItems],
   };
 }
