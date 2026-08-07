@@ -182,6 +182,10 @@ export class AlegraClient {
     return this.request(`/invoices/${id}`);
   }
 
+  async deleteInvoice(id: string) {
+    return this.request(`/invoices/${id}`, { method: "DELETE" });
+  }
+
   async getInvoicePdf(id: string) {
     const response = await this.requestRaw(`/invoices/${id}/pdf`, {
       method: "GET",

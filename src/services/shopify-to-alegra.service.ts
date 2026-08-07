@@ -660,11 +660,13 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
   const adjustmentWarehouseId = resolvedWarehouseId ? String(resolvedWarehouseId) : ctx.alegraWarehouseId;
   const adjustmentKey = orderId ? `inventory-adjust:${orderId}` : undefined;
   let adjustment = null;
-  // El ajuste de inventario en Alegra solo cuando la factura se EMITE
-  // (electrónica ON). En borrador (pruebas) no se mueve stock; además evita el
-  // error del endpoint /inventory-adjustments (id string + type + unitCost),
-  // que se corrige por separado.
-  if (adjustmentKey && invoiceSettings.einvoiceEnabled) {
+  // Ajuste de inventario DESACTIVADO a propósito: cuando Alegra EMITE la factura
+  // ya descuenta el stock de los ítems (bodega Principal por defecto). Un ajuste
+  // separado DUPLICARÍA el descuento. Se deja el toggle por si algún día se
+  // factura sin descontar stock; en ese caso hay que actualizar el payload de
+  // createInventoryAdjustmentFromOrder (Alegra exige id string + type + unitCost).
+  const INVENTORY_ADJUSTMENT_ENABLED = false;
+  if (INVENTORY_ADJUSTMENT_ENABLED && adjustmentKey && invoiceSettings.einvoiceEnabled) {
     const idempotency = await acquireIdempotencyKey(adjustmentKey);
     if (!idempotency.acquired) {
       await createSyncLog({
@@ -687,7 +689,7 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
         throw error;
       }
     }
-  } else if (!adjustmentKey && invoiceSettings.einvoiceEnabled) {
+  } else if (INVENTORY_ADJUSTMENT_ENABLED && !adjustmentKey && invoiceSettings.einvoiceEnabled) {
     adjustment = await createInventoryAdjustmentFromOrder(payload, adjustmentWarehouseId, ctx);
   }
 
