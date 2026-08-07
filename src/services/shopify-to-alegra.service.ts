@@ -779,8 +779,22 @@ export function mapShopifyToAlegraContact(
   const companyId = String(companyRaw).replace(/\D/g, "");
   // Nunca fabricamos NIT: si no hay ID real, dejamos vacío para que fail-closed downstream
   // (Alegra 2035) o el operador cargue un override e-invoice.
+  // Prioridad de la cédula (antes usaba el teléfono primero, y a clientes con
+  // celular les ponía el número de celular como "cédula"):
+  //  1) override e-invoice (si aplica).
+  //  2) `company` de la dirección: es el campo donde Becam recoge la CÉDULA
+  //     (cuando trae dígitos). Va PRIMERO para no confundir teléfono con cédula.
+  //  3) teléfono SOLO si no parece un celular colombiano (10 dígitos que
+  //     empiezan por 3): un celular real no es una cédula.
+  const phoneLooksLikeMobile = normalizedPhoneId.length === 10 && normalizedPhoneId.startsWith("3");
   const derivedIdentification =
-    einvoiceActive && override?.idNumber ? override.idNumber : phoneValid ? normalizedPhoneId : companyId;
+    einvoiceActive && override?.idNumber
+      ? override.idNumber
+      : companyId.length >= 6
+        ? companyId
+        : phoneValid && !phoneLooksLikeMobile
+          ? normalizedPhoneId
+          : "";
   const hasRealIdentification = Boolean(derivedIdentification && derivedIdentification.length >= 6);
 
   return {
