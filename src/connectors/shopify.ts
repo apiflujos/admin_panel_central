@@ -595,6 +595,7 @@ export type ShopifyOrder = {
   displayFinancialStatus?: string | null;
   displayFulfillmentStatus?: string | null;
   paymentGatewayNames?: string[] | null;
+  taxesIncluded?: boolean | null;
   updatedAt?: string | null;
   processedAt?: string | null;
   shippingAddress?: {
@@ -764,6 +765,7 @@ const ORDER_BY_ID_QUERY = `
       displayFinancialStatus
       displayFulfillmentStatus
       paymentGatewayNames
+      taxesIncluded
       updatedAt
       processedAt
       shippingAddress { address1 city province zip countryCodeV2 company }
@@ -846,6 +848,7 @@ const ORDERS_UPDATED_SINCE_QUERY = `
           displayFinancialStatus
           displayFulfillmentStatus
           paymentGatewayNames
+          taxesIncluded
           updatedAt
           processedAt
           shippingAddress { address1 city province zip countryCodeV2 company }
@@ -888,6 +891,7 @@ const ORDERS_PAGED_QUERY = `
           displayFinancialStatus
           displayFulfillmentStatus
           paymentGatewayNames
+          taxesIncluded
           updatedAt
           processedAt
           shippingAddress { address1 city province zip countryCodeV2 company }

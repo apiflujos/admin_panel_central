@@ -347,6 +347,10 @@ export function mapOrderToPayload(order: ShopifyOrder) {
     payment_gateway_names: Array.isArray(order.paymentGatewayNames)
       ? order.paymentGatewayNames.filter(Boolean)
       : undefined,
+    // IMPRESCINDIBLE para el cálculo del IVA: sin esto buildInvoicePayload cree
+    // que el precio NO trae IVA y Alegra lo suma otra vez (doble IVA). Becam
+    // maneja precios con IVA incluido (taxes_included=true).
+    taxes_included: order.taxesIncluded ?? true,
     total_price: order.totalPriceSet?.shopMoney?.amount || "0",
     currency: order.totalPriceSet?.shopMoney?.currencyCode || "COP",
     customer: order.customer
