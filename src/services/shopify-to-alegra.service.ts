@@ -49,10 +49,16 @@ type ShopifyOrderPayload = {
     discounted_price?: string;
     title?: string;
     variant_id?: number | string;
+    // Descuentos por línea (apps de descuento por cantidad los ponen aquí, no en
+    // `discounted_price`). `total_discount` es el total del descuento de la línea.
+    total_discount?: string;
+    discount_allocations?: Array<{ amount?: string }>;
   }>;
   shipping_lines?: Array<{ title?: string; price?: string }>;
   financial_status?: string;
   fulfillment_status?: string | null;
+  // Pasarela(s) de pago de Shopify: se usan para decidir CASH vs CREDIT.
+  payment_gateway_names?: string[];
 };
 
 type ForceSyncOptions = {
@@ -925,11 +931,18 @@ export function buildInvoicePayload(
     null;
   const invoiceDate = orderDateRaw ? String(orderDateRaw).slice(0, 10) : today;
 
-  // Forma de pago (Colombia, OBLIGATORIA en este Alegra): si el pedido está
-  // pagado → contado (CASH); si no → crédito (CREDIT). paymentMethod es
-  // obligatorio cuando es CASH; si no hay mapeo por pasarela ni config, "cash".
+  // Forma de pago (Colombia, OBLIGATORIA en este Alegra):
+  //  - Si la PASARELA de Shopify es de crédito (Sistecredito, Crédito Mayorista,
+  //    financiación…) → CREDIT, aunque Shopify lo marque "paid".
+  //  - Si no: pagado → contado (CASH); sin pagar → CREDIT.
+  // paymentMethod es obligatorio cuando es CASH.
   const financialStatus = String((payload as { financial_status?: unknown }).financial_status || "").toLowerCase();
-  const paymentForm = financialStatus === "paid" || financialStatus === "partially_paid" ? "CASH" : "CREDIT";
+  const gateways = Array.isArray(payload.payment_gateway_names)
+    ? payload.payment_gateway_names.map((g) => String(g))
+    : [];
+  const gatewayIsCredit = gateways.some((g) => /cr[eé]dito|credito|sistecredito|financ|cuota/i.test(g));
+  const isPaid = financialStatus === "paid" || financialStatus === "partially_paid";
+  const paymentForm = gatewayIsCredit ? "CREDIT" : isPaid ? "CASH" : "CREDIT";
   // Valor real que usa esta cuenta Alegra (visto en 500+ facturas): con CASH el
   // paymentMethod es "CASH" (mayúscula); con CREDIT se omite. El genérico "cash"
   // lo rechaza ("El método de pago no es válido").
@@ -951,6 +964,10 @@ export function buildInvoicePayload(
 
   const lineItems = (payload.line_items || []).map((item, idx) => {
     const resolved = resolvedLines?.[idx];
+    // Si Shopify ya trae `discounted_price` (neto), se usa tal cual. Si no (las
+    // apps de descuento por cantidad NO lo llenan), se usa el precio full y el
+    // descuento se manda aparte como porcentaje (ver `discount`).
+    const usedGrossPrice = !item.discounted_price;
     const priceIncl = item.discounted_price
       ? Number(item.discounted_price)
       : item.price
@@ -959,11 +976,28 @@ export function buildInvoicePayload(
     const rate = resolved?.taxRate || 0;
     const basePrice = taxesIncluded && rate > 0 ? Number((priceIncl / (1 + rate)).toFixed(2)) : priceIncl;
     const lineTax = resolved?.taxId ? [{ id: Number(resolved.taxId) }] : globalTaxes;
+    const quantity = item.quantity || 1;
+    // Descuento de la línea (app de descuento por cantidad): `total_discount` o la
+    // suma de `discount_allocations`. Se convierte a % sobre el bruto de la línea
+    // (el % es igual con o sin IVA, así que aplica al precio base). Alegra aplica
+    // el descuento y luego el impuesto.
+    const lineDiscountAmount = usedGrossPrice
+      ? Number(item.total_discount || 0) ||
+        (Array.isArray(item.discount_allocations)
+          ? item.discount_allocations.reduce((sum, a) => sum + Number(a?.amount || 0), 0)
+          : 0)
+      : 0;
+    const lineGross = priceIncl * quantity;
+    const discountPct =
+      lineGross > 0 && lineDiscountAmount > 0
+        ? Number(((lineDiscountAmount / lineGross) * 100).toFixed(4))
+        : 0;
     return {
       ...(resolved?.alegraItemId ? { id: Number(resolved.alegraItemId) } : {}),
       name: item.title || item.sku || "Item",
       price: basePrice,
-      quantity: item.quantity || 1,
+      quantity,
+      ...(discountPct > 0 ? { discount: discountPct } : {}),
       ...(lineTax ? { tax: lineTax } : {}),
     };
   });
