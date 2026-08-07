@@ -271,9 +271,15 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
     einvoiceActive,
     override: override || undefined,
   });
-  // Fail-closed: si no hay identificación real, no se crea invoice — el operador debe
-  // cargar override e-invoice con NIT/CC válido antes de reintentar. (Antes: se fabricaba "3000000000").
-  if (!contactMapping.hasRealIdentification) {
+  // Fail-closed SOLO si además el cliente NO existe ya en Alegra. Muchos pedidos
+  // no traen la cédula en el payload (el cliente pone un nombre en `company`),
+  // pero el cliente YA existe en Alegra —por email o por mapping— con su cédula
+  // guardada. En ese caso se usa ese contacto existente (el update no manda
+  // identificación, así que no le borra la cédula). Solo se falla cuando no hay
+  // cédula en el pedido Y tampoco existe el contacto. (Antes fallaba aunque el
+  // cliente existiera con cédula válida en Alegra.)
+  const hasExistingContact = Boolean(existing && existing.length > 0);
+  if (!contactMapping.hasRealIdentification && !hasExistingContact) {
     await createSyncLog({
       entity: "order",
       direction: "shopify->alegra",
