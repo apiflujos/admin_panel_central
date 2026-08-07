@@ -17,7 +17,10 @@ import { resolveAlegraClientForStore } from "../services/alegra-product-import.s
 const argv = process.argv.slice(2);
 const APPLY = argv.includes("--apply");
 const idsArg = argv.find((a) => a.startsWith("--ids="))?.split("=")[1];
-const DEFAULT_TEST_IDS = ["8606", "8607", "8608", "8613", "8614", "8615", "8616"];
+// Borradores de MIS pruebas (#1563 PANTERAPRUEBA y #1573 con descuento). Los
+// borradores de pedidos REALES creados durante las pruebas (8608–8611) NO se
+// incluyen aquí: pásalos con --ids si decides borrarlos.
+const DEFAULT_TEST_IDS = ["8606", "8607", "8612", "8613", "8614", "8615", "8616"];
 const ids = (idsArg ? idsArg.split(",") : DEFAULT_TEST_IDS).map((s) => s.trim()).filter(Boolean);
 const orgId = Number(process.env.APP_ORG_ID || 1);
 
