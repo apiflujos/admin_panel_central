@@ -596,6 +596,7 @@ export type ShopifyOrder = {
   displayFulfillmentStatus?: string | null;
   paymentGatewayNames?: string[] | null;
   taxesIncluded?: boolean | null;
+  tags?: string[] | null;
   updatedAt?: string | null;
   processedAt?: string | null;
   shippingAddress?: {

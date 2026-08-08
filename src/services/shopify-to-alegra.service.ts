@@ -23,6 +23,9 @@ type ShopifyOrderPayload = {
   __shopDomain?: string;
   payment_gateway_names?: string[];
   gateway?: string;
+  // Etiquetas del pedido (Shopify: string separado por comas). Puede traer el
+  // medio de pago (crediplatam, crédito directo, etc.).
+  tags?: string;
   customer?: {
     id?: number | string;
     first_name?: string;
@@ -953,6 +956,17 @@ export function buildInvoicePayload(
   const paymentMethod = resolvedPaymentMethod || (paymentForm === "CASH" ? "CASH" : undefined);
   const orderName = (payload as { name?: unknown }).name ? String((payload as { name?: unknown }).name) : "";
 
+  // Medio de pago que viaja a la factura (anotación visible). Sale de la
+  // PASARELA (Sistecredito, Crédito Mayorista, Bank Deposit, Mercado Pago…) y,
+  // si el pedido trae etiquetas que parezcan medio de pago (crediplatam, crédito
+  // directo, sistecredito…), también se incluyen. Se deduplica.
+  const orderTags = String((payload as { tags?: unknown }).tags || "")
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const paymentTags = orderTags.filter((t) => /credi|cr[eé]dito|platam|sistecredito|directo|contado/i.test(t));
+  const paymentMedium = Array.from(new Set([...gateways, ...paymentTags].filter(Boolean))).join(", ");
+
   // Impuesto global (tax_rules) como respaldo; el impuesto real de cada línea
   // sale del ítem de Alegra (resolvedLines[i].taxId). El campo en Alegra es
   // `tax` (no `taxes`), un array de { id }.
@@ -1028,8 +1042,15 @@ export function buildInvoicePayload(
     paymentForm,
     ...(paymentMethod ? { paymentMethod } : {}),
     observations: interpolateObservations(settings.observationsTemplate, payload),
-    // Anotación visible en la factura: referencia al pedido de Shopify.
-    ...(orderName ? { anotation: `Pedido Shopify ${orderName}` } : {}),
+    // Anotación visible en la factura: referencia al pedido + medio de pago
+    // (pasarela/etiquetas: Sistecredito, Crédito Mayorista, crediplatam, etc.).
+    ...(orderName || paymentMedium
+      ? {
+          anotation: [orderName ? `Pedido Shopify ${orderName}` : "", paymentMedium ? `Medio de pago: ${paymentMedium}` : ""]
+            .filter(Boolean)
+            .join(" · "),
+        }
+      : {}),
     // Emisión electrónica a la DIAN: solo cuando el toggle "Factura electrónica"
     // está en Sí. En OFF NO se manda stamp → la factura queda como borrador.
     ...(settings.einvoiceEnabled ? { stamp: { generateStamp: true } } : {}),

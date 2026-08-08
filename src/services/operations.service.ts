@@ -347,6 +347,8 @@ export function mapOrderToPayload(order: ShopifyOrder) {
     payment_gateway_names: Array.isArray(order.paymentGatewayNames)
       ? order.paymentGatewayNames.filter(Boolean)
       : undefined,
+    // Etiquetas del pedido (puede traer el medio de pago: crediplatam, etc.).
+    tags: Array.isArray(order.tags) ? order.tags.filter(Boolean).join(", ") : undefined,
     // IMPRESCINDIBLE para el cálculo del IVA: sin esto buildInvoicePayload cree
     // que el precio NO trae IVA y Alegra lo suma otra vez (doble IVA). Becam
     // maneja precios con IVA incluido (taxes_included=true).
