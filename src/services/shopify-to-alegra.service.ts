@@ -924,7 +924,6 @@ export function buildInvoicePayload(
   resolvedLines?: Array<{ alegraItemId: string | null; taxId: string | null; taxRate: number }>
 ) {
   const today = new Date().toISOString().slice(0, 10);
-  const resolvedPaymentMethod = paymentMethodOverride || settings.paymentMethod;
   // Controlado por el toggle "Factura electrónica" (einvoiceEnabled):
   //  - OFF → "draft" (para pruebas desde Shopify, NO se emite a la DIAN).
   //  - ON  → "open" + objeto `stamp` (se emite electrónicamente a la DIAN).
@@ -951,9 +950,11 @@ export function buildInvoicePayload(
   const isPaid = financialStatus === "paid" || financialStatus === "partially_paid";
   const paymentForm = gatewayIsCredit ? "CREDIT" : isPaid ? "CASH" : "CREDIT";
   // Valor real que usa esta cuenta Alegra (visto en 500+ facturas): con CASH el
-  // paymentMethod es "CASH" (mayúscula); con CREDIT se omite. El genérico "cash"
-  // lo rechaza ("El método de pago no es válido").
-  const paymentMethod = resolvedPaymentMethod || (paymentForm === "CASH" ? "CASH" : undefined);
+  // paymentMethod de la FACTURA es "CASH" (mayúscula); con CREDIT se omite. NO se
+  // usa el método de la pasarela/config (ej. "transfer") aquí — Alegra lo rechaza
+  // en la factura ("El método de pago no es válido"). Ese método real (por
+  // pasarela) va SOLO en el registro del pago (createPaymentForInvoice).
+  const paymentMethod = paymentForm === "CASH" ? "CASH" : undefined;
   const orderName = (payload as { name?: unknown }).name ? String((payload as { name?: unknown }).name) : "";
 
   // Medio de pago que viaja a la factura (anotación visible). Sale de la

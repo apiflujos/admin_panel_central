@@ -77,10 +77,16 @@ describe("buildInvoicePayload", () => {
     expect(result.items).toHaveLength(1);
   });
 
-  it("respeta paymentMethodOverride sobre settings.paymentMethod", () => {
-    const payload = { line_items: [] } as never;
-    const result = buildInvoicePayload(payload, "1", baseSettings, "credit_card");
-    expect(result.paymentMethod).toBe("credit_card");
+  it("paymentMethod de la factura: CASH si contado, omitido si crédito", () => {
+    // La factura de esta cuenta Alegra solo acepta "CASH" (contado) u omitido
+    // (crédito). El método de la pasarela va en el pago, no en la factura.
+    const paid = { line_items: [], financial_status: "paid" } as never;
+    expect(buildInvoicePayload(paid, "1", baseSettings).paymentForm).toBe("CASH");
+    expect(buildInvoicePayload(paid, "1", baseSettings).paymentMethod).toBe("CASH");
+    const credit = { line_items: [] } as never; // sin financial_status → CREDIT
+    const creditResult = buildInvoicePayload(credit, "1", baseSettings) as { paymentForm: string; paymentMethod?: string };
+    expect(creditResult.paymentForm).toBe("CREDIT");
+    expect(creditResult.paymentMethod).toBeUndefined();
   });
 
   it("aplica taxes a cada item cuando se pasa taxRules", () => {
