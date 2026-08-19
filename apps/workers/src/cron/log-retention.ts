@@ -5,7 +5,19 @@ import { getPool } from "../../../../src/db";
  * sync_logs pesa >200 MB). Borra en LOTES pequeños para no bloquear la tabla.
  * Días de retención configurables por env.
  */
-const TABLES: Array<{ table: string; tsColumn: string; days: number }> = [
+const NOISE_DAYS = Number(process.env.NOISE_LOGS_RETENTION_DAYS || 3);
+const TABLES: Array<{ table: string; tsColumn: string; days: number; where?: string; label?: string }> = [
+  // Logs de ALTO volumen y bajo valor (churn del poller / warns repetidos): se
+  // retienen pocos días. Son ~78% de sync_logs.
+  { table: "sync_logs", tsColumn: "created_at", days: NOISE_DAYS, where: "entity = 'orders_sync'", label: "sync_logs[orders_sync]" },
+  {
+    table: "sync_logs",
+    tsColumn: "created_at",
+    days: NOISE_DAYS,
+    where: "message LIKE 'Invoice settings incomplete%'",
+    label: "sync_logs[invoice-settings-warn]",
+  },
+  // Retención general.
   { table: "sync_logs", tsColumn: "created_at", days: Number(process.env.SYNC_LOGS_RETENTION_DAYS || 30) },
   {
     table: "inventory_transfer_decisions",
@@ -17,24 +29,23 @@ const TABLES: Array<{ table: string; tsColumn: string; days: number }> = [
 ];
 
 const BATCH = 5000;
-const MAX_BATCHES_PER_RUN = 40; // hasta 200k filas por tabla por corrida
+const MAX_BATCHES_PER_RUN = 60; // hasta 300k filas por regla por corrida
 
-async function purge(table: string, tsColumn: string, days: number) {
+async function purge(table: string, tsColumn: string, days: number, where?: string, label?: string) {
   if (!(days > 0)) return;
   const pool = getPool();
+  // `table`/`tsColumn`/`where` son constantes internas (no entran del usuario) → sin inyección.
+  const cond = `${tsColumn} < now() - ($1 || ' days')::interval${where ? ` AND ${where}` : ""}`;
   let total = 0;
   for (let i = 0; i < MAX_BATCHES_PER_RUN; i += 1) {
-    // `table`/`tsColumn` son constantes internas (no entran del usuario) → sin riesgo de inyección.
     const res = await pool.query(
-      `DELETE FROM ${table} WHERE ctid IN (
-         SELECT ctid FROM ${table} WHERE ${tsColumn} < now() - ($1 || ' days')::interval LIMIT ${BATCH}
-       )`,
+      `DELETE FROM ${table} WHERE ctid IN (SELECT ctid FROM ${table} WHERE ${cond} LIMIT ${BATCH})`,
       [String(days)]
     );
     total += res.rowCount || 0;
     if (!res.rowCount) break;
   }
-  if (total) console.log(`[log-retention] ${table}: ${total} filas borradas (> ${days} días)`);
+  if (total) console.log(`[log-retention] ${label || table}: ${total} filas borradas (> ${days} días)`);
 }
 
 export function startLogRetentionWorker() {
@@ -42,11 +53,11 @@ export function startLogRetentionWorker() {
   if (!(intervalMs > 0)) return;
 
   const run = async () => {
-    for (const { table, tsColumn, days } of TABLES) {
+    for (const { table, tsColumn, days, where, label } of TABLES) {
       try {
-        await purge(table, tsColumn, days);
+        await purge(table, tsColumn, days, where, label);
       } catch (error) {
-        console.error(`[log-retention] ${table} falló:`, error instanceof Error ? error.message : error);
+        console.error(`[log-retention] ${label || table} falló:`, error instanceof Error ? error.message : error);
       }
     }
   };
