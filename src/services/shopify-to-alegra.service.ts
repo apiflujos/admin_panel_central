@@ -1,4 +1,5 @@
 import { buildSyncContext } from "./sync-context";
+import { alegraInvoicePayloadSchema, validateAlegraPayload } from "../contracts/alegra";
 import { getMappingByShopifyId, saveMapping, updateMappingMetadata } from "./mapping.service";
 import { upsertContact } from "./contacts.service";
 import { upsertOrder } from "./orders.service";
@@ -462,6 +463,21 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
     taxRules,
     resolvedLines
   );
+  // Defensa en profundidad: validar el payload contra el contrato Zod antes de
+  // llamar a Alegra. No bloquea (solo avisa) — surface temprano de bugs de
+  // payload (id de ítem faltante, ciudad sin departamento, etc.).
+  if (invoiceSettings.generateInvoice) {
+    const contractIssues = validateAlegraPayload(alegraInvoicePayloadSchema, invoicePayload);
+    if (contractIssues.length) {
+      await createSyncLog({
+        entity: "order",
+        direction: "shopify->alegra",
+        status: "warn",
+        message: `Payload de factura no cumple contrato Zod: ${contractIssues.slice(0, 5).join("; ")}`,
+        request: { orderId: orderId || null },
+      });
+    }
+  }
   if (!invoiceSettings.generateInvoice) {
     if (orderId) {
       const orderMeta = buildOrderMetaFromPayload(payload);
