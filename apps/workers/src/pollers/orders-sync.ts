@@ -10,11 +10,17 @@ const toIso = (value: number) => new Date(value).toISOString();
 const checkpointKey = (shopDomain: string) => `orders_sync:${shopDomain}`;
 
 const resolveSince = async (shopDomain: string, lookbackMinutes: number) => {
+  // Piso de tiempo: nunca consultar más atrás que `lookbackMinutes`. Si un pedido
+  // falla SIEMPRE (sin cédula, sin match, etc.), el checkpoint queda anclado en su
+  // `updatedAt` y sin este tope el poller lo reprocesaría en cada tick para siempre
+  // (el churn que satura el servidor). Con el tope, un pedido que falla deja de
+  // reintentarse tras `lookbackMinutes`.
+  const floorMs = Date.now() - lookbackMinutes * 60 * 1000;
   const checkpoint = await getSyncCheckpoint(checkpointKey(shopDomain));
   if (checkpoint?.lastStart) {
-    return Date.parse(toIso(checkpoint.lastStart));
+    return Math.max(Date.parse(toIso(checkpoint.lastStart)), floorMs);
   }
-  return Date.now() - lookbackMinutes * 60 * 1000;
+  return floorMs;
 };
 
 const extractUpdatedAt = (order: { updatedAt?: string | null; processedAt?: string | null }) => {
@@ -33,9 +39,15 @@ const safeCreateSyncLog = async (payload: Parameters<typeof createSyncLog>[0]) =
 
 export function startOrdersSyncWorker() {
   const intervalSeconds = Number(process.env.ORDERS_SYNC_POLL_SECONDS || 300);
-  const intervalMs = intervalSeconds > 0 ? intervalSeconds * 1000 : Number(process.env.ORDERS_SYNC_POLL_MS || 0);
+  let intervalMs = intervalSeconds > 0 ? intervalSeconds * 1000 : Number(process.env.ORDERS_SYNC_POLL_MS || 0);
   if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
     return;
+  }
+  // Piso de 60s: correr cada pocos segundos satura el servidor sin beneficio (el
+  // webhook ya factura en tiempo real; este poller es solo respaldo/catch-up).
+  const MIN_INTERVAL_MS = 60_000;
+  if (intervalMs < MIN_INTERVAL_MS) {
+    intervalMs = MIN_INTERVAL_MS;
   }
 
   const batchSize = Math.max(1, Math.min(Number(process.env.ORDERS_SYNC_BATCH_SIZE || 5), 20));

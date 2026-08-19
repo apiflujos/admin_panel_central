@@ -1,4 +1,5 @@
 import { startBillingReportWorker } from "./cron/billing-report";
+import { startLogRetentionWorker } from "./cron/log-retention";
 import { startMarketingWorker } from "./cron/marketing";
 import { startInventoryAdjustmentsWorker } from "./pollers/inventory-adjustments";
 import { startOrdersSyncWorker } from "./pollers/orders-sync";
@@ -20,7 +21,7 @@ export const workerRuntimeGroups: WorkerRuntimeGroup[] = [
   {
     key: "cron",
     label: "Marketing and billing cron",
-    jobs: ["marketing", "billing-report"],
+    jobs: ["marketing", "billing-report", "log-retention"],
   },
 ];
 
@@ -31,4 +32,5 @@ export function startWorkersRuntime() {
   startRetryQueueWorker();
   startMarketingWorker();
   startBillingReportWorker();
+  startLogRetentionWorker();
 }
