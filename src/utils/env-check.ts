@@ -16,6 +16,8 @@
  *    falta. Por eso son warning, no fail.
  */
 
+import { validateEnvFormats } from "../config/env";
+
 const isProd = () => String(process.env.NODE_ENV || "").toLowerCase() === "production";
 
 // Sin estas la app literalmente no puede persistir nada — fail-fast.
@@ -57,6 +59,14 @@ export function assertStartupEnv(_options: { requireShopifyOAuth?: boolean } = {
         `Estas son las únicas sin las que la app no arranca. ` +
         `Ver .env.example y docs/DEPLOY.md para el resto (opcionales / por feature).`
     );
+  }
+
+  // Validación de FORMATO (Zod) de las env presentes: detecta valores mal
+  // formados (clave AES no-base64, DATABASE_URL no-postgres, email/URL inválidos)
+  // al arranque, en vez de fallar en runtime. No bloquea (solo avisa).
+  const formatIssues = validateEnvFormats();
+  if (formatIssues.length) {
+    console.warn(`[env-check] Formato inválido en env: ${formatIssues.join("; ")}`);
   }
 
   // Todo lo demás es warning informativo.
