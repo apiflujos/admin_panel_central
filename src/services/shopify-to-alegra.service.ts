@@ -321,8 +321,13 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
       ? {
           address: {
             address: rawContact.address,
-            ...(rawContact.city ? { city: rawContact.city } : {}),
-            ...(rawContact.department ? { department: rawContact.department } : {}),
+            // Ciudad y departamento van JUNTOS o no van: Alegra rechaza una ciudad
+            // colombiana sin departamento con 2112 ("El departamento es inválido").
+            // El departamento solo llega válido por el override e-invoice; sin él
+            // se omiten ambos y se manda solo la línea de dirección.
+            ...(rawContact.city && rawContact.department
+              ? { city: rawContact.city, department: rawContact.department }
+              : {}),
           },
         }
       : {}),
