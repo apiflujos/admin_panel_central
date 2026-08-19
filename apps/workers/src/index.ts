@@ -1,3 +1,4 @@
+import { startAlegraReconcileWorker } from "./cron/alegra-reconcile";
 import { startBillingReportWorker } from "./cron/billing-report";
 import { startHealthMonitorWorker } from "./cron/health-monitor";
 import { startLogRetentionWorker } from "./cron/log-retention";
@@ -22,7 +23,7 @@ export const workerRuntimeGroups: WorkerRuntimeGroup[] = [
   {
     key: "cron",
     label: "Marketing and billing cron",
-    jobs: ["marketing", "billing-report", "log-retention", "health-monitor"],
+    jobs: ["marketing", "billing-report", "log-retention", "health-monitor", "alegra-reconcile"],
   },
 ];
 
@@ -35,4 +36,5 @@ export function startWorkersRuntime() {
   startBillingReportWorker();
   startLogRetentionWorker();
   startHealthMonitorWorker();
+  startAlegraReconcileWorker();
 }

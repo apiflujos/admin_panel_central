@@ -1,5 +1,10 @@
 import { buildSyncContext } from "./sync-context";
-import { alegraInvoicePayloadSchema, validateAlegraPayload } from "../contracts/alegra";
+import {
+  alegraContactPayloadSchema,
+  alegraInvoicePayloadSchema,
+  alegraPaymentPayloadSchema,
+  validateAlegraPayload,
+} from "../contracts/alegra";
 import { getMappingByShopifyId, saveMapping, updateMappingMetadata } from "./mapping.service";
 import { upsertContact } from "./contacts.service";
 import { upsertOrder } from "./orders.service";
@@ -333,6 +338,18 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
         }
       : {}),
   };
+
+  // Fase 1b: validar el contacto contra el contrato Zod (no bloquea; avisa).
+  const contactIssues = validateAlegraPayload(alegraContactPayloadSchema, alegraContactPayload);
+  if (contactIssues.length) {
+    await createSyncLog({
+      entity: "order",
+      direction: "shopify->alegra",
+      status: "warn",
+      message: `Payload de contacto no cumple contrato Zod: ${contactIssues.slice(0, 5).join("; ")}`,
+      request: { orderId: orderId || null },
+    });
+  }
 
   let contactId: string;
   if (existing && existing.length > 0) {
@@ -1315,6 +1332,18 @@ async function createPaymentForInvoice(input: {
     // Alegra solo acepta "in" (ingreso) u "out" (egreso). "received" da 4007.
     type: "in",
   };
+  // Fase 1b: validar el pago contra el contrato Zod (no bloquea; avisa). Detecta
+  // p.ej. un paymentMethod inválido para /payments ("CASH" en vez de "cash").
+  const paymentIssues = validateAlegraPayload(alegraPaymentPayloadSchema, payload);
+  if (paymentIssues.length) {
+    await createSyncLog({
+      entity: "order",
+      direction: "shopify->alegra",
+      status: "warn",
+      message: `Payload de pago no cumple contrato Zod: ${paymentIssues.slice(0, 5).join("; ")}`,
+      request: { invoiceId: input.invoiceId ?? null },
+    });
+  }
   return input.ctx.alegra.createPayment(payload);
 }
 
