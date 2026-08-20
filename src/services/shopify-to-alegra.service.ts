@@ -78,6 +78,40 @@ type ForceSyncOptions = {
   forceEinvoice?: boolean;
 };
 
+/**
+ * Construye el objeto `address` para Alegra, o `undefined` si no debe enviarse.
+ *
+ * Alegra REEMPLAZA la dirección entera con lo que reciba: mandar sólo la línea
+ * de calle en una actualización borra la ciudad y el departamento que ya tenía,
+ * y entonces su propia validación rechaza el contacto con
+ * 2112 "El departamento es inválido".
+ *
+ * Ocurría con contactos cuyos datos en Alegra eran CORRECTOS: p. ej. el 2276
+ * tenía `department: "Nariño"`, `city: "Pasto"`, y cada pedido suyo fallaba
+ * porque el payload de actualización llevaba la calle a secas. El departamento
+ * sólo llega completo por el override de facturación electrónica, y hoy no hay
+ * ninguno cargado, así que la dirección viajaba siempre incompleta.
+ *
+ * Regla: en una actualización, o va completa (calle + ciudad + departamento) o
+ * no va. En una creación no hay nada que destruir, así que la calle sola sirve.
+ */
+export function buildAlegraAddress(
+  contact: {
+    address?: string | null;
+    city?: string | null;
+    department?: string | null;
+  },
+  isUpdate: boolean
+): Record<string, unknown> | undefined {
+  if (!contact.address) return undefined;
+  const complete = Boolean(contact.city && contact.department);
+  if (complete) {
+    return { address: contact.address, city: contact.city, department: contact.department };
+  }
+  // Incompleta: sólo se envía al CREAR, nunca al actualizar.
+  return isUpdate ? undefined : { address: contact.address };
+}
+
 export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload, options?: ForceSyncOptions) {
   const orderId = extractOrderId(payload);
   const shopDomain = payload.__shopDomain || "";
@@ -323,21 +357,14 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
       : {}),
     ...(rawContact.email ? { email: rawContact.email } : {}),
     ...(rawContact.phonePrimary ? { phonePrimary: rawContact.phonePrimary } : {}),
-    ...(rawContact.address
-      ? {
-          address: {
-            address: rawContact.address,
-            // Ciudad y departamento van JUNTOS o no van: Alegra rechaza una ciudad
-            // colombiana sin departamento con 2112 ("El departamento es inválido").
-            // El departamento solo llega válido por el override e-invoice; sin él
-            // se omiten ambos y se manda solo la línea de dirección.
-            ...(rawContact.city && rawContact.department
-              ? { city: rawContact.city, department: rawContact.department }
-              : {}),
-          },
-        }
-      : {}),
+    // La dirección se arma aparte: en una ACTUALIZACIÓN, mandarla incompleta
+    // destruye la que Alegra ya tiene. Ver `buildAlegraAddress`.
   };
+
+  const alegraAddress = buildAlegraAddress(rawContact, Boolean(existing && existing.length > 0));
+  if (alegraAddress) {
+    alegraContactPayload.address = alegraAddress;
+  }
 
   // Fase 1b: validar el contacto contra el contrato Zod (no bloquea; avisa).
   const contactIssues = validateAlegraPayload(alegraContactPayloadSchema, alegraContactPayload);
