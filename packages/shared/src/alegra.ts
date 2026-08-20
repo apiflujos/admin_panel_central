@@ -3,6 +3,11 @@ import { z } from "zod";
 export const alegraWarehouseInventorySchema = z.object({
   id: z.union([z.string(), z.number()]),
   availableQuantity: z.number().finite().optional(),
+  /**
+   * Cantidad mínima que Alegra mantiene reservada en la bodega. Llega como
+   * cadena en la respuesta del API (p. ej. `"100"`), de ahí la unión de tipos.
+   */
+  minQuantity: z.union([z.string(), z.number()]).optional(),
 });
 
 export const alegraInventorySchema = z.object({
