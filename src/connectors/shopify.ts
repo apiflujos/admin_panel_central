@@ -52,6 +52,48 @@ export function toShopifyGid(resource: "Product" | "ProductVariant" | "Inventory
   return /^\d+$/.test(text) ? `gid://shopify/${resource}/${text}` : text;
 }
 
+/**
+ * Freno de despublicación masiva.
+ *
+ * Despublicar es destructivo: saca el producto de la tienda y se pierden ventas
+ * mientras dure. El 2026-08-20 un flag mal resuelto despublicó 1.028 productos,
+ * y tras el "arreglo" otros 836, porque NADA acotaba el volumen: cada llamada
+ * era válida por separado y el sistema no tenía forma de notar que estaba
+ * vaciando el catálogo.
+ *
+ * El límite es deliberadamente ASIMÉTRICO: sólo cuenta las despublicaciones.
+ * Publicar (o republicar) nunca hace daño, así que no se limita — y así el
+ * freno no estorba a una restauración.
+ *
+ * Es defensa en profundidad: aunque la configuración vuelva a resolverse mal,
+ * el daño queda acotado a unas pocas unidades en lugar de al catálogo entero.
+ */
+const UNPUBLISH_WINDOW_MS = 60 * 60 * 1000;
+const unpublishCounters = new Map<string, { windowStart: number; count: number }>();
+
+function unpublishLimitPerHour() {
+  const raw = Number(process.env.SHOPIFY_MAX_UNPUBLISH_PER_HOUR);
+  return Number.isFinite(raw) && raw >= 0 ? raw : 20;
+}
+
+function registerUnpublish(shopDomain: string) {
+  const limit = unpublishLimitPerHour();
+  const now = Date.now();
+  const current = unpublishCounters.get(shopDomain);
+  if (!current || now - current.windowStart > UNPUBLISH_WINDOW_MS) {
+    unpublishCounters.set(shopDomain, { windowStart: now, count: 1 });
+    return { allowed: limit > 0, count: 1, limit };
+  }
+  if (current.count >= limit) return { allowed: false, count: current.count, limit };
+  current.count += 1;
+  return { allowed: true, count: current.count, limit };
+}
+
+/** Sólo para tests. */
+export function resetUnpublishLimiterForTests() {
+  unpublishCounters.clear();
+}
+
 export class ShopifyClient {
   private endpoint: string;
   private restBase: string;
@@ -638,6 +680,17 @@ export class ShopifyClient {
   }
 
   async updateProductStatus(productId: string, publish: boolean) {
+    if (!publish) {
+      const veredicto = registerUnpublish(this.config.shopDomain);
+      if (!veredicto.allowed) {
+        throw new ShopifyRequestError(
+          `Despublicación bloqueada en ${this.config.shopDomain}: se alcanzó el límite de` +
+            ` ${veredicto.limit} por hora (van ${veredicto.count}). Despublicar en masa siempre es` +
+            " un síntoma, no una operación normal. Revisa la configuración de sincronización antes de" +
+            " subir SHOPIFY_MAX_UNPUBLISH_PER_HOUR."
+        );
+      }
+    }
     return this.mutate<{ productUpdate: ShopifyMutationResult }>(
       <GraphQlRequest>{
         query: PRODUCT_STATUS_MUTATION,
