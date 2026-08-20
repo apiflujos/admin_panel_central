@@ -104,7 +104,17 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
     availableQuantity: effectiveQuantity,
     publishOnStock: ctx.publishOnStock,
   });
-  const desiredPublish = ctx.autoPublishStatus === "active" ? publishEligible : false;
+  // REGLA DE NEGOCIO (Becam): NO SE PUEDE SOBREVENDER. Alegra manda sobre el
+  // inventario, así que la publicación de un producto que YA existe la decide el
+  // stock: con existencias se publica, sin existencias se despublica.
+  //
+  // `autoPublishStatus` sólo decide con qué estado NACEN los productos nuevos.
+  // Antes se aplicaba también a los existentes (`=== "active" ? elegible : false`)
+  // y, como está en "draft", despublicaba TODO el catálogo tuviera stock o no:
+  // así se despublicaron 1.028 productos con existencias el 2026-08-20.
+  const desiredPublish = publishEligible;
+  // Estado con el que se crea un producto nuevo (aquí sí manda la preferencia).
+  const desiredPublishForNew = ctx.autoPublishStatus === "active" ? publishEligible : false;
   const resolvedShopifyStatus = ctx.autoPublishOnWebhook ? (desiredPublish ? "active" : "draft") : null;
   const itemPricing = resolvePrice(item.price, ctx, parseTaxRate(item.tax));
 
@@ -137,7 +147,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
       );
       if (matched.productId && ctx.autoPublishOnWebhook) {
         const productId = matched.productId;
-        await withRetry(() => ctx.shopify.updateProductStatus(productId, desiredPublish), {
+        await withRetry(() => ctx.shopify.updateProductStatus(productId, desiredPublish, "sin_stock"), {
           label: "updateProductStatus",
         });
       }
@@ -171,7 +181,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
         extractAlegraCustomFieldValue(item, ["Codigo de barras", "Código de barras", "CODIGO DE BARRAS"]) ||
         undefined,
       price: itemPricing.price,
-      publish: ctx.autoPublishOnWebhook ? desiredPublish : false,
+      publish: ctx.autoPublishOnWebhook ? desiredPublishForNew : false,
       trackInventory: ctx.trackInventory,
       allowOversell: ctx.allowOversell,
     });
@@ -306,7 +316,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
 
   if (effectiveProductId && ctx.autoPublishOnWebhook) {
     const productId = effectiveProductId;
-    await withRetry(() => ctx.shopify.updateProductStatus(productId, desiredPublish), { label: "updateProductStatus" });
+    await withRetry(() => ctx.shopify.updateProductStatus(productId, desiredPublish, "sin_stock"), { label: "updateProductStatus" });
   }
   await upsertProduct({
     ...baseProductInput,
@@ -439,8 +449,11 @@ export async function syncAlegraInventoryPayloadToShopify(payload: AlegraInvento
       availableQuantity,
       publishOnStock: ctx.publishOnStock,
     });
-    const desiredPublish = ctx.autoPublishStatus === "active" ? publishEligible : false;
-    await withRetry(() => ctx.shopify.updateProductStatus(productId, desiredPublish), { label: "updateProductStatus" });
+    // Igual que arriba: sin existencias se despublica, con existencias se
+    // publica. Es la salvaguarda contra la sobreventa, y por eso NO depende de
+    // `autoPublishStatus`.
+    const desiredPublish = publishEligible;
+    await withRetry(() => ctx.shopify.updateProductStatus(productId, desiredPublish, "sin_stock"), { label: "updateProductStatus" });
   }
 
   await upsertProduct({

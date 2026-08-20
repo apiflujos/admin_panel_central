@@ -65,8 +65,15 @@ export function toShopifyGid(resource: "Product" | "ProductVariant" | "Inventory
  * Publicar (o republicar) nunca hace daño, así que no se limita — y así el
  * freno no estorba a una restauración.
  *
- * Es defensa en profundidad: aunque la configuración vuelva a resolverse mal,
- * el daño queda acotado a unas pocas unidades en lugar de al catálogo entero.
+ * IMPORTANTE — no puede bloquear la regla de negocio. Este cliente NO PUEDE
+ * SOBREVENDER: cuando Alegra se queda sin existencias hay que despublicar, y
+ * eso es obligatorio aunque afecte a cientos de productos a la vez (por ejemplo
+ * tras un cierre de inventario). Por eso una despublicación declarada
+ * `motivo: "sin_stock"` NO consume cupo: está respaldada por el inventario.
+ *
+ * El cupo existe para las despublicaciones SIN motivo comprobado, que son las
+ * que delatan una configuración mal resuelta — como la que vació el catálogo el
+ * 2026-08-20 despublicando productos que sí tenían existencias.
  */
 const UNPUBLISH_WINDOW_MS = 60 * 60 * 1000;
 const unpublishCounters = new Map<string, { windowStart: number; count: number }>();
@@ -679,15 +686,24 @@ export class ShopifyClient {
     return { added, skipped: Math.max(0, unique.length - Math.min(unique.length, 15)) };
   }
 
-  async updateProductStatus(productId: string, publish: boolean) {
-    if (!publish) {
+  /**
+   * @param motivo por qué se cambia el estado. `"sin_stock"` identifica la
+   * despublicación obligatoria por falta de existencias, que nunca se frena.
+   */
+  async updateProductStatus(
+    productId: string,
+    publish: boolean,
+    motivo: "sin_stock" | "otro" = "otro"
+  ) {
+    if (!publish && motivo !== "sin_stock") {
       const veredicto = registerUnpublish(this.config.shopDomain);
       if (!veredicto.allowed) {
         throw new ShopifyRequestError(
           `Despublicación bloqueada en ${this.config.shopDomain}: se alcanzó el límite de` +
-            ` ${veredicto.limit} por hora (van ${veredicto.count}). Despublicar en masa siempre es` +
-            " un síntoma, no una operación normal. Revisa la configuración de sincronización antes de" +
-            " subir SHOPIFY_MAX_UNPUBLISH_PER_HOUR."
+            ` ${veredicto.limit} por hora (van ${veredicto.count}) para despublicaciones SIN motivo` +
+            " de inventario. Las que responden a falta de existencias no pasan por aquí, así que este" +
+            " corte significa que algo está despublicando por otra razón: revisa la configuración" +
+            " antes de subir SHOPIFY_MAX_UNPUBLISH_PER_HOUR."
         );
       }
     }
