@@ -178,6 +178,21 @@ function buildNormalizedSyncConfig(params: {
   };
 }
 
+/**
+ * Escrituras hacia Shopify: APAGADAS por omisión.
+ *
+ * `updateInShopify` gobierna precios y estado de publicación. El kill switch de
+ * `sync-context` comprueba `=== true`, pero eso NO bastaba: el valor llegaba ya
+ * normalizado desde aquí con `true` por defecto, así que la comprobación
+ * recibía siempre `true` y no bloqueaba nada. El 2026-08-20 eso despublicó
+ * 1.028 productos, y volvió a despublicar 836 más tras reactivar los workers
+ * creyendo que el kill switch estaba puesto.
+ *
+ * El valor por defecto de escribir en una tienda ajena tiene que ser NO. Para
+ * activarlo hay que ponerlo explícitamente en la configuración de la tienda.
+ */
+const ESCRITURA_SHOPIFY_POR_OMISION = false;
+
 export async function listStoreConfigs() {
   const pool = getPool();
   const orgId = getOrgId();
@@ -301,8 +316,8 @@ export async function listStoreConfigs() {
         rules: {
           syncEnabled: normalizeBoolean((rules as Record<string, unknown>).syncEnabled, true),
           publishOnStock: normalizeBoolean(rules.publishOnStock, defaults.rules?.publishOnStock ?? true),
-          createInShopify: normalizeBoolean((rules as Record<string, unknown>).createInShopify, true),
-          updateInShopify: normalizeBoolean((rules as Record<string, unknown>).updateInShopify, true),
+          createInShopify: normalizeBoolean((rules as Record<string, unknown>).createInShopify, ESCRITURA_SHOPIFY_POR_OMISION),
+          updateInShopify: normalizeBoolean((rules as Record<string, unknown>).updateInShopify, ESCRITURA_SHOPIFY_POR_OMISION),
           includeImages: normalizeBoolean((rules as Record<string, unknown>).includeImages, true),
           trackInventory: normalizeBoolean((rules as Record<string, unknown>).trackInventory, true),
           allowOversell: normalizeBoolean((rules as Record<string, unknown>).allowOversell, false),
@@ -467,8 +482,8 @@ async function getStoreConfigForStoreId(storeId: number) {
     rules: {
       syncEnabled: normalizeBoolean((rules as Record<string, unknown>).syncEnabled, true),
       publishOnStock: normalizeBoolean(rules.publishOnStock, defaults.rules?.publishOnStock ?? true),
-      createInShopify: normalizeBoolean((rules as Record<string, unknown>).createInShopify, true),
-      updateInShopify: normalizeBoolean((rules as Record<string, unknown>).updateInShopify, true),
+      createInShopify: normalizeBoolean((rules as Record<string, unknown>).createInShopify, ESCRITURA_SHOPIFY_POR_OMISION),
+      updateInShopify: normalizeBoolean((rules as Record<string, unknown>).updateInShopify, ESCRITURA_SHOPIFY_POR_OMISION),
       includeImages: normalizeBoolean((rules as Record<string, unknown>).includeImages, true),
       trackInventory: normalizeBoolean((rules as Record<string, unknown>).trackInventory, true),
       allowOversell: normalizeBoolean((rules as Record<string, unknown>).allowOversell, false),
