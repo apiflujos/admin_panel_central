@@ -12,6 +12,8 @@ type MappingRecord = {
   shopifyId?: string;
   shopifyInventoryItemId?: string;
   shopifyProductId?: string;
+  /** Tienda a la que pertenece el mapeo. Imprescindible en multi-tienda. */
+  shopDomain?: string;
   metadata?: Record<string, unknown>;
 };
 
@@ -67,22 +69,68 @@ function buildShopifyIdCandidates(entity: string, shopifyId: string) {
   return Array.from(candidates);
 }
 
-export async function getMappingByAlegraId(entity: string, alegraId: string) {
+/**
+ * Busca el mapeo de un recurso de Alegra.
+ *
+ * `sync_mappings` NO tiene columna de tienda ni índice único, así que una
+ * organización con varias tiendas Shopify acumula un mapeo por tienda para el
+ * mismo `alegra_id` (en producción: 985 identificadores con más de uno). La
+ * versión anterior hacía `LIMIT 1` sin filtrar ni ordenar, de modo que devolvía
+ * un mapeo arbitrario: al sincronizar hacia una tienda se usaba a menudo el id
+ * de la OTRA, y Shopify respondía "Product does not exist".
+ *
+ * Al pasar `shopDomain` se prefiere el mapeo de esa tienda. Los mapeos
+ * históricos sin `shopDomain` en su metadata siguen sirviendo como respaldo,
+ * pero sólo si no hay uno específico.
+ */
+export async function getMappingByAlegraId(entity: string, alegraId: string, shopDomain?: string) {
   const pool = getPool();
   const orgId = getOrgId();
+  const domain = String(shopDomain || "").trim();
   const result = await pool.query<MappingRow>(
     `
     SELECT id, entity, alegra_id, shopify_id, parent_id, metadata_json
     FROM sync_mappings
     WHERE organization_id = $1 AND entity = $2 AND alegra_id = $3
+      -- Si se pide una tienda concreta, se descartan los mapeos que declaran
+      -- pertenecer a OTRA. Los que no declaran ninguna se conservan.
+      AND ($4 = '' OR metadata_json->>'shopDomain' IS NULL OR metadata_json->>'shopDomain' = $4)
+    ORDER BY
+      -- Primero el de la tienda pedida, después el genérico, y ante empate el
+      -- más reciente.
+      CASE WHEN metadata_json->>'shopDomain' = $4 THEN 0 ELSE 1 END,
+      id DESC
     LIMIT 1
     `,
-    [orgId, entity, alegraId]
+    [orgId, entity, alegraId, domain]
   );
   if (!result.rows.length) {
     return undefined;
   }
   return mapRow(result.rows[0]);
+}
+
+/**
+ * Descarta un mapeo que apunta a un recurso que ya no existe en Shopify.
+ *
+ * Sin esto, un producto borrado en Shopify deja el mapeo apuntando al vacío
+ * para siempre y el ítem no vuelve a sincronizarse nunca: cada pasada repite
+ * "Product does not exist". Al borrarlo, el flujo normal lo reencuentra por
+ * SKU o código de barras en la siguiente vuelta y guarda el mapeo correcto.
+ */
+export async function deleteMappingByAlegraId(entity: string, alegraId: string, shopDomain?: string) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const domain = String(shopDomain || "").trim();
+  const result = await pool.query(
+    `
+    DELETE FROM sync_mappings
+    WHERE organization_id = $1 AND entity = $2 AND alegra_id = $3
+      AND ($4 = '' OR metadata_json->>'shopDomain' IS NULL OR metadata_json->>'shopDomain' = $4)
+    `,
+    [orgId, entity, alegraId, domain]
+  );
+  return result.rowCount || 0;
 }
 
 export async function getMappingByShopifyId(entity: string, shopifyId: string) {
@@ -128,9 +176,14 @@ export async function getMappingByShopifyInventoryItemId(entity: string, invento
 export async function saveMapping(record: MappingRecord) {
   const pool = getPool();
   const orgId = getOrgId();
+  // El shopDomain se persiste SIEMPRE que se conozca: es lo que permite
+  // distinguir los mapeos de cada tienda en una organización multi-tienda.
+  const shopDomain =
+    record.shopDomain || (record.metadata?.shopDomain as string | undefined) || undefined;
   const metadata = {
     ...(record.metadata || {}),
     shopifyInventoryItemId: record.shopifyInventoryItemId,
+    ...(shopDomain ? { shopDomain } : {}),
   };
 
   const existing = await findExistingMappingId(record, orgId);
@@ -172,15 +225,26 @@ export async function updateMappingMetadata(entity: string, alegraId: string, me
 
 async function findExistingMappingId(record: MappingRecord, orgId: number) {
   const pool = getPool();
+  const domain = String(
+    record.shopDomain || (record.metadata?.shopDomain as string | undefined) || ""
+  ).trim();
   if (record.alegraId) {
+    // Igual que en la lectura: sin filtrar por tienda, guardar el mapeo de una
+    // tienda SOBRESCRIBÍA el de la otra, y ambas se pisaban en cada pasada.
+    // Un mapeo sin tienda declarada se reutiliza (y queda etiquetado al
+    // guardarse); uno de otra tienda, jamás.
     const result = await pool.query<{ id: number }>(
       `
       SELECT id
       FROM sync_mappings
       WHERE organization_id = $1 AND entity = $2 AND alegra_id = $3
+        AND ($4 = '' OR metadata_json->>'shopDomain' IS NULL OR metadata_json->>'shopDomain' = $4)
+      ORDER BY
+        CASE WHEN metadata_json->>'shopDomain' = $4 THEN 0 ELSE 1 END,
+        id DESC
       LIMIT 1
       `,
-      [orgId, record.entity, record.alegraId]
+      [orgId, record.entity, record.alegraId, domain]
     );
     if (result.rows.length) {
       return result.rows[0].id;

@@ -4,6 +4,7 @@ import {
   ShopifyRequestError,
   classifyShopifyError,
   errorSignature,
+  isMissingShopifyResourceError,
   isPermanentIntegrationError,
   isPermanentShopifyError,
 } from "./shopify-errors";
@@ -139,5 +140,38 @@ describe("toShopifyGid", () => {
     expect(toShopifyGid("Product", "no-es-un-id")).toBe("no-es-un-id");
     expect(toShopifyGid("Product", "123abc")).toBe("123abc");
     expect(toShopifyGid("Product", "")).toBe("");
+  });
+});
+
+describe("isMissingShopifyResourceError", () => {
+  it("reconoce el userError real de un producto borrado", () => {
+    // Tal cual lo devolvió producción tras migrar a productVariantsBulkUpdate.
+    const error = new ShopifyRequestError("Shopify productVariantsBulkUpdate userErrors: [...]", {
+      userErrors: [{ field: ["productId"], message: "Product does not exist" }],
+    });
+    expect(isMissingShopifyResourceError(error)).toBe(true);
+  });
+
+  it("reconoce un global id que Shopify no acepta", () => {
+    const error = new ShopifyRequestError("Shopify GraphQL errors", {
+      graphQlErrors: [
+        { message: "Variable $productId of type ID! was provided invalid value", extensions: { code: "INVALID_VARIABLE" } },
+      ],
+    });
+    // El mensaje del problema viaja en graphQlErrors; basta con que aparezca.
+    expect(isMissingShopifyResourceError(new Error("Invalid global id '123'"))).toBe(true);
+    expect(error).toBeInstanceOf(ShopifyRequestError);
+  });
+
+  it("NO confunde un fallo de red con un recurso inexistente", () => {
+    expect(isMissingShopifyResourceError(new Error("timeout exceeded when trying to connect"))).toBe(false);
+    expect(isMissingShopifyResourceError(new ShopifyRequestError("rate limited", { status: 429 }))).toBe(false);
+  });
+
+  it("NO confunde una validación de negocio con un recurso inexistente", () => {
+    const error = new ShopifyRequestError("userErrors", {
+      userErrors: [{ field: ["price"], message: "Price must be positive" }],
+    });
+    expect(isMissingShopifyResourceError(error)).toBe(false);
   });
 });

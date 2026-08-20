@@ -1,5 +1,11 @@
 import { buildSyncContext } from "./sync-context";
-import { saveMapping, getMappingByAlegraId, updateMappingMetadata } from "./mapping.service";
+import { isMissingShopifyResourceError } from "../connectors/shopify-errors";
+import {
+  saveMapping,
+  getMappingByAlegraId,
+  updateMappingMetadata,
+  deleteMappingByAlegraId,
+} from "./mapping.service";
 import { upsertProduct } from "./products.service";
 import { createSyncLog } from "./logs.service";
 import {
@@ -76,7 +82,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
     return { skipped: true, reason: "warehouse_filtered" };
   }
 
-  const mapped = await getMappingByAlegraId("item", alegraItemId);
+  const mapped = await getMappingByAlegraId("item", alegraItemId, ctx.shopDomain);
   const identifiers = extractAlegraIdentifiers(item);
   const availableQuantity = resolveAlegraAvailableQuantity(item.inventory, allowedWarehouseIds);
   const effectiveQuantity = availableQuantity ?? 0;
@@ -110,6 +116,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
       }
       await saveMapping({
         entity: "item",
+        shopDomain: ctx.shopDomain,
         alegraId: String(alegraItemId),
         shopifyId: matched.variantId,
         shopifyProductId: matched.productId,
@@ -165,6 +172,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
     if (productId && variant?.id) {
       await saveMapping({
         entity: "item",
+        shopDomain: ctx.shopDomain,
         alegraId: String(alegraItemId),
         shopifyId: variant.id,
         shopifyProductId: productId,
@@ -214,17 +222,35 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
   }
 
   const variantId = mapped.shopifyId;
-  const result = await withRetry(
-    () =>
-      ctx.shopify.updateVariantPrice(
-        variantId,
-        itemPricing.price,
-        itemPricing.compareAtPrice,
-        // Puede ser null en mapeos antiguos; el conector lo resolverá entonces.
-        mapped.shopifyProductId
-      ),
-    { label: "updateVariantPrice" }
-  );
+  let result;
+  try {
+    result = await withRetry(
+      () =>
+        ctx.shopify.updateVariantPrice(
+          variantId,
+          itemPricing.price,
+          itemPricing.compareAtPrice,
+          // Puede ser null en mapeos antiguos; el conector lo resolverá entonces.
+          mapped.shopifyProductId
+        ),
+      { label: "updateVariantPrice" }
+    );
+  } catch (error) {
+    // Autocuración: si el producto o la variante ya no existen en Shopify (los
+    // borraron, o el mapeo era de otra tienda), el mapeo es basura. Borrarlo
+    // hace que la siguiente pasada lo reencuentre por SKU o código de barras
+    // en vez de repetir "Product does not exist" para siempre.
+    if (isMissingShopifyResourceError(error)) {
+      const borrados = await deleteMappingByAlegraId("item", String(alegraItemId), ctx.shopDomain);
+      console.warn(
+        `[alegra-to-shopify] mapeo obsoleto descartado para alegraItem=${alegraItemId}` +
+          ` en ${ctx.shopDomain} (${borrados} fila/s): el recurso ya no existe en Shopify.` +
+          " Se reintentará por identificador en la próxima pasada."
+      );
+      return { handled: false, reason: "stale_mapping_discarded" };
+    }
+    throw error;
+  }
 
   if (mapped.shopifyProductId && ctx.autoPublishOnWebhook) {
     const productId = mapped.shopifyProductId;
@@ -286,7 +312,7 @@ export async function syncAlegraInventoryPayloadToShopify(payload: AlegraInvento
     });
     return { handled: true, skipped: true, reason: "sync_disabled" };
   }
-  let mapped = await getMappingByAlegraId("item", alegraItemId);
+  let mapped = await getMappingByAlegraId("item", alegraItemId, ctx.shopDomain);
   if (!mapped || !mapped.shopifyInventoryItemId) {
     const item = (await ctx.alegra.getItem(alegraItemId)) as AlegraItem;
     const identifiers = extractAlegraIdentifiers(item);
@@ -294,13 +320,14 @@ export async function syncAlegraInventoryPayloadToShopify(payload: AlegraInvento
     if (matched) {
       await saveMapping({
         entity: "item",
+        shopDomain: ctx.shopDomain,
         alegraId: String(alegraItemId),
         shopifyId: matched.variantId,
         shopifyProductId: matched.productId,
         shopifyInventoryItemId: matched.inventoryItemId,
         metadata: { sku: matched.sku },
       });
-      mapped = await getMappingByAlegraId("item", alegraItemId);
+      mapped = await getMappingByAlegraId("item", alegraItemId, ctx.shopDomain);
     }
   }
   if (!mapped || !mapped.shopifyInventoryItemId) {

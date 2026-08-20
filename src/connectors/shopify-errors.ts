@@ -154,3 +154,31 @@ export function errorSignature(error: unknown): string {
   }
   return "unknown";
 }
+
+/**
+ * ¿El error dice que el recurso de Shopify referenciado ya no existe?
+ *
+ * Distingue "tu petición está mal" de "eso que apuntas ya no está". El segundo
+ * caso es recuperable: basta con descartar el mapeo obsoleto y volver a
+ * emparejar por SKU o código de barras.
+ *
+ * Mensajes observados en producción:
+ *   userErrors: [{"field":["productId"],"message":"Product does not exist"}]
+ */
+const MISSING_RESOURCE_HINTS = [
+  "does not exist",
+  "was not found",
+  "could not be found",
+  "invalid global id",
+];
+
+export function isMissingShopifyResourceError(error: unknown): boolean {
+  const parts: string[] = [];
+  if (error instanceof ShopifyRequestError) {
+    if (error.userErrors?.length) parts.push(JSON.stringify(error.userErrors));
+    if (error.graphQlErrors?.length) parts.push(JSON.stringify(error.graphQlErrors));
+  }
+  if (error instanceof Error) parts.push(error.message);
+  const haystack = parts.join(" ").toLowerCase();
+  return MISSING_RESOURCE_HINTS.some((hint) => haystack.includes(hint));
+}
