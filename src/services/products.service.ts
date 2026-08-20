@@ -113,10 +113,35 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
       alegraId && existingAlegraId && String(existingAlegraId) !== String(alegraId)
         ? null // preserva el existente
         : alegraId;
-    const safeShopifyId =
+    let safeShopifyId =
       shopifyId && existingShopifyId && String(existingShopifyId) !== String(shopifyId)
         ? null
         : shopifyId;
+
+    // El safeguard de arriba sólo mira la fila que vamos a actualizar. Falta el
+    // caso en que ESA fila no tiene shopify_product_id y el entrante ya pertenece
+    // a OTRA fila: el UPDATE viola entonces products_org_shopify_store_idx y
+    // Postgres lanza `duplicate key value violates unique constraint`.
+    // Se observó en producción sobre 82 ítems en una sola pasada.
+    if (safeShopifyId && String(existingShopifyId ?? "") !== String(safeShopifyId)) {
+      const owner = await pool.query<{ id: number }>(
+        `
+        SELECT id FROM products
+         WHERE organization_id = $1 AND shop_domain = $2 AND shopify_product_id = $3 AND id <> $4
+         LIMIT 1
+        `,
+        [orgId, shopDomain, safeShopifyId, existing.rows[0].id]
+      );
+      if (owner.rows.length) {
+        console.warn(
+          `[products.upsertProduct] shopify_product_id=${safeShopifyId} ya pertenece a la fila ` +
+            `${owner.rows[0].id} en shop=${shopDomain}; se conserva sin asignarlo a la fila ` +
+            `${existing.rows[0].id} para no violar products_org_shopify_store_idx.`
+        );
+        safeShopifyId = null;
+      }
+    }
+
     if (safeAlegraId !== alegraId || safeShopifyId !== shopifyId) {
       console.warn(
         `[products.upsertProduct] cross-key collision on shop=${shopDomain} sku=${sku || "-"} ref=${reference || "-"}: ` +

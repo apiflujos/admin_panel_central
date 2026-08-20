@@ -10,7 +10,7 @@ import { withEachOrganization } from "../../../../src/services/organizations.ser
 import { buildSyncContext } from "../../../../src/services/sync-context";
 import { getSyncCheckpoint, saveSyncCheckpoint } from "../../../../src/services/sync-checkpoints.service";
 import { listConnectedShopifyDomains } from "../../../../src/services/store-connections.service";
-import { errorSignature, isPermanentShopifyError } from "../../../../src/connectors/shopify-errors";
+import { errorSignature, isPermanentIntegrationError } from "../../../../src/connectors/shopify-errors";
 import { getPoolMax } from "../../../../src/db";
 
 type AlegraItemRow = Record<string, unknown> & {
@@ -213,7 +213,12 @@ export function startProductsSyncWorker() {
             results.forEach((result, idx) => {
               if (result.status !== "rejected") return;
 
-              const permanent = isPermanentShopifyError(result.reason);
+              // isPermanentIntegrationError (y no isPermanentShopifyError) porque
+              // aquí también llegan fallos que no vienen de Shopify: violaciones
+              // de índice único, credenciales ausentes, 4xx de Alegra. Con la
+              // versión limitada, un `duplicate key` se marcaba como transitorio
+              // y bloqueaba el checkpoint para siempre.
+              const permanent = isPermanentIntegrationError(result.reason);
               const signature = errorSignature(result.reason);
               const message =
                 result.reason instanceof Error ? result.reason.message : String(result.reason ?? "");

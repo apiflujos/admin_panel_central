@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { assertShopifyApiVersionMatches, resolveShopifyApiVersion } from "../utils/shopify";
 import { ShopifyRequestError } from "./shopify-errors";
 
@@ -762,21 +763,27 @@ export class ShopifyClient {
   }
 
   async setInventoryOnHand(inventoryItemId: string, locationId: string, quantity: number) {
-    return this.request<{ inventorySetOnHandQuantities: ShopifyMutationResult }>(<GraphQlRequest>{
-      query: INVENTORY_SET_ON_HAND_MUTATION,
-      variables: {
-        input: {
-          reason: "correction",
-          setQuantities: [
-            {
-              inventoryItemId: toShopifyGid("InventoryItem", inventoryItemId),
-              locationId: toShopifyGid("Location", locationId),
-              quantity,
-            },
-          ],
+    return this.mutate<{ inventorySetQuantities: ShopifyMutationResult }>(
+      <GraphQlRequest>{
+        query: INVENTORY_SET_ON_HAND_MUTATION,
+        variables: {
+          input: {
+            name: "available",
+            reason: "correction",
+            ignoreCompareQuantity: true,
+            quantities: [
+              {
+                inventoryItemId: toShopifyGid("InventoryItem", inventoryItemId),
+                locationId: toShopifyGid("Location", locationId),
+                quantity,
+              },
+            ],
+          },
+          idempotencyKey: randomUUID(),
         },
       },
-    });
+      "inventorySetQuantities"
+    );
   }
 
   async getPrimaryLocationId() {
@@ -1419,9 +1426,20 @@ const INVENTORY_ADJUST_MUTATION = `
   }
 `;
 
+// `inventorySetOnHandQuantities` quedó obsoleta: su input pasó a exigir
+// `changeFromQuantity` ("InventorySetQuantityInput must include the following
+// argument: changeFromQuantity"). El reemplazo es `inventorySetQuantities`, con
+// compare-and-set.
+//
+// Se usa `ignoreCompareQuantity: true` porque aquí Alegra ES la fuente de verdad
+// del inventario, que es justo el caso en el que la documentación admite saltarse
+// la comprobación. Sin eso habría que leer la cantidad previa en cada set.
+//
+// El directivo @idempotent es OBLIGATORIO desde la versión 2026-04.
+// https://shopify.dev/docs/api/admin-graphql/latest/mutations/inventorySetQuantities
 const INVENTORY_SET_ON_HAND_MUTATION = `
-  mutation SetOnHand($input: InventorySetOnHandQuantitiesInput!) {
-    inventorySetOnHandQuantities(input: $input) {
+  mutation SetOnHand($input: InventorySetQuantitiesInput!, $idempotencyKey: String!) {
+    inventorySetQuantities(input: $input) @idempotent(key: $idempotencyKey) {
       userErrors { field message }
     }
   }

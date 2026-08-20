@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { toShopifyGid } from "../connectors/shopify";
 import fs from "fs";
 import path from "path";
 import { Pool } from "pg";
@@ -292,30 +294,35 @@ export class ShopifyApiClient {
     if (!updates.length) {
       return { applied: 0, userErrors: [] };
     }
+    // Ver la nota en `connectors/shopify.ts`: `inventorySetOnHandQuantities`
+    // quedó obsoleta y su reemplazo exige el directivo @idempotent.
     const data = await this.request<{
-      inventorySetOnHandQuantities?: { userErrors?: Array<Record<string, unknown>> };
+      inventorySetQuantities?: { userErrors?: Array<Record<string, unknown>> };
     }>(
       `
-      mutation InventorySetOnHand($input: InventorySetOnHandQuantitiesInput!) {
-        inventorySetOnHandQuantities(input: $input) {
+      mutation InventorySetOnHand($input: InventorySetQuantitiesInput!, $idempotencyKey: String!) {
+        inventorySetQuantities(input: $input) @idempotent(key: $idempotencyKey) {
           userErrors { field message }
         }
       }
       `,
       {
         input: {
+          name: "available",
           reason: "correction",
-          setQuantities: updates.map((item) => ({
-            inventoryItemId: item.inventoryItemId,
-            locationId,
+          ignoreCompareQuantity: true,
+          quantities: updates.map((item) => ({
+            inventoryItemId: toShopifyGid("InventoryItem", item.inventoryItemId),
+            locationId: toShopifyGid("Location", locationId),
             quantity: item.quantity,
           })),
         },
+        idempotencyKey: randomUUID(),
       }
     );
     return {
       applied: updates.length,
-      userErrors: data?.inventorySetOnHandQuantities?.userErrors || [],
+      userErrors: data?.inventorySetQuantities?.userErrors || [],
     };
   }
 
