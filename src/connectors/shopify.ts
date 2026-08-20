@@ -762,7 +762,30 @@ export class ShopifyClient {
     });
   }
 
+  /** Cantidad "available" actual de un artículo en una ubicación, o null si no la hay. */
+  async getAvailableQuantity(inventoryItemId: string, locationId: string): Promise<number | null> {
+    const data = await this.request<{
+      inventoryItem: {
+        inventoryLevel: { quantities: Array<{ name: string; quantity: number }> } | null;
+      } | null;
+    }>(<GraphQlRequest>{
+      query: INVENTORY_LEVEL_QUERY,
+      variables: {
+        inventoryItemId: toShopifyGid("InventoryItem", inventoryItemId),
+        locationId: toShopifyGid("Location", locationId),
+      },
+    });
+    const found = data.inventoryItem?.inventoryLevel?.quantities?.find((q) => q.name === "available");
+    return typeof found?.quantity === "number" ? found.quantity : null;
+  }
+
   async setInventoryOnHand(inventoryItemId: string, locationId: string, quantity: number) {
+    const current = await this.getAvailableQuantity(inventoryItemId, locationId);
+    if (current === null) {
+      throw new ShopifyRequestError(
+        `No hay nivel de inventario para ${inventoryItemId} en ${locationId}: no se puede fijar la cantidad.`
+      );
+    }
     return this.mutate<{ inventorySetQuantities: ShopifyMutationResult }>(
       <GraphQlRequest>{
         query: INVENTORY_SET_ON_HAND_MUTATION,
@@ -770,12 +793,12 @@ export class ShopifyClient {
           input: {
             name: "available",
             reason: "correction",
-            ignoreCompareQuantity: true,
             quantities: [
               {
                 inventoryItemId: toShopifyGid("InventoryItem", inventoryItemId),
                 locationId: toShopifyGid("Location", locationId),
                 quantity,
+                changeFromQuantity: current,
               },
             ],
           },
@@ -1431,12 +1454,34 @@ const INVENTORY_ADJUST_MUTATION = `
 // argument: changeFromQuantity"). El reemplazo es `inventorySetQuantities`, con
 // compare-and-set.
 //
-// Se usa `ignoreCompareQuantity: true` porque aquí Alegra ES la fuente de verdad
-// del inventario, que es justo el caso en el que la documentación admite saltarse
-// la comprobación. Sin eso habría que leer la cantidad previa en cada set.
+// DOS trampas comprobadas contra la API real, porque la documentación no basta:
+//
+//  1. `ignoreCompareQuantity` NO existe en `InventorySetQuantitiesInput`. La
+//     documentación lo lista; la introspección del esquema 2026-07 no lo tiene y
+//     la petición se rechaza con INVALID_VARIABLE.
+//  2. `changeFromQuantity` aparece como opcional (`Int`) en la introspección de
+//     `InventoryQuantityInput`, pero la mutación lo EXIGE en ejecución:
+//     "InventoryQuantityInput must include the following argument:
+//     changeFromQuantity". Es un compare-and-set obligatorio, así que hay que
+//     leer la cantidad actual antes de escribir.
+//
+// Si la lectura previa falla no se escribe a ciegas: se propaga el error. Y si
+// otro proceso cambia la cantidad entremedias, Shopify rechaza el cambio y el
+// reintento lo resuelve — que es justamente para lo que sirve el compare-and-set.
 //
 // El directivo @idempotent es OBLIGATORIO desde la versión 2026-04.
 // https://shopify.dev/docs/api/admin-graphql/latest/mutations/inventorySetQuantities
+const INVENTORY_LEVEL_QUERY = `
+  query InventoryLevelAt($inventoryItemId: ID!, $locationId: ID!) {
+    inventoryItem(id: $inventoryItemId) {
+      id
+      inventoryLevel(locationId: $locationId) {
+        quantities(names: ["available"]) { name quantity }
+      }
+    }
+  }
+`;
+
 const INVENTORY_SET_ON_HAND_MUTATION = `
   mutation SetOnHand($input: InventorySetQuantitiesInput!, $idempotencyKey: String!) {
     inventorySetQuantities(input: $input) @idempotent(key: $idempotencyKey) {

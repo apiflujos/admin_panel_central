@@ -289,7 +289,9 @@ export class ShopifyApiClient {
 
   async setInventoryOnHandBatch(
     locationId: string,
-    updates: Array<{ inventoryItemId: string; quantity: number }>
+    // `changeFromQuantity` es la cantidad que el llamador cree que hay ahora:
+    // Shopify la exige para el compare-and-set.
+    updates: Array<{ inventoryItemId: string; quantity: number; changeFromQuantity: number }>
   ): Promise<{ applied: number; userErrors: Array<Record<string, unknown>> }> {
     if (!updates.length) {
       return { applied: 0, userErrors: [] };
@@ -310,11 +312,13 @@ export class ShopifyApiClient {
         input: {
           name: "available",
           reason: "correction",
-          ignoreCompareQuantity: true,
           quantities: updates.map((item) => ({
             inventoryItemId: toShopifyGid("InventoryItem", item.inventoryItemId),
             locationId: toShopifyGid("Location", locationId),
             quantity: item.quantity,
+            // Obligatorio en ejecución aunque la introspección lo dé por
+            // opcional. Ver la nota extensa en `connectors/shopify.ts`.
+            changeFromQuantity: item.changeFromQuantity,
           })),
         },
         idempotencyKey: randomUUID(),
@@ -504,7 +508,15 @@ export async function applyInventoryUpdates(
   for (const batch of batches) {
     const response = await shopify.setInventoryOnHandBatch(
       locationId,
-      batch.map((item) => ({ inventoryItemId: item.inventoryItemId, quantity: item.selectedQuantity }))
+      // `previousInventoryQuantity` es la cantidad que Shopify tenía cuando se
+      // construyó el plan: es el valor de comparación que exige la mutación. Si
+      // faltara, el compare-and-set fallará y el reintento individual de abajo
+      // lo resuelve; nunca se escribe una cantidad equivocada.
+      batch.map((item) => ({
+        inventoryItemId: item.inventoryItemId,
+        quantity: item.selectedQuantity,
+        changeFromQuantity: item.previousInventoryQuantity ?? 0,
+      }))
     );
     if (!response.userErrors.length) {
       appliedRows += batch.length;
@@ -520,7 +532,11 @@ export async function applyInventoryUpdates(
     const retryResults = [];
     for (const item of batch) {
       const single = await shopify.setInventoryOnHandBatch(locationId, [
-        { inventoryItemId: item.inventoryItemId, quantity: item.selectedQuantity },
+        {
+          inventoryItemId: item.inventoryItemId,
+          quantity: item.selectedQuantity,
+          changeFromQuantity: item.previousInventoryQuantity ?? 0,
+        },
       ]);
       if (!single.userErrors.length) {
         appliedRows += 1;
