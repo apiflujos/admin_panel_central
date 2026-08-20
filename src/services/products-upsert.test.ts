@@ -11,11 +11,14 @@ vi.mock("../db", () => ({
   getOrgId: getOrgIdMock,
 }));
 
-import { upsertProduct } from "./products.service";
+import { resetCollisionStatsForTests, upsertProduct } from "./products.service";
 
 describe("upsertProduct — safeguard cross-key collision (H6)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // El agregador de colisiones guarda estado por tienda a nivel de módulo:
+    // sin resetearlo, el segundo caso cae en la rama agrupada y no avisa.
+    resetCollisionStatsForTests();
     getOrgIdMock.mockReturnValue(1);
     getPoolMock.mockReturnValue({ query: poolQueryMock });
   });

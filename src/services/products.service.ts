@@ -52,8 +52,28 @@ const collisionStats = new Map<
 function recordCollision(shopDomain: string, kind: "crossKey" | "ownedElsewhere", detail: string) {
   const key = shopDomain || "?";
   const now = Date.now();
-  const entry =
-    collisionStats.get(key) || { crossKey: 0, ownedElsewhere: 0, samples: [], lastFlush: now };
+  const known = collisionStats.get(key);
+
+  // La PRIMERA colisión de cada tienda se registra en el acto: agrupar desde el
+  // principio retrasaría la señal hasta cinco minutos, y el objetivo era acotar
+  // el volumen, no perder el aviso temprano. A partir de ahí se agrupa.
+  if (!known) {
+    collisionStats.set(key, {
+      crossKey: kind === "crossKey" ? 1 : 0,
+      ownedElsewhere: kind === "ownedElsewhere" ? 1 : 0,
+      samples: [detail],
+      lastFlush: now,
+    });
+    console.warn(
+      `[products.upsertProduct] ${shopDomain}: ${
+        kind === "crossKey" ? "cross-key collision" : "identificador de Shopify ya asignado a otra fila"
+      } — ${detail}. Se conservan los valores existentes.` +
+        " Las siguientes se agrupan en un resumen cada 5 minutos."
+    );
+    return;
+  }
+
+  const entry = known;
   entry[kind] += 1;
   if (entry.samples.length < COLLISION_SAMPLES) entry.samples.push(detail);
   collisionStats.set(key, entry);
