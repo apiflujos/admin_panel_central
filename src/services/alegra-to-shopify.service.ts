@@ -231,6 +231,9 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
   }
 
   const variantId = mapped.shopifyId;
+  // El producto puede cambiar si el mapeo resulta obsoleto y se reempareja:
+  // el resto del flujo (publicar y guardar) debe usar el vigente, no el viejo.
+  let effectiveProductId = mapped.shopifyProductId;
   let result;
   try {
     result = await withRetry(
@@ -295,20 +298,21 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
           ),
         { label: "updateVariantPrice:rematched" }
       );
+      effectiveProductId = rematched.productId;
     } else {
       throw error;
     }
   }
 
-  if (mapped.shopifyProductId && ctx.autoPublishOnWebhook) {
-    const productId = mapped.shopifyProductId;
+  if (effectiveProductId && ctx.autoPublishOnWebhook) {
+    const productId = effectiveProductId;
     await withRetry(() => ctx.shopify.updateProductStatus(productId, desiredPublish), { label: "updateProductStatus" });
   }
   await upsertProduct({
     ...baseProductInput,
     shopDomain: ctx.shopDomain,
     storeId: ctx.storeId,
-    shopifyId: mapped.shopifyProductId,
+    shopifyId: effectiveProductId,
     statusShopify: resolvedShopifyStatus,
   });
 
