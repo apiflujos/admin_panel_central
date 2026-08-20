@@ -81,6 +81,11 @@ vi.mock("../db", () => ({
   getPool: getPoolMock,
 }));
 
+const publishWebhookEventMock = vi.fn();
+vi.mock("./webhook-queue", () => ({
+  publishWebhookEvent: publishWebhookEventMock,
+}));
+
 describe("sync.service webhook flows", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -200,51 +205,97 @@ describe("sync.service webhook flows", () => {
     });
   });
 
-  it("queues webhook events durably in webhook_events and retry_queue", async () => {
-    clientQueryMock
-      .mockResolvedValueOnce(undefined)
-      .mockResolvedValueOnce({ rows: [{ id: 101 }] })
-      .mockResolvedValueOnce({ rows: [{ id: 202 }] })
-      .mockResolvedValueOnce(undefined)
-      .mockResolvedValueOnce(undefined);
+  const webhookEvent = {
+    source: "shopify" as const,
+    eventType: "orders/create",
+    payload: { id: 999, __shopDomain: "olivashoes.myshopify.com" },
+    meta: { shopDomain: "olivashoes.myshopify.com" },
+  };
+
+  it("camino rápido: registra el evento y lo despacha por Redis sin tocar retry_queue", async () => {
+    // El registro en webhook_events es un único INSERT contra el pool, sin
+    // transacción: es lo que quita presión al pool en el camino caliente.
+    poolQueryMock.mockResolvedValueOnce({ rows: [{ id: 101 }] });
+    publishWebhookEventMock.mockResolvedValueOnce(true);
 
     const { enqueueWebhookEvent } = await import("./sync.service");
-    const event = {
-      source: "shopify" as const,
-      eventType: "orders/create",
-      payload: { id: 999, __shopDomain: "olivashoes.myshopify.com" },
-      meta: { shopDomain: "olivashoes.myshopify.com" },
-    };
+    const result = await enqueueWebhookEvent(webhookEvent);
 
-    const result = await enqueueWebhookEvent(event);
+    expect(poolQueryMock).toHaveBeenCalledWith(
+      expect.stringContaining("INSERT INTO webhook_events"),
+      ["org-1", "shopify", "orders/create", webhookEvent.payload]
+    );
+    expect(publishWebhookEventMock).toHaveBeenCalledWith({
+      webhookEventId: 101,
+      orgId: "org-1",
+      event: webhookEvent,
+    });
+    // Nada de transacción ni de retry_queue cuando Redis acepta el job.
+    expect(clientQueryMock).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      status: "queued",
+      event: webhookEvent,
+      syncLogId: null,
+      webhookEventId: 101,
+    });
+  });
+
+  it("respaldo: si Redis no acepta el job, cae a sync_logs + retry_queue sin duplicar la fila", async () => {
+    poolQueryMock.mockResolvedValueOnce({ rows: [{ id: 101 }] });
+    publishWebhookEventMock.mockResolvedValueOnce(false);
+    clientQueryMock
+      .mockResolvedValueOnce(undefined) // BEGIN
+      .mockResolvedValueOnce({ rows: [{ id: 202 }] }) // INSERT sync_logs
+      .mockResolvedValueOnce(undefined) // INSERT retry_queue
+      .mockResolvedValueOnce(undefined); // COMMIT
+
+    const { enqueueWebhookEvent } = await import("./sync.service");
+    const result = await enqueueWebhookEvent(webhookEvent);
 
     expect(ensureOrganizationMock).toHaveBeenCalled();
     expect(ensureWebhookEventsTableMock).toHaveBeenCalled();
     expect(clientQueryMock).toHaveBeenNthCalledWith(1, "BEGIN");
+    // La fila de webhook_events ya existe: el respaldo NO debe reinsertarla.
     expect(clientQueryMock).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining("INSERT INTO webhook_events"),
-      ["org-1", "shopify", "orders/create", event.payload]
+      expect.stringContaining("INSERT INTO sync_logs"),
+      expect.arrayContaining(["org-1", "order", "shopify->alegra", "Order webhook processed"])
     );
     expect(clientQueryMock).toHaveBeenNthCalledWith(
       3,
-      expect.stringContaining("INSERT INTO sync_logs"),
-      expect.arrayContaining([
-        "org-1",
-        "order",
-        "shopify->alegra",
-        "Order webhook processed",
-      ])
-    );
-    expect(clientQueryMock).toHaveBeenNthCalledWith(
-      4,
       expect.stringContaining("INSERT INTO retry_queue"),
       [202]
     );
-    expect(clientQueryMock).toHaveBeenNthCalledWith(5, "COMMIT");
+    expect(clientQueryMock).toHaveBeenNthCalledWith(4, "COMMIT");
     expect(result).toEqual({
       status: "queued",
-      event,
+      event: webhookEvent,
+      syncLogId: 202,
+      webhookEventId: 101,
+    });
+  });
+
+  it("respaldo: si ni siquiera se pudo registrar la fila, inserta webhook_events en la transacción", async () => {
+    poolQueryMock.mockRejectedValueOnce(new Error("pool agotado"));
+    clientQueryMock
+      .mockResolvedValueOnce(undefined) // BEGIN
+      .mockResolvedValueOnce({ rows: [{ id: 101 }] }) // INSERT webhook_events
+      .mockResolvedValueOnce({ rows: [{ id: 202 }] }) // INSERT sync_logs
+      .mockResolvedValueOnce(undefined) // INSERT retry_queue
+      .mockResolvedValueOnce(undefined); // COMMIT
+
+    const { enqueueWebhookEvent } = await import("./sync.service");
+    const result = await enqueueWebhookEvent(webhookEvent);
+
+    expect(publishWebhookEventMock).not.toHaveBeenCalled();
+    expect(clientQueryMock).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("INSERT INTO webhook_events"),
+      ["org-1", "shopify", "orders/create", webhookEvent.payload]
+    );
+    expect(result).toEqual({
+      status: "queued",
+      event: webhookEvent,
       syncLogId: 202,
       webhookEventId: 101,
     });

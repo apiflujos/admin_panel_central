@@ -14,6 +14,7 @@ import { resolveStoreConfig } from "./store-config.service";
 import { syncAlegraInvoiceToShopifyFromWebhook } from "./alegra-invoices-to-shopify-orders.service";
 import { syncShopifyInventoryLevelToAlegra, syncShopifyProductToAlegraFromWebhook } from "./shopify-products-to-alegra-items.service";
 import { ensureOrganization, ensureWebhookEventsTable, getOrgId, getPool } from "../db";
+import { publishWebhookEvent } from "./webhook-queue";
 
 export type WebhookSource = "shopify" | "alegra";
 
@@ -76,16 +77,28 @@ function asStringId(value: unknown): string | undefined {
   return undefined;
 }
 
+/**
+ * Acepta un webhook y lo deja listo para procesarse fuera de la petición HTTP.
+ *
+ * Camino rápido: UNA fila en `webhook_events` (el registro de verdad) y un job
+ * en Redis. El trabajo pesado —crear el sync_log y procesar— ocurre en el
+ * worker `webhook-dispatch`.
+ *
+ * Antes esto era una transacción con tres INSERT que además tomaba su propia
+ * conexión con `pool.connect()`. Con el pool pequeño, el webhook que caía
+ * cuando no había conexiones libres esperaba hasta el timeout y devolvía 500.
+ *
+ * Si Redis no está disponible se cae al camino de base de datos de siempre
+ * (sync_log + retry_queue), de modo que nunca se pierde un evento aceptado.
+ */
 export async function enqueueWebhookEvent(event: WebhookEvent) {
   const pool = getPool();
   const orgId = getOrgId();
   await ensureOrganization(pool, orgId);
   await ensureWebhookEventsTable(pool);
-  const meta = buildLogMeta(event);
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    const webhookEventResult = await client.query<{ id: number }>(
+
+  const registered = await pool
+    .query<{ id: number }>(
       `
       INSERT INTO webhook_events
         (organization_id, source, event_type, payload_json, status)
@@ -93,8 +106,98 @@ export async function enqueueWebhookEvent(event: WebhookEvent) {
       RETURNING id
       `,
       [orgId, event.source, event.eventType, event.payload]
+    )
+    .catch(() => null);
+  const registeredId = registered?.rows[0]?.id ?? null;
+
+  if (registeredId) {
+    const published = await publishWebhookEvent({ webhookEventId: registeredId, orgId, event });
+    if (published) {
+      // El sync_log lo crea el worker al empezar a procesar: aquí sólo interesa
+      // soltar la petición HTTP cuanto antes.
+      return { status: "queued", event, syncLogId: null, webhookEventId: registeredId };
+    }
+    console.warn(
+      `[webhook] Redis no aceptó webhookEventId=${registeredId}; se usa el camino de base de datos.`
     );
-    const webhookEventId = webhookEventResult.rows[0]?.id;
+  }
+
+  return enqueueWebhookEventViaDatabase(event, registeredId);
+}
+
+/**
+ * Procesa un webhook despachado por la cola de Redis.
+ *
+ * Crea el `sync_log` que el resto del sistema espera y delega en
+ * `processQueuedWebhookEvent`. Vive aquí, y no en el worker, porque necesita
+ * `buildLogMeta`, que es privado de este módulo.
+ *
+ * Lanza si el procesamiento falla: es BullMQ quien decide reintentar, con su
+ * backoff, y quien acaba dejando el job en la dead-letter.
+ */
+export async function processWebhookDispatchJob(params: {
+  webhookEventId: number;
+  event: WebhookEvent;
+}) {
+  const meta = buildLogMeta(params.event);
+  const syncLogId = await createSyncLog({
+    entity: meta.entity,
+    direction: meta.direction,
+    status: "queued",
+    message: meta.message,
+    request: {
+      ...(meta.request || {}),
+      webhookEvent: {
+        source: params.event.source,
+        eventType: params.event.eventType,
+        payload: params.event.payload,
+        meta: params.event.meta || {},
+        webhookEventId: params.webhookEventId,
+      },
+    },
+  });
+
+  if (!syncLogId) {
+    throw new Error(`No se pudo crear el sync_log para webhookEventId=${params.webhookEventId}`);
+  }
+
+  return processQueuedWebhookEvent({
+    syncLogId,
+    event: params.event,
+    webhookEventId: params.webhookEventId,
+  });
+}
+
+/**
+ * Camino de respaldo: registra el evento y lo deja en `retry_queue`, que es
+ * quien lo recogerá. Se usa cuando Redis no está disponible.
+ *
+ * @param existingWebhookEventId fila ya creada por el camino rápido; si viene,
+ * no se vuelve a insertar.
+ */
+async function enqueueWebhookEventViaDatabase(
+  event: WebhookEvent,
+  existingWebhookEventId: number | null = null
+) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const meta = buildLogMeta(event);
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    let webhookEventId = existingWebhookEventId ?? undefined;
+    if (!webhookEventId) {
+      const webhookEventResult = await client.query<{ id: number }>(
+        `
+        INSERT INTO webhook_events
+          (organization_id, source, event_type, payload_json, status)
+        VALUES ($1, $2, $3, $4, 'pending')
+        RETURNING id
+        `,
+        [orgId, event.source, event.eventType, event.payload]
+      );
+      webhookEventId = webhookEventResult.rows[0]?.id;
+    }
     const syncLogResult = await client.query<{ id: number }>(
       `
       INSERT INTO sync_logs

@@ -7,6 +7,7 @@ import { startInventoryAdjustmentsWorker } from "./pollers/inventory-adjustments
 import { startOrdersSyncWorker } from "./pollers/orders-sync";
 import { startProductsSyncWorker } from "./pollers/products-sync";
 import { startRetryQueueWorker } from "./retry-queue";
+import { startWebhookDispatchWorker } from "./webhook-dispatch";
 import type { WorkerRuntimeGroup } from "./types";
 
 export const workerRuntimeGroups: WorkerRuntimeGroup[] = [
@@ -21,6 +22,11 @@ export const workerRuntimeGroups: WorkerRuntimeGroup[] = [
     jobs: ["retry-queue"],
   },
   {
+    key: "webhook-dispatch",
+    label: "Webhook dispatch (Redis)",
+    jobs: ["webhook-dispatch"],
+  },
+  {
     key: "cron",
     label: "Marketing and billing cron",
     jobs: ["marketing", "billing-report", "log-retention", "health-monitor", "alegra-reconcile"],
@@ -32,6 +38,7 @@ export function startWorkersRuntime() {
   startOrdersSyncWorker();
   startProductsSyncWorker();
   startRetryQueueWorker();
+  startWebhookDispatchWorker();
   startMarketingWorker();
   startBillingReportWorker();
   startLogRetentionWorker();
