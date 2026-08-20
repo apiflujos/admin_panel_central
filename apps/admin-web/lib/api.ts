@@ -3,7 +3,6 @@ import type {
   AdminWebDashboardOverviewDto,
   AdminWebInvoicesListDto,
   AdminWebLogsListDto,
-  AdminWebMarketingOverviewDto,
   AdminWebOperationsListDto,
   AdminWebOrdersListDto,
   AdminWebProductsListDto,
@@ -228,21 +227,6 @@ export async function getInvoicesCatalog(params?: {
   if (typeof params?.offset === "number") search.set("offset", String(params.offset));
   const suffix = search.toString() ? `?${search.toString()}` : "";
   return requestJson<AdminWebInvoicesListDto>({ path: `/admin-web/invoices${suffix}`, method: "GET" });
-}
-
-export async function getMarketingOverview(params: {
-  shopDomain?: string;
-  from?: string;
-  to?: string;
-}): Promise<AdminWebMarketingOverviewDto> {
-  const search = new URLSearchParams();
-  if (params.shopDomain) search.set("shopDomain", params.shopDomain);
-  if (params.from) search.set("from", params.from);
-  if (params.to) search.set("to", params.to);
-  return requestJson<AdminWebMarketingOverviewDto>({
-    path: `/admin-web/marketing/overview?${search.toString()}`,
-    method: "GET",
-  });
 }
 
 export async function getOperationsCatalog(params?: { days?: number }): Promise<AdminWebOperationsListDto> {
@@ -972,31 +956,6 @@ export async function getAlegraCatalog(catalog: string, shopDomain?: string): Pr
   });
 }
 
-export type AdminWebMarketingPixelConfig = {
-  shopDomain: string;
-  pixelKey: string;
-  pixelScriptUrl: string;
-  pixelScriptTag: string;
-  webhookUrl: string;
-  webhookTopics: string[];
-  envKeyConfigured: boolean;
-};
-
-export type AdminWebMarketingWebhookStatus = {
-  ok: boolean;
-  total: number;
-  connected: number;
-  missing: string[];
-  callbackUrl?: string;
-};
-
-export type AdminWebMarketingWebhookMutation = {
-  ok: boolean;
-  callbackUrl?: string;
-  deleted?: number;
-  items?: Array<Record<string, unknown>>;
-};
-
 export type AdminWebShopifyWebhookStatus = {
   ok: boolean;
   total: number;
@@ -1011,46 +970,6 @@ export type AdminWebShopifyWebhookMutation = {
   total?: number;
   items?: Array<Record<string, unknown>>;
 };
-
-export async function getMarketingPixelConfig(shopDomain: string): Promise<AdminWebMarketingPixelConfig> {
-  const search = new URLSearchParams({ shopDomain });
-  return requestJson<AdminWebMarketingPixelConfig>({
-    path: `/marketing/pixel/config?${search.toString()}`,
-    method: "GET",
-  });
-}
-
-export async function rotateMarketingPixelKey(shopDomain: string): Promise<AdminWebMarketingPixelConfig> {
-  return requestJson<AdminWebMarketingPixelConfig>({
-    path: "/marketing/pixel/key/rotate",
-    method: "POST",
-    body: JSON.stringify({ shopDomain }),
-  });
-}
-
-export async function getMarketingWebhookStatus(shopDomain: string): Promise<AdminWebMarketingWebhookStatus> {
-  const search = new URLSearchParams({ shopDomain });
-  return requestJson<AdminWebMarketingWebhookStatus>({
-    path: `/marketing/webhooks/status?${search.toString()}`,
-    method: "GET",
-  });
-}
-
-export async function createMarketingWebhooks(shopDomain: string): Promise<AdminWebMarketingWebhookMutation> {
-  return requestJson<AdminWebMarketingWebhookMutation>({
-    path: "/marketing/webhooks/create",
-    method: "POST",
-    body: JSON.stringify({ shopDomain }),
-  });
-}
-
-export async function deleteMarketingWebhooks(shopDomain: string): Promise<AdminWebMarketingWebhookMutation> {
-  return requestJson<AdminWebMarketingWebhookMutation>({
-    path: "/marketing/webhooks/delete",
-    method: "POST",
-    body: JSON.stringify({ shopDomain }),
-  });
-}
 
 export async function getShopifyWebhookStatus(shopDomain: string): Promise<AdminWebShopifyWebhookStatus> {
   const search = new URLSearchParams({ shopDomain });

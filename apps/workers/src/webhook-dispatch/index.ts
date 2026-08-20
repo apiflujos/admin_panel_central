@@ -1,6 +1,6 @@
 import { Worker } from "bullmq";
 import { getPoolMax, getPool, runWithOrg } from "../../../../src/db";
-import { getRedis } from "../../../../src/marketing/infra/redis";
+import { getRedis } from "../../../../src/infra/redis";
 import { processWebhookDispatchJob } from "../../../../src/services/sync.service";
 import {
   WEBHOOK_QUEUE_NAME,

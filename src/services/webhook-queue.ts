@@ -1,5 +1,5 @@
 import { Queue, type JobsOptions } from "bullmq";
-import { getRedis } from "../marketing/infra/redis";
+import { getRedis } from "../infra/redis";
 import type { WebhookEvent } from "./sync.service";
 
 /**

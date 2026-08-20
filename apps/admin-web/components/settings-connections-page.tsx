@@ -26,8 +26,7 @@ type ConnectionWizardPlatform =
   | "alegra"
   | "google-ads"
   | "meta-ads"
-  | "tiktok-ads"
-  | "shopify-marketing";
+  | "tiktok-ads";
 
 type ConnectionModalState =
   | { kind: "closed" }
@@ -47,9 +46,6 @@ function wizardPlatformHint(platform: ConnectionWizardPlatform | null) {
   }
   if (platform === "google-ads" || platform === "meta-ads" || platform === "tiktok-ads") {
     return "Captura el ID de cuenta y completa OAuth.";
-  }
-  if (platform === "shopify-marketing") {
-    return "Pixel, script y webhooks viven en el submódulo de marketing.";
   }
   return "Completa los datos mínimos para abrir la conexión.";
 }
@@ -415,7 +411,7 @@ export function SettingsConnectionsPage({
   }
 
   function openConnectionFlow(
-    platform?: "shopify" | "woocommerce" | "alegra" | "google-ads" | "meta-ads" | "tiktok-ads" | "shopify-marketing"
+    platform?: "shopify" | "woocommerce" | "alegra" | "google-ads" | "meta-ads" | "tiktok-ads"
   ) {
     setStatusMessage("");
     setModal({ kind: "connection" });
@@ -1125,7 +1121,7 @@ export function SettingsConnectionsPage({
                     >
                       <div>
                         <strong>Ads</strong>
-                        <span>Google, Meta, TikTok y Marketing</span>
+                        <span>Google, Meta y TikTok</span>
                       </div>
                     </button>
                   </div>
@@ -1233,20 +1229,6 @@ export function SettingsConnectionsPage({
                             <span>Advertiser ID + OAuth</span>
                           </div>
                         </button>
-                        <button
-                          className="provider-shortcut"
-                          type="button"
-                          onClick={() => {
-                            setConnectionWizardPlatform("shopify-marketing");
-                            setConnectionWizardStep("form");
-                          }}
-                        >
-                          <ProviderMark provider="Shopify" />
-                          <div>
-                            <strong>Shopify Marketing</strong>
-                            <span>Pixel y webhooks</span>
-                          </div>
-                        </button>
                       </>
                     ) : null}
                   </div>
@@ -1273,9 +1255,7 @@ export function SettingsConnectionsPage({
                                 ? "Conectar Google Ads"
                                 : connectionWizardPlatform === "meta-ads"
                                   ? "Conectar Meta Ads"
-                                  : connectionWizardPlatform === "tiktok-ads"
-                                    ? "Conectar TikTok Ads"
-                                    : "Shopify Marketing"}
+                                  : "Conectar TikTok Ads"}
                       </strong>
                       <span>
                         {selectedStore
@@ -1557,12 +1537,6 @@ export function SettingsConnectionsPage({
                         </button>
                       </div>
                     </>
-                  ) : null}
-
-                  {connectionWizardPlatform === "shopify-marketing" ? (
-                    <p className="connection-inline-note">
-                      El submódulo de marketing no está disponible en esta versión.
-                    </p>
                   ) : null}
 
                   <div className="page-module-actions">

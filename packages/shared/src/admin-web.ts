@@ -135,39 +135,6 @@ export type AdminWebInvoicesListDto = {
   offset: number;
 };
 
-export type AdminWebMarketingChannelDto = {
-  channel: string;
-  revenue: number;
-  paidOrders: number;
-  sessions: number;
-  roas: number | null;
-};
-
-export type AdminWebMarketingCampaignDto = {
-  utmCampaign: string | null;
-  revenue: number;
-  paidOrders: number;
-  roas: number | null;
-};
-
-export type AdminWebMarketingOverviewDto = {
-  shopDomain: string;
-  from: string;
-  to: string;
-  revenue: number;
-  spend: number;
-  roas: number | null;
-  paidOrders: number;
-  aov: number | null;
-  customersNew: number;
-  customersRepeat: number;
-  sessions: number;
-  addToCart: number;
-  checkouts: number;
-  byChannel: AdminWebMarketingChannelDto[];
-  topCampaigns: AdminWebMarketingCampaignDto[];
-};
-
 export type AdminWebDashboardHighlightRowDto = {
   id: string;
   kind: "product" | "order" | "log";

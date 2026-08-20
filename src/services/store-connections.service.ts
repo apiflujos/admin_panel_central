@@ -1053,107 +1053,6 @@ export async function deleteStoreConnectionByDomain(shopDomain: string, options:
   return { deleted: true as const, storeId };
 }
 
-async function purgeMarketingStoreData(pool: PoolClient | ReturnType<typeof getPool>, orgId: number, shopDomain: string) {
-  await pool.query(
-    `
-    DELETE FROM marketing.alerts
-    WHERE organization_id = $1 AND shop_domain = $2
-    `,
-    [orgId, shopDomain]
-  );
-  await pool.query(
-    `
-    DELETE FROM marketing.alert_rules
-    WHERE organization_id = $1 AND shop_domain = $2
-    `,
-    [orgId, shopDomain]
-  );
-  await pool.query(
-    `
-    DELETE FROM marketing.order_items
-    WHERE organization_id = $1 AND shop_domain = $2
-    `,
-    [orgId, shopDomain]
-  );
-  await pool.query(
-    `
-    DELETE FROM marketing.attribution_events
-    WHERE organization_id = $1 AND shop_domain = $2
-    `,
-    [orgId, shopDomain]
-  );
-  await pool.query(
-    `
-    DELETE FROM marketing.daily_metrics
-    WHERE organization_id = $1 AND shop_domain = $2
-    `,
-    [orgId, shopDomain]
-  );
-  await pool.query(
-    `
-    DELETE FROM marketing.campaign_spend
-    WHERE organization_id = $1 AND shop_domain = $2
-    `,
-    [orgId, shopDomain]
-  );
-  await pool.query(
-    `
-    DELETE FROM marketing.campaigns
-    WHERE organization_id = $1 AND shop_domain = $2
-    `,
-    [orgId, shopDomain]
-  );
-  await pool.query(
-    `
-    DELETE FROM marketing.traffic_sources
-    WHERE organization_id = $1 AND shop_domain = $2
-    `,
-    [orgId, shopDomain]
-  );
-  await pool.query(
-    `
-    DELETE FROM marketing.orders
-    WHERE organization_id = $1 AND shop_domain = $2
-    `,
-    [orgId, shopDomain]
-  );
-  await pool.query(
-    `
-    DELETE FROM marketing.products
-    WHERE organization_id = $1 AND shop_domain = $2
-    `,
-    [orgId, shopDomain]
-  );
-  await pool.query(
-    `
-    DELETE FROM marketing.customers
-    WHERE organization_id = $1 AND shop_domain = $2
-    `,
-    [orgId, shopDomain]
-  );
-  await pool.query(
-    `
-    DELETE FROM marketing.webhook_receipts
-    WHERE organization_id = $1 AND shop_domain = $2
-    `,
-    [orgId, shopDomain]
-  );
-  await pool.query(
-    `
-    DELETE FROM marketing.sync_state
-    WHERE organization_id = $1 AND shop_domain = $2
-    `,
-    [orgId, shopDomain]
-  );
-  await pool.query(
-    `
-    DELETE FROM marketing.shops
-    WHERE organization_id = $1 AND shop_domain = $2
-    `,
-    [orgId, shopDomain]
-  );
-}
-
 async function purgeStoreData(pool: PoolClient | ReturnType<typeof getPool>, orgId: number, shopDomain: string) {
   await pool.query(
     `
@@ -1221,9 +1120,6 @@ export async function deleteStoreConnection(storeId: number, options: DeleteStor
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    // Always purge marketing rows for this shop (prevents stale dashboards and webhook noise).
-    await purgeMarketingStoreData(client, orgId, shopDomain);
-
     if (options.purgeData) {
       await purgeStoreData(client, orgId, shopDomain);
     } else {

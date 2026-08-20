@@ -1,6 +1,6 @@
 import { getPool } from "../../../../src/db";
 import { getSuperAdminEmail } from "../../../../src/sa/sa.bootstrap";
-import { startCron } from "../../../../src/marketing/infra/cron";
+import { startCron } from "../../../../src/infra/cron";
 import { getTenantMonthlySummary } from "../../../../src/sa/sa.admin.service";
 
 function prevMonthKeyUtc(now = new Date()) {

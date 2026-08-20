@@ -9,7 +9,6 @@ import type {
   AdminWebDashboardOverviewDto,
   AdminWebInvoicesListDto,
   AdminWebLogsListDto,
-  AdminWebMarketingOverviewDto,
   AdminWebOperationsListDto,
   AdminWebOrdersListDto,
   AdminWebProductsListDto,
@@ -38,43 +37,6 @@ async function countEnabledModules() {
     [tenantId]
   );
   return rows.rows.length;
-}
-
-async function resolveDefaultMarketingShopDomain() {
-  const [{ listStoreConnections }] = await Promise.all([import("../../../src/services/store-connections.service")]);
-  const connections = await listStoreConnections();
-  for (const store of connections.storesCatalog) {
-    if (store.shopify?.shopDomain) {
-      return String(store.shopify.shopDomain);
-    }
-  }
-  return "";
-}
-
-async function resolveMarketingDashboardFilters(
-  query: Record<string, unknown>,
-  options: { autofillShopDomain?: boolean } = {}
-) {
-  const [{ normalizeMarketingDashboardFilters }] = await Promise.all([
-    import("../../../packages/domain/src/marketing"),
-  ]);
-  const requestedShopDomain =
-    typeof query.shopDomain === "string" && query.shopDomain.trim()
-      ? query.shopDomain
-      : options.autofillShopDomain
-        ? await resolveDefaultMarketingShopDomain()
-        : undefined;
-
-  const filters = normalizeMarketingDashboardFilters({
-    ...query,
-    shopDomain: requestedShopDomain,
-  });
-
-  if (!filters.shopDomain) {
-    throw new Error("shopDomain requerido");
-  }
-
-  return filters;
 }
 
 export const getServerSessionProfile = cache(async (): Promise<AuthSessionDto | null> => {
@@ -657,21 +619,6 @@ export async function getServerInvoicesCatalog(): Promise<AdminWebInvoicesListDt
   const result = await listInvoices(normalizeInvoicesListFilters({ limit: "20", offset: "0" }));
 
   return toAdminWebInvoicesListDto(result);
-}
-
-export async function getServerMarketingOverview(
-  shopDomain?: string,
-  from?: string,
-  to?: string
-): Promise<AdminWebMarketingOverviewDto> {
-  const [{ toAdminWebMarketingOverviewDto }, { getMarketingExecutiveDashboard }] = await Promise.all([
-    import("../../../packages/domain/src/marketing"),
-    import("../../../src/marketing/reports/marketing-reports.service"),
-  ]);
-
-  const filters = await resolveMarketingDashboardFilters({ shopDomain, from, to }, { autofillShopDomain: true });
-  const result = await getMarketingExecutiveDashboard(filters);
-  return toAdminWebMarketingOverviewDto(result);
 }
 
 export async function getServerOperationsCatalog(): Promise<AdminWebOperationsListDto> {

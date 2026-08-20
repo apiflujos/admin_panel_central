@@ -11,7 +11,6 @@ import { startInventoryAdjustmentsPoller } from "./jobs/inventory-adjustments";
 import { startOrdersSyncPoller } from "./jobs/orders-sync";
 import { startProductsSyncPoller } from "./jobs/products-sync";
 import { startRetryQueuePoller } from "./jobs/retry-queue";
-import { startMarketingJobs } from "./jobs/marketing";
 import { startBillingReportCron } from "./jobs/billing-report";
 import { ensureSaDefaults } from "./sa/sa.bootstrap";
 import { requirePageSuperAdmin } from "./api/page-auth";
@@ -84,14 +83,6 @@ app.use(
     limit: "5mb",
   })
 );
-app.use(
-  "/api/marketing/webhooks/shopify",
-  express.raw({
-    type: "*/*",
-    limit: "5mb",
-  })
-);
-
 app.use(
   express.json({
     limit: "2mb",
@@ -279,7 +270,7 @@ app.get("/settings", (_req, res) => res.redirect(302, "/settings/connections"));
 app.get("/settings/:pane", (req, res, next) => {
   const pane = String(req.params.pane || "").trim().toLowerCase();
   // These settings panes are handled by the new admin-web.
-  if (pane === "connections" || pane === "stores" || pane === "marketing") {
+  if (pane === "connections" || pane === "stores") {
     next();
     return;
   }
@@ -296,7 +287,7 @@ app.get("/legacy/login", (_req, res) => {
 app.get("/legacy/settings", requirePageSession, (_req, res) => res.redirect(302, "/legacy/settings/connections"));
 app.get("/legacy/settings/:pane", requirePageSession, (req, res) => {
   const pane = String(req.params.pane || "").trim().toLowerCase();
-  if (pane === "connections" || pane === "stores" || pane === "marketing") {
+  if (pane === "connections") {
     if (pane !== "connections") {
       res.redirect(302, "/legacy/settings/connections");
       return;
@@ -368,7 +359,6 @@ async function startServer() {
       startOrdersSyncPoller();
       startProductsSyncPoller();
       startRetryQueuePoller();
-      startMarketingJobs();
       startBillingReportCron();
       return;
     }

@@ -23,22 +23,6 @@ import {
 } from "./settings.controller";
 import { listMetrics } from "./metrics.controller";
 import { downloadCommerceReportCsvHandler } from "./reports.controller";
-import {
-  marketingDashboardHandler,
-  marketingInsightsHandler,
-  marketingRecomputeMetricsHandler,
-  marketingSyncOrdersHandler,
-  marketingUpsertCampaignSpendHandler,
-} from "./marketing.controller";
-import {
-  marketingPixelConfigHandler,
-  marketingPixelRotateKeyHandler,
-  marketingWebhooksCreateHandler,
-  marketingWebhooksDeleteHandler,
-  marketingWebhooksStatusHandler,
-} from "./marketing-config.controller";
-import { shopifyMarketingWebhookHandler } from "./marketing-webhooks.controller";
-import { marketingCollectHandler, marketingPixelScriptHandler } from "./marketing-pixel.controller";
 import { getInventoryAdjustmentsCheckpoint } from "./checkpoints.controller";
 import {
   createConnection,
@@ -130,7 +114,6 @@ import {
 import { listOrdersHandler, backfillOrdersHandler, stopOrdersBackfillHandler } from "./orders.controller";
 import { downloadInvoicePdfHandler, listInvoicesHandler } from "./invoices.controller";
 import { syncInvoicesToShopifyHandler, stopInvoicesSyncHandler } from "./invoices-sync.controller";
-import { marketingGraphqlHttpHandler } from "../marketing/graphql/marketing-graphql";
 import { billingSummaryHandler } from "./billing.controller";
 import { syncStoreProductsHandler } from "./store-sync.controller";
 import { listTenantModulesHandler } from "./modules.controller";
@@ -178,11 +161,6 @@ const wrap = (handler: (...args: any[]) => any) => (req: any, res: any, next: an
 router.post("/webhooks/shopify", wrap(handleShopifyWebhook));
 router.post("/webhooks/alegra", wrap(handleAlegraWebhook));
 
-// Marketing (public, key-gated or HMAC-verified)
-router.post("/marketing/webhooks/shopify", wrap(shopifyMarketingWebhookHandler));
-router.get("/marketing/pixel.js", wrap(marketingPixelScriptHandler));
-router.post("/marketing/collect", wrap(marketingCollectHandler));
-
 router.post("/auth/login", wrap(loginHandler));
 router.get("/auth/csrf", wrap(csrfTokenHandler));
 router.get("/auth/shopify", wrap(authMiddleware), requireAdmin, wrap(startShopifyOAuth));
@@ -210,13 +188,6 @@ router.post("/auth/token", requireAdmin, wrap(createAuthTokenHandler));
 router.get("/modules", requireAdmin, wrap(listTenantModulesHandler));
 
 router.get("/billing/summary", wrap(billingSummaryHandler));
-
-// Marketing config (authed)
-router.get("/marketing/pixel/config", requireAdmin, wrap(marketingPixelConfigHandler));
-router.post("/marketing/pixel/key/rotate", requireAdmin, wrap(marketingPixelRotateKeyHandler));
-router.get("/marketing/webhooks/status", requireAdmin, wrap(marketingWebhooksStatusHandler));
-router.post("/marketing/webhooks/create", requireAdmin, wrap(marketingWebhooksCreateHandler));
-router.post("/marketing/webhooks/delete", requireAdmin, wrap(marketingWebhooksDeleteHandler));
 
 // Super Admin (global)
 router.post("/sa/sql", requireSuperAdmin, wrap(saExecuteSqlHandler));
@@ -340,10 +311,3 @@ router.put("/operations/:orderId/einvoice", wrap(saveEinvoiceOverrideHandler));
 router.post("/operations/:orderId/payment", wrap(emitPaymentHandler));
 router.post("/operations/:orderId/cancel", wrap(voidInvoiceHandler));
 
-// Marketing (authed)
-router.post("/marketing/sync/orders", requireAdmin, wrap(marketingSyncOrdersHandler));
-router.post("/marketing/metrics/recompute", requireAdmin, wrap(marketingRecomputeMetricsHandler));
-router.post("/marketing/spend", requireAdmin, wrap(marketingUpsertCampaignSpendHandler));
-router.get("/marketing/dashboard", wrap(marketingDashboardHandler));
-router.get("/marketing/insights", wrap(marketingInsightsHandler));
-router.all("/marketing/graphql", wrap(marketingGraphqlHttpHandler));
