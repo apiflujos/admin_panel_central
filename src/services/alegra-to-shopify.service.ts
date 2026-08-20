@@ -117,7 +117,15 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
         metadata: { sku: matched.sku },
       });
       const result = await withRetry(
-        () => ctx.shopify.updateVariantPrice(matched.variantId, itemPricing.price, itemPricing.compareAtPrice),
+        () =>
+          ctx.shopify.updateVariantPrice(
+            matched.variantId,
+            itemPricing.price,
+            itemPricing.compareAtPrice,
+            // productVariantsBulkUpdate exige el producto; ya lo tenemos del match,
+            // así que evitamos una query extra por ítem.
+            matched.productId
+          ),
         { label: "updateVariantPrice" }
       );
       if (matched.productId && ctx.autoPublishOnWebhook) {
@@ -206,9 +214,17 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
   }
 
   const variantId = mapped.shopifyId;
-  const result = await withRetry(() => ctx.shopify.updateVariantPrice(variantId, itemPricing.price, itemPricing.compareAtPrice), {
-    label: "updateVariantPrice",
-  });
+  const result = await withRetry(
+    () =>
+      ctx.shopify.updateVariantPrice(
+        variantId,
+        itemPricing.price,
+        itemPricing.compareAtPrice,
+        // Puede ser null en mapeos antiguos; el conector lo resolverá entonces.
+        mapped.shopifyProductId
+      ),
+    { label: "updateVariantPrice" }
+  );
 
   if (mapped.shopifyProductId && ctx.autoPublishOnWebhook) {
     const productId = mapped.shopifyProductId;

@@ -1821,7 +1821,11 @@ export async function updateProductOversellHandler(req: Request, res: Response) 
       if (!variantNode?.id) {
         throw new Error("Variante Shopify no encontrada para el SKU.");
       }
-      await client.updateVariantInventoryPolicy(variantNode.id, allowOversellShopify ? "CONTINUE" : "DENY");
+      await client.updateVariantInventoryPolicy(
+        variantNode.id,
+        allowOversellShopify ? "CONTINUE" : "DENY",
+        variantNode.product?.id
+      );
       result.shopify = {
         sku,
         inventoryPolicy: allowOversellShopify ? "CONTINUE" : "DENY",
@@ -2262,10 +2266,19 @@ export async function syncProductsHandler(req: Request, res: Response) {
                 );
                 const price = pricing.price ?? (String(desired?.price || "0").trim() || "0");
                 try {
-                  await withShopifyRetry(() => shopifyClient.updateVariantPrice(variantId, price, pricing.compareAtPrice), {
-                    label: "updateVariantPrice",
-                    retries: 2,
-                  });
+                  await withShopifyRetry(
+                    () =>
+                      shopifyClient.updateVariantPrice(
+                        variantId,
+                        price,
+                        pricing.compareAtPrice,
+                        (match as { productId?: string })?.productId
+                      ),
+                    {
+                      label: "updateVariantPrice",
+                      retries: 2,
+                    }
+                  );
                 } catch (error) {
                   pushFailedItem(current.item, error, "update");
                   throw error;

@@ -2,6 +2,7 @@ import { getPool, runWithOrg } from "../db";
 import { retryInvoiceFromLog } from "./operations.service";
 import { processQueuedWebhookEvent, type WebhookEvent, type WebhookSource } from "./sync.service";
 import { updateSyncLog } from "./logs.service";
+import { isPermanentIntegrationError } from "../connectors/shopify-errors";
 
 type RetryRow = {
   id: number;
@@ -148,9 +149,16 @@ export async function processRetryQueue(limit = 50) {
         continue;
       }
     } catch (error) {
-      console.error(`[retry-queue] orderId=${orderId} attempt failed:`, error instanceof Error ? error.message : error);
+      const permanent = isPermanentIntegrationError(error);
+      console.error(
+        `[retry-queue] orderId=${orderId} attempt failed${permanent ? " [PERMANENTE, no se reintenta]" : ""}:`,
+        error instanceof Error ? error.message : error
+      );
       const nextRetryCount = row.retry_count + 1;
-      if (nextRetryCount >= maxRetries) {
+      // Un fallo permanente (clave duplicada, credenciales ausentes, validación
+      // 4xx de Alegra) dará el mismo resultado en cada intento: se marca como
+      // fallido de una vez en lugar de consumir toda la escalera de backoff.
+      if (permanent || nextRetryCount >= maxRetries) {
         await pool.query(`UPDATE retry_queue SET status = 'failed' WHERE id = $1`, [row.id]);
         await updateSyncLog(row.sync_log_id, {
           status: "fail",

@@ -173,13 +173,48 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
     return { updated: true };
   }
 
-  const syncStatus = alegraId && shopifyId ? "synced" : "pending";
+  // Anti-colisión entre los DOS índices únicos de `products`:
+  //   products_org_alegra_store_idx   (organization_id, shop_domain, alegra_item_id)
+  //   products_org_shopify_store_idx  (organization_id, shop_domain, shopify_product_id)
+  //
+  // `ON CONFLICT` sólo resuelve el índice que se le declara. Al insertar por
+  // alegra_item_id, si el shopify_product_id entrante ya pertenece a OTRA fila,
+  // el INSERT viola el segundo índice y Postgres lanza la excepción en vez de
+  // aplicar el DO UPDATE. Eso producía en producción el error recurrente
+  // `duplicate key value violates unique constraint "products_org_shopify_store_idx"`
+  // (5.675 veces), que el retry-queue reintentaba indefinidamente.
+  //
+  // Política: se preserva el dueño existente del shopify_product_id — el mismo
+  // criterio que el safeguard de la rama UPDATE — y se inserta sin él.
+  let insertShopifyId = shopifyId;
+  if (alegraId && shopifyId) {
+    const owner = await pool.query<{ id: number; alegra_item_id: string | null }>(
+      `
+      SELECT id, alegra_item_id
+      FROM products
+      WHERE organization_id = $1 AND shop_domain = $2 AND shopify_product_id = $3
+      LIMIT 1
+      `,
+      [orgId, shopDomain, shopifyId]
+    );
+    const ownerAlegraId = owner.rows[0]?.alegra_item_id;
+    if (owner.rows.length && String(ownerAlegraId ?? "") !== String(alegraId)) {
+      console.warn(
+        `[products.upsertProduct] shopify_product_id=${shopifyId} ya pertenece a alegra_item_id=${ownerAlegraId ?? "null"}` +
+          ` en shop=${shopDomain}; se inserta alegra_item_id=${alegraId} sin shopify_product_id para no violar` +
+          " products_org_shopify_store_idx."
+      );
+      insertShopifyId = null;
+    }
+  }
+
+  const syncStatus = alegraId && insertShopifyId ? "synced" : "pending";
   const insertValues = [
     orgId,
     shopDomain,
     source || "alegra",
     alegraId,
-    shopifyId,
+    insertShopifyId,
     name,
     reference,
     sku,

@@ -1,4 +1,7 @@
-import { resolveShopifyApiVersion } from "../utils/shopify";
+import { assertShopifyApiVersionMatches, resolveShopifyApiVersion } from "../utils/shopify";
+import { ShopifyRequestError } from "./shopify-errors";
+
+export { ShopifyRequestError } from "./shopify-errors";
 
 function parsePositiveInt(value: string | undefined, fallback: number) {
   const parsed = Number(value);
@@ -30,9 +33,11 @@ type GraphQlRequest = {
 export class ShopifyClient {
   private endpoint: string;
   private restBase: string;
+  private apiVersion: string;
 
   constructor(private config: ShopifyConfig) {
     const version = resolveShopifyApiVersion(config.apiVersion);
+    this.apiVersion = version;
     this.endpoint = `https://${config.shopDomain}/admin/api/${version}/graphql.json`;
     this.restBase = `https://${config.shopDomain}/admin/api/${version}`;
   }
@@ -82,19 +87,73 @@ export class ShopifyClient {
       clearTimeout(timer);
     }
 
+    // Si Shopify sirvió una versión distinta a la pedida, la app está anclada a
+    // una versión retirada y el esquema real no es el que espera este código.
+    assertShopifyApiVersionMatches(this.apiVersion, response.headers.get("X-Shopify-API-Version"), {
+      shopDomain: this.config.shopDomain,
+    });
+
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`Shopify GraphQL error: ${response.status} ${text}`);
+      throw new ShopifyRequestError(`Shopify GraphQL error: ${response.status} ${text}`, {
+        status: response.status,
+      });
     }
 
     const json = (await response.json()) as GraphQlResponse<T>;
     if (json.errors?.length) {
-      throw new Error(`Shopify GraphQL errors: ${JSON.stringify(json.errors)}`);
+      throw new ShopifyRequestError(`Shopify GraphQL errors: ${JSON.stringify(json.errors)}`, {
+        status: response.status,
+        graphQlErrors: json.errors,
+      });
     }
     if (!json.data) {
-      throw new Error("Shopify GraphQL missing data");
+      throw new ShopifyRequestError("Shopify GraphQL missing data", { status: response.status });
     }
     return json.data;
+  }
+
+  /**
+   * Ejecuta una mutación y convierte sus `userErrors` en una excepción.
+   *
+   * Antes se ignoraban por completo: una mutación podía "tener éxito" a nivel
+   * HTTP y GraphQL mientras Shopify rechazaba el cambio en `userErrors`, y el
+   * sync lo daba por bueno (fallo silencioso).
+   */
+  private async mutate<T extends Record<string, { userErrors?: Array<{ field?: string[] | null; message: string }> } | undefined>>(
+    body: GraphQlRequest,
+    mutationName: keyof T & string
+  ): Promise<T> {
+    const data = await this.request<T>(body);
+    const userErrors = data?.[mutationName]?.userErrors;
+    if (Array.isArray(userErrors) && userErrors.length) {
+      throw new ShopifyRequestError(
+        `Shopify ${mutationName} userErrors: ${JSON.stringify(userErrors)}`,
+        { userErrors }
+      );
+    }
+    return data;
+  }
+
+  /**
+   * Resuelve el producto dueño de una variante.
+   *
+   * `productVariantsBulkUpdate` exige `productId`, cosa que la mutación
+   * eliminada `productVariantUpdate` no pedía. Los llamadores que ya conocen el
+   * producto deben pasarlo; este atajo cubre a los que sólo tienen el variantId.
+   */
+  async getProductIdByVariantId(variantId: string) {
+    const data = await this.request<{ productVariant: { id: string; product?: { id: string } | null } | null }>(
+      <GraphQlRequest>{
+        query: PRODUCT_ID_BY_VARIANT_QUERY,
+        variables: { id: variantId },
+      }
+    );
+    const productId = data.productVariant?.product?.id;
+    if (!productId) {
+      throw new ShopifyRequestError(`No se pudo resolver el producto de la variante ${variantId}`);
+    }
+    return productId;
   }
 
   async createOrderRest(order: Record<string, unknown>) {
@@ -268,17 +327,34 @@ export class ShopifyClient {
     });
   }
 
-  async updateVariantPrice(variantId: string, price: string, compareAtPrice?: string | null) {
-    return this.request<{ productVariantUpdate: ShopifyMutationResult }>(<GraphQlRequest>{
-      query: VARIANT_PRICE_MUTATION,
-      variables: {
-        input: {
-          id: variantId,
-          price,
-          compareAtPrice: compareAtPrice ?? null,
+  /**
+   * @param productId producto dueño de la variante. Es obligatorio para
+   * `productVariantsBulkUpdate`; si no se pasa se resuelve con una query extra,
+   * así que conviene proporcionarlo cuando ya se conoce.
+   */
+  async updateVariantPrice(
+    variantId: string,
+    price: string,
+    compareAtPrice?: string | null,
+    productId?: string | null
+  ) {
+    const resolvedProductId = productId || (await this.getProductIdByVariantId(variantId));
+    return this.mutate<{ productVariantsBulkUpdate: ShopifyMutationResult }>(
+      <GraphQlRequest>{
+        query: VARIANT_PRICE_MUTATION,
+        variables: {
+          productId: resolvedProductId,
+          variants: [
+            {
+              id: variantId,
+              price,
+              compareAtPrice: compareAtPrice ?? null,
+            },
+          ],
         },
       },
-    });
+      "productVariantsBulkUpdate"
+    );
   }
 
   async addOrderTag(orderId: string, tag: string) {
@@ -297,45 +373,98 @@ export class ShopifyClient {
     allowOversell?: boolean;
   }) {
     const trackInventory = typeof input.trackInventory === "boolean" ? input.trackInventory : undefined;
-    const variant = {
-      price: input.price,
-      sku: input.sku,
-    } as {
-      price: string;
-      sku?: string;
-      inventoryPolicy?: "CONTINUE" | "DENY";
-      inventoryItem?: { tracked?: boolean };
-      inventoryManagement?: "SHOPIFY" | "NOT_MANAGED";
-    };
-    if (typeof trackInventory === "boolean") {
-      variant.inventoryItem = { tracked: trackInventory };
-      variant.inventoryManagement = trackInventory ? "SHOPIFY" : "NOT_MANAGED";
-    }
-    if (input.allowOversell === true) {
-      variant.inventoryPolicy = "CONTINUE";
-    }
-    return this.request<{ productCreate: ShopifyProductCreateResult }>(<GraphQlRequest>{
-      query: PRODUCT_CREATE_MUTATION,
-      variables: {
-        input: {
-          title: input.title,
-          status: input.publish ? "ACTIVE" : "DRAFT",
-          variants: [variant],
+
+    // Paso 1: crear el producto. `ProductCreateInput` ya no admite `variants`;
+    // Shopify crea automáticamente la variante inicial por defecto.
+    const created = await this.mutate<{ productCreate: ShopifyProductCreateResult }>(
+      <GraphQlRequest>{
+        query: PRODUCT_CREATE_MUTATION,
+        variables: {
+          product: {
+            title: input.title,
+            status: input.publish ? "ACTIVE" : "DRAFT",
+          },
         },
       },
-    });
+      "productCreate"
+    );
+
+    const productId = created.productCreate?.product?.id;
+    const defaultVariantId = created.productCreate?.product?.variants?.edges?.[0]?.node?.id;
+    if (!productId || !defaultVariantId) {
+      throw new ShopifyRequestError(
+        `productCreate no devolvió producto/variante para "${input.title}"`
+      );
+    }
+
+    // Paso 2: aplicar los datos de la variante inicial. El SKU vive ahora en
+    // `inventoryItem.sku`, no directamente en la variante, y `inventoryManagement`
+    // desapareció en favor de `inventoryItem.tracked`.
+    const variantInput: {
+      id: string;
+      price: string;
+      inventoryPolicy?: "CONTINUE" | "DENY";
+      inventoryItem?: { sku?: string; tracked?: boolean };
+    } = {
+      id: defaultVariantId,
+      price: input.price,
+    };
+    const inventoryItem: { sku?: string; tracked?: boolean } = {};
+    if (input.sku) inventoryItem.sku = input.sku;
+    if (typeof trackInventory === "boolean") inventoryItem.tracked = trackInventory;
+    if (Object.keys(inventoryItem).length) variantInput.inventoryItem = inventoryItem;
+    if (input.allowOversell === true) variantInput.inventoryPolicy = "CONTINUE";
+
+    const updated = await this.mutate<{ productVariantsBulkUpdate: ShopifyVariantsBulkUpdateResult }>(
+      <GraphQlRequest>{
+        query: PRODUCT_CREATE_VARIANT_MUTATION,
+        variables: { productId, variants: [variantInput] },
+      },
+      "productVariantsBulkUpdate"
+    );
+
+    const appliedVariant = updated.productVariantsBulkUpdate?.productVariants?.[0];
+
+    // Se conserva la forma `{ productCreate: { product: { variants: { edges } } } }`
+    // que esperan los llamadores, ya con los datos de la variante aplicados.
+    return {
+      productCreate: {
+        ...created.productCreate,
+        product: {
+          ...created.productCreate.product!,
+          variants: {
+            edges: [
+              {
+                node: {
+                  id: defaultVariantId,
+                  sku: appliedVariant?.sku ?? input.sku ?? null,
+                  barcode: appliedVariant?.barcode ?? null,
+                  inventoryItem: appliedVariant?.inventoryItem ?? undefined,
+                },
+              },
+            ],
+          },
+        },
+      },
+    };
   }
 
-  async updateVariantInventoryPolicy(variantId: string, policy: "CONTINUE" | "DENY") {
-    return this.request<{ productVariantUpdate: ShopifyMutationResult }>(<GraphQlRequest>{
-      query: VARIANT_INVENTORY_POLICY_MUTATION,
-      variables: {
-        input: {
-          id: variantId,
-          inventoryPolicy: policy,
+  async updateVariantInventoryPolicy(
+    variantId: string,
+    policy: "CONTINUE" | "DENY",
+    productId?: string | null
+  ) {
+    const resolvedProductId = productId || (await this.getProductIdByVariantId(variantId));
+    return this.mutate<{ productVariantsBulkUpdate: ShopifyMutationResult }>(
+      <GraphQlRequest>{
+        query: VARIANT_INVENTORY_POLICY_MUTATION,
+        variables: {
+          productId: resolvedProductId,
+          variants: [{ id: variantId, inventoryPolicy: policy }],
         },
       },
-    });
+      "productVariantsBulkUpdate"
+    );
   }
 
   async updateInventoryItemTracking(inventoryItemId: string, tracked: boolean) {
@@ -370,36 +499,85 @@ export class ShopifyClient {
     trackInventory?: boolean;
   }) {
     const trackInventory = typeof input.trackInventory === "boolean" ? input.trackInventory : undefined;
-    const variants = Array.isArray(input.variants)
-      ? input.variants.map((variant) => {
-          if (typeof trackInventory !== "boolean") return variant;
-          return {
-            ...variant,
-            inventoryItem: { tracked: trackInventory },
-            inventoryManagement: trackInventory ? "SHOPIFY" : "NOT_MANAGED",
-          };
-        })
-      : input.variants;
-    const response = await this.request<{ productCreate: ShopifyProductCreateResult }>(<GraphQlRequest>{
-      query: PRODUCT_CREATE_MUTATION,
-      variables: {
-        input: {
-          title: input.title,
-          status: input.status,
-          descriptionHtml: input.descriptionHtml,
-          vendor: input.vendor,
-          productType: input.productType,
-          tags: input.tags,
-          options: input.options,
-          variants,
+
+    // `ProductInput.variants` y `options` desaparecieron con el modelo de
+    // producto nuevo. `productSet` es el reemplazo para crear un producto con
+    // todas sus variantes en una sola llamada.
+    //
+    // CUIDADO: en campos de lista `productSet` BORRA las entradas que no vengan
+    // en el input. Aquí sólo se usa para CREAR productos nuevos, donde no hay
+    // nada que borrar. No reutilizar para actualizaciones parciales.
+    // https://shopify.dev/docs/api/admin-graphql/latest/mutations/productSet
+    const optionNames = Array.isArray(input.options) && input.options.length ? input.options : ["Title"];
+    const sourceVariants = Array.isArray(input.variants) && input.variants.length ? input.variants : [{}];
+
+    const variants = sourceVariants.map((variant) => {
+      const variantOptions = Array.isArray(variant.options) ? variant.options : [];
+      const optionValues = optionNames.map((optionName, index) => ({
+        optionName,
+        // Un producto sin opciones reales usa la opción implícita
+        // "Title" / "Default Title" que Shopify asigna a la variante única.
+        name: String(variantOptions[index] ?? "Default Title"),
+      }));
+
+      const inventoryItem: { sku?: string; tracked?: boolean } = {};
+      if (variant.sku) inventoryItem.sku = variant.sku;
+      if (typeof trackInventory === "boolean") inventoryItem.tracked = trackInventory;
+      else if (typeof variant.inventoryItem?.tracked === "boolean") {
+        inventoryItem.tracked = variant.inventoryItem.tracked;
+      }
+
+      return {
+        optionValues,
+        price: variant.price,
+        sku: variant.sku,
+        barcode: variant.barcode,
+        ...(variant.inventoryPolicy ? { inventoryPolicy: variant.inventoryPolicy } : {}),
+        ...(Object.keys(inventoryItem).length ? { inventoryItem } : {}),
+      };
+    });
+
+    // Cada opción declara los valores distintos que usan sus variantes.
+    const productOptions = optionNames.map((name, index) => ({
+      name,
+      values: Array.from(new Set(variants.map((variant) => variant.optionValues[index].name))).map((value) => ({
+        name: value,
+      })),
+    }));
+
+    const response = await this.mutate<{ productSet: ShopifyProductSetResult }>(
+      <GraphQlRequest>{
+        query: PRODUCT_SET_MUTATION,
+        variables: {
+          input: {
+            title: input.title,
+            status: input.status,
+            descriptionHtml: input.descriptionHtml,
+            vendor: input.vendor,
+            productType: input.productType,
+            tags: input.tags,
+            productOptions,
+            variants,
+          },
         },
       },
-    });
-    const errors = response.productCreate?.userErrors || [];
-    if (errors.length) {
-      throw new Error(`Shopify productCreate: ${JSON.stringify(errors)}`);
-    }
-    return response.productCreate;
+      "productSet"
+    );
+
+    // Se conserva la forma de retorno de `productCreate` que esperan los
+    // llamadores (`product.variants.edges[].node`).
+    const product = response.productSet?.product;
+    return {
+      product: product
+        ? {
+            id: product.id,
+            variants: {
+              edges: (product.variants?.nodes || []).map((node) => ({ node })),
+            },
+          }
+        : undefined,
+      userErrors: [],
+    } satisfies ShopifyProductCreateResult;
   }
 
   private resolveNumericId(id: string) {
@@ -438,15 +616,18 @@ export class ShopifyClient {
   }
 
   async updateProductStatus(productId: string, publish: boolean) {
-    return this.request<{ productUpdate: ShopifyMutationResult }>(<GraphQlRequest>{
-      query: PRODUCT_STATUS_MUTATION,
-      variables: {
-        input: {
-          id: productId,
-          status: publish ? "ACTIVE" : "DRAFT",
+    return this.mutate<{ productUpdate: ShopifyMutationResult }>(
+      <GraphQlRequest>{
+        query: PRODUCT_STATUS_MUTATION,
+        variables: {
+          product: {
+            id: productId,
+            status: publish ? "ACTIVE" : "DRAFT",
+          },
         },
       },
-    });
+      "productUpdate"
+    );
   }
 
   async createCustomer(input: Record<string, unknown>) {
@@ -712,6 +893,31 @@ type ShopifyProductConnection = {
 };
 
 type ShopifyMutationResult = {
+  userErrors: Array<{ field?: string[]; message: string }>;
+};
+
+type ShopifyProductSetResult = {
+  product?: {
+    id: string;
+    variants?: {
+      nodes: Array<{
+        id: string;
+        sku?: string | null;
+        barcode?: string | null;
+        inventoryItem?: { id: string } | null;
+      }>;
+    };
+  };
+  userErrors: Array<{ field?: string[]; message: string }>;
+};
+
+type ShopifyVariantsBulkUpdateResult = {
+  productVariants?: Array<{
+    id: string;
+    sku?: string | null;
+    barcode?: string | null;
+    inventoryItem?: { id: string } | null;
+  }>;
   userErrors: Array<{ field?: string[]; message: string }>;
 };
 
@@ -1065,18 +1271,59 @@ const CUSTOMER_UPDATE_MUTATION = `
   }
 `;
 
+// `productVariantUpdate` fue ELIMINADA de la Admin API. El reemplazo oficial es
+// `productVariantsBulkUpdate`, que exige `productId` además del id de variante.
+// https://shopify.dev/docs/api/admin-graphql/latest/mutations/productVariantsBulkUpdate
 const VARIANT_PRICE_MUTATION = `
-  mutation UpdateVariantPrice($input: ProductVariantInput!) {
-    productVariantUpdate(input: $input) {
+  mutation UpdateVariantPrice($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+    productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+      productVariants { id price compareAtPrice }
       userErrors { field message }
     }
   }
 `;
 
 const VARIANT_INVENTORY_POLICY_MUTATION = `
-  mutation UpdateVariantInventoryPolicy($input: ProductVariantInput!) {
-    productVariantUpdate(input: $input) {
+  mutation UpdateVariantInventoryPolicy($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+    productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+      productVariants { id inventoryPolicy }
       userErrors { field message }
+    }
+  }
+`;
+
+// Crea un producto completo con todas sus variantes en una sola llamada.
+// Sustituye al antiguo `productCreate(input: ProductInput!)` con `variants`.
+const PRODUCT_SET_MUTATION = `
+  mutation SetProduct($input: ProductSetInput!) {
+    productSet(input: $input) {
+      product {
+        id
+        variants(first: 100) {
+          nodes { id sku barcode inventoryItem { id } }
+        }
+      }
+      userErrors { field message }
+    }
+  }
+`;
+
+// Aplica los datos de la variante inicial recién creada por `productCreate`.
+// Devuelve los campos que el llamador necesita para guardar el mapeo.
+const PRODUCT_CREATE_VARIANT_MUTATION = `
+  mutation SetInitialVariant($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+    productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+      productVariants { id sku barcode inventoryItem { id } }
+      userErrors { field message }
+    }
+  }
+`;
+
+const PRODUCT_ID_BY_VARIANT_QUERY = `
+  query ProductIdByVariant($id: ID!) {
+    productVariant(id: $id) {
+      id
+      product { id }
     }
   }
 `;
@@ -1159,17 +1406,27 @@ const INVENTORY_SET_ON_HAND_MUTATION = `
   }
 `;
 
+// `productUpdate(input: ProductInput!)` está deprecado; el argumento vigente es
+// `product: ProductUpdateInput!`. Se migra ahora para no repetir la avería que
+// causó `productVariantUpdate` cuando Shopify retiró la firma antigua.
 const PRODUCT_STATUS_MUTATION = `
-  mutation UpdateProductStatus($input: ProductInput!) {
-    productUpdate(input: $input) {
+  mutation UpdateProductStatus($product: ProductUpdateInput!) {
+    productUpdate(product: $product) {
+      product { id status }
       userErrors { field message }
     }
   }
 `;
 
+// `ProductInput.variants` fue ELIMINADO: en el modelo de producto actual
+// `productCreate` sólo crea el producto y su variante inicial por defecto, y el
+// argumento pasó a llamarse `product: ProductCreateInput!`. Los datos de la
+// variante (precio, SKU, política de inventario) se aplican después con
+// `productVariantsBulkUpdate`.
+// https://shopify.dev/docs/api/admin-graphql/latest/mutations/productCreate
 const PRODUCT_CREATE_MUTATION = `
-  mutation CreateProduct($input: ProductInput!) {
-    productCreate(input: $input) {
+  mutation CreateProduct($product: ProductCreateInput!) {
+    productCreate(product: $product) {
       product {
         id
         variants(first: 100) {

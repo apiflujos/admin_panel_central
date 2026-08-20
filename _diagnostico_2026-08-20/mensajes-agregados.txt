@@ -1,0 +1,550 @@
+16336577   syscall: 'getaddrinfo',
+16336577   hostname: 'redis'
+16336577   errno: -<N>,
+16336577   code: 'ENOTFOUND',
+14703007 Error: getaddrinfo ENOTFOUND redis
+1633570 Redis error: Error: getaddrinfo ENOTFOUND redis
+ 724619 [products-sync] item failed { shopDomain: 'mut50d-tj.myshopify.com', itemId:<N> } Error: Shopify GraphQL errors: [{"message":"Field 'productVariantUpdate' doesn't exist on type 'Mutation'","locations"
+ 709357 [products-sync] item failed { shopDomain: 'w52tw8-nm.myshopify.com', itemId:<N> } Error: Shopify GraphQL errors: [{"message":"Field 'productVariantUpdate' doesn't exist on type 'Mutation'","locations"
+ 532347 [products-sync] item failed { shopDomain: 'w52tw8-nm.myshopify.com', itemId:<N> } Error: Shopify GraphQL errors: [{"message":"Variable $input of type ProductInput! was provided invalid value for varia
+ 460982 [products-sync] item failed { shopDomain: 'mut50d-tj.myshopify.com', itemId:<N> } Error: Shopify GraphQL errors: [{"message":"Variable $input of type ProductInput! was provided invalid value for varia
+ 216473 [products-sync] item failed { shopDomain: 'mut50d-tj.myshopify.com', itemId:<N> } Error: timeout exceeded when trying to connect
+ 180943 [products-sync] item failed { shopDomain: 'w52tw8-nm.myshopify.com', itemId:<N> } Error: timeout exceeded when trying to connect
+   5675 [retry-queue] orderId=<N> attempt failed: duplicate key value violates unique constraint "products_org_shopify_store_idx"
+   2353 [retry-queue] orderId=<N> attempt failed: timeout exceeded when trying to connect
+   1891 Retry queue poll failed: Error: timeout exceeded when trying to connect
+   1485 [retry-queue] orderId=<N> attempt failed: Missing Shopify credentials in DB
+   1276 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/<N>)
+    565 createSyncLog failed: orders_sync shopify->alegra Error: timeout exceeded when trying to connect
+    513   where: undefined,
+    513   table: undefined,
+    513   severity: 'FATAL',
+    513   schema: undefined,
+    513   position: undefined,
+    513   internalQuery: undefined,
+    513   internalPosition: undefined,
+    513   hint: undefined,
+    513   detail: undefined,
+    513   dataType: undefined,
+    513   constraint: undefined,
+    513   column: undefined,
+    512 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/contacts): {"code":"<N>","message":"El departamento es inválido"}
+    512   routine: 'InitPostgres'
+    512   line: '942',
+    512   length: 137,
+    512   file: 'postinit.c',
+    512   code: '<N>',
+    464 [products-sync] item failed { shopDomain: 'mut50d-tj.myshopify.com', itemId:<N> } error: remaining connection slots are reserved for roles with the SUPERUSER attribute
+    272 Error: Connection is closed.
+    188 [retry-queue] orderId=undefined attempt failed: timeout exceeded when trying to connect
+    177 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/contacts)
+    143   syscall: 'connect'
+    143   errorno: 'ETIMEDOUT',
+    143   code: 'ETIMEDOUT',
+    129 Error: connect ETIMEDOUT
+    101 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/contacts/<N>): {"code":"<N>","message":"El departamento es inválido"}
+     66         },
+     63 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/331)
+     50 Inventory adjustments: schedule settings read failed: Error: timeout exceeded when trying to connect
+     45 [withEachOrganization] org=1 error: Error: timeout exceeded when trying to connect
+     42 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/596)
+     42 [retry-queue] RETRY_QUEUE_POLL_MS no está seteado — usando default <N>ms. Setealo explícitamente en .env para silenciar este mensaje o en 0 para deshabilitar.
+     42 [env-check] En producción sin SHOPIFY_WEBHOOK_SECRET: los webhooks Shopify serán rechazados por HMAC inválido. Setea la variable si vas a recibir webhooks.
+     41 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/594)
+     36 [retry-queue] orderId=undefined attempt failed: Inventory idempotency conflict (status=processing) — will retry
+     36 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/510)
+     33 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/593)
+     32 Inventory adjustments poll failed: Error: timeout exceeded when trying to connect
+     31 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/726)
+     28 [products-sync] item failed { shopDomain: 'w52tw8-nm.myshopify.com', itemId:<N> } error: remaining connection slots are reserved for roles with the SUPERUSER attribute
+     27 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/789)
+     27 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/400)
+     26 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/449)
+     24 [withEachOrganization] org=1 error: Error: Connection is closed.
+     23 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/492)
+     23 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/450)
+     22 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/721)
+     22 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/599)
+     22 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/543)
+     22 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/524)
+     21 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/516)
+     21 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/490)
+     20 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/515)
+     20 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/423)
+     19 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/486)
+     19 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/454)
+     19 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/397)
+     18 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/480)
+     17 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/525)
+     17 [products-sync] item failed { shopDomain: 'w52tw8-nm.myshopify.com', itemId:<N> } DOMException [AbortError]: This operation was aborted
+     16 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/582)
+     16 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/contacts/<N>)
+     15 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/941)
+     15 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/913)
+     15 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/908)
+     15 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/747)
+     15 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/631)
+     15 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/517)
+     15 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/487)
+     15 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/468)
+     15 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/451)
+     15 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/387)
+     15 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/341)
+     14 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/916)
+     14 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/914)
+     14 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/868)
+     14 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/635)
+     14 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/605)
+     14 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/577)
+     14 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/477)
+     14 Redis error: Error: connect ETIMEDOUT
+     13 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/509)
+     13 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/491)
+     13 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/478)
+     12 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/935)
+     12 [products-sync] item failed { shopDomain: 'mut50d-tj.myshopify.com', itemId:<N> } DOMException [AbortError]: This operation was aborted
+     12         margin: 0;
+     11 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/483)
+     10 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/979)
+     10 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/930)
+     10 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/909)
+     10 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/907)
+     10 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/788)
+     10 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/633)
+     10 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/551)
+     10 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/501)
+     10 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/434)
+     10 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/412)
+     10 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/404)
+     10 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/391)
+     10 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/244)
+     10 [products.upsertProduct] cross-key collision on shop=w52tw8-nm.myshopify.com sku=<N> ref=<N>: existing(alegra=null shopify=<N>) vs incoming(alegra=null shopify=<N>) — preserving existing IDs
+      9 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/942)
+      9 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/936)
+      9 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/826)
+      9 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/632)
+      9 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/580)
+      9 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/546)
+      9 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/527)
+      9 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/475)
+      9 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/470)
+      9 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/467)
+      9 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/403)
+      9 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/305)
+      9 Inventory adjustments: settings read failed: Error: timeout exceeded when trying to connect
+      9 <hr><center>nginx</center>
+      9 <head><title>502 Bad Gateway</title></head>
+      9 <center><h1>502 Bad Gateway</h1></center>
+      9 <body>
+      9 </html>
+      9 </body>
+      8 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/934)
+      8 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/606)
+      8 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/591)
+      8 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/436)
+      8 [products.upsertProduct] cross-key collision on shop=mut50d-tj.myshopify.com sku=<N> ref=<N>: existing(alegra=null shopify=<N>) vs incoming(alegra=null shopify=<N>) — preserving existing IDs
+      8 Retry queue poll failed: error: remaining connection slots are reserved for roles with the SUPERUSER attribute
+      6 <meta http-equiv="content-type" content="text/html;charset=utf-8">
+      6 <html><head>
+      6 <h2></h2>
+      6 <h1>Error: Server Error</h1>
+      6 <body text=#<N> bgcolor=#ffffff>
+      6 </head>
+      6 </body></html>
+      6       };
+      6         transition: border-color 0.2s ease-in;
+      6         text-decoration: none;
+      6         padding: 0;
+      6         font-size: 1.5rem;
+      6         display: flex;
+      6         color: #<N>;
+      5 createSyncLog failed: orders_sync shopify->alegra error: remaining connection slots are reserved for roles with the SUPERUSER attribute
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/991)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/986)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/974)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/885)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/863)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/827)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/818)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/811)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/793)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/759)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/754)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/685)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/627)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/624)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/620)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/581)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/557)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/547)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/518)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/495)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/482)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/481)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/476)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/441)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/433)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/413)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/408)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/340)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/326)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/325)
+      5 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/289)
+      5 [products-sync] item failed { shopDomain: 'w52tw8-nm.myshopify.com', itemId:<N> } TypeError: fetch failed
+      5 [products-sync] item failed { shopDomain: 'mut50d-tj.myshopify.com', itemId:<N> } Error: Shopify GraphQL error: 502 <html>
+      5 [alegra-contact-update-fail] payload= {"name":"Angelina Julieth Velandia Checa","identificationObject":{"type":"CC","number":"<N>"},"email":"angelinajulieee9@gmail.com","phonePrimary":"+<N>","address"
+      4 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/906)
+      4 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/623)
+      4 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/615)
+      4 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/552)
+      4 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/519)
+      4 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/493)
+      4 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/471)
+      4 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/inventory-adjustments): {"code":<N>,"message":"El campo 'id' del item debe ser un string.","errors":[{"code":<N>,"message":"El campo 'id'
+      4 [products-sync] item failed { shopDomain: 'w52tw8-nm.myshopify.com', itemId:<N> } Error: Shopify GraphQL error: 502 <html>
+      4 [products-sync] item failed { shopDomain: 'mut50d-tj.myshopify.com', itemId:<N> } TypeError: fetch failed
+      4 <title>503 Server Error</title>
+      4 <h2>The service you requested is not available at this time.<p>Service error -27.</h2>
+      4   [cause]: Error: read ECONNRESET
+      4   [cause]: AggregateError [ETIMEDOUT]: 
+      4     syscall: 'read'
+      4     errno: -104,
+      4     code: 'ETIMEDOUT',
+      4     code: 'ECONNRESET',
+      4     [errors]: [ [Error], [Error] ]
+      3 [alegra-contact-create-fail] payload= {"name":"Elizabeth Salazar Otalvaro","identificationObject":{"type":"CC","number":"<N>"},"email":"elizabeth.salazar.es38@gmail.com","address":{"address":"Dg 59 # 
+      3 Inventory adjustments: schedule settings read failed: error: remaining connection slots are reserved for roles with the SUPERUSER attribute
+      3 <html lang="en">
+      3 </html>
+      3 <!DOCTYPE html>
+      3 -->
+      3   The source of truth for this generic error page is https://github.com/Shopify/error-pages.
+      3   Please do not edit this file directly.
+      3   <head>
+      3   <body class="status-error status-code-500">
+      3   </head>
+      3   </body>
+      3     <title>Something went wrong</title>
+      3     <style>
+      3     <script>
+      3     <meta name="viewport" content="width=device-width, initial-scale=1">
+      3     <meta name="referrer" content="never">
+      3     <meta charset="utf-8">
+      3     <div class="page">
+      3     </style>
+      3     </script>
+      3     </div>
+      3       var t = {
+      3       var language = navigator.languages && navigator.languages[0] || // Chrome and Firefox
+      3       translations = t[language] || t["en"];
+      3       p {
+      3       language = language.split("-")[0]; // Strip country code
+      3       if (t[language]) {
+      3       html {
+      3       h1 {
+      3       for (var id in translations) {
+      3       document.title = translations["title"];
+      3       body {
+      3       a:hover {
+      3       a {
+      3       @media all and (min-width:500px) {
+      3       <div class="text-container text-container--main">
+      3       </div>
+      3       // Replace title text
+      3       // Replace text in body elements
+      3       // Replace language attribute in html
+      3       .text-container--main {
+      3       .page {
+      3       .action:hover {
+      3       .action {
+      3       * {
+      3         target = document.querySelector("[data-i18n=" + id + "]");
+      3         padding: 4rem 3.5rem;
+      3         padding: 1.2rem 2.5rem;
+      3         padding-bottom: 1rem;
+      3         navigator.userLanguage || // IE <= 10
+      3         navigator.language || // Most browsers
+      3         min-height: 100vh;
+      3         min-height: 100%;
+      3         margin: 0 0 1.4rem 0;
+      3         margin-top: 1.6rem;
+      3         margin-bottom: 1.6rem;
+      3         line-height: 2.7rem;
+      3         if (target != undefined) {
+      3         font-weight: 400;
+      3         font-size: 62.5%;
+      3         font-size: 1.8rem;
+      3         font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      3         flex: 1;
+      3         flex-direction: column;
+      3         document.getElementsByTagName("html")[0].setAttribute("lang", language);
+      3         display: inline-block;
+      3         cursor: pointer;
+      3         box-sizing: border-box;
+      3         border: 1px solid #A9A9A9;
+      3         border-radius: 6px;
+      3         border-color: #000;
+      3         border-bottom: 1px solid #<N>;
+      3         border-bottom-color: #A9A9A9;
+      3         background: transparent;
+      3         background: #F1F1F1;
+      3         align-items: start;
+      3         <div>
+      3         </div>
+      3         .text-container--main {
+      3         .page {
+      3         "zh-TW": {
+      3         "zh-CN": {
+      3         "vi": {
+      3         "tr": {
+      3         "th": {
+      3         "sv": {
+      3         "pt-PT": {
+      3         "pt-BR": {
+      3         "pl": {
+      3         "nl": {
+      3         "nb": {
+      3         "ms": {
+      3         "ko": {
+      3         "ja": {
+      3         "it": {
+      3         "hi": {
+      3         "fr": {
+      3         "fi": {
+      3         "es": {
+      3         "en";
+      3         "en": {
+      3         "de": {
+      3         "da": {
+      3         "cs": {
+      3           target.innerHTML = translations[id];
+      3           padding: 7.5rem 10.5rem;
+      3           align-items: center;
+      3           <p data-i18n="try-refreshing">Try refreshing the page.</p>
+      3           <p data-i18n="try-again">If the site still doesn't load, please try again in a few minutes.</p>
+      3           <h1 data-i18n="content-title">There was a problem loading this website</h1>
+      3           <a onclick="window.location.reload();" href="" class="action" data-i18n="refresh-page">Refresh Page</a>
+      3           "try-refreshing": "페이지를 새로 고침해 보십시오.",
+      3           "try-refreshing": "请尝试刷新页面。",
+      3           "try-refreshing": "請嘗試重新整理此頁面。",
+      3           "try-refreshing": "ページを更新してみてください。",
+      3           "try-refreshing": "โปรดรีเฟรชหน้านี้อีกครั้ง",
+      3           "try-refreshing": "पृष्ठ रीफ़्रेश करके देखें.",
+      3           "try-refreshing": "Zkuste stránku obnovit.",
+      3           "try-refreshing": "Yritä päivittää sivu.",
+      3           "try-refreshing": "Versuche, die Seite zu aktualisieren.",
+      3           "try-refreshing": "Try refreshing the page.",
+      3           "try-refreshing": "Thử làm mới trang.",
+      3           "try-refreshing": "Tente atualizar a página.",
+      3           "try-refreshing": "Spróbuj odświeżyć stronę.",
+      3           "try-refreshing": "Sayfayı yenilemeyi deneyin.",
+      3           "try-refreshing": "Prøv å oppdatere siden.",
+      3           "try-refreshing": "Prøv at opdatere siden.",
+      3           "try-refreshing": "Prova ad aggiornare la pagina.",
+      3           "try-refreshing": "Laad de pagina opnieuw.",
+      3           "try-refreshing": "Intenta actualizar la página.",
+      3           "try-refreshing": "Försök att uppdatera sidan.",
+      3           "try-refreshing": "Experimente atualizar esta página.",
+      3           "try-refreshing": "Essayez d'actualiser la page.",
+      3           "try-refreshing": "Cuba segarkan semula halaman.",
+      3           "try-again": "그래도 사이트가 로드되지 않으면 몇 분 후에 다시 시도하십시오.",
+      3           "try-again": "如果网站仍未加载，请在几分钟后重试。",
+      3           "try-again": "如果網站仍未載入，請幾分鐘後再試一次。",
+      3           "try-again": "サイトが読み込まれない場合は、数分後にもう一度お試しください。",
+      3           "try-again": "หากเว็บไซต์ยังไม่โหลด โปรดลองอีกครั้งในอีกสักครู่",
+      3           "try-again": "यदि साइट अभी तक लोड नहीं हुई है, तो कृपया कुछ मिनटों में फिर से कोशिश 
+      3           "try-again": "Wenn die Seite immer noch nicht geladen wird, versuche es bitte in ein paar Minuten erneut.",
+      3           "try-again": "Si le site ne charge toujours pas, veuillez réessayer dans quelques minutes.",
+      3           "try-again": "Si el sitio no se descarga, por favor, inténtalo en unos minutos.",
+      3           "try-again": "Se o site continua a não carregar, tente novamente dentro de alguns minutos.",
+      3           "try-again": "Se o site ainda não carregar, tente novamente dentro de alguns minutos.",
+      3           "try-again": "Se il sito ancora non si carica, per favore riprova tra qualche minuto.",
+      3           "try-again": "Sayfa hâlâ yüklenmiyorsa lütfen birkaç dakika sonra tekrar deneyin.",
+      3           "try-again": "Pokud se stránka ani přesto nenačte, zkuste to znovu za pár minut.",
+      3           "try-again": "Nếu trang web vẫn không tải được, vui lòng thử lại sau ít phút.",
+      3           "try-again": "Jos sivusto ei vieläkään lataudu, yritä uudelleen muutaman minuutin kuluttua.",
+      3           "try-again": "Jika laman web ini masih tidak memuatkan, sila cuba lagi dalam beberapa minit.",
+      3           "try-again": "Jeśli strona nadal się nie ładuje, spróbuj ponownie za kilka minut.",
+      3           "try-again": "If the site still doesn't load, please try again in a few minutes.",
+      3           "try-again": "Hvis websitet ikke indlæses, kan du prøve igen om nogle få minutter.",
+      3           "try-again": "Hvis nettstedet fortsatt ikke lastes inn, kan du prøve igjen om noen minutter.",
+      3           "try-again": "Försök igen om några minuter om webbplatsen fortfarande inte har laddats.",
+      3           "try-again": "Als de site nog steeds niet laadt, probeer het over een paar minuten opnieuw.",
+      3           "title": "문제가 발생했습니다.",
+      3           "title": "問題が発生しているようです",
+      3           "title": "出现错误",
+      3           "title": "出了點問題",
+      3           "title": "เกิดข้อผิดพลาดขึ้น",
+      3           "title": "कुछ गलत हुआ",
+      3           "title": "Đã xảy ra lỗi",
+      3           "title": "Une erreur s'est produite",
+      3           "title": "Something went wrong",
+      3           "title": "Si è verificato un errore",
+      3           "title": "Sesuatu tidak kena",
+      3           "title": "Ocorreu um erro",
+      3           "title": "Něco se pokazilo",
+      3           "title": "Noe gikk galt",
+      3           "title": "Jotain meni pieleen",
+      3           "title": "Irgendetwas ist schiefgelaufen.",
+      3           "title": "Ett fel uppstod",
+      3           "title": "Er ging iets mis",
+      3           "title": "Der opstod en fejl",
+      3           "title": "Coś poszło nie tak",
+      3           "title": "Bir sorun oluştu",
+      3           "title": "Algo salió mal.",
+      3           "title": "Algo deu errado.",
+      3           "refresh-page": "페이지 새로 고침"
+      3           "refresh-page": "重新整理頁面"
+      3           "refresh-page": "刷新页面"
+      3           "refresh-page": "ページを更新する"
+      3           "refresh-page": "รีเฟรชหน้า"
+      3           "refresh-page": "पेज को रीफ़्रेश करें"
+      3           "refresh-page": "Uppdatera sida"
+      3           "refresh-page": "Tải lại trang"
+      3           "refresh-page": "Seite neu laden"
+      3           "refresh-page": "Segarkan semula Halaman"
+      3           "refresh-page": "Sayfayı Yenile"
+      3           "refresh-page": "Refresh Page"
+      3           "refresh-page": "Rafraîchir la page"
+      3           "refresh-page": "Päivitä sivu"
+      3           "refresh-page": "Pagina opnieuw laden"
+      3           "refresh-page": "Oppdater siden"
+      3           "refresh-page": "Opdatér siden"
+      3           "refresh-page": "Odśwież stronę"
+      3           "refresh-page": "Obnovit stránku"
+      3           "refresh-page": "Atualizar página"
+      3           "refresh-page": "Atualizar a página"
+      3           "refresh-page": "Aggiorna pagina"
+      3           "refresh-page": "Actualizar la página"
+      3           "content-title": "이 페이지를 로드하는 중 문제가 발생했습니다.",
+      3           "content-title": "系統載入此網站時發生問題",
+      3           "content-title": "加载此网站时出现问题",
+      3           "content-title": "このウェブサイトを読み込む際に問題が発生しました",
+      3           "content-title": "เกิดปัญหาในการโหลดเว็บไซต์นี้",
+      3           "content-title": "इस वेबसाइट को लोड करने में समस्या हुई",
+      3           "content-title": "Đã xảy ra sự cố khi tải trang web này",
+      3           "content-title": "Un problème est survenu lors du chargement de ce site",
+      3           "content-title": "Tämän verkkosivuston lataamisessa oli ongelma",
+      3           "content-title": "There was a problem loading this website",
+      3           "content-title": "Terdapat masalah memuatkan laman web ini",
+      3           "content-title": "Si è verificato un problema nel caricamento di questo sito web",
+      3           "content-title": "Se ha producido un error al descargar el sitio",
+      3           "content-title": "Při načítání této webové stránky došlo k chybě",
+      3           "content-title": "Podczas ładowania tej strony internetowej wystąpił problem",
+      3           "content-title": "Ocorreu um erro ao carregar este site",
+      3           "content-title": "Houve um problema ao carregar este site",
+      3           "content-title": "Er is een probleem opgetreden bij het laden van deze website",
+      3           "content-title": "Det oppsto et problem ved lasting av denne nettsiden",
+      3           "content-title": "Det gick inte att ladda den här webbplatsen",
+      3           "content-title": "Der opstod en fejl under indlæsning af dette website",
+      3           "content-title": "Bu web sitesi yüklenirken sorun oluştu",
+      3           "content-title": "Beim Laden dieser Website ist ein Fehler aufgetreten.",
+      2 createSyncLog failed: products_sync alegra->shopify Error: timeout exceeded when trying to connect
+      2 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/399)
+      2 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/318)
+      2 [products.upsertProduct] cross-key collision on shop=mut50d-tj.myshopify.com sku=<N> ref=-: existing(alegra=null shopify=<N>) vs incoming(alegra=null shopify=<N>) — preserving existing IDs
+      2 [products-sync] item failed { shopDomain: 'w52tw8-nm.myshopify.com', itemId:<N> } Error: Shopify GraphQL error: 503 
+      2 [products-sync] item failed { shopDomain: 'mut50d-tj.myshopify.com', itemId:<N> } Error: Shopify GraphQL error: 503 upstream connect error or disconnect/reset before headers. reset reason: connection 
+      2 [products-sync] item failed { shopDomain: 'mut50d-tj.myshopify.com', itemId:<N> } Error: Shopify GraphQL error: 503 <!--
+      2 [products-sync] item failed { shopDomain: 'mut50d-tj.myshopify.com', itemId:<N> } Error: Shopify GraphQL error: 503 
+      2 [products-sync] item failed { shopDomain: 'mut50d-tj.myshopify.com', itemId:<N> } Error: Shopify GraphQL error: 502 upstream connect error or disconnect/reset before headers. reset reason: connection 
+      2 [alegra-contact-update-fail] payload= {"name":"Anggela Viviana Mejia Garcia","identificationObject":{"type":"CC","number":"<N>"},"email":"vivianamejia699@gmail.com","phonePrimary":"+<N>","address":{"a
+      2 [alegra-contact-create-fail] payload= {"name":"Vivian rocio Anillo","identificationObject":{"type":"CC","number":"<N>"},"email":"vivianrin99@gmail.com","address":{"address":"Carrera 50 # 103b -33","ci
+      2 [alegra-contact-create-fail] payload= {"name":"Surtivariedades la 27 Urrea gomez","identificationObject":{"type":"CC","number":"<N>"},"email":"jhondavidurreagomez@gmail.com","address":{"address":"Call
+      2 [alegra-contact-create-fail] payload= {"name":"Isabela Jimenez Ruiz","identificationObject":{"type":"CC","number":"<N>"},"email":"isabela.jimenezr4@gmail.com","address":{"address":"Calle 31 n 31-47","
+      2 [alegra-contact-create-fail] payload= {"name":"Giovana Rubiano","identificationObject":{"type":"CC","number":"<N>"},"email":"giovanarubiano@yahoo.com","address":{"address":"Calle 133 19 59 Apto 303","
+      2 [alegra-contact-create-fail] payload= {"name":"Fanny Marcela Benitez","identificationObject":{"type":"CC","number":"<N>"},"email":"marcelabe27@gmail.com","address":{"address":"Cra 55d n 166 21","city"
+      2 [alegra-contact-create-fail] payload= {"name":"Dayan Cuesta","identificationObject":{"type":"CC","number":"<N>"},"email":"davicupi@gmail.com","address":{"address":"Carrera 96h 17 46 Apto 201","city":"
+      2 [alegra-contact-create-fail] payload= {"name":"Bianey piedrahita","identificationObject":{"type":"CC","number":"<N>"},"email":"asesorias.arp@hotmail.com","address":{"address":"Calle 14c 65-120","city"
+      2 Inventory adjustments: settings read failed: error: remaining connection slots are reserved for roles with the SUPERUSER attribute
+      2 <title>502 Server Error</title>
+      2 <h2>The server encountered a temporary error and could not complete your request.<p>Please try again in 30 seconds.</h2>
+      1 error: terminating connection due to administrator command
+      1 createSyncLog failed: products_sync alegra->shopify error: remaining connection slots are reserved for roles with the SUPERUSER attribute
+      1 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/625)
+      1 [retry-queue] orderId=<N> attempt failed: Alegra error (400) (/items/622)
+      1 [products.upsertProduct] cross-key collision on shop=mut50d-tj.myshopify.com sku=<N> ref=-: existing(alegra=<N> shopify=<N>) vs incoming(alegra=null shopify=<N>) — preserving existing IDs
+      1 [products-sync] item failed { shopDomain: 'w52tw8-nm.myshopify.com', itemId:<N> } Error: Shopify GraphQL error: 503 <!--
+      1 [products-sync] item failed { shopDomain: 'w52tw8-nm.myshopify.com', itemId:<N> } Error: Shopify GraphQL error: 502 
+      1 [products-sync] item failed { shopDomain: 'mut50d-tj.myshopify.com', itemId:<N> } Error: Shopify GraphQL error: 502 
+      1 [alegra-contact-update-fail] payload= {"name":"Gisele Garzón Mera","identificationObject":{"type":"CC","number":"<N>"},"email":"gisela<N>@hotmail.com","address":{"address":"Carrera 40 #4-90","city":"
+      1 [alegra-contact-create-fail] payload= {"name":"Yisa Meluk","identificationObject":{"type":"CC","number":"<N>"},"email":"yisamarin62@gmail.com","address":{"address":"Calle 92d 65b 35 Primer Piso","city
+      1 [alegra-contact-create-fail] payload= {"name":"Yesenia Hoyos","identificationObject":{"type":"CC","number":"<N>"},"email":"yeseniacolombia<N>@gmail.com","address":{"address":"Carrera 48 #51-22-28","ci
+      1 [alegra-contact-create-fail] payload= {"name":"Sandra Ariza","identificationObject":{"type":"CC","number":"<N>"},"email":"sayalo6.sla@gmail.com","phonePrimary":"+<N>","address":{"address":"Cra 68C #77
+      1 [alegra-contact-create-fail] payload= {"name":"Paola Garcia","identificationObject":{"type":"CC","number":"<N>"},"email":"paolagarcianavarro@gmail.com","address":{"address":"Carrera 48 17a Sur 47 urb 
+      1 [alegra-contact-create-fail] payload= {"name":"Neyda Mora","identificationObject":{"type":"CC","number":"<N>"},"email":"jlgeometrydash@gmail.com","address":{"address":"Torre 7 apartamento 204","city":
+      1 [alegra-contact-create-fail] payload= {"name":"Martha Sarmiento","identificationObject":{"type":"CC","number":"<N>"},"email":"martlisarm@hotmail.com","address":{"address":"Cra 8 g # 27-41 Barrio Cambu
+      1 [alegra-contact-create-fail] payload= {"name":"Marialucia Ferrari","identificationObject":{"type":"CC","number":"<N>"},"email":"ferrarimarialucia@gmail.com","address":{"address":"Carrera 6A #112-53","
+      1 [alegra-contact-create-fail] payload= {"name":"Leidy johana Ramirez Bedoya","identificationObject":{"type":"CC","number":"<N>"},"email":"johanabe<N>@gmail.com","phonePrimary":"+<N>","address":{"addres
+      1 [alegra-contact-create-fail] payload= {"name":"Johanna Ladino","identificationObject":{"type":"CC","number":"<N>"},"email":"wilady009@gmail.com","address":{"address":"Carrera 24d 11 80 casa 2 interior
+      1 [alegra-contact-create-fail] payload= {"name":"Jeniffer Espitia","identificationObject":{"type":"CC","number":"<N>"},"email":"jenifferespitia@hotmail.com","address":{"address":"Carrera 44 20 28","city
+      1 [alegra-contact-create-fail] payload= {"name":"Elizabeth Rueda","identificationObject":{"type":"CC","number":"<N>"},"email":"eliruba_084@hotmail.com","address":{"address":"Urbanziacion Torrelaguna","c
+      1 [alegra-contact-create-fail] payload= {"name":"Eliana patricia Ruiz campillo","identificationObject":{"type":"CC","number":"<N>"},"email":"eliandre_7@hotmail.com","address":{"address":"Casa","city":"B
+      1 [alegra-contact-create-fail] payload= {"name":"Eliana Rodriguez M","identificationObject":{"type":"CC","number":"<N>"},"email":"eli.ines.jal@gmail.com","address":{"address":"Cl. 9 #2-42 taganga","city
+      1 [alegra-contact-create-fail] payload= {"name":"Diana Paola Uribe cruz","identificationObject":{"type":"CC","number":"<N>"},"email":"dpuribe34@gmail.com","address":{"address":"CRA 93 B # 34-15 sur","ci
+      1 [alegra-contact-create-fail] payload= {"name":"Deisy","identificationObject":{"type":"CC","number":"<N>"},"email":"deisylozanosweet@gmail.com","address":{"address":"Carrera 116#77 b 35 int 1 apto 304 
+      1 [alegra-contact-create-fail] payload= {"name":"Carolina Yazmin Laguna Chaves","identificationObject":{"type":"CC","number":"<N>"},"email":"fernandalagunita@hotmail.es","phonePrimary":"+<N>","address":
+      1 [alegra-contact-create-fail] payload= {"name":"Bibiana Pachon","identificationObject":{"type":"CC","number":"<N>"},"email":"bibipach@outlook.com","phonePrimary":"+<N>","address":{"address":"Carrera 87
+      1 [alegra-contact-create-fail] payload= {"name":"Andrea Peña","identificationObject":{"type":"CC","number":"<N>"},"email":"andreapena<N>@gmail.com","address":{"address":"Calle 72 sur # 35-240 urbanizac
+      1 [alegra-contact-create-fail] payload= {"name":"Andrea Enciso Lugo Enciso Lugo","identificationObject":{"type":"CC","number":"<N>"},"email":"andreaenciso654@gmail.com","address":{"address":"Carrera 9a 
+      1 [alegra-contact-create-fail] payload= {"name":"Ana Maria Porras Zuñiga","identificationObject":{"type":"CC","number":"<N>"},"email":"anamariaporras90@gmail.com","phonePrimary":"+<N>"} rawError= {"sta
+      1 Inventory adjustments poll failed: error: remaining connection slots are reserved for roles with the SUPERUSER attribute
+      1 Cron error: Error: timeout exceeded when trying to connect
+      1   routine: 'ProcessInterrupts'
+      1   line: '<N>',
+      1   length: 116,
+      1   file: 'postgres.c',
+      1   code: '57P01',
+      1   [cause]: SocketError: other side closed
+      1     },
+      1     socket: {
+      1     code: 'UND_ERR_SOCKET',
+      1     [Symbol(undici.error.UND_ERR_SOCKET)]: true
+      1     [Symbol(undici.error.UND_ERR)]: true,
+      1       timeout: undefined,
+      1       remotePort: undefined,
+      1       remoteFamily: undefined,
+      1       remoteAddress: undefined,
+      1       localPort: <N>,
+      1       localAddress: '10.20.2.34',
+      1       bytesWritten: <N>,
+      1       bytesRead: <N>
+-contact-create-fail] payload= {"name":"Sandra Ariza","identificationObject":{"type":"CC","number":"<N><N>59"},"email":"sayalo6.sla@gmail.com",
+      1 [alegra-contact-create-fail] payload= {"name":"Paola Garcia","identificationObject":{"type":"CC","number":"<N><N>35"},"email":"paolagarcianavarro@gmai
+      1 [alegra-contact-create-fail] payload= {"name":"Neyda Mora","identificationObject":{"type":"CC","number":"<N><N>58"},"email":"jlgeometrydash@gmail.com"
+      1 [alegra-contact-create-fail] payload= {"name":"Martha Sarmiento","identificationObject":{"type":"CC","number":"<N><N>"},"email":"martlisarm@hotmail.co
+      1 [alegra-contact-create-fail] payload= {"name":"Marialucia Ferrari","identificationObject":{"type":"CC","number":"<N><N>54"},"email":"ferrarimarialucia
+      1 [alegra-contact-create-fail] payload= {"name":"Leidy johana Ramirez Bedoya","identificationObject":{"type":"CC","number":"<N><N>64"},"email":"johanabe
+      1 [alegra-contact-create-fail] payload= {"name":"Johanna Ladino","identificationObject":{"type":"CC","number":"<N><N>"},"email":"wilady009@gmail.com","a
+      1 [alegra-contact-create-fail] payload= {"name":"Jeniffer Espitia","identificationObject":{"type":"CC","number":"<N><N>"},"email":"jenifferespitia@hotma
+      1 [alegra-contact-create-fail] payload= {"name":"Elizabeth Rueda","identificationObject":{"type":"CC","number":"<N><N>"},"email":"eliruba_084@hotmail.co
+      1 [alegra-contact-create-fail] payload= {"name":"Eliana patricia Ruiz campillo","identificationObject":{"type":"CC","number":"<N><N>"},"email":"eliandre
+      1 [alegra-contact-create-fail] payload= {"name":"Eliana Rodriguez M","identificationObject":{"type":"CC","number":"<N><N>45"},"email":"eli.ines.jal@gmai
+      1 [alegra-contact-create-fail] payload= {"name":"Diana Paola Uribe cruz","identificationObject":{"type":"CC","number":"<N><N>"},"email":"dpuribe34@gmail
+      1 [alegra-contact-create-fail] payload= {"name":"Deisy","identificationObject":{"type":"CC","number":"<N><N>"},"email":"deisylozanosweet@gmail.com","add
+      1 [alegra-contact-create-fail] payload= {"name":"Carolina Yazmin Laguna Chaves","identificationObject":{"type":"CC","number":"<N><N>35"},"email":"fernan
+      1 [alegra-contact-create-fail] payload= {"name":"Bibiana Pachon","identificationObject":{"type":"CC","number":"<N><N>03"},"email":"bibipach@outlook.com"
+      1 [alegra-contact-create-fail] payload= {"name":"Andrea Peña","identificationObject":{"type":"CC","number":"<N><N>38"},"email":"andreapena<N>@gmail.com
+      1 [alegra-contact-create-fail] payload= {"name":"Andrea Enciso Lugo Enciso Lugo","identificationObject":{"type":"CC","number":"<N><N>"},"email":"andreae
+      1 [alegra-contact-create-fail] payload= {"name":"Ana Maria Porras Zuñiga","identificationObject":{"type":"CC","number":"<N><N>26"},"email":"anamariapor
+      1 Inventory adjustments poll failed: error: remaining connection slots are reserved for roles with the SUPERUSER attribute
+      1 Cron error: Error: timeout exceeded when trying to connect
+      1   routine: 'ProcessInterrupts'
+      1   line: '<N>',
+      1   length: 116,
+      1   file: 'postgres.c',
+      1   code: '57P01',
+      1   [cause]: SocketError: other side closed
+      1     },
+      1     socket: {
+      1     code: 'UND_ERR_SOCKET',
+      1     [Symbol(undici.error.UND_ERR_SOCKET)]: true
+      1     [Symbol(undici.error.UND_ERR)]: true,
+      1       timeout: undefined,
+      1       remotePort: undefined,
+      1       remoteFamily: undefined,
+      1       remoteAddress: undefined,
+      1       localPort: <N>4,
+      1       localAddress: '10.20.2.34',
+      1       bytesWritten: <N>5,
+      1       bytesRead: <N>48

@@ -10,6 +10,7 @@ import { withEachOrganization } from "../../../../src/services/organizations.ser
 import { buildSyncContext } from "../../../../src/services/sync-context";
 import { getSyncCheckpoint, saveSyncCheckpoint } from "../../../../src/services/sync-checkpoints.service";
 import { listConnectedShopifyDomains } from "../../../../src/services/store-connections.service";
+import { errorSignature, isPermanentShopifyError } from "../../../../src/connectors/shopify-errors";
 
 type AlegraItemRow = Record<string, unknown> & {
   id?: string | number;
@@ -19,6 +20,61 @@ type AlegraItemRow = Record<string, unknown> & {
 
 const toIso = (value: number) => new Date(value).toISOString();
 const checkpointKey = (shopDomain: string) => `products_sync:${shopDomain}`;
+
+/** Cuántos fallos permanentes seguidos abren el cortacircuitos de una pasada. */
+const DEFAULT_PERMANENT_FAILURE_LIMIT = 25;
+/** Cuántos ids de ejemplo se guardan por causa (para diagnosticar sin volcar el catálogo). */
+const SAMPLE_IDS_PER_SIGNATURE = 5;
+
+/**
+ * Agrega los fallos de una pasada por causa y emite UNA línea por causa.
+ *
+ * Antes se hacía `console.error(..., result.reason)` por ítem, lo que volcaba el
+ * objeto Error completo con su stack (~10 líneas) por cada ítem y cada pasada.
+ * Con el catálogo entero fallando eran ~54.000 líneas cada 15 minutos.
+ */
+function createFailureReport() {
+  const bySignature = new Map<string, { count: number; permanent: boolean; sampleIds: string[] }>();
+
+  return {
+    record(signature: string, itemId: unknown, permanent: boolean) {
+      const entry = bySignature.get(signature) || { count: 0, permanent, sampleIds: [] };
+      entry.count += 1;
+      entry.permanent = entry.permanent || permanent;
+      if (entry.sampleIds.length < SAMPLE_IDS_PER_SIGNATURE && itemId != null) {
+        entry.sampleIds.push(String(itemId));
+      }
+      bySignature.set(signature, entry);
+    },
+    get totals() {
+      let permanent = 0;
+      let transient = 0;
+      for (const entry of bySignature.values()) {
+        if (entry.permanent) permanent += entry.count;
+        else transient += entry.count;
+      }
+      return { permanent, transient };
+    },
+    flush(shopDomain: string, meta: { circuitOpen: boolean; limit: number }) {
+      if (!bySignature.size) return;
+      for (const [signature, entry] of bySignature) {
+        console.error(
+          `[products-sync] ${entry.count} ítem(s) fallaron` +
+            ` [${entry.permanent ? "PERMANENTE" : "transitorio"}] causa=${signature}` +
+            ` tienda=${shopDomain} ejemplos=${entry.sampleIds.join(",") || "-"}`
+        );
+      }
+      if (meta.circuitOpen) {
+        console.error(
+          `[products-sync] CORTACIRCUITOS ABIERTO en ${shopDomain}: se superaron ${meta.limit}` +
+            " fallos permanentes; se aborta la pasada. Revisa la versión de la Admin API" +
+            " y las mutaciones antes de reintentar."
+        );
+      }
+      bySignature.clear();
+    },
+  };
+}
 
 const resolveSince = async (shopDomain: string, lookbackMinutes: number) => {
   const checkpoint = await getSyncCheckpoint(checkpointKey(shopDomain));
@@ -68,6 +124,10 @@ export function startProductsSyncWorker() {
 
   const batchSize = Math.max(1, Math.min(Number(process.env.PRODUCTS_SYNC_BATCH_SIZE || 5), 20));
   const batchLimit = Math.max(10, Math.min(Number(process.env.PRODUCTS_SYNC_BATCH_LIMIT || 30), 30));
+  const permanentFailureLimit = Math.max(
+    1,
+    Number(process.env.PRODUCTS_SYNC_PERMANENT_FAILURE_LIMIT || DEFAULT_PERMANENT_FAILURE_LIMIT)
+  );
   const lookbackMinutes = Math.max(10, Number(process.env.PRODUCTS_SYNC_LOOKBACK_MINUTES || 180));
 
   let running = false;
@@ -87,6 +147,9 @@ export function startProductsSyncWorker() {
         let minFailedUpdatedAt: number | null = null;
         let hadFailure = false;
         let keepGoing = true;
+        let permanentFailures = 0;
+        let circuitOpen = false;
+        const failureReport = createFailureReport();
 
         while (keepGoing) {
           const query = new URLSearchParams();
@@ -122,24 +185,45 @@ export function startProductsSyncWorker() {
               })
             );
             results.forEach((result, idx) => {
-              if (result.status === "rejected") {
-                hadFailure = true;
-                const failedAt = extractUpdatedAt(batch[idx]);
-                if (failedAt != null) {
-                  minFailedUpdatedAt = minFailedUpdatedAt == null ? failedAt : Math.min(minFailedUpdatedAt, failedAt);
-                }
-                console.error(
-                  `[products-sync] item failed`,
-                  { shopDomain: ctx.shopDomain, itemId: batch[idx]?.id },
-                  result.reason
-                );
+              if (result.status !== "rejected") return;
+
+              const permanent = isPermanentShopifyError(result.reason);
+              const signature = errorSignature(result.reason);
+              failureReport.record(signature, batch[idx]?.id, permanent);
+
+              if (permanent) {
+                // Un error permanente (mutación inexistente, input inválido,
+                // scopes) no se arregla reintentando. Si retrocediéramos el
+                // checkpoint por él, el poller volvería a procesar el mismo
+                // ítem cada 15 min para siempre — que es exactamente lo que
+                // generó 11,3 GB de log. Se cuenta, no se bloquea el avance.
+                permanentFailures += 1;
+                return;
+              }
+
+              hadFailure = true;
+              const failedAt = extractUpdatedAt(batch[idx]);
+              if (failedAt != null) {
+                minFailedUpdatedAt = minFailedUpdatedAt == null ? failedAt : Math.min(minFailedUpdatedAt, failedAt);
               }
             });
+
+            // Cortacircuitos: si el catálogo entero está fallando por la misma
+            // causa permanente, seguir recorriéndolo sólo multiplica el ruido.
+            if (permanentFailures >= permanentFailureLimit) {
+              circuitOpen = true;
+              keepGoing = false;
+              break;
+            }
           }
 
           start += items.length;
           if (items.length < batchLimit) keepGoing = false;
         }
+
+        // Se capturan los totales ANTES del flush: flush() vacía el agregador.
+        const failureTotals = failureReport.totals;
+        failureReport.flush(ctx.shopDomain, { circuitOpen, limit: permanentFailureLimit });
 
         if (totalProcessed > 0) {
           const checkpointValue =
@@ -153,13 +237,24 @@ export function startProductsSyncWorker() {
           });
         }
 
+        const anyFailure = hadFailure || permanentFailures > 0;
         await safeCreateSyncLog({
           entity: "products_sync",
           direction: "alegra->shopify",
-          status: hadFailure ? "fail" : "success",
-          message: hadFailure ? "Products sync batch completed with failures" : "Products sync batch completed",
+          status: anyFailure ? "fail" : "success",
+          message: circuitOpen
+            ? `Products sync abortado por cortacircuitos (${permanentFailures} fallos permanentes)`
+            : anyFailure
+              ? "Products sync batch completed with failures"
+              : "Products sync batch completed",
           request: { shopDomain: ctx.shopDomain, processed: totalProcessed },
-          response: { shopDomain: ctx.shopDomain, processed: totalProcessed },
+          response: {
+            shopDomain: ctx.shopDomain,
+            processed: totalProcessed,
+            permanentFailures,
+            transientFailures: failureTotals.transient,
+            circuitOpen,
+          },
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Products sync poll failed";
