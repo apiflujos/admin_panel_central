@@ -153,6 +153,15 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
     if (!ctx.createInShopify) {
       return { skipped: true, reason: "create_disabled" };
     }
+    if (!allowProductCreation(ctx.shopDomain)) {
+      console.warn(
+        `[alegra-to-shopify] NO se crea el producto de alegraItem=${alegraItemId} en` +
+          ` ${ctx.shopDomain}: se alcanzó el límite de ${creationLimitPerHour()} creaciones por hora.` +
+          " Una ráfaga de altas suele significar que los mapeos se perdieron, no que falte catálogo." +
+          " Revisa antes de subir SHOPIFY_MAX_PRODUCT_CREATIONS_PER_HOUR."
+      );
+      return { skipped: true, reason: "creation_rate_limited" };
+    }
     const created = await ctx.shopify.createProductFromItem({
       title: item.name || `Alegra Item ${alegraItemId}`,
       sku:
@@ -241,15 +250,54 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
     // hace que la siguiente pasada lo reencuentre por SKU o código de barras
     // en vez de repetir "Product does not exist" para siempre.
     if (isMissingShopifyResourceError(error)) {
+      // El mapeo apunta a algo que ya no está (lo borraron, o era de otra
+      // tienda). Se descarta y se intenta reemparejar AQUÍ MISMO por SKU o
+      // código de barras.
       const borrados = await deleteMappingByAlegraId("item", String(alegraItemId), ctx.shopDomain);
+      const rematched = await resolveVariantByIdentifiers(ctx, identifiers);
+
+      if (!rematched) {
+        // IMPORTANTE: no se crea un producto nuevo en este camino, aunque
+        // `createInShopify` esté activo (lo está por omisión). Veníamos de un
+        // mapeo que existía: lo que falta es reencontrar el producto, no
+        // inventarlo. Crearlo aquí llenaría la tienda de duplicados — sólo en
+        // este catálogo hay ~3.200 mapeos y cerca de la mitad de los SKU no
+        // casan. Queda pendiente para revisión manual.
+        console.warn(
+          `[alegra-to-shopify] mapeo obsoleto descartado para alegraItem=${alegraItemId}` +
+            ` en ${ctx.shopDomain} (${borrados} fila/s) y NO se pudo reemparejar por` +
+            ` identificador (${identifiers.join(", ") || "sin identificadores"}).` +
+            " No se crea producto nuevo para no duplicar catálogo; requiere revisión."
+        );
+        return { handled: false, reason: "stale_mapping_no_rematch" };
+      }
+
+      await saveMapping({
+        entity: "item",
+        shopDomain: ctx.shopDomain,
+        alegraId: String(alegraItemId),
+        shopifyId: rematched.variantId,
+        shopifyProductId: rematched.productId,
+        shopifyInventoryItemId: rematched.inventoryItemId,
+        metadata: { sku: rematched.sku },
+      });
       console.warn(
-        `[alegra-to-shopify] mapeo obsoleto descartado para alegraItem=${alegraItemId}` +
-          ` en ${ctx.shopDomain} (${borrados} fila/s): el recurso ya no existe en Shopify.` +
-          " Se reintentará por identificador en la próxima pasada."
+        `[alegra-to-shopify] mapeo obsoleto reemparejado para alegraItem=${alegraItemId}` +
+          ` en ${ctx.shopDomain}: variante ${rematched.variantId}.`
       );
-      return { handled: false, reason: "stale_mapping_discarded" };
+      result = await withRetry(
+        () =>
+          ctx.shopify.updateVariantPrice(
+            rematched.variantId,
+            itemPricing.price,
+            itemPricing.compareAtPrice,
+            rematched.productId
+          ),
+        { label: "updateVariantPrice:rematched" }
+      );
+    } else {
+      throw error;
     }
-    throw error;
   }
 
   if (mapped.shopifyProductId && ctx.autoPublishOnWebhook) {
@@ -466,6 +514,49 @@ function buildAlegraProductInput(
     source: options.source || "alegra",
     payloadJson: item,
   };
+}
+
+/**
+ * Freno de creación masiva de productos en Shopify.
+ *
+ * `createInShopify` viene activado por omisión, así que cualquier situación que
+ * deje muchos ítems de Alegra sin mapeo hace que el sync empiece a CREAR
+ * productos en cadena. Ha estado a punto de pasar: al dejar de reutilizar los
+ * mapeos de otra tienda, los ítems sin mapeo propio pasaron de reutilizar uno
+ * ajeno a no tener ninguno, y con ~3.200 ítems eso son cientos de altas
+ * automáticas — muchas de ellas duplicados de productos que ya están en la
+ * tienda con otro SKU.
+ *
+ * Crear productos de uno en uno es legítimo; crear cientos en una ráfaga es
+ * siempre un síntoma. El límite corta la ráfaga y deja constancia, en vez de
+ * ensuciar el catálogo de forma irreversible.
+ */
+const CREATION_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const creationCounters = new Map<string, { windowStart: number; count: number }>();
+
+function creationLimitPerHour() {
+  const raw = Number(process.env.SHOPIFY_MAX_PRODUCT_CREATIONS_PER_HOUR);
+  return Number.isFinite(raw) && raw >= 0 ? raw : 50;
+}
+
+/** @returns true si se permite crear; false si se agotó el cupo de la ventana. */
+export function allowProductCreation(shopDomain: string): boolean {
+  const limit = creationLimitPerHour();
+  if (limit === 0) return false;
+  const now = Date.now();
+  const current = creationCounters.get(shopDomain);
+  if (!current || now - current.windowStart > CREATION_LIMIT_WINDOW_MS) {
+    creationCounters.set(shopDomain, { windowStart: now, count: 1 });
+    return true;
+  }
+  if (current.count >= limit) return false;
+  current.count += 1;
+  return true;
+}
+
+/** Sólo para tests. */
+export function resetProductCreationLimiterForTests() {
+  creationCounters.clear();
 }
 
 async function resolveVariantByIdentifiers(ctx: Awaited<ReturnType<typeof buildSyncContext>>, identifiers: string[]) {
