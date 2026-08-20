@@ -33,6 +33,46 @@ const parseTimestamp = (value: ProductInput["sourceUpdatedAt"]) => {
   return new Date(parsed);
 };
 
+/**
+ * Agregador de avisos de colisión de identificadores.
+ *
+ * Las colisiones se cuentan por ítem, pero registrarlas de una en una llena el
+ * log: en producción salieron 513 líneas en 150 KB, el mismo error de diseño
+ * que ya se corrigió en el poller. Se emite un resumen por tienda cada
+ * `COLLISION_LOG_WINDOW_MS`, con el detalle de los primeros casos para poder
+ * diagnosticar sin perder el volumen real.
+ */
+const COLLISION_LOG_WINDOW_MS = 5 * 60 * 1000;
+const COLLISION_SAMPLES = 3;
+const collisionStats = new Map<
+  string,
+  { crossKey: number; ownedElsewhere: number; samples: string[]; lastFlush: number }
+>();
+
+function recordCollision(shopDomain: string, kind: "crossKey" | "ownedElsewhere", detail: string) {
+  const key = shopDomain || "?";
+  const now = Date.now();
+  const entry =
+    collisionStats.get(key) || { crossKey: 0, ownedElsewhere: 0, samples: [], lastFlush: now };
+  entry[kind] += 1;
+  if (entry.samples.length < COLLISION_SAMPLES) entry.samples.push(detail);
+  collisionStats.set(key, entry);
+
+  if (now - entry.lastFlush < COLLISION_LOG_WINDOW_MS) return;
+  console.warn(
+    `[products.upsertProduct] ${shopDomain}: ${entry.crossKey} colisión(es) de claves cruzadas y` +
+      ` ${entry.ownedElsewhere} identificador(es) de Shopify ya asignados a otra fila en los últimos` +
+      ` ${Math.round((now - entry.lastFlush) / 60000)} min. Se conservan los valores existentes.` +
+      (entry.samples.length ? `\n    ejemplos: ${entry.samples.join(" | ")}` : "")
+  );
+  collisionStats.set(key, { crossKey: 0, ownedElsewhere: 0, samples: [], lastFlush: now });
+}
+
+/** Sólo para tests. */
+export function resetCollisionStatsForTests() {
+  collisionStats.clear();
+}
+
 export async function upsertProduct(input: ProductInput, options?: { mode?: "upsert" | "insert_only" }) {
   const pool = getPool();
   const orgId = getOrgId();
@@ -133,19 +173,20 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
         [orgId, shopDomain, safeShopifyId, existing.rows[0].id]
       );
       if (owner.rows.length) {
-        console.warn(
-          `[products.upsertProduct] shopify_product_id=${safeShopifyId} ya pertenece a la fila ` +
-            `${owner.rows[0].id} en shop=${shopDomain}; se conserva sin asignarlo a la fila ` +
-            `${existing.rows[0].id} para no violar products_org_shopify_store_idx.`
+        recordCollision(
+          shopDomain,
+          "ownedElsewhere",
+          `shopify_product_id=${safeShopifyId} pertenece a la fila ${owner.rows[0].id}, no a la ${existing.rows[0].id}`
         );
         safeShopifyId = null;
       }
     }
 
     if (safeAlegraId !== alegraId || safeShopifyId !== shopifyId) {
-      console.warn(
-        `[products.upsertProduct] cross-key collision on shop=${shopDomain} sku=${sku || "-"} ref=${reference || "-"}: ` +
-          `existing(alegra=${existingAlegraId} shopify=${existingShopifyId}) vs incoming(alegra=${alegraId} shopify=${shopifyId}) — preserving existing IDs`
+      recordCollision(
+        shopDomain,
+        "crossKey",
+        `sku=${sku || "-"} ref=${reference || "-"} existente(alegra=${existingAlegraId} shopify=${existingShopifyId}) entrante(alegra=${alegraId} shopify=${shopifyId})`
       );
     }
     await pool.query(
@@ -224,10 +265,10 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
     );
     const ownerAlegraId = owner.rows[0]?.alegra_item_id;
     if (owner.rows.length && String(ownerAlegraId ?? "") !== String(alegraId)) {
-      console.warn(
-        `[products.upsertProduct] shopify_product_id=${shopifyId} ya pertenece a alegra_item_id=${ownerAlegraId ?? "null"}` +
-          ` en shop=${shopDomain}; se inserta alegra_item_id=${alegraId} sin shopify_product_id para no violar` +
-          " products_org_shopify_store_idx."
+      recordCollision(
+        shopDomain,
+        "ownedElsewhere",
+        `shopify_product_id=${shopifyId} pertenece a alegra_item_id=${ownerAlegraId ?? "null"}, no a ${alegraId}`
       );
       insertShopifyId = null;
     }
