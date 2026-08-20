@@ -112,7 +112,11 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
     webhookItemsEnabled: (rules as InventoryRules).webhookItemsEnabled !== false,
     syncEnabled: rules.syncEnabled !== false,
     createInShopify: (rules as InventoryRules).createInShopify !== false,
-    updateInShopify: (rules as InventoryRules).updateInShopify !== false,
+    // KILL SWITCH (opt-in): el sync Alegra→Shopify NO escribe precios/estado
+    // salvo que updateInShopify === true explícito. Antes era opt-out (`!== false`)
+    // y como el SELECT de inventory_rules NO trae la columna, quedaba SIEMPRE en
+    // true → cambiaba precios y despublicaba productos en Shopify sin control.
+    updateInShopify: (rules as InventoryRules).updateInShopify === true,
     publishOnStock: rules.publishOnStock,
     includeImages: (rules as InventoryRules).includeImages !== false,
     trackInventory: (rules as InventoryRules).trackInventory !== false,
