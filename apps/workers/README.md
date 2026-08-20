@@ -21,12 +21,12 @@ Layout actual:
 - `src/bootstrap.ts`: entrypoint del runtime background
 - `src/pollers`: pollers Shopify/Alegra
 - `src/retry-queue`: retry queue
-- `src/cron`: marketing y billing report
+- `src/cron`: billing report y mantenimiento
 - `src/index.ts`: runtime indexado y grupos de workers
 
 Estado actual:
 
-- `inventory-adjustments`, `orders-sync`, `products-sync`, `retry-queue`, `marketing` y `billing-report` ya corren desde `apps/workers`.
+- `inventory-adjustments`, `orders-sync`, `products-sync`, `retry-queue`, `webhook-dispatch` y `billing-report` ya corren desde `apps/workers`.
 - `src/jobs/*` queda como compatibilidad por reexport mientras existan tests o imports heredados.
 - `src/runtime/start-workers.ts` ya arranca el runtime nuevo y no depende de lógica operativa en `src/jobs/*`.
 

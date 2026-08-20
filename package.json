@@ -1,6 +1,6 @@
 {
   "name": "admin-central-platform",
-  "description": "Multi-tenant middleware for Shopify, Alegra, and marketing operations.",
+  "description": "Multi-tenant middleware for Shopify and Alegra operations.",
   "version": "0.1.0",
   "private": true,
   "type": "commonjs",

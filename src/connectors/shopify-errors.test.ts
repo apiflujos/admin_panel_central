@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { toShopifyGid } from "./shopify";
 import {
   ShopifyRequestError,
   classifyShopifyError,
@@ -111,5 +112,32 @@ describe("isPermanentIntegrationError", () => {
   it("NO marca como permanente un fallo de red", () => {
     expect(isPermanentIntegrationError(new Error("timeout exceeded when trying to connect"))).toBe(false);
     expect(isPermanentIntegrationError(new Error("Alegra error (500)"))).toBe(false);
+  });
+});
+
+describe("toShopifyGid", () => {
+  it("promueve un id numérico heredado de REST al global id que exige GraphQL", () => {
+    // Caso real de producción: los ids guardados en `products` son numéricos y
+    // `productVariantsBulkUpdate` los rechaza con
+    // "Invalid global id '9820787179750'".
+    expect(toShopifyGid("Product", "9820787179750")).toBe("gid://shopify/Product/9820787179750");
+    expect(toShopifyGid("ProductVariant", "48211137855718")).toBe(
+      "gid://shopify/ProductVariant/48211137855718"
+    );
+    expect(toShopifyGid("InventoryItem", "123")).toBe("gid://shopify/InventoryItem/123");
+  });
+
+  it("deja intacto lo que ya es un global id", () => {
+    const gid = "gid://shopify/Product/9820787179750";
+    expect(toShopifyGid("Product", gid)).toBe(gid);
+    expect(toShopifyGid("ProductVariant", "gid://shopify/ProductVariant/1")).toBe(
+      "gid://shopify/ProductVariant/1"
+    );
+  });
+
+  it("no inventa un gid a partir de basura: deja que Shopify se queje", () => {
+    expect(toShopifyGid("Product", "no-es-un-id")).toBe("no-es-un-id");
+    expect(toShopifyGid("Product", "123abc")).toBe("123abc");
+    expect(toShopifyGid("Product", "")).toBe("");
   });
 });

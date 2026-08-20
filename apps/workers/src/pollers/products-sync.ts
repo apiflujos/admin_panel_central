@@ -26,6 +26,8 @@ const checkpointKey = (shopDomain: string) => `products_sync:${shopDomain}`;
 const DEFAULT_PERMANENT_FAILURE_LIMIT = 25;
 /** Cuántos ids de ejemplo se guardan por causa (para diagnosticar sin volcar el catálogo). */
 const SAMPLE_IDS_PER_SIGNATURE = 5;
+/** Longitud máxima del mensaje de ejemplo que acompaña a cada causa. */
+const SAMPLE_MESSAGE_MAX_CHARS = 400;
 
 /**
  * Agrega los fallos de una pasada por causa y emite UNA línea por causa.
@@ -35,15 +37,25 @@ const SAMPLE_IDS_PER_SIGNATURE = 5;
  * Con el catálogo entero fallando eran ~54.000 líneas cada 15 minutos.
  */
 function createFailureReport() {
-  const bySignature = new Map<string, { count: number; permanent: boolean; sampleIds: string[] }>();
+  const bySignature = new Map<
+    string,
+    { count: number; permanent: boolean; sampleIds: string[]; sampleMessage: string }
+  >();
 
   return {
-    record(signature: string, itemId: unknown, permanent: boolean) {
-      const entry = bySignature.get(signature) || { count: 0, permanent, sampleIds: [] };
+    record(signature: string, itemId: unknown, permanent: boolean, message?: string) {
+      const entry =
+        bySignature.get(signature) || { count: 0, permanent, sampleIds: [], sampleMessage: "" };
       entry.count += 1;
       entry.permanent = entry.permanent || permanent;
       if (entry.sampleIds.length < SAMPLE_IDS_PER_SIGNATURE && itemId != null) {
         entry.sampleIds.push(String(itemId));
+      }
+      // Un ejemplo del mensaje por causa. Sin esto el log agrupado dice QUÉ
+      // código de error fue pero no POR QUÉ, y diagnosticar obliga a reproducir
+      // el fallo a mano contra producción.
+      if (!entry.sampleMessage && message) {
+        entry.sampleMessage = message.slice(0, SAMPLE_MESSAGE_MAX_CHARS);
       }
       bySignature.set(signature, entry);
     },
@@ -62,7 +74,8 @@ function createFailureReport() {
         console.error(
           `[products-sync] ${entry.count} ítem(s) fallaron` +
             ` [${entry.permanent ? "PERMANENTE" : "transitorio"}] causa=${signature}` +
-            ` tienda=${shopDomain} ejemplos=${entry.sampleIds.join(",") || "-"}`
+            ` tienda=${shopDomain} ejemplos=${entry.sampleIds.join(",") || "-"}` +
+            (entry.sampleMessage ? `\n    detalle: ${entry.sampleMessage}` : "")
         );
       }
       if (meta.circuitOpen) {
@@ -202,7 +215,9 @@ export function startProductsSyncWorker() {
 
               const permanent = isPermanentShopifyError(result.reason);
               const signature = errorSignature(result.reason);
-              failureReport.record(signature, batch[idx]?.id, permanent);
+              const message =
+                result.reason instanceof Error ? result.reason.message : String(result.reason ?? "");
+              failureReport.record(signature, batch[idx]?.id, permanent, message);
 
               if (permanent) {
                 // Un error permanente (mutación inexistente, input inválido,

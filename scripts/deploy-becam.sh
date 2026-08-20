@@ -228,9 +228,16 @@ ensure_env() {
     env_changed=true
   fi
 
-  # Ensure fixed/known values are correct; add them if missing
+  # Ensure fixed/known values are correct; add them if missing.
+  #
+  # OJO: estas claves se PISAN en cada despliegue. Sólo deben estar aquí las que
+  # dependen del entorno de despliegue (host, puerto, credenciales) y no admiten
+  # ajuste manual. DB_POOL_MAX salió de esta lista: es un parámetro de
+  # rendimiento que se afina en el servidor, y forzarlo a 3 revertía el ajuste
+  # en cada deploy. Con el pool en 3 y lotes de 5 ítems concurrentes, el pool se
+  # agotaba y los webhooks recibían HTTP 500.
   local key value
-  for key in APP_HOST APP_PORT ADMIN_WEB_URL DATABASE_URL ADMIN_EMAIL ADMIN_PASSWORD RUN_WORKERS_IN_WEB DB_POOL_MAX; do
+  for key in APP_HOST APP_PORT ADMIN_WEB_URL DATABASE_URL ADMIN_EMAIL ADMIN_PASSWORD RUN_WORKERS_IN_WEB; do
     case "$key" in
       APP_HOST) value="${APP_HOST}" ;;
       APP_PORT) value="${APP_PORT}" ;;
@@ -239,7 +246,6 @@ ensure_env() {
       ADMIN_EMAIL) value="${ADMIN_EMAIL}" ;;
       ADMIN_PASSWORD) value="${ADMIN_PASSWORD}" ;;
       RUN_WORKERS_IN_WEB) value="false" ;;
-      DB_POOL_MAX) value="3" ;;
     esac
     if grep -qE "^${key}=" .env; then
       sed -i "s|^${key}=.*|${key}=${value}|" .env
@@ -248,6 +254,12 @@ ensure_env() {
       env_changed=true
     fi
   done
+
+  # DB_POOL_MAX: se siembra si falta, pero NUNCA se pisa si ya tiene valor.
+  if ! grep -qE "^DB_POOL_MAX=" .env; then
+    echo "DB_POOL_MAX=10" >> .env
+    env_changed=true
+  fi
 
   # Ensure connection timeout is reasonable to avoid hanging during DB pressure.
   if ! grep -qE "^DB_POOL_CONNECTION_TIMEOUT_MS=" .env; then

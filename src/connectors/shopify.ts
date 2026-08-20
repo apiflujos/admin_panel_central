@@ -30,6 +30,27 @@ type GraphQlRequest = {
   variables?: Record<string, unknown>;
 };
 
+/**
+ * Normaliza un identificador de Shopify al formato *global id* que exige GraphQL.
+ *
+ * Este proyecto arrastra identificadores numéricos heredados de la época REST
+ * (`"9820787179750"`) guardados en `products` y en la tabla de mapeos. Las
+ * mutaciones antiguas los toleraban, pero las actuales no:
+ * `productVariantsBulkUpdate` responde
+ * `INVALID_VARIABLE ... Invalid global id '9820787179750'` y falla la petición
+ * entera. Convertirlos aquí evita tener que migrar los datos históricos.
+ *
+ * Si el valor ya viene como `gid://shopify/...` se devuelve intacto.
+ */
+export function toShopifyGid(resource: "Product" | "ProductVariant" | "InventoryItem" | "Location", id: string) {
+  const text = String(id || "").trim();
+  if (!text) return text;
+  if (text.startsWith("gid://")) return text;
+  // Sólo se promueven identificadores puramente numéricos; cualquier otra cosa
+  // se deja tal cual para que el error de Shopify sea explícito y no silencioso.
+  return /^\d+$/.test(text) ? `gid://shopify/${resource}/${text}` : text;
+}
+
 export class ShopifyClient {
   private endpoint: string;
   private restBase: string;
@@ -146,7 +167,7 @@ export class ShopifyClient {
     const data = await this.request<{ productVariant: { id: string; product?: { id: string } | null } | null }>(
       <GraphQlRequest>{
         query: PRODUCT_ID_BY_VARIANT_QUERY,
-        variables: { id: variantId },
+        variables: { id: toShopifyGid("ProductVariant", variantId) },
       }
     );
     const productId = data.productVariant?.product?.id;
@@ -343,10 +364,10 @@ export class ShopifyClient {
       <GraphQlRequest>{
         query: VARIANT_PRICE_MUTATION,
         variables: {
-          productId: resolvedProductId,
+          productId: toShopifyGid("Product", resolvedProductId),
           variants: [
             {
-              id: variantId,
+              id: toShopifyGid("ProductVariant", variantId),
               price,
               compareAtPrice: compareAtPrice ?? null,
             },
@@ -459,8 +480,8 @@ export class ShopifyClient {
       <GraphQlRequest>{
         query: VARIANT_INVENTORY_POLICY_MUTATION,
         variables: {
-          productId: resolvedProductId,
-          variants: [{ id: variantId, inventoryPolicy: policy }],
+          productId: toShopifyGid("Product", resolvedProductId),
+          variants: [{ id: toShopifyGid("ProductVariant", variantId), inventoryPolicy: policy }],
         },
       },
       "productVariantsBulkUpdate"
@@ -471,7 +492,7 @@ export class ShopifyClient {
     return this.request<{ inventoryItemUpdate: ShopifyMutationResult }>(<GraphQlRequest>{
       query: INVENTORY_ITEM_TRACKING_MUTATION,
       variables: {
-        id: inventoryItemId,
+        id: toShopifyGid("InventoryItem", inventoryItemId),
         input: {
           tracked,
         },
@@ -621,7 +642,7 @@ export class ShopifyClient {
         query: PRODUCT_STATUS_MUTATION,
         variables: {
           product: {
-            id: productId,
+            id: toShopifyGid("Product", productId),
             status: publish ? "ACTIVE" : "DRAFT",
           },
         },
@@ -732,8 +753,8 @@ export class ShopifyClient {
       query: INVENTORY_ADJUST_MUTATION,
       variables: {
         input: {
-          inventoryItemId,
-          locationId,
+          inventoryItemId: toShopifyGid("InventoryItem", inventoryItemId),
+          locationId: toShopifyGid("Location", locationId),
           availableDelta,
         },
       },
@@ -748,8 +769,8 @@ export class ShopifyClient {
           reason: "correction",
           setQuantities: [
             {
-              inventoryItemId,
-              locationId,
+              inventoryItemId: toShopifyGid("InventoryItem", inventoryItemId),
+              locationId: toShopifyGid("Location", locationId),
               quantity,
             },
           ],
