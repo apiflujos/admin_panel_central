@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 import { appNavigation } from "../lib/navigation";
 import { getServerCompanyBrand } from "../lib/server-api";
@@ -104,7 +105,7 @@ export async function AppShell({
             {operationItems.map((item) => {
               const Icon = item.icon;
               return (
-                <a
+                <Link
                   key={item.href}
                   href={item.href}
                   className={item.href === activeHref ? "nav-item is-active" : "nav-item"}
@@ -114,14 +115,14 @@ export async function AppShell({
                     <Icon size={16} strokeWidth={1.75} />
                   </span>
                   <span className="nav-label">{item.label}</span>
-                </a>
+                </Link>
               );
             })}
             {renderSection("sistema") ? <div className="nav-section">{renderSection("sistema")}</div> : null}
             {systemItems.map((item) => {
               const Icon = item.icon;
               return (
-                <a
+                <Link
                   key={item.href}
                   href={item.href}
                   className={item.href === activeHref ? "nav-item is-active" : "nav-item"}
@@ -131,7 +132,7 @@ export async function AppShell({
                     <Icon size={16} strokeWidth={1.75} />
                   </span>
                   <span className="nav-label">{item.label}</span>
-                </a>
+                </Link>
               );
             })}
           </nav>
@@ -167,24 +168,24 @@ export async function AppShell({
           <div className="topbarActions">
             <div className="topbarQuickGroup">
               {session ? (
-                <a className="topbarQuickPill" href="/profile">
+                <Link className="topbarQuickPill" href="/profile">
                   Perfil
-                </a>
+                </Link>
               ) : null}
               {showAdminShortcuts ? (
-                <a className="topbarQuickPill" href="/company">
+                <Link className="topbarQuickPill" href="/company">
                   Empresa
-                </a>
+                </Link>
               ) : null}
               {showAdminShortcuts ? (
-                <a className="topbarQuickPill" href="/users">
+                <Link className="topbarQuickPill" href="/users">
                   Usuarios
-                </a>
+                </Link>
               ) : null}
               {showAdminShortcuts ? (
-                <a className="topbarQuickPill" href="/ai-assistants">
+                <Link className="topbarQuickPill" href="/ai-assistants">
                   IA
-                </a>
+                </Link>
               ) : null}
             </div>
             <button className="topbarBellBtn" type="button" aria-label="Alertas">
@@ -192,7 +193,7 @@ export async function AppShell({
             </button>
             {session ? (
               <div className="userMenu">
-                <a className="userMenuBtn" href="/profile">
+                <Link className="userMenuBtn" href="/profile">
                   <img className="userMenuAvatarImage" src={APIFLUJOS_AVATAR_SRC} alt="ApiFlujos" />
                   <span className="userMenuName">
                     <strong>{session.displayName}</strong>
@@ -201,7 +202,7 @@ export async function AppShell({
                   <span className="userMenuIcon" aria-hidden="true">
                     ⌄
                   </span>
-                </a>
+                </Link>
               </div>
             ) : null}
           </div>
