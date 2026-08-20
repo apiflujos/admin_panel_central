@@ -420,8 +420,10 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
         trackInventory: settingsRules.trackInventory !== false,
         allowOversell: settingsRules.allowOversell === true,
         webhookItemsEnabled: settingsRules.webhookItemsEnabled !== false,
-        createInShopify: settingsRules.createInShopify !== false,
-        updateInShopify: settingsRules.updateInShopify !== false,
+        // Escrituras hacia Shopify: sólo con permiso explícito. Con `!== false`
+        // la interfaz mostraba habilitado lo que nadie había activado.
+        createInShopify: settingsRules.createInShopify === true,
+        updateInShopify: settingsRules.updateInShopify === true,
         includeImages: settingsRules.includeImages !== false,
         warehouseIds: Array.isArray(settingsRules.warehouseIds) ? (settingsRules.warehouseIds as string[]) : [],
       },

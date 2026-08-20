@@ -111,11 +111,17 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
     shopifyLocationId: resolvedLocationId || undefined,
     webhookItemsEnabled: (rules as InventoryRules).webhookItemsEnabled !== false,
     syncEnabled: rules.syncEnabled !== false,
-    createInShopify: (rules as InventoryRules).createInShopify !== false,
-    // KILL SWITCH (opt-in): el sync Alegra→Shopify NO escribe precios/estado
-    // salvo que updateInShopify === true explícito. Antes era opt-out (`!== false`)
-    // y como el SELECT de inventory_rules NO trae la columna, quedaba SIEMPRE en
-    // true → cambiaba precios y despublicaba productos en Shopify sin control.
+    // ESCRITURAS HACIA SHOPIFY: opt-in estricto, las dos.
+    //
+    // Con `!== false` un valor ausente habilitaba la escritura, y ausente es
+    // justo lo que llega: ni `inventory_rules` tiene esas columnas, ni
+    // `config_json.rules` las traía. Así se despublicaron 1.028 productos el
+    // 2026-08-20 y otros 836 después, con el "kill switch" ya puesto — porque
+    // sólo se había corregido `updateInShopify` y el valor venía además
+    // normalizado a `true` desde `store-configs.service`.
+    //
+    // Regla: la base de datos manda; si no dice nada, es NO.
+    createInShopify: (rules as InventoryRules).createInShopify === true,
     updateInShopify: (rules as InventoryRules).updateInShopify === true,
     publishOnStock: rules.publishOnStock,
     includeImages: (rules as InventoryRules).includeImages !== false,

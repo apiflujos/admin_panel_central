@@ -2043,8 +2043,11 @@ export async function syncProductsHandler(req: Request, res: Response) {
         : null;
     const updateExisting = parseBooleanLike((settings as Record<string, unknown>).updateExisting, true);
     const trackInventory = parseBooleanLike((settings as Record<string, unknown>).trackInventory, true);
+    // Escribir en la tienda exige permiso EXPLÍCITO (`=== true`). Con `!== false`
+    // un valor ausente habilitaba la escritura, que es como se despublicó el
+    // catálogo el 2026-08-20. Mismo criterio que `sync-context`.
     const updateExistingInShopify =
-      Boolean(publishOnSync) && Boolean(updateExisting) && storeConfigFull?.rules?.updateInShopify !== false;
+      Boolean(publishOnSync) && Boolean(updateExisting) && storeConfigFull?.rules?.updateInShopify === true;
     const storeConfig = storeDomain ? await resolveStoreConfig(storeDomain) : await resolveStoreConfig(null);
     const withShopifyRetry = async <T>(
       fn: () => Promise<T>,

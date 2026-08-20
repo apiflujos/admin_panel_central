@@ -55,8 +55,10 @@ const defaultDraft: CriticalStoreConfigDraft = {
   trackInventory: true,
   allowOversell: false,
   webhookItemsEnabled: true,
-  createInShopify: true,
-  updateInShopify: true,
+  // Apagadas por omisión: este objeto siembra el formulario y puede acabar
+  // guardándose, así que no debe proponer permiso de escritura que nadie pidió.
+  createInShopify: false,
+  updateInShopify: false,
   includeImages: true,
   warehouseIds: [],
   enabled: true,
