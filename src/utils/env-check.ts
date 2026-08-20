@@ -81,9 +81,22 @@ export function assertStartupEnv(_options: { requireShopifyOAuth?: boolean } = {
   if (isProd()) {
     const missingWebhook = SHOPIFY_WEBHOOK_ENV.filter((k) => !isSet(k));
     if (missingWebhook.length) {
-      console.warn(
-        `[env-check] En producción sin ${missingWebhook.join(", ")}: los webhooks Shopify serán ` +
-          `rechazados por HMAC inválido. Setea la variable si vas a recibir webhooks.`
+      // OJO: este aviso NO significa que los webhooks fallen.
+      //
+      // El secreto de la app de Shopify se guarda CIFRADO EN BASE DE DATOS, por
+      // tienda (`credentials.provider = 'shopify_oauth_app:store:<id>'`), y la
+      // verificación de HMAC lo resuelve en este orden:
+      //     tienda -> global en BD -> env -> ninguno
+      // (ver `shopify-app-credentials.service.ts` y `utils/webhook.ts`).
+      // El env es el ÚLTIMO recurso, no la fuente principal.
+      //
+      // La redacción anterior afirmaba que los webhooks "serán rechazados por
+      // HMAC inválido", lo cual es falso cuando las credenciales están en BD —
+      // y llevó a diagnosticar como avería activa lo que era ruido de arranque.
+      console.info(
+        `[env-check] ${missingWebhook.join(", ")} no está en el entorno. Es lo normal: ` +
+          `el secreto se toma de las credenciales por tienda en base de datos. ` +
+          `Sólo importa si una tienda no tiene credenciales cargadas — revísalo en Configuración, no aquí.`
       );
     }
 

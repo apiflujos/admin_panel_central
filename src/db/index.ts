@@ -59,6 +59,20 @@ async function assertColumns(poolInstance: Pool, table: string, columns: string[
   schemaChecks.add(key);
 }
 
+/**
+ * Tamaño máximo del pool de conexiones a Postgres.
+ *
+ * Se expone para que quien hace fan-out de trabajo concurrente no pida más
+ * paralelismo del que hay conexiones: cada tarea concurrente necesita su propia
+ * conexión, y las que sobran se quedan esperando hasta agotar
+ * `DB_POOL_CONNECTION_TIMEOUT_MS` y fallan con "timeout exceeded when trying to
+ * connect". En producción, con `DB_POOL_MAX=3` y lotes de 5 ítems, eso generó
+ * 2.273 timeouts en una semana y devolvió HTTP 500 a webhooks de Shopify.
+ */
+export function getPoolMax(): number {
+  return parsePositiveInt(process.env.DB_POOL_MAX, 5);
+}
+
 export function getPool() {
   if (!pool) {
     const connectionString = process.env.DATABASE_URL;
@@ -66,7 +80,7 @@ export function getPool() {
       throw new Error("DATABASE_URL is required");
     }
     const ssl = process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined;
-    const poolMax = parsePositiveInt(process.env.DB_POOL_MAX, 5);
+    const poolMax = getPoolMax();
     const idleTimeoutMillis = parsePositiveInt(process.env.DB_POOL_IDLE_TIMEOUT_MS, 30000);
     const connectionTimeoutMillis = parsePositiveInt(process.env.DB_POOL_CONNECTION_TIMEOUT_MS, 5000);
     const applicationName = String(process.env.DB_APP_NAME || "").trim() || undefined;

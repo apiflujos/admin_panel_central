@@ -11,6 +11,7 @@ import { buildSyncContext } from "../../../../src/services/sync-context";
 import { getSyncCheckpoint, saveSyncCheckpoint } from "../../../../src/services/sync-checkpoints.service";
 import { listConnectedShopifyDomains } from "../../../../src/services/store-connections.service";
 import { errorSignature, isPermanentShopifyError } from "../../../../src/connectors/shopify-errors";
+import { getPoolMax } from "../../../../src/db";
 
 type AlegraItemRow = Record<string, unknown> & {
   id?: string | number;
@@ -122,7 +123,19 @@ export function startProductsSyncWorker() {
     return;
   }
 
-  const batchSize = Math.max(1, Math.min(Number(process.env.PRODUCTS_SYNC_BATCH_SIZE || 5), 20));
+  // La concurrencia no puede superar al pool de Postgres: cada ítem en vuelo
+  // necesita su conexión, y los que sobran esperan hasta agotar el timeout de
+  // conexión y mueren con "timeout exceeded when trying to connect". Se reserva
+  // una conexión para el trabajo del propio poller (checkpoints, sync logs).
+  const requestedBatchSize = Math.max(1, Math.min(Number(process.env.PRODUCTS_SYNC_BATCH_SIZE || 5), 20));
+  const concurrencyCeiling = Math.max(1, getPoolMax() - 1);
+  const batchSize = Math.min(requestedBatchSize, concurrencyCeiling);
+  if (batchSize < requestedBatchSize) {
+    console.warn(
+      `[products-sync] concurrencia recortada de ${requestedBatchSize} a ${batchSize}:` +
+        ` DB_POOL_MAX=${getPoolMax()} no da para más. Sube DB_POOL_MAX si quieres más paralelismo.`
+    );
+  }
   const batchLimit = Math.max(10, Math.min(Number(process.env.PRODUCTS_SYNC_BATCH_LIMIT || 30), 30));
   const permanentFailureLimit = Math.max(
     1,
