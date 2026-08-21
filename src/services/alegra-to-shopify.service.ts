@@ -172,6 +172,11 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
       );
       return { skipped: true, reason: "creation_rate_limited" };
     }
+    if (itemPricing.price === null) {
+      // Sin lista de precio configurada que case: no creamos el producto con un
+      // precio inventado. Queda para revisión (config de listas por tienda).
+      return { skipped: true, reason: "no_price_list_match" };
+    }
     const created = await ctx.shopify.createProductFromItem({
       title: item.name || `Alegra Item ${alegraItemId}`,
       sku:
@@ -630,7 +635,7 @@ function resolvePrice(
   price: AlegraItem["price"],
   ctx: Awaited<ReturnType<typeof buildSyncContext>>,
   taxRate: number
-): { price: string; compareAtPrice: string | null } {
+): { price: string | null; compareAtPrice: string | null } {
   if (typeof price === "number") {
     return { price: String(withVat(price, taxRate)), compareAtPrice: null };
   }
@@ -640,26 +645,36 @@ function resolvePrice(
       const normalized = String(listId);
       return price.find((entry) => String(entry?.idPriceList || "") === normalized) || null;
     };
-    const general = matchByList(ctx.priceListGeneralId);
+    // Lista de venta POR TIENDA, definida por CONFIG (no quemada en código):
+    //  - Becam vende MAYORISTA  -> su config trae priceListWholesaleId.
+    //  - Belia vende GENERAL    -> su config trae priceListGeneralId (sin mayorista).
+    // Se usa la mayorista si está configurada y el ítem la tiene; si no, la general.
+    const primary = matchByList(ctx.priceListWholesaleId) ?? matchByList(ctx.priceListGeneralId);
+
+    // SIN fallback a price[0]: agarrar una lista al azar fue justo lo que desfiguró
+    // los precios (Agua Micelar en $12, Sandalo en $2.750, etc.). Si la lista
+    // configurada no está en el ítem, NO tocamos el precio: devolvemos null y el
+    // caller salta la escritura (deja el precio actual como está).
+    if (!primary || typeof primary.price !== "number") {
+      return { price: null, compareAtPrice: null };
+    }
+
     const discount = matchByList(ctx.priceListDiscountId);
-    const first = price[0];
-    const generalPriceRaw =
-      typeof general?.price === "number" ? general.price : typeof first?.price === "number" ? first.price : 0;
-    const discountPriceRaw = typeof discount?.price === "number" ? discount.price : 0;
-    const generalPrice = withVat(generalPriceRaw, taxRate);
-    const discountPrice = withVat(discountPriceRaw, taxRate);
+    const primaryPrice = withVat(primary.price, taxRate);
+    const discountPrice =
+      discount && typeof discount.price === "number" ? withVat(discount.price, taxRate) : 0;
     const desired = resolveDesiredPricing({
-      priceWithVat: generalPrice,
+      priceWithVat: primaryPrice,
       discountPriceWithVat: discountPrice,
-      general: generalPrice,
+      general: primaryPrice,
       discountBeforeVat: discountPrice,
     });
     return {
-      price: desired.price ?? "0",
+      price: desired.price ?? null,
       compareAtPrice: desired.compareAtPrice,
     };
   }
-  return { price: "0", compareAtPrice: null };
+  return { price: null, compareAtPrice: null };
 }
 
 async function withRetry<T>(

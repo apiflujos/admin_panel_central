@@ -405,23 +405,31 @@ export class ShopifyClient {
    */
   async updateVariantPrice(
     variantId: string,
-    price: string,
+    price: string | null,
     compareAtPrice?: string | null,
     productId?: string | null
   ) {
+    // `price === null` significa que no casó ninguna lista de precio configurada:
+    // NO tocamos el precio (evita escribir un precio inventado, que fue la causa del
+    // desfase masivo). Si además no hay compareAt que actualizar, no hay nada que hacer.
+    const skipPrice = price === null || price === undefined;
+    if (skipPrice && (compareAtPrice === null || compareAtPrice === undefined)) {
+      return null;
+    }
     const resolvedProductId = productId || (await this.getProductIdByVariantId(variantId));
+    const variantInput: Record<string, unknown> = {
+      id: toShopifyGid("ProductVariant", variantId),
+      compareAtPrice: compareAtPrice ?? null,
+    };
+    if (!skipPrice) {
+      variantInput.price = price;
+    }
     return this.mutate<{ productVariantsBulkUpdate: ShopifyMutationResult }>(
       <GraphQlRequest>{
         query: VARIANT_PRICE_MUTATION,
         variables: {
           productId: toShopifyGid("Product", resolvedProductId),
-          variants: [
-            {
-              id: toShopifyGid("ProductVariant", variantId),
-              price,
-              compareAtPrice: compareAtPrice ?? null,
-            },
-          ],
+          variants: [variantInput],
         },
       },
       "productVariantsBulkUpdate"
