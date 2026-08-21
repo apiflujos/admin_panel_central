@@ -26,11 +26,26 @@ type ShopifyVariantNode = ShopifyProduct["variants"]["edges"][number]["node"];
 const DEFAULT_CONFIG: ProductSyncConfig = {
   enabled: false,
   createInAlegra: false,
-  updateInAlegra: true,
+  updateInAlegra: false,
   includeInventory: false,
   warehouseId: undefined,
   matchPriority: ["sku"],
 };
+
+/**
+ * KILL SWITCH DURO — escrituras de ítems a Alegra desde el sync Shopify→Alegra.
+ *
+ * Este sync (updateItem con el precio de Shopify + maybeAdjustInventory que ajusta
+ * el stock de Alegra para igualar el de Shopify) FORZABA a Alegra a copiar precio e
+ * inventario de Shopify. Cuando Shopify tenía valores malos (por el bug de resolvePrice
+ * y por ceros de inventario), los metía a Alegra, y el rebote Alegra→Shopify colapsaba
+ * ambos sistemas. Ver memoria becam-causa-raiz-precios-inventario.
+ *
+ * Regla "NO tocar Alegra": por omisión NO se escribe NADA a Alegra desde acá.
+ * Solo con ALLOW_ALEGRA_ITEM_WRITES=true (y entendiendo el riesgo) se re-habilita.
+ */
+const alegraItemWritesEnabled = () =>
+  String(process.env.ALLOW_ALEGRA_ITEM_WRITES || "").trim().toLowerCase() === "true";
 
 function parseMatchPriority(value: unknown): Array<"sku" | "barcode"> {
   if (Array.isArray(value)) {
@@ -206,6 +221,8 @@ async function maybeAdjustInventory(params: {
 }) {
   const { ctx, alegraItemId, desired, warehouseId, includeInventory, observations } = params;
   if (!includeInventory) return { adjusted: false, reason: "disabled" as const };
+  // Kill switch: nunca ajustar el inventario de Alegra desde Shopify (colapsaba el stock).
+  if (!alegraItemWritesEnabled()) return { adjusted: false, reason: "alegra_writes_disabled" as const };
   const resolvedWarehouseId = String(warehouseId || "").trim();
   const warehouseNumeric = Number(resolvedWarehouseId);
   if (!resolvedWarehouseId || !Number.isFinite(warehouseNumeric)) {
@@ -326,24 +343,35 @@ export async function syncShopifyVariantToAlegra(params: {
       ...(price !== null ? { price } : {}),
     };
 
+    const writesEnabled = alegraItemWritesEnabled();
     let action: "created" | "updated" | "skipped";
     if (alegraItemId) {
-      if (config.updateInAlegra) {
+      if (writesEnabled && config.updateInAlegra) {
         await ctx.alegra.updateItem(alegraItemId, payload);
         action = "updated";
       } else {
         action = "skipped";
       }
     } else {
-      if (!config.createInAlegra) {
+      if (!writesEnabled || !config.createInAlegra) {
         await createSyncLog({
           entity: "product",
           direction: "shopify->alegra",
           status: "warn",
-          message: "Producto sin match en Alegra (crear desactivado)",
+          message: !writesEnabled
+            ? "Escritura a Alegra desactivada (kill switch ALLOW_ALEGRA_ITEM_WRITES)"
+            : "Producto sin match en Alegra (crear desactivado)",
           request: { shopDomain, productId: product.id, variantId, identifier, name },
         });
-        return { ok: false, skipped: true, reason: "create_disabled" as const, variantId, identifier };
+        return {
+          ok: false,
+          skipped: true,
+          reason: (!writesEnabled ? "alegra_writes_disabled" : "create_disabled") as
+            | "alegra_writes_disabled"
+            | "create_disabled",
+          variantId,
+          identifier,
+        };
       }
       const created = (await ctx.alegra.createItem(payload)) as Record<string, unknown>;
       const createdId = created?.id ? String(created.id) : "";
