@@ -27,30 +27,41 @@ export function isAlegraStatusInactive(status: unknown): boolean {
 }
 
 /**
- * Cantidad realmente VENDIBLE de una bodega: lo disponible menos la reserva
- * mínima que Alegra mantiene en ella (`minQuantity`).
+ * Cantidad vendible de una bodega.
  *
- * Alegra es la fuente de verdad del inventario, y si define un mínimo por
- * bodega es porque esas unidades no deben venderse. Contarlas como disponibles
- * llevaría a comprometer stock reservado, que es la sobreventa que este cliente
- * no puede permitirse.
+ * QUÉ ES `minQuantity` Y QUÉ NO ES. En Alegra es el umbral de **alerta de
+ * reposición**: avisa al facturar cuando el inventario baja de ese nivel, pero
+ * NO impide vender por debajo. No es una reserva intocable.
+ *   https://ayuda.alegra.com/int/gestiona-tu-inventario-en-diferentes-bodegas-almacenes-depósitos
  *
- * Nunca devuelve negativo por efecto de la reserva: si el disponible ya está
- * por debajo del mínimo, lo vendible es cero. Un disponible negativo de verdad
- * (sobreventa ya ocurrida) sí se propaga tal cual, para que quede a la vista.
+ * Por eso NO se descuenta por defecto: hacerlo dejaría fuera de la tienda
+ * unidades que Alegra sí considera vendibles.
+ *
+ * Ahora bien, tratar ese mínimo como stock de seguridad es una decisión de
+ * negocio perfectamente razonable — y como Alegra no la expresa, tiene que
+ * tomarla NUESTRO sistema de forma explícita, nunca por suposición. De ahí
+ * `reservarMinimo`, que el llamador activa a conciencia.
+ *
+ * Un disponible negativo se propaga tal cual: es sobreventa ya ocurrida y debe
+ * verse, no maquillarse a cero.
  */
-function cantidadVendibleEnBodega(warehouse: { availableQuantity?: unknown; minQuantity?: unknown }): number {
+function cantidadVendibleEnBodega(
+  warehouse: { availableQuantity?: unknown; minQuantity?: unknown },
+  reservarMinimo: boolean
+): number {
   const disponibleRaw = Number(warehouse.availableQuantity ?? 0);
   const disponible = Number.isFinite(disponibleRaw) ? disponibleRaw : 0;
+  if (!reservarMinimo || disponible <= 0) return disponible;
   const minimoRaw = Number(warehouse.minQuantity ?? 0);
   const minimo = Number.isFinite(minimoRaw) && minimoRaw > 0 ? minimoRaw : 0;
-  if (disponible <= 0) return disponible;
   return Math.max(0, disponible - minimo);
 }
 
 export function resolveAlegraAvailableQuantity(
   inventory: AlegraInventory | undefined,
-  warehouseIds: string[] = []
+  warehouseIds: string[] = [],
+  /** Tratar `minQuantity` como stock de seguridad no vendible. Decisión NUESTRA. */
+  reservarMinimo = false
 ): number | null {
   if (!inventory) {
     return null;
@@ -59,7 +70,7 @@ export function resolveAlegraAvailableQuantity(
   if (Array.isArray(inventory.warehouses) && inventory.warehouses.length > 0) {
     const total = inventory.warehouses
       .filter((warehouse) => (warehouseIds.length ? warehouseIds.includes(String(warehouse.id)) : true))
-      .reduce((acc, warehouse) => acc + cantidadVendibleEnBodega(warehouse), 0);
+      .reduce((acc, warehouse) => acc + cantidadVendibleEnBodega(warehouse, reservarMinimo), 0);
     return Number.isFinite(total) ? total : null;
   }
 
