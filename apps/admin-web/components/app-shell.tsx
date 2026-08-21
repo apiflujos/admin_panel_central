@@ -1,39 +1,14 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 
-import { appNavigation } from "../lib/navigation";
+import { AppShellNav } from "./app-shell-nav";
+import { AppShellTitle } from "./app-shell-title";
 import { getServerCompanyBrand } from "../lib/server-api";
 import type { AuthSessionDto } from "../../../packages/shared/src/admin-web";
 import { LogoutButton } from "./logout-button";
 
 function renderSection(section: "operacion" | "sistema") {
   return section === "operacion" ? "Operación" : null;
-}
-
-function resolveShellTitle(activeHref: string) {
-  const explicit = appNavigation.find((item) => item.href === activeHref)?.label;
-  if (explicit) return explicit;
-  if (activeHref === "/profile") return "Perfil";
-  if (activeHref === "/company") return "Empresa";
-  if (activeHref === "/users") return "Usuarios";
-  if (activeHref === "/ai-assistants") return "Asistentes IA";
-  return "Admin Central";
-}
-
-function resolveShellSubtitle(activeHref: string) {
-  if (activeHref === "/") return "Vista consolidada del rendimiento operativo.";
-  if (activeHref === "/orders") return "Pedidos, estados y facturación del flujo comercial.";
-  if (activeHref === "/operations") return "Seguimiento de sincronizaciones y ejecución operativa.";
-  if (activeHref === "/invoices") return "Control de facturas y estado de emisión.";
-  if (activeHref === "/contacts") return "Base comercial y sincronización de clientes.";
-  if (activeHref === "/products") return "Catálogo, stock y disponibilidad comercial.";
-  if (activeHref === "/settings/connections") return "Conexiones, webhooks y configuración troncal.";
-  if (activeHref === "/superadmin") return "Control de acceso y soporte ApiFlujos.";
-  if (activeHref === "/profile") return "Preferencias personales y seguridad.";
-  if (activeHref === "/company") return "Identidad del cliente y datos corporativos.";
-  if (activeHref === "/users") return "Usuarios internos y roles autorizados.";
-  if (activeHref === "/ai-assistants") return "Asistentes operativos y automatización guiada.";
-  return "Superficie operativa estandarizada para todos los clientes.";
 }
 
 function getBrandInitials(name: string) {
@@ -49,15 +24,19 @@ function getBrandInitials(name: string) {
 const APIFLUJOS_LOGO_SRC = "/assets/logo.png";
 const APIFLUJOS_AVATAR_SRC = "/assets/avatar.png";
 
-export async function AppShell({
-  children,
-  session,
-  activeHref = "/",
-}: {
-  children: ReactNode;
-  session?: AuthSessionDto | null;
-  activeHref?: string;
-}) {
+/**
+ * Marco de la aplicación: menú, cabecera y contenedor de contenido.
+ *
+ * Se monta UNA sola vez, en el layout del grupo de rutas, no dentro de cada
+ * página. Antes cada página lo montaba, así que al navegar Next desmontaba el
+ * menú y la cabecera y pintaba un esqueleto sin ellos: la pantalla entera
+ * parpadeaba y daba la sensación de recarga completa.
+ *
+ * La ruta activa ya no llega por props; la resuelven `AppShellNav` y
+ * `AppShellTitle` en el cliente, que son lo único que se re-renderiza al
+ * cambiar de página.
+ */
+export async function AppShell({ children, session }: { children: ReactNode; session?: AuthSessionDto | null }) {
   // Guard: pages using AppShell require a session. This prevents a flash of
   // the logged-in shell before the server redirects an unauthenticated user.
   if (!session) {
@@ -68,8 +47,6 @@ export async function AppShell({
   const normalizedCompanyName = brand.companyName.trim();
   const hasDistinctClientBrand = Boolean(brand.logoBase64) || normalizedCompanyName.toLowerCase() !== "apiflujos";
   const clientInitials = getBrandInitials(brand.companyName);
-  const operationItems = appNavigation.filter((item) => item.section === "operacion");
-  const systemItems = appNavigation.filter((item) => item.section === "sistema");
   const showAdminShortcuts = Boolean(session && (session.role === "admin" || session.role === "super_admin"));
 
   return (
@@ -102,46 +79,14 @@ export async function AppShell({
 
           <nav className="nav">
             <div className="nav-section">{renderSection("operacion")}</div>
-            {operationItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={item.href === activeHref ? "nav-item is-active" : "nav-item"}
-                  aria-current={item.href === activeHref ? "page" : undefined}
-                >
-                  <span className="nav-icon" aria-hidden="true">
-                    <Icon size={16} strokeWidth={1.75} />
-                  </span>
-                  <span className="nav-label">{item.label}</span>
-                </Link>
-              );
-            })}
+            <AppShellNav section="operacion" />
             {renderSection("sistema") ? <div className="nav-section">{renderSection("sistema")}</div> : null}
-            {systemItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={item.href === activeHref ? "nav-item is-active" : "nav-item"}
-                  aria-current={item.href === activeHref ? "page" : undefined}
-                >
-                  <span className="nav-icon" aria-hidden="true">
-                    <Icon size={16} strokeWidth={1.75} />
-                  </span>
-                  <span className="nav-label">{item.label}</span>
-                </Link>
-              );
-            })}
+            <AppShellNav section="sistema" />
           </nav>
 
           <div className="sidebarSpacer" />
 
-          <div className="sidebarFooter">
-            {session ? <LogoutButton /> : null}
-          </div>
+          <div className="sidebarFooter">{session ? <LogoutButton /> : null}</div>
         </div>
       </aside>
 
@@ -160,10 +105,7 @@ export async function AppShell({
             </div>
           </div>
           <div className="topbarTitleCentered">
-            <div className="topbarTitle">
-              <strong>{resolveShellTitle(activeHref)}</strong>
-            </div>
-            <div className="topbarSubtitle">{resolveShellSubtitle(activeHref)}</div>
+            <AppShellTitle />
           </div>
           <div className="topbarActions">
             <div className="topbarQuickGroup">

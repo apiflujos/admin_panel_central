@@ -7,7 +7,14 @@ export default defineConfig({
     // `packages/**` estaba fuera del include: 10 archivos con 49 tests no se
     // ejecutaban NUNCA, incluidos los del dominio de inventario y precios, que
     // es justo la lógica más delicada de este proyecto.
-    include: ["src/**/*.test.ts", "apps/admin-web/**/*.test.tsx", "packages/**/*.test.ts"],
+    include: [
+      "src/**/*.test.ts",
+      // `.test.ts` de admin-web también: las pruebas de ESTRUCTURA de rutas no
+      // son componentes y quedaban fuera del include.
+      "apps/admin-web/**/*.test.ts",
+      "apps/admin-web/**/*.test.tsx",
+      "packages/**/*.test.ts",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
