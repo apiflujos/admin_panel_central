@@ -6,6 +6,8 @@ type OperationsFiltersInput = {
 
 type OperationServiceItem = {
   id?: unknown;
+  shopDomain?: unknown;
+  storeName?: unknown;
   orderNumber?: unknown;
   processedAt?: unknown;
   customer?: unknown;
@@ -50,6 +52,8 @@ export function toAdminWebOperationRowDto(item: OperationServiceItem): AdminWebO
   const actionability = ((item.actionability as OperationActionabilityInput | undefined) || {}) as OperationActionabilityInput;
   return {
     id: String(item.id || ""),
+    shopDomain: item.shopDomain ? String(item.shopDomain) : null,
+    storeName: item.storeName ? String(item.storeName) : null,
     orderNumber: String(item.orderNumber || "-"),
     processedAt: item.processedAt ? new Date(String(item.processedAt)).toISOString() : null,
     customer: String(item.customer || "-"),

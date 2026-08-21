@@ -54,6 +54,7 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
   const filteredRows = rows.items.filter((row) => {
     const haystack = [
       row.orderNumber,
+      row.storeName,
       row.customer,
       row.customerEmail,
       row.products,
@@ -261,6 +262,15 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
                 <div className="entity-cell">
                   <strong>{row.orderNumber}</strong>
                   <span>{row.processedAt ? new Date(row.processedAt).toLocaleString("es-CO") : "Sin fecha"}</span>
+                </div>
+              ),
+            },
+            {
+              key: "store",
+              header: "Tienda",
+              render: (row) => (
+                <div className="entity-cell">
+                  <strong>{row.storeName || "—"}</strong>
                 </div>
               ),
             },

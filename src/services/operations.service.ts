@@ -26,17 +26,67 @@ export async function listOperationsRange(from: Date, to: Date) {
   return listOperationsByQuery(query);
 }
 
+// Tiendas Shopify activas de la org (con credenciales), con su nombre legible.
+// Se usa para listar operaciones de TODAS las tiendas y etiquetar cada pedido con
+// la suya (Becam / Belia). Antes se usaba un solo cliente por defecto, así que los
+// pedidos de la otra tienda no aparecían y ninguno quedaba marcado con su tienda.
+async function listActiveShopifyStoresForOps(): Promise<Array<{ shopDomain: string; storeName: string | null }>> {
+  const pool = getPool();
+  const orgId = getOrgId();
+  const res = await pool.query<{ shop_domain: string; name: string | null }>(
+    `
+    SELECT ss.shop_domain,
+           COALESCE(NULLIF(s.name, ''), NULLIF(ss.store_name, ''), ss.shop_domain) AS name
+    FROM shopify_stores ss
+    LEFT JOIN stores s ON s.id = ss.store_id AND s.organization_id = ss.organization_id
+    WHERE ss.organization_id = $1 AND ss.access_token_encrypted IS NOT NULL
+    ORDER BY ss.store_id ASC NULLS LAST, ss.id ASC
+    `,
+    [orgId]
+  );
+  return res.rows
+    .filter((row) => row.shop_domain)
+    .map((row) => ({ shopDomain: String(row.shop_domain), storeName: row.name ? String(row.name) : null }));
+}
+
 async function listOperationsByQuery(query: string) {
-  const ctx = await buildSyncContext();
-  const orders = await ctx.shopify.listAllOrdersByQuery(query);
-  const orderIds = orders.map((order) => order.id);
+  const stores = await listActiveShopifyStoresForOps();
+  // Si no hay tiendas registradas con credenciales, se conserva el comportamiento
+  // anterior (cliente por defecto) para no romper setups de una sola tienda.
+  const storeList = stores.length ? stores : [{ shopDomain: "", storeName: null }];
+
+  // Multi-tienda: se consulta el Shopify de CADA tienda y se etiqueta cada pedido
+  // con la suya. Una tienda sin credenciales no debe tumbar la lista de la otra.
+  const tagged: Array<{ order: ShopifyOrder; shopDomain: string; storeName: string | null }> = [];
+  await Promise.all(
+    storeList.map(async (store) => {
+      try {
+        const ctx = await buildSyncContext(store.shopDomain || undefined);
+        const orders = await ctx.shopify.listAllOrdersByQuery(query);
+        for (const order of orders) {
+          tagged.push({
+            order,
+            shopDomain: store.shopDomain || ctx.shopDomain || "",
+            storeName: store.storeName,
+          });
+        }
+      } catch (error) {
+        console.warn(
+          `[operations] no se pudieron listar pedidos de ${store.shopDomain || "(default)"}: ` +
+            (error instanceof Error ? error.message : String(error))
+        );
+      }
+    })
+  );
+
+  const orderIds = tagged.map((entry) => entry.order.id);
   const latestLogs = await listLatestOrderLogs(orderIds);
   const overrides = await listOrderInvoiceOverrides(orderIds);
   const invoiceSettings = await loadInvoiceSettings();
   const einvoiceEnabled = invoiceSettings.einvoiceEnabled;
 
   const items = await Promise.all(
-    orders.map(async (order) => {
+    tagged.map(async ({ order, shopDomain, storeName }) => {
       const mapping = await getMappingByShopifyId("order", order.id);
       const log = latestLogs.get(order.id);
       const invoiceNumber = (mapping?.metadata?.invoiceNumber as string | undefined) || null;
@@ -55,6 +105,8 @@ async function listOperationsByQuery(query: string) {
       });
       return {
         id: order.id,
+        shopDomain,
+        storeName,
         orderNumber: order.name,
         processedAt: order.processedAt,
         customer: buildCustomerName(order),

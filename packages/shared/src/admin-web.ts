@@ -157,6 +157,8 @@ export type AdminWebDashboardOverviewDto = {
 
 export type AdminWebOperationRowDto = {
   id: string;
+  shopDomain: string | null;
+  storeName: string | null;
   orderNumber: string;
   processedAt: string | null;
   customer: string;
