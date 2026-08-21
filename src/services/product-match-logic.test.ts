@@ -9,6 +9,7 @@ const {
   createSyncLogMock,
   getStoreConfigForDomainMock,
   buildSyncContextMock,
+  isWorkerEnabledMock,
 } = vi.hoisted(() => ({
   getMappingByShopifyIdMock: vi.fn(),
   getMappingByAlegraIdMock: vi.fn(),
@@ -18,6 +19,7 @@ const {
   createSyncLogMock: vi.fn(),
   getStoreConfigForDomainMock: vi.fn(),
   buildSyncContextMock: vi.fn(),
+  isWorkerEnabledMock: vi.fn(),
 }));
 
 vi.mock("./mapping.service", () => ({
@@ -44,9 +46,15 @@ vi.mock("./products.service", () => ({
   upsertProduct: vi.fn(),
 }));
 
+// Las escrituras de catálogo consultan el interruptor de Super Admin.
+vi.mock("./worker-settings.service", () => ({
+  isWorkerEnabled: isWorkerEnabledMock,
+}));
+
 describe("product match logic", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    isWorkerEnabledMock.mockResolvedValue(true);
     getMappingByShopifyIdMock.mockResolvedValue(undefined);
     getMappingByAlegraIdMock.mockResolvedValue(undefined);
     getMappingByShopifyInventoryItemIdMock.mockResolvedValue(undefined);
@@ -88,7 +96,9 @@ describe("product match logic", () => {
 
     expect(alegraCtx.alegra.searchItems).toHaveBeenCalled();
     const attemptedParams = alegraCtx.alegra.searchItems.mock.calls.map((call) => call[0]);
-    expect(attemptedParams.every((params) => !("barcode" in params) && String(params.query || "").indexOf("barcode:") === -1)).toBe(true);
+    expect(
+      attemptedParams.every((params) => !("barcode" in params) && String(params.query || "").indexOf("barcode:") === -1)
+    ).toBe(true);
     expect(attemptedParams.some((params) => params.reference === "SKU-123")).toBe(true);
     expect(result).toMatchObject({
       ok: false,
@@ -149,4 +159,40 @@ describe("product match logic", () => {
       reason: "missing_mapping",
     });
   }, 30000);
+
+  it("con el interruptor de existencias APAGADO no se consulta ni se toca Shopify", async () => {
+    // El webhook `inventory.updated` de Alegra llega por `webhook-dispatch`,
+    // que está encendido para poder facturar. Sin este freno, apagar la
+    // sincronización en Super Admin no impediría que ese webhook cambiara las
+    // existencias de la tienda.
+    isWorkerEnabledMock.mockResolvedValue(false);
+    const ctx = {
+      shopDomain: "olivashoes.myshopify.com",
+      storeId: 1,
+      alegraWarehouseIds: [],
+      updateInShopify: true,
+      syncEnabled: true,
+      shopify: {
+        findVariantBySku: vi.fn(),
+        findVariantByIdentifier: vi.fn(),
+        setInventoryOnHand: vi.fn(),
+        updateProductStatus: vi.fn(),
+      },
+      alegra: { getItem: vi.fn() },
+    };
+    buildSyncContextMock.mockResolvedValue(ctx);
+
+    const { syncAlegraInventoryPayloadToShopify } = await import("./alegra-to-shopify.service");
+    const result = await syncAlegraInventoryPayloadToShopify(
+      { id: "2001", inventory: { availableQuantity: 3 } },
+      "olivashoes.myshopify.com"
+    );
+
+    expect(isWorkerEnabledMock).toHaveBeenCalledWith("inventory-adjustments");
+    expect(result).toMatchObject({ skipped: true, reason: "inventory_writes_disabled" });
+    expect(ctx.shopify.setInventoryOnHand).not.toHaveBeenCalled();
+    expect(ctx.shopify.updateProductStatus).not.toHaveBeenCalled();
+    expect(ctx.shopify.findVariantBySku).not.toHaveBeenCalled();
+    expect(ctx.shopify.findVariantByIdentifier).not.toHaveBeenCalled();
+  });
 });

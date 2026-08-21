@@ -1,4 +1,5 @@
 import { buildSyncContext, type SyncContext } from "./sync-context";
+import { isWorkerEnabled } from "./worker-settings.service";
 import { isMissingShopifyResourceError } from "../connectors/shopify-errors";
 import {
   saveMapping,
@@ -123,6 +124,20 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
   await upsertProduct({ ...baseProductInput, shopDomain: ctx.shopDomain, storeId: ctx.storeId });
   if (!ctx.syncEnabled) {
     return { skipped: true, reason: "sync_disabled" };
+  }
+  // FRENO DE CATÁLOGO — va aquí, en el servicio, y no en el bucle del poller.
+  //
+  // A esta función se llega por SEIS caminos: el poller products-sync, el
+  // webhook de Alegra (item.created/item.updated), la cola de reintentos, el
+  // asistente de IA y dos endpoints. Sólo el primero es un worker; los demás
+  // entran por HTTP y los transportan `webhook-dispatch` y `retry-queue`, que
+  // están ENCENDIDOS porque hacen falta para facturar.
+  //
+  // Con el freno sólo en el poller, apagar "Precios y publicación desde
+  // Alegra" en Super Admin habría sido decorativo: un webhook de Alegra
+  // seguiría cambiando precios y publicaciones. Aquí cubre los seis.
+  if (!(await isWorkerEnabled("products-sync"))) {
+    return { skipped: true, reason: "catalog_writes_disabled" };
   }
   if (ctx.onlyActiveItems && statusInactive) {
     return { skipped: true, reason: "inactive_item" };
@@ -385,6 +400,20 @@ export async function syncAlegraInventoryPayloadToShopify(payload: AlegraInvento
   const ctx = await buildSyncContext(shopDomain);
   const allowedWarehouseIds = Array.isArray(ctx.alegraWarehouseIds) ? ctx.alegraWarehouseIds : [];
   const availableQuantity = resolveAlegraAvailableQuantity(payload.inventory, allowedWarehouseIds);
+  // FRENO DE EXISTENCIAS — mismo motivo que arriba: aquí también se llega por
+  // el webhook `inventory.updated` de Alegra y por la cola de reintentos, no
+  // sólo por el poller.
+  if (!(await isWorkerEnabled("inventory-adjustments"))) {
+    await upsertProduct({
+      shopDomain: ctx.shopDomain,
+      storeId: ctx.storeId,
+      alegraId: alegraItemId,
+      inventoryQuantity: availableQuantity ?? undefined,
+      statusAlegra: payload.status || null,
+      source: "alegra",
+    });
+    return { handled: true, skipped: true, reason: "inventory_writes_disabled" };
+  }
   if (!ctx.updateInShopify) {
     await upsertProduct({
       shopDomain: ctx.shopDomain,

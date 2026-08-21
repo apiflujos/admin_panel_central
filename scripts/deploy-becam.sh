@@ -356,6 +356,34 @@ do_deploy() {
   log "Ejecutando migraciones..."
   npm run db:migrate
 
+  # Puerta de seguridad ANTES de levantar nada.
+  #
+  # Los trabajos que modifican el catálogo de las tiendas (precios, existencias,
+  # publicaciones) deben quedar apagados salvo decisión explícita del cliente.
+  # Se comprueba contra la BASE, no contra el código: el 2026-08-20 el código
+  # parecía correcto y aun así se despublicaron 1.028 productos.
+  #
+  # Si alguno está encendido, el script se detiene sin arrancar los procesos.
+  # Para desplegar a sabiendas con la sincronización encendida:
+  #     PERMITIR_ESCRITURA_TIENDAS=1 ./scripts/deploy-becam.sh
+  log "Verificando qué trabajos automáticos quedarán encendidos..."
+  if npm run --silent workers:estado; then
+    ok "Ningún trabajo encendido modifica las tiendas"
+  else
+    estado=$?
+    if [ "$estado" = "1" ] && [ "${PERMITIR_ESCRITURA_TIENDAS:-0}" != "1" ]; then
+      err "Hay trabajos ENCENDIDOS que modifican las tiendas. No se arranca."
+      err "Apágalos en Super Admin, o repite con PERMITIR_ESCRITURA_TIENDAS=1 si es intencionado."
+      exit 1
+    fi
+    if [ "$estado" = "1" ]; then
+      warn "Se arranca CON escritura hacia las tiendas habilitada (PERMITIR_ESCRITURA_TIENDAS=1)."
+    else
+      err "No se pudo verificar el estado de los trabajos (código $estado). No se arranca."
+      exit 1
+    fi
+  fi
+
   log "Gestionando procesos PM2..."
   # Remove the old separate admin-web process if it still exists from a
   # previous deployment.

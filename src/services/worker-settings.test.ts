@@ -61,3 +61,32 @@ describe("todos los workers consultan su interruptor", () => {
     for (const key of usadas) expect(isWorkerKey(key), key).toBe(true);
   });
 });
+
+describe("la migración deja los nueve sembrados y coherentes con el catálogo", () => {
+  const SQL = fs.readFileSync(path.resolve(__dirname, "../db/migrations/019_worker_settings.sql"), "utf8");
+  const sembrados = new Map<string, boolean>(
+    [...SQL.matchAll(/\('([a-z-]+)',\s+(TRUE|FALSE)/g)].map((m) => [m[1], m[2] === "TRUE"])
+  );
+
+  it("siembra exactamente los del catálogo, ni uno más ni uno menos", () => {
+    // Un worker sin fila es un worker cuyo estado no se puede comprobar con un
+    // SELECT antes de arrancar.
+    expect([...sembrados.keys()].sort()).toEqual([...WORKER_KEYS].sort());
+  });
+
+  it("el valor sembrado coincide con el del catálogo", () => {
+    for (const worker of WORKER_CATALOG) {
+      expect(sembrados.get(worker.key), worker.key).toBe(worker.enabledByDefault);
+    }
+  });
+
+  it("los que modifican la tienda se siembran APAGADOS", () => {
+    for (const worker of WORKER_CATALOG.filter((w) => w.writesToStore)) {
+      expect(sembrados.get(worker.key), worker.key).toBe(false);
+    }
+  });
+
+  it("no pisa decisiones ya tomadas", () => {
+    expect(SQL).toContain("ON CONFLICT (worker_key) DO NOTHING");
+  });
+});
