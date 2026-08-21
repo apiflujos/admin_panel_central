@@ -6,4 +6,5 @@ export * from "./pricing";
 export * from "./shopify-publication";
 export * from "./shopify-product-sync";
 export * from "./shopify";
+export * from "./workers";
 export * from "./xlsx-inventory";

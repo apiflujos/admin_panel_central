@@ -2,6 +2,7 @@ import { getPool } from "../../../../src/db";
 import { getSuperAdminEmail } from "../../../../src/sa/sa.bootstrap";
 import { startCron } from "../../../../src/infra/cron";
 import { getTenantMonthlySummary } from "../../../../src/sa/sa.admin.service";
+import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
 
 function prevMonthKeyUtc(now = new Date()) {
   const year = Number(now.toISOString().slice(0, 4));
@@ -21,6 +22,8 @@ export function startBillingReportWorker() {
   startCron(
     spec,
     async () => {
+      // Interruptor de Super Admin, releído en cada disparo del cron.
+      if (!(await isWorkerEnabled("billing-report"))) return;
       const pool = getPool();
       const periodKey = prevMonthKeyUtc();
       const tenants = await pool.query<{ id: number; name: string }>(

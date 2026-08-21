@@ -12,6 +12,7 @@ import { getSyncCheckpoint, saveSyncCheckpoint } from "../../../../src/services/
 import { listConnectedShopifyDomains } from "../../../../src/services/store-connections.service";
 import { errorSignature, isPermanentIntegrationError } from "../../../../src/connectors/shopify-errors";
 import { getPoolMax } from "../../../../src/db";
+import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
 
 type AlegraItemRow = Record<string, unknown> & {
   id?: string | number;
@@ -44,8 +45,7 @@ function createFailureReport() {
 
   return {
     record(signature: string, itemId: unknown, permanent: boolean, message?: string) {
-      const entry =
-        bySignature.get(signature) || { count: 0, permanent, sampleIds: [], sampleMessage: "" };
+      const entry = bySignature.get(signature) || { count: 0, permanent, sampleIds: [], sampleMessage: "" };
       entry.count += 1;
       entry.permanent = entry.permanent || permanent;
       if (entry.sampleIds.length < SAMPLE_IDS_PER_SIGNATURE && itemId != null) {
@@ -220,8 +220,7 @@ export function startProductsSyncWorker() {
               // y bloqueaba el checkpoint para siempre.
               const permanent = isPermanentIntegrationError(result.reason);
               const signature = errorSignature(result.reason);
-              const message =
-                result.reason instanceof Error ? result.reason.message : String(result.reason ?? "");
+              const message = result.reason instanceof Error ? result.reason.message : String(result.reason ?? "");
               failureReport.record(signature, batch[idx]?.id, permanent, message);
 
               if (permanent) {
@@ -260,9 +259,7 @@ export function startProductsSyncWorker() {
 
         if (totalProcessed > 0) {
           const checkpointValue =
-            hadFailure && minFailedUpdatedAt != null
-              ? Math.max(sinceMs, minFailedUpdatedAt - 1)
-              : lastSeen;
+            hadFailure && minFailedUpdatedAt != null ? Math.max(sinceMs, minFailedUpdatedAt - 1) : lastSeen;
           await saveSyncCheckpoint({
             entity: checkpointKey(ctx.shopDomain),
             lastStart: checkpointValue,
@@ -303,6 +300,9 @@ export function startProductsSyncWorker() {
   };
 
   const run = async () => {
+    // Interruptor de Super Admin. Se consulta en CADA pasada (no sólo al
+    // arrancar) para que encender o apagar surta efecto sin reiniciar.
+    if (!(await isWorkerEnabled("products-sync"))) return;
     if (running) return;
     running = true;
     try {

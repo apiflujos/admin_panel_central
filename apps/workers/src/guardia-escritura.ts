@@ -30,7 +30,22 @@ export async function verificarPermisosDeEscritura() {
           const escribe = ctx.updateInShopify || ctx.createInShopify;
           const detalle =
             `updateInShopify=${ctx.updateInShopify} createInShopify=${ctx.createInShopify}` +
-            ` autoPublishOnWebhook=${ctx.autoPublishOnWebhook} syncEnabled=${ctx.syncEnabled}`;
+            ` autoPublishOnWebhook=${ctx.autoPublishOnWebhook} syncEnabled=${ctx.syncEnabled}` +
+            ` outOfStockBehavior=${ctx.outOfStockBehavior} allowOversell=${ctx.allowOversell}` +
+            ` trackInventory=${ctx.trackInventory}`;
+
+          // «Agotado» sólo impide la venta si la tienda tiene PROHIBIDA la venta
+          // sin existencias y lleva la cuenta del inventario. Con allowOversell
+          // el producto se queda publicado Y vendible a cero: sobreventa
+          // garantizada, que es justo lo que la regla de negocio prohíbe.
+          if (ctx.outOfStockBehavior === "mark_sold_out" && (ctx.allowOversell || !ctx.trackInventory)) {
+            console.error(
+              `[guardia-escritura] ${shopDomain}: COMBINACIÓN PELIGROSA — se marca AGOTADO en vez de` +
+                ` despublicar, pero allowOversell=${ctx.allowOversell} y trackInventory=${ctx.trackInventory}.` +
+                " El producto quedaría publicado Y vendible sin existencias. Corrige la configuración" +
+                ' de la tienda o cambia outOfStockBehavior a "unpublish".'
+            );
+          }
           if (escribe) {
             console.warn(
               `[guardia-escritura] ${shopDomain}: ESCRITURA HABILITADA hacia Shopify — ${detalle}.` +

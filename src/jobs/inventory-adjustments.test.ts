@@ -8,6 +8,7 @@ const {
   saveSyncCheckpointMock,
   getStoreConfigForDomainMock,
   listConnectedShopifyDomainsMock,
+  isWorkerEnabledMock,
 } = vi.hoisted(() => ({
   syncInventoryAdjustmentsMock: vi.fn(),
   createSyncLogMock: vi.fn(),
@@ -16,6 +17,7 @@ const {
   saveSyncCheckpointMock: vi.fn(),
   getStoreConfigForDomainMock: vi.fn(),
   listConnectedShopifyDomainsMock: vi.fn(),
+  isWorkerEnabledMock: vi.fn(),
 }));
 
 vi.mock("../services/inventory-adjustments.service", () => ({
@@ -43,6 +45,11 @@ vi.mock("../services/store-connections.service", () => ({
   listConnectedShopifyDomains: listConnectedShopifyDomainsMock,
 }));
 
+// El poller consulta su interruptor de Super Admin en cada pasada.
+vi.mock("../services/worker-settings.service", () => ({
+  isWorkerEnabled: isWorkerEnabledMock,
+}));
+
 vi.mock("../services/organizations.service", () => ({
   withEachOrganization: async (fn: (orgId: number) => Promise<void>) => {
     await fn(1);
@@ -56,6 +63,7 @@ describe("inventory-adjustments poller", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-28T12:00:00.000Z"));
     vi.clearAllMocks();
+    isWorkerEnabledMock.mockResolvedValue(true);
     getInventoryAdjustmentsSettingsMock.mockResolvedValue({
       enabled: true,
       intervalMinutes: 30,

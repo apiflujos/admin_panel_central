@@ -1,4 +1,4 @@
-import { buildSyncContext } from "./sync-context";
+import { buildSyncContext, type SyncContext } from "./sync-context";
 import { isMissingShopifyResourceError } from "../connectors/shopify-errors";
 import {
   saveMapping,
@@ -73,6 +73,34 @@ export async function syncAlegraItemToShopify(alegraItemId: string, shopDomain?:
   return syncAlegraItemPayloadToShopify(item, ctx.shopDomain);
 }
 
+/**
+ * Aplica a la publicación del producto la política de «sin existencias».
+ *
+ * REGLA DE NEGOCIO: Alegra manda sobre el inventario y no se puede sobrevender.
+ * La barrera contra la sobreventa la pone el INVENTARIO EN CERO, no el
+ * despublicado. Por eso, por omisión (`mark_sold_out`) un producto sin unidades
+ * se queda PUBLICADO y la tienda lo muestra como «Agotado»: el cliente lo sigue
+ * encontrando, conserva su posición en buscadores y sus enlaces no se rompen.
+ *
+ * Sólo con `outOfStockBehavior = "unpublish"` se saca del escaparate.
+ *
+ * Volver a tener existencias siempre publica, en cualquiera de las dos
+ * políticas: eso no es destructivo.
+ */
+export async function aplicarPublicacionPorStock(
+  ctx: SyncContext,
+  productId: string,
+  publishEligible: boolean
+): Promise<"aplicado" | "agotado_sigue_publicado"> {
+  if (!publishEligible && ctx.outOfStockBehavior === "mark_sold_out") {
+    return "agotado_sigue_publicado";
+  }
+  await withRetry(() => ctx.shopify.updateProductStatus(productId, publishEligible, "sin_stock"), {
+    label: "updateProductStatus",
+  });
+  return "aplicado";
+}
+
 export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomain?: string) {
   const ctx = await buildSyncContext(shopDomain);
   const alegraItemId = String(item.id);
@@ -106,7 +134,9 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
   });
   // REGLA DE NEGOCIO (Becam): NO SE PUEDE SOBREVENDER. Alegra manda sobre el
   // inventario, así que la publicación de un producto que YA existe la decide el
-  // stock: con existencias se publica, sin existencias se despublica.
+  // stock: con existencias se publica. Qué pasa SIN existencias lo decide
+  // `outOfStockBehavior` — ver aplicarPublicacionPorStock(); por omisión se
+  // queda publicado y AGOTADO, no se despublica.
   //
   // `autoPublishStatus` sólo decide con qué estado NACEN los productos nuevos.
   // Antes se aplicaba también a los existentes (`=== "active" ? elegible : false`)
@@ -147,9 +177,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
       );
       if (matched.productId && ctx.autoPublishOnWebhook) {
         const productId = matched.productId;
-        await withRetry(() => ctx.shopify.updateProductStatus(productId, desiredPublish, "sin_stock"), {
-          label: "updateProductStatus",
-        });
+        await aplicarPublicacionPorStock(ctx, productId, desiredPublish);
       }
       await upsertProduct({
         ...baseProductInput,
@@ -321,7 +349,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
 
   if (effectiveProductId && ctx.autoPublishOnWebhook) {
     const productId = effectiveProductId;
-    await withRetry(() => ctx.shopify.updateProductStatus(productId, desiredPublish, "sin_stock"), { label: "updateProductStatus" });
+    await aplicarPublicacionPorStock(ctx, productId, desiredPublish);
   }
   await upsertProduct({
     ...baseProductInput,
@@ -454,11 +482,11 @@ export async function syncAlegraInventoryPayloadToShopify(payload: AlegraInvento
       availableQuantity,
       publishOnStock: ctx.publishOnStock,
     });
-    // Igual que arriba: sin existencias se despublica, con existencias se
-    // publica. Es la salvaguarda contra la sobreventa, y por eso NO depende de
-    // `autoPublishStatus`.
+    // Igual que arriba: con existencias se publica; sin ellas decide
+    // `outOfStockBehavior`. Es la salvaguarda contra la sobreventa, y por eso
+    // NO depende de `autoPublishStatus`.
     const desiredPublish = publishEligible;
-    await withRetry(() => ctx.shopify.updateProductStatus(productId, desiredPublish, "sin_stock"), { label: "updateProductStatus" });
+    await aplicarPublicacionPorStock(ctx, productId, desiredPublish);
   }
 
   await upsertProduct({

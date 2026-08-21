@@ -5,6 +5,7 @@ import { decryptString } from "../utils/crypto";
 import { ensureInventoryRulesColumns, getOrgId, getPool } from "../db";
 import { resolveStoreConfig } from "./store-config.service";
 import { getStoreConfigForDomain } from "./store-configs.service";
+import { normalizeOutOfStockBehavior, type OutOfStockBehavior } from "../../packages/shared/src/inventory";
 
 const isCryptoKeyMisconfigured = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error || "");
@@ -18,7 +19,7 @@ const normalizeShopDomain = (value: string) =>
     .replace(/\/.*$/, "")
     .toLowerCase();
 
-type SyncContext = {
+export type SyncContext = {
   shopify: ShopifyClient;
   alegra: AlegraClient;
   shopDomain: string;
@@ -35,6 +36,7 @@ type SyncContext = {
   includeImages: boolean;
   trackInventory: boolean;
   allowOversell: boolean;
+  outOfStockBehavior: OutOfStockBehavior;
   alegraWarehouseId?: string;
   alegraWarehouseIds?: string[];
   priceListGeneralId?: string;
@@ -52,6 +54,7 @@ type InventoryRules = {
   includeImages?: boolean;
   trackInventory?: boolean;
   allowOversell?: boolean;
+  outOfStockBehavior?: OutOfStockBehavior;
   onlyActiveItems?: boolean;
   autoPublishOnWebhook: boolean;
   autoPublishStatus: "draft" | "active";
@@ -127,6 +130,9 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
     includeImages: (rules as InventoryRules).includeImages !== false,
     trackInventory: (rules as InventoryRules).trackInventory !== false,
     allowOversell: (rules as InventoryRules).allowOversell === true,
+    // Sin valor explícito se marca AGOTADO en vez de despublicar: es lo menos
+    // destructivo de los dos y cumple igual la regla de no sobrevender.
+    outOfStockBehavior: normalizeOutOfStockBehavior((rules as InventoryRules).outOfStockBehavior),
     onlyActiveItems: Boolean(rules.onlyActiveItems),
     autoPublishOnWebhook: rules.autoPublishOnWebhook,
     autoPublishStatus: normalizeAutoStatus(rules.autoPublishStatus),

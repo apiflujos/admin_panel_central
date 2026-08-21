@@ -1,4 +1,5 @@
 import { processRetryQueue } from "../../../../src/services/retry-queue.service";
+import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
 
 const DEFAULT_POLL_MS = 60_000;
 
@@ -23,6 +24,9 @@ export function startRetryQueueWorker() {
 
   let running = false;
   const run = async () => {
+    // Interruptor de Super Admin. Se consulta en CADA pasada (no sólo al
+    // arrancar) para que encender o apagar surta efecto sin reiniciar.
+    if (!(await isWorkerEnabled("retry-queue"))) return;
     if (running) return;
     running = true;
     try {

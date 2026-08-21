@@ -9,6 +9,7 @@ const {
   getShopifyConnectionByDomainMock,
   listConnectedShopifyDomainsMock,
   listAllOrdersByQueryMock,
+  isWorkerEnabledMock,
 } = vi.hoisted(() => ({
   createSyncLogMock: vi.fn(),
   mapOrderToPayloadMock: vi.fn(),
@@ -18,6 +19,7 @@ const {
   getShopifyConnectionByDomainMock: vi.fn(),
   listConnectedShopifyDomainsMock: vi.fn(),
   listAllOrdersByQueryMock: vi.fn(),
+  isWorkerEnabledMock: vi.fn(),
 }));
 
 vi.mock("../connectors/shopify", () => ({
@@ -48,6 +50,11 @@ vi.mock("../services/store-connections.service", () => ({
   listConnectedShopifyDomains: listConnectedShopifyDomainsMock,
 }));
 
+// El poller consulta su interruptor de Super Admin en cada pasada.
+vi.mock("../services/worker-settings.service", () => ({
+  isWorkerEnabled: isWorkerEnabledMock,
+}));
+
 vi.mock("../services/organizations.service", () => ({
   withEachOrganization: async (fn: (orgId: number) => Promise<void>) => {
     await fn(1);
@@ -61,6 +68,7 @@ describe("orders-sync poller", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-28T12:00:00.000Z"));
     vi.clearAllMocks();
+    isWorkerEnabledMock.mockResolvedValue(true);
     process.env.ORDERS_SYNC_POLL_SECONDS = "300";
     process.env.ORDERS_SYNC_BATCH_SIZE = "2";
     process.env.ORDERS_SYNC_MAX_ORDERS = "0";

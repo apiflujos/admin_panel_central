@@ -9,6 +9,7 @@ const {
   getSyncCheckpointMock,
   saveSyncCheckpointMock,
   listConnectedShopifyDomainsMock,
+  isWorkerEnabledMock,
 } = vi.hoisted(() => ({
   createSyncLogMock: vi.fn(),
   syncAlegraInventoryPayloadToShopifyMock: vi.fn(),
@@ -18,6 +19,7 @@ const {
   getSyncCheckpointMock: vi.fn(),
   saveSyncCheckpointMock: vi.fn(),
   listConnectedShopifyDomainsMock: vi.fn(),
+  isWorkerEnabledMock: vi.fn(),
 }));
 
 vi.mock("../services/logs.service", () => ({
@@ -46,6 +48,11 @@ vi.mock("../services/store-connections.service", () => ({
   listConnectedShopifyDomains: listConnectedShopifyDomainsMock,
 }));
 
+// El poller consulta su interruptor de Super Admin en cada pasada.
+vi.mock("../services/worker-settings.service", () => ({
+  isWorkerEnabled: isWorkerEnabledMock,
+}));
+
 vi.mock("../services/organizations.service", () => ({
   withEachOrganization: async (fn: (orgId: number) => Promise<void>) => {
     await fn(1);
@@ -59,14 +66,12 @@ describe("products-sync poller", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-28T12:00:00.000Z"));
     vi.clearAllMocks();
+    isWorkerEnabledMock.mockResolvedValue(true);
     process.env.PRODUCTS_SYNC_POLL_SECONDS = "900";
     process.env.PRODUCTS_SYNC_BATCH_SIZE = "2";
     process.env.PRODUCTS_SYNC_BATCH_LIMIT = "30";
     process.env.PRODUCTS_SYNC_LOOKBACK_MINUTES = "180";
-    listConnectedShopifyDomainsMock.mockResolvedValue([
-      "disabled-store.myshopify.com",
-      "olivashoes.myshopify.com",
-    ]);
+    listConnectedShopifyDomainsMock.mockResolvedValue(["disabled-store.myshopify.com", "olivashoes.myshopify.com"]);
     getSyncCheckpointMock.mockImplementation(async (entity: string) => {
       if (entity === "products_sync:olivashoes.myshopify.com") {
         return {
@@ -152,5 +157,35 @@ describe("products-sync poller", () => {
         request: { shopDomain: "olivashoes.myshopify.com", processed: 2 },
       })
     );
+  });
+
+  it("APAGADO no toca Shopify: no consulta Alegra ni sincroniza nada", async () => {
+    // Este es el worker que despublicó 1.028 productos el 2026-08-20. Si el
+    // interruptor de Super Admin no lo frena de verdad, la vista es decorativa.
+    isWorkerEnabledMock.mockResolvedValue(false);
+
+    startProductsSyncPoller();
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    expect(isWorkerEnabledMock).toHaveBeenCalledWith("products-sync");
+    expect(listConnectedShopifyDomainsMock).not.toHaveBeenCalled();
+    expect(buildSyncContextMock).not.toHaveBeenCalled();
+    expect(syncAlegraItemPayloadToShopifyMock).not.toHaveBeenCalled();
+    expect(syncAlegraInventoryPayloadToShopifyMock).not.toHaveBeenCalled();
+    expect(saveSyncCheckpointMock).not.toHaveBeenCalled();
+  });
+
+  it("apagarlo a mitad de camino detiene la siguiente pasada", async () => {
+    startProductsSyncPoller();
+    await vi.waitFor(() => {
+      expect(syncAlegraItemPayloadToShopifyMock).toHaveBeenCalledTimes(2);
+    });
+
+    // Se apaga desde la UI. El intervalo sigue disparando, pero ya no trabaja.
+    isWorkerEnabledMock.mockResolvedValue(false);
+    const llamadasAntes = buildSyncContextMock.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(900_000 * 2);
+
+    expect(buildSyncContextMock.mock.calls.length).toBe(llamadasAntes);
   });
 });

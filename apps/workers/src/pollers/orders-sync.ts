@@ -4,7 +4,11 @@ import { mapOrderToPayload } from "../../../../src/services/operations.service";
 import { withEachOrganization } from "../../../../src/services/organizations.service";
 import { syncShopifyOrderToAlegra } from "../../../../src/services/shopify-to-alegra.service";
 import { getSyncCheckpoint, saveSyncCheckpoint } from "../../../../src/services/sync-checkpoints.service";
-import { getShopifyConnectionByDomain, listConnectedShopifyDomains } from "../../../../src/services/store-connections.service";
+import {
+  getShopifyConnectionByDomain,
+  listConnectedShopifyDomains,
+} from "../../../../src/services/store-connections.service";
+import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
 
 const toIso = (value: number) => new Date(value).toISOString();
 const checkpointKey = (shopDomain: string) => `orders_sync:${shopDomain}`;
@@ -154,6 +158,9 @@ export function startOrdersSyncWorker() {
   };
 
   const run = async () => {
+    // Interruptor de Super Admin. Se consulta en CADA pasada (no sólo al
+    // arrancar) para que encender o apagar surta efecto sin reiniciar.
+    if (!(await isWorkerEnabled("orders-sync"))) return;
     if (running) return;
     running = true;
     try {

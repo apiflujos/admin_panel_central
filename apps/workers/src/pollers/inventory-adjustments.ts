@@ -5,11 +5,9 @@ import { getInventoryAdjustmentsSettings } from "../../../../src/services/settin
 import { getSyncCheckpoint, saveSyncCheckpoint } from "../../../../src/services/sync-checkpoints.service";
 import { getStoreConfigForDomain } from "../../../../src/services/store-configs.service";
 import { listConnectedShopifyDomains } from "../../../../src/services/store-connections.service";
+import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
 
-const MAX_DAYS_PER_TICK = Math.max(
-  1,
-  Math.min(Number(process.env.INVENTORY_ADJUSTMENTS_MAX_DAYS_PER_TICK || 30), 90)
-);
+const MAX_DAYS_PER_TICK = Math.max(1, Math.min(Number(process.env.INVENTORY_ADJUSTMENTS_MAX_DAYS_PER_TICK || 30), 90));
 
 const toIsoDate = (value: Date | number) => new Date(value).toISOString().slice(0, 10);
 const checkpointKey = (shopDomain: string) => `inventory_adjustments:${shopDomain}`;
@@ -136,6 +134,9 @@ export function startInventoryAdjustmentsWorker() {
   };
 
   const run = async () => {
+    // Interruptor de Super Admin. Se consulta en CADA pasada (no sólo al
+    // arrancar) para que encender o apagar surta efecto sin reiniciar.
+    if (!(await isWorkerEnabled("inventory-adjustments"))) return;
     if (running) return;
     running = true;
     try {

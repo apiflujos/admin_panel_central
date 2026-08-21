@@ -994,3 +994,38 @@ export async function deleteShopifyWebhooks(shopDomain: string): Promise<AdminWe
     body: JSON.stringify({ shopDomain }),
   });
 }
+
+export type WorkerSettingDto = {
+  key: string;
+  label: string;
+  group: "facturacion" | "sincronizacion" | "mantenimiento";
+  description: string;
+  impactIfOff: string;
+  writesToStore: boolean;
+  enabledByDefault: boolean;
+  enabled: boolean;
+  isDefault: boolean;
+  updatedAt: string | null;
+  updatedBy: string | null;
+};
+
+export async function fetchWorkerSettings(): Promise<WorkerSettingDto[]> {
+  const response = await apiFetch("/api/sa/workers", { method: "GET" });
+  if (!response.ok) throw new Error(`No se pudieron cargar los trabajos (${response.status}).`);
+  const data = (await response.json()) as { items?: WorkerSettingDto[] };
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+export async function setWorkerEnabledRemote(workerKey: string, enabled: boolean) {
+  const response = await apiFetch("/api/sa/workers/toggle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ workerKey, enabled }),
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    const message = detail && typeof detail.error === "string" ? detail.error : `error ${response.status}`;
+    throw new Error(`No se pudo cambiar el trabajo: ${message}`);
+  }
+  return (await response.json()) as { ok: true; key: string; enabled: boolean };
+}

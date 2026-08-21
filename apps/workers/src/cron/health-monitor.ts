@@ -1,5 +1,6 @@
 import { getPool } from "../../../../src/db";
 import { createSyncLog } from "../../../../src/services/logs.service";
+import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
 
 /**
  * Monitor de salud: cada N minutos calcula métricas clave (errores, cola de
@@ -49,11 +50,17 @@ export function startHealthMonitorWorker() {
   if (!(intervalMs > 0)) return;
 
   const run = async () => {
+    // Interruptor de Super Admin. Se consulta en CADA pasada (no sólo al
+    // arrancar) para que encender o apagar surta efecto sin reiniciar.
+    if (!(await isWorkerEnabled("health-monitor"))) return;
     let m: Metrics;
     try {
       m = await collect();
     } catch (error) {
-      console.error("[health-monitor] no se pudieron calcular métricas:", error instanceof Error ? error.message : error);
+      console.error(
+        "[health-monitor] no se pudieron calcular métricas:",
+        error instanceof Error ? error.message : error
+      );
       return;
     }
 
@@ -61,8 +68,10 @@ export function startHealthMonitorWorker() {
     if (m.fails_1h > THRESHOLDS.fails_1h) breaches.push(`fails_1h=${m.fails_1h} (>${THRESHOLDS.fails_1h})`);
     if (m.ordersSyncChurn_1h > THRESHOLDS.ordersSyncChurn_1h)
       breaches.push(`churn_1h=${m.ordersSyncChurn_1h} (>${THRESHOLDS.ordersSyncChurn_1h})`);
-    if (m.retryPending > THRESHOLDS.retryPending) breaches.push(`retry_pending=${m.retryPending} (>${THRESHOLDS.retryPending})`);
-    if (m.syncLogsRows > THRESHOLDS.syncLogsRows) breaches.push(`sync_logs_rows=${m.syncLogsRows} (>${THRESHOLDS.syncLogsRows})`);
+    if (m.retryPending > THRESHOLDS.retryPending)
+      breaches.push(`retry_pending=${m.retryPending} (>${THRESHOLDS.retryPending})`);
+    if (m.syncLogsRows > THRESHOLDS.syncLogsRows)
+      breaches.push(`sync_logs_rows=${m.syncLogsRows} (>${THRESHOLDS.syncLogsRows})`);
 
     console.log(
       `[health-monitor] fails_1h=${m.fails_1h} churn_1h=${m.ordersSyncChurn_1h} ` +

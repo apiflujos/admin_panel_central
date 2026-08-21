@@ -8,6 +8,7 @@ import {
   type WebhookDispatchJob,
 } from "../../../../src/services/webhook-queue";
 import { isPermanentIntegrationError } from "../../../../src/connectors/shopify-errors";
+import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
 
 /**
  * Consumidor de la cola de webhooks y red de seguridad de los rezagados.
@@ -19,10 +20,9 @@ import { isPermanentIntegrationError } from "../../../../src/connectors/shopify-
  */
 
 /** Cada cuánto barre el recolector en busca de filas `pending` sin despachar. */
-const REAPER_INTERVAL_MS = Math.max(
-  60_000,
-  Number(process.env.WEBHOOK_REAPER_INTERVAL_MS || 5 * 60_000)
-);
+/** Cada cuánto se relee el interruptor de Super Admin. */
+const WORKER_SWITCH_POLL_MS = 15_000;
+const REAPER_INTERVAL_MS = Math.max(60_000, Number(process.env.WEBHOOK_REAPER_INTERVAL_MS || 5 * 60_000));
 
 /**
  * Margen antes de considerar rezagada una fila. Evita pelear con un job que
@@ -100,9 +100,7 @@ export function startWebhookDispatchWorker() {
   try {
     redis = getRedis();
   } catch {
-    console.warn(
-      "[webhook-dispatch] sin REDIS_URL: los webhooks seguirán por retry_queue (camino de respaldo)."
-    );
+    console.warn("[webhook-dispatch] sin REDIS_URL: los webhooks seguirán por retry_queue (camino de respaldo).");
     return;
   }
 
@@ -116,7 +114,10 @@ export function startWebhookDispatchWorker() {
       const { webhookEventId, orgId, event } = job.data;
       return runWithOrg(orgId, () => processWebhookDispatchJob({ webhookEventId, event }));
     },
-    { connection: redis, concurrency }
+    // autorun:false para no consumir NADA antes de saber si el interruptor de
+    // Super Admin está encendido. Con autorun por omisión habría una ventana en
+    // la que el worker ya está tomando trabajos.
+    { connection: redis, concurrency, autorun: false }
   );
 
   worker.on("failed", (job, error) => {
@@ -143,10 +144,37 @@ export function startWebhookDispatchWorker() {
     console.error("[webhook-dispatch] error del worker:", error?.message || error);
   });
 
-  console.log(`[webhook-dispatch] worker iniciado (concurrencia=${concurrency}, cola=${WEBHOOK_QUEUE_NAME})`);
+  console.log(`[webhook-dispatch] worker listo (concurrencia=${concurrency}, cola=${WEBHOOK_QUEUE_NAME})`);
 
-  void reapStalledWebhookEvents();
+  // Interruptor de Super Admin. Apagado PAUSA el consumo en vez de descartar
+  // trabajos: los pedidos que entren mientras está apagado se quedan en la cola
+  // y se facturan al encenderlo. Descartarlos perdería facturas.
+  let arrancado = false;
+  const aplicarInterruptor = async () => {
+    const habilitado = await isWorkerEnabled("webhook-dispatch");
+    if (habilitado) {
+      if (!arrancado) {
+        arrancado = true;
+        void worker.run();
+      } else if (worker.isPaused()) {
+        worker.resume();
+      }
+      return;
+    }
+    if (arrancado && !worker.isPaused()) await worker.pause();
+  };
+
+  void aplicarInterruptor();
   setInterval(() => {
-    void reapStalledWebhookEvents();
+    void aplicarInterruptor();
+  }, WORKER_SWITCH_POLL_MS);
+
+  const barrerAtascados = async () => {
+    if (!(await isWorkerEnabled("webhook-dispatch"))) return;
+    await reapStalledWebhookEvents();
+  };
+  void barrerAtascados();
+  setInterval(() => {
+    void barrerAtascados();
   }, REAPER_INTERVAL_MS);
 }

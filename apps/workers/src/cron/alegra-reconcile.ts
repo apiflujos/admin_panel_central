@@ -2,6 +2,7 @@ import { getOrgId, getPool } from "../../../../src/db";
 import { resolveAlegraClientForStore } from "../../../../src/services/alegra-product-import.service";
 import { createSyncLog } from "../../../../src/services/logs.service";
 import { withEachOrganization } from "../../../../src/services/organizations.service";
+import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
 
 /**
  * Fase 2/3 — Reconciliación de facturas con Alegra (read-only, no muta).
@@ -93,6 +94,9 @@ export function startAlegraReconcileWorker() {
   if (!(intervalMs > 0)) return;
 
   const run = async () => {
+    // Interruptor de Super Admin. Se consulta en CADA pasada (no sólo al
+    // arrancar) para que encender o apagar surta efecto sin reiniciar.
+    if (!(await isWorkerEnabled("alegra-reconcile"))) return;
     try {
       await withEachOrganization(reconcileOrg);
     } catch (error) {

@@ -1,6 +1,7 @@
 import { getSettings } from "./settings.service";
 import { decryptString } from "../utils/crypto";
 import { getOrgId, getPool } from "../db";
+import { normalizeOutOfStockBehavior } from "../../packages/shared/src/inventory";
 
 const normalizeShopDomain = (value: string) =>
   value
@@ -321,6 +322,8 @@ export async function listStoreConfigs() {
           includeImages: normalizeBoolean((rules as Record<string, unknown>).includeImages, true),
           trackInventory: normalizeBoolean((rules as Record<string, unknown>).trackInventory, true),
           allowOversell: normalizeBoolean((rules as Record<string, unknown>).allowOversell, false),
+          // Qué hacer al quedarse sin unidades. Por omisión, AGOTADO.
+          outOfStockBehavior: normalizeOutOfStockBehavior((rules as Record<string, unknown>).outOfStockBehavior),
           onlyActiveItems: normalizeBoolean(
             (rules as Record<string, unknown>).onlyActiveItems,
             Boolean((defaults.rules as Record<string, unknown>)?.onlyActiveItems)

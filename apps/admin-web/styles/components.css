@@ -1807,3 +1807,56 @@
   box-shadow: none;
   background: transparent;
 }
+
+/* Vista de trabajos automáticos (Super Admin → Trabajos).
+   Reutiliza la fila de `.cron-reference-row` y sólo añade lo propio: la
+   descripción en dos líneas y el par de botones a la derecha. */
+.worker-group-title {
+  margin: 0;
+  font-size: 14px;
+}
+
+.worker-group-description {
+  margin: 2px 0 0;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.worker-row {
+  align-items: flex-start;
+}
+
+.worker-main {
+  gap: 4px;
+  flex: 1 1 320px;
+}
+
+.worker-description {
+  margin: 0;
+  font-size: 12px;
+}
+
+.worker-impact {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.worker-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.worker-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  border: 1px solid var(--warning, #d97706);
+  border-radius: 6px;
+  color: var(--warning, #d97706);
+}
