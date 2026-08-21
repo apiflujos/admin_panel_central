@@ -133,6 +133,8 @@ import {
   saListTenantsHandler,
   saResetCountersHandler,
   saSetTenantModuleHandler,
+  saListWorkersHandler,
+  saSetWorkerHandler,
   saTenantSummaryHandler,
   saUpsertPlanLimitHandler,
   saUpsertServiceHandler,
@@ -206,6 +208,11 @@ router.get("/sa/tenant/plan", requireSuperAdmin, wrap(saGetTenantPlanSnapshotHan
 router.get("/sa/plan/limits", requireSuperAdmin, wrap(saGetPlanLimitsHandler));
 router.post("/sa/plan/limits", requireSuperAdmin, wrap(saUpsertPlanLimitHandler));
 router.post("/sa/modules/toggle", requireSuperAdmin, wrap(saSetTenantModuleHandler));
+// Interruptores de los trabajos automáticos. Van AQUÍ y no en apps/admin-web/app/api:
+// server.ts sólo enruta /api/session y /api/admin-web hacia Next; todo lo demás
+// bajo /api lo atiende este router, así que una ruta de Next nunca se alcanzaría.
+router.get("/sa/workers", requireSuperAdmin, wrap(saListWorkersHandler));
+router.post("/sa/workers/toggle", requireSuperAdmin, wrap(saSetWorkerHandler));
 router.post("/sa/plans/assign", requireSuperAdmin, wrap(saAssignPlanHandler));
 router.get("/sa/usage", requireSuperAdmin, wrap(saTenantSummaryHandler));
 router.post("/sa/reset", requireSuperAdmin, wrap(saResetCountersHandler));
@@ -310,4 +317,3 @@ router.get("/operations/:orderId/einvoice", wrap(getEinvoiceOverrideHandler));
 router.put("/operations/:orderId/einvoice", wrap(saveEinvoiceOverrideHandler));
 router.post("/operations/:orderId/payment", wrap(emitPaymentHandler));
 router.post("/operations/:orderId/cancel", wrap(voidInvoiceHandler));
-

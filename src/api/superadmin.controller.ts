@@ -43,6 +43,8 @@ export async function saExecuteSqlHandler(req: Request, res: Response) {
 }
 import { assignTenantPlan, buildTenantPlanSnapshot } from "../sa/sa.repository";
 import { getTenantMonthlySummary, listModules, resetTenantCounters, setTenantModule } from "../sa/sa.admin.service";
+import { WORKER_KEYS } from "../../packages/shared/src/workers";
+import { listWorkerSettings, setWorkerEnabled } from "../services/worker-settings.service";
 
 const TenantId = z.number().int().positive();
 const PeriodKey = z.string().regex(/^\d{4}-\d{2}$/);
@@ -98,6 +100,28 @@ export async function saListTenantsHandler(_req: Request, res: Response) {
 export async function saListModulesHandler(_req: Request, res: Response) {
   const items = await listModules();
   res.status(200).json({ items });
+}
+
+export async function saListWorkersHandler(_req: Request, res: Response) {
+  const items = await listWorkerSettings();
+  res.status(200).json({ items });
+}
+
+export async function saSetWorkerHandler(req: Request, res: Response) {
+  const schema = z.object({
+    // z.enum sobre el catálogo: una clave inventada se rechaza aquí.
+    workerKey: z.enum(WORKER_KEYS),
+    enabled: z.boolean(),
+  });
+  try {
+    const body = schema.parse(req.body || {});
+    // Queda registrado QUIÉN lo encendió o apagó.
+    const actor = (req as { user?: { email?: string } }).user?.email || null;
+    const result = await setWorkerEnabled(body.workerKey, body.enabled, actor);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : "invalid_request" });
+  }
 }
 
 export async function saListServicesHandler(_req: Request, res: Response) {
