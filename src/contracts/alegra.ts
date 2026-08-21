@@ -47,6 +47,10 @@ export const alegraContactPayloadSchema = z
       .strict()
       .optional(),
     identification: z.string().optional(),
+    // Tipo de persona. Alegra CO responde 2032 ("El tipo de persona es
+    // obligatorio") si falta al mandar identificación.
+    // https://developer.alegra.com/reference/post_contacts
+    kindOfPerson: z.enum(["LEGAL_ENTITY", "PERSON_ENTITY", "OTHER_ENTITY"]).optional(),
     email: z.string().email().optional(),
     phonePrimary: z.string().optional(),
     address: alegraAddressSchema.optional(),
@@ -106,9 +110,7 @@ export const alegraPaymentPayloadSchema = z
     amount: z.number().positive(),
     // En /payments el método va en MINÚSCULA (distinto de la factura).
     paymentMethod: z.enum(["transfer", "cash", "deposit", "check", "credit-card", "debit-card"]),
-    invoices: z
-      .array(z.object({ id: z.number(), amount: z.number().positive() }).strict())
-      .min(1),
+    invoices: z.array(z.object({ id: z.number(), amount: z.number().positive() }).strict()).min(1),
     observations: z.string().optional(),
     // Alegra solo acepta "in" (ingreso) u "out" (egreso).
     type: z.enum(["in", "out"]),
@@ -121,10 +123,7 @@ export type AlegraPaymentPayload = z.infer<typeof alegraPaymentPayloadSchema>;
  * (vacía si todo bien) para registrarlos como advertencia antes de llamar a
  * Alegra. No bloquea el flujo (defensa en profundidad, no puerta dura).
  */
-export function validateAlegraPayload(
-  schema: z.ZodTypeAny,
-  payload: unknown
-): string[] {
+export function validateAlegraPayload(schema: z.ZodTypeAny, payload: unknown): string[] {
   const parsed = schema.safeParse(payload);
   if (parsed.success) return [];
   return parsed.error.issues.map((i) => `${i.path.join(".") || "(raíz)"}: ${i.message}`);

@@ -95,6 +95,23 @@ type ForceSyncOptions = {
  * Regla: en una actualización, o va completa (calle + ciudad + departamento) o
  * no va. En una creación no hay nada que destruir, así que la calle sola sirve.
  */
+/**
+ * Tipo de persona que exige Alegra Colombia (`kindOfPerson`).
+ *
+ * Se deduce del tipo de identificación: un NIT es una empresa; una cédula,
+ * una tarjeta de identidad o un pasaporte son una persona natural.
+ *
+ * Ante la duda se responde PERSON_ENTITY, que es el caso de la inmensa mayoría
+ * de los pedidos de una tienda al consumidor.
+ */
+export function resolveKindOfPerson(identificationType: string | null | undefined): "LEGAL_ENTITY" | "PERSON_ENTITY" {
+  return String(identificationType || "")
+    .trim()
+    .toUpperCase() === "NIT"
+    ? "LEGAL_ENTITY"
+    : "PERSON_ENTITY";
+}
+
 export function buildAlegraAddress(
   contact: {
     address?: string | null;
@@ -302,9 +319,7 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
   // Contact matching: primero por mapping (customerId → alegraContactId), luego email como fallback.
   // Evita colapsar clientes distintos que comparten email (ej: guest checkouts con mismo correo).
   const customerId = payload.customer?.id ? String(payload.customer.id) : "";
-  const contactMappingRow = customerId
-    ? await getMappingByShopifyId("contact", customerId)
-    : undefined;
+  const contactMappingRow = customerId ? await getMappingByShopifyId("contact", customerId) : undefined;
   let existing: Array<{ id: string | number }> = [];
   if (contactMappingRow?.alegraId) {
     existing = [{ id: contactMappingRow.alegraId }];
@@ -353,6 +368,11 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
     ...(identification
       ? {
           identificationObject: { type: identificationType, number: identification },
+          // Alegra Colombia exige el tipo de persona y responde 2032 ("El tipo
+          // de persona es obligatorio") si falta. Nunca se enviaba.
+          // Valores admitidos: LEGAL_ENTITY | PERSON_ENTITY | OTHER_ENTITY.
+          // https://developer.alegra.com/reference/post_contacts
+          kindOfPerson: resolveKindOfPerson(identificationType),
         }
       : {}),
     ...(rawContact.email ? { email: rawContact.email } : {}),
@@ -648,11 +668,7 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
     "pending",
     "authorized",
   ]);
-  if (
-    invoiceId &&
-    invoiceSettings.applyPayment &&
-    paymentSkipStatuses.has(financialStatus)
-  ) {
+  if (invoiceId && invoiceSettings.applyPayment && paymentSkipStatuses.has(financialStatus)) {
     await createSyncLog({
       entity: "order",
       direction: "shopify->alegra",
@@ -837,7 +853,18 @@ export function mapShopifyToAlegraContact(
     phonePrimary: (einvoiceActive ? override?.phone : payload.customer?.phone) || undefined,
     address: (einvoiceActive ? override?.address : address?.address1) || undefined,
     city: (einvoiceActive ? override?.city : address?.city) || undefined,
-    department: einvoiceActive ? override?.state : undefined,
+    // El departamento sale de `province` del pedido cuando no hay override.
+    //
+    // Antes esta línea era `einvoiceActive ? override?.state : undefined`, así
+    // que sin override de facturación electrónica —y no hay ninguno cargado— el
+    // departamento viajaba SIEMPRE vacío. Alegra rechazaba el contacto con
+    // 2112 "El departamento es inválido" aunque el pedido traía el dato bueno.
+    //
+    // Alegra espera el NOMBRE del departamento, no un código: el ejemplo de su
+    // propia documentación es `city: "Acacías", department: "Meta"`, que es
+    // literalmente uno de los pedidos que fallaban aquí.
+    // https://developer.alegra.com/reference/post_contacts
+    department: (einvoiceActive ? override?.state : address?.province) || undefined,
     country: einvoiceActive ? override?.country : undefined,
     postalCode: einvoiceActive ? override?.zip : undefined,
   };
@@ -888,8 +915,7 @@ export function mapShopifyToAlegraContact(
 // error incluye el contactId existente; se extrae para reutilizarlo en vez de
 // duplicar el contacto.
 function extractDuplicateContactId(error: unknown): string | null {
-  const raw =
-    (error as { detail?: string })?.detail || (error as { message?: string })?.message || "";
+  const raw = (error as { detail?: string })?.detail || (error as { message?: string })?.message || "";
   if (!raw.includes("2006")) return null;
   const start = raw.indexOf("{");
   if (start >= 0) {
@@ -997,9 +1023,7 @@ export function buildInvoicePayload(
   // Fecha de la factura = fecha real del pedido (processed_at/created_at), no
   // "hoy". Alegra exige date y dueDate (yyyy-MM-dd).
   const orderDateRaw =
-    (payload as { processed_at?: unknown }).processed_at ||
-    (payload as { created_at?: unknown }).created_at ||
-    null;
+    (payload as { processed_at?: unknown }).processed_at || (payload as { created_at?: unknown }).created_at || null;
   const invoiceDate = orderDateRaw ? String(orderDateRaw).slice(0, 10) : today;
 
   // Forma de pago (Colombia, OBLIGATORIA en este Alegra):
@@ -1052,11 +1076,7 @@ export function buildInvoicePayload(
     // apps de descuento por cantidad NO lo llenan), se usa el precio full y el
     // descuento se manda aparte como porcentaje (ver `discount`).
     const usedGrossPrice = !item.discounted_price;
-    const priceIncl = item.discounted_price
-      ? Number(item.discounted_price)
-      : item.price
-        ? Number(item.price)
-        : 0;
+    const priceIncl = item.discounted_price ? Number(item.discounted_price) : item.price ? Number(item.price) : 0;
     const rate = resolved?.taxRate || 0;
     const basePrice = taxesIncluded && rate > 0 ? Number((priceIncl / (1 + rate)).toFixed(2)) : priceIncl;
     const lineTax = resolved?.taxId ? [{ id: Number(resolved.taxId) }] : globalTaxes;
@@ -1073,9 +1093,7 @@ export function buildInvoicePayload(
       : 0;
     const lineGross = priceIncl * quantity;
     const discountPct =
-      lineGross > 0 && lineDiscountAmount > 0
-        ? Number(((lineDiscountAmount / lineGross) * 100).toFixed(4))
-        : 0;
+      lineGross > 0 && lineDiscountAmount > 0 ? Number(((lineDiscountAmount / lineGross) * 100).toFixed(4)) : 0;
     return {
       ...(resolved?.alegraItemId ? { id: Number(resolved.alegraItemId) } : {}),
       name: item.title || item.sku || "Item",
@@ -1112,7 +1130,10 @@ export function buildInvoicePayload(
     // (pasarela/etiquetas: Sistecredito, Crédito Mayorista, crediplatam, etc.).
     ...(orderName || paymentMedium
       ? {
-          anotation: [orderName ? `Pedido Shopify ${orderName}` : "", paymentMedium ? `Medio de pago: ${paymentMedium}` : ""]
+          anotation: [
+            orderName ? `Pedido Shopify ${orderName}` : "",
+            paymentMedium ? `Medio de pago: ${paymentMedium}` : "",
+          ]
             .filter(Boolean)
             .join(" · "),
         }
