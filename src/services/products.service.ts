@@ -67,8 +67,7 @@ function recordCollision(shopDomain: string, kind: "crossKey" | "ownedElsewhere"
     console.warn(
       `[products.upsertProduct] ${shopDomain}: ${
         kind === "crossKey" ? "cross-key collision" : "identificador de Shopify ya asignado a otra fila"
-      } — ${detail}. Se conservan los valores existentes.` +
-        " Las siguientes se agrupan en un resumen cada 5 minutos."
+      } — ${detail}. Se conservan los valores existentes.` + " Las siguientes se agrupan en un resumen cada 5 minutos."
     );
     return;
   }
@@ -174,9 +173,7 @@ export async function upsertProduct(input: ProductInput, options?: { mode?: "ups
         ? null // preserva el existente
         : alegraId;
     let safeShopifyId =
-      shopifyId && existingShopifyId && String(existingShopifyId) !== String(shopifyId)
-        ? null
-        : shopifyId;
+      shopifyId && existingShopifyId && String(existingShopifyId) !== String(shopifyId) ? null : shopifyId;
 
     // El safeguard de arriba sólo mira la fila que vamos a actualizar. Falta el
     // caso en que ESA fila no tiene shopify_product_id y el entrante ya pertenece
@@ -447,9 +444,7 @@ export async function listProducts(options: {
   }
   if (options.query) {
     const q = `%${options.query}%`;
-    where.push(
-      `(products.name ILIKE $${idx} OR products.reference ILIKE $${idx} OR products.sku ILIKE $${idx})`
-    );
+    where.push(`(products.name ILIKE $${idx} OR products.reference ILIKE $${idx} OR products.sku ILIKE $${idx})`);
     params.push(q);
     idx += 1;
   }
@@ -538,16 +533,9 @@ export async function listProducts(options: {
            products.source,
            products.source_updated_at,
            products.updated_at,
-           (
-             SELECT array_agg(DISTINCT ss.store_name ORDER BY ss.store_name)
-             FROM products p2
-             LEFT JOIN shopify_stores ss
-               ON ss.organization_id = p2.organization_id AND ss.store_id = p2.store_id
-             WHERE p2.organization_id = products.organization_id
-               AND COALESCE(p2.alegra_item_id, p2.shopify_product_id, p2.id::text)
-                 = COALESCE(products.alegra_item_id, products.shopify_product_id, products.id::text)
-               AND ss.store_name IS NOT NULL
-           ) AS stores
+           -- La clave del producto viaja en la fila para resolver las tiendas
+           -- DESPUES, solo para la pagina devuelta. Ver mas abajo.
+           COALESCE(products.alegra_item_id, products.shopify_product_id, products.id::text) AS clave_producto
       FROM products
       LEFT JOIN alegra_items_cache
         ON alegra_items_cache.organization_id = products.organization_id
@@ -570,8 +558,50 @@ export async function listProducts(options: {
     [...params, limit, offset]
   );
 
+  // `stores` (las tiendas donde está publicado) se resuelve APARTE, y sólo para
+  // las filas de esta página.
+  //
+  // Antes era un subselect correlacionado dentro de la consulta grande, así que
+  // se evaluaba una vez POR CADA FILA del catálogo —6.823 veces— y el LIMIT se
+  // aplicaba al final. Medido en producción: 10.664 ms con el subselect, 10 ms
+  // sin él. Era la causa de que Inicio y Productos tardaran diez segundos.
+  const claves = items.rows
+    .map((row) => (row as { clave_producto?: string | null }).clave_producto)
+    .filter((clave): clave is string => Boolean(clave));
+
+  const storesPorClave = new Map<string, string[]>();
+  if (claves.length) {
+    const storesResult = await pool.query<{ clave: string; stores: string[] | null }>(
+      `
+      SELECT COALESCE(p2.alegra_item_id, p2.shopify_product_id, p2.id::text) AS clave,
+             array_agg(DISTINCT ss.store_name ORDER BY ss.store_name)
+               FILTER (WHERE ss.store_name IS NOT NULL) AS stores
+      FROM products p2
+      LEFT JOIN shopify_stores ss
+        ON ss.organization_id = p2.organization_id AND ss.store_id = p2.store_id
+      WHERE p2.organization_id = $1
+        AND COALESCE(p2.alegra_item_id, p2.shopify_product_id, p2.id::text) = ANY($2::text[])
+      GROUP BY 1
+      `,
+      [orgId, claves]
+    );
+    for (const row of storesResult.rows) {
+      if (row.stores?.length) storesPorClave.set(row.clave, row.stores);
+    }
+  }
+
+  // Se conserva el tipo de fila que ya devolvía la consulta: sólo se cambia
+  // `clave_producto` (interna) por `stores`, que es lo que la UI pinta.
+  const rows: typeof items.rows = items.rows.map((row) => {
+    const copia = { ...(row as Record<string, unknown>) };
+    const clave = copia.clave_producto;
+    delete copia.clave_producto;
+    copia.stores = typeof clave === "string" ? (storesPorClave.get(clave) ?? null) : null;
+    return copia;
+  });
+
   return {
-    items: items.rows,
+    items: rows,
     total: Number(countResult.rows[0]?.total || 0),
     limit,
     offset,
@@ -607,10 +637,7 @@ export async function dedupeAlegraProducts(options?: { apply?: boolean }) {
           AND (q.shopify_product_id IS NOT NULL OR q.id < p.id)
       )
   `;
-  const countRes = await pool.query<{ n: string }>(
-    `SELECT count(*)::text AS n FROM (${selectDupes}) t`,
-    [orgId]
-  );
+  const countRes = await pool.query<{ n: string }>(`SELECT count(*)::text AS n FROM (${selectDupes}) t`, [orgId]);
   const duplicates = Number(countRes.rows[0]?.n || 0);
   if (!options?.apply) {
     return { dryRun: true, duplicates, deleted: 0 };
