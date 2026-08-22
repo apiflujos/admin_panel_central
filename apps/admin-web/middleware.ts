@@ -21,8 +21,13 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Protect everything except auth pages, API routes, Next.js static assets
-    // and the favicon.
-    "/((?!auth/|api/|_next/static|_next/image|favicon).*)",
+    // Protege todo MENOS las páginas de auth, las rutas de API, los estáticos
+    // de Next y los ARCHIVOS DE MARCA.
+    //
+    // `assets/`, `icon.svg` y los iconos faltaban en esta lista: el navegador
+    // pedía el logo desde la pantalla de login —donde todavía no hay sesión—
+    // y recibía un 307 al propio login. Resultado: en el login no se veía ni
+    // el logo ni la mascota. Un archivo estático nunca debe exigir sesión.
+    "/((?!auth/|api/|assets/|_next/static|_next/image|favicon|icon\\.svg|apple-touch-icon).*)",
   ],
 };
