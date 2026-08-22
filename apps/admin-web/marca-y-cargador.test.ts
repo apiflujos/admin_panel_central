@@ -27,13 +27,14 @@ describe("la marca es la OFICIAL, no una reconstrucción", () => {
   });
 
   it("el login muestra el logo completo de ApiFlujos", () => {
-    expect(LOGIN).toContain('<BrandLogo variant="full"');
+    // Sin depender del formato: prettier parte el JSX en varias líneas.
+    expect(LOGIN).toMatch(/<BrandLogo[\s\S]{0,120}?variant="full"/);
     expect(LOGIN).not.toContain("/assets/logo.png");
   });
 
   it("la palabra no se repite: cabecera con isotipo, lateral con logo completo", () => {
-    expect(SHELL).toContain('<BrandLogo variant="full"');
-    expect(SHELL).toContain('<BrandLogo variant="mark"');
+    expect(SHELL).toMatch(/<BrandLogo[\s\S]{0,120}?variant="full"/);
+    expect(SHELL).toMatch(/<BrandLogo[\s\S]{0,120}?variant="mark"/);
   });
 
   it("los iconos declarados existen de verdad", () => {
