@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { describe, expect, it } from "vitest";
 
 import { WEBHOOK_QUEUE_NAME, webhookJobId } from "./webhook-queue";
@@ -31,7 +33,7 @@ describe("identificador de trabajo de la cola de webhooks", () => {
 
   it("el jobId se construye SIEMPRE con el ayudante, nunca a mano", () => {
     // Si alguien vuelve a interpolar la plantilla directamente, se pierde el freno.
-    const fuente = require("fs").readFileSync(__dirname + "/webhook-queue.ts", "utf8");
+    const fuente = fs.readFileSync(path.join(__dirname, "webhook-queue.ts"), "utf8");
     expect(fuente).not.toMatch(/jobId:\s*`webhook:/);
     expect(fuente).toContain("jobId: webhookJobId(");
   });
