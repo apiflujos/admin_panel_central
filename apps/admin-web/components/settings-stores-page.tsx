@@ -8,6 +8,7 @@ import type { ConnectionsWorkspace, WorkspaceStore } from "../lib/connections-wo
 import { createStore, deleteStore } from "../lib/api";
 import { PageHeader } from "./ui/page-header";
 import { ProviderMark } from "./ui/provider-mark";
+import { StoreSourceOfTruthPanel } from "./store-source-of-truth-panel";
 
 export function SettingsStoresPage({ workspace }: { workspace: ConnectionsWorkspace }) {
   const router = useRouter();
@@ -104,16 +105,16 @@ export function SettingsStoresPage({ workspace }: { workspace: ConnectionsWorksp
               <div className="connection-card-head">
                 <div>
                   <h3>{store.name}</h3>
-                  <p>#{store.id} · {store.createdAt}</p>
+                  <p>
+                    #{store.id} · {store.createdAt}
+                  </p>
                 </div>
               </div>
               <div className="provider-mark-row compact-provider-row">
                 {store.providers.shopify ? <ProviderMark provider="Shopify" /> : null}
                 {store.providers.alegra ? <ProviderMark provider="Alegra" /> : null}
                 {store.providers.woocommerce ? <ProviderMark provider="WooCommerce" /> : null}
-                {!hasProviders ? (
-                  <span className="connection-inline-note">Sin proveedores conectados.</span>
-                ) : null}
+                {!hasProviders ? <span className="connection-inline-note">Sin proveedores conectados.</span> : null}
               </div>
               <div className="connection-card-actions">
                 <a className="btn primary btn-compact" href={`/settings/connections?storeId=${store.id}`}>
@@ -132,6 +133,8 @@ export function SettingsStoresPage({ workspace }: { workspace: ConnectionsWorksp
           );
         })}
       </section>
+
+      <StoreSourceOfTruthPanel workspace={workspace} />
     </section>
   );
 }

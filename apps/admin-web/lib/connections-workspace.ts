@@ -1,4 +1,5 @@
 import type { ConnectionStatusDto } from "../../../packages/shared/src/admin-web";
+import type { SourceOfTruth } from "../../../packages/shared/src/source-of-truth";
 
 export type WorkspaceStore = {
   id: number;
@@ -36,6 +37,14 @@ export type CriticalStoreConfig = {
   storeId: number;
   storeName: string;
   shopDomain?: string;
+  /**
+   * Quién manda sobre cada área en esta tienda.
+   *
+   * Opcional en el tipo a propósito: varios sitios construyen esta forma sin
+   * él. Quien lo lea debe pasarlo por `normalizeSourceOfTruth`, que ante la
+   * ausencia devuelve "Alegra manda", el valor conservador.
+   */
+  sourceOfTruth?: SourceOfTruth;
   priceLists: {
     generalId: string;
     discountId: string;

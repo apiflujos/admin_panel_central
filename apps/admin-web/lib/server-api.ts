@@ -20,6 +20,7 @@ import type {
 import { getSessionUser } from "../../../src/services/auth.service";
 import type { OrderInvoiceOverride } from "../../../src/services/order-invoice-overrides.service";
 import type { ConnectionsWorkspace } from "./connections-workspace";
+import { normalizeSourceOfTruth } from "../../../packages/shared/src/source-of-truth";
 
 async function countEnabledModules() {
   const [{ getOrgId, getPool }] = await Promise.all([import("../../../src/db")]);
@@ -324,6 +325,9 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
       storeId: config.storeId,
       storeName: config.storeName,
       shopDomain: config.shopDomain,
+      // Este mapeo es una LISTA BLANCA: lo que no se nombre aquí no llega a la
+      // interfaz, por más que esté guardado.
+      sourceOfTruth: normalizeSourceOfTruth((config as { sourceOfTruth?: unknown }).sourceOfTruth),
       priceLists: {
         generalId: config.priceLists.generalId,
         discountId: config.priceLists.discountId,

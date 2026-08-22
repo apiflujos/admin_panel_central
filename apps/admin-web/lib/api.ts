@@ -329,7 +329,10 @@ export async function getSuperAdminOverview(): Promise<AdminWebSuperAdminOvervie
 
 export async function saveStoreConfig(
   storeKey: string,
-  payload: Pick<CriticalStoreConfig, "priceLists" | "transfers" | "rules" | "invoice" | "sync"> & {
+  // PARCIAL a propósito: el servidor fusiona con lo que ya hay, así que un
+  // panel puede guardar sólo su bloque sin arrastrar el resto de la config.
+  payload: Partial<Pick<CriticalStoreConfig, "priceLists" | "transfers" | "rules" | "invoice" | "sync">> & {
+    sourceOfTruth?: CriticalStoreConfig["sourceOfTruth"];
     storeId?: number;
     shopDomain?: string;
   }
