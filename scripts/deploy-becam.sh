@@ -318,7 +318,18 @@ ensure_env() {
 # Deploy
 # ---------------------------------------------------------------------------
 do_deploy() {
+  # Todo el despliegue queda registrado en un archivo, con marca de tiempo.
+  #
+  # Sin esto, un fallo a mitad sólo existe en el terminal de quien lo lanzó:
+  # si cierra la ventana, el mensaje se pierde y hay que adivinar. Ahora
+  # siempre se puede leer qué pasó y en qué paso.
+  local registro="/srv/apiflujos/becam/deploy-$(date +%Y%m%d-%H%M%S).log"
+  mkdir -p "$(dirname "$registro")" 2>/dev/null || true
+  exec > >(tee -a "$registro") 2>&1
+  trap 'echo ""; err "DESPLIEGUE INTERRUMPIDO. El detalle completo está en: $registro"' ERR
+
   log "Deploy ${APP_NAME}"
+  log "Registro de esta ejecución: $registro"
 
   load_deploy_config
 
@@ -398,6 +409,7 @@ do_deploy() {
   pm2 save || true
 
   ok "Deploy completado"
+  log "Registro: $registro"
 
   log "Esperando 10 segundos a que los servicios arranquen..."
   sleep 10
