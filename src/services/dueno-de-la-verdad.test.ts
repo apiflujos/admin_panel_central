@@ -89,3 +89,22 @@ describe("un pedido que no se puede facturar no se intenta", () => {
     expect(sql).toContain("CREATE INDEX IF NOT EXISTS");
   });
 });
+
+describe("la elección se puede guardar", () => {
+  const GUARDADO = fs.readFileSync(path.join(__dirname, "store-configs.service.ts"), "utf8");
+
+  it("saveStoreConfig acepta y persiste sourceOfTruth", () => {
+    // `configJson` es una LISTA BLANCA: lo que no se nombre aquí se descarta
+    // en silencio y la elección del cliente no se guarda nunca.
+    expect(GUARDADO).toContain("payload.sourceOfTruth");
+    expect(GUARDADO).toMatch(/const configJson = \{[^}]*sourceOfTruth,/s);
+  });
+
+  it("se normaliza al guardar: un valor inválido no llega a la base", () => {
+    expect(GUARDADO).toContain("normalizeSourceOfTruth({ ...existingSourceOfTruth");
+  });
+
+  it("lo que no venga en el payload conserva lo que ya había", () => {
+    expect(GUARDADO).toContain("...existingSourceOfTruth");
+  });
+});

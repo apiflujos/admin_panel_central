@@ -654,6 +654,7 @@ export async function saveStoreConfig(storeKey: string, payload: Record<string, 
   const payloadRules = (payload.rules as Record<string, unknown>) || undefined;
   const payloadInvoice = (payload.invoice as Record<string, unknown>) || undefined;
   const payloadSync = (payload.sync as Record<string, unknown>) || undefined;
+  const payloadSourceOfTruth = (payload.sourceOfTruth as Record<string, unknown>) || undefined;
 
   const existing = await pool.query<{
     id: number;
@@ -699,6 +700,10 @@ export async function saveStoreConfig(storeKey: string, payload: Record<string, 
   const existingRules = ((existingConfig.rules as Record<string, unknown>) || {}) as Record<string, unknown>;
   const existingInvoice = ((existingConfig.invoice as Record<string, unknown>) || {}) as Record<string, unknown>;
   const existingSync = ((existingConfig.sync as Record<string, unknown>) || {}) as Record<string, unknown>;
+  const existingSourceOfTruth = ((existingConfig.sourceOfTruth as Record<string, unknown>) || {}) as Record<
+    string,
+    unknown
+  >;
 
   const transfers = payloadTransfers ? { ...existingTransfers, ...payloadTransfers } : existingTransfers;
   const priceLists = payloadPriceLists ? { ...existingPriceLists, ...payloadPriceLists } : existingPriceLists;
@@ -723,12 +728,18 @@ export async function saveStoreConfig(storeKey: string, payload: Record<string, 
       }
     : existingSync;
 
+  // Quién manda sobre cada área. Se NORMALIZA al guardar: un valor inválido no
+  // llega a la base, y lo que no venga en el payload conserva lo que había.
+  // Sin esta línea la elección se perdía: `configJson` es una lista blanca.
+  const sourceOfTruth = normalizeSourceOfTruth({ ...existingSourceOfTruth, ...(payloadSourceOfTruth || {}) });
+
   const configJson = {
     transfers,
     priceLists,
     rules,
     invoice,
     sync,
+    sourceOfTruth,
   };
 
   const originIds = normalizeIdList(transfers.originWarehouseIds as string[]);
