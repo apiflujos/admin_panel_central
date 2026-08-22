@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { BrandLogo } from "./ui/brand-logo";
+import { ApiFlujosBlockingLoader } from "./ui/apiflujos-loader";
 
 export function LoginPage({ hasError = false }: { hasError?: boolean }) {
   const [loading, setLoading] = useState(false);
@@ -51,9 +53,10 @@ export function LoginPage({ hasError = false }: { hasError?: boolean }) {
 
   return (
     <section className="auth-layout">
+      {loading ? <ApiFlujosBlockingLoader label="Entrando…" hint="Verificando tus credenciales." /> : null}
       <div className="auth-card card">
         <div className="auth-brand-row">
-          <img className="auth-brand-logo" src="/assets/logo.png" alt="ApiFlujos" />
+          <BrandLogo size={52} className="auth-brand-lockup" />
           <img className="auth-brand-avatar" src="/assets/avatar.png" alt="" aria-hidden="true" />
         </div>
 

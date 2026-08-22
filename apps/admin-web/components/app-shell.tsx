@@ -6,6 +6,7 @@ import { AppShellTitle } from "./app-shell-title";
 import { getServerCompanyBrand } from "../lib/server-api";
 import type { AuthSessionDto } from "../../../packages/shared/src/admin-web";
 import { LogoutButton } from "./logout-button";
+import { BrandLogo } from "./ui/brand-logo";
 
 function renderSection(section: "operacion" | "sistema") {
   return section === "operacion" ? "Operación" : null;
@@ -21,7 +22,7 @@ function getBrandInitials(name: string) {
   return parts.map((part) => part[0]?.toUpperCase() || "").join("") || "AF";
 }
 
-const APIFLUJOS_LOGO_SRC = "/assets/logo.png";
+// La mascota se conserva para el avatar de usuario; la marca pasa a SVG.
 const APIFLUJOS_AVATAR_SRC = "/assets/avatar.png";
 
 /**
@@ -54,11 +55,7 @@ export async function AppShell({ children, session }: { children: ReactNode; ses
       <aside className="sidebar" aria-label="Navegación principal">
         <div className="sidebarShell">
           <div className="sidebarBrandMeta">
-            <img className="sidebarBrandLogo" src={APIFLUJOS_AVATAR_SRC} alt="ApiFlujos" />
-            <div className="sidebarBrandText">
-              <strong>ApiFlujos</strong>
-              <span>Admin Central</span>
-            </div>
+            <BrandLogo size={30} subtitle="Admin Central" />
           </div>
 
           {hasDistinctClientBrand ? (
@@ -97,11 +94,7 @@ export async function AppShell({ children, session }: { children: ReactNode; ses
               ‹
             </div>
             <div className="topbarBrand">
-              <img className="topbarBrandLogo" src={APIFLUJOS_LOGO_SRC} alt="ApiFlujos" />
-              <div className="topbarBrandText">
-                <strong>ApiFlujos</strong>
-                <span>{hasDistinctClientBrand ? brand.companyName : "Admin Central"}</span>
-              </div>
+              <BrandLogo size={26} subtitle={hasDistinctClientBrand ? brand.companyName : "Admin Central"} />
             </div>
           </div>
           <div className="topbarTitleCentered">

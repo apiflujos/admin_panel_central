@@ -1860,3 +1860,178 @@
   border-radius: 6px;
   color: var(--warning, #d97706);
 }
+
+/* ─── Marca ApiFlujos ──────────────────────────────────────────────────────
+   El isotipo es SVG; la palabra se compone en HTML para que use la
+   tipografía real de la interfaz y siga al tema. */
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brand-isotype {
+  display: block;
+  flex-shrink: 0;
+}
+
+.brand-words {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.brand-wordmark {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.brand-word-api {
+  color: var(--text-heading);
+}
+
+.brand-word-flujos {
+  color: var(--primary);
+}
+
+.brand-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Cargador oficial ─────────────────────────────────────────────────────
+   El envoltorio gira; el isotipo de dentro respira. Idea tomada del cargador
+   del CMMS. Cargar deja de ser una pantalla en blanco. */
+.af-loader {
+  --af-size: 48px;
+  width: var(--af-size);
+  height: var(--af-size);
+  display: inline-grid;
+  place-items: center;
+  animation: af-spin 1.6s linear infinite;
+  transform-origin: center;
+  flex-shrink: 0;
+}
+
+.af-loader > img {
+  width: 100%;
+  height: 100%;
+  animation: af-breathe 1.8s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.af-loader.is-xs { --af-size: 18px; }
+.af-loader.is-sm { --af-size: 28px; }
+.af-loader.is-md { --af-size: 48px; }
+.af-loader.is-lg { --af-size: 88px; }
+.af-loader.is-xl { --af-size: 132px; }
+
+@keyframes af-spin {
+  from { transform: rotate(0); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes af-breathe {
+  0% { filter: blur(0) saturate(1); transform: scale(1); opacity: 1; }
+  45% { filter: blur(1.6px) saturate(0.65); transform: scale(0.87); opacity: 0.72; }
+  55% { filter: blur(2px) saturate(0.55); transform: scale(0.83); opacity: 0.58; }
+  100% { filter: blur(0) saturate(1); transform: scale(1); opacity: 1; }
+}
+
+/* Quien tenga sensibilidad al movimiento no debe marearse: se cambia el giro
+   y el desenfoque por un latido suave de opacidad. */
+@media (prefers-reduced-motion: reduce) {
+  .af-loader { animation: none; }
+  .af-loader > img {
+    animation: af-fade 1.8s ease-in-out infinite;
+    filter: none;
+  }
+  @keyframes af-fade {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+}
+
+/* Cargador centrado que ocupa el área de contenido. */
+.af-loader-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 320px;
+  padding: 32px;
+}
+
+.af-loader-text {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ─── Cargador que bloquea ─────────────────────────────────────────────────
+   Para acciones críticas: impide interactuar con lo de debajo. */
+.af-blocking {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg-body) 55%, transparent);
+  backdrop-filter: saturate(1.2) blur(10px);
+  -webkit-backdrop-filter: saturate(1.2) blur(10px);
+  animation: af-blocking-in 180ms ease-out both;
+}
+
+.af-blocking-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 28px 34px;
+  min-width: 220px;
+  text-align: center;
+  border-radius: var(--radius-lg);
+  background: var(--bg-panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 24px 60px rgba(30, 18, 52, 0.18);
+}
+
+.af-blocking-label {
+  font-size: 14px;
+  color: var(--text-heading);
+}
+
+.af-blocking-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+@keyframes af-blocking-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .af-blocking { animation: none; }
+}
+
+/* Cabecera del esqueleto de carga: el logo animado sobre los bloques. */
+.af-skeleton-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 26px 0 6px;
+}
+
+/* En la pantalla de acceso la marca va más grande y centrada. */
+.auth-brand-lockup .brand-wordmark { font-size: 26px; }
+.auth-brand-lockup .brand-subtitle { font-size: 12px; }
