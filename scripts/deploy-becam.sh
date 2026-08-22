@@ -114,9 +114,9 @@ load_deploy_config() {
 # Este archivo NO se versiona y vive fuera del repositorio.
 # Completa los valores y vuelve a ejecutar ./scripts/deploy-becam.sh
 
-# Puertos (déjalos en blanco para detección automática)
+# Puerto público (déjalo en blanco para detección automática).
+# Es UNO SOLO: Express sirve también el admin-web.
 APP_PORT=
-ADMIN_WEB_PORT=
 
 # Postgres (para la aplicación)
 DATABASE_HOST=localhost
@@ -311,7 +311,6 @@ ensure_env() {
   echo "  APP_HOST=$(grep '^APP_HOST=' .env | cut -d= -f2)"
   echo "  APP_PORT=$(grep '^APP_PORT=' .env | cut -d= -f2)"
   echo "  ADMIN_WEB_URL=$(grep '^ADMIN_WEB_URL=' .env | cut -d= -f2)"
-  echo "  ADMIN_WEB_PORT=$(grep '^ADMIN_WEB_PORT=' .env | cut -d= -f2)"
 }
 
 # ---------------------------------------------------------------------------
@@ -462,7 +461,12 @@ do_smoke() {
     echo "Puerto público único para Becam: ${APP_PORT}"
     echo "Configura en Nginx Proxy Manager:"
     echo "  ${APP_HOST}  -> http://127.0.0.1:${APP_PORT}"
-    echo "El admin-web corre internamente en 127.0.0.1:${ADMIN_WEB_PORT} (no accesible desde fuera)."
+    # ADMIN_WEB_PORT ya no existe: la arquitectura es de UN SOLO PUERTO, Express
+    # sirve también el admin-web. El script incluso borra esa variable del .env
+    # (ver ensure_env), pero esta línea seguía leyéndola y con `set -u` abortaba
+    # el despliegue JUSTO DESPUÉS de decir "Smoke exitoso":
+    #     deploy-becam.sh: line 465: ADMIN_WEB_PORT: unbound variable
+    # El despliegue funcionaba y aun así terminaba con error en pantalla.
   else
     err "Smoke falló. Revisa: pm2 logs"
     exit 1
