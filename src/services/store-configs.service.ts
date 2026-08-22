@@ -2,6 +2,7 @@ import { getSettings } from "./settings.service";
 import { decryptString } from "../utils/crypto";
 import { getOrgId, getPool } from "../db";
 import { normalizeOutOfStockBehavior } from "../../packages/shared/src/inventory";
+import { normalizeSourceOfTruth } from "../../packages/shared/src/source-of-truth";
 
 const normalizeShopDomain = (value: string) =>
   value
@@ -314,6 +315,9 @@ export async function listStoreConfigs() {
           wholesaleId: (priceLists.wholesaleId as string | undefined) || row.price_list_wholesale_id || "",
           currency: (priceLists.currency as string | undefined) || row.currency || "",
         },
+        // Quién manda sobre cada área. De aquí se derivan las escrituras: no
+        // hay que ajustar media docena de booleanos a mano y de forma coherente.
+        sourceOfTruth: normalizeSourceOfTruth((settings as Record<string, unknown>).sourceOfTruth),
         rules: {
           syncEnabled: normalizeBoolean((rules as Record<string, unknown>).syncEnabled, true),
           publishOnStock: normalizeBoolean(rules.publishOnStock, defaults.rules?.publishOnStock ?? true),

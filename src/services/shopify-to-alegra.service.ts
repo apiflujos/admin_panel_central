@@ -15,6 +15,11 @@ import { resolveStoreConfig } from "./store-config.service";
 import type { ShopifyOrderMode } from "./store-config.service";
 import { getStoreConfigForDomain } from "./store-configs.service";
 import type { Pool } from "pg";
+import {
+  preflightDeFacturacion,
+  resumirBloqueos,
+  type ResultadoPreflight,
+} from "../../packages/domain/src/invoice-preflight";
 
 type ShopifyOrderPayload = {
   id?: number | string;
@@ -76,6 +81,12 @@ type ForceSyncOptions = {
   // "a discreción"), independiente del toggle global. Requiere que el pedido
   // tenga su override fiscal (einvoiceRequested + datos DIAN).
   forceEinvoice?: boolean;
+  /**
+   * Reintentar un pedido que ya se descartó por falta de datos obligatorios.
+   * Lo activa el reintento MANUAL: una persona ya completó el dato y quiere
+   * volver a intentarlo. Los workers nunca lo pasan.
+   */
+  forceSync?: boolean;
 };
 
 /**
@@ -129,6 +140,74 @@ export function buildAlegraAddress(
   return isUpdate ? undefined : { address: contact.address };
 }
 
+/**
+ * Deja escrito por qué un pedido NO se puede facturar, y lo saca de la rueda.
+ *
+ * `sync_status = 'no_facturable'` es lo que impide que el worker vuelva a
+ * intentarlo: son datos que faltan, y reintentar da exactamente el mismo
+ * resultado. En producción, 37 pedidos sin cédula generaron 611 intentos
+ * fallidos en una semana.
+ *
+ * El motivo se guarda estructurado para poder mostrarlo en operaciones: qué
+ * falta y cómo se arregla.
+ */
+/**
+ * ¿Este pedido ya se descartó por falta de datos obligatorios?
+ *
+ * Si es así el worker NO se lanza: reintentar un pedido sin cédula da el mismo
+ * resultado, y así fue como 37 pedidos produjeron 611 intentos en una semana.
+ * Vuelve a la rueda en cuanto alguien complete el dato y lo reintente a mano
+ * (el reintento manual limpia la marca).
+ */
+async function pedidoYaDescartado(orderId: string): Promise<boolean> {
+  try {
+    const { getOrgId, getPool } = await import("../db");
+    const res = await getPool().query<{ existe: boolean }>(
+      `SELECT true AS existe FROM orders
+        WHERE organization_id = $1 AND shopify_order_id = $2 AND sync_status = 'no_facturable'
+        LIMIT 1`,
+      [getOrgId(), String(orderId)]
+    );
+    return res.rows.length > 0;
+  } catch {
+    // Ante la duda se procesa: perder una factura es peor que reintentarla.
+    return false;
+  }
+}
+
+/** Devuelve un pedido descartado a la rueda: lo usa el reintento manual. */
+export async function reactivarPedidoDescartado(orderId: string) {
+  const { getOrgId, getPool } = await import("../db");
+  await getPool().query(
+    `UPDATE orders
+        SET sync_status = 'pending', sync_block_reason = NULL, updated_at = NOW()
+      WHERE organization_id = $1 AND shopify_order_id = $2 AND sync_status = 'no_facturable'`,
+    [getOrgId(), String(orderId)]
+  );
+}
+
+async function marcarPedidoNoFacturable(orderId: string, veredicto: ResultadoPreflight) {
+  try {
+    const { getOrgId, getPool } = await import("../db");
+    await getPool().query(
+      `
+      UPDATE orders
+         SET sync_status = 'no_facturable',
+             sync_block_reason = $3::jsonb,
+             updated_at = NOW()
+       WHERE organization_id = $1 AND shopify_order_id = $2
+      `,
+      [getOrgId(), String(orderId), JSON.stringify({ bloqueos: veredicto.bloqueos, avisos: veredicto.avisos })]
+    );
+  } catch (error) {
+    // No poder marcarlo no debe tumbar el proceso: el sync_log ya deja constancia.
+    console.error(
+      `[facturacion] no se pudo marcar el pedido ${orderId} como no facturable:`,
+      error instanceof Error ? error.message : error
+    );
+  }
+}
+
 export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload, options?: ForceSyncOptions) {
   const orderId = extractOrderId(payload);
   const shopDomain = payload.__shopDomain || "";
@@ -137,6 +216,11 @@ export async function syncShopifyOrderToAlegra(payload: ShopifyOrderPayload, opt
   }
   const { getPool } = await import("../db");
   const pool = getPool();
+  // El worker no se lanza sobre lo que ya se sabe que no puede facturarse.
+  // `options.forceSync` (el reintento manual) sí lo vuelve a intentar.
+  if (!options?.forceSync && (await pedidoYaDescartado(String(orderId)))) {
+    return { handled: false, reason: "no_facturable_ya_marcado", skipped: true };
+  }
   const lockKey = `shopify-order:${shopDomain}:${orderId}`;
   const client = await pool.connect();
   try {
@@ -341,15 +425,40 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
   // cédula en el pedido Y tampoco existe el contacto. (Antes fallaba aunque el
   // cliente existiera con cédula válida en Alegra.)
   const hasExistingContact = Boolean(existing && existing.length > 0);
-  if (!contactMapping.hasRealIdentification && !hasExistingContact) {
-    await createSyncLog({
-      entity: "order",
-      direction: "shopify->alegra",
-      status: "fail",
-      message: "Falta identificación real del cliente. Carga override e-invoice antes de emitir la factura.",
-      request: { orderId, customerEmail: effectiveEmail },
-    });
-    return { handled: false, reason: "missing_customer_identification" };
+
+  // PREVER DE FACTURACIÓN. Lo que exige la DIAN no depende de quién "mande":
+  // sin identificar al cliente la factura no puede existir. Se comprueba ANTES
+  // de tocar Alegra, y si falta un dato el pedido se marca y NO se reintenta.
+  //
+  // `exigirIdentificacion` cede sólo cuando el contacto YA existe en Alegra con
+  // su cédula guardada: muchos pedidos no la traen en el payload, pero el
+  // cliente está dado de alta y el update no se la borra.
+  if (invoiceSettings.generateInvoice) {
+    const veredicto = preflightDeFacturacion(
+      {
+        identificacion: contactMapping.identification,
+        nombreCliente: contactMapping.name,
+        email: effectiveEmail,
+        moneda: payload.currency,
+        total: payload.total_price,
+        // Las líneas se validan más abajo, cuando ya se resolvió su artículo
+        // de Alegra; aquí sólo interesa que el pedido TENGA líneas.
+        lineas: (payload.line_items || []).map((li) => ({ alegraItemId: "pendiente", nombre: li.title })),
+      },
+      { exigirIdentificacion: !hasExistingContact }
+    );
+    if (!veredicto.facturable) {
+      await createSyncLog({
+        entity: "order",
+        direction: "shopify->alegra",
+        status: "fail",
+        message: `No se puede facturar: ${resumirBloqueos(veredicto)}`,
+        request: { orderId: orderId || null, customerEmail: effectiveEmail },
+        response: { bloqueos: veredicto.bloqueos, avisos: veredicto.avisos, permanente: veredicto.permanente },
+      });
+      if (orderId) await marcarPedidoNoFacturable(String(orderId), veredicto);
+      return { handled: false, reason: "no_facturable", bloqueos: veredicto.bloqueos };
+    }
   }
   const { hasRealIdentification: _hasReal, ...rawContact } = contactMapping;
   const identification = contactMapping.identification;
@@ -510,14 +619,29 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
   );
   const unmappedLines = resolvedLines.filter((l) => !l.alegraItemId).map((l) => l.sku || l.variantId || "?");
   if (invoiceSettings.generateInvoice && unmappedLines.length) {
+    // Mismo criterio: sin artículo de Alegra la línea no puede facturarse, y
+    // reintentar no lo arregla. Alguien tiene que enlazar o crear el producto.
+    const veredicto = preflightDeFacturacion({
+      identificacion: contactMapping.identification || "ok",
+      nombreCliente: contactMapping.name || "ok",
+      email: effectiveEmail,
+      moneda: payload.currency,
+      total: payload.total_price,
+      lineas: resolvedLines.map((l, i) => ({
+        alegraItemId: l.alegraItemId,
+        nombre: payload.line_items?.[i]?.title || l.sku || null,
+      })),
+    });
     await createSyncLog({
       entity: "order",
       direction: "shopify->alegra",
       status: "fail",
-      message: "Missing Alegra item id for invoice lines",
+      message: `No se puede facturar: ${resumirBloqueos(veredicto)}`,
       request: { orderId, unmappedLines },
+      response: { bloqueos: veredicto.bloqueos, permanente: true },
     });
-    return { handled: false, reason: "missing_item_mapping" };
+    if (orderId) await marcarPedidoNoFacturable(String(orderId), veredicto);
+    return { handled: false, reason: "no_facturable", bloqueos: veredicto.bloqueos };
   }
   const invoicePayload = buildInvoicePayload(
     payload,

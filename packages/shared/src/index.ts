@@ -4,6 +4,7 @@ export * from "./catalog";
 export * from "./inventory";
 export * from "./pricing";
 export * from "./shopify-publication";
+export * from "./source-of-truth";
 export * from "./shopify-product-sync";
 export * from "./shopify";
 export * from "./workers";

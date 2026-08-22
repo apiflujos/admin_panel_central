@@ -1,12 +1,8 @@
 import { buildSyncContext, type SyncContext } from "./sync-context";
 import { isWorkerEnabled } from "./worker-settings.service";
+import { alegraMandaEn } from "../../packages/shared/src/source-of-truth";
 import { isMissingShopifyResourceError } from "../connectors/shopify-errors";
-import {
-  saveMapping,
-  getMappingByAlegraId,
-  updateMappingMetadata,
-  deleteMappingByAlegraId,
-} from "./mapping.service";
+import { saveMapping, getMappingByAlegraId, updateMappingMetadata, deleteMappingByAlegraId } from "./mapping.service";
 import { upsertProduct } from "./products.service";
 import { createSyncLog } from "./logs.service";
 import {
@@ -92,7 +88,11 @@ export async function aplicarPublicacionPorStock(
   ctx: SyncContext,
   productId: string,
   publishEligible: boolean
-): Promise<"aplicado" | "agotado_sigue_publicado"> {
+): Promise<"aplicado" | "agotado_sigue_publicado" | "la_tienda_manda_en_la_publicacion"> {
+  if (!alegraMandaEn(ctx.sourceOfTruth, "publication")) {
+    // La tienda decide qué está publicado; la sincronización no lo toca.
+    return "la_tienda_manda_en_la_publicacion";
+  }
   if (!publishEligible && ctx.outOfStockBehavior === "mark_sold_out") {
     return "agotado_sigue_publicado";
   }
@@ -138,6 +138,12 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
   // seguiría cambiando precios y publicaciones. Aquí cubre los seis.
   if (!(await isWorkerEnabled("products-sync"))) {
     return { skipped: true, reason: "catalog_writes_disabled" };
+  }
+  // DUEÑO DE LA VERDAD. Sólo puede RESTRINGIR: si la tienda manda sobre precios
+  // y publicación, Alegra no se los toca aunque el worker esté encendido y los
+  // permisos de escritura estén dados.
+  if (!alegraMandaEn(ctx.sourceOfTruth, "prices") && !alegraMandaEn(ctx.sourceOfTruth, "publication")) {
+    return { skipped: true, reason: "la_tienda_manda_en_precios_y_publicacion" };
   }
   if (ctx.onlyActiveItems && statusInactive) {
     return { skipped: true, reason: "inactive_item" };
@@ -197,7 +203,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
       await upsertProduct({
         ...baseProductInput,
         shopDomain: ctx.shopDomain,
-    storeId: ctx.storeId,
+        storeId: ctx.storeId,
         shopifyId: matched.productId,
         statusShopify: resolvedShopifyStatus,
       });
@@ -205,6 +211,10 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
     }
     if (!ctx.createInShopify) {
       return { skipped: true, reason: "create_disabled" };
+    }
+    if (!alegraMandaEn(ctx.sourceOfTruth, "catalog")) {
+      // El catálogo nace en la tienda: Alegra no da de alta productos allí.
+      return { skipped: true, reason: "la_tienda_manda_en_el_catalogo" };
     }
     if (!allowProductCreation(ctx.shopDomain)) {
       console.warn(
@@ -273,7 +283,7 @@ export async function syncAlegraItemPayloadToShopify(item: AlegraItem, shopDomai
     await upsertProduct({
       ...baseProductInput,
       shopDomain: ctx.shopDomain,
-    storeId: ctx.storeId,
+      storeId: ctx.storeId,
       shopifyId: productId,
       statusShopify: resolvedShopifyStatus,
     });
@@ -403,6 +413,19 @@ export async function syncAlegraInventoryPayloadToShopify(payload: AlegraInvento
   // FRENO DE EXISTENCIAS — mismo motivo que arriba: aquí también se llega por
   // el webhook `inventory.updated` de Alegra y por la cola de reintentos, no
   // sólo por el poller.
+  // DUEÑO DE LA VERDAD: con la tienda al mando del inventario, sus cantidades
+  // no se tocan. Es el caso de quien usa Alegra sólo para facturar.
+  if (!alegraMandaEn(ctx.sourceOfTruth, "inventory")) {
+    await upsertProduct({
+      shopDomain: ctx.shopDomain,
+      storeId: ctx.storeId,
+      alegraId: alegraItemId,
+      inventoryQuantity: availableQuantity ?? undefined,
+      statusAlegra: payload.status || null,
+      source: "alegra",
+    });
+    return { handled: true, skipped: true, reason: "la_tienda_manda_en_inventario" };
+  }
   if (!(await isWorkerEnabled("inventory-adjustments"))) {
     await upsertProduct({
       shopDomain: ctx.shopDomain,
@@ -417,7 +440,7 @@ export async function syncAlegraInventoryPayloadToShopify(payload: AlegraInvento
   if (!ctx.updateInShopify) {
     await upsertProduct({
       shopDomain: ctx.shopDomain,
-    storeId: ctx.storeId,
+      storeId: ctx.storeId,
       alegraId: alegraItemId,
       inventoryQuantity: availableQuantity ?? undefined,
       statusAlegra: payload.status || null,
@@ -428,7 +451,7 @@ export async function syncAlegraInventoryPayloadToShopify(payload: AlegraInvento
   if (!ctx.syncEnabled) {
     await upsertProduct({
       shopDomain: ctx.shopDomain,
-    storeId: ctx.storeId,
+      storeId: ctx.storeId,
       alegraId: alegraItemId,
       inventoryQuantity: availableQuantity ?? undefined,
       statusAlegra: payload.status || null,
@@ -545,11 +568,7 @@ export async function syncAlegraInventoryById(alegraItemId: string, shopDomain?:
 }
 
 function resolveItemSku(item: AlegraItem) {
-  return (
-    item.reference ||
-    item.code ||
-    null
-  );
+  return item.reference || item.code || null;
 }
 
 function resolveItemTimestamp(item: AlegraItem) {
@@ -640,11 +659,7 @@ export function resetProductCreationLimiterForTests() {
 
 async function resolveVariantByIdentifiers(ctx: Awaited<ReturnType<typeof buildSyncContext>>, identifiers: string[]) {
   const normalizedIdentifiers = Array.from(
-    new Set(
-      identifiers
-        .map((identifier) => String(identifier || "").trim())
-        .filter(Boolean)
-    )
+    new Set(identifiers.map((identifier) => String(identifier || "").trim()).filter(Boolean))
   );
   for (const identifier of normalizedIdentifiers) {
     const exactSku = await ctx.shopify.findVariantBySku(identifier);
@@ -677,7 +692,11 @@ function parseTaxRate(taxes?: Array<{ percentage?: string | number }>): number {
   if (!Array.isArray(taxes) || !taxes.length) {
     return 0;
   }
-  const parsed = Number(String(taxes[0]?.percentage ?? "").trim().replace(",", "."));
+  const parsed = Number(
+    String(taxes[0]?.percentage ?? "")
+      .trim()
+      .replace(",", ".")
+  );
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
@@ -718,8 +737,7 @@ function resolvePrice(
 
     const discount = matchByList(ctx.priceListDiscountId);
     const primaryPrice = withVat(primary.price, taxRate);
-    const discountPrice =
-      discount && typeof discount.price === "number" ? withVat(discount.price, taxRate) : 0;
+    const discountPrice = discount && typeof discount.price === "number" ? withVat(discount.price, taxRate) : 0;
     const desired = resolveDesiredPricing({
       priceWithVat: primaryPrice,
       discountPriceWithVat: discountPrice,

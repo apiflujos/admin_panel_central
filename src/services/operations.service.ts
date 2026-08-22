@@ -12,6 +12,7 @@ import {
 } from "./order-invoice-overrides.service";
 import { ensureInvoiceSettingsColumns, getOrgId, getPool } from "../db";
 import { ShopifyOrder } from "../connectors/shopify";
+import { reactivarPedidoDescartado } from "./shopify-to-alegra.service";
 
 export async function listOperations(days = 7) {
   const updatedAtMin = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
@@ -152,6 +153,10 @@ export async function syncOperation(
   }
 
   const payload = mapOrderToPayload(order);
+  // Un reintento manual SIEMPRE vuelve a intentar, aunque el pedido estuviera
+  // descartado por falta de datos: si alguien pulsa "reintentar" es porque ya
+  // completó lo que faltaba.
+  await reactivarPedidoDescartado(String(orderId)).catch(() => undefined);
   const hasOptions =
     options &&
     (options.generateInvoice !== undefined || options.skipRules !== undefined || options.forceEinvoice !== undefined);
@@ -162,11 +167,12 @@ export async function syncOperation(
     },
     hasOptions
       ? {
+          forceSync: true,
           generateInvoice: options?.generateInvoice,
           skipRules: options?.skipRules,
           forceEinvoice: options?.forceEinvoice,
         }
-      : undefined
+      : { forceSync: true }
   );
   return { status: "synced", result };
 }
@@ -289,17 +295,23 @@ function buildOperationActionability(params: {
   paymentEnabled: boolean;
   hasBankAccount: boolean;
 }) {
-  const { orderId, invoiceId, alegraStatus, einvoiceEnabled, einvoiceRequested, einvoiceMissing, paymentEnabled, hasBankAccount } =
-    params;
+  const {
+    orderId,
+    invoiceId,
+    alegraStatus,
+    einvoiceEnabled,
+    einvoiceRequested,
+    einvoiceMissing,
+    paymentEnabled,
+    hasBankAccount,
+  } = params;
   const hasOrderId = Boolean(orderId);
   const isInvoiced = alegraStatus === "facturado";
   const hasInvoice = Boolean(invoiceId);
   const missingEinvoiceData = einvoiceEnabled && einvoiceRequested && einvoiceMissing.length > 0;
 
   return {
-    sync: hasOrderId
-      ? { enabled: true as const }
-      : { enabled: false as const, reason: "Sin identificador de pedido." },
+    sync: hasOrderId ? { enabled: true as const } : { enabled: false as const, reason: "Sin identificador de pedido." },
     retryInvoice: !hasOrderId
       ? { enabled: false as const, reason: "Sin identificador de pedido." }
       : isInvoiced || hasInvoice
@@ -492,9 +504,7 @@ export function invoiceMatchesShopifyCustomer(
   if (!onSameDate) return { matches: false, onSameDate };
   const client = invoice.client as Record<string, unknown> | undefined;
   const clientEmail = client?.email ? String(client.email) : "";
-  const clientIdentification = client?.identification
-    ? String(client.identification).replace(/\D/g, "")
-    : "";
+  const clientIdentification = client?.identification ? String(client.identification).replace(/\D/g, "") : "";
   const byEmail =
     Boolean(target.email) && Boolean(clientEmail) && target.email.toLowerCase() === clientEmail.toLowerCase();
   const byPhone = Boolean(target.phone) && clientIdentification === target.phone;

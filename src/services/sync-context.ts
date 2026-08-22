@@ -6,6 +6,7 @@ import { ensureInventoryRulesColumns, getOrgId, getPool } from "../db";
 import { resolveStoreConfig } from "./store-config.service";
 import { getStoreConfigForDomain } from "./store-configs.service";
 import { normalizeOutOfStockBehavior, type OutOfStockBehavior } from "../../packages/shared/src/inventory";
+import { normalizeSourceOfTruth, type SourceOfTruth } from "../../packages/shared/src/source-of-truth";
 
 const isCryptoKeyMisconfigured = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error || "");
@@ -37,6 +38,7 @@ export type SyncContext = {
   trackInventory: boolean;
   allowOversell: boolean;
   outOfStockBehavior: OutOfStockBehavior;
+  sourceOfTruth: SourceOfTruth;
   alegraWarehouseId?: string;
   alegraWarehouseIds?: string[];
   priceListGeneralId?: string;
@@ -55,6 +57,7 @@ type InventoryRules = {
   trackInventory?: boolean;
   allowOversell?: boolean;
   outOfStockBehavior?: OutOfStockBehavior;
+  sourceOfTruth?: SourceOfTruth;
   onlyActiveItems?: boolean;
   autoPublishOnWebhook: boolean;
   autoPublishStatus: "draft" | "active";
@@ -133,6 +136,9 @@ export async function buildSyncContext(shopDomain?: string): Promise<SyncContext
     // Sin valor explícito se marca AGOTADO en vez de despublicar: es lo menos
     // destructivo de los dos y cumple igual la regla de no sobrevender.
     outOfStockBehavior: normalizeOutOfStockBehavior((rules as InventoryRules).outOfStockBehavior),
+    // Quién manda sobre cada área. Ante cualquier valor raro o ausente,
+    // `normalizeSourceOfTruth` devuelve "Alegra manda", que es lo conservador.
+    sourceOfTruth: normalizeSourceOfTruth((storeConfigFull as { sourceOfTruth?: unknown } | null)?.sourceOfTruth),
     onlyActiveItems: Boolean(rules.onlyActiveItems),
     autoPublishOnWebhook: rules.autoPublishOnWebhook,
     autoPublishStatus: normalizeAutoStatus(rules.autoPublishStatus),
