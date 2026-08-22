@@ -23,7 +23,7 @@ function getBrandInitials(name: string) {
 }
 
 // La mascota se conserva para el avatar de usuario; la marca pasa a SVG.
-const APIFLUJOS_AVATAR_SRC = "/assets/avatar.png";
+const APIFLUJOS_AVATAR_SRC = "/assets/avatar.webp";
 
 /**
  * Marco de la aplicación: menú, cabecera y contenedor de contenido.
@@ -55,7 +55,7 @@ export async function AppShell({ children, session }: { children: ReactNode; ses
       <aside className="sidebar" aria-label="Navegación principal">
         <div className="sidebarShell">
           <div className="sidebarBrandMeta">
-            <BrandLogo size={30} subtitle="Admin Central" />
+            <BrandLogo variant="full" height={26} subtitle="Admin Central" />
           </div>
 
           {hasDistinctClientBrand ? (
@@ -94,7 +94,11 @@ export async function AppShell({ children, session }: { children: ReactNode; ses
               ‹
             </div>
             <div className="topbarBrand">
-              <BrandLogo size={26} subtitle={hasDistinctClientBrand ? brand.companyName : "Admin Central"} />
+              <BrandLogo
+                variant="mark"
+                height={26}
+                subtitle={hasDistinctClientBrand ? brand.companyName : "Admin Central"}
+              />
             </div>
           </div>
           <div className="topbarTitleCentered">

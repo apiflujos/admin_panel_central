@@ -1,45 +1,42 @@
 /**
- * Marca ApiFlujos: isotipo + palabra.
+ * Marca ApiFlujos.
  *
- * El isotipo es un SVG (2 KB comprimidos frente a los 136 KB del PNG anterior,
- * y nítido a cualquier tamaño). La PALABRA se compone en HTML, no dentro del
- * SVG: así usa la tipografía real de la interfaz, se adapta al tema y no
- * depende de que el navegador tenga una fuente concreta.
+ * Se usa el SVG OFICIAL de apiflujos.com (`/assets/brand/logo-light.svg`), no
+ * una reconstrucción: la marca es del cliente y debe ser exactamente la suya.
  *
- * Antes el PNG ya incluía la palabra «ApiFlujos» y al lado se pintaba OTRA vez
- * en texto. Se veía dos veces.
+ * - `variant="full"`  → isotipo + palabra (el archivo oficial completo).
+ * - `variant="mark"`  → sólo el isotipo, recortando el mismo archivo por
+ *   viewBox. Un único activo, cero riesgo de que las dos versiones se
+ *   desincronicen.
  */
 export function BrandLogo({
-  size = 28,
-  withWordmark = true,
+  variant = "full",
+  height = 32,
   subtitle,
   className = "",
 }: {
-  size?: number;
-  withWordmark?: boolean;
+  variant?: "full" | "mark";
+  /** Alto en píxeles. El ancho se ajusta solo. */
+  height?: number;
   subtitle?: string;
   className?: string;
 }) {
+  const esCompleto = variant === "full";
+  const src = esCompleto ? "/assets/logo.svg" : "/assets/isotipo.svg";
+  // Proporciones del archivo oficial: 400 x 112.31 completo, 113 x 112.31 el isotipo.
+  const width = Math.round(height * (esCompleto ? 400 / 112.31 : 113 / 112.31));
+
   return (
     <span className={`brand-lockup ${className}`.trim()}>
       <img
-        className="brand-isotype"
-        src="/assets/isotipo.svg"
-        width={size}
-        height={size}
-        alt={withWordmark ? "" : "ApiFlujos"}
-        aria-hidden={withWordmark ? true : undefined}
-        style={{ width: size, height: size }}
+        className="brand-logo-img"
+        src={src}
+        width={width}
+        height={height}
+        style={{ height, width }}
+        alt="ApiFlujos"
       />
-      {withWordmark ? (
-        <span className="brand-words">
-          <strong className="brand-wordmark">
-            <span className="brand-word-api">Api</span>
-            <span className="brand-word-flujos">Flujos</span>
-          </strong>
-          {subtitle ? <span className="brand-subtitle">{subtitle}</span> : null}
-        </span>
-      ) : null}
+      {subtitle ? <span className="brand-subtitle">{subtitle}</span> : null}
     </span>
   );
 }

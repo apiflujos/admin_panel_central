@@ -8,25 +8,35 @@ const leer = (p: string) => fs.readFileSync(path.join(RAIZ, p), "utf8");
 const CSS = leer("styles/components.css");
 const SHELL = leer("components/app-shell.tsx");
 const LOGIN = leer("components/login-page.tsx");
-const ESQUELETO = leer("components/ui/page-content-skeleton.tsx");
 const LOADER = leer("components/ui/apiflujos-loader.tsx");
+const MARCA = leer("components/ui/brand-logo.tsx");
 
-describe("marca en SVG", () => {
-  it("el isotipo existe y es vectorial", () => {
-    const svg = leer("public/assets/isotipo.svg");
-    expect(svg.startsWith("<svg")).toBe(true);
-    expect(svg).toContain('viewBox="0 0 100 100"');
-    expect(svg).toContain("#8A40B9"); // morado de marca, extraído del logo original
+describe("la marca es la OFICIAL, no una reconstrucción", () => {
+  it("el logo completo viene del SVG oficial de apiflujos.com", () => {
+    const svg = leer("public/assets/logo.svg");
+    // Firma del archivo oficial: viewBox y morado de marca.
+    expect(svg).toContain('viewBox="0 0 400 112.31"');
+    expect(svg).toContain("#7e43b9");
   });
 
-  it("pesa mucho menos que el PNG que sustituye", () => {
-    const svg = fs.statSync(path.join(RAIZ, "public/assets/isotipo.svg")).size;
-    const png = fs.statSync(path.join(RAIZ, "public/assets/logo.png")).size;
-    expect(svg).toBeLessThan(png / 4);
+  it("el isotipo es el MISMO archivo recortado por viewBox", () => {
+    // Un solo activo: las dos versiones no se pueden desincronizar.
+    const iso = leer("public/assets/isotipo.svg");
+    expect(iso).toContain('viewBox="0 0 113 112.31"');
+    expect(iso).toContain("#7e43b9");
   });
 
-  it("el favicon que declara el layout EXISTE", () => {
-    // Estaba declarado y no existía: cada carga pedía un 404.
+  it("el login muestra el logo completo de ApiFlujos", () => {
+    expect(LOGIN).toContain('<BrandLogo variant="full"');
+    expect(LOGIN).not.toContain("/assets/logo.png");
+  });
+
+  it("la palabra no se repite: cabecera con isotipo, lateral con logo completo", () => {
+    expect(SHELL).toContain('<BrandLogo variant="full"');
+    expect(SHELL).toContain('<BrandLogo variant="mark"');
+  });
+
+  it("los iconos declarados existen de verdad", () => {
     const layout = leer("app/layout.tsx");
     for (const archivo of ["icon.svg", "favicon.png", "apple-touch-icon.png"]) {
       expect(layout, archivo).toContain(archivo);
@@ -34,51 +44,50 @@ describe("marca en SVG", () => {
     }
   });
 
-  it("la palabra ya no se pinta dos veces", () => {
-    // El PNG anterior YA incluía "ApiFlujos" y al lado se repetía en texto.
-    expect(SHELL).not.toContain("/assets/logo.png");
-    expect(LOGIN).not.toContain("/assets/logo.png");
-    expect(SHELL).toContain("<BrandLogo");
+  it("BrandLogo respeta las proporciones del archivo oficial", () => {
+    expect(MARCA).toContain("400 / 112.31");
+    expect(MARCA).toContain("113 / 112.31");
   });
 });
 
-describe("cargador oficial", () => {
-  it("gira y respira: dos animaciones distintas", () => {
-    expect(CSS).toContain("@keyframes af-spin");
-    expect(CSS).toContain("@keyframes af-breathe");
-    expect(CSS).toMatch(/\.af-loader\s*\{[^}]*animation:\s*af-spin/s);
-    expect(CSS).toMatch(/\.af-loader\s*>\s*img\s*\{[^}]*animation:\s*af-breathe/s);
+describe("el cargador se ve, y se ve como un modal", () => {
+  it("al cambiar de sección sale el modal, no un esqueleto", () => {
+    const loading = leer("app/(panel)/loading.tsx");
+    expect(loading).toContain("<ApiFlujosBlockingLoader");
+    expect(loading).not.toContain("Skeleton");
   });
 
-  it("respeta a quien pide menos movimiento", () => {
-    // Girar y desenfocar puede marear. Con reduced-motion se queda en un
-    // latido de opacidad.
-    const bloque = CSS.slice(CSS.indexOf("@media (prefers-reduced-motion: reduce)"));
-    expect(bloque).toContain(".af-loader { animation: none; }");
-    expect(bloque).toContain("af-fade");
+  it("el modal OSCURECE y DESENFOCA lo de detrás", () => {
+    const bloque = CSS.slice(CSS.indexOf(".af-blocking {"), CSS.indexOf(".af-blocking-panel"));
+    expect(bloque).toContain("position: fixed");
+    expect(bloque).toContain("inset: 0");
+    expect(bloque).toMatch(/background:\s*rgba\(/);
+    expect(bloque).toContain("backdrop-filter");
+    expect(bloque).toMatch(/z-index:\s*\d{4}/);
   });
 
-  it("ofrece los cinco tamaños que declara el componente", () => {
-    for (const t of ["is-xs", "is-sm", "is-md", "is-lg", "is-xl"]) {
-      expect(CSS, t).toContain(`.af-loader.${t}`);
-      expect(LOADER, t).toContain(t);
-    }
+  it("bloquea la interacción: es un diálogo modal", () => {
+    expect(LOADER).toContain('role="alertdialog"');
+    expect(LOADER).toContain('aria-modal="true"');
   });
 
-  it("se anuncia a lectores de pantalla, y calla si algo al lado ya lo hace", () => {
-    expect(LOADER).toContain('role={label ? "status" : undefined}');
-    expect(LOADER).toContain('aria-live={label ? "polite" : undefined}');
-  });
-
-  it("el esqueleto de carga encabeza con el logo animado", () => {
-    // Antes eran sólo bloques grises: parecía que el navegador se había colgado.
-    expect(ESQUELETO).toContain("<ApiFlujosLoader");
-    expect(ESQUELETO).toContain("aria-busy");
+  it("tras ENTRAR hay pantalla de arranque: ese momento ya no queda en blanco", () => {
+    // No existía `app/loading.tsx`: al moverlo dentro de (panel), el arranque
+    // posterior al login se quedaba sin nada que mostrar.
+    expect(fs.existsSync(path.join(RAIZ, "app/loading.tsx"))).toBe(true);
+    const boot = leer("app/loading.tsx");
+    expect(boot).toContain("<ApiFlujosLoader");
+    expect(CSS).toContain(".af-boot");
   });
 
   it("entrar bloquea la pantalla mientras verifica", () => {
     expect(LOGIN).toContain("<ApiFlujosBlockingLoader");
-    expect(LOGIN).toMatch(/loading \? \(\s*<ApiFlujosBlockingLoader/s);
-    expect(CSS).toContain(".af-blocking");
+  });
+
+  it("gira y respira, y se calma si se pide menos movimiento", () => {
+    expect(CSS).toContain("@keyframes af-spin");
+    expect(CSS).toContain("@keyframes af-breathe");
+    const reduce = CSS.slice(CSS.indexOf("@media (prefers-reduced-motion: reduce)"));
+    expect(reduce).toContain(".af-loader { animation: none; }");
   });
 });

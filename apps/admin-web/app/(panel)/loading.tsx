@@ -1,11 +1,12 @@
-import { PageContentSkeleton } from "../../components/ui/page-content-skeleton";
+import { ApiFlujosBlockingLoader } from "../../components/ui/apiflujos-loader";
 
 /**
- * Estado de carga de las pantallas del panel.
+ * Lo que se ve al cambiar de sección.
  *
- * Se pinta DENTRO del shell, que ya está montado por el layout: el usuario ve
- * el menú y la cabecera intactos y sólo el área de contenido en esqueleto.
+ * Un MODAL a pantalla completa que oscurece y desenfoca el menú y la cabecera
+ * que quedan detrás. Antes era un esqueleto que sustituía el contenido: no se
+ * leía como "cargando" sino como "se rompió".
  */
 export default function PanelLoading() {
-  return <PageContentSkeleton />;
+  return <ApiFlujosBlockingLoader label="Cargando…" />;
 }

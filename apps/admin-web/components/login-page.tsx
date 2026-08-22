@@ -56,8 +56,8 @@ export function LoginPage({ hasError = false }: { hasError?: boolean }) {
       {loading ? <ApiFlujosBlockingLoader label="Entrando…" hint="Verificando tus credenciales." /> : null}
       <div className="auth-card card">
         <div className="auth-brand-row">
-          <BrandLogo size={52} className="auth-brand-lockup" />
-          <img className="auth-brand-avatar" src="/assets/avatar.png" alt="" aria-hidden="true" />
+          <BrandLogo variant="full" height={46} className="auth-brand-lockup" />
+          <img className="auth-brand-avatar" src="/assets/avatar.webp" alt="" aria-hidden="true" />
         </div>
 
         <div className="auth-copy">

@@ -1862,8 +1862,8 @@
 }
 
 /* ─── Marca ApiFlujos ──────────────────────────────────────────────────────
-   El isotipo es SVG; la palabra se compone en HTML para que use la
-   tipografía real de la interfaz y siga al tema. */
+   Se usa el SVG OFICIAL de apiflujos.com. La palabra viene DENTRO del archivo,
+   así que aquí sólo se coloca; no se recompone en HTML. */
 .brand-lockup {
   display: inline-flex;
   align-items: center;
@@ -1871,31 +1871,10 @@
   min-width: 0;
 }
 
-.brand-isotype {
+.brand-logo-img {
   display: block;
   flex-shrink: 0;
-}
-
-.brand-words {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-  min-width: 0;
-}
-
-.brand-wordmark {
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  white-space: nowrap;
-}
-
-.brand-word-api {
-  color: var(--text-heading);
-}
-
-.brand-word-flujos {
-  color: var(--primary);
+  object-fit: contain;
 }
 
 .brand-subtitle {
@@ -1983,10 +1962,12 @@
   z-index: 9999;
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--bg-body) 55%, transparent);
-  backdrop-filter: saturate(1.2) blur(10px);
-  -webkit-backdrop-filter: saturate(1.2) blur(10px);
-  animation: af-blocking-in 180ms ease-out both;
+  /* Oscurece Y desenfoca lo de detrás: tiene que leerse como un modal, no
+     como un velo tímido. `rgba` en vez de color-mix por compatibilidad. */
+  background: rgba(23, 14, 40, 0.42);
+  backdrop-filter: saturate(1.1) blur(6px);
+  -webkit-backdrop-filter: saturate(1.1) blur(6px);
+  animation: af-blocking-in 140ms ease-out both;
 }
 
 .af-blocking-panel {
@@ -2000,7 +1981,7 @@
   border-radius: var(--radius-lg);
   background: var(--bg-panel);
   border: 1px solid var(--panel-border);
-  box-shadow: 0 24px 60px rgba(30, 18, 52, 0.18);
+  box-shadow: 0 28px 70px rgba(20, 12, 38, 0.35);
 }
 
 .af-blocking-label {
@@ -2035,3 +2016,17 @@
 /* En la pantalla de acceso la marca va más grande y centrada. */
 .auth-brand-lockup .brand-wordmark { font-size: 26px; }
 .auth-brand-lockup .brand-subtitle { font-size: 12px; }
+
+/* Pantalla de arranque: lo primero que se ve tras entrar. */
+.af-boot {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background:
+    radial-gradient(circle at left top, rgba(126, 67, 185, 0.07), transparent 30%),
+    radial-gradient(circle at right center, rgba(126, 67, 185, 0.05), transparent 26%),
+    var(--bg-body);
+}

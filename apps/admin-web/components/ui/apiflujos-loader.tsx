@@ -1,13 +1,10 @@
 /**
  * Cargador oficial de ApiFlujos.
  *
- * Dos animaciones a la vez: el envoltorio GIRA y el isotipo de dentro RESPIRA
- * (desenfoque + escala). La idea está tomada del cargador del CMMS, adaptada a
- * esta marca: cargar deja de ser una pantalla en blanco y pasa a ser el logo
- * moviéndose, que es lo que le dice al usuario que la aplicación está viva.
+ * El isotipo GIRA mientras RESPIRA (desenfoque + escala). Idea tomada del
+ * cargador del CMMS, con el isotipo oficial de la marca.
  *
- * Con `prefers-reduced-motion` ambas animaciones se reducen a un latido suave
- * de opacidad: quien tenga sensibilidad al movimiento no se marea.
+ * Con `prefers-reduced-motion` se reduce a un latido de opacidad.
  */
 export type ApiFlujosLoaderSize = "xs" | "sm" | "md" | "lg" | "xl";
 
@@ -42,12 +39,16 @@ export function ApiFlujosLoader({
 }
 
 /**
- * Cargador a pantalla completa que BLOQUEA la interacción mientras una acción
- * crítica está en vuelo (entrar, guardar una configuración que toca tiendas).
+ * Cargador MODAL: cubre la pantalla, oscurece y desenfoca lo de detrás e
+ * impide interactuar con ello.
+ *
+ * Se usa tanto al navegar entre secciones como en acciones críticas (entrar).
+ * Antes la carga se pintaba como un esqueleto que SUSTITUÍA el contenido, así
+ * que no se percibía como "está cargando" sino como "se rompió la pantalla".
  */
 export function ApiFlujosBlockingLoader({ label = "Cargando", hint }: { label?: string; hint?: string }) {
   return (
-    <div className="af-blocking" role="alertdialog" aria-modal="true" aria-label={label}>
+    <div className="af-blocking" role="alertdialog" aria-modal="true" aria-label={label} aria-busy="true">
       <div className="af-blocking-panel">
         <ApiFlujosLoader size="lg" label="" />
         <strong className="af-blocking-label">{label}</strong>
