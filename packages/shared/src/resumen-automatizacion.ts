@@ -95,14 +95,14 @@ export function construirResumen(d: DatosResumen): BloqueResumen[] {
         estado: "no_ocurre",
         texto: "Ahora mismo nada de esto ocurre.",
         porque: 'Los trabajos "Recepción de pedidos" y "Repaso de pedidos" están apagados.',
-        accion: { texto: "Ir a Trabajos automáticos", href: "/superadmin/workers" },
+        accion: { texto: "Ver los trabajos", href: "#trabajos" },
       });
     } else if (!d.motorPedidosEncendido) {
       pedidos.push({
         estado: "atencion",
         texto: "No ocurre al instante, sino en el repaso periódico.",
         porque: '"Recepción de pedidos" está apagado; sólo trabaja "Repaso de pedidos".',
-        accion: { texto: "Ir a Trabajos automáticos", href: "/superadmin/workers" },
+        accion: { texto: "Ver los trabajos", href: "#trabajos" },
       });
     }
   }
@@ -152,21 +152,21 @@ export function construirResumen(d: DatosResumen): BloqueResumen[] {
       estado: "no_ocurre",
       texto: "Ahora mismo nada de esto se aplica.",
       porque: 'Los trabajos "Precios y publicación" y "Existencias" están apagados.',
-      accion: { texto: "Ir a Trabajos automáticos", href: "/superadmin/workers" },
+      accion: { texto: "Ver los trabajos", href: "#trabajos" },
     });
   } else if (d.mandaAlegra.inventory && !d.motorExistenciasEncendido) {
     catalogo.push({
       estado: "no_ocurre",
       texto: "Las existencias no se están ajustando.",
       porque: 'El trabajo "Existencias desde Alegra" está apagado.',
-      accion: { texto: "Ir a Trabajos automáticos", href: "/superadmin/workers" },
+      accion: { texto: "Ver los trabajos", href: "#trabajos" },
     });
   } else if (d.mandaAlegra.prices && !d.motorPreciosEncendido) {
     catalogo.push({
       estado: "no_ocurre",
       texto: "Los precios no se están aplicando.",
       porque: 'El trabajo "Precios y publicación desde Alegra" está apagado.',
-      accion: { texto: "Ir a Trabajos automáticos", href: "/superadmin/workers" },
+      accion: { texto: "Ver los trabajos", href: "#trabajos" },
     });
   }
   bloques.push({ titulo: "El catálogo de la tienda", frases: catalogo });

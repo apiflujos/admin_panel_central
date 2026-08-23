@@ -17,6 +17,7 @@ import { PageToolbar } from "./ui/page-toolbar";
 import { ProviderMark } from "./ui/provider-mark";
 import { StatusPill } from "./ui/status-pill";
 import { ResumenAutomatizacionPanel } from "./resumen-automatizacion-panel";
+import { WorkersPanel } from "./workers-panel";
 
 type ConfigFlowStage = "channels" | "operations";
 type ConnectionWizardStep = "store" | "group" | "platform" | "form";
@@ -1633,6 +1634,8 @@ export function SettingsConnectionsPage({
           </div>
         </div>
       ) : null}
+
+      <WorkersPanel />
     </section>
   );
 }

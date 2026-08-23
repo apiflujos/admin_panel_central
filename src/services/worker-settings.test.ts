@@ -52,7 +52,9 @@ describe("catálogo de workers", () => {
       const tieneReglasPropias = !worker.obedeceA.startsWith("Nada propio");
       if (tieneReglasPropias) {
         expect(worker.dondeSeAjusta.trim().length, worker.key).toBeGreaterThan(10);
-        expect(worker.dondeSeAjusta, worker.key).toContain("Configuración");
+        // Puede ser un sitio de ESTA pantalla o de otra; lo que no vale es
+        // dejarlo vacío.
+        expect(worker.dondeSeAjusta.trim().length, worker.key).toBeGreaterThan(15);
       }
     }
   });

@@ -8,8 +8,14 @@ export const priceSnapshotSchema = z.object({
 });
 
 export const desiredPricingSchema = z.object({
-  price: z.string().regex(/^\d+\.\d{2}$/).nullable(),
-  compareAtPrice: z.string().regex(/^\d+\.\d{2}$/).nullable(),
+  price: z
+    .string()
+    .regex(/^\d+\.\d{2}$/)
+    .nullable(),
+  compareAtPrice: z
+    .string()
+    .regex(/^\d+\.\d{2}$/)
+    .nullable(),
   strategy: z.enum(["no_price", "base_price", "discount_active"]),
 });
 

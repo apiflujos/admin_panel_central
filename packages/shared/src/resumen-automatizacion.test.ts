@@ -85,14 +85,15 @@ describe("resumen de qué va a pasar", () => {
 });
 
 describe("cada frase dice DÓNDE se cambia", () => {
-  it("las que no ocurren llevan a Trabajos automáticos", () => {
+  it("las que no ocurren llevan a los trabajos, en la MISMA pantalla", () => {
     // Es la frase más importante: la regla está bien y aun así no pasa nada.
-    // Sin el enlace, el usuario no sabe siquiera que existe esa pantalla.
+    // El destino es un ancla, no otra pantalla: los trabajos son parte de
+    // configurar la automatización y viven en Configuración.
     const d = { ...TODO_ENCENDIDO, motorPedidosEncendido: false, motorRepasoPedidosEncendido: false };
     const f = frases(d).filter((x) => x.estado === "no_ocurre");
     expect(f.length).toBeGreaterThan(0);
     for (const x of f) {
-      expect(x.accion?.href, x.texto).toBe("/superadmin/workers");
+      expect(x.accion?.href, x.texto).toBe("#trabajos");
     }
   });
 

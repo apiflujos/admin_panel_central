@@ -4,7 +4,6 @@ import {
   KeyRound,
   Package,
   ScrollText,
-  Settings2,
   Settings,
   ShoppingBag,
   Users,
@@ -26,6 +25,5 @@ export const appNavigation: AppNavigationItem[] = [
   { label: "Productos", href: "/products", section: "operacion", icon: ShoppingBag },
   { label: "Configuración", href: "/settings/connections", section: "sistema", icon: Settings },
   { label: "Super Admin", href: "/superadmin", section: "sistema", icon: KeyRound },
-  { label: "Trabajos automáticos", href: "/superadmin/workers", section: "sistema", icon: Settings2 },
   { label: "Logs de API", href: "/logs", section: "sistema", icon: ScrollText },
 ];

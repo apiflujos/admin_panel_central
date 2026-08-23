@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 import { fetchWorkerSettings, setWorkerEnabledRemote, type WorkerSettingDto } from "../lib/api";
-import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { StatusPill } from "./ui/status-pill";
 
@@ -33,7 +32,7 @@ function formatoFecha(iso: string | null) {
   return `${fecha.toLocaleDateString("es-CO")} ${fecha.toLocaleTimeString("es-CO")}`;
 }
 
-export function WorkersPage() {
+export function WorkersPanel({ conCabecera = false }: { conCabecera?: boolean } = {}) {
   const [items, setItems] = useState<WorkerSettingDto[]>([]);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState<string | null>(null);
@@ -92,22 +91,11 @@ export function WorkersPage() {
   const escribenEncendidos = useMemo(() => items.filter((item) => item.enabled && item.writesToStore), [items]);
 
   return (
-    <section className="page-stack">
-      <PageHeader
-        title="Trabajos automáticos"
-        subtitle="Aquí sólo se enciende o se apaga. Lo que cada trabajo HACE se define en Configuración."
-        breadcrumbs={
-          <>
-            <a href="/">Inicio</a>
-            <span>/</span>
-            <a href="/superadmin">Super Admin</a>
-            <span>/</span>
-            <span>Trabajos</span>
-          </>
-        }
-      />
-
+    <section className="page-stack" id="trabajos">
       <div className="card metrics-shell">
+        <h3 className="worker-group-title">
+          {conCabecera ? "Trabajos automáticos" : "Trabajos automáticos de esta instalación"}
+        </h3>
         <p className="worker-explicacion">
           <strong>Un trabajo no se configura aquí: se enciende o se apaga.</strong> Es el motor. Las reglas que sigue
           —qué se sincroniza, en qué dirección, con qué datos— viven en Configuración. Si una regla no surte efecto, lo
