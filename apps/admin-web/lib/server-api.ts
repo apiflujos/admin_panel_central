@@ -690,7 +690,12 @@ export async function getServerSuperAdminOverview(): Promise<AdminWebSuperAdminO
 
   const [tenants, plans, services, modules, users] = await Promise.all([
     pool.query<{ total: string }>(`SELECT COUNT(*)::text AS total FROM organizations`),
+    // OJO con los nombres: son PLANTILLAS del sistema, no cosas de este
+    // cliente. La pantalla lo dice explícitamente para no confundir "hay 3
+    // plantillas de plan" con "este cliente tiene plan".
     pool.query<{ total: string }>(`SELECT COUNT(*)::text AS total FROM sa.plan_definitions`),
+    // `servicesCount` sale de limit_definitions: son LÍMITES, no servicios. El
+    // nombre del campo viene de antes; la pantalla ya no lo llama "Servicios".
     pool.query<{ total: string }>(`SELECT COUNT(*)::text AS total FROM sa.limit_definitions`),
     listModules(),
     pool.query<{

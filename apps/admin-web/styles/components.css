@@ -2201,3 +2201,22 @@
 
 .matriz-direccion-cabeza strong { font-size: 12px; }
 .matriz-direccion-cabeza > span:first-of-type { font-size: 11.5px; color: var(--text-muted); flex: 1; min-width: 140px; }
+
+/* Estado real de la instalación, en Super Admin. */
+.sa-instalacion {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.sa-dato {
+  padding: 12px 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+}
+
+.sa-dato-label { margin: 0; font-size: 11.5px; color: var(--text-muted); }
+.sa-dato strong { display: block; font-size: 24px; line-height: 1.2; margin: 2px 0 3px; }
+.sa-dato span { font-size: 11.5px; color: var(--text-muted); line-height: 1.4; }

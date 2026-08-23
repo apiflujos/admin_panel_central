@@ -11,7 +11,7 @@ export function SuperAdminPage({ overview }: { overview: AdminWebSuperAdminOverv
     <section className="page-stack">
       <PageHeader
         title="Super Admin"
-        subtitle="Clientes, planes y usuarios ApiFlujos."
+        subtitle="Datos de esta instalación y herramientas de soporte de ApiFlujos."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -25,7 +25,9 @@ export function SuperAdminPage({ overview }: { overview: AdminWebSuperAdminOverv
         <PageToolbar
           search={
             <div className="input-with-icon">
-              <span className="input-icon" aria-hidden="true"><Search size={14} strokeWidth={1.75} /></span>
+              <span className="input-icon" aria-hidden="true">
+                <Search size={14} strokeWidth={1.75} />
+              </span>
               <input
                 className="input"
                 type="search"
@@ -48,26 +50,44 @@ export function SuperAdminPage({ overview }: { overview: AdminWebSuperAdminOverv
           }
         />
 
-        <section className="metrics-kpis metrics-kpis-tight">
-          <article className="metrics-kpi metrics-kpi-primary">
-            <p className="metrics-kpi-label">Clientes</p>
+        {/*
+          Antes había cuatro indicadores que contaban PLANTILLAS, no cosas del
+          cliente: "Planes 3" eran 3 plantillas de plan definidas en el sistema,
+          no que este cliente tuviera plan. Y "Servicios" contaba en realidad
+          los límites definidos: estaba mal etiquetado.
+
+          Se sustituyen por el estado REAL de esta instalación, diciendo con
+          todas las letras lo que no está configurado.
+        */}
+        <section className="sa-instalacion">
+          <article className="sa-dato">
+            <p className="sa-dato-label">Clientes en esta instalación</p>
             <strong>{overview.tenantsCount}</strong>
+            <span>{overview.tenantsCount === 1 ? "Instalación de un solo cliente." : "Instalación compartida."}</span>
           </article>
-          <article className="metrics-kpi metrics-kpi-success">
-            <p className="metrics-kpi-label">Planes</p>
-            <strong>{overview.plansCount}</strong>
+          <article className="sa-dato">
+            <p className="sa-dato-label">Con acceso de Super Admin</p>
+            <strong>{overview.summary.usersCount}</strong>
+            <span>Pueden verlo y cambiarlo todo, incluidos los trabajos automáticos.</span>
           </article>
-          <article className="metrics-kpi metrics-kpi-warning">
-            <p className="metrics-kpi-label">Servicios</p>
-            <strong>{overview.servicesCount}</strong>
-          </article>
-          <article className="metrics-kpi metrics-kpi-primary">
-            <p className="metrics-kpi-label">Módulos</p>
+          <article className="sa-dato">
+            <p className="sa-dato-label">Módulos disponibles</p>
             <strong>{overview.modulesCount}</strong>
+            <span>Integraciones que este sistema sabe manejar.</span>
+          </article>
+          <article className="sa-dato">
+            <p className="sa-dato-label">Plantillas de plan definidas</p>
+            <strong>{overview.plansCount}</strong>
+            <span>Son plantillas del sistema. No significa que este cliente tenga un plan asignado.</span>
           </article>
         </section>
 
         <section className="card page-module-shell">
+          <h3 className="worker-group-title">Quién tiene acceso de Super Admin</h3>
+          <p className="worker-group-description">
+            Estas personas pueden cambiar la configuración de todas las tiendas y encender o apagar los trabajos
+            automáticos.
+          </p>
           <DataTable
             columns={[
               {
@@ -111,7 +131,13 @@ export function SuperAdminPage({ overview }: { overview: AdminWebSuperAdminOverv
         </section>
       </div>
 
-      <SqlConsole />
+      <section className="card page-module-shell">
+        <h3 className="worker-group-title">Consulta directa a la base de datos</h3>
+        <p className="worker-group-description">
+          Herramienta de soporte de ApiFlujos para diagnosticar con datos reales. Úsala sólo para leer.
+        </p>
+        <SqlConsole />
+      </section>
     </section>
   );
 }
