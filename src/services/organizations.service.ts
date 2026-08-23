@@ -9,9 +9,7 @@ export async function listActiveOrganizationIds(): Promise<number[]> {
     return cache.ids;
   }
   const pool = getPool();
-  const result = await pool.query<{ id: number }>(
-    `SELECT id FROM organizations ORDER BY id ASC`
-  );
+  const result = await pool.query<{ id: number }>(`SELECT id FROM organizations ORDER BY id ASC`);
   const ids = result.rows.map((row) => Number(row.id)).filter((id) => Number.isInteger(id) && id > 0);
   cache = { ids, expiresAt: now + CACHE_TTL_MS };
   return ids;

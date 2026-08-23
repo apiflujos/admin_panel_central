@@ -58,7 +58,9 @@ export async function shopifyOAuthStatus(req: Request, res: Response) {
  * fall back to the explicit APP_HOST env otherwise.
  */
 function resolveAppHost(req: Request) {
-  const explicit = String(process.env.APP_HOST || "").trim().replace(/\/$/, "");
+  const explicit = String(process.env.APP_HOST || "")
+    .trim()
+    .replace(/\/$/, "");
 
   const forwardedHost = String(req.headers["x-forwarded-host"] || "")
     .split(",")[0]
@@ -111,7 +113,9 @@ function buildHmacMessage(query: Record<string, unknown>) {
 }
 
 function validateHmac(query: Record<string, unknown>, apiSecret: string) {
-  const provided = String(query.hmac || "").trim().toLowerCase();
+  const provided = String(query.hmac || "")
+    .trim()
+    .toLowerCase();
   if (!provided || !/^[a-f0-9]+$/.test(provided)) return false;
   const message = buildHmacMessage(query);
   const digest = crypto.createHmac("sha256", apiSecret).update(message).digest("hex");
@@ -149,14 +153,7 @@ export async function startShopifyOAuth(req: Request, res: Response) {
       const store = await getStoreById(storeId);
       resolvedStoreName = store?.name || null;
     }
-    await createOAuthState(
-      shop,
-      nonce,
-      resolvedStoreName || null,
-      storeId,
-      alegraAccountId,
-      user?.id || null
-    );
+    await createOAuthState(shop, nonce, resolvedStoreName || null, storeId, alegraAccountId, user?.id || null);
     const redirectUri = `${env.appHost}/auth/callback`;
     const authorizeUrl =
       `https://${shop}/admin/oauth/authorize` +
@@ -191,9 +188,7 @@ export async function shopifyOAuthCallback(req: Request, res: Response) {
     const callbackUser = (req as { user?: { id?: number } }).user;
     const stateResult = await consumeOAuthState(shop, state, callbackUser?.id || null);
     if (!stateResult.ok) {
-      const reason = stateResult.reason === "user_mismatch"
-        ? "State pertenece a otro usuario"
-        : "State invalido";
+      const reason = stateResult.reason === "user_mismatch" ? "State pertenece a otro usuario" : "State invalido";
       return res.status(400).send(reason);
     }
     const env = await ensureOAuthEnv(req, stateResult.storeId);
@@ -284,9 +279,7 @@ export async function saveShopifyAppCredentialsHandler(req: Request, res: Respon
   try {
     await saveShopifyAppCredentials({ apiKey, apiSecret, scopes }, storeId);
   } catch (error) {
-    return res
-      .status(400)
-      .json({ error: (error as { message?: string })?.message || "Datos invalidos" });
+    return res.status(400).json({ error: (error as { message?: string })?.message || "Datos invalidos" });
   }
   return res.status(200).json({ ok: true });
 }

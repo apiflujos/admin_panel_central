@@ -45,9 +45,7 @@ describe("upsertProduct — safeguard cross-key collision (H6)", () => {
     const updateArgs = poolQueryMock.mock.calls[1][1] as unknown[];
     // alegraId es param $3 → índice 2 en el array.
     expect(updateArgs[2]).toBe(null); // safeAlegraId debe ser null (preserva existente)
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("cross-key collision")
-    );
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("cross-key collision"));
     warnSpy.mockRestore();
   });
 

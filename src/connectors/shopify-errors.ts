@@ -165,12 +165,7 @@ export function errorSignature(error: unknown): string {
  * Mensajes observados en producción:
  *   userErrors: [{"field":["productId"],"message":"Product does not exist"}]
  */
-const MISSING_RESOURCE_HINTS = [
-  "does not exist",
-  "was not found",
-  "could not be found",
-  "invalid global id",
-];
+const MISSING_RESOURCE_HINTS = ["does not exist", "was not found", "could not be found", "invalid global id"];
 
 export function isMissingShopifyResourceError(error: unknown): boolean {
   const parts: string[] = [];

@@ -167,7 +167,11 @@ async function main() {
       console.log("Muestra de duplicados (hasta 20):");
       dups
         .slice(0, 20)
-        .forEach((d) => console.log(`  #${d.id} | ${d.name.slice(0, 40)} | ini=${d.ini} disp=${d.avail} | vendido=${d.sold ? "SI" : "NO"}`));
+        .forEach((d) =>
+          console.log(
+            `  #${d.id} | ${d.name.slice(0, 40)} | ini=${d.ini} disp=${d.avail} | vendido=${d.sold ? "SI" : "NO"}`
+          )
+        );
     }
   });
 }

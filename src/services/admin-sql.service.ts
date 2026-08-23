@@ -26,9 +26,7 @@ export async function executeAdminSql(
   const pool = getPool();
   const started = Date.now();
   // Auditoría: quién ejecutó qué (los logs quedan en pm2). No registra resultados.
-  console.log(
-    `[SA-SQL] user=${meta?.email || meta?.userId || "?"} :: ${trimmed.replace(/\s+/g, " ").slice(0, 800)}`
-  );
+  console.log(`[SA-SQL] user=${meta?.email || meta?.userId || "?"} :: ${trimmed.replace(/\s+/g, " ").slice(0, 800)}`);
   const result = (await pool.query(trimmed)) as unknown as {
     command?: string;
     rowCount?: number | null;

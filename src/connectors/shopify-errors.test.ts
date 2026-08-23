@@ -19,7 +19,7 @@ describe("classifyShopifyError", () => {
   it("marca como PERMANENTE una mutación que ya no existe en el esquema", () => {
     // ~1.433.557 ocurrencias en producción.
     const error = new ShopifyRequestError(
-      'Shopify GraphQL errors: [{"message":"Field \'productVariantUpdate\' doesn\'t exist on type \'Mutation\'"}]',
+      "Shopify GraphQL errors: [{\"message\":\"Field 'productVariantUpdate' doesn't exist on type 'Mutation'\"}]",
       {
         status: 200,
         graphQlErrors: [
@@ -122,18 +122,14 @@ describe("toShopifyGid", () => {
     // `productVariantsBulkUpdate` los rechaza con
     // "Invalid global id '9820787179750'".
     expect(toShopifyGid("Product", "9820787179750")).toBe("gid://shopify/Product/9820787179750");
-    expect(toShopifyGid("ProductVariant", "48211137855718")).toBe(
-      "gid://shopify/ProductVariant/48211137855718"
-    );
+    expect(toShopifyGid("ProductVariant", "48211137855718")).toBe("gid://shopify/ProductVariant/48211137855718");
     expect(toShopifyGid("InventoryItem", "123")).toBe("gid://shopify/InventoryItem/123");
   });
 
   it("deja intacto lo que ya es un global id", () => {
     const gid = "gid://shopify/Product/9820787179750";
     expect(toShopifyGid("Product", gid)).toBe(gid);
-    expect(toShopifyGid("ProductVariant", "gid://shopify/ProductVariant/1")).toBe(
-      "gid://shopify/ProductVariant/1"
-    );
+    expect(toShopifyGid("ProductVariant", "gid://shopify/ProductVariant/1")).toBe("gid://shopify/ProductVariant/1");
   });
 
   it("no inventa un gid a partir de basura: deja que Shopify se queje", () => {
@@ -155,7 +151,10 @@ describe("isMissingShopifyResourceError", () => {
   it("reconoce un global id que Shopify no acepta", () => {
     const error = new ShopifyRequestError("Shopify GraphQL errors", {
       graphQlErrors: [
-        { message: "Variable $productId of type ID! was provided invalid value", extensions: { code: "INVALID_VARIABLE" } },
+        {
+          message: "Variable $productId of type ID! was provided invalid value",
+          extensions: { code: "INVALID_VARIABLE" },
+        },
       ],
     });
     // El mensaje del problema viaja en graphQlErrors; basta con que aparezca.

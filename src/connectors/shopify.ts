@@ -191,17 +191,15 @@ export class ShopifyClient {
    * HTTP y GraphQL mientras Shopify rechazaba el cambio en `userErrors`, y el
    * sync lo daba por bueno (fallo silencioso).
    */
-  private async mutate<T extends Record<string, { userErrors?: Array<{ field?: string[] | null; message: string }> } | undefined>>(
-    body: GraphQlRequest,
-    mutationName: keyof T & string
-  ): Promise<T> {
+  private async mutate<
+    T extends Record<string, { userErrors?: Array<{ field?: string[] | null; message: string }> } | undefined>,
+  >(body: GraphQlRequest, mutationName: keyof T & string): Promise<T> {
     const data = await this.request<T>(body);
     const userErrors = data?.[mutationName]?.userErrors;
     if (Array.isArray(userErrors) && userErrors.length) {
-      throw new ShopifyRequestError(
-        `Shopify ${mutationName} userErrors: ${JSON.stringify(userErrors)}`,
-        { userErrors }
-      );
+      throw new ShopifyRequestError(`Shopify ${mutationName} userErrors: ${JSON.stringify(userErrors)}`, {
+        userErrors,
+      });
     }
     return data;
   }
@@ -214,12 +212,12 @@ export class ShopifyClient {
    * producto deben pasarlo; este atajo cubre a los que sólo tienen el variantId.
    */
   async getProductIdByVariantId(variantId: string) {
-    const data = await this.request<{ productVariant: { id: string; product?: { id: string } | null } | null }>(
-      <GraphQlRequest>{
-        query: PRODUCT_ID_BY_VARIANT_QUERY,
-        variables: { id: toShopifyGid("ProductVariant", variantId) },
-      }
-    );
+    const data = await this.request<{ productVariant: { id: string; product?: { id: string } | null } | null }>(<
+      GraphQlRequest
+    >{
+      query: PRODUCT_ID_BY_VARIANT_QUERY,
+      variables: { id: toShopifyGid("ProductVariant", variantId) },
+    });
     const productId = data.productVariant?.product?.id;
     if (!productId) {
       throw new ShopifyRequestError(`No se pudo resolver el producto de la variante ${variantId}`);
@@ -471,9 +469,7 @@ export class ShopifyClient {
     const productId = created.productCreate?.product?.id;
     const defaultVariantId = created.productCreate?.product?.variants?.edges?.[0]?.node?.id;
     if (!productId || !defaultVariantId) {
-      throw new ShopifyRequestError(
-        `productCreate no devolvió producto/variante para "${input.title}"`
-      );
+      throw new ShopifyRequestError(`productCreate no devolvió producto/variante para "${input.title}"`);
     }
 
     // Paso 2: aplicar los datos de la variante inicial. El SKU vive ahora en
@@ -528,11 +524,7 @@ export class ShopifyClient {
     };
   }
 
-  async updateVariantInventoryPolicy(
-    variantId: string,
-    policy: "CONTINUE" | "DENY",
-    productId?: string | null
-  ) {
+  async updateVariantInventoryPolicy(variantId: string, policy: "CONTINUE" | "DENY", productId?: string | null) {
     const resolvedProductId = productId || (await this.getProductIdByVariantId(variantId));
     return this.mutate<{ productVariantsBulkUpdate: ShopifyMutationResult }>(
       <GraphQlRequest>{
@@ -698,11 +690,7 @@ export class ShopifyClient {
    * @param motivo por qué se cambia el estado. `"sin_stock"` identifica la
    * despublicación obligatoria por falta de existencias, que nunca se frena.
    */
-  async updateProductStatus(
-    productId: string,
-    publish: boolean,
-    motivo: "sin_stock" | "otro" = "otro"
-  ) {
+  async updateProductStatus(productId: string, publish: boolean, motivo: "sin_stock" | "otro" = "otro") {
     if (!publish && motivo !== "sin_stock") {
       const veredicto = registerUnpublish(this.config.shopDomain);
       if (!veredicto.allowed) {

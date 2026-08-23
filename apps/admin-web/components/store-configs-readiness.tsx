@@ -4,11 +4,7 @@ import type { StoreConfigReadiness } from "../lib/store-config-readiness";
 
 export function StoreConfigsReadiness({ readiness }: { readiness: StoreConfigReadiness }) {
   const title =
-    readiness.level === "ok"
-      ? "Listo para guardar"
-      : readiness.level === "critical"
-        ? "Bloqueado"
-        : "Atención";
+    readiness.level === "ok" ? "Listo para guardar" : readiness.level === "critical" ? "Bloqueado" : "Atención";
 
   const toneClass =
     readiness.level === "ok"

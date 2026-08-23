@@ -20,15 +20,14 @@ export type InventoryWarehouseSelection = {
   components: readonly string[];
 };
 
-export function sumWarehouseInventory(
-  stockByWarehouse: StockByWarehouse,
-  warehouses: readonly string[]
-): number {
+export function sumWarehouseInventory(stockByWarehouse: StockByWarehouse, warehouses: readonly string[]): number {
   return warehouses.reduce((sum, warehouse) => sum + Number(stockByWarehouse[warehouse] || 0), 0);
 }
 
 export function resolveInventoryWarehouseSelection(rawWarehouse: string): InventoryWarehouseSelection {
-  const normalized = String(rawWarehouse || "").trim().toLowerCase();
+  const normalized = String(rawWarehouse || "")
+    .trim()
+    .toLowerCase();
   if (SHOPIFY_WAREHOUSE_LABELS.has(normalized)) {
     return {
       warehouse: SHOPIFY_WAREHOUSE_NAME,
@@ -41,10 +40,7 @@ export function resolveInventoryWarehouseSelection(rawWarehouse: string): Invent
   };
 }
 
-export function resolveSelectedInventoryQuantity(
-  stockByWarehouse: StockByWarehouse,
-  rawWarehouse: string
-): number {
+export function resolveSelectedInventoryQuantity(stockByWarehouse: StockByWarehouse, rawWarehouse: string): number {
   const selection = resolveInventoryWarehouseSelection(rawWarehouse);
   if (selection.components.length) {
     return sumWarehouseInventory(stockByWarehouse, selection.components);
@@ -52,10 +48,7 @@ export function resolveSelectedInventoryQuantity(
   return Number(stockByWarehouse[selection.warehouse] || 0);
 }
 
-export function hasPositiveInventory(
-  stockByWarehouse: StockByWarehouse,
-  warehouses?: readonly string[]
-): boolean {
+export function hasPositiveInventory(stockByWarehouse: StockByWarehouse, warehouses?: readonly string[]): boolean {
   if (warehouses?.length) {
     return sumWarehouseInventory(stockByWarehouse, warehouses) > 0;
   }

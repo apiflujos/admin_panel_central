@@ -178,8 +178,7 @@ export async function saveMapping(record: MappingRecord) {
   const orgId = getOrgId();
   // El shopDomain se persiste SIEMPRE que se conozca: es lo que permite
   // distinguir los mapeos de cada tienda en una organización multi-tienda.
-  const shopDomain =
-    record.shopDomain || (record.metadata?.shopDomain as string | undefined) || undefined;
+  const shopDomain = record.shopDomain || (record.metadata?.shopDomain as string | undefined) || undefined;
   const metadata = {
     ...(record.metadata || {}),
     shopifyInventoryItemId: record.shopifyInventoryItemId,
@@ -225,9 +224,7 @@ export async function updateMappingMetadata(entity: string, alegraId: string, me
 
 async function findExistingMappingId(record: MappingRecord, orgId: number) {
   const pool = getPool();
-  const domain = String(
-    record.shopDomain || (record.metadata?.shopDomain as string | undefined) || ""
-  ).trim();
+  const domain = String(record.shopDomain || (record.metadata?.shopDomain as string | undefined) || "").trim();
   if (record.alegraId) {
     // Igual que en la lectura: sin filtrar por tienda, guardar el mapeo de una
     // tienda SOBRESCRIBÍA el de la otra, y ambas se pisaban en cada pasada.

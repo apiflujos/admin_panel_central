@@ -124,7 +124,9 @@ function writeUnmatchedOutputs(paths: ReportOutputPaths, unmatched: PublicationU
   const headers = ["reference", "parentName", "variantLabel", "name", "selectedQuantity", "reason"];
   const csvLines = [
     headers.join(","),
-    ...unmatched.map((row) => headers.map((header) => escapeCsv(row[header as keyof PublicationUnmatchedRow])).join(",")),
+    ...unmatched.map((row) =>
+      headers.map((header) => escapeCsv(row[header as keyof PublicationUnmatchedRow])).join(",")
+    ),
   ];
   fs.writeFileSync(paths.unmatchedJsonPath, JSON.stringify(unmatched, null, 2));
   fs.writeFileSync(paths.unmatchedCsvPath, csvLines.join("\n"));
@@ -250,29 +252,44 @@ export class ShopifyApiClient {
           variants: {
             edges: ((node.variants?.edges || []) as Array<Record<string, unknown>>).map((variantEdge) => ({
               node: {
-                productId: String(((variantEdge.node as { productId?: { id?: string } } | undefined)?.productId?.id) || node.id || ""),
-                productTitle: String(((variantEdge.node as { productTitle?: { title?: string } } | undefined)?.productTitle?.title) || node.title || ""),
-                productStatus: String(((variantEdge.node as { productStatus?: { status?: string } } | undefined)?.productStatus?.status) || node.status || ""),
-                variantId: String(((variantEdge.node as { variantId?: string } | undefined)?.variantId) || ""),
-                variantTitle: String(((variantEdge.node as { variantTitle?: string } | undefined)?.variantTitle) || ""),
-                sku: String(((variantEdge.node as { sku?: string } | undefined)?.sku) || "").trim(),
-                barcode: String(((variantEdge.node as { barcode?: string } | undefined)?.barcode) || "").trim(),
-                price: ((variantEdge.node as { price?: string | null } | undefined)?.price)
+                productId: String(
+                  (variantEdge.node as { productId?: { id?: string } } | undefined)?.productId?.id || node.id || ""
+                ),
+                productTitle: String(
+                  (variantEdge.node as { productTitle?: { title?: string } } | undefined)?.productTitle?.title ||
+                    node.title ||
+                    ""
+                ),
+                productStatus: String(
+                  (variantEdge.node as { productStatus?: { status?: string } } | undefined)?.productStatus?.status ||
+                    node.status ||
+                    ""
+                ),
+                variantId: String((variantEdge.node as { variantId?: string } | undefined)?.variantId || ""),
+                variantTitle: String((variantEdge.node as { variantTitle?: string } | undefined)?.variantTitle || ""),
+                sku: String((variantEdge.node as { sku?: string } | undefined)?.sku || "").trim(),
+                barcode: String((variantEdge.node as { barcode?: string } | undefined)?.barcode || "").trim(),
+                price: (variantEdge.node as { price?: string | null } | undefined)?.price
                   ? String((variantEdge.node as { price?: string | null }).price)
                   : null,
-                compareAtPrice: ((variantEdge.node as { compareAtPrice?: string | null } | undefined)?.compareAtPrice)
+                compareAtPrice: (variantEdge.node as { compareAtPrice?: string | null } | undefined)?.compareAtPrice
                   ? String((variantEdge.node as { compareAtPrice?: string | null }).compareAtPrice)
                   : null,
-                inventoryQuantity: Number.isFinite(Number((variantEdge.node as { inventoryQuantity?: number | null } | undefined)?.inventoryQuantity))
+                inventoryQuantity: Number.isFinite(
+                  Number((variantEdge.node as { inventoryQuantity?: number | null } | undefined)?.inventoryQuantity)
+                )
                   ? Number((variantEdge.node as { inventoryQuantity?: number | null } | undefined)?.inventoryQuantity)
                   : null,
                 inventoryItemId: String(
-                  ((variantEdge.node as { inventoryItem?: { id?: string } } | undefined)?.inventoryItem?.id) || ""
+                  (variantEdge.node as { inventoryItem?: { id?: string } } | undefined)?.inventoryItem?.id || ""
                 ).trim(),
-                selectedOptions: Array.isArray((variantEdge.node as { selectedOptions?: Array<{ value?: string | null }> } | undefined)?.selectedOptions)
-                  ? ((variantEdge.node as { selectedOptions?: Array<{ value?: string | null }> }).selectedOptions || []).map((item) =>
-                      String((item as unknown as { value?: string })?.value || "")
-                    )
+                selectedOptions: Array.isArray(
+                  (variantEdge.node as { selectedOptions?: Array<{ value?: string | null }> } | undefined)
+                    ?.selectedOptions
+                )
+                  ? (
+                      (variantEdge.node as { selectedOptions?: Array<{ value?: string | null }> }).selectedOptions || []
+                    ).map((item) => String((item as unknown as { value?: string })?.value || ""))
                   : [],
               },
             })),
@@ -366,7 +383,9 @@ export class ShopifyApiClient {
 export async function loadShopifyPublicationConfig(
   options: ShopifyPublicationCliOptions
 ): Promise<LoadedShopifyPublicationConfig> {
-  const directDomain = normalizeShopDomain(options.shopDomain || process.env.SHOP_DOMAIN || process.env.SHOPIFY_DOMAIN || "");
+  const directDomain = normalizeShopDomain(
+    options.shopDomain || process.env.SHOP_DOMAIN || process.env.SHOPIFY_DOMAIN || ""
+  );
   const directToken = String(process.env.SHOPIFY_ACCESS_TOKEN || "").trim();
 
   if (directDomain && directToken) {
@@ -460,7 +479,12 @@ export function filterPreparedRowsForPublication(
     (row) =>
       row.reference &&
       (options.includeHidden || row.visibleInStore) &&
-      (!requestedReferences.size || requestedReferences.has(String(row.reference || "").trim().toUpperCase()))
+      (!requestedReferences.size ||
+        requestedReferences.has(
+          String(row.reference || "")
+            .trim()
+            .toUpperCase()
+        ))
   );
   return options.limit > 0 ? sourceRows.slice(0, options.limit) : sourceRows;
 }
@@ -501,7 +525,10 @@ export async function applyInventoryUpdates(
   updates: PublicationMatchedRow[],
   batchSize: number
 ): Promise<{ appliedRows: number; batchResults: Array<Record<string, unknown>> }> {
-  const batches = chunk(dedupeBy(updates, (item) => item.inventoryItemId), Math.max(1, batchSize));
+  const batches = chunk(
+    dedupeBy(updates, (item) => item.inventoryItemId),
+    Math.max(1, batchSize)
+  );
   const batchResults: Array<Record<string, unknown>> = [];
   let appliedRows = 0;
 
@@ -567,7 +594,13 @@ export async function applyPriceUpdates(
 ): Promise<{ appliedPriceRows: number; priceBatchResults: Array<Record<string, unknown>> }> {
   const priceGroups = new Map<
     string,
-    Array<{ variantId: string; price: string | null; compareAtPrice: string | null; reference: string; variantLabel: string }>
+    Array<{
+      variantId: string;
+      price: string | null;
+      compareAtPrice: string | null;
+      reference: string;
+      variantLabel: string;
+    }>
   >();
 
   for (const item of dedupeBy(updates, (row) => row.variantId)) {

@@ -7,21 +7,17 @@ import {
 
 describe("domain/shopify-product-sync", () => {
   it("prioriza SKU cuando la regla lo indica", () => {
-    expect(
-      pickShopifyVariantIdentifier(
-        { sku: "SKU-1", barcode: "BAR-1" },
-        ["sku", "barcode"]
-      )
-    ).toEqual({ identifier: "SKU-1", sku: "SKU-1" });
+    expect(pickShopifyVariantIdentifier({ sku: "SKU-1", barcode: "BAR-1" }, ["sku", "barcode"])).toEqual({
+      identifier: "SKU-1",
+      sku: "SKU-1",
+    });
   });
 
   it("puede usar barcode si es la prioridad", () => {
-    expect(
-      pickShopifyVariantIdentifier(
-        { sku: "SKU-1", barcode: "BAR-1" },
-        ["barcode", "sku"]
-      )
-    ).toEqual({ identifier: "BAR-1", sku: "SKU-1" });
+    expect(pickShopifyVariantIdentifier({ sku: "SKU-1", barcode: "BAR-1" }, ["barcode", "sku"])).toEqual({
+      identifier: "BAR-1",
+      sku: "SKU-1",
+    });
   });
 
   it("arma un nombre de item consistente para Alegra", () => {

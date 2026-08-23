@@ -40,15 +40,7 @@ export async function createOAuthState(
     )
     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
     `,
-    [
-      orgId,
-      normalized,
-      nonce,
-      storeName || null,
-      storeId || null,
-      alegraAccountId || null,
-      initiatedByUserId || null,
-    ]
+    [orgId, normalized, nonce, storeName || null, storeId || null, alegraAccountId || null, initiatedByUserId || null]
   );
 }
 

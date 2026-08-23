@@ -58,12 +58,7 @@ export function ProductPublishButton({
   return (
     <span className="product-publish-cell">
       {published ? (
-        <button
-          className="btn ghost btn-compact"
-          type="button"
-          disabled={loading}
-          onClick={() => void unpublish()}
-        >
+        <button className="btn ghost btn-compact" type="button" disabled={loading} onClick={() => void unpublish()}>
           {loading ? "Despublicando…" : "Despublicar"}
         </button>
       ) : (

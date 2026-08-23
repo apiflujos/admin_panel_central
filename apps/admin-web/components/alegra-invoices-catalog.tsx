@@ -165,7 +165,12 @@ export function AlegraInvoicesCatalog() {
           <small>Todas las facturas de Alegra (incluidas las que no vienen de un pedido). {total} en total.</small>
         </div>
         <div className="page-module-actions">
-          <button className="btn ghost btn-compact" type="button" onClick={() => void loadList()} disabled={loadingList}>
+          <button
+            className="btn ghost btn-compact"
+            type="button"
+            onClick={() => void loadList()}
+            disabled={loadingList}
+          >
             Refrescar
           </button>
           <button className="btn primary btn-compact" type="button" onClick={() => setOpen(true)}>

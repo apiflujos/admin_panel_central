@@ -1,6 +1,10 @@
 import "dotenv/config";
 import path from "path";
-import { findDefaultWorkbook, prepareInventoryWorkbook, writePreparedOutputs } from "../services/xlsx-inventory-preparation.service";
+import {
+  findDefaultWorkbook,
+  prepareInventoryWorkbook,
+  writePreparedOutputs,
+} from "../services/xlsx-inventory-preparation.service";
 
 type CliArgs = {
   xlsxPath: string;
@@ -47,7 +51,9 @@ async function main() {
     console.error(
       "Uso: ts-node-dev src/scripts/prepare-shopify-inventory-from-xlsx.ts <archivo.xlsx> [--sheet=item] [--warehouse=Bodega Pagina Web] [--out-dir=./salida]"
     );
-    console.error("No se encontro un Excel por defecto con nombre 'Actualizacion Precios e Inventarios 29abr26*.xlsx'.");
+    console.error(
+      "No se encontro un Excel por defecto con nombre 'Actualizacion Precios e Inventarios 29abr26*.xlsx'."
+    );
     process.exit(1);
   }
 

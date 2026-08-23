@@ -16,7 +16,9 @@ describe("domain/dashboard", () => {
         },
         orders: {
           total: 33,
-          items: [{ shopify_order_id: "10", shopify_order_number: "#1001", customer_name: "Ana", alegra_status: "facturado" }],
+          items: [
+            { shopify_order_id: "10", shopify_order_number: "#1001", customer_name: "Ana", alegra_status: "facturado" },
+          ],
         },
         logs: {
           items: [{ id: 9, entity: "order", message: "Reintento pendiente", status: "fail" }],

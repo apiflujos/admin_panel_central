@@ -1,16 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const {
-  getAlegraCredentialMock,
-  getAlegraConnectionByDomainMock,
-  syncAlegraInventoryByIdMock,
-  getAlegraBaseUrlMock,
-} = vi.hoisted(() => ({
-  getAlegraCredentialMock: vi.fn(),
-  getAlegraConnectionByDomainMock: vi.fn(),
-  syncAlegraInventoryByIdMock: vi.fn(),
-  getAlegraBaseUrlMock: vi.fn(),
-}));
+const { getAlegraCredentialMock, getAlegraConnectionByDomainMock, syncAlegraInventoryByIdMock, getAlegraBaseUrlMock } =
+  vi.hoisted(() => ({
+    getAlegraCredentialMock: vi.fn(),
+    getAlegraConnectionByDomainMock: vi.fn(),
+    syncAlegraInventoryByIdMock: vi.fn(),
+    getAlegraBaseUrlMock: vi.fn(),
+  }));
 
 vi.mock("./settings.service", () => ({
   getAlegraCredential: getAlegraCredentialMock,

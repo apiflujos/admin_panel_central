@@ -2,7 +2,11 @@ import "dotenv/config";
 import fs from "fs";
 import path from "path";
 
-import { findDefaultWorkbook, prepareInventoryWorkbook, writePreparedOutputs } from "../services/xlsx-inventory-preparation.service";
+import {
+  findDefaultWorkbook,
+  prepareInventoryWorkbook,
+  writePreparedOutputs,
+} from "../services/xlsx-inventory-preparation.service";
 import {
   applyInventoryUpdates,
   applyPriceUpdates,
@@ -65,7 +69,8 @@ function parseArgs(argv: string[]): CliArgs {
     else if (arg.startsWith("--api-version=")) args.apiVersion = arg.slice("--api-version=".length).trim();
     else if (arg.startsWith("--location-id=")) args.locationId = arg.slice("--location-id=".length).trim();
     else if (arg.startsWith("--limit=")) args.limit = Math.max(0, Number(arg.slice("--limit=".length)) || 0);
-    else if (arg.startsWith("--batch-size=")) args.batchSize = Math.max(1, Number(arg.slice("--batch-size=".length)) || 50);
+    else if (arg.startsWith("--batch-size="))
+      args.batchSize = Math.max(1, Number(arg.slice("--batch-size=".length)) || 50);
     else if (arg === "--apply") args.apply = true;
     else if (arg === "--include-hidden") args.includeHidden = true;
   }
@@ -82,7 +87,9 @@ async function main() {
     console.error(
       "Uso: ts-node-dev src/scripts/publish-shopify-inventory-from-xlsx.ts <archivo.xlsx> [--warehouse=Bodega Pagina Web] [--shop-domain=tienda.myshopify.com] [--apply]"
     );
-    console.error("No se encontro un Excel por defecto con nombre 'Actualizacion Precios e Inventarios 29abr26*.xlsx'.");
+    console.error(
+      "No se encontro un Excel por defecto con nombre 'Actualizacion Precios e Inventarios 29abr26*.xlsx'."
+    );
     process.exit(1);
   }
 
@@ -131,7 +138,8 @@ async function main() {
         shopify,
         locationId,
         plan.matched.filter(
-          (item: (typeof plan.matched)[number]) => Number(item.previousInventoryQuantity) !== Number(item.selectedQuantity)
+          (item: (typeof plan.matched)[number]) =>
+            Number(item.previousInventoryQuantity) !== Number(item.selectedQuantity)
         ),
         args.batchSize
       );

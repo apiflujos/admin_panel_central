@@ -83,7 +83,9 @@ export function InvoicesPage({ result }: { result: AdminWebInvoicesListDto }) {
       <PageToolbar
         search={
           <div className="input-with-icon">
-            <span className="input-icon" aria-hidden="true"><Search size={14} strokeWidth={1.75} /></span>
+            <span className="input-icon" aria-hidden="true">
+              <Search size={14} strokeWidth={1.75} />
+            </span>
             <input
               className="input"
               type="search"

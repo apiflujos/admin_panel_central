@@ -6,13 +6,7 @@ import { apiFetch } from "../lib/api";
 
 type Phase = "idle" | "sending" | "done" | "error";
 
-export function OrderInvoiceButton({
-  orderId,
-  alreadyInvoiced,
-}: {
-  orderId: string | null;
-  alreadyInvoiced: boolean;
-}) {
+export function OrderInvoiceButton({ orderId, alreadyInvoiced }: { orderId: string | null; alreadyInvoiced: boolean }) {
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState("");

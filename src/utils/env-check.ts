@@ -25,12 +25,7 @@ const HARD_REQUIRED = ["DATABASE_URL", "CRYPTO_KEY_BASE64"] as const;
 
 // App Shopify (para OAuth flow desde el wizard). Sin ellas el modo OAuth no funciona,
 // pero el modo "token manual" sí. Warning, no fail.
-const SHOPIFY_OAUTH_ENV = [
-  "SHOPIFY_API_KEY",
-  "SHOPIFY_API_SECRET",
-  "SHOPIFY_SCOPES",
-  "APP_HOST",
-] as const;
+const SHOPIFY_OAUTH_ENV = ["SHOPIFY_API_KEY", "SHOPIFY_API_SECRET", "SHOPIFY_SCOPES", "APP_HOST"] as const;
 
 // Solo para deploys que reciben webhooks Shopify directos.
 const SHOPIFY_WEBHOOK_ENV = ["SHOPIFY_WEBHOOK_SECRET"] as const;

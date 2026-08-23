@@ -23,7 +23,11 @@ export function extractAlegraIdentifiers(item: AlegraItemIdentifier): string[] {
 }
 
 export function isAlegraStatusInactive(status: unknown): boolean {
-  return String(status || "").trim().toLowerCase() === "inactive";
+  return (
+    String(status || "")
+      .trim()
+      .toLowerCase() === "inactive"
+  );
 }
 
 /**

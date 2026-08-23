@@ -1,8 +1,4 @@
-import type {
-  AlegraInventoryRecord,
-  ProductSyncMatchPriority,
-  ShopifyVariantIdentifier,
-} from "../../shared/src";
+import type { AlegraInventoryRecord, ProductSyncMatchPriority, ShopifyVariantIdentifier } from "../../shared/src";
 
 export function coerceDecimal(value: unknown): number | null {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
@@ -48,9 +44,9 @@ export function resolveAlegraWarehouseQuantityFromRecord(
   warehouseId: string
 ): number {
   const warehouses = Array.isArray(inventory?.warehouses) ? inventory.warehouses : [];
-  const match = warehouses.find(
-    (warehouse) => String(warehouse?.id || "").trim() === String(warehouseId || "").trim()
+  const match = warehouses.find((warehouse) => String(warehouse?.id || "").trim() === String(warehouseId || "").trim());
+  const qty = coerceDecimal(
+    match?.availableQuantity ?? match?.quantity ?? inventory?.availableQuantity ?? inventory?.quantity
   );
-  const qty = coerceDecimal(match?.availableQuantity ?? match?.quantity ?? inventory?.availableQuantity ?? inventory?.quantity);
   return qty ?? 0;
 }

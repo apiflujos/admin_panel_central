@@ -41,12 +41,7 @@ describe("domain/xlsx-inventory", () => {
       warehouse: "Bodegas Shopify",
       header: "Bodegas Shopify",
       column: "",
-      components: [
-        "Bodega Granada",
-        "Bodega Holguines",
-        "Bodega La Leyenda",
-        "Bodega Barranquilla",
-      ],
+      components: ["Bodega Granada", "Bodega Holguines", "Bodega La Leyenda", "Bodega Barranquilla"],
     });
   });
 

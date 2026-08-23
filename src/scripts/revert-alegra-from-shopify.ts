@@ -94,11 +94,21 @@ async function main() {
         if (sku) bySku.set(sku, { barcode, price: String(v.price ?? "") });
       }
     }
-    console.log(`Shopify: ${products.length} productos, ${bySku.size} SKUs. Con barcode EAN: ` +
-      `${[...bySku.values()].filter((x) => /^\d{8,}$/.test(x.barcode)).length}`);
+    console.log(
+      `Shopify: ${products.length} productos, ${bySku.size} SKUs. Con barcode EAN: ` +
+        `${[...bySku.values()].filter((x) => /^\d{8,}$/.test(x.barcode)).length}`
+    );
 
     // 2) Recorrer Alegra y detectar los que hay que arreglar.
-    const targets: Array<{ id: string; name: string; curRef: string; newRef: string; curPrice: number | null; newPrice: number | null; priceFlag?: string }> = [];
+    const targets: Array<{
+      id: string;
+      name: string;
+      curRef: string;
+      newRef: string;
+      curPrice: number | null;
+      newPrice: number | null;
+      priceFlag?: string;
+    }> = [];
     let scanned = 0;
     let start = 0;
     for (;;) {
@@ -118,7 +128,15 @@ async function main() {
         if (!hit) continue; // su referencia no es un SKU de Shopify -> no es este daño (o es duplicado)
         const ean = hit.barcode;
         if (!/^\d{8,}$/.test(ean) || ean === ref) continue; // sin EAN real que restaurar
-        const t: { id: string; name: string; curRef: string; newRef: string; curPrice: number | null; newPrice: number | null; priceFlag?: string } = {
+        const t: {
+          id: string;
+          name: string;
+          curRef: string;
+          newRef: string;
+          curPrice: number | null;
+          newPrice: number | null;
+          priceFlag?: string;
+        } = {
           id: String(it.id ?? ""),
           name: String(it.name || "").slice(0, 34),
           curRef: ref,

@@ -121,7 +121,9 @@ export function BulkPublishButton() {
         }
       }
       setPhase("done");
-      setMessage(cancelRef.current ? "Detenido." : action === "publish" ? "Productos publicados." : "Productos despublicados.");
+      setMessage(
+        cancelRef.current ? "Detenido." : action === "publish" ? "Productos publicados." : "Productos despublicados."
+      );
     } catch (error) {
       setPhase("error");
       setMessage(error instanceof Error ? error.message : "No se pudo completar.");

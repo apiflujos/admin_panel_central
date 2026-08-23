@@ -2248,11 +2248,7 @@ export async function syncProductsHandler(req: Request, res: Response) {
                   Array.isArray(current.item.itemVariants) && current.item.itemVariants.length > 0
                     ? current.item.itemVariants.find((variant) => {
                         const candidateSku = String(
-                          variant?.reference ||
-                            variant?.barcode ||
-                            current.item.reference ||
-                            current.item.barcode ||
-                            ""
+                          variant?.reference || variant?.barcode || current.item.reference || current.item.barcode || ""
                         ).trim();
                         return candidateSku === sku;
                       }) || null
@@ -2935,8 +2931,7 @@ export async function syncOrdersHandler(req: Request, res: Response) {
     // Evita pull-all-history por error del operador o payload malicioso.
     const MAX_ORDERS_BULK = Math.max(1, Number(process.env.SYNC_ORDERS_MAX_BULK || 5000));
     const requestedLimit = Number(filters.limit || 0);
-    const limit =
-      requestedLimit > 0 ? Math.min(requestedLimit, MAX_ORDERS_BULK) : MAX_ORDERS_BULK;
+    const limit = requestedLimit > 0 ? Math.min(requestedLimit, MAX_ORDERS_BULK) : MAX_ORDERS_BULK;
     const orderNumber = String(filters.orderNumber || "")
       .replace(/^#/, "")
       .trim();
@@ -4031,7 +4026,7 @@ export async function bulkShopifyPublishHandler(req: Request, res: Response) {
 
     let processed = 0;
     let failed = 0;
-    let skipped = 0;
+    const skipped = 0;
     const scanned = total;
     const failedItems: Array<{ shopifyProductId: string; error: string }> = [];
 

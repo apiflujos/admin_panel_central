@@ -81,10 +81,13 @@ async function main() {
         `COALESCE(payload_json->'price','null'::jsonb) IS DISTINCT FROM $5::jsonb)`;
       try {
         if (!DO_APPLY || !CONFIRMED) {
-          const r = await pool.query<{ c: string }>(
-            `SELECT count(*)::text c FROM products WHERE ${where}`,
-            [org, it.id, name, reference, priceJson]
-          );
+          const r = await pool.query<{ c: string }>(`SELECT count(*)::text c FROM products WHERE ${where}`, [
+            org,
+            it.id,
+            name,
+            reference,
+            priceJson,
+          ]);
           const c = Number(r.rows[0]?.c || 0);
           if (c > 0) {
             itemsTouched += 1;

@@ -126,9 +126,7 @@ function loadWorkbook(filePath: string): LoadedWorkbook {
   );
   const relsXml = entries["xl/_rels/workbook.xml.rels"];
   if (!relsXml) throw new Error("No se pudo leer xl/_rels/workbook.xml.rels");
-  const rels = [...relsXml.matchAll(/<Relationship\b([^>]*)\/>/g)].map((match) =>
-    parseAttributes(match[1] || "")
-  );
+  const rels = [...relsXml.matchAll(/<Relationship\b([^>]*)\/>/g)].map((match) => parseAttributes(match[1] || ""));
   const relById = new Map(rels.map((rel) => [String(rel.Id || ""), String(rel.Target || "")]));
   const sharedStringsXml = entries["xl/sharedStrings.xml"];
   const sharedStrings = sharedStringsXml ? parseSharedStrings(sharedStringsXml) : [];
@@ -194,7 +192,9 @@ function toNumber(value: unknown): number {
 }
 
 function toBoolean(value: unknown): boolean {
-  const text = String(value || "").trim().toLowerCase();
+  const text = String(value || "")
+    .trim()
+    .toLowerCase();
   if (!text) return false;
   return ["si", "sí", "true", "1", "yes", "y"].includes(text);
 }
@@ -237,7 +237,10 @@ export function findDefaultWorkbook(): string {
   return candidates[0]?.fullPath || "";
 }
 
-export function prepareInventoryWorkbook(filePath: string, options: PrepareInventoryWorkbookOptions = {}): PreparedWorkbookResult {
+export function prepareInventoryWorkbook(
+  filePath: string,
+  options: PrepareInventoryWorkbookOptions = {}
+): PreparedWorkbookResult {
   const workbook = loadWorkbook(filePath);
   const sheet = String(options.sheet || "item").trim() || "item";
   const warehouseName = String(options.warehouse || "Bodega Pagina Web").trim() || "Bodega Pagina Web";

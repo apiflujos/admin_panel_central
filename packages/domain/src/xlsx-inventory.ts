@@ -25,7 +25,9 @@ export function resolveWorkbookWarehouseSelection(
   warehouseColumns: WorkbookWarehouseColumn[],
   summaryColumns: WorkbookWarehouseColumn[]
 ): WorkbookWarehouseSelection {
-  const normalized = String(requestedWarehouse || "").trim().toLowerCase();
+  const normalized = String(requestedWarehouse || "")
+    .trim()
+    .toLowerCase();
 
   if (SHOPIFY_WORKBOOK_LABELS.has(normalized)) {
     return {
@@ -47,7 +49,9 @@ export function resolveWorkbookWarehouseSelection(
   const exactWarehouse =
     warehouseColumns.find(
       (item) => item.warehouse.toLowerCase() === normalized || item.header.toLowerCase() === normalized
-    ) || warehouseColumns.find((item) => item.warehouse.toLowerCase().includes("pagina web")) || warehouseColumns[0];
+    ) ||
+    warehouseColumns.find((item) => item.warehouse.toLowerCase().includes("pagina web")) ||
+    warehouseColumns[0];
 
   return {
     warehouse: exactWarehouse.warehouse,
@@ -105,7 +109,8 @@ export function buildPreparedWorkbookSummary(input: {
     variantsWithSelectedStock: rows.filter((row) => row.selectedQuantity > 0).length,
     variantsWithAnyStock: rows.filter((row) => row.totalQuantity > 0).length,
     readyForShopify: rows.filter((row) => row.reference && row.visibleInStore).length,
-    readyForShopifyWithSelectedStock: rows.filter((row) => row.reference && row.visibleInStore && row.selectedQuantity > 0)
-      .length,
+    readyForShopifyWithSelectedStock: rows.filter(
+      (row) => row.reference && row.visibleInStore && row.selectedQuantity > 0
+    ).length,
   };
 }

@@ -22,8 +22,7 @@ import { syncShopifyOrderToAlegra } from "../services/shopify-to-alegra.service"
 const argv = process.argv.slice(2);
 const APPLY = argv.includes("--apply");
 const orderId = argv.find((a) => a.startsWith("--order="))?.split("=")[1];
-const shopDomain =
-  argv.find((a) => a.startsWith("--shop="))?.split("=")[1] || "mut50d-tj.myshopify.com";
+const shopDomain = argv.find((a) => a.startsWith("--shop="))?.split("=")[1] || "mut50d-tj.myshopify.com";
 const orgId = Number(process.env.APP_ORG_ID || 1);
 
 async function main() {

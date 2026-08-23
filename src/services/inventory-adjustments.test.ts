@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getAlegraCredentialMock, getAlegraConnectionByDomainMock, syncAlegraInventoryByIdMock, fetchMock } =
-  vi.hoisted(() => ({
+const { getAlegraCredentialMock, getAlegraConnectionByDomainMock, syncAlegraInventoryByIdMock, fetchMock } = vi.hoisted(
+  () => ({
     getAlegraCredentialMock: vi.fn(),
     getAlegraConnectionByDomainMock: vi.fn(),
     syncAlegraInventoryByIdMock: vi.fn(),
     fetchMock: vi.fn(),
-  }));
+  })
+);
 
 vi.mock("./settings.service", () => ({ getAlegraCredential: getAlegraCredentialMock }));
 vi.mock("./store-connections.service", () => ({ getAlegraConnectionByDomain: getAlegraConnectionByDomainMock }));
@@ -97,14 +98,10 @@ describe("syncInventoryAdjustments — flow", () => {
   });
 
   it("cuenta failed cuando syncAlegraInventoryById rechaza", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({ data: [{ id: 1, items: [{ id: 100 }, { id: 101 }] }] })
-    );
+    fetchMock.mockResolvedValueOnce(jsonResponse({ data: [{ id: 1, items: [{ id: 100 }, { id: 101 }] }] }));
     fetchMock.mockResolvedValueOnce(jsonResponse({ data: [] }));
 
-    syncAlegraInventoryByIdMock
-      .mockResolvedValueOnce({ synced: true })
-      .mockRejectedValueOnce(new Error("Alegra 500"));
+    syncAlegraInventoryByIdMock.mockResolvedValueOnce({ synced: true }).mockRejectedValueOnce(new Error("Alegra 500"));
 
     const result = await syncInventoryAdjustments(new URLSearchParams(), { autoPublish: true });
 

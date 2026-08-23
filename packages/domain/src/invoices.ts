@@ -72,7 +72,11 @@ export function normalizeInvoicesListFilters(input: InvoicesListFiltersInput): N
 }
 
 export function toAdminWebInvoiceRowDto(item: InvoiceListServiceItem): AdminWebInvoiceRowDto {
-  const invoiceId = item.alegra_invoice_id ? String(item.alegra_invoice_id) : item.invoiceId ? String(item.invoiceId) : "";
+  const invoiceId = item.alegra_invoice_id
+    ? String(item.alegra_invoice_id)
+    : item.invoiceId
+      ? String(item.invoiceId)
+      : "";
   return {
     id: invoiceId,
     invoiceId,

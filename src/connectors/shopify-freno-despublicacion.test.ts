@@ -15,9 +15,12 @@ describe("freno de despublicación masiva", () => {
     resetUnpublishLimiterForTests();
     cliente = new ShopifyClient({ shopDomain: "tienda.myshopify.com", accessToken: "x" });
     // Ninguna petición debe llegar a la red: el freno actúa antes.
-    vi.stubGlobal("fetch", vi.fn(async () => {
-      throw new Error("no debería llamarse a la red");
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("no debería llamarse a la red");
+      })
+    );
   });
 
   afterEach(() => {
@@ -72,9 +75,9 @@ describe("freno de despublicación masiva", () => {
     // existencias hay que despublicar, aunque sean cientos a la vez.
     process.env.SHOPIFY_MAX_UNPUBLISH_PER_HOUR = "1";
     for (let i = 0; i < 30; i += 1) {
-      await expect(
-        cliente.updateProductStatus("gid://shopify/Product/1", false, "sin_stock")
-      ).rejects.toThrow(/no debería llamarse a la red/);
+      await expect(cliente.updateProductStatus("gid://shopify/Product/1", false, "sin_stock")).rejects.toThrow(
+        /no debería llamarse a la red/
+      );
     }
   });
 
@@ -82,9 +85,7 @@ describe("freno de despublicación masiva", () => {
     process.env.SHOPIFY_MAX_UNPUBLISH_PER_HOUR = "2";
     // 10 por falta de stock: no gastan cupo.
     for (let i = 0; i < 10; i += 1) {
-      await expect(
-        cliente.updateProductStatus("gid://shopify/Product/1", false, "sin_stock")
-      ).rejects.toThrow(/red/);
+      await expect(cliente.updateProductStatus("gid://shopify/Product/1", false, "sin_stock")).rejects.toThrow(/red/);
     }
     // El cupo de las "otras" sigue intacto: 2 pasan, la 3ª se corta.
     await expect(cliente.updateProductStatus("gid://shopify/Product/1", false)).rejects.toThrow(/red/);

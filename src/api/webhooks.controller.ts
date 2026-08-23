@@ -1,10 +1,7 @@
 import type { Request, Response } from "express";
 import { runWithOrg } from "../db";
 import { createSyncLog } from "../services/logs.service";
-import {
-  resolveOrgIdByAlegraAccountId,
-  resolveOrgIdByShopDomain,
-} from "../services/organizations.service";
+import { resolveOrgIdByAlegraAccountId, resolveOrgIdByShopDomain } from "../services/organizations.service";
 import { shopifyStoreExists } from "../services/store-connections.service";
 import { recordWebhookReceipt } from "../services/webhook-receipts.service";
 import { verifyAlegraSignature, verifyShopifyHmac } from "../utils/webhook";
@@ -164,9 +161,7 @@ export async function handleAlegraWebhook(req: Request, res: Response) {
       rawData ||
       (rawMessage ? (rawMessage.data as Record<string, unknown> | undefined) : undefined) ||
       (rawMessage ? (rawMessage.item as Record<string, unknown> | undefined) : undefined);
-    const normalizedPayload = nestedData
-      ? { data: nestedData, __shopDomain: shopDomain || undefined }
-      : rawBody;
+    const normalizedPayload = nestedData ? { data: nestedData, __shopDomain: shopDomain || undefined } : rawBody;
     const normalizedEventType = normalizeAlegraEvent(eventType);
     // Enqueue SÍNCRONO — antes de responder — para no perder eventos si el proceso muere post-ACK.
     try {

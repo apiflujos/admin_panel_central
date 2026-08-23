@@ -221,10 +221,12 @@ describe("sync.service webhook flows", () => {
     const { enqueueWebhookEvent } = await import("./sync.service");
     const result = await enqueueWebhookEvent(webhookEvent);
 
-    expect(poolQueryMock).toHaveBeenCalledWith(
-      expect.stringContaining("INSERT INTO webhook_events"),
-      ["org-1", "shopify", "orders/create", webhookEvent.payload]
-    );
+    expect(poolQueryMock).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO webhook_events"), [
+      "org-1",
+      "shopify",
+      "orders/create",
+      webhookEvent.payload,
+    ]);
     expect(publishWebhookEventMock).toHaveBeenCalledWith({
       webhookEventId: 101,
       orgId: "org-1",
@@ -261,11 +263,7 @@ describe("sync.service webhook flows", () => {
       expect.stringContaining("INSERT INTO sync_logs"),
       expect.arrayContaining(["org-1", "order", "shopify->alegra", "Order webhook processed"])
     );
-    expect(clientQueryMock).toHaveBeenNthCalledWith(
-      3,
-      expect.stringContaining("INSERT INTO retry_queue"),
-      [202]
-    );
+    expect(clientQueryMock).toHaveBeenNthCalledWith(3, expect.stringContaining("INSERT INTO retry_queue"), [202]);
     expect(clientQueryMock).toHaveBeenNthCalledWith(4, "COMMIT");
     expect(result).toEqual({
       status: "queued",
@@ -288,11 +286,12 @@ describe("sync.service webhook flows", () => {
     const result = await enqueueWebhookEvent(webhookEvent);
 
     expect(publishWebhookEventMock).not.toHaveBeenCalled();
-    expect(clientQueryMock).toHaveBeenNthCalledWith(
-      2,
-      expect.stringContaining("INSERT INTO webhook_events"),
-      ["org-1", "shopify", "orders/create", webhookEvent.payload]
-    );
+    expect(clientQueryMock).toHaveBeenNthCalledWith(2, expect.stringContaining("INSERT INTO webhook_events"), [
+      "org-1",
+      "shopify",
+      "orders/create",
+      webhookEvent.payload,
+    ]);
     expect(result).toEqual({
       status: "queued",
       event: webhookEvent,

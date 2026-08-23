@@ -46,8 +46,7 @@ const num = (q: unknown): number => {
   const n = typeof q === "number" ? q : Number(q);
   return Number.isFinite(n) ? n : 0;
 };
-const isSold = (it: AlegraItem): boolean =>
-  num(it.inventory?.availableQuantity) < num(it.inventory?.initialQuantity);
+const isSold = (it: AlegraItem): boolean => num(it.inventory?.availableQuantity) < num(it.inventory?.initialQuantity);
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -129,9 +128,13 @@ async function main() {
 
     if (!DO_DELETE || !CONFIRMED) {
       console.log("Muestra (hasta 15):");
-      objetivo.slice(0, 15).forEach((d) => console.log(`  #${d.id} | ${d.name.slice(0, 50)} | ini=${d.ini} disp=${d.avail}`));
+      objetivo
+        .slice(0, 15)
+        .forEach((d) => console.log(`  #${d.id} | ${d.name.slice(0, 50)} | ini=${d.ini} disp=${d.avail}`));
       console.log("");
-      console.log(DO_DELETE ? "Falta --yes para confirmar el borrado." : "DRY-RUN: no se borró nada. Para borrar: --delete --yes");
+      console.log(
+        DO_DELETE ? "Falta --yes para confirmar el borrado." : "DRY-RUN: no se borró nada. Para borrar: --delete --yes"
+      );
       return;
     }
 
@@ -146,8 +149,15 @@ async function main() {
         if (ok % 50 === 0 || i === objetivo.length - 1) console.log(`  borrados ${ok}/${objetivo.length}`);
       } catch (error) {
         const e = error as Error & { status?: number; detail?: string };
-        fallidos.push({ id: it.id, name: it.name, status: e.status, detail: (e.detail || e.message || "").slice(0, 160) });
-        console.log(`  ✗ FALLÓ #${it.id} (${e.status || "?"}) ${it.name.slice(0, 40)}: ${(e.detail || e.message || "").slice(0, 120)}`);
+        fallidos.push({
+          id: it.id,
+          name: it.name,
+          status: e.status,
+          detail: (e.detail || e.message || "").slice(0, 160),
+        });
+        console.log(
+          `  ✗ FALLÓ #${it.id} (${e.status || "?"}) ${it.name.slice(0, 40)}: ${(e.detail || e.message || "").slice(0, 120)}`
+        );
       }
       await sleep(120); // respetar rate-limit de Alegra
     }

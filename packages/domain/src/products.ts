@@ -91,7 +91,9 @@ function coerceOptionalNumber(value: unknown): number | undefined {
 
 function parseBooleanLike(value: unknown, fallback: boolean) {
   if (typeof value === "boolean") return value;
-  const lowered = String(value ?? "").trim().toLowerCase();
+  const lowered = String(value ?? "")
+    .trim()
+    .toLowerCase();
   if (!lowered) return fallback;
   if (["1", "true", "yes", "on"].includes(lowered)) return true;
   if (["0", "false", "no", "off"].includes(lowered)) return false;
@@ -139,7 +141,8 @@ export function toAdminWebProductRowDto(row: ProductsListServiceItem): AdminWebP
     imageUrl: extractImageUrl(row.payload_json),
     alegraStatus: row.status_alegra ? String(row.status_alegra) : null,
     shopifyStatus: row.status_shopify ? String(row.status_shopify) : null,
-    inventoryQuantity: row.inventory_quantity === null || row.inventory_quantity === undefined ? null : Number(row.inventory_quantity),
+    inventoryQuantity:
+      row.inventory_quantity === null || row.inventory_quantity === undefined ? null : Number(row.inventory_quantity),
     source: row.source ? String(row.source) : null,
     updatedAt: row.updated_at ? new Date(String(row.updated_at)).toISOString() : null,
     stores: Array.isArray((row as { stores?: unknown }).stores)

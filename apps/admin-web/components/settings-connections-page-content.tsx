@@ -14,10 +14,6 @@ export async function SettingsConnectionsPageContent({
 }) {
   const workspace = await getServerConnectionsWorkspace();
   return (
-    <SettingsConnectionsPage
-      workspace={workspace}
-      callbackState={callbackState}
-      initialStoreId={initialStoreId}
-    />
+    <SettingsConnectionsPage workspace={workspace} callbackState={callbackState} initialStoreId={initialStoreId} />
   );
 }

@@ -54,7 +54,9 @@ export function ContactsPage({
             <input type="hidden" name="status" value={status} />
             <input type="hidden" name="source" value={source} />
             <div className="input-with-icon">
-              <span className="input-icon" aria-hidden="true"><Search size={14} strokeWidth={1.75} /></span>
+              <span className="input-icon" aria-hidden="true">
+                <Search size={14} strokeWidth={1.75} />
+              </span>
               <input
                 className="input"
                 type="search"

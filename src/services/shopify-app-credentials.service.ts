@@ -33,9 +33,7 @@ export type ShopifyAppCredentials = {
  * stored row, when decryption/parsing fails, or when apiKey/apiSecret are
  * missing.
  */
-export async function getShopifyAppCredentials(
-  storeId?: number | null
-): Promise<ShopifyAppCredentials | null> {
+export async function getShopifyAppCredentials(storeId?: number | null): Promise<ShopifyAppCredentials | null> {
   const pool = getPool();
   const orgId = getOrgId();
   const result = await pool.query<{ data_encrypted: string }>(
@@ -73,10 +71,7 @@ export async function getShopifyAppCredentials(
  * (`shopify_oauth_app`). Upserts: updates the latest row when present, otherwise
  * inserts.
  */
-export async function saveShopifyAppCredentials(
-  input: ShopifyAppCredentials,
-  storeId?: number | null
-): Promise<void> {
+export async function saveShopifyAppCredentials(input: ShopifyAppCredentials, storeId?: number | null): Promise<void> {
   const apiKey = String(input.apiKey || "").trim();
   const apiSecret = String(input.apiSecret || "").trim();
   const scopes = input.scopes ? String(input.scopes).trim() : "";
@@ -134,26 +129,17 @@ export async function resolveShopifyOAuthConfig(storeId?: number | null): Promis
   apiSecret: string;
   scopes: string;
 }> {
-  const fromStore =
-    storeId != null ? await getShopifyAppCredentials(storeId).catch(() => null) : null;
+  const fromStore = storeId != null ? await getShopifyAppCredentials(storeId).catch(() => null) : null;
   const fromGlobal = await getShopifyAppCredentials().catch(() => null);
 
   const envApiKey = String(process.env.SHOPIFY_API_KEY || "").trim();
   const envApiSecret = String(process.env.SHOPIFY_API_SECRET || "").trim();
   const envScopes = String(process.env.SHOPIFY_SCOPES || "").trim();
 
-  const apiKey =
-    String(fromStore?.apiKey || "").trim() ||
-    String(fromGlobal?.apiKey || "").trim() ||
-    envApiKey;
+  const apiKey = String(fromStore?.apiKey || "").trim() || String(fromGlobal?.apiKey || "").trim() || envApiKey;
   const apiSecret =
-    String(fromStore?.apiSecret || "").trim() ||
-    String(fromGlobal?.apiSecret || "").trim() ||
-    envApiSecret;
-  const scopes =
-    String(fromStore?.scopes || "").trim() ||
-    String(fromGlobal?.scopes || "").trim() ||
-    envScopes;
+    String(fromStore?.apiSecret || "").trim() || String(fromGlobal?.apiSecret || "").trim() || envApiSecret;
+  const scopes = String(fromStore?.scopes || "").trim() || String(fromGlobal?.scopes || "").trim() || envScopes;
 
   return { apiKey, apiSecret, scopes };
 }
@@ -208,8 +194,7 @@ export async function hasShopifyAppCredentials(storeId?: number | null): Promise
   source: "store" | "db" | "env" | "none";
   apiKeyMasked: string;
 }> {
-  const fromStore =
-    storeId != null ? await getShopifyAppCredentials(storeId).catch(() => null) : null;
+  const fromStore = storeId != null ? await getShopifyAppCredentials(storeId).catch(() => null) : null;
   const fromGlobal = await getShopifyAppCredentials().catch(() => null);
 
   const envApiKey = String(process.env.SHOPIFY_API_KEY || "").trim();

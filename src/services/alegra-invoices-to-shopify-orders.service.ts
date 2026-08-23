@@ -71,8 +71,23 @@ const resolveInvoiceNumber = (invoice: Record<string, unknown> | null) => {
 // Currencies sin decimales según ISO 4217 — no se debe emitir "50000.00" para 50 000 COP
 // (Shopify puede rechazar o mostrarlo escalado).
 export const ZERO_DECIMAL_CURRENCIES = new Set([
-  "BIF", "CLP", "DJF", "GNF", "ISK", "JPY", "KMF", "KRW", "PYG",
-  "RWF", "UGX", "UYI", "VND", "VUV", "XAF", "XOF", "XPF",
+  "BIF",
+  "CLP",
+  "DJF",
+  "GNF",
+  "ISK",
+  "JPY",
+  "KMF",
+  "KRW",
+  "PYG",
+  "RWF",
+  "UGX",
+  "UYI",
+  "VND",
+  "VUV",
+  "XAF",
+  "XOF",
+  "XPF",
   // COP: técnicamente 2 decimales pero en la práctica se maneja sin decimales.
   "COP",
 ]);
@@ -159,9 +174,7 @@ async function buildShopifyLineItems(
             resolvedVariantId = String(numericVariantId);
             // Persiste el hallazgo para próximos runs.
             if (alegraItemId && gid) {
-              await saveMapping({ entity: "item", alegraId: alegraItemId, shopifyId: gid }).catch(
-                () => undefined
-              );
+              await saveMapping({ entity: "item", alegraId: alegraItemId, shopifyId: gid }).catch(() => undefined);
             }
           }
         } catch (error) {

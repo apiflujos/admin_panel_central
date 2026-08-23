@@ -232,10 +232,7 @@ async function consolidateDuplicatesDisabled(options?: {
       localRowsDeleted: 0,
     };
     try {
-      const [dupInv, origInv] = await Promise.all([
-        fetchInventory(ctx, pair.dup),
-        fetchInventory(ctx, pair.orig),
-      ]);
+      const [dupInv, origInv] = await Promise.all([fetchInventory(ctx, pair.dup), fetchInventory(ctx, pair.orig)]);
       plan.adjustments = computeAdjustments(dupInv, origInv);
       report.inventoryAdjustments += plan.adjustments.length;
 
@@ -300,10 +297,10 @@ async function consolidateDuplicatesDisabled(options?: {
           }
         }
         // 3) Borrar filas locales del duplicado.
-        const del = await pool.query(
-          `DELETE FROM products WHERE organization_id = $1 AND alegra_item_id = $2`,
-          [orgId, pair.dup]
-        );
+        const del = await pool.query(`DELETE FROM products WHERE organization_id = $1 AND alegra_item_id = $2`, [
+          orgId,
+          pair.dup,
+        ]);
         plan.localRowsDeleted = del.rowCount || 0;
         report.localRowsDeleted += plan.localRowsDeleted;
         report.mappingsRemapped += plan.remapped;

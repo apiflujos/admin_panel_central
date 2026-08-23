@@ -49,7 +49,8 @@ export function normalizeOperationsDays(input: OperationsFiltersInput, fallback 
 }
 
 export function toAdminWebOperationRowDto(item: OperationServiceItem): AdminWebOperationRowDto {
-  const actionability = ((item.actionability as OperationActionabilityInput | undefined) || {}) as OperationActionabilityInput;
+  const actionability = ((item.actionability as OperationActionabilityInput | undefined) ||
+    {}) as OperationActionabilityInput;
   return {
     id: String(item.id || ""),
     shopDomain: item.shopDomain ? String(item.shopDomain) : null,

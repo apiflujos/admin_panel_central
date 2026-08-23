@@ -45,12 +45,18 @@ const DEFAULT_CONFIG: ProductSyncConfig = {
  * Solo con ALLOW_ALEGRA_ITEM_WRITES=true (y entendiendo el riesgo) se re-habilita.
  */
 const alegraItemWritesEnabled = () =>
-  String(process.env.ALLOW_ALEGRA_ITEM_WRITES || "").trim().toLowerCase() === "true";
+  String(process.env.ALLOW_ALEGRA_ITEM_WRITES || "")
+    .trim()
+    .toLowerCase() === "true";
 
 function parseMatchPriority(value: unknown): Array<"sku" | "barcode"> {
   if (Array.isArray(value)) {
     const normalized = value
-      .map((entry) => String(entry || "").trim().toLowerCase())
+      .map((entry) =>
+        String(entry || "")
+          .trim()
+          .toLowerCase()
+      )
       .filter((entry): entry is "sku" | "barcode" => entry === "sku" || entry === "barcode");
     if (normalized.length) {
       return Array.from(new Set(normalized));
@@ -83,9 +89,10 @@ function pickIdentifier(variant: { sku?: unknown }, _matchPriority: Array<"sku" 
   return pickShopifyVariantIdentifier(
     {
       sku: typeof variant.sku === "string" ? variant.sku : undefined,
-      barcode: typeof (variant as { barcode?: unknown }).barcode === "string"
-        ? String((variant as { barcode?: unknown }).barcode)
-        : undefined,
+      barcode:
+        typeof (variant as { barcode?: unknown }).barcode === "string"
+          ? String((variant as { barcode?: unknown }).barcode)
+          : undefined,
     },
     _matchPriority
   );
@@ -172,7 +179,10 @@ async function findAlegraItemsByExactName(ctx: Awaited<ReturnType<typeof buildSy
       fields: "inventory,barcode,reference,code,name,status,itemVariants,variantAttributes",
     });
     return extractAlegraListItems(response).filter(
-      (item) => String(item?.name || "").trim().toLowerCase() === value.toLowerCase()
+      (item) =>
+        String(item?.name || "")
+          .trim()
+          .toLowerCase() === value.toLowerCase()
     );
   } catch {
     return [];

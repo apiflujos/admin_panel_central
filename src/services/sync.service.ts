@@ -12,7 +12,10 @@ import { upsertProduct } from "./products.service";
 import { getMappingByShopifyId, getMappingByShopifyInventoryItemId, updateMappingMetadata } from "./mapping.service";
 import { resolveStoreConfig } from "./store-config.service";
 import { syncAlegraInvoiceToShopifyFromWebhook } from "./alegra-invoices-to-shopify-orders.service";
-import { syncShopifyInventoryLevelToAlegra, syncShopifyProductToAlegraFromWebhook } from "./shopify-products-to-alegra-items.service";
+import {
+  syncShopifyInventoryLevelToAlegra,
+  syncShopifyProductToAlegraFromWebhook,
+} from "./shopify-products-to-alegra-items.service";
 import { ensureOrganization, ensureWebhookEventsTable, getOrgId, getPool } from "../db";
 import { publishWebhookEvent } from "./webhook-queue";
 
@@ -117,9 +120,7 @@ export async function enqueueWebhookEvent(event: WebhookEvent) {
       // soltar la petición HTTP cuanto antes.
       return { status: "queued", event, syncLogId: null, webhookEventId: registeredId };
     }
-    console.warn(
-      `[webhook] Redis no aceptó webhookEventId=${registeredId}; se usa el camino de base de datos.`
-    );
+    console.warn(`[webhook] Redis no aceptó webhookEventId=${registeredId}; se usa el camino de base de datos.`);
   }
 
   return enqueueWebhookEventViaDatabase(event, registeredId);
@@ -135,10 +136,7 @@ export async function enqueueWebhookEvent(event: WebhookEvent) {
  * Lanza si el procesamiento falla: es BullMQ quien decide reintentar, con su
  * backoff, y quien acaba dejando el job en la dead-letter.
  */
-export async function processWebhookDispatchJob(params: {
-  webhookEventId: number;
-  event: WebhookEvent;
-}) {
+export async function processWebhookDispatchJob(params: { webhookEventId: number; event: WebhookEvent }) {
   const meta = buildLogMeta(params.event);
   const syncLogId = await createSyncLog({
     entity: meta.entity,
@@ -175,10 +173,7 @@ export async function processWebhookDispatchJob(params: {
  * @param existingWebhookEventId fila ya creada por el camino rápido; si viene,
  * no se vuelve a insertar.
  */
-async function enqueueWebhookEventViaDatabase(
-  event: WebhookEvent,
-  existingWebhookEventId: number | null = null
-) {
+async function enqueueWebhookEventViaDatabase(event: WebhookEvent, existingWebhookEventId: number | null = null) {
   const pool = getPool();
   const orgId = getOrgId();
   const meta = buildLogMeta(event);
@@ -254,7 +249,11 @@ export async function processWebhookEvent(event: WebhookEvent) {
   return { ignored: true, eventType: event.eventType };
 }
 
-export async function processQueuedWebhookEvent(params: { syncLogId: number; event: WebhookEvent; webhookEventId?: number | null }) {
+export async function processQueuedWebhookEvent(params: {
+  syncLogId: number;
+  event: WebhookEvent;
+  webhookEventId?: number | null;
+}) {
   const meta = buildLogMeta(params.event);
   const pool = getPool();
   try {
@@ -385,9 +384,7 @@ async function handleShopifyInventory(payload: unknown) {
 
   // Idempotency por (shop, item, updated_at) — reintentos del mismo update se descartan.
   const updatedAt = (data.updated_at as string | undefined) || "";
-  const idempotencyKey = updatedAt
-    ? `inventory-update:${shopDomain}:${inventoryItemId}:${updatedAt}`
-    : "";
+  const idempotencyKey = updatedAt ? `inventory-update:${shopDomain}:${inventoryItemId}:${updatedAt}` : "";
   if (idempotencyKey) {
     const guard = await acquireIdempotencyKey(idempotencyKey);
     if (!guard.acquired) {

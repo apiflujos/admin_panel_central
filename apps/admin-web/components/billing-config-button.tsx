@@ -226,7 +226,11 @@ export function BillingConfigButton() {
                           onChange={(e) => setSettings((current) => ({ ...current, resolutionId: e.target.value }))}
                         >
                           <option value="">No usar</option>
-                          {!resolutions.length ? <option value="" disabled>Sin datos</option> : null}
+                          {!resolutions.length ? (
+                            <option value="" disabled>
+                              Sin datos
+                            </option>
+                          ) : null}
                           {resolutions.map((option) => (
                             <option key={option.value} value={option.value}>
                               {option.label}
@@ -243,7 +247,11 @@ export function BillingConfigButton() {
                           onChange={(e) => setSettings((current) => ({ ...current, warehouseId: e.target.value }))}
                         >
                           <option value="">No usar</option>
-                          {!warehouses.length ? <option value="" disabled>Sin datos</option> : null}
+                          {!warehouses.length ? (
+                            <option value="" disabled>
+                              Sin datos
+                            </option>
+                          ) : null}
                           {warehouses.map((option) => (
                             <option key={option.value} value={option.value}>
                               {option.label}
@@ -260,7 +268,11 @@ export function BillingConfigButton() {
                           onChange={(e) => setSettings((current) => ({ ...current, costCenterId: e.target.value }))}
                         >
                           <option value="">No usar</option>
-                          {!costCenters.length ? <option value="" disabled>Sin datos</option> : null}
+                          {!costCenters.length ? (
+                            <option value="" disabled>
+                              Sin datos
+                            </option>
+                          ) : null}
                           {costCenters.map((option) => (
                             <option key={option.value} value={option.value}>
                               {option.label}
@@ -301,7 +313,11 @@ export function BillingConfigButton() {
                           onChange={(e) => setSettings((current) => ({ ...current, paymentMethod: e.target.value }))}
                         >
                           <option value="">No usar</option>
-                          {!paymentMethods.length ? <option value="" disabled>Sin datos</option> : null}
+                          {!paymentMethods.length ? (
+                            <option value="" disabled>
+                              Sin datos
+                            </option>
+                          ) : null}
                           {paymentMethods.map((option) => (
                             <option key={option.value} value={option.value}>
                               {option.label}
@@ -318,7 +334,11 @@ export function BillingConfigButton() {
                           onChange={(e) => setSettings((current) => ({ ...current, bankAccountId: e.target.value }))}
                         >
                           <option value="">No usar</option>
-                          {!bankAccounts.length ? <option value="" disabled>Sin datos</option> : null}
+                          {!bankAccounts.length ? (
+                            <option value="" disabled>
+                              Sin datos
+                            </option>
+                          ) : null}
                           {bankAccounts.map((option) => (
                             <option key={option.value} value={option.value}>
                               {option.label}

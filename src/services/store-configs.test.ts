@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const {
-  getSettingsMock,
-  getOrgIdMock,
-  getPoolMock,
-} = vi.hoisted(() => ({
+const { getSettingsMock, getOrgIdMock, getPoolMock } = vi.hoisted(() => ({
   getSettingsMock: vi.fn(),
   getOrgIdMock: vi.fn(),
   getPoolMock: vi.fn(),

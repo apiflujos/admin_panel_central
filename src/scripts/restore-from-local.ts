@@ -106,7 +106,9 @@ async function main() {
   await runWithOrg(orgId, async () => {
     const alegra = await resolveAlegraClientForStore(storeId);
     console.log(`Alegra store_id=${storeId} (org=${orgId})`);
-    console.log(`Ítems en data local: ${all.length} | a procesar: ${clean.length}${multilistOnly ? " (solo >1 lista)" : " (todos, copia pre-daño)"}`);
+    console.log(
+      `Ítems en data local: ${all.length} | a procesar: ${clean.length}${multilistOnly ? " (solo >1 lista)" : " (todos, copia pre-daño)"}`
+    );
     console.log(`Campos: ${["name", "reference", "price"].filter((f) => fieldsArg.includes(f)).join(", ")}`);
     console.log(`Modo: ${DO_APPLY ? (CONFIRMED ? "APLICAR" : "APLICAR (falta --yes)") : "DRY-RUN"}`);
     if (Number.isFinite(LIMIT)) console.log(`Límite: ${LIMIT}`);

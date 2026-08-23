@@ -96,8 +96,7 @@ export function SyncProductsButton() {
     reset();
     setPhase("running");
 
-    const endpoint =
-      provider === "alegra" ? "/api/sync/products/from-alegra" : "/api/sync/products";
+    const endpoint = provider === "alegra" ? "/api/sync/products/from-alegra" : "/api/sync/products";
     const body =
       provider === "alegra"
         ? { stream: true, storeId, onlyActive, onlyWithImages }
@@ -162,8 +161,7 @@ export function SyncProductsButton() {
 
   function requestCancel() {
     cancelRef.current = true;
-    const stopEndpoint =
-      provider === "alegra" ? "/api/sync/products/from-alegra/stop" : "/api/sync/products/stop";
+    const stopEndpoint = provider === "alegra" ? "/api/sync/products/from-alegra/stop" : "/api/sync/products/stop";
     void apiFetch(stopEndpoint, { method: "POST" }).catch(() => undefined);
   }
 
@@ -221,7 +219,9 @@ export function SyncProductsButton() {
                     >
                       {!eligibleStores.length ? (
                         <option value="">
-                          {provider === "alegra" ? "Sin tiendas con Alegra conectado" : "Sin tiendas con Shopify conectado"}
+                          {provider === "alegra"
+                            ? "Sin tiendas con Alegra conectado"
+                            : "Sin tiendas con Shopify conectado"}
                         </option>
                       ) : null}
                       {eligibleStores.map((s) => (
@@ -302,13 +302,20 @@ export function SyncProductsButton() {
                       }}
                     />
                   </div>
-                  <div className="page-module-metrics" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12 }}>
+                  <div
+                    className="page-module-metrics"
+                    style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12 }}
+                  >
                     <span className="pill pill-info">Procesados · {progress.processed}</span>
                     <span className="pill">Omitidos · {progress.skipped}</span>
                     <span className="pill pill-bad">Fallidos · {progress.failed}</span>
                     <span className="pill">Revisados · {progress.scanned}</span>
                   </div>
-                  {message ? <p className="app-state-copy" style={{ marginTop: 12 }}>{message}</p> : null}
+                  {message ? (
+                    <p className="app-state-copy" style={{ marginTop: 12 }}>
+                      {message}
+                    </p>
+                  ) : null}
                   <div className="page-module-actions" style={{ marginTop: 12 }}>
                     {phase === "running" ? (
                       <button className="btn ghost" type="button" onClick={requestCancel}>

@@ -32,9 +32,7 @@ function logRedisErrorThrottled(err: Error) {
   if (now - state.loggedAt < ERROR_LOG_WINDOW_MS) return;
 
   console.error(
-    `Redis error: ${key} (${state.count} veces en los últimos ${Math.round(
-      (now - state.loggedAt) / 1000
-    )}s)`
+    `Redis error: ${key} (${state.count} veces en los últimos ${Math.round((now - state.loggedAt) / 1000)}s)`
   );
   state.loggedAt = now;
   state.count = 0;
