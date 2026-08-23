@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { AppShellNav } from "./app-shell-nav";
-import { AppShellTitle } from "./app-shell-title";
 import { getServerCompanyBrand } from "../lib/server-api";
 import type { AuthSessionDto } from "../../../packages/shared/src/admin-web";
 import { LogoutButton } from "./logout-button";
@@ -34,7 +33,7 @@ const APIFLUJOS_AVATAR_SRC = "/assets/avatar.webp";
  * parpadeaba y daba la sensación de recarga completa.
  *
  * La ruta activa ya no llega por props; la resuelven `AppShellNav` y
- * `AppShellTitle` en el cliente, que son lo único que se re-renderiza al
+ * `AppShellNav` en el cliente, que es lo único que se re-renderiza al
  * cambiar de página.
  */
 export async function AppShell({ children, session }: { children: ReactNode; session?: AuthSessionDto | null }) {
@@ -101,9 +100,13 @@ export async function AppShell({ children, session }: { children: ReactNode; ses
               />
             </div>
           </div>
-          <div className="topbarTitleCentered">
-            <AppShellTitle />
-          </div>
+          {/* La barra ya NO repite el título de la página.
+              Cada pantalla pinta su <h1> con PageHeader, así que aquí salía el
+              mismo texto DOS veces con dos redacciones distintas —«Pedidos ·
+              Pedidos, estados y facturación del flujo comercial» arriba y
+              «Pedidos · Pedidos y facturación» justo debajo—. En las 12
+              pantallas. El <h1> de la página se queda: es el correcto, lleva
+              las migas y las acciones al lado. */}
           <div className="topbarActions">
             <div className="topbarQuickGroup">
               {session ? (

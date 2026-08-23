@@ -5,6 +5,7 @@ import { DataTable } from "./ui/data-table";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { StatusPill } from "./ui/status-pill";
+import { Paginacion } from "./ui/paginacion";
 import { SyncContactsButton } from "./sync-contacts-button";
 
 type ContactRow = AdminWebContactsListDto["items"][number];
@@ -29,10 +30,9 @@ export function ContactsPage({
   const recentCount = result.items.filter(
     (item) => item.updatedAt && Date.now() - new Date(item.updatedAt).getTime() < 1000 * 60 * 60 * 24 * 7
   ).length;
-  const prevOffset = Math.max(0, offset - PAGE_SIZE);
-  const nextOffset = offset + PAGE_SIZE;
-  const hasPrev = offset > 0;
-  const hasNext = nextOffset < result.total;
+  const enlacePagina = (nuevoOffset: number) =>
+    `/contacts?query=${encodeURIComponent(query)}&status=${encodeURIComponent(status)}` +
+    `&source=${encodeURIComponent(source)}&offset=${nuevoOffset}`;
 
   return (
     <section className="page-stack">
@@ -90,27 +90,7 @@ export function ContactsPage({
             </a>
           </>
         }
-        actions={
-          <>
-            <SyncContactsButton />
-            {hasPrev ? (
-              <a
-                className="btn ghost btn-compact"
-                href={`/contacts?query=${encodeURIComponent(query)}&status=${encodeURIComponent(status)}&source=${encodeURIComponent(source)}&offset=${prevOffset}`}
-              >
-                Anterior
-              </a>
-            ) : null}
-            {hasNext ? (
-              <a
-                className="btn primary btn-compact"
-                href={`/contacts?query=${encodeURIComponent(query)}&status=${encodeURIComponent(status)}&source=${encodeURIComponent(source)}&offset=${nextOffset}`}
-              >
-                Siguiente
-              </a>
-            ) : null}
-          </>
-        }
+        actions={<SyncContactsButton />}
       />
 
       <section className="metrics-kpis metrics-kpis-tight metrics-kpis-compact">
@@ -122,10 +102,6 @@ export function ContactsPage({
       </section>
 
       <section className="card page-module-shell page-module-shell-compact">
-        <div className="table-meta">
-          Mostrando {offset + 1}–{Math.min(offset + PAGE_SIZE, result.total)} de {result.total} contactos
-        </div>
-
         <DataTable<ContactRow>
           rows={result.items}
           getRowKey={(row) => row.id}
@@ -176,6 +152,13 @@ export function ContactsPage({
               render: (row) => (row.updatedAt ? new Date(row.updatedAt).toLocaleDateString("es-CO") : "—"),
             },
           ]}
+        />
+        <Paginacion
+          total={result.total}
+          offset={offset}
+          porPagina={PAGE_SIZE}
+          href={enlacePagina}
+          etiqueta="contactos"
         />
       </section>
     </section>

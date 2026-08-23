@@ -2,6 +2,7 @@ import { Search } from "lucide-react";
 import type { AdminWebProductRowDto, AdminWebProductsListDto } from "../../../packages/shared/src/admin-web";
 import { BulkPublishButton } from "./bulk-publish-button";
 import { ProductPublishButton } from "./product-publish-button";
+import { Paginacion } from "./ui/paginacion";
 import { SyncProductsButton } from "./sync-products-button";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
@@ -82,10 +83,7 @@ export function ProductsPage({
 }) {
   const rows = result.items;
   const groups = groupProducts(rows);
-  const prevStart = Math.max(0, start - PAGE_SIZE);
-  const nextStart = start + PAGE_SIZE;
-  const hasNext = nextStart < result.total;
-  const hasPrev = start > 0;
+  const enlacePagina = (nuevoStart: number) => `/products?query=${encodeURIComponent(query)}&start=${nuevoStart}`;
 
   return (
     <section className="page-stack">
@@ -132,30 +130,9 @@ export function ProductsPage({
             <>
               <SyncProductsButton />
               <BulkPublishButton />
-              {hasPrev && (
-                <a
-                  className="btn ghost btn-compact"
-                  href={`/products?query=${encodeURIComponent(query)}&start=${prevStart}`}
-                >
-                  Anterior
-                </a>
-              )}
-              {hasNext && (
-                <a
-                  className="btn primary btn-compact"
-                  href={`/products?query=${encodeURIComponent(query)}&start=${nextStart}`}
-                >
-                  Siguiente
-                </a>
-              )}
             </>
           }
         />
-
-        <div className="table-meta">
-          Mostrando {start + 1}–{Math.min(start + PAGE_SIZE, result.total)} de {result.total} · {groups.length}{" "}
-          productos padre
-        </div>
 
         {groups.length ? (
           <div className="products-table">
@@ -311,6 +288,13 @@ export function ProductsPage({
             <p>No encontramos productos con los filtros actuales.</p>
           </div>
         )}
+        <Paginacion
+          total={result.total}
+          offset={start}
+          porPagina={PAGE_SIZE}
+          href={enlacePagina}
+          etiqueta="productos"
+        />
       </section>
     </section>
   );

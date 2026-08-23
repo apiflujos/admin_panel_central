@@ -60,7 +60,31 @@ describe("estructura del panel", () => {
     const shell = fs.readFileSync(path.resolve(__dirname, "components/app-shell.tsx"), "utf8");
     expect(shell).not.toContain("activeHref");
     expect(shell).toContain("AppShellNav");
-    expect(shell).toContain("AppShellTitle");
+  });
+
+  it("la barra superior NO repite el titulo de la pagina", () => {
+    // Cada pantalla pinta su <h1> con PageHeader. La barra pintaba además su
+    // propio título y subtítulo desde la ruta, así que el mismo texto salía
+    // DOS veces con dos redacciones distintas, en las 12 pantallas:
+    //   «Pedidos · Pedidos, estados y facturación del flujo comercial»
+    //   «Pedidos · Pedidos y facturación»
+    const shell = fs.readFileSync(path.resolve(__dirname, "components/app-shell.tsx"), "utf8");
+    expect(shell).not.toContain("AppShellTitle");
+    expect(shell).not.toContain("resolveShellTitle");
+    expect(shell).not.toContain("resolveShellSubtitle");
+  });
+
+  it("cada pantalla tiene UN solo titulo, el de PageHeader", () => {
+    // PageHeader es el único que pinta <h1>. Si una pantalla añade otro, vuelve
+    // el «título del título».
+    const conDobleTitulo = paginas
+      .map((ruta) => ({ ruta, texto: fs.readFileSync(ruta, "utf8") }))
+      .filter(({ texto }) => (texto.match(/<h1[\s>]/g) || []).length > 0)
+      .map(({ ruta }) => path.relative(APP, ruta));
+    expect(
+      conDobleTitulo,
+      `Estas páginas pintan su propio <h1> además del de PageHeader:\n` + conDobleTitulo.map((r) => `  ${r}`).join("\n")
+    ).toEqual([]);
   });
 
   it("las pantallas que autorizan por rol siguen pidiendo la sesión", () => {

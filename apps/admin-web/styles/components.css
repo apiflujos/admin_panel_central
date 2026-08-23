@@ -1294,14 +1294,36 @@
   gap: 3px;
 }
 
+/* Toda celda de tabla tiene ALTURA ACOTADA.
+   El resumen de productos de un pedido mide 389 caracteres de media y hasta
+   2.858: sin recorte, tres pedidos llenaban la pantalla de un ordenador. El
+   texto completo sigue accesible en el `title` de la celda. */
 .entity-cell strong {
   color: var(--text-strong);
   font-size: 12.5px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .entity-cell span {
   color: var(--muted);
   font-size: 11px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* Una sola línea, para columnas donde dos ya es demasiado. */
+.entity-cell-1linea strong {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
 }
 
 .entity-cell-compact strong {
@@ -2330,4 +2352,97 @@
 
 .worker-averia-desde {
   color: var(--text-muted);
+}
+
+/* ── Paginación estándar de listas ────────────────────────────────────────
+   Misma pieza y mismo sitio en TODAS las listas: debajo de la tabla, que es
+   donde se busca después de leerla. Antes los botones vivían arriba, mezclados
+   con las acciones, y la cuenta era una nota suelta dentro de la tarjeta. */
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: var(--space-3) 0 0;
+  margin-top: var(--space-3);
+  border-top: 1px solid var(--panel-border);
+}
+
+.paginacion-cuenta {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.paginacion-cuenta strong {
+  color: var(--text-body);
+}
+
+.paginacion-controles {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.paginacion-pagina {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.paginacion-pagina strong {
+  color: var(--text-body);
+}
+
+/* Extremo de la lista: el botón sigue ahí para que no salte el diseño, pero
+   se ve claramente que no lleva a ninguna parte. */
+.btn.is-inerte {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: default;
+}
+
+/* ── UNA sola caja por contenido ──────────────────────────────────────────
+   Configuración apilaba tres marcos para lo mismo:
+
+     .page-module-shell  →  <details>  →  .card  del panel de dentro
+
+   Tres bordes, tres fondos y tres paddings alrededor de un formulario. El
+   `<details>` YA es la caja; lo de dentro no necesita otra. Estas reglas lo
+   aplanan sin tocar los componentes, así que vale también para los paneles
+   que se añadan después. */
+.settings-panel-collapse .card,
+.settings-panel-collapse .page-module-shell {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+/* El contenedor de los desplegables tampoco pinta caja: la pintan ellos. */
+.operational-workspace-shell {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+/* Dos paneles seguidos dentro del mismo desplegable se separan con una línea,
+   no con dos marcos. */
+.settings-panel-collapse .card + .card {
+  border-top: 1px solid var(--panel-border);
+  padding-top: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+/* El título de un panel anidado baja de rango: dentro de un desplegable ya
+   hay un encabezado (el `summary`), y dos títulos seguidos del mismo tamaño
+   es justo lo que hacía ilegible la pantalla. */
+.settings-panel-collapse .worker-group-title {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }

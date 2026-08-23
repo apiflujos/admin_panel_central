@@ -8,8 +8,23 @@ import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { StatusPill } from "./ui/status-pill";
 import { SyncOrdersButton } from "./sync-orders-button";
+import { Paginacion } from "./ui/paginacion";
 
 const PAGE_SIZE = 20;
+
+/**
+ * Cuántos artículos distintos lleva el pedido.
+ *
+ * El resumen viene como «3x Jabón…, 3x Blush…, …». Contar las comas da el
+ * número de líneas sin tener que pintarlas todas, que es lo que hacía que un
+ * pedido de veinte productos ocupara media pantalla.
+ */
+function resumenDeLineas(resumen: string | null | undefined) {
+  const texto = String(resumen || "").trim();
+  if (!texto) return "Sin productos";
+  const lineas = texto.split(",").filter((t) => t.trim()).length;
+  return lineas === 1 ? "1 artículo" : `${lineas} artículos`;
+}
 
 export function OrdersPage({
   result,
@@ -20,10 +35,7 @@ export function OrdersPage({
   query: string;
   offset: number;
 }) {
-  const prevOffset = Math.max(0, offset - PAGE_SIZE);
-  const nextOffset = offset + PAGE_SIZE;
-  const hasNext = nextOffset < result.total;
-  const hasPrev = offset > 0;
+  const enlacePagina = (nuevoOffset: number) => `/orders?query=${encodeURIComponent(query)}&offset=${nuevoOffset}`;
 
   return (
     <section className="page-stack">
@@ -65,34 +77,10 @@ export function OrdersPage({
             <span className="pill">E-invoice pend. · {result.summary.einvoicePendingCount}</span>
           </>
         }
-        actions={
-          <>
-            <SyncOrdersButton />
-            {hasPrev && (
-              <a
-                className="btn ghost btn-compact"
-                href={`/orders?query=${encodeURIComponent(query)}&offset=${prevOffset}`}
-              >
-                Anterior
-              </a>
-            )}
-            {hasNext && (
-              <a
-                className="btn primary btn-compact"
-                href={`/orders?query=${encodeURIComponent(query)}&offset=${nextOffset}`}
-              >
-                Siguiente
-              </a>
-            )}
-          </>
-        }
+        actions={<SyncOrdersButton />}
       />
 
       <section className="card page-module-shell page-module-shell-compact">
-        <p className="connection-inline-note">
-          Mostrando {offset + 1}–{Math.min(offset + PAGE_SIZE, result.total)} de {result.total} · Página{" "}
-          {Math.floor(offset / PAGE_SIZE) + 1}
-        </p>
         <DataTable
           columns={[
             {
@@ -128,9 +116,12 @@ export function OrdersPage({
               key: "products",
               header: "Productos",
               render: (row) => (
-                <div className="entity-cell">
-                  <strong>{row.products}</strong>
-                  <span>{row.shopifyId ? `Shopify ${row.shopifyId}` : "Sin id Shopify"}</span>
+                // El texto completo va en `title`: el resumen mide 389
+                // caracteres de media y hasta 2.858, y volcarlo entero dejaba
+                // tres pedidos por pantalla.
+                <div className="entity-cell" title={row.products || undefined}>
+                  <strong>{row.products || "—"}</strong>
+                  <span>{resumenDeLineas(row.products)}</span>
                 </div>
               ),
             },
@@ -202,6 +193,7 @@ export function OrdersPage({
           rows={result.items}
           getRowKey={(row) => row.id}
         />
+        <Paginacion total={result.total} offset={offset} porPagina={PAGE_SIZE} href={enlacePagina} etiqueta="pedidos" />
       </section>
     </section>
   );
