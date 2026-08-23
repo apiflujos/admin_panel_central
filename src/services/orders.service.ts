@@ -264,3 +264,48 @@ export async function listOrders(options: {
     offset,
   };
 }
+
+/**
+ * Cuántos pedidos están atascados por tienda, y por qué motivo.
+ *
+ * Alimenta la matriz de automatización: no basta con decir que un trabajo está
+ * encendido, hay que decir cuánto se le está quedando atrás y por qué. El caso
+ * típico es el que planteó el cliente: el contacto se sincroniza pero el
+ * producto no hace match, y el pedido no se puede facturar.
+ */
+export async function contarPedidosAtascados() {
+  const { getOrgId, getPool } = await import("../db");
+  const pool = getPool();
+  const result = await pool.query<{
+    shop_domain: string | null;
+    codigo: string | null;
+    total: string;
+  }>(
+    `
+    SELECT o.shop_domain,
+           b->>'codigo' AS codigo,
+           COUNT(*)::text AS total
+      FROM orders o
+      LEFT JOIN LATERAL jsonb_array_elements(
+             CASE WHEN jsonb_typeof(o.sync_block_reason->'bloqueos') = 'array'
+                  THEN o.sync_block_reason->'bloqueos' ELSE '[]'::jsonb END
+           ) b ON true
+     WHERE o.organization_id = $1
+       AND o.sync_status = 'no_facturable'
+     GROUP BY 1, 2
+    `,
+    [getOrgId()]
+  );
+
+  const porTienda = new Map<string, { sinIdentificacion: number; productoSinEnlazar: number; otros: number }>();
+  for (const row of result.rows) {
+    const clave = row.shop_domain || "";
+    const actual = porTienda.get(clave) || { sinIdentificacion: 0, productoSinEnlazar: 0, otros: 0 };
+    const n = Number(row.total) || 0;
+    if (row.codigo === "sin_identificacion") actual.sinIdentificacion += n;
+    else if (row.codigo === "articulos_sin_mapear") actual.productoSinEnlazar += n;
+    else actual.otros += n;
+    porTienda.set(clave, actual);
+  }
+  return porTienda;
+}

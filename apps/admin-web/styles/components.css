@@ -2149,3 +2149,39 @@
 
 .pedido-bloqueo strong { font-size: 11.5px; font-weight: 600; color: #b3261e; line-height: 1.35; }
 .pedido-bloqueo em { font-style: normal; font-size: 11px; color: var(--text-muted); line-height: 1.35; }
+
+/* Matriz tienda x trabajo. */
+.matriz { padding: 16px 18px; }
+.matriz-resumen { margin: 10px 0 4px; }
+.matriz-tienda { margin-top: 14px; }
+.matriz-tienda h4 { margin: 0 0 8px; font-size: 13px; }
+
+.matriz-cruces {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.matriz-cruce {
+  padding: 9px 11px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+}
+
+.matriz-cruce-cabeza { display: flex; align-items: center; gap: 7px; font-size: 12.5px; }
+.matriz-cruce-cabeza strong { flex: 1; min-width: 0; }
+.matriz-estado { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+
+.matriz-cruce.is-funcionando { border-left: 3px solid #0f9d58; }
+.matriz-cruce.is-funcionando .matriz-cruce-cabeza svg { color: #0f9d58; }
+.matriz-cruce.is-apagado { opacity: 0.72; }
+.matriz-cruce.is-le_falta_algo { border-left: 3px solid #d97706; background: rgba(217, 119, 6, 0.05); }
+.matriz-cruce.is-le_falta_algo .matriz-cruce-cabeza svg { color: #d97706; }
+.matriz-cruce.is-no_aplica { opacity: 0.5; }
+
+.matriz-falta { margin: 5px 0 0; font-size: 11.5px; color: #b45309; line-height: 1.4; }
+.matriz-atasco { margin: 5px 0 0; font-size: 11.5px; color: #b3261e; line-height: 1.4; }
+
+/* Nota informativa de la matriz: no es un problema. */
+.matriz-nota { margin: 5px 0 0; font-size: 11.5px; color: var(--text-muted); line-height: 1.4; }

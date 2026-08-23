@@ -18,6 +18,7 @@ import { ProviderMark } from "./ui/provider-mark";
 import { StatusPill } from "./ui/status-pill";
 import { ResumenAutomatizacionPanel } from "./resumen-automatizacion-panel";
 import { WorkersPanel } from "./workers-panel";
+import { MatrizAutomatizacionPanel } from "./matriz-automatizacion-panel";
 
 type ConfigFlowStage = "channels" | "operations";
 type ConnectionWizardStep = "store" | "group" | "platform" | "form";
@@ -704,6 +705,8 @@ export function SettingsConnectionsPage({
       />
 
       <ResumenAutomatizacionPanel workspace={workspace} activeStoreId={selectedStoreId} />
+
+      <MatrizAutomatizacionPanel workspace={workspace} />
 
       <PageToolbar
         views={

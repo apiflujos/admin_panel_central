@@ -3,6 +3,7 @@ export * from "./admin-web";
 export * from "./catalog";
 export * from "./config-coherencia";
 export * from "./inventory";
+export * from "./matriz-automatizacion";
 export * from "./pricing";
 export * from "./resumen-automatizacion";
 export * from "./shopify-publication";
