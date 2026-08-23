@@ -223,7 +223,14 @@ export async function listStoreConfigs() {
            COALESCE(c.shop_domain, s.shop_domain) AS shop_domain,
            s.access_token_encrypted,
            c.id AS config_id,
-           COALESCE(c.alegra_account_id, aa.id) AS alegra_account_id,
+           -- MISMA prioridad que usa el motor (ver resolveAlegraClientForStore):
+           --   1) stores.alegra_account_id  <- autoritativa, se comparte entre tiendas
+           --   2) la del config de la tienda
+           --   3) respaldo antiguo: alegra_accounts.store_id
+           -- Faltaba la (1): con dos tiendas sobre UNA sola cuenta de Alegra, la
+           -- segunda salía como "Sin cuenta asociada" en la pantalla aunque el
+           -- motor la resolviera perfectamente.
+           COALESCE(st.alegra_account_id, c.alegra_account_id, aa.id) AS alegra_account_id,
            c.transfer_destination_warehouse_id,
            c.transfer_origin_warehouse_ids,
            c.transfer_priority_warehouse_id,
@@ -429,7 +436,15 @@ async function getStoreConfigForStoreId(storeId: number) {
   }>(
     `
     SELECT shop_domain,
-           alegra_account_id,
+           -- Igual que arriba: la cuenta puede venir de la tabla stores, que es la
+           -- que manda y puede estar compartida entre tiendas.
+           COALESCE(
+             (SELECT st.alegra_account_id FROM stores st WHERE st.id = $2),
+             alegra_account_id,
+             (SELECT a.id FROM alegra_accounts a
+               WHERE a.organization_id = $1 AND a.store_id = $2
+               ORDER BY a.created_at DESC LIMIT 1)
+           ) AS alegra_account_id,
            transfer_destination_warehouse_id,
            transfer_origin_warehouse_ids,
            transfer_priority_warehouse_id,

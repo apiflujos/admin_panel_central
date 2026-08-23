@@ -138,3 +138,30 @@ describe("la elección llega a las DOS funciones que arman la configuración", (
     expect(cuerpo).toContain("sourceOfTruth: normalizeSourceOfTruth(");
   });
 });
+
+describe("la cuenta de Alegra se resuelve igual en la pantalla y en el motor", () => {
+  /**
+   * Becam tiene DOS tiendas sobre UNA sola cuenta de Alegra. El motor la
+   * resuelve por `stores.alegra_account_id` (ver resolveAlegraClientForStore),
+   * que admite compartirla; las consultas que alimentan la pantalla NO la
+   * miraban, así que la segunda tienda aparecía como "Sin cuenta asociada"
+   * aunque facturara contra la misma cuenta.
+   */
+  it("el listado consulta primero stores.alegra_account_id", () => {
+    expect(CONFIG).toContain("COALESCE(st.alegra_account_id, c.alegra_account_id, aa.id)");
+  });
+
+  it("la config por tienda también la consulta", () => {
+    const ini = CONFIG.indexOf("async function getStoreConfigForStoreId(");
+    const fin = CONFIG.indexOf("\nexport async function getStoreConfigForDomain");
+    const cuerpo = CONFIG.slice(ini, fin > ini ? fin : undefined);
+    expect(cuerpo).toContain("SELECT st.alegra_account_id FROM stores st");
+  });
+
+  it("respeta el ORDEN de prioridad del motor: stores primero", () => {
+    // Si se invirtiera, una tienda con config antigua ignoraría la cuenta
+    // compartida y apuntaría a otra.
+    const m = CONFIG.match(/COALESCE\(st\.alegra_account_id, c\.alegra_account_id, aa\.id\)/);
+    expect(m, "el orden debe ser stores -> config -> respaldo antiguo").toBeTruthy();
+  });
+});
