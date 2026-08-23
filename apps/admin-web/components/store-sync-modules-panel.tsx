@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { ConnectionsWorkspace, CriticalStoreConfig, WorkspaceStore } from "../lib/connections-workspace";
 import { getShopifyWebhookStatus, saveStoreConfig } from "../lib/api";
 import { BooleanChoice } from "./ui/boolean-choice";
+import { StoreConfigCoherencia } from "./store-config-coherencia";
+import type { ConfiguracionParaRevisar } from "../../../packages/shared/src/config-coherencia";
 
 type SyncDraft = CriticalStoreConfig["sync"];
 type ShopifyWebhookStatus = {
@@ -76,6 +78,22 @@ export function StoreSyncModulesPanel({
   );
 
   const baseSync = activeConfig?.sync ?? defaults.sync;
+
+  // Revisión de coherencia sobre lo que el usuario está viendo AHORA (el
+  // borrador), no sobre lo guardado: así el aviso aparece en el momento en que
+  // crea la contradicción, antes de guardarla.
+  const revision = useMemo<ConfiguracionParaRevisar>(
+    () => ({
+      tieneCuentaAlegra: Boolean(activeConfig?.alegraAccountId),
+      facturaPedidos: draft.orders.shopifyToAlegra === "invoice",
+      creaClienteEnAlegra: Boolean(draft.contacts.createInAlegra),
+      clientesDeLaTiendaAAlegra: Boolean(draft.contacts.fromShopify),
+      mandaAlegraEnInventario: (activeConfig?.sourceOfTruth?.inventory ?? "alegra") === "alegra",
+      enviaExistenciasHaciaAlegra: Boolean(draft.products.includeInventory),
+      escribeEnLaTienda: Boolean(activeConfig?.rules?.updateInShopify || activeConfig?.rules?.createInShopify),
+    }),
+    [activeConfig, draft]
+  );
 
   useEffect(() => {
     setDraft(cloneSyncDraft(baseSync));
@@ -170,70 +188,72 @@ export function StoreSyncModulesPanel({
         <p className="connection-inline-note">Selecciona una tienda para editar sus sincronizaciones.</p>
       ) : null}
 
+      {activeStore ? <StoreConfigCoherencia config={revision} /> : null}
+
       <div className="store-configs-grid">
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Contactos</strong>
-            <span>Match automático entre E-commerce y Contable</span>
+            <span>Cómo se emparejan los clientes de la tienda con los de Alegra</span>
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
               <BooleanChoice
-                label="Automático de contactos"
+                label="Sincronizar clientes sin intervención"
                 value={draft.contacts.enabled}
                 onChange={(next) =>
                   setDraft((current) => ({ ...current, contacts: { ...current.contacts, enabled: next } }))
                 }
                 positive="Activo"
                 negative="Inactivo"
-                help="Sync automático de contactos."
+                help="Cuando entra un pedido o cambia una ficha, el otro sistema se actualiza solo."
               />
               <BooleanChoice
-                label="E-commerce → Contable"
+                label="El cliente del pedido pasa a Alegra"
                 value={draft.contacts.fromShopify}
                 onChange={(next) =>
                   setDraft((current) => ({ ...current, contacts: { ...current.contacts, fromShopify: next } }))
                 }
                 positive="Permitido"
                 negative="Bloqueado"
-                help="Actualiza o crea contactos E-commerce → Contable."
+                help="Quien compra en la tienda se crea o se actualiza en Alegra. Es lo que permite facturarle."
                 disabled={!draft.contacts.enabled}
               />
               <BooleanChoice
-                label="Crear nuevos en Contable"
+                label="Dar de alta al cliente nuevo en Alegra"
                 value={draft.contacts.createInAlegra}
                 onChange={(next) =>
                   setDraft((current) => ({ ...current, contacts: { ...current.contacts, createInAlegra: next } }))
                 }
                 positive="Sí"
                 negative="No"
-                help="Crea el contacto cuando no hay match."
+                help="Si el comprador no existe en Alegra, se crea. Sin esto, un cliente nuevo no se puede facturar."
                 disabled={!draft.contacts.enabled || !draft.contacts.fromShopify}
               />
               <BooleanChoice
-                label="Contable → E-commerce"
+                label="El cliente de Alegra pasa a la tienda"
                 value={draft.contacts.fromAlegra}
                 onChange={(next) =>
                   setDraft((current) => ({ ...current, contacts: { ...current.contacts, fromAlegra: next } }))
                 }
                 positive="Permitido"
                 negative="Bloqueado"
-                help="Actualiza o crea clientes Contable → E-commerce."
+                help="Un cliente dado de alta en Alegra aparece también en la tienda."
                 disabled={!draft.contacts.enabled}
               />
               <BooleanChoice
-                label="Crear nuevos en E-commerce"
+                label="Dar de alta al cliente nuevo en la tienda"
                 value={draft.contacts.createInShopify}
                 onChange={(next) =>
                   setDraft((current) => ({ ...current, contacts: { ...current.contacts, createInShopify: next } }))
                 }
                 positive="Sí"
                 negative="No"
-                help="Crea el cliente cuando no hay match."
+                help="Si el cliente de Alegra no existe en la tienda, se crea."
                 disabled={!draft.contacts.enabled || !draft.contacts.fromAlegra}
               />
               <label className="store-config-field">
-                <span>Prioridad de identificación</span>
+                <span>Con qué dato se reconoce a un cliente</span>
                 <select
                   className="input"
                   value={draft.contacts.matchPriority.join("_")}
@@ -249,7 +269,9 @@ export function StoreSyncModulesPanel({
                   <option value="email_document_phone">Email → Documento → Teléfono</option>
                   <option value="phone_document_email">Teléfono → Documento → Email</option>
                 </select>
-                <small>Orden de match para evitar duplicados antes de crear.</small>
+                <small>
+                  Se busca por el primero; si no aparece, por el siguiente. Evita crear el mismo cliente dos veces.
+                </small>
               </label>
             </div>
             <div className="page-module-actions">
@@ -263,22 +285,22 @@ export function StoreSyncModulesPanel({
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Pedidos y facturación</strong>
-            <span>Dirección del sync y retorno de facturas</span>
+            <span>Qué se lleva a Alegra y qué vuelve de allí</span>
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
               <BooleanChoice
-                label="Pedidos E-commerce → Contable"
+                label="Llevar los pedidos a Alegra"
                 value={draft.orders.shopifyEnabled}
                 onChange={(next) =>
                   setDraft((current) => ({ ...current, orders: { ...current.orders, shopifyEnabled: next } }))
                 }
                 positive="Activo"
                 negative="Inactivo"
-                help="Sync de pedidos Shopify → Alegra."
+                help="Cada pedido de la tienda se registra en Alegra."
               />
               <label className="store-config-field">
-                <span>Modo Shopify → Alegra</span>
+                <span>Qué se hace con el pedido</span>
                 <select
                   className="input"
                   value={draft.orders.shopifyToAlegra}
@@ -298,20 +320,20 @@ export function StoreSyncModulesPanel({
                   <option value="invoice">Factura</option>
                   <option value="off">Apagado</option>
                 </select>
-                <small>Pedido: registra, crea contacto o factura.</small>
+                <small>Qué hacer con cada pedido: sólo guardarlo, guardarlo con su cliente, o emitir la factura.</small>
               </label>
               <BooleanChoice
-                label="Facturas Contable → E-commerce"
+                label="Traer a la tienda las facturas de Alegra"
                 value={draft.orders.alegraEnabled}
                 onChange={(next) =>
                   setDraft((current) => ({ ...current, orders: { ...current.orders, alegraEnabled: next } }))
                 }
                 positive="Activo"
                 negative="Inactivo"
-                help="Sync inverso desde facturas Alegra."
+                help="Una factura hecha en Alegra crea su pedido correspondiente en la tienda."
               />
               <label className="store-config-field">
-                <span>Modo Alegra → E-commerce</span>
+                <span>Cómo llega el pedido a la tienda</span>
                 <select
                   className="input"
                   value={draft.orders.alegraToShopify}
@@ -330,7 +352,7 @@ export function StoreSyncModulesPanel({
                   <option value="draft">Borrador</option>
                   <option value="active">Activo</option>
                 </select>
-                <small>Facturas vuelven como borrador o activo.</small>
+                <small>Si el pedido que se crea en la tienda nace como borrador o ya publicado.</small>
               </label>
             </div>
             <div className="page-module-actions">
@@ -345,7 +367,7 @@ export function StoreSyncModulesPanel({
               <div className="settings-subsection-head">
                 <div>
                   <strong>Preparación automática</strong>
-                  <span>Confirma si los webhooks y el retorno desde Contable están listos antes de guardar.</span>
+                  <span>Confirma si los webhooks y el retorno desde Alegra están listos antes de guardar.</span>
                 </div>
                 {ordersWebhookStatus ? (
                   <span
@@ -375,7 +397,7 @@ export function StoreSyncModulesPanel({
               {draft.orders.alegraEnabled ? (
                 <div className="connection-tech-list">
                   <div className="connection-tech-item">
-                    <span>Webhook esperado en Contable</span>
+                    <span>Webhook esperado en Alegra</span>
                     <strong>{alegraWebhookUrl || "Conecta Shopify para construir la URL."}</strong>
                   </div>
                   <div className="connection-tech-item">
@@ -391,56 +413,56 @@ export function StoreSyncModulesPanel({
 
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
-            <strong>Productos E-commerce → Contable</strong>
-            <span>Crear, actualizar, inventario y match Shopify → Alegra</span>
+            <strong>Productos Shopify → Alegra</strong>
+            <span>Qué se crea y qué se actualiza en Alegra a partir de la tienda</span>
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
               <BooleanChoice
-                label="Automático Shopify → Contable"
+                label="Llevar productos de la tienda a Alegra"
                 value={draft.products.shopifyEnabled}
                 onChange={(next) =>
                   setDraft((current) => ({ ...current, products: { ...current.products, shopifyEnabled: next } }))
                 }
                 positive="Activo"
                 negative="Inactivo"
-                help="Sync automático Shopify → Contable."
+                help="Los productos que se creen o cambien en la tienda se reflejan en Alegra."
               />
               <BooleanChoice
-                label="Crear en Contable"
+                label="Dar de alta el producto en Alegra"
                 value={draft.products.createInAlegra}
                 onChange={(next) =>
                   setDraft((current) => ({ ...current, products: { ...current.products, createInAlegra: next } }))
                 }
                 positive="Sí"
                 negative="No"
-                help="Crea el producto cuando no existe."
+                help="Si el producto de la tienda no existe en Alegra, se crea."
                 disabled={!draft.products.shopifyEnabled}
               />
               <BooleanChoice
-                label="Actualizar en Contable"
+                label="Actualizar los que ya existen"
                 value={draft.products.updateInAlegra}
                 onChange={(next) =>
                   setDraft((current) => ({ ...current, products: { ...current.products, updateInAlegra: next } }))
                 }
                 positive="Sí"
                 negative="No"
-                help="Refresca productos existentes en Contable."
+                help="Refresca en Alegra los datos de los productos que ya están allí."
                 disabled={!draft.products.shopifyEnabled}
               />
               <BooleanChoice
-                label="Incluir inventario"
+                label="Incluir también las existencias"
                 value={draft.products.includeInventory}
                 onChange={(next) =>
                   setDraft((current) => ({ ...current, products: { ...current.products, includeInventory: next } }))
                 }
                 positive="Sí"
                 negative="No"
-                help="Incluye stock en el sync."
+                help="Envía además las cantidades. Déjalo APAGADO si Alegra manda sobre el inventario: si no, la tienda le sobrescribiría el stock."
                 disabled={!draft.products.shopifyEnabled}
               />
               <label className="store-config-field">
-                <span>Prioridad de match</span>
+                <span>Con qué dato se reconoce un producto</span>
                 <select
                   className="input"
                   value={draft.products.matchPriority}
@@ -458,10 +480,10 @@ export function StoreSyncModulesPanel({
                   <option value="sku_barcode">SKU → Barcode</option>
                   <option value="barcode_sku">Barcode → SKU</option>
                 </select>
-                <small>Define el primer criterio de match antes de crear un item nuevo.</small>
+                <small>Se busca por ese dato antes de dar de alta uno nuevo. Evita duplicar productos.</small>
               </label>
               <label className="store-config-field">
-                <span>Bodega destino en Contable</span>
+                <span>Bodega de Alegra donde se descuenta</span>
                 <input
                   className="input"
                   value={draft.products.warehouseId}
@@ -474,7 +496,7 @@ export function StoreSyncModulesPanel({
                   }
                   placeholder="ID de bodega"
                 />
-                <small>Aplica cuando el sync E-commerce → Contable mueve existencias.</small>
+                <small>Sólo se usa si las existencias viajan de la tienda hacia Alegra.</small>
               </label>
             </div>
             <div className="page-module-actions">

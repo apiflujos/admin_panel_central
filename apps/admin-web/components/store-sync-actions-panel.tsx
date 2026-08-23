@@ -45,7 +45,7 @@ function toPercent(processed: number, total: number) {
 }
 
 function orderModeLabel(mode: "invoice" | "contact_only" | "db_only" | "off") {
-  if (mode === "invoice") return "Facturar en Contable";
+  if (mode === "invoice") return "Facturar en Alegra";
   if (mode === "contact_only") return "Solo contacto";
   if (mode === "db_only") return "Solo base interna";
   return "Apagado";
@@ -782,7 +782,6 @@ export function StoreSyncActionsPanel({
 
   return (
     <section className="card connection-card">
-
       <div className="store-configs-grid">
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
@@ -823,14 +822,14 @@ export function StoreSyncActionsPanel({
             </div>
             <div className="store-configs-grid">
               <BooleanChoice
-                label="Permitir E-commerce → Contable"
+                label="Permitir Shopify → Alegra"
                 value={contactsBulkOptions.shopifyToAlegra}
                 onChange={(next) => setContactsBulkOptions((current) => ({ ...current, shopifyToAlegra: next }))}
                 positive="Sí"
                 negative="No"
               />
               <BooleanChoice
-                label="Crear nuevos en Contable"
+                label="Crear nuevos en Alegra"
                 value={contactsBulkOptions.createInAlegra}
                 onChange={(next) => setContactsBulkOptions((current) => ({ ...current, createInAlegra: next }))}
                 positive="Sí"
@@ -838,14 +837,14 @@ export function StoreSyncActionsPanel({
                 disabled={!contactsBulkOptions.shopifyToAlegra}
               />
               <BooleanChoice
-                label="Permitir Contable → E-commerce"
+                label="Permitir Alegra → Shopify"
                 value={contactsBulkOptions.alegraToShopify}
                 onChange={(next) => setContactsBulkOptions((current) => ({ ...current, alegraToShopify: next }))}
                 positive="Sí"
                 negative="No"
               />
               <BooleanChoice
-                label="Crear nuevos en E-commerce"
+                label="Crear nuevos en Shopify"
                 value={contactsBulkOptions.createInShopify}
                 onChange={(next) => setContactsBulkOptions((current) => ({ ...current, createInShopify: next }))}
                 positive="Sí"
@@ -861,7 +860,7 @@ export function StoreSyncActionsPanel({
                 onClick={() =>
                   void runStreamAction(
                     "contacts",
-                    "Contactos E-commerce ↔ Contable",
+                    "Contactos Shopify ↔ Alegra",
                     "/api/sync/contacts/bulk",
                     {
                       direction: "bidirectional",
@@ -984,7 +983,7 @@ export function StoreSyncActionsPanel({
           <div className="settings-subsection">
             <div className="store-configs-grid">
               <label className="store-config-field">
-                <span>SKU en E-commerce</span>
+                <span>SKU en Shopify</span>
                 <input
                   className="input"
                   value={productManualControlForm.sku}
@@ -1006,7 +1005,7 @@ export function StoreSyncActionsPanel({
                 />
               </label>
               <BooleanChoice
-                label="Tracking en E-commerce"
+                label="Tracking en Shopify"
                 value={productManualControlForm.trackInventoryShopify}
                 onChange={(next) =>
                   setProductManualControlForm((current) => ({ ...current, trackInventoryShopify: next }))
@@ -1015,7 +1014,7 @@ export function StoreSyncActionsPanel({
                 negative="Inactivo"
               />
               <BooleanChoice
-                label="Tracking en Contable"
+                label="Tracking en Alegra"
                 value={productManualControlForm.trackInventoryAlegra}
                 onChange={(next) =>
                   setProductManualControlForm((current) => ({ ...current, trackInventoryAlegra: next }))
@@ -1024,7 +1023,7 @@ export function StoreSyncActionsPanel({
                 negative="Inactivo"
               />
               <BooleanChoice
-                label="Sobreventa en E-commerce"
+                label="Sobreventa en Shopify"
                 value={productManualControlForm.allowOversellShopify}
                 onChange={(next) =>
                   setProductManualControlForm((current) => ({ ...current, allowOversellShopify: next }))
@@ -1034,7 +1033,7 @@ export function StoreSyncActionsPanel({
                 disabled={!productManualControlForm.trackInventoryShopify}
               />
               <BooleanChoice
-                label="Sobreventa en Contable"
+                label="Sobreventa en Alegra"
                 value={productManualControlForm.allowOversellAlegra}
                 onChange={(next) =>
                   setProductManualControlForm((current) => ({ ...current, allowOversellAlegra: next }))
@@ -1044,7 +1043,7 @@ export function StoreSyncActionsPanel({
                 disabled={!productManualControlForm.trackInventoryAlegra}
               />
               <label className="store-config-field">
-                <span>Inventario inicial en Contable</span>
+                <span>Inventario inicial en Alegra</span>
                 <input
                   className="input"
                   type="number"
@@ -1058,10 +1057,10 @@ export function StoreSyncActionsPanel({
                     }))
                   }
                 />
-                <small>Solo si activas tracking en Contable.</small>
+                <small>Solo si activas tracking en Alegra.</small>
               </label>
               <label className="store-config-field">
-                <span>Unidad en Contable</span>
+                <span>Unidad en Alegra</span>
                 <input
                   className="input"
                   value={productManualControlForm.inventoryUnit}
@@ -1072,7 +1071,9 @@ export function StoreSyncActionsPanel({
                 />
               </label>
             </div>
-            <small className="connection-inline-note">Sirve para correcciones puntuales sin relanzar el catálogo. Puedes usar solo SKU, solo Alegra ID o ambos.</small>
+            <small className="connection-inline-note">
+              Sirve para correcciones puntuales sin relanzar el catálogo. Puedes usar solo SKU, solo Alegra ID o ambos.
+            </small>
             <div className="connection-card-actions">
               <button
                 className="btn primary"
@@ -1149,7 +1150,7 @@ export function StoreSyncActionsPanel({
                 />
               </label>
               <label className="store-config-field">
-                <span>Factura puntual Contable</span>
+                <span>Factura puntual Alegra</span>
                 <input
                   className="input"
                   value={invoiceRange.alegraInvoiceId}
@@ -1241,7 +1242,7 @@ export function StoreSyncActionsPanel({
             </div>
             <div className="store-configs-grid">
               <label className="store-config-field">
-                <span>Modo Shopify → Contable</span>
+                <span>Modo Shopify → Alegra</span>
                 <select
                   className="input"
                   value={ordersToAlegraOptions.mode}
@@ -1257,7 +1258,7 @@ export function StoreSyncActionsPanel({
                     }))
                   }
                 >
-                  <option value="invoice">Facturar en Contable</option>
+                  <option value="invoice">Facturar en Alegra</option>
                   <option value="contact_only">Solo contacto</option>
                   <option value="db_only">Solo base interna</option>
                   <option value="off">Apagado</option>
@@ -1282,14 +1283,14 @@ export function StoreSyncActionsPanel({
                 help="Registra el pedido aún si una regla lo bloquearía."
               />
               <BooleanChoice
-                label="Crear pedido en E-commerce"
+                label="Crear pedido en Shopify"
                 value={invoicesToShopifyOptions.createShopifyOrder}
                 onChange={(next) =>
                   setInvoicesToShopifyOptions((current) => ({ ...current, createShopifyOrder: next }))
                 }
                 positive="Sí"
                 negative="No"
-                help="Si lo apagas, usa solo la carga a base desde Contable."
+                help="Si lo apagas, usa solo la carga a base desde Alegra."
               />
               <label className="store-config-field">
                 <span>Crear como</span>
@@ -1318,7 +1319,7 @@ export function StoreSyncActionsPanel({
                 onClick={() =>
                   void runStreamAction(
                     "orders",
-                    "Pedidos Shopify → Contable",
+                    "Pedidos Shopify → Alegra",
                     "/api/sync/orders",
                     {
                       shopDomain: activeStore.providers.shopify?.shopDomain,
@@ -1426,7 +1427,7 @@ export function StoreSyncActionsPanel({
                 onClick={() =>
                   void runStreamAction(
                     "invoices",
-                    "Facturas Contable → E-commerce",
+                    "Facturas Alegra → Shopify",
                     "/api/sync/invoices",
                     {
                       shopDomain: activeStore.providers.shopify?.shopDomain,
@@ -1523,7 +1524,7 @@ export function StoreSyncActionsPanel({
                 onClick={() =>
                   void runStreamAction(
                     "invoices-backfill",
-                    "Carga histórica desde Contable",
+                    "Carga histórica desde Alegra",
                     "/api/backfill/orders",
                     {
                       source: "alegra",
@@ -1545,7 +1546,7 @@ export function StoreSyncActionsPanel({
                                   ...current,
                                   syncId: typeof payload.syncId === "string" ? payload.syncId : current.syncId,
                                   progress: 0,
-                                  detail: "Leyendo facturas desde Contable...",
+                                  detail: "Leyendo facturas desde Alegra...",
                                 }
                               : current
                           );
@@ -1583,23 +1584,23 @@ export function StoreSyncActionsPanel({
                               ? {
                                   ...current,
                                   progress: 100,
-                                  detail: `Facturas cargadas desde Contable: ${processed}`,
+                                  detail: `Facturas cargadas desde Alegra: ${processed}`,
                                   stoppable: false,
                                 }
                               : current
                           );
-                          setMessage(`Carga histórica lista. Facturas desde Contable: ${processed}`);
+                          setMessage(`Carga histórica lista. Facturas desde Alegra: ${processed}`);
                           return;
                         }
                         if (payload.type === "error") {
-                          throw new Error(String(payload.error || "No se pudo cargar desde Contable."));
+                          throw new Error(String(payload.error || "No se pudo cargar desde Alegra."));
                         }
                       },
                     }
                   )
                 }
               >
-                {loadingKey === "invoices-backfill" ? "Procesando..." : "Cargar desde Contable"}
+                {loadingKey === "invoices-backfill" ? "Procesando..." : "Cargar desde Alegra"}
               </button>
               {streamState?.key === "invoices-backfill" && streamState.stoppable ? (
                 <button className="btn ghost" type="button" onClick={() => void stopStreamAction("invoices-backfill")}>
@@ -1629,7 +1630,7 @@ export function StoreSyncActionsPanel({
 
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
-            <strong>Productos Contable → E-commerce</strong>
+            <strong>Productos Alegra → Shopify</strong>
             <span>Catálogo inicial o reproceso por fechas hacia Shopify</span>
           </summary>
           <div className="settings-subsection">
@@ -1710,7 +1711,7 @@ export function StoreSyncActionsPanel({
                 negative="No"
               />
               <BooleanChoice
-                label="Publicar en E-commerce"
+                label="Publicar en Shopify"
                 value={productsToShopifyOptions.publishOnSync}
                 onChange={(next) => setProductsToShopifyOptions((current) => ({ ...current, publishOnSync: next }))}
                 positive="Sí"
@@ -1873,7 +1874,7 @@ export function StoreSyncActionsPanel({
                 onClick={() =>
                   void runStreamAction(
                     "products-to-shopify",
-                    "Productos Contable → E-commerce",
+                    "Productos Alegra → Shopify",
                     "/api/sync/products",
                     {
                       shopDomain: activeStore.providers.shopify?.shopDomain,
@@ -1945,7 +1946,7 @@ export function StoreSyncActionsPanel({
                             current?.key === "products-to-shopify"
                               ? {
                                   ...current,
-                                  detail: `Esperando límite de Contable... reintento ${Number(payload.retries || 0)} en ${Math.round(
+                                  detail: `Esperando límite de Alegra... reintento ${Number(payload.retries || 0)} en ${Math.round(
                                     Number(payload.waitMs || 0) / 1000
                                   )}s`,
                                 }
@@ -2182,7 +2183,7 @@ export function StoreSyncActionsPanel({
 
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
-            <strong>Productos E-commerce → Contable</strong>
+            <strong>Productos Shopify → Alegra</strong>
             <span>Reproceso por fechas desde Shopify hacia Alegra</span>
           </summary>
           <div className="settings-subsection">
@@ -2221,7 +2222,7 @@ export function StoreSyncActionsPanel({
             </div>
             <div className="store-configs-grid">
               <BooleanChoice
-                label="Crear nuevos en Contable"
+                label="Crear nuevos en Alegra"
                 value={productsToAlegraOptions.createInAlegra}
                 onChange={(next) => setProductsToAlegraOptions((current) => ({ ...current, createInAlegra: next }))}
                 positive="Sí"
@@ -2285,7 +2286,7 @@ export function StoreSyncActionsPanel({
                 onClick={() =>
                   void runStreamAction(
                     "products-to-alegra",
-                    "Productos E-commerce → Contable",
+                    "Productos Shopify → Alegra",
                     "/api/sync/products/shopify-to-alegra",
                     {
                       shopDomain: activeStore.providers.shopify?.shopDomain || "",
@@ -2359,19 +2360,19 @@ export function StoreSyncActionsPanel({
                               : current
                           );
                           setMessage(
-                            `Productos a Contable listos. Procesados ${processed} · Creados ${Number(payload.created || 0)} · Actualizados ${Number(payload.updated || 0)} · Fallidos ${Number(payload.failed || 0)}`
+                            `Productos a Alegra listos. Procesados ${processed} · Creados ${Number(payload.created || 0)} · Actualizados ${Number(payload.updated || 0)} · Fallidos ${Number(payload.failed || 0)}`
                           );
                           return;
                         }
                         if (payload.type === "error") {
-                          throw new Error(String(payload.error || "No se pudo sincronizar a Contable."));
+                          throw new Error(String(payload.error || "No se pudo sincronizar a Alegra."));
                         }
                       },
                     }
                   )
                 }
               >
-                {loadingKey === "products-to-alegra" ? "Procesando..." : "Sincronizar a Contable"}
+                {loadingKey === "products-to-alegra" ? "Procesando..." : "Sincronizar a Alegra"}
               </button>
               {streamState?.key === "products-to-alegra" && streamState.stoppable ? (
                 <button className="btn ghost" type="button" onClick={() => void stopStreamAction("products-to-alegra")}>
@@ -2404,7 +2405,7 @@ export function StoreSyncActionsPanel({
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Carga histórica de catálogo</strong>
-            <span>Carga inicial de catálogo desde Contable o E-commerce</span>
+            <span>Carga inicial de catálogo desde Alegra o Shopify</span>
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
@@ -2424,8 +2425,8 @@ export function StoreSyncActionsPanel({
                   }
                 >
                   <option value="both">Ambos</option>
-                  <option value="alegra">Contable</option>
-                  <option value="shopify">E-commerce</option>
+                  <option value="alegra">Alegra</option>
+                  <option value="shopify">Shopify</option>
                 </select>
               </label>
               <label className="store-config-field">
@@ -2464,7 +2465,7 @@ export function StoreSyncActionsPanel({
                 />
               </label>
               <label className="store-config-field">
-                <span>Estado Contable</span>
+                <span>Estado Alegra</span>
                 <select
                   className="input"
                   value={productsCatalogRange.alegraStatus}
@@ -2498,7 +2499,7 @@ export function StoreSyncActionsPanel({
                 </select>
               </label>
               <label className="store-config-field">
-                <span>Solo publicados en E-commerce</span>
+                <span>Solo publicados en Shopify</span>
                 <select
                   className="input"
                   value={productsCatalogRange.shopifyPublishedOnly ? "yes" : "no"}
@@ -2598,13 +2599,13 @@ export function StoreSyncActionsPanel({
                               ? {
                                   ...current,
                                   progress: 100,
-                                  detail: `Contable ${Number(alegra?.processed || 0)} · E-commerce ${Number(shopify?.processed || 0)}`,
+                                  detail: `Alegra ${Number(alegra?.processed || 0)} · Shopify ${Number(shopify?.processed || 0)}`,
                                   stoppable: false,
                                 }
                               : current
                           );
                           setMessage(
-                            `Catálogo base listo. Contable ${Number(alegra?.processed || 0)} · E-commerce ${Number(shopify?.processed || 0)}`
+                            `Catálogo base listo. Alegra ${Number(alegra?.processed || 0)} · Shopify ${Number(shopify?.processed || 0)}`
                           );
                           return;
                         }

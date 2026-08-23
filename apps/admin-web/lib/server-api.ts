@@ -327,6 +327,7 @@ export async function getServerConnectionsWorkspace(): Promise<ConnectionsWorksp
       shopDomain: config.shopDomain,
       // Este mapeo es una LISTA BLANCA: lo que no se nombre aquí no llega a la
       // interfaz, por más que esté guardado.
+      alegraAccountId: (config as { alegraAccountId?: number }).alegraAccountId,
       sourceOfTruth: normalizeSourceOfTruth((config as { sourceOfTruth?: unknown }).sourceOfTruth),
       priceLists: {
         generalId: config.priceLists.generalId,

@@ -2030,3 +2030,39 @@
     radial-gradient(circle at right center, rgba(126, 67, 185, 0.05), transparent 26%),
     var(--bg-body);
 }
+
+/* Avisos de configuración incoherente. */
+.coherencia {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+
+.coherencia-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--panel-border);
+  background: var(--bg-panel);
+}
+
+.coherencia-item.is-bloquea {
+  border-color: #d97706;
+  background: rgba(217, 119, 6, 0.06);
+}
+
+.coherencia-icono {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 1px;
+  flex-shrink: 0;
+}
+
+.coherencia-item.is-bloquea .coherencia-icono { color: #d97706; }
+.coherencia-item.is-aviso .coherencia-icono { color: var(--text-muted); }
+
+.coherencia-texto strong { font-size: 13px; }
+.coherencia-texto p { margin: 2px 0 0; font-size: 12px; color: var(--text-muted); }
+.coherencia-arreglo { color: var(--primary) !important; }

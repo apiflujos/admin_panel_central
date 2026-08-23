@@ -37,6 +37,8 @@ export type CriticalStoreConfig = {
   storeId: number;
   storeName: string;
   shopDomain?: string;
+  /** Cuenta de Alegra que usa la tienda. Puede compartirse entre tiendas. */
+  alegraAccountId?: number;
   /**
    * Quién manda sobre cada área en esta tienda.
    *

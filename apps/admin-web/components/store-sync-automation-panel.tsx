@@ -87,7 +87,6 @@ export function StoreSyncAutomationPanel({
 
   return (
     <section className="card connection-card">
-
       <div className="operational-hub-grid">
         <article className="card operational-hub-card">
           <div className="settings-subsection-head">
@@ -100,12 +99,12 @@ export function StoreSyncAutomationPanel({
             </span>
           </div>
           <div className="page-module-actions compact-pills">
-            <span className={`pill ${effectiveSync.contacts.fromShopify ? "pill-ok" : ""}`}>E-commerce → Contable</span>
-            <span className={`pill ${effectiveSync.contacts.fromAlegra ? "pill-ok" : ""}`}>Contable → E-commerce</span>
+            <span className={`pill ${effectiveSync.contacts.fromShopify ? "pill-ok" : ""}`}>Shopify → Alegra</span>
+            <span className={`pill ${effectiveSync.contacts.fromAlegra ? "pill-ok" : ""}`}>Alegra → Shopify</span>
             <span className="pill">Match {effectiveSync.contacts.matchPriority.join(" / ")}</span>
           </div>
           <p className="connection-inline-note">
-            Altas automáticas: Contable {effectiveSync.contacts.createInAlegra ? "sí" : "no"} · E-commerce{" "}
+            Altas automáticas: Alegra {effectiveSync.contacts.createInAlegra ? "sí" : "no"} · Shopify{" "}
             {effectiveSync.contacts.createInShopify ? "sí" : "no"}.
           </p>
         </article>
@@ -135,7 +134,7 @@ export function StoreSyncAutomationPanel({
           <div className="settings-subsection-head">
             <div>
               <strong>Productos y publicación</strong>
-              <span>Automatización de catálogo entre Contable y E-commerce.</span>
+              <span>Automatización de catálogo entre Alegra y Shopify.</span>
             </div>
             <span className={`pill ${effectiveRules.syncEnabled ? "pill-ok" : "pill-warn"}`}>
               {effectiveRules.syncEnabled ? "Sync activo" : "Sync inactivo"}
@@ -144,11 +143,11 @@ export function StoreSyncAutomationPanel({
           <div className="page-module-actions compact-pills">
             <span className={`pill ${effectiveRules.createInShopify ? "pill-ok" : ""}`}>Crear en tienda</span>
             <span className={`pill ${effectiveRules.updateInShopify ? "pill-ok" : ""}`}>Actualizar en tienda</span>
-            <span className={`pill ${effectiveSync.products.shopifyEnabled ? "pill-ok" : ""}`}>Tienda → Contable</span>
+            <span className={`pill ${effectiveSync.products.shopifyEnabled ? "pill-ok" : ""}`}>Tienda → Alegra</span>
             <span className={`pill ${effectiveRules.includeImages ? "pill-ok" : ""}`}>Exigir imágenes</span>
           </div>
           <p className="connection-inline-note">
-            Inventario en sync Shopify → Contable: {effectiveSync.products.includeInventory ? "incluido" : "apagado"}.
+            Inventario en sync Shopify → Alegra: {effectiveSync.products.includeInventory ? "incluido" : "apagado"}.
           </p>
         </article>
 

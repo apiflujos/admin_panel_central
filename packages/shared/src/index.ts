@@ -1,6 +1,7 @@
 export * from "./alegra";
 export * from "./admin-web";
 export * from "./catalog";
+export * from "./config-coherencia";
 export * from "./inventory";
 export * from "./pricing";
 export * from "./shopify-publication";
