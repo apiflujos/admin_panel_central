@@ -249,6 +249,26 @@ export async function processWebhookEvent(event: WebhookEvent) {
   return { ignored: true, eventType: event.eventType };
 }
 
+/**
+ * Por qué un evento que SÍ se recibió no produjo ningún efecto.
+ *
+ * Un webhook puede procesarse «bien» y no hacer nada: tipo de evento que no
+ * entendemos, falta el id de la factura, la sincronización está apagada. Sin
+ * dejar constancia, en la pantalla figuraba como «procesado» y nadie podía
+ * saber que en realidad no ocurrió nada.
+ *
+ * Devuelve null cuando el evento sí tuvo efecto.
+ */
+function motivoSinEfecto(resultado: unknown): string | null {
+  const r = asRecord(resultado);
+  if (!r) return null;
+  if (r.ignored === true) return typeof r.reason === "string" ? r.reason : "evento_no_reconocido";
+  if (r.handled === false || r.skipped === true) {
+    return typeof r.reason === "string" ? r.reason : "sin_efecto";
+  }
+  return null;
+}
+
 export async function processQueuedWebhookEvent(params: {
   syncLogId: number;
   event: WebhookEvent;
@@ -264,13 +284,15 @@ export async function processQueuedWebhookEvent(params: {
       response: { result },
     });
     if (params.webhookEventId) {
+      // El motivo se guarda aunque el estado sea «processed»: recibir y no
+      // hacer nada es un hecho que tiene que poder verse y explicarse.
       await pool.query(
         `
         UPDATE webhook_events
-        SET status = 'processed', processed_at = NOW()
+        SET status = 'processed', processed_at = NOW(), error_motivo = $3, error_detalle = NULL
         WHERE organization_id = $1 AND id = $2
         `,
-        [getOrgId(), params.webhookEventId]
+        [getOrgId(), params.webhookEventId, motivoSinEfecto(result)]
       );
     }
     return result;
@@ -284,10 +306,10 @@ export async function processQueuedWebhookEvent(params: {
       await pool.query(
         `
         UPDATE webhook_events
-        SET status = 'failed'
+        SET status = 'failed', error_motivo = 'error_al_procesar', error_detalle = $3
         WHERE organization_id = $1 AND id = $2
         `,
-        [getOrgId(), params.webhookEventId]
+        [getOrgId(), params.webhookEventId, message.slice(0, 2000)]
       );
     }
     throw error;

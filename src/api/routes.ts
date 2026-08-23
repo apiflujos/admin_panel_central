@@ -146,6 +146,11 @@ import {
   saListUsersHandler,
   saUpdateUserHandler,
 } from "./superadmin-users.controller";
+import {
+  atenderWebhookSinAsociarHandler,
+  listarWebhooksSinAsociarHandler,
+  saListarWebhooksSinAsociarHandler,
+} from "./webhooks-sin-asociar.controller";
 
 export const router = Router();
 
@@ -204,11 +209,18 @@ router.post("/sa/modules/toggle", requireSuperAdmin, wrap(saSetTenantModuleHandl
 // Interruptores de los trabajos automáticos. Van AQUÍ y no en apps/admin-web/app/api:
 // server.ts sólo enruta /api/session y /api/admin-web hacia Next; todo lo demás
 // bajo /api lo atiende este router, así que una ruta de Next nunca se alcanzaría.
+// Lo que recibimos y no pudimos asociar. La vista de Super Admin no filtra por
+// organización a propósito: el caso de una tienda desconocida no tiene
+// organización y de otro modo no lo vería nadie.
+router.get("/sa/webhooks-sin-asociar", requireSuperAdmin, wrap(saListarWebhooksSinAsociarHandler));
+router.post("/sa/webhooks-sin-asociar/atender", requireSuperAdmin, wrap(atenderWebhookSinAsociarHandler));
 router.get("/sa/workers", requireSuperAdmin, wrap(saListWorkersHandler));
 router.post("/sa/workers/toggle", requireSuperAdmin, wrap(saSetWorkerHandler));
 router.post("/sa/plans/assign", requireSuperAdmin, wrap(saAssignPlanHandler));
 router.get("/sa/usage", requireSuperAdmin, wrap(saTenantSummaryHandler));
 router.post("/sa/reset", requireSuperAdmin, wrap(saResetCountersHandler));
+router.get("/webhooks-sin-asociar", wrap(listarWebhooksSinAsociarHandler));
+router.post("/webhooks-sin-asociar/atender", requireAdmin, wrap(atenderWebhookSinAsociarHandler));
 router.get("/profile", wrap(getProfileHandler));
 router.put("/profile", wrap(updateProfileHandler));
 router.get("/company", wrap(getCompanyHandler));

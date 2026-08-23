@@ -965,6 +965,56 @@ export type WorkerSettingDto = {
   updatedBy: string | null;
 };
 
+/**
+ * Lo que llegó por webhook y no se pudo asociar a nada.
+ *
+ * Escuchar un webhook es un compromiso: si nos suscribimos, no podemos
+ * recibirlo y hacer como si no hubiera pasado. Cuando no sabemos de quién es,
+ * queda registrado y se muestra aquí con su motivo.
+ */
+export type WebhookSinAsociarDto = {
+  id: number;
+  source: string;
+  eventType: string;
+  shopDomain: string;
+  accountId: string;
+  motivo: string;
+  detalle: string | null;
+  veces: number;
+  primeraVez: string;
+  ultimaVez: string;
+  atendido: boolean;
+  titulo: string;
+  queSignifica: string;
+  queHacer: string;
+};
+
+export type WebhooksSinAsociarRespuesta = {
+  items: WebhookSinAsociarDto[];
+  resumen: { problemas: number; eventos: number; ultimaVez: string | null };
+};
+
+export async function fetchWebhooksSinAsociar(opciones: { superAdmin?: boolean } = {}) {
+  const ruta = opciones.superAdmin ? "/api/sa/webhooks-sin-asociar" : "/api/webhooks-sin-asociar";
+  const response = await apiFetch(ruta, { method: "GET" });
+  if (!response.ok) throw new Error(`No se pudo leer lo recibido sin asociar (${response.status}).`);
+  const data = (await response.json()) as Partial<WebhooksSinAsociarRespuesta>;
+  return {
+    items: Array.isArray(data.items) ? data.items : [],
+    resumen: data.resumen || { problemas: 0, eventos: 0, ultimaVez: null },
+  } satisfies WebhooksSinAsociarRespuesta;
+}
+
+export async function atenderWebhookSinAsociar(id: number, opciones: { superAdmin?: boolean; notas?: string } = {}) {
+  const ruta = opciones.superAdmin ? "/api/sa/webhooks-sin-asociar/atender" : "/api/webhooks-sin-asociar/atender";
+  const response = await apiFetch(ruta, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, notas: opciones.notas }),
+  });
+  if (!response.ok) throw new Error(`No se pudo marcar como revisado (${response.status}).`);
+}
+
 export async function fetchWorkerSettings(): Promise<WorkerSettingDto[]> {
   const response = await apiFetch("/api/sa/workers", { method: "GET" });
   if (!response.ok) throw new Error(`No se pudieron cargar los trabajos (${response.status}).`);

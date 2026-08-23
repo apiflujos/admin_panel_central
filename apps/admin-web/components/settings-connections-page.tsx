@@ -19,6 +19,7 @@ import { StatusPill } from "./ui/status-pill";
 import { ResumenAutomatizacionPanel } from "./resumen-automatizacion-panel";
 import { WorkersPanel } from "./workers-panel";
 import { MatrizAutomatizacionPanel } from "./matriz-automatizacion-panel";
+import { WebhooksSinAsociarPanel } from "./webhooks-sin-asociar-panel";
 
 type ConfigFlowStage = "channels" | "operations";
 type ConnectionWizardStep = "store" | "group" | "platform" | "form";
@@ -705,6 +706,10 @@ export function SettingsConnectionsPage({
       />
 
       <ResumenAutomatizacionPanel workspace={workspace} activeStoreId={selectedStoreId} />
+
+      {/* Va arriba a propósito: si algo llegó y no se pudo procesar, eso pesa
+          más que cualquier ajuste de más abajo. */}
+      <WebhooksSinAsociarPanel />
 
       <MatrizAutomatizacionPanel workspace={workspace} />
 

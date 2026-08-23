@@ -11,15 +11,10 @@ export function routeHandler(handler: Handler): Handler {
       return await handler(req, ctx);
     } catch (error) {
       if (error instanceof RouteAuthError) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: error.status }
-        );
+        return NextResponse.json({ error: error.message }, { status: error.status });
       }
-      const message =
-        error instanceof Error ? error.message : "internal_error";
-      const safe =
-        process.env.NODE_ENV === "production" ? "internal_error" : message;
+      const message = error instanceof Error ? error.message : "internal_error";
+      const safe = process.env.NODE_ENV === "production" ? "internal_error" : message;
       console.error("[route-handler]", error);
       return NextResponse.json({ error: safe }, { status: 500 });
     }
