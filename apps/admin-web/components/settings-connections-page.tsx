@@ -730,7 +730,8 @@ export function SettingsConnectionsPage({
       <section className="page-module-shell page-module-shell-compact config-active-store-shell">
         <div className="page-module-head">
           <div>
-            <h3>Tienda activa</h3>
+            <h3>Tienda que estás configurando</h3>
+            <p className="worker-group-description">Todo lo de abajo se aplica sólo a esta tienda.</p>
           </div>
           <div className="page-module-actions">
             <button
@@ -765,7 +766,7 @@ export function SettingsConnectionsPage({
         </div>
         <div className="config-active-store-grid">
           <label className="field">
-            <span>Tienda</span>
+            <span>Elige la tienda</span>
             <select
               className="input"
               value={selectedStore?.id ?? ""}
@@ -782,21 +783,20 @@ export function SettingsConnectionsPage({
             </select>
           </label>
           <div className="config-active-store-meta">
-            {selectedStore ? <span className="pill pill-info">#{selectedStore.id}</span> : null}
             {selectedStore?.providers.shopify ? <ProviderMark provider="Shopify" /> : null}
             {selectedStore?.providers.woocommerce ? <ProviderMark provider="WooCommerce" /> : null}
             {selectedStore?.providers.alegra ? <ProviderMark provider="Alegra" /> : null}
             {!selectedStore?.providers.shopify &&
             !selectedStore?.providers.woocommerce &&
             !selectedStore?.providers.alegra ? (
-              <span className="pill">Sin plataformas activas</span>
+              <span className="pill">Esta tienda aún no tiene ninguna conexión</span>
             ) : null}
             {workspaceState.securityMisconfigured ? (
-              <span className="pill pill-bad">Credenciales por reconectar</span>
+              <span className="pill pill-bad">Hay credenciales que hay que volver a conectar</span>
             ) : null}
           </div>
           <label className="field">
-            <span>Copiar configuración desde</span>
+            <span>Copiar los ajustes de otra tienda</span>
             <select
               className="input"
               value={copySourceStoreId ?? ""}
@@ -1022,7 +1022,7 @@ export function SettingsConnectionsPage({
                 <div className="settings-subsection">
                   <div className="settings-subsection-head">
                     <div>
-                      <strong>Tienda objetivo</strong>
+                      <strong>Tienda a la que pertenece</strong>
                       <span>Elige la tienda para esta conexión.</span>
                     </div>
                   </div>
@@ -1076,8 +1076,8 @@ export function SettingsConnectionsPage({
                 <div className="settings-subsection">
                   <div className="settings-subsection-head">
                     <div>
-                      <strong>Grupo funcional</strong>
-                      <span>Define qué plataformas verás en el siguiente paso.</span>
+                      <strong>Qué quieres conectar</strong>
+                      <span>Según lo que elijas, abajo aparecen unas plataformas u otras.</span>
                     </div>
                   </div>
                   <div className="provider-shortcuts provider-shortcuts-modal">
@@ -1128,8 +1128,8 @@ export function SettingsConnectionsPage({
                 <>
                   <div className="settings-subsection-head">
                     <div>
-                      <strong>Plataforma exacta</strong>
-                      <span>Elige la plataforma específica.</span>
+                      <strong>Plataforma</strong>
+                      <span>La plataforma concreta que vas a conectar.</span>
                     </div>
                   </div>
                   <div className="provider-shortcuts provider-shortcuts-modal">
@@ -1146,7 +1146,7 @@ export function SettingsConnectionsPage({
                           <ProviderMark provider="Shopify" />
                           <div>
                             <strong>Shopify</strong>
-                            <span>OAuth, dominio y webhooks</span>
+                            <span>Conexión con la tienda: acceso, dominio y avisos automáticos</span>
                           </div>
                         </button>
                         <button
@@ -1177,7 +1177,7 @@ export function SettingsConnectionsPage({
                         <ProviderMark provider="Alegra" />
                         <div>
                           <strong>Alegra</strong>
-                          <span>Cuenta existente o credenciales nuevas</span>
+                          <span>Reutilizar una cuenta ya conectada, o entrar credenciales nuevas</span>
                         </div>
                       </button>
                     ) : null}
@@ -1194,7 +1194,7 @@ export function SettingsConnectionsPage({
                           <ProviderMark provider="Google Ads" />
                           <div>
                             <strong>Google Ads</strong>
-                            <span>Customer ID + OAuth</span>
+                            <span>Cuenta publicitaria</span>
                           </div>
                         </button>
                         <button
@@ -1208,7 +1208,7 @@ export function SettingsConnectionsPage({
                           <ProviderMark provider="Meta Ads" />
                           <div>
                             <strong>Meta Ads</strong>
-                            <span>Ad account + OAuth</span>
+                            <span>Cuenta publicitaria</span>
                           </div>
                         </button>
                         <button
@@ -1222,7 +1222,7 @@ export function SettingsConnectionsPage({
                           <ProviderMark provider="TikTok Ads" />
                           <div>
                             <strong>TikTok Ads</strong>
-                            <span>Advertiser ID + OAuth</span>
+                            <span>Cuenta publicitaria</span>
                           </div>
                         </button>
                       </>

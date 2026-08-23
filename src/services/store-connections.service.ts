@@ -233,9 +233,10 @@ export async function listStoreConnections() {
     id: number;
     name: string;
     created_at: string;
+    alegra_account_id: number | null;
   }>(
     `
-    SELECT id, name, created_at
+    SELECT id, name, created_at, alegra_account_id
     FROM stores
     WHERE organization_id = $1
     ORDER BY created_at DESC
@@ -522,11 +523,30 @@ export async function listStoreConnections() {
     shopifyByStore.set(storeId, store);
   });
 
+  // Una MISMA cuenta de Alegra puede servir a VARIAS tiendas: es el caso de
+  // Becam, que opera dos tiendas facturando contra la misma cuenta.
+  //
+  // Antes este mapa se armaba sólo con `account.storeId` (el respaldo antiguo,
+  // que ata una cuenta a UNA tienda), así que la segunda tienda aparecía como
+  // "Sin conectar" aunque facturase perfectamente. Ahora se resuelve igual que
+  // el motor: primero `stores.alegra_account_id`, y sólo si no hay, el respaldo.
+  const cuentasPorId = new Map<number, (typeof mappedAlegraAccounts)[number]>();
+  mappedAlegraAccounts.forEach((account) => {
+    const id = Number(account.id);
+    if (Number.isFinite(id)) cuentasPorId.set(id, account);
+  });
+
   const alegraByStore = new Map<number, (typeof mappedAlegraAccounts)[number]>();
   mappedAlegraAccounts.forEach((account) => {
     const storeId = Number(account.storeId);
     if (!Number.isFinite(storeId)) return;
     alegraByStore.set(storeId, account);
+  });
+  storesCatalogRows.rows.forEach((store) => {
+    const explicita = Number(store.alegra_account_id);
+    if (!Number.isFinite(explicita)) return;
+    const cuenta = cuentasPorId.get(explicita);
+    if (cuenta) alegraByStore.set(Number(store.id), cuenta);
   });
 
   const storesCatalog = storesCatalogRows.rows.map((store) => {
