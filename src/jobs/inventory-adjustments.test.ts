@@ -9,6 +9,7 @@ const {
   getStoreConfigForDomainMock,
   listConnectedShopifyDomainsMock,
   isWorkerEnabledMock,
+  puedeCorrerEnTiendaMock,
 } = vi.hoisted(() => ({
   syncInventoryAdjustmentsMock: vi.fn(),
   createSyncLogMock: vi.fn(),
@@ -18,6 +19,7 @@ const {
   getStoreConfigForDomainMock: vi.fn(),
   listConnectedShopifyDomainsMock: vi.fn(),
   isWorkerEnabledMock: vi.fn(),
+  puedeCorrerEnTiendaMock: vi.fn(),
 }));
 
 vi.mock("../services/inventory-adjustments.service", () => ({
@@ -50,6 +52,11 @@ vi.mock("../services/worker-settings.service", () => ({
   isWorkerEnabled: isWorkerEnabledMock,
 }));
 
+// El poller comprueba los requisitos de la tienda antes de lanzar la tarea.
+vi.mock("../services/requisitos-worker.service", () => ({
+  puedeCorrerEnTienda: puedeCorrerEnTiendaMock,
+}));
+
 vi.mock("../services/organizations.service", () => ({
   withEachOrganization: async (fn: (orgId: number) => Promise<void>) => {
     await fn(1);
@@ -64,6 +71,7 @@ describe("inventory-adjustments poller", () => {
     vi.setSystemTime(new Date("2026-04-28T12:00:00.000Z"));
     vi.clearAllMocks();
     isWorkerEnabledMock.mockResolvedValue(true);
+    puedeCorrerEnTiendaMock.mockResolvedValue({ puedeCorrer: true, faltantes: [] });
     getInventoryAdjustmentsSettingsMock.mockResolvedValue({
       enabled: true,
       intervalMinutes: 30,

@@ -10,6 +10,7 @@ const {
   saveSyncCheckpointMock,
   listConnectedShopifyDomainsMock,
   isWorkerEnabledMock,
+  puedeCorrerEnTiendaMock,
 } = vi.hoisted(() => ({
   createSyncLogMock: vi.fn(),
   syncAlegraInventoryPayloadToShopifyMock: vi.fn(),
@@ -20,6 +21,7 @@ const {
   saveSyncCheckpointMock: vi.fn(),
   listConnectedShopifyDomainsMock: vi.fn(),
   isWorkerEnabledMock: vi.fn(),
+  puedeCorrerEnTiendaMock: vi.fn(),
 }));
 
 vi.mock("../services/logs.service", () => ({
@@ -53,6 +55,11 @@ vi.mock("../services/worker-settings.service", () => ({
   isWorkerEnabled: isWorkerEnabledMock,
 }));
 
+// El poller comprueba los requisitos de la tienda antes de lanzar la tarea.
+vi.mock("../services/requisitos-worker.service", () => ({
+  puedeCorrerEnTienda: puedeCorrerEnTiendaMock,
+}));
+
 vi.mock("../services/organizations.service", () => ({
   withEachOrganization: async (fn: (orgId: number) => Promise<void>) => {
     await fn(1);
@@ -67,6 +74,7 @@ describe("products-sync poller", () => {
     vi.setSystemTime(new Date("2026-04-28T12:00:00.000Z"));
     vi.clearAllMocks();
     isWorkerEnabledMock.mockResolvedValue(true);
+    puedeCorrerEnTiendaMock.mockResolvedValue({ puedeCorrer: true, faltantes: [] });
     process.env.PRODUCTS_SYNC_POLL_SECONDS = "900";
     process.env.PRODUCTS_SYNC_BATCH_SIZE = "2";
     process.env.PRODUCTS_SYNC_BATCH_LIMIT = "30";
@@ -187,5 +195,21 @@ describe("products-sync poller", () => {
     await vi.advanceTimersByTimeAsync(900_000 * 2);
 
     expect(buildSyncContextMock.mock.calls.length).toBe(llamadasAntes);
+  });
+
+  it("una tienda que no cumple los requisitos se SALTA, sin tocar Alegra", async () => {
+    puedeCorrerEnTiendaMock.mockResolvedValue({
+      puedeCorrer: false,
+      faltantes: [{ codigo: "sin_cuenta_alegra", motivo: "x", comoSeArregla: "y" }],
+    });
+
+    startProductsSyncPoller();
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    expect(puedeCorrerEnTiendaMock).toHaveBeenCalled();
+    // Ni un solo ítem sincronizado ni un checkpoint movido.
+    expect(syncAlegraItemPayloadToShopifyMock).not.toHaveBeenCalled();
+    expect(syncAlegraInventoryPayloadToShopifyMock).not.toHaveBeenCalled();
+    expect(saveSyncCheckpointMock).not.toHaveBeenCalled();
   });
 });

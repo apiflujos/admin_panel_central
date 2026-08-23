@@ -10,6 +10,7 @@ const {
   listConnectedShopifyDomainsMock,
   listAllOrdersByQueryMock,
   isWorkerEnabledMock,
+  puedeCorrerEnTiendaMock,
 } = vi.hoisted(() => ({
   createSyncLogMock: vi.fn(),
   mapOrderToPayloadMock: vi.fn(),
@@ -20,6 +21,7 @@ const {
   listConnectedShopifyDomainsMock: vi.fn(),
   listAllOrdersByQueryMock: vi.fn(),
   isWorkerEnabledMock: vi.fn(),
+  puedeCorrerEnTiendaMock: vi.fn(),
 }));
 
 vi.mock("../connectors/shopify", () => ({
@@ -55,6 +57,11 @@ vi.mock("../services/worker-settings.service", () => ({
   isWorkerEnabled: isWorkerEnabledMock,
 }));
 
+// El poller comprueba los requisitos de la tienda antes de lanzar la tarea.
+vi.mock("../services/requisitos-worker.service", () => ({
+  puedeCorrerEnTienda: puedeCorrerEnTiendaMock,
+}));
+
 vi.mock("../services/organizations.service", () => ({
   withEachOrganization: async (fn: (orgId: number) => Promise<void>) => {
     await fn(1);
@@ -69,6 +76,7 @@ describe("orders-sync poller", () => {
     vi.setSystemTime(new Date("2026-04-28T12:00:00.000Z"));
     vi.clearAllMocks();
     isWorkerEnabledMock.mockResolvedValue(true);
+    puedeCorrerEnTiendaMock.mockResolvedValue({ puedeCorrer: true, faltantes: [] });
     process.env.ORDERS_SYNC_POLL_SECONDS = "300";
     process.env.ORDERS_SYNC_BATCH_SIZE = "2";
     process.env.ORDERS_SYNC_MAX_ORDERS = "0";

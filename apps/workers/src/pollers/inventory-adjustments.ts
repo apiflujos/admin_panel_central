@@ -6,6 +6,7 @@ import { getSyncCheckpoint, saveSyncCheckpoint } from "../../../../src/services/
 import { getStoreConfigForDomain } from "../../../../src/services/store-configs.service";
 import { listConnectedShopifyDomains } from "../../../../src/services/store-connections.service";
 import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
+import { puedeCorrerEnTienda } from "../../../../src/services/requisitos-worker.service";
 
 const MAX_DAYS_PER_TICK = Math.max(1, Math.min(Number(process.env.INVENTORY_ADJUSTMENTS_MAX_DAYS_PER_TICK || 30), 90));
 
@@ -78,6 +79,10 @@ export function startInventoryAdjustmentsWorker() {
 
     const shopDomains = await listConnectedShopifyDomains();
     for (const shopDomain of shopDomains) {
+      // Requisitos del trabajo para ESTA tienda. Si no se cumplen, no se
+      // lanza la tarea: una tarea que no puede terminar sólo produce
+      // errores repetidos.
+      if (!(await puedeCorrerEnTienda("inventory-adjustments", shopDomain)).puedeCorrer) continue;
       try {
         const runtime = await resolveStoreRuntime(shopDomain, settings);
         if (!runtime.enabled || runtime.intervalMinutes <= 0) continue;

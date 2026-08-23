@@ -9,6 +9,7 @@ import {
   listConnectedShopifyDomains,
 } from "../../../../src/services/store-connections.service";
 import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
+import { puedeCorrerEnTienda } from "../../../../src/services/requisitos-worker.service";
 
 const toIso = (value: number) => new Date(value).toISOString();
 const checkpointKey = (shopDomain: string) => `orders_sync:${shopDomain}`;
@@ -65,6 +66,10 @@ export function startOrdersSyncWorker() {
     if (!shopDomains.length) return;
 
     for (const shopDomain of shopDomains) {
+      // Requisitos del trabajo para ESTA tienda. Si no se cumplen, no se
+      // lanza la tarea: una tarea que no puede terminar sólo produce
+      // errores repetidos.
+      if (!(await puedeCorrerEnTienda("orders-sync", shopDomain)).puedeCorrer) continue;
       try {
         const credential = await getShopifyConnectionByDomain(shopDomain);
         const client = new ShopifyClient({

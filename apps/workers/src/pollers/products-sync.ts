@@ -13,6 +13,7 @@ import { listConnectedShopifyDomains } from "../../../../src/services/store-conn
 import { errorSignature, isPermanentIntegrationError } from "../../../../src/connectors/shopify-errors";
 import { getPoolMax } from "../../../../src/db";
 import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
+import { puedeCorrerEnTienda } from "../../../../src/services/requisitos-worker.service";
 
 type AlegraItemRow = Record<string, unknown> & {
   id?: string | number;
@@ -162,6 +163,10 @@ export function startProductsSyncWorker() {
     const shopDomains = await listConnectedShopifyDomains();
     if (!shopDomains.length) return;
     for (const shopDomain of shopDomains) {
+      // Requisitos del trabajo para ESTA tienda. Si no se cumplen, no se
+      // lanza la tarea: una tarea que no puede terminar sólo produce
+      // errores repetidos.
+      if (!(await puedeCorrerEnTienda("products-sync", shopDomain)).puedeCorrer) continue;
       try {
         const ctx = await buildSyncContext(shopDomain);
         if (!ctx.webhookItemsEnabled) continue;

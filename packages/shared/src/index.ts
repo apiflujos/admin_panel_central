@@ -6,6 +6,7 @@ export * from "./inventory";
 export * from "./matriz-automatizacion";
 export * from "./pricing";
 export * from "./resumen-automatizacion";
+export * from "./requisitos-worker";
 export * from "./shopify-publication";
 export * from "./source-of-truth";
 export * from "./shopify-product-sync";
