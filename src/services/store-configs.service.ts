@@ -270,133 +270,142 @@ export async function listStoreConfigs() {
   };
 
   return stores.rows.map((row) => {
-      const config = (row.config_json as Record<string, unknown>) || {};
-      const transfers = (config.transfers as Record<string, unknown>) || {};
-      const priceLists = (config.priceLists as Record<string, unknown>) || {};
-      const rules = (config.rules as Record<string, unknown>) || {};
-      const invoice = (config.invoice as Record<string, unknown>) || {};
-      const invoiceDefaults = (defaults.invoice as Record<string, unknown>) || {};
-      const sync = (config.sync as Record<string, unknown>) || {};
-      const contactSync = (sync.contacts as Record<string, unknown>) || {};
-      const orderSync = (sync.orders as Record<string, unknown>) || {};
-      const productSync = (sync.products as Record<string, unknown>) || {};
-      const hasCommerceConnection = Boolean(row.shop_domain);
-      const hasAlegraConnection = Boolean(row.alegra_account_id);
-      return {
-        storeId: row.store_id,
-        storeName: row.store_name,
-        shopDomain: row.shop_domain || undefined,
-        alegraAccountId: row.alegra_account_id || undefined,
-        transfers: {
-          enabled: normalizeBoolean(transfers.enabled, true),
-          destinationMode: normalizeDestinationMode(transfers.destinationMode),
-          destinationRequired: normalizeBoolean(transfers.destinationRequired, true),
-          destinationWarehouseId:
-            (transfers.destinationWarehouseId as string | undefined) ||
-            row.transfer_destination_warehouse_id ||
-            defaults.invoice?.warehouseId ||
-            "",
-          originWarehouseIds: Array.isArray(transfers.originWarehouseIds)
-            ? transfers.originWarehouseIds
-            : row.transfer_origin_warehouse_ids
-              ? String(row.transfer_origin_warehouse_ids).split(",").filter(Boolean)
-              : defaults.rules?.warehouseIds || [],
-          priorityWarehouseId:
-            (transfers.priorityWarehouseId as string | undefined) || row.transfer_priority_warehouse_id || "",
-          strategy: normalizeTransferStrategy((transfers.strategy as string | undefined) || row.transfer_strategy),
-          fallbackStrategy: normalizeFallbackStrategy(transfers.fallbackStrategy),
-          tieBreakRule: normalizeTieBreakRule(transfers.tieBreakRule),
-          splitEnabled: normalizeBoolean(transfers.splitEnabled, false),
-          minStock: normalizeMinStock(transfers.minStock, 0),
-        },
-        priceLists: {
-          generalId: (priceLists.generalId as string | undefined) || row.price_list_general_id || "",
-          discountId: (priceLists.discountId as string | undefined) || row.price_list_discount_id || "",
-          wholesaleId: (priceLists.wholesaleId as string | undefined) || row.price_list_wholesale_id || "",
-          currency: (priceLists.currency as string | undefined) || row.currency || "",
-        },
-        // Quién manda sobre cada área. De aquí se derivan las escrituras: no
-        // hay que ajustar media docena de booleanos a mano y de forma coherente.
-        sourceOfTruth: normalizeSourceOfTruth((settings as Record<string, unknown>).sourceOfTruth),
-        rules: {
-          syncEnabled: normalizeBoolean((rules as Record<string, unknown>).syncEnabled, true),
-          publishOnStock: normalizeBoolean(rules.publishOnStock, defaults.rules?.publishOnStock ?? true),
-          createInShopify: normalizeBoolean((rules as Record<string, unknown>).createInShopify, ESCRITURA_SHOPIFY_POR_OMISION),
-          updateInShopify: normalizeBoolean((rules as Record<string, unknown>).updateInShopify, ESCRITURA_SHOPIFY_POR_OMISION),
-          includeImages: normalizeBoolean((rules as Record<string, unknown>).includeImages, true),
-          trackInventory: normalizeBoolean((rules as Record<string, unknown>).trackInventory, true),
-          allowOversell: normalizeBoolean((rules as Record<string, unknown>).allowOversell, false),
-          // Qué hacer al quedarse sin unidades. Por omisión, AGOTADO.
-          outOfStockBehavior: normalizeOutOfStockBehavior((rules as Record<string, unknown>).outOfStockBehavior),
-          onlyActiveItems: normalizeBoolean(
-            (rules as Record<string, unknown>).onlyActiveItems,
-            Boolean((defaults.rules as Record<string, unknown>)?.onlyActiveItems)
-          ),
-          webhookItemsEnabled: normalizeBoolean((rules as Record<string, unknown>).webhookItemsEnabled, true),
-          autoPublishOnWebhook: normalizeBoolean(
-            rules.autoPublishOnWebhook,
-            defaults.rules?.autoPublishOnWebhook ?? false
-          ),
-          autoPublishStatus: normalizeAutoStatus(rules.autoPublishStatus, defaults.rules?.autoPublishStatus ?? "draft"),
-          inventoryAdjustmentsEnabled: normalizeBoolean(
-            rules.inventoryAdjustmentsEnabled,
-            defaults.rules?.inventoryAdjustmentsEnabled ?? true
-          ),
-          inventoryAdjustmentsIntervalMinutes:
-            typeof rules.inventoryAdjustmentsIntervalMinutes === "number"
-              ? rules.inventoryAdjustmentsIntervalMinutes
-              : typeof defaults.rules?.inventoryAdjustmentsIntervalMinutes === "number"
-                ? defaults.rules?.inventoryAdjustmentsIntervalMinutes
-                : 5,
-          inventoryAdjustmentsAutoPublish: normalizeBoolean(
-            rules.inventoryAdjustmentsAutoPublish,
-            defaults.rules?.inventoryAdjustmentsAutoPublish ?? true
-          ),
-          warehouseIds: normalizeIdList(
-            (rules as Record<string, unknown>).warehouseIds || defaults.rules?.warehouseIds || []
-          ),
-        },
-        invoice: {
-          generateInvoice: normalizeBoolean(
-            invoice.generateInvoice,
-            normalizeBoolean(invoiceDefaults.generateInvoice, false)
-          ),
-          invoiceStatus: normalizeInvoiceStatus(
-            invoice.invoiceStatus,
-            (invoiceDefaults as Record<string, unknown>)?.invoiceStatus
-          ),
-          resolutionId: normalizeText(invoice.resolutionId, normalizeText(invoiceDefaults.resolutionId, "")),
-          costCenterId: normalizeText(invoice.costCenterId, normalizeText(invoiceDefaults.costCenterId, "")),
-          warehouseId: normalizeText(invoice.warehouseId, normalizeText(invoiceDefaults.warehouseId, "")),
-          sellerId: normalizeText(invoice.sellerId, normalizeText(invoiceDefaults.sellerId, "")),
-          paymentMethod: normalizeText(invoice.paymentMethod, normalizeText(invoiceDefaults.paymentMethod, "")),
-          bankAccountId: normalizeText(invoice.bankAccountId, normalizeText(invoiceDefaults.bankAccountId, "")),
-          applyPayment: normalizeBoolean(invoice.applyPayment, normalizeBoolean(invoiceDefaults.applyPayment, false)),
-          observationsTemplate: normalizeText(
-            invoice.observationsTemplate,
-            normalizeText(invoiceDefaults.observationsTemplate, "")
-          ),
-          observationsFields: normalizeObservationsFields((invoice as Record<string, unknown>).observationsFields),
-          observationsExtra: normalizeText((invoice as Record<string, unknown>).observationsExtra, ""),
-          einvoiceEnabled: normalizeBoolean(
-            invoice.einvoiceEnabled,
-            normalizeBoolean(invoiceDefaults.einvoiceEnabled, false)
-          ),
-          invoiceTrigger: normalizeInvoiceTrigger(
-            invoice.invoiceTrigger,
-            (invoiceDefaults as Record<string, unknown>).invoiceTrigger
-          ),
-        },
-        sync: buildNormalizedSyncConfig({
-          contactSync,
-          orderSync,
-          productSync,
-          rules,
-          hasCommerceConnection,
-          hasAlegraConnection,
-        }),
-      };
-    });
+    const config = (row.config_json as Record<string, unknown>) || {};
+    const transfers = (config.transfers as Record<string, unknown>) || {};
+    const priceLists = (config.priceLists as Record<string, unknown>) || {};
+    const rules = (config.rules as Record<string, unknown>) || {};
+    const invoice = (config.invoice as Record<string, unknown>) || {};
+    const invoiceDefaults = (defaults.invoice as Record<string, unknown>) || {};
+    const sync = (config.sync as Record<string, unknown>) || {};
+    const contactSync = (sync.contacts as Record<string, unknown>) || {};
+    const orderSync = (sync.orders as Record<string, unknown>) || {};
+    const productSync = (sync.products as Record<string, unknown>) || {};
+    const hasCommerceConnection = Boolean(row.shop_domain);
+    const hasAlegraConnection = Boolean(row.alegra_account_id);
+    return {
+      storeId: row.store_id,
+      storeName: row.store_name,
+      shopDomain: row.shop_domain || undefined,
+      alegraAccountId: row.alegra_account_id || undefined,
+      transfers: {
+        enabled: normalizeBoolean(transfers.enabled, true),
+        destinationMode: normalizeDestinationMode(transfers.destinationMode),
+        destinationRequired: normalizeBoolean(transfers.destinationRequired, true),
+        destinationWarehouseId:
+          (transfers.destinationWarehouseId as string | undefined) ||
+          row.transfer_destination_warehouse_id ||
+          defaults.invoice?.warehouseId ||
+          "",
+        originWarehouseIds: Array.isArray(transfers.originWarehouseIds)
+          ? transfers.originWarehouseIds
+          : row.transfer_origin_warehouse_ids
+            ? String(row.transfer_origin_warehouse_ids).split(",").filter(Boolean)
+            : defaults.rules?.warehouseIds || [],
+        priorityWarehouseId:
+          (transfers.priorityWarehouseId as string | undefined) || row.transfer_priority_warehouse_id || "",
+        strategy: normalizeTransferStrategy((transfers.strategy as string | undefined) || row.transfer_strategy),
+        fallbackStrategy: normalizeFallbackStrategy(transfers.fallbackStrategy),
+        tieBreakRule: normalizeTieBreakRule(transfers.tieBreakRule),
+        splitEnabled: normalizeBoolean(transfers.splitEnabled, false),
+        minStock: normalizeMinStock(transfers.minStock, 0),
+      },
+      priceLists: {
+        generalId: (priceLists.generalId as string | undefined) || row.price_list_general_id || "",
+        discountId: (priceLists.discountId as string | undefined) || row.price_list_discount_id || "",
+        wholesaleId: (priceLists.wholesaleId as string | undefined) || row.price_list_wholesale_id || "",
+        currency: (priceLists.currency as string | undefined) || row.currency || "",
+      },
+      // Quién manda sobre cada área. De aquí se derivan las escrituras: no
+      // hay que ajustar media docena de booleanos a mano y de forma coherente.
+      // Del config_json de LA TIENDA, no de los ajustes globales: se elige por
+      // tienda. Leyendo de `settings` la pantalla habría mostrado siempre lo
+      // mismo para todas.
+      sourceOfTruth: normalizeSourceOfTruth((config as Record<string, unknown>).sourceOfTruth),
+      rules: {
+        syncEnabled: normalizeBoolean((rules as Record<string, unknown>).syncEnabled, true),
+        publishOnStock: normalizeBoolean(rules.publishOnStock, defaults.rules?.publishOnStock ?? true),
+        createInShopify: normalizeBoolean(
+          (rules as Record<string, unknown>).createInShopify,
+          ESCRITURA_SHOPIFY_POR_OMISION
+        ),
+        updateInShopify: normalizeBoolean(
+          (rules as Record<string, unknown>).updateInShopify,
+          ESCRITURA_SHOPIFY_POR_OMISION
+        ),
+        includeImages: normalizeBoolean((rules as Record<string, unknown>).includeImages, true),
+        trackInventory: normalizeBoolean((rules as Record<string, unknown>).trackInventory, true),
+        allowOversell: normalizeBoolean((rules as Record<string, unknown>).allowOversell, false),
+        // Qué hacer al quedarse sin unidades. Por omisión, AGOTADO.
+        outOfStockBehavior: normalizeOutOfStockBehavior((rules as Record<string, unknown>).outOfStockBehavior),
+        onlyActiveItems: normalizeBoolean(
+          (rules as Record<string, unknown>).onlyActiveItems,
+          Boolean((defaults.rules as Record<string, unknown>)?.onlyActiveItems)
+        ),
+        webhookItemsEnabled: normalizeBoolean((rules as Record<string, unknown>).webhookItemsEnabled, true),
+        autoPublishOnWebhook: normalizeBoolean(
+          rules.autoPublishOnWebhook,
+          defaults.rules?.autoPublishOnWebhook ?? false
+        ),
+        autoPublishStatus: normalizeAutoStatus(rules.autoPublishStatus, defaults.rules?.autoPublishStatus ?? "draft"),
+        inventoryAdjustmentsEnabled: normalizeBoolean(
+          rules.inventoryAdjustmentsEnabled,
+          defaults.rules?.inventoryAdjustmentsEnabled ?? true
+        ),
+        inventoryAdjustmentsIntervalMinutes:
+          typeof rules.inventoryAdjustmentsIntervalMinutes === "number"
+            ? rules.inventoryAdjustmentsIntervalMinutes
+            : typeof defaults.rules?.inventoryAdjustmentsIntervalMinutes === "number"
+              ? defaults.rules?.inventoryAdjustmentsIntervalMinutes
+              : 5,
+        inventoryAdjustmentsAutoPublish: normalizeBoolean(
+          rules.inventoryAdjustmentsAutoPublish,
+          defaults.rules?.inventoryAdjustmentsAutoPublish ?? true
+        ),
+        warehouseIds: normalizeIdList(
+          (rules as Record<string, unknown>).warehouseIds || defaults.rules?.warehouseIds || []
+        ),
+      },
+      invoice: {
+        generateInvoice: normalizeBoolean(
+          invoice.generateInvoice,
+          normalizeBoolean(invoiceDefaults.generateInvoice, false)
+        ),
+        invoiceStatus: normalizeInvoiceStatus(
+          invoice.invoiceStatus,
+          (invoiceDefaults as Record<string, unknown>)?.invoiceStatus
+        ),
+        resolutionId: normalizeText(invoice.resolutionId, normalizeText(invoiceDefaults.resolutionId, "")),
+        costCenterId: normalizeText(invoice.costCenterId, normalizeText(invoiceDefaults.costCenterId, "")),
+        warehouseId: normalizeText(invoice.warehouseId, normalizeText(invoiceDefaults.warehouseId, "")),
+        sellerId: normalizeText(invoice.sellerId, normalizeText(invoiceDefaults.sellerId, "")),
+        paymentMethod: normalizeText(invoice.paymentMethod, normalizeText(invoiceDefaults.paymentMethod, "")),
+        bankAccountId: normalizeText(invoice.bankAccountId, normalizeText(invoiceDefaults.bankAccountId, "")),
+        applyPayment: normalizeBoolean(invoice.applyPayment, normalizeBoolean(invoiceDefaults.applyPayment, false)),
+        observationsTemplate: normalizeText(
+          invoice.observationsTemplate,
+          normalizeText(invoiceDefaults.observationsTemplate, "")
+        ),
+        observationsFields: normalizeObservationsFields((invoice as Record<string, unknown>).observationsFields),
+        observationsExtra: normalizeText((invoice as Record<string, unknown>).observationsExtra, ""),
+        einvoiceEnabled: normalizeBoolean(
+          invoice.einvoiceEnabled,
+          normalizeBoolean(invoiceDefaults.einvoiceEnabled, false)
+        ),
+        invoiceTrigger: normalizeInvoiceTrigger(
+          invoice.invoiceTrigger,
+          (invoiceDefaults as Record<string, unknown>).invoiceTrigger
+        ),
+      },
+      sync: buildNormalizedSyncConfig({
+        contactSync,
+        orderSync,
+        productSync,
+        rules,
+        hasCommerceConnection,
+        hasAlegraConnection,
+      }),
+    };
+  });
 }
 
 async function getStoreConfigForStoreId(storeId: number) {
@@ -458,6 +467,14 @@ async function getStoreConfigForStoreId(storeId: number) {
   return {
     storeId,
     shopDomain: row.shop_domain,
+    // Quién manda sobre cada área.
+    //
+    // ESTA es la función que alimenta a `buildSyncContext` (vía
+    // `getStoreConfigForDomain`), no la del listado. Faltaba aquí, así que la
+    // elección del cliente se guardaba y NUNCA se aplicaba: el sincronizador
+    // siempre veía el valor por omisión. Hay dos funciones que construyen esta
+    // forma; cualquier campo nuevo tiene que ir en LAS DOS.
+    sourceOfTruth: normalizeSourceOfTruth((config as Record<string, unknown>).sourceOfTruth),
     transfers: {
       enabled: normalizeBoolean(transfers.enabled, true),
       destinationMode: normalizeDestinationMode(transfers.destinationMode),
@@ -489,8 +506,14 @@ async function getStoreConfigForStoreId(storeId: number) {
     rules: {
       syncEnabled: normalizeBoolean((rules as Record<string, unknown>).syncEnabled, true),
       publishOnStock: normalizeBoolean(rules.publishOnStock, defaults.rules?.publishOnStock ?? true),
-      createInShopify: normalizeBoolean((rules as Record<string, unknown>).createInShopify, ESCRITURA_SHOPIFY_POR_OMISION),
-      updateInShopify: normalizeBoolean((rules as Record<string, unknown>).updateInShopify, ESCRITURA_SHOPIFY_POR_OMISION),
+      createInShopify: normalizeBoolean(
+        (rules as Record<string, unknown>).createInShopify,
+        ESCRITURA_SHOPIFY_POR_OMISION
+      ),
+      updateInShopify: normalizeBoolean(
+        (rules as Record<string, unknown>).updateInShopify,
+        ESCRITURA_SHOPIFY_POR_OMISION
+      ),
       includeImages: normalizeBoolean((rules as Record<string, unknown>).includeImages, true),
       trackInventory: normalizeBoolean((rules as Record<string, unknown>).trackInventory, true),
       allowOversell: normalizeBoolean((rules as Record<string, unknown>).allowOversell, false),

@@ -108,3 +108,33 @@ describe("la elección se puede guardar", () => {
     expect(GUARDADO).toContain("...existingSourceOfTruth");
   });
 });
+
+describe("la elección llega a las DOS funciones que arman la configuración", () => {
+  /**
+   * `store-configs.service` tiene DOS constructores de esta forma:
+   *   - el del LISTADO, que alimenta la pantalla de Super Admin;
+   *   - `getStoreConfigForStoreId`, que alimenta a `buildSyncContext` — o sea,
+   *     al sincronizador.
+   *
+   * `sourceOfTruth` estaba sólo en el primero: la elección se guardaba, se veía
+   * en pantalla y el sincronizador NUNCA la aplicaba. Además el primero leía de
+   * los ajustes GLOBALES en vez del config_json de la tienda.
+   */
+  it("aparece en las dos, no en una", () => {
+    const apariciones = CONFIG.match(/sourceOfTruth: normalizeSourceOfTruth\(/g) || [];
+    expect(apariciones.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("las dos leen del config_json de LA TIENDA, no de los ajustes globales", () => {
+    const lecturas = CONFIG.match(/sourceOfTruth: normalizeSourceOfTruth\(\(([a-zA-Z]+) as/g) || [];
+    expect(lecturas.length).toBeGreaterThanOrEqual(2);
+    for (const l of lecturas) expect(l, l).toContain("(config as");
+  });
+
+  it("getStoreConfigForStoreId la devuelve: es la que ve el sincronizador", () => {
+    const ini = CONFIG.indexOf("async function getStoreConfigForStoreId(");
+    const fin = CONFIG.indexOf("\nexport async function getStoreConfigForDomain");
+    const cuerpo = CONFIG.slice(ini, fin > ini ? fin : undefined);
+    expect(cuerpo).toContain("sourceOfTruth: normalizeSourceOfTruth(");
+  });
+});
