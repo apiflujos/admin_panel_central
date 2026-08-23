@@ -8,7 +8,7 @@ import {
   getShopifyConnectionByDomain,
   listConnectedShopifyDomains,
 } from "../../../../src/services/store-connections.service";
-import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
+import { conRegistroDeSalud, isWorkerEnabled } from "../../../../src/services/worker-settings.service";
 import { puedeCorrerEnTienda } from "../../../../src/services/requisitos-worker.service";
 
 const toIso = (value: number) => new Date(value).toISOString();
@@ -162,7 +162,7 @@ export function startOrdersSyncWorker() {
     }
   };
 
-  const run = async () => {
+  const pasada = async () => {
     // Interruptor de Super Admin. Se consulta en CADA pasada (no sólo al
     // arrancar) para que encender o apagar surta efecto sin reiniciar.
     if (!(await isWorkerEnabled("orders-sync"))) return;
@@ -182,6 +182,11 @@ export function startOrdersSyncWorker() {
       running = false;
     }
   };
+
+  // Toda pasada deja constancia de cómo terminó. `log-retention` falló
+  // ~120 veces en un mes sin que nadie lo viera porque su único testigo
+  // era un `console.error`.
+  const run = () => conRegistroDeSalud("orders-sync", pasada);
 
   void run();
   setInterval(() => {

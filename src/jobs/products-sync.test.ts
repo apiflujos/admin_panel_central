@@ -53,6 +53,9 @@ vi.mock("../services/store-connections.service", () => ({
 // El poller consulta su interruptor de Super Admin en cada pasada.
 vi.mock("../services/worker-settings.service", () => ({
   isWorkerEnabled: isWorkerEnabledMock,
+  // Cada pasada registra cómo terminó. Aquí se deja pasar tal cual: lo que se
+  // mide en estas pruebas es el poller, no el registro de salud.
+  conRegistroDeSalud: (_clave: string, tarea: () => Promise<unknown>) => tarea(),
 }));
 
 // El poller comprueba los requisitos de la tienda antes de lanzar la tarea.

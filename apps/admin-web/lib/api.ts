@@ -963,6 +963,13 @@ export type WorkerSettingDto = {
   isDefault: boolean;
   updatedAt: string | null;
   updatedBy: string | null;
+  /** Salud de la última pasada: un trabajo que falla tiene que verse. */
+  ultimaEjecucion: string | null;
+  ultimoResultado: "ok" | "fallo" | null;
+  ultimoError: string | null;
+  ultimoExito: string | null;
+  fallosSeguidos: number;
+  averiado: boolean;
 };
 
 /**

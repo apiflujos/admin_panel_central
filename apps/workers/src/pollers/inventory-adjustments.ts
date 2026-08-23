@@ -5,7 +5,7 @@ import { getInventoryAdjustmentsSettings } from "../../../../src/services/settin
 import { getSyncCheckpoint, saveSyncCheckpoint } from "../../../../src/services/sync-checkpoints.service";
 import { getStoreConfigForDomain } from "../../../../src/services/store-configs.service";
 import { listConnectedShopifyDomains } from "../../../../src/services/store-connections.service";
-import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
+import { conRegistroDeSalud, isWorkerEnabled } from "../../../../src/services/worker-settings.service";
 import { puedeCorrerEnTienda } from "../../../../src/services/requisitos-worker.service";
 
 const MAX_DAYS_PER_TICK = Math.max(1, Math.min(Number(process.env.INVENTORY_ADJUSTMENTS_MAX_DAYS_PER_TICK || 30), 90));
@@ -138,7 +138,7 @@ export function startInventoryAdjustmentsWorker() {
     }
   };
 
-  const run = async () => {
+  const pasada = async () => {
     // Interruptor de Super Admin. Se consulta en CADA pasada (no sólo al
     // arrancar) para que encender o apagar surta efecto sin reiniciar.
     if (!(await isWorkerEnabled("inventory-adjustments"))) return;
@@ -150,6 +150,11 @@ export function startInventoryAdjustmentsWorker() {
       running = false;
     }
   };
+
+  // Toda pasada deja constancia de cómo terminó. `log-retention` falló ~120
+  // veces en un mes sin que nadie lo viera porque su único testigo era un
+  // `console.error`.
+  const run = () => conRegistroDeSalud("inventory-adjustments", pasada);
 
   const scheduleNext = async () => {
     let intervalMinutes = 0;

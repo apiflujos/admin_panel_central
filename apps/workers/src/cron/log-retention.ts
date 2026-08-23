@@ -1,5 +1,5 @@
 import { getPool } from "../../../../src/db";
-import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
+import { conRegistroDeSalud, isWorkerEnabled } from "../../../../src/services/worker-settings.service";
 
 /**
  * Retención de tablas de logs/eventos para que no crezcan sin límite (hoy
@@ -122,30 +122,42 @@ export function startLogRetentionWorker() {
   const intervalMs = Number(process.env.LOG_RETENTION_INTERVAL_MS || 6 * 60 * 60 * 1000); // cada 6h
   if (!(intervalMs > 0)) return;
 
-  const run = async () => {
+  const pasada = async () => {
     // Interruptor de Super Admin. Se consulta en CADA pasada (no sólo al
     // arrancar) para que encender o apagar surta efecto sin reiniciar.
     if (!(await isWorkerEnabled("log-retention"))) return;
+
+    // Los fallos se ACUMULAN y se lanzan al final. Antes cada `catch` escribía
+    // un `console.error` y la pasada terminaba "bien" aunque no hubiera podado
+    // una sola fila. Así estuvo un mes sin que nadie lo notara.
+    const fallos: string[] = [];
+
     // Primero se sueltan los reintentos terminados; si no, el borrado de
     // `sync_logs` choca contra la clave foránea y no se poda nada.
     try {
       await soltarReintentosTerminados(Number(process.env.SYNC_LOGS_RETENTION_DAYS || 30));
     } catch (error) {
-      console.error(
-        "[log-retention] no se pudieron liberar reintentos:",
-        error instanceof Error ? error.message : error
-      );
+      fallos.push(`liberar reintentos: ${error instanceof Error ? error.message : String(error)}`);
     }
     for (const { table, tsColumn, days, where, label, protegido } of TABLES) {
       try {
         await purge(table, tsColumn, days, where, label, protegido);
       } catch (error) {
-        console.error(`[log-retention] ${label || table} falló:`, error instanceof Error ? error.message : error);
+        fallos.push(`${label || table}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
+
+    // Se lanza para que quede registrado como avería y se vea en la pantalla,
+    // en lugar de morir en un log.
+    if (fallos.length) throw new Error(`No se pudo podar: ${fallos.join(" | ")}`);
   };
 
   // Primera corrida diferida 5 min para no competir con el arranque de los workers.
+  // Toda pasada deja constancia de cómo terminó. `log-retention` falló
+  // ~120 veces en un mes sin que nadie lo viera porque su único testigo
+  // era un `console.error`.
+  const run = () => conRegistroDeSalud("log-retention", pasada);
+
   setTimeout(() => void run(), 5 * 60 * 1000);
   setInterval(() => void run(), intervalMs);
 }

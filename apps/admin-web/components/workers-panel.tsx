@@ -166,6 +166,11 @@ export function WorkersPanel({ conCabecera = false }: { conCabecera?: boolean } 
                               Modifica la tienda
                             </StatusPill>
                           ) : null}
+                          {worker.averiado ? (
+                            <StatusPill tone="error" small>
+                              Averiado
+                            </StatusPill>
+                          ) : null}
                         </div>
                         <p className="worker-description">{worker.comoTrabaja || worker.description}</p>
                         <p className="worker-impact">
@@ -180,7 +185,35 @@ export function WorkersPanel({ conCabecera = false }: { conCabecera?: boolean } 
                             </>
                           ) : null}
                         </p>
+                        {/* La salud va ANTES que cualquier otro dato: un trabajo
+                            que lleva pasadas fallando es lo primero que hay que
+                            saber. `log-retention` falló ~120 veces en un mes sin
+                            que ninguna pantalla lo dijera. */}
+                        {worker.averiado ? (
+                          <p className="worker-averia">
+                            <strong>
+                              Lleva {worker.fallosSeguidos} pasada{worker.fallosSeguidos === 1 ? "" : "s"} seguidas
+                              fallando.
+                            </strong>{" "}
+                            {worker.ultimoError ? (
+                              <span className="worker-averia-error">{worker.ultimoError}</span>
+                            ) : null}
+                            {worker.ultimoExito ? (
+                              <span className="worker-averia-desde">
+                                {" "}
+                                Última vez que funcionó: {formatoFecha(worker.ultimoExito) || "sin fecha"}.
+                              </span>
+                            ) : (
+                              <span className="worker-averia-desde"> No consta que haya funcionado nunca.</span>
+                            )}
+                          </p>
+                        ) : null}
                         <small className="cron-reference-env">
+                          {worker.ultimaEjecucion
+                            ? `Última pasada: ${formatoFecha(worker.ultimaEjecucion) || "sin fecha"} · ${
+                                worker.ultimoResultado === "fallo" ? "falló" : "bien"
+                              } — `
+                            : "Todavía no ha corrido desde que se registra la salud — "}
                           {worker.isDefault
                             ? "Nadie lo ha cambiado: está en su valor por omisión"
                             : `Último cambio: ${fecha || "sin fecha"}${worker.updatedBy ? ` · ${worker.updatedBy}` : ""}`}

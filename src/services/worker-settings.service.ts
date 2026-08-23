@@ -13,9 +13,36 @@ export type WorkerSetting = WorkerDefinition & {
   isDefault: boolean;
   updatedAt: string | null;
   updatedBy: string | null;
+  /** Salud: si un trabajo falla, tiene que verse sin abrir un log. */
+  ultimaEjecucion: string | null;
+  ultimoResultado: "ok" | "fallo" | null;
+  ultimoError: string | null;
+  ultimoExito: string | null;
+  fallosSeguidos: number;
+  /** Está averiado: falla una y otra vez, no fue un tropiezo suelto. */
+  averiado: boolean;
 };
 
-type Row = { worker_key: string; enabled: boolean; updated_at: Date | string; updated_by: string | null };
+type Row = {
+  worker_key: string;
+  enabled: boolean;
+  updated_at: Date | string;
+  updated_by: string | null;
+  ultima_ejecucion_at: Date | null;
+  ultimo_resultado: string | null;
+  ultimo_error: string | null;
+  ultimo_exito_at: Date | null;
+  fallos_seguidos: number;
+};
+
+/**
+ * A partir de cuántos fallos seguidos se considera averiado.
+ *
+ * Uno suelto es ruido (un reinicio, un timeout). Tres seguidos ya no lo es, y
+ * es lo que habría delatado a `log-retention` en las primeras horas en vez de
+ * al cabo de un mes.
+ */
+export const FALLOS_PARA_AVERIA = 3;
 
 /**
  * Caché de lectura para el bucle de los workers.
@@ -40,7 +67,11 @@ async function loadEnabledMap(): Promise<Map<string, boolean>> {
   if (cache && now - cache.at < CACHE_TTL_MS) return cache.value;
 
   const pool = getPool();
-  const result = await pool.query<Row>(`SELECT worker_key, enabled, updated_at, updated_by FROM worker_settings`);
+  const result = await pool.query<Row>(
+    `SELECT worker_key, enabled, updated_at, updated_by,
+            ultima_ejecucion_at, ultimo_resultado, ultimo_error, ultimo_exito_at, fallos_seguidos
+       FROM worker_settings`
+  );
   const map = new Map<string, boolean>();
   for (const definition of WORKER_CATALOG) map.set(definition.key, definition.enabledByDefault);
   for (const row of result.rows) {
@@ -94,6 +125,13 @@ export async function listWorkerSettings(): Promise<WorkerSetting[]> {
       isDefault: !row,
       updatedAt: row ? new Date(row.updated_at).toISOString() : null,
       updatedBy: row?.updated_by ?? null,
+      ultimaEjecucion: row?.ultima_ejecucion_at ? new Date(row.ultima_ejecucion_at).toISOString() : null,
+      ultimoResultado:
+        row?.ultimo_resultado === "ok" || row?.ultimo_resultado === "fallo" ? row.ultimo_resultado : null,
+      ultimoError: row?.ultimo_error ?? null,
+      ultimoExito: row?.ultimo_exito_at ? new Date(row.ultimo_exito_at).toISOString() : null,
+      fallosSeguidos: Number(row?.fallos_seguidos || 0),
+      averiado: Number(row?.fallos_seguidos || 0) >= FALLOS_PARA_AVERIA,
     };
   });
 }
@@ -118,4 +156,55 @@ export async function setWorkerEnabled(key: string, enabled: boolean, actor?: st
       ` por ${actor || "desconocido"}.`
   );
   return { ok: true, key, enabled: Boolean(enabled) };
+}
+
+/**
+ * Deja constancia de cómo terminó una pasada de un trabajo.
+ *
+ * Se guarda en la base de datos, no en un log: sobrevive a los reinicios y a
+ * la rotación de ficheros. `log-retention` falló ~120 veces sin que nadie lo
+ * viera precisamente porque su único testigo era un `console.error`.
+ *
+ * NUNCA lanza. Si registrar la salud fallara y tumbara el trabajo, el remedio
+ * sería peor que la enfermedad.
+ */
+export async function registrarEjecucionTrabajo(key: string, ok: boolean, error?: unknown) {
+  if (!isWorkerKey(key)) return;
+  const detalle = ok ? null : (error instanceof Error ? error.message : String(error ?? "error")).slice(0, 2000);
+  try {
+    await getPool().query(
+      `
+      UPDATE worker_settings
+         SET ultima_ejecucion_at = NOW(),
+             ultimo_resultado = $2,
+             ultimo_error = $3,
+             ultimo_exito_at = CASE WHEN $2 = 'ok' THEN NOW() ELSE ultimo_exito_at END,
+             -- Vuelve a cero en cuanto una pasada termina bien: lo que importa
+             -- es si está roto AHORA, no cuántas veces falló en su vida.
+             fallos_seguidos = CASE WHEN $2 = 'ok' THEN 0 ELSE fallos_seguidos + 1 END
+       WHERE worker_key = $1
+      `,
+      [key, ok ? "ok" : "fallo", detalle]
+    );
+  } catch (e) {
+    console.error(`[salud] no se pudo registrar la ejecución de ${key}:`, e instanceof Error ? e.message : e);
+  }
+}
+
+/**
+ * Envuelve la pasada de un trabajo para que su resultado quede registrado.
+ *
+ * Que un trabajo falle en silencio deja de ser posible: pase lo que pase, la
+ * base de datos sabe cómo terminó y desde cuándo.
+ */
+export async function conRegistroDeSalud<T>(key: string, tarea: () => Promise<T>): Promise<T | undefined> {
+  try {
+    const resultado = await tarea();
+    await registrarEjecucionTrabajo(key, true);
+    return resultado;
+  } catch (error) {
+    console.error(`[${key}] la pasada falló:`, error instanceof Error ? error.message : error);
+    await registrarEjecucionTrabajo(key, false, error);
+    return undefined;
+  }
 }

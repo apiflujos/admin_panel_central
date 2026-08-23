@@ -2307,3 +2307,27 @@
   font-family: var(--font-mono);
   word-break: break-all;
 }
+
+/* ── Avería de un trabajo automático ──────────────────────────────────────
+   Va antes que cualquier otro dato de la fila: que un trabajo lleve pasadas
+   fallando es lo primero que hay que saber. */
+.worker-averia {
+  margin: var(--space-2) 0;
+  padding: var(--space-3);
+  border-left: 3px solid var(--status-danger);
+  background: var(--status-danger-bg);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-body);
+}
+
+.worker-averia-error {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  word-break: break-word;
+}
+
+.worker-averia-desde {
+  color: var(--text-muted);
+}

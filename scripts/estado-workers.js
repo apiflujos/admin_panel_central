@@ -33,8 +33,19 @@ async function run() {
       process.exit(0);
     }
 
+    // La salud sólo existe desde la migración 024. Se comprueba en vez de
+    // asumirla: este script corre en el despliegue y no puede reventar si se
+    // ejecuta contra una base más vieja.
+    const conSalud = await pool.query(
+      `SELECT 1 AS existe FROM information_schema.columns
+        WHERE table_name = 'worker_settings' AND column_name = 'fallos_seguidos'`
+    );
+    const hayColumnasDeSalud = Boolean(conSalud.rows[0]?.existe);
+
     const { rows } = await pool.query(
-      `SELECT worker_key, enabled, updated_at, updated_by
+      `SELECT worker_key, enabled, updated_at, updated_by${
+        hayColumnasDeSalud ? ", fallos_seguidos, ultimo_error, ultima_ejecucion_at, ultimo_exito_at" : ""
+      }
        FROM worker_settings ORDER BY enabled DESC, worker_key ASC`
     );
 
@@ -61,6 +72,27 @@ async function run() {
     }
     console.log("");
     console.log(`  Encendidos: ${rows.filter((r) => r.enabled).length} de ${rows.length}`);
+
+    // AVERÍAS. Esto se imprime en cada despliegue a propósito: `log-retention`
+    // falló unas 120 veces durante un mes y nadie lo vio porque su único
+    // testigo era un fichero de log.
+    if (hayColumnasDeSalud) {
+      const averiados = rows.filter((r) => r.enabled && Number(r.fallos_seguidos || 0) >= 3);
+      if (averiados.length) {
+        console.log("");
+        console.log(`  AVERIADOS: ${averiados.length} trabajo(s) encendido(s) llevan varias pasadas FALLANDO:`);
+        for (const row of averiados) {
+          const desde = row.ultimo_exito_at
+            ? `funcionó por última vez el ${new Date(row.ultimo_exito_at).toISOString().slice(0, 19).replace("T", " ")}`
+            : "no consta que haya funcionado nunca";
+          console.log(`     - ${row.worker_key}: ${row.fallos_seguidos} fallos seguidos, ${desde}`);
+          if (row.ultimo_error) console.log(`       ${String(row.ultimo_error).slice(0, 160)}`);
+        }
+        console.log("  Míralos en Super Admin → Trabajos antes de dar el despliegue por bueno.");
+      } else {
+        console.log("  Ningún trabajo encendido está fallando.");
+      }
+    }
 
     if (peligrosos.length) {
       console.log("");

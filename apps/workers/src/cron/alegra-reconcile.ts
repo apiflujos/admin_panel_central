@@ -2,7 +2,7 @@ import { getOrgId, getPool } from "../../../../src/db";
 import { resolveAlegraClientForStore } from "../../../../src/services/alegra-product-import.service";
 import { createSyncLog } from "../../../../src/services/logs.service";
 import { withEachOrganization } from "../../../../src/services/organizations.service";
-import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
+import { conRegistroDeSalud, isWorkerEnabled } from "../../../../src/services/worker-settings.service";
 
 /**
  * Fase 2/3 — Reconciliación de facturas con Alegra (read-only, no muta).
@@ -93,7 +93,7 @@ export function startAlegraReconcileWorker() {
   const intervalMs = Number(process.env.ALEGRA_RECONCILE_INTERVAL_MS || 15 * 60 * 1000); // 15 min
   if (!(intervalMs > 0)) return;
 
-  const run = async () => {
+  const pasada = async () => {
     // Interruptor de Super Admin. Se consulta en CADA pasada (no sólo al
     // arrancar) para que encender o apagar surta efecto sin reiniciar.
     if (!(await isWorkerEnabled("alegra-reconcile"))) return;
@@ -103,6 +103,11 @@ export function startAlegraReconcileWorker() {
       console.error("[alegra-reconcile] falló:", error instanceof Error ? error.message : error);
     }
   };
+
+  // Toda pasada deja constancia de cómo terminó. `log-retention` falló
+  // ~120 veces en un mes sin que nadie lo viera porque su único testigo
+  // era un `console.error`.
+  const run = () => conRegistroDeSalud("alegra-reconcile", pasada);
 
   setTimeout(() => void run(), 4 * 60 * 1000); // primer barrido a los 4 min
   setInterval(() => void run(), intervalMs);

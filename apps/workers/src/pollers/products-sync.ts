@@ -12,7 +12,7 @@ import { getSyncCheckpoint, saveSyncCheckpoint } from "../../../../src/services/
 import { listConnectedShopifyDomains } from "../../../../src/services/store-connections.service";
 import { errorSignature, isPermanentIntegrationError } from "../../../../src/connectors/shopify-errors";
 import { getPoolMax } from "../../../../src/db";
-import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
+import { conRegistroDeSalud, isWorkerEnabled } from "../../../../src/services/worker-settings.service";
 import { puedeCorrerEnTienda } from "../../../../src/services/requisitos-worker.service";
 
 type AlegraItemRow = Record<string, unknown> & {
@@ -304,7 +304,7 @@ export function startProductsSyncWorker() {
     }
   };
 
-  const run = async () => {
+  const pasada = async () => {
     // Interruptor de Super Admin. Se consulta en CADA pasada (no sólo al
     // arrancar) para que encender o apagar surta efecto sin reiniciar.
     if (!(await isWorkerEnabled("products-sync"))) return;
@@ -324,6 +324,11 @@ export function startProductsSyncWorker() {
       running = false;
     }
   };
+
+  // Toda pasada deja constancia de cómo terminó. `log-retention` falló
+  // ~120 veces en un mes sin que nadie lo viera porque su único testigo
+  // era un `console.error`.
+  const run = () => conRegistroDeSalud("products-sync", pasada);
 
   void run();
   setInterval(() => {
