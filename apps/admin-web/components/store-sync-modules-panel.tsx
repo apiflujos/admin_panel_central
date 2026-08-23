@@ -191,7 +191,7 @@ export function StoreSyncModulesPanel({
       {activeStore ? <StoreConfigCoherencia config={revision} /> : null}
 
       <div className="store-configs-grid">
-        <details className="settings-collapsible store-config-field-span-2" open>
+        <details id="clientes" className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Contactos</strong>
             <span>Cómo se emparejan los clientes de la tienda con los de Alegra</span>
@@ -282,7 +282,7 @@ export function StoreSyncModulesPanel({
           </div>
         </details>
 
-        <details className="settings-collapsible store-config-field-span-2" open>
+        <details id="pedidos-y-facturacion" className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Pedidos y facturación</strong>
             <span>Qué se lleva a Alegra y qué vuelve de allí</span>

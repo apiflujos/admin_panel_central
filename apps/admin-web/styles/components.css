@@ -2123,3 +2123,14 @@
 .resumen-frase.is-no_ocurre { color: #b3261e; }
 .resumen-frase.is-no_ocurre svg { color: #b3261e; }
 .resumen-frase.is-no_ocurre em { color: #b3261e; opacity: 0.85; }
+
+/* Enlace "dónde se cambia esto" dentro del resumen. */
+.resumen-accion {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11.5px;
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}

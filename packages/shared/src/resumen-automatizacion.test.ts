@@ -83,3 +83,44 @@ describe("resumen de qué va a pasar", () => {
     }
   });
 });
+
+describe("cada frase dice DÓNDE se cambia", () => {
+  it("las que no ocurren llevan a Trabajos automáticos", () => {
+    // Es la frase más importante: la regla está bien y aun así no pasa nada.
+    // Sin el enlace, el usuario no sabe siquiera que existe esa pantalla.
+    const d = { ...TODO_ENCENDIDO, motorPedidosEncendido: false, motorRepasoPedidosEncendido: false };
+    const f = frases(d).filter((x) => x.estado === "no_ocurre");
+    expect(f.length).toBeGreaterThan(0);
+    for (const x of f) {
+      expect(x.accion?.href, x.texto).toBe("/superadmin/workers");
+    }
+  });
+
+  it("las de catálogo llevan a quién manda", () => {
+    for (const x of frases(TODO_ENCENDIDO).filter(
+      (f) => f.texto.includes("existencias") || f.texto.includes("precio")
+    )) {
+      expect(x.accion?.href, x.texto).toBe("/settings/stores");
+    }
+  });
+
+  it("las de pedidos llevan a su bloque de reglas", () => {
+    const f = frases(TODO_ENCENDIDO).find((x) => x.texto.includes("se emite su factura"));
+    expect(f?.accion?.href).toBe("#pedidos-y-facturacion");
+  });
+
+  it("si no se da de alta al cliente, lleva a las reglas de clientes", () => {
+    const d = { ...TODO_ENCENDIDO, creaClienteEnAlegra: false };
+    const f = frases(d).find((x) => x.texto.includes("NO se da de alta"));
+    expect(f?.accion?.href).toBe("#clientes");
+  });
+
+  it("toda acción tiene texto en imperativo y destino", () => {
+    const d = { ...TODO_ENCENDIDO, motorPreciosEncendido: false, motorExistenciasEncendido: false };
+    for (const x of frases(d)) {
+      if (!x.accion) continue;
+      expect(x.accion.texto.length, x.texto).toBeGreaterThan(8);
+      expect(x.accion.href.length, x.texto).toBeGreaterThan(1);
+    }
+  });
+});

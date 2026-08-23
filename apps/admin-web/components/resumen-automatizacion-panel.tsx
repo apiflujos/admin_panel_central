@@ -108,6 +108,11 @@ export function ResumenAutomatizacionPanel({
                     <span>
                       {f.texto}
                       {f.porque ? <em> {f.porque}</em> : null}
+                      {f.accion ? (
+                        <a className="resumen-accion" href={f.accion.href}>
+                          {f.accion.texto}
+                        </a>
+                      ) : null}
                     </span>
                   </li>
                 );
