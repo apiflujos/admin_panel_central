@@ -4,6 +4,7 @@ export * from "./catalog";
 export * from "./config-coherencia";
 export * from "./inventory";
 export * from "./pricing";
+export * from "./resumen-automatizacion";
 export * from "./shopify-publication";
 export * from "./source-of-truth";
 export * from "./shopify-product-sync";

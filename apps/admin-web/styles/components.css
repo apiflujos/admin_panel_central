@@ -2087,3 +2087,39 @@
   color: var(--primary);
   white-space: nowrap;
 }
+
+/* «Qué va a pasar»: el resumen que abre Configuración. */
+.resumen-auto { padding: 16px 18px; }
+
+.resumen-bloques {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.resumen-bloque h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.resumen-bloque ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+
+.resumen-frase {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.resumen-frase svg { flex-shrink: 0; margin-top: 2px; }
+.resumen-frase em { font-style: normal; color: var(--text-muted); }
+.resumen-frase.is-ok svg { color: #0f9d58; }
+.resumen-frase.is-atencion svg { color: #d97706; }
+.resumen-frase.is-no_ocurre { color: #b3261e; }
+.resumen-frase.is-no_ocurre svg { color: #b3261e; }
+.resumen-frase.is-no_ocurre em { color: #b3261e; opacity: 0.85; }

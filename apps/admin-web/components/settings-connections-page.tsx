@@ -16,17 +16,12 @@ import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
 import { ProviderMark } from "./ui/provider-mark";
 import { StatusPill } from "./ui/status-pill";
+import { ResumenAutomatizacionPanel } from "./resumen-automatizacion-panel";
 
 type ConfigFlowStage = "channels" | "operations";
 type ConnectionWizardStep = "store" | "group" | "platform" | "form";
 type ConnectionWizardGroup = "commerce" | "accounting" | "ads";
-type ConnectionWizardPlatform =
-  | "shopify"
-  | "woocommerce"
-  | "alegra"
-  | "google-ads"
-  | "meta-ads"
-  | "tiktok-ads";
+type ConnectionWizardPlatform = "shopify" | "woocommerce" | "alegra" | "google-ads" | "meta-ads" | "tiktok-ads";
 
 type ConnectionModalState =
   | { kind: "closed" }
@@ -515,7 +510,11 @@ export function SettingsConnectionsPage({
       setStatusMessage("Selecciona una tienda.");
       return;
     }
-    const domain = wooDomain.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "").toLowerCase();
+    const domain = wooDomain
+      .trim()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/+$/, "")
+      .toLowerCase();
     const consumerKey = wooConsumerKey.trim();
     const consumerSecret = wooConsumerSecret.trim();
     if (!domain) {
@@ -693,7 +692,7 @@ export function SettingsConnectionsPage({
     <section className="page-stack">
       <PageHeader
         title="Configuración"
-        subtitle="Canales y credenciales del cliente."
+        subtitle="Qué hace la automatización con esta tienda, y con qué reglas."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -702,6 +701,8 @@ export function SettingsConnectionsPage({
           </>
         }
       />
+
+      <ResumenAutomatizacionPanel workspace={workspace} activeStoreId={selectedStoreId} />
 
       <PageToolbar
         views={
@@ -744,12 +745,7 @@ export function SettingsConnectionsPage({
             <button className="btn primary btn-compact" type="button" onClick={openCreateStore}>
               Crear tienda
             </button>
-            <button
-              className="btn ghost btn-compact"
-              type="button"
-              disabled={!selectedStore}
-              onClick={openEditStore}
-            >
+            <button className="btn ghost btn-compact" type="button" disabled={!selectedStore} onClick={openEditStore}>
               Editar
             </button>
             <button
@@ -923,7 +919,6 @@ export function SettingsConnectionsPage({
                 ) : null}
               </div>
             </article>
-
           </section>
         </section>
       ) : null}
@@ -931,63 +926,62 @@ export function SettingsConnectionsPage({
       {isOperationalStage ? (
         <section className="page-module-shell operational-workspace-shell">
           <div className="operations-panels">
-              <details className="settings-panel-collapse" open>
-                <summary>Módulos por tienda</summary>
-                <StoreSyncModulesPanel
-                  stores={workspaceState.stores}
-                  storeConfigs={workspaceState.storeConfigs}
-                  defaults={workspaceState.storeConfigDefaults}
-                  activeStoreId={selectedStoreId}
-                  onStoreConfigSaved={handleStoreConfigSaved}
-                />
-              </details>
+            <details className="settings-panel-collapse" open>
+              <summary>Módulos por tienda</summary>
+              <StoreSyncModulesPanel
+                stores={workspaceState.stores}
+                storeConfigs={workspaceState.storeConfigs}
+                defaults={workspaceState.storeConfigDefaults}
+                activeStoreId={selectedStoreId}
+                onStoreConfigSaved={handleStoreConfigSaved}
+              />
+            </details>
 
-              <details className="settings-panel-collapse">
-                <summary>Reglas críticas y bodegas</summary>
-                <StoreConfigsCriticalPanel
-                  stores={workspaceState.stores}
-                  storeConfigs={workspaceState.storeConfigs}
-                  defaults={workspaceState.storeConfigDefaults}
-                  activeStoreId={selectedStoreId}
-                  onStoreConfigSaved={handleStoreConfigSaved}
-                />
-              </details>
+            <details className="settings-panel-collapse">
+              <summary>Reglas críticas y bodegas</summary>
+              <StoreConfigsCriticalPanel
+                stores={workspaceState.stores}
+                storeConfigs={workspaceState.storeConfigs}
+                defaults={workspaceState.storeConfigDefaults}
+                activeStoreId={selectedStoreId}
+                onStoreConfigSaved={handleStoreConfigSaved}
+              />
+            </details>
 
-              <details className="settings-panel-collapse">
-                <summary>Listas de precio</summary>
-                <StoreConfigPriceListsPanel
-                  stores={workspaceState.stores}
-                  storeConfigs={workspaceState.storeConfigs}
-                  defaults={workspaceState.storeConfigDefaults}
-                  activeStoreId={selectedStoreId}
-                  onStoreConfigSaved={handleStoreConfigSaved}
-                />
-              </details>
+            <details className="settings-panel-collapse">
+              <summary>Listas de precio</summary>
+              <StoreConfigPriceListsPanel
+                stores={workspaceState.stores}
+                storeConfigs={workspaceState.storeConfigs}
+                defaults={workspaceState.storeConfigDefaults}
+                activeStoreId={selectedStoreId}
+                onStoreConfigSaved={handleStoreConfigSaved}
+              />
+            </details>
 
-              <details className="settings-panel-collapse">
-                <summary>Automatización (cron)</summary>
-                <StoreSyncAutomationPanel
-                  stores={workspaceState.stores}
-                  storeConfigs={workspaceState.storeConfigs}
-                  defaults={workspaceState.storeConfigDefaults}
-                  activeStoreId={selectedStoreId}
-                />
-                <CronScheduleReferencePanel />
-              </details>
+            <details className="settings-panel-collapse">
+              <summary>Automatización (cron)</summary>
+              <StoreSyncAutomationPanel
+                stores={workspaceState.stores}
+                storeConfigs={workspaceState.storeConfigs}
+                defaults={workspaceState.storeConfigDefaults}
+                activeStoreId={selectedStoreId}
+              />
+              <CronScheduleReferencePanel />
+            </details>
 
-              <details className="settings-panel-collapse">
-                <summary>Ejecuciones manuales y masivas</summary>
-                <StoreSyncActionsPanel
-                  stores={workspaceState.stores}
-                  storeConfigs={workspaceState.storeConfigs}
-                  defaults={workspaceState.storeConfigDefaults}
-                  activeStoreId={selectedStoreId}
-                />
-              </details>
-            </div>
+            <details className="settings-panel-collapse">
+              <summary>Ejecuciones manuales y masivas</summary>
+              <StoreSyncActionsPanel
+                stores={workspaceState.stores}
+                storeConfigs={workspaceState.storeConfigs}
+                defaults={workspaceState.storeConfigDefaults}
+                activeStoreId={selectedStoreId}
+              />
+            </details>
+          </div>
         </section>
       ) : null}
-
 
       {modal.kind === "connection" ? (
         <div className="modal-backdrop" role="presentation" onClick={closeConnectionFlow}>
@@ -1011,7 +1005,9 @@ export function SettingsConnectionsPage({
                 <div className="page-module-actions wizard-progress">
                   <span className={`pill ${connectionWizardStep === "store" ? "pill-info" : ""}`}>1. Tienda</span>
                   <span className={`pill ${connectionWizardStep === "group" ? "pill-info" : ""}`}>2. Grupo</span>
-                  <span className={`pill ${connectionWizardStep === "platform" ? "pill-info" : ""}`}>3. Plataforma</span>
+                  <span className={`pill ${connectionWizardStep === "platform" ? "pill-info" : ""}`}>
+                    3. Plataforma
+                  </span>
                   <span className={`pill ${connectionWizardStep === "form" ? "pill-info" : ""}`}>4. Configurar</span>
                 </div>
               ) : null}
@@ -1047,9 +1043,9 @@ export function SettingsConnectionsPage({
                         className="input"
                         value={selectedStore?.id ?? ""}
                         onChange={(event) => {
-                const parsed = Number(event.target.value);
-                setSelectedStoreId(Number.isFinite(parsed) && parsed > 0 ? parsed : null);
-              }}
+                          const parsed = Number(event.target.value);
+                          setSelectedStoreId(Number.isFinite(parsed) && parsed > 0 ? parsed : null);
+                        }}
                       >
                         {workspaceState.stores.map((store) => (
                           <option key={`wizard-store:${store.id}`} value={store.id}>
@@ -1322,9 +1318,8 @@ export function SettingsConnectionsPage({
                             />
                           </label>
                           <p className="connection-form-hint">
-                            Token de una app custom/privada de Shopify (Admin API). Se valida contra Shopify y se
-                            guarda cifrado. Requiere los scopes de lectura/escritura de productos, pedidos e
-                            inventario.
+                            Token de una app custom/privada de Shopify (Admin API). Se valida contra Shopify y se guarda
+                            cifrado. Requiere los scopes de lectura/escritura de productos, pedidos e inventario.
                           </p>
                           <div className="page-module-actions">
                             <button
@@ -1638,7 +1633,6 @@ export function SettingsConnectionsPage({
           </div>
         </div>
       ) : null}
-
     </section>
   );
 }
