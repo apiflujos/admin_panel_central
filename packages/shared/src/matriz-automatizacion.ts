@@ -23,9 +23,19 @@ export type EstadoCruce =
   /** No aplica a esta tienda (p. ej. nadie manda a Alegra sobre eso). */
   | "no_aplica";
 
+/**
+ * Hacia dónde mueve las cosas este trabajo.
+ *
+ * Importa para entender de un vistazo qué le pasa a cada sistema: quien opera
+ * en la tienda y sólo quiere facturar necesita ver que lo único que sube es el
+ * pedido, y que hacia la tienda no baja nada.
+ */
+export type DireccionCruce = "shopify_a_alegra" | "alegra_a_shopify";
+
 export type CruceMatriz = {
   workerKey: string;
   workerLabel: string;
+  direccion: DireccionCruce;
   estado: EstadoCruce;
   /** Qué le IMPIDE trabajar. Si hay algo aquí, no va a funcionar. */
   faltantes: string[];
@@ -65,6 +75,24 @@ export type DatosTienda = {
 
 export type EstadoMotores = Record<string, boolean>;
 
+export const ETIQUETA_DIRECCION: Record<DireccionCruce, { corto: string; largo: string }> = {
+  shopify_a_alegra: {
+    corto: "La tienda → Alegra",
+    largo: "Lo que sale de la tienda y llega a Alegra.",
+  },
+  alegra_a_shopify: {
+    corto: "Alegra → la tienda",
+    largo: "Lo que Alegra decide y baja a la tienda.",
+  },
+};
+
+const DIRECCIONES: Record<string, DireccionCruce> = {
+  "webhook-dispatch": "shopify_a_alegra",
+  "orders-sync": "shopify_a_alegra",
+  "products-sync": "alegra_a_shopify",
+  "inventory-adjustments": "alegra_a_shopify",
+};
+
 const ETIQUETAS: Record<string, string> = {
   "webhook-dispatch": "Recepción de pedidos",
   "orders-sync": "Repaso de pedidos",
@@ -102,6 +130,7 @@ export function construirMatriz(tiendas: DatosTienda[], motores: EstadoMotores):
       {
         workerKey: "webhook-dispatch",
         workerLabel: ETIQUETAS["webhook-dispatch"],
+        direccion: DIRECCIONES["webhook-dispatch"],
         estado: resolver(Boolean(motores["webhook-dispatch"]), t.facturaPedidos, faltaFacturar),
         faltantes: t.facturaPedidos ? faltaFacturar : [],
         notas: [],
@@ -110,6 +139,7 @@ export function construirMatriz(tiendas: DatosTienda[], motores: EstadoMotores):
       {
         workerKey: "orders-sync",
         workerLabel: ETIQUETAS["orders-sync"],
+        direccion: DIRECCIONES["orders-sync"],
         estado: resolver(Boolean(motores["orders-sync"]), t.facturaPedidos, faltaFacturar),
         faltantes: t.facturaPedidos ? faltaFacturar : [],
         notas: [],
@@ -125,6 +155,7 @@ export function construirMatriz(tiendas: DatosTienda[], motores: EstadoMotores):
     cruces.push({
       workerKey: "products-sync",
       workerLabel: ETIQUETAS["products-sync"],
+      direccion: DIRECCIONES["products-sync"],
       estado: resolver(Boolean(motores["products-sync"]), aplicaPrecios, faltaPrecios),
       faltantes: aplicaPrecios ? faltaPrecios : [],
       notas: [],
@@ -141,6 +172,7 @@ export function construirMatriz(tiendas: DatosTienda[], motores: EstadoMotores):
     cruces.push({
       workerKey: "inventory-adjustments",
       workerLabel: ETIQUETAS["inventory-adjustments"],
+      direccion: DIRECCIONES["inventory-adjustments"],
       estado: resolver(Boolean(motores["inventory-adjustments"]), t.mandaAlegraEnInventario, faltaStock),
       faltantes: t.mandaAlegraEnInventario ? faltaStock : [],
       notas: t.mandaAlegraEnInventario ? notasStock : [],

@@ -6,9 +6,11 @@ import { AlertTriangle, Check, CircleSlash, Minus } from "lucide-react";
 import type { ConnectionsWorkspace } from "../lib/connections-workspace";
 import { fetchWorkerSettings, type WorkerSettingDto } from "../lib/api";
 import {
+  ETIQUETA_DIRECCION,
   construirMatriz,
   resumirMatriz,
   type DatosTienda,
+  type DireccionCruce,
   type EstadoCruce,
 } from "../../../packages/shared/src/matriz-automatizacion";
 import { normalizeSourceOfTruth } from "../../../packages/shared/src/source-of-truth";
@@ -104,35 +106,51 @@ export function MatrizAutomatizacionPanel({
       {filas.map((fila) => (
         <article className="matriz-tienda" key={fila.storeId}>
           <h4>{fila.storeName}</h4>
-          <div className="matriz-cruces">
-            {fila.cruces.map((c) => {
-              const Icono = ICONO[c.estado];
-              return (
-                <div className={`matriz-cruce is-${c.estado}`} key={c.workerKey}>
-                  <div className="matriz-cruce-cabeza">
-                    <Icono size={14} strokeWidth={2} aria-hidden="true" />
-                    <strong>{c.workerLabel}</strong>
-                    <span className="matriz-estado">{TEXTO[c.estado]}</span>
-                  </div>
-                  {c.faltantes.map((f) => (
-                    <p className="matriz-falta" key={f}>
-                      {f}
-                    </p>
-                  ))}
-                  {c.notas.map((n) => (
-                    <p className="matriz-nota" key={n}>
-                      {n}
-                    </p>
-                  ))}
-                  {c.atascados ? (
-                    <p className="matriz-atasco">
-                      <strong>{c.atascados.cantidad} pedidos sin facturar:</strong> {c.atascados.detalle}
-                    </p>
-                  ) : null}
+          {(["shopify_a_alegra", "alegra_a_shopify"] as DireccionCruce[]).map((direccion) => {
+            const delSentido = fila.cruces.filter((c) => c.direccion === direccion);
+            if (!delSentido.length) return null;
+            const activos = delSentido.filter((c) => c.estado === "funcionando").length;
+            return (
+              <div className="matriz-direccion" key={direccion}>
+                <div className="matriz-direccion-cabeza">
+                  <strong>{ETIQUETA_DIRECCION[direccion].corto}</strong>
+                  <span>{ETIQUETA_DIRECCION[direccion].largo}</span>
+                  <span className={`pill pill-sm ${activos ? "pill-ok" : ""}`}>
+                    {activos ? `${activos} en marcha` : "nada en marcha"}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+                <div className="matriz-cruces">
+                  {delSentido.map((c) => {
+                    const Icono = ICONO[c.estado];
+                    return (
+                      <div className={`matriz-cruce is-${c.estado}`} key={c.workerKey}>
+                        <div className="matriz-cruce-cabeza">
+                          <Icono size={14} strokeWidth={2} aria-hidden="true" />
+                          <strong>{c.workerLabel}</strong>
+                          <span className="matriz-estado">{TEXTO[c.estado]}</span>
+                        </div>
+                        {c.faltantes.map((f) => (
+                          <p className="matriz-falta" key={f}>
+                            {f}
+                          </p>
+                        ))}
+                        {c.notas.map((n) => (
+                          <p className="matriz-nota" key={n}>
+                            {n}
+                          </p>
+                        ))}
+                        {c.atascados ? (
+                          <p className="matriz-atasco">
+                            <strong>{c.atascados.cantidad} pedidos sin facturar:</strong> {c.atascados.detalle}
+                          </p>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </article>
       ))}
     </section>

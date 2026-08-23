@@ -108,3 +108,37 @@ describe("matriz tienda x trabajo", () => {
     expect(r.conProblemas).toBeGreaterThan(0);
   });
 });
+
+describe("el eje de dirección", () => {
+  it("cada cruce dice hacia dónde mueve las cosas", () => {
+    for (const c of construirMatriz([TIENDA_LISTA], TODO_ENCENDIDO)[0].cruces) {
+      expect(["shopify_a_alegra", "alegra_a_shopify"], c.workerKey).toContain(c.direccion);
+    }
+  });
+
+  it("los pedidos SUBEN a Alegra; precios y existencias BAJAN a la tienda", () => {
+    const cruces = construirMatriz([TIENDA_LISTA], TODO_ENCENDIDO)[0].cruces;
+    const dir = (k: string) => cruces.find((c) => c.workerKey === k)!.direccion;
+    expect(dir("webhook-dispatch")).toBe("shopify_a_alegra");
+    expect(dir("orders-sync")).toBe("shopify_a_alegra");
+    expect(dir("products-sync")).toBe("alegra_a_shopify");
+    expect(dir("inventory-adjustments")).toBe("alegra_a_shopify");
+  });
+
+  it("quien opera en la tienda y sólo factura: nada baja hacia la tienda", () => {
+    // El caso de Becam según lo describió el usuario. Debe verse de un vistazo
+    // que lo único que se mueve es el pedido hacia Alegra.
+    const soloFacturar: DatosTienda = {
+      ...TIENDA_LISTA,
+      mandaAlegraEnPrecios: false,
+      mandaAlegraEnPublicacion: false,
+      mandaAlegraEnInventario: false,
+    };
+    const cruces = construirMatriz([soloFacturar], TODO_ENCENDIDO)[0].cruces;
+    const bajan = cruces.filter((c) => c.direccion === "alegra_a_shopify");
+    expect(bajan.length).toBeGreaterThan(0);
+    for (const c of bajan) expect(c.estado, c.workerKey).toBe("no_aplica");
+    const suben = cruces.filter((c) => c.direccion === "shopify_a_alegra");
+    for (const c of suben) expect(c.estado, c.workerKey).toBe("funcionando");
+  });
+});
