@@ -198,6 +198,16 @@ export async function registrarEjecucionTrabajo(key: string, ok: boolean, error?
  * base de datos sabe cómo terminó y desde cuándo.
  */
 export async function conRegistroDeSalud<T>(key: string, tarea: () => Promise<T>): Promise<T | undefined> {
+  // Un trabajo APAGADO no registra nada.
+  //
+  // Si registrara "ok" en cada tick, apagar un trabajo averiado pisaría su
+  // `ultimo_exito_at` y parecería que acaba de funcionar. Justo la pregunta
+  // que esto existe para responder —«¿desde cuándo está roto?»— quedaría
+  // falseada por el propio acto de apagarlo.
+  // `isWorkerEnabled` exige una clave del catálogo; una desconocida no puede
+  // correr ni registrarse.
+  if (!isWorkerKey(key)) return undefined;
+  if (!(await isWorkerEnabled(key))) return undefined;
   try {
     const resultado = await tarea();
     await registrarEjecucionTrabajo(key, true);

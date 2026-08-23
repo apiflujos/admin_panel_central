@@ -21,10 +21,13 @@ export function startBillingReportWorker() {
 
   startCron(
     spec,
+    // Se ESPERA a que termine: con `void` el cron daba el disparo por
+    // terminado al instante y el informe seguía corriendo suelto, perdiendo
+    // la protección contra solapes.
     async () =>
       // Cada disparo deja constancia de cómo terminó: un cron que falla en
       // silencio no se distingue de uno que nunca se disparó.
-      void conRegistroDeSalud("billing-report", async () => {
+      await conRegistroDeSalud("billing-report", async () => {
         // Interruptor de Super Admin, releído en cada disparo del cron.
         if (!(await isWorkerEnabled("billing-report"))) return;
         const pool = getPool();
