@@ -29,6 +29,12 @@ type SyncLogListResult = {
     from?: string;
     to?: string;
   };
+  /** Cuentas REALES sobre todo lo que cumple el filtro, no sobre la página. */
+  total: number;
+  failedCount: number;
+  retryingCount: number;
+  limit: number;
+  offset: number;
 };
 
 function coerceOptionalString(value: unknown): string | undefined {
@@ -65,10 +71,15 @@ export function toAdminWebLogsListDto(result: SyncLogListResult): AdminWebLogsLi
   return {
     items,
     filters: result.filters,
+    // Las cuentas vienen de la base, no de la página. Antes se calculaban
+    // sobre las 200 filas traídas: la pantalla decía «Total · 200» habiendo
+    // 51.656, y «Fallidos · 12» contando sólo dentro de ese trozo.
     summary: {
-      total: items.length,
-      failedCount: items.filter((item) => item.status === "fail").length,
-      retryingCount: items.filter((item) => item.status === "retrying").length,
+      total: result.total,
+      failedCount: result.failedCount,
+      retryingCount: result.retryingCount,
     },
+    limit: result.limit,
+    offset: result.offset,
   };
 }

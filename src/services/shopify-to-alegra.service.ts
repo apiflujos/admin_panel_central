@@ -15,6 +15,7 @@ import { resolveStoreConfig } from "./store-config.service";
 import type { ShopifyOrderMode } from "./store-config.service";
 import { getStoreConfigForDomain } from "./store-configs.service";
 import type { Pool } from "pg";
+import { revisarConfiguracionObligatoria } from "../../packages/shared/src/configuracion-obligatoria";
 import {
   preflightDeFacturacion,
   resumirBloqueos,
@@ -1130,27 +1131,29 @@ function buildOrderChecklist(payload: ShopifyOrderPayload, options: { requireInv
   return missing;
 }
 
+/**
+ * La lista de lo que falta la resuelve `revisarConfiguracionObligatoria`, que
+ * es la MISMA que usa la pantalla de configuración. Antes esta regla vivía
+ * sólo aquí, así que la pantalla no podía avisar y el usuario se enteraba de
+ * que faltaba la resolución cuando ya había perdido la venta.
+ *
+ * Las condiciones no han cambiado; sólo viven en un sitio compartido.
+ */
 function buildInvoiceSettingsChecklist(settings: InvoiceSettings) {
-  const blocking: string[] = [];
-  const warnings: string[] = [];
-  if (settings.generateInvoice && settings.einvoiceEnabled && !settings.resolutionId) {
-    blocking.push("resolution_id");
-  }
-  if (settings.generateInvoice && settings.applyPayment && !settings.bankAccountId) {
-    warnings.push("bank_account_id");
-  }
-  if (settings.generateInvoice && settings.applyPayment && !settings.paymentMethod) {
-    warnings.push("payment_method");
-  }
-  return { blocking, warnings };
+  const revision = revisarConfiguracionObligatoria(settings);
+  return {
+    blocking: revision.faltantes.filter((f) => f.gravedad === "bloquea").map((f) => f.codigo),
+    // La bodega se avisa aparte, más abajo, cuando ya se sabe el contexto.
+    warnings: revision.faltantes
+      .filter((f) => f.gravedad === "incompleta" && f.codigo !== "warehouse_id")
+      .map((f) => f.codigo),
+  };
 }
 
 function buildInvoiceSettingsWarnings(settings: InvoiceSettings) {
-  const warnings: string[] = [];
-  if (settings.generateInvoice && !settings.warehouseId) {
-    warnings.push("warehouse_id");
-  }
-  return warnings;
+  return revisarConfiguracionObligatoria(settings)
+    .faltantes.filter((f) => f.codigo === "warehouse_id")
+    .map((f) => f.codigo);
 }
 
 export function buildOrderMetaFromPayload(payload: ShopifyOrderPayload) {

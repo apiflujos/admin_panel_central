@@ -3,6 +3,7 @@ import type { AdminWebLogsListDto } from "../../../packages/shared/src/admin-web
 import { DataTable } from "./ui/data-table";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
+import { Paginacion } from "./ui/paginacion";
 import { StatusPill } from "./ui/status-pill";
 
 function toneForLogStatus(status: string) {
@@ -19,7 +20,15 @@ function labelForLogStatus(status: string) {
   return status || "—";
 }
 
-export function LogsPage({ result }: { result: AdminWebLogsListDto }) {
+export function LogsPage({
+  result,
+  offset = 0,
+  filtros = "",
+}: {
+  result: AdminWebLogsListDto;
+  offset?: number;
+  filtros?: string;
+}) {
   return (
     <section className="page-stack">
       <PageHeader
@@ -140,6 +149,13 @@ export function LogsPage({ result }: { result: AdminWebLogsListDto }) {
               },
             ]}
             rows={result.items}
+          />
+          <Paginacion
+            total={result.summary.total}
+            offset={offset}
+            porPagina={result.limit || 50}
+            href={(nuevo) => `/logs?${filtros ? `${filtros}&` : ""}offset=${nuevo}`}
+            etiqueta="registros"
           />
         </section>
       </div>

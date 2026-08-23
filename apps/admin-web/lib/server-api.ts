@@ -658,6 +658,7 @@ export async function getServerLogsCatalog(filters?: {
   direction?: string;
   from?: string;
   to?: string;
+  offset?: number;
 }): Promise<AdminWebLogsListDto> {
   const [{ normalizeLogsFilters, toAdminWebLogsListDto }, { listSyncLogs }] = await Promise.all([
     import("../../../packages/domain/src/logs"),
@@ -671,7 +672,8 @@ export async function getServerLogsCatalog(filters?: {
       direction: filters?.direction,
       from: filters?.from,
       to: filters?.to,
-    })
+    }),
+    { offset: Math.max(0, Math.floor(Number(filters?.offset) || 0)) }
   );
   return toAdminWebLogsListDto(data);
 }

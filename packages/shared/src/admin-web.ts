@@ -235,6 +235,8 @@ export type AdminWebLogsListDto = {
     failedCount: number;
     retryingCount: number;
   };
+  limit: number;
+  offset: number;
 };
 
 export type AdminWebSuperAdminUserDto = {

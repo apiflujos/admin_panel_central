@@ -82,7 +82,28 @@ export async function getLatestInvoicePayload(orderId: string): Promise<Record<s
   return null;
 }
 
-export async function listSyncLogs(filters: LogFilters): Promise<{ items: SyncLogListItem[]; filters: LogFilters }> {
+/**
+ * Registros de sincronización, con su cuenta REAL.
+ *
+ * Antes devolvía 200 filas fijas y el resumen se calculaba sobre esas 200, así
+ * que la pantalla decía «Total · 200» habiendo 51.656, y «Fallidos · 12»
+ * contando sólo dentro del trozo que le había tocado ver. Los contadores
+ * mentían, que es peor que no tenerlos: se decide con ellos.
+ */
+export async function listSyncLogs(
+  filters: LogFilters,
+  paginacion?: { limit?: number; offset?: number }
+): Promise<{
+  items: SyncLogListItem[];
+  filters: LogFilters;
+  total: number;
+  failedCount: number;
+  retryingCount: number;
+  limit: number;
+  offset: number;
+}> {
+  const limit = Math.min(Math.max(Number(paginacion?.limit) || 50, 1), 200);
+  const offset = Math.max(Number(paginacion?.offset) || 0, 0);
   const { getOrgId, getPool } = await import("../db");
   const pool = getPool();
   const orgId = getOrgId();
@@ -116,12 +137,33 @@ export async function listSyncLogs(filters: LogFilters): Promise<{ items: SyncLo
     params.push(filters.to);
   }
 
+  const donde = conditions.join(" AND ");
+
+  // La cuenta se hace sobre TODO lo que cumple el filtro, no sobre la página.
+  const cuentas = await pool.query<{ total: string; fallidos: string; reintentando: string }>(
+    `
+    SELECT count(*)::text AS total,
+           count(*) FILTER (WHERE status = 'fail')::text AS fallidos,
+           count(*) FILTER (WHERE status = 'retrying')::text AS reintentando
+      FROM sync_logs
+     WHERE ${donde}
+    `,
+    params
+  );
+
+  // Los marcadores se calculan desde `params.length`, NO desde el contador
+  // `idx`: ese contador es inconsistente en los filtros de arriba —el último
+  // usa `$idx` sin incrementarlo— y apoyarse en él daría un desfase silencioso.
+  const posLimit = params.length + 1;
+  const posOffset = params.length + 2;
+  params.push(limit, offset);
+
   const query = `
     SELECT id, entity, direction, status, message, request_json, response_json, created_at
     FROM sync_logs
-    WHERE ${conditions.join(" AND ")}
+    WHERE ${donde}
     ORDER BY created_at DESC
-    LIMIT 200
+    LIMIT $${posLimit} OFFSET $${posOffset}
   `;
 
   const result = await pool.query<{
@@ -160,7 +202,16 @@ export async function listSyncLogs(filters: LogFilters): Promise<{ items: SyncLo
     })
   );
 
-  return { items, filters };
+  const fila = cuentas.rows[0];
+  return {
+    items,
+    filters,
+    total: Number(fila?.total || 0),
+    failedCount: Number(fila?.fallidos || 0),
+    retryingCount: Number(fila?.reintentando || 0),
+    limit,
+    offset,
+  };
 }
 
 export async function retryFailedLogs() {

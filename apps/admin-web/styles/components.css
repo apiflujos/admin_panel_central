@@ -2500,3 +2500,84 @@
 .config-pestana.is-activa strong {
   color: var(--brand-primary-700);
 }
+
+/* ── Lo que hace falta para facturar ──────────────────────────────────────
+   Se decía sólo al fallar la factura, en un registro con un código crudo
+   («resolution_id»). Ahora se dice antes y en castellano. */
+.obligatoria-lista {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.obligatoria-tienda {
+  border: 1px solid var(--panel-border);
+  border-left: 3px solid var(--status-success);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-panel);
+}
+
+.obligatoria-tienda.is-bloqueada {
+  border-left-color: var(--status-danger);
+}
+
+.obligatoria-titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-strong);
+}
+
+.obligatoria-faltantes {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.obligatoria-falta {
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--panel-border);
+}
+
+.obligatoria-falta.is-bloquea {
+  border-left-color: var(--status-danger);
+}
+
+.obligatoria-falta strong {
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  margin-right: var(--space-2);
+}
+
+.obligatoria-etiqueta {
+  font-size: var(--text-xs);
+  border-radius: 999px;
+  padding: 1px 8px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.obligatoria-falta.is-bloquea .obligatoria-etiqueta {
+  background: var(--status-danger-bg);
+  color: var(--status-danger);
+}
+
+.obligatoria-falta p {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-body);
+  line-height: 1.5;
+}
+
+.obligatoria-arreglo {
+  color: var(--text-muted) !important;
+  font-size: var(--text-xs) !important;
+}

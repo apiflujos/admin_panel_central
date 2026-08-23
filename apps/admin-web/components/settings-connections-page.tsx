@@ -20,6 +20,7 @@ import { ResumenAutomatizacionPanel } from "./resumen-automatizacion-panel";
 import { WorkersPanel } from "./workers-panel";
 import { MatrizAutomatizacionPanel } from "./matriz-automatizacion-panel";
 import { WebhooksSinAsociarPanel } from "./webhooks-sin-asociar-panel";
+import { ConfiguracionObligatoriaPanel } from "./configuracion-obligatoria-panel";
 
 type ConfigFlowStage = "channels" | "operations";
 type ConnectionWizardStep = "store" | "group" | "platform" | "form";
@@ -709,6 +710,11 @@ export function SettingsConnectionsPage({
 
       {/* Va arriba a propósito: si algo llegó y no se pudo procesar, eso pesa
           más que cualquier ajuste de más abajo. */}
+      {/* Lo obligatorio va justo detrás de «qué va a pasar»: es la diferencia
+          entre que ocurra y que no. Antes sólo se descubría al fallar la
+          factura, en un registro que nadie lee. */}
+      <ConfiguracionObligatoriaPanel workspace={workspace} />
+
       <WebhooksSinAsociarPanel />
 
       {/* La tienda activa manda sobre TODO lo de abajo, así que se elige
