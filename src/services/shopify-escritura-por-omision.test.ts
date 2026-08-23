@@ -26,8 +26,14 @@ describe("escrituras a Shopify: apagadas por omisión", () => {
 
   // Sólo los que se alimentan de `rules`: hay otro `createInShopify` para la
   // sincronización de CONTACTOS que no tiene nada que ver con escribir productos.
+  // Tolerante al FORMATO: prettier parte estas llamadas en varias líneas, y una
+  // expresión que exigiera todo pegado fallaría por una coma de estilo mientras
+  // el kill switch sigue perfectamente puesto. Lo que importa es el valor por
+  // defecto, no dónde caen los saltos de línea.
   const usosDeRules = (campo: string) =>
-    fuente.match(new RegExp(campo + ":\\s*normalizeBoolean\\(\\(rules as Record<string, unknown>\\)[\\s\\S]*?\\),", "g")) || [];
+    fuente.match(
+      new RegExp(campo + ":\\s*normalizeBoolean\\(\\s*\\(rules as Record<string, unknown>\\)[\\s\\S]*?\\),", "g")
+    ) || [];
 
   it("updateInShopify NUNCA usa true como valor por defecto", () => {
     const usos = usosDeRules("updateInShopify");
@@ -51,7 +57,9 @@ describe("escrituras a Shopify: apagadas por omisión", () => {
     const ctx = fs.readFileSync(path.join(__dirname, "sync-context.ts"), "utf8");
     expect(ctx).toMatch(/updateInShopify:\s*\(rules as InventoryRules\)\.updateInShopify === true/);
     expect(ctx).toMatch(/createInShopify:\s*\(rules as InventoryRules\)\.createInShopify === true/);
-    expect(ctx).not.toMatch(/(update|create)InShopify:\s*\(rules as InventoryRules\)\.(update|create)InShopify !== false/);
+    expect(ctx).not.toMatch(
+      /(update|create)InShopify:\s*\(rules as InventoryRules\)\.(update|create)InShopify !== false/
+    );
   });
 
   /**
@@ -68,7 +76,10 @@ describe("escrituras a Shopify: apagadas por omisión", () => {
       for (const entrada of fs.readdirSync(dir, { withFileTypes: true })) {
         if (saltar.has(entrada.name)) continue;
         const completo = path.join(dir, entrada.name);
-        if (entrada.isDirectory()) { recorrer(completo); continue; }
+        if (entrada.isDirectory()) {
+          recorrer(completo);
+          continue;
+        }
         if (!/\.(ts|tsx)$/.test(entrada.name) || entrada.name.includes(".test.")) continue;
         // Los permisos de la sincronización de CONTACTOS son otro dominio: crean
         // fichas de cliente, no publican ni despublican productos.
