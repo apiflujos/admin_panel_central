@@ -2066,3 +2066,24 @@
 .coherencia-texto strong { font-size: 13px; }
 .coherencia-texto p { margin: 2px 0 0; font-size: 12px; color: var(--text-muted); }
 .coherencia-arreglo { color: var(--primary) !important; }
+
+/* Explicación de qué se hace en la pantalla de trabajos. */
+.worker-explicacion {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-body);
+  background: var(--primary-soft);
+  border-radius: var(--radius-md);
+}
+
+.worker-donde {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: var(--bg-hover);
+  color: var(--primary);
+  white-space: nowrap;
+}

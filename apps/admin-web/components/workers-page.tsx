@@ -95,7 +95,7 @@ export function WorkersPage() {
     <section className="page-stack">
       <PageHeader
         title="Trabajos automáticos"
-        subtitle="Enciende o apaga cada trabajo por separado. Lo que está apagado no corre."
+        subtitle="Aquí sólo se enciende o se apaga. Lo que cada trabajo HACE se define en Configuración."
         breadcrumbs={
           <>
             <a href="/">Inicio</a>
@@ -108,6 +108,12 @@ export function WorkersPage() {
       />
 
       <div className="card metrics-shell">
+        <p className="worker-explicacion">
+          <strong>Un trabajo no se configura aquí: se enciende o se apaga.</strong> Es el motor. Las reglas que sigue
+          —qué se sincroniza, en qué dirección, con qué datos— viven en Configuración. Si una regla no surte efecto, lo
+          primero que hay que mirar es si su trabajo está encendido.
+        </p>
+
         <PageToolbar
           views={
             <>
@@ -173,9 +179,18 @@ export function WorkersPage() {
                             </StatusPill>
                           ) : null}
                         </div>
-                        <p className="worker-description">{worker.description}</p>
+                        <p className="worker-description">{worker.comoTrabaja || worker.description}</p>
                         <p className="worker-impact">
                           <strong>Si se apaga:</strong> {worker.impactIfOff}
+                        </p>
+                        <p className="worker-impact">
+                          <strong>Reglas que sigue:</strong> {worker.obedeceA}
+                          {worker.dondeSeAjusta ? (
+                            <>
+                              {" "}
+                              <span className="worker-donde">{worker.dondeSeAjusta}</span>
+                            </>
+                          ) : null}
                         </p>
                         <small className="cron-reference-env">
                           {worker.isDefault

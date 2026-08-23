@@ -954,6 +954,9 @@ export type WorkerSettingDto = {
   group: "facturacion" | "sincronizacion" | "mantenimiento";
   description: string;
   impactIfOff: string;
+  comoTrabaja: string;
+  obedeceA: string;
+  dondeSeAjusta: string;
   writesToStore: boolean;
   enabledByDefault: boolean;
   enabled: boolean;

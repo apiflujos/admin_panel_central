@@ -37,6 +37,34 @@ describe("catálogo de workers", () => {
     }
   });
 
+  it("cada worker dice CÓMO trabaja y QUÉ REGLAS obedece", () => {
+    // Un trabajo no se configura: se enciende o se apaga. Las reglas que sigue
+    // viven en otra pantalla. Sin esa relación escrita, alguien ajusta una
+    // regla, no pasa nada, y no hay forma de saber que el motor estaba apagado.
+    for (const worker of WORKER_CATALOG) {
+      expect(worker.comoTrabaja.trim().length, worker.key).toBeGreaterThan(30);
+      expect(worker.obedeceA.trim().length, worker.key).toBeGreaterThan(10);
+    }
+  });
+
+  it("el que tiene configuración propia dice DÓNDE se ajusta", () => {
+    for (const worker of WORKER_CATALOG) {
+      const tieneReglasPropias = !worker.obedeceA.startsWith("Nada propio");
+      if (tieneReglasPropias) {
+        expect(worker.dondeSeAjusta.trim().length, worker.key).toBeGreaterThan(10);
+        expect(worker.dondeSeAjusta, worker.key).toContain("Configuración");
+      }
+    }
+  });
+
+  it("los que escriben en la tienda apuntan a quién manda", () => {
+    // Son los dos que pueden hacer daño: su regla decisiva es el dueño de la
+    // verdad, y desde la pantalla de trabajos hay que poder llegar hasta ella.
+    for (const worker of WORKER_CATALOG.filter((w) => w.writesToStore)) {
+      expect(worker.dondeSeAjusta, worker.key).toContain("Quién manda");
+    }
+  });
+
   it("isWorkerKey rechaza lo que no está en el catálogo", () => {
     expect(isWorkerKey("products-sync")).toBe(true);
     expect(isWorkerKey("no-existe")).toBe(false);
