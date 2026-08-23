@@ -77,15 +77,19 @@ export async function importAlegraInvoicesForStore(
                 ? String(clientId.number)
                 : null
               : String(clientId);
-        const tax = Array.isArray(inv.tax)
-          ? inv.tax.reduce((acc, t) => acc + (num(t.amount) || 0), 0)
-          : num(inv.tax);
+        const tax = Array.isArray(inv.tax) ? inv.tax.reduce((acc, t) => acc + (num(t.amount) || 0), 0) : num(inv.tax);
         await pool.query(
           `
           INSERT INTO alegra_invoices
             (organization_id, store_id, alegra_invoice_id, number, date, due_date, client_name, client_identification,
-             status, is_electronic, subtotal, tax, total, balance, payload_json, updated_at)
-          VALUES ($1,$2,$3,$4,$5::date,$6::date,$7,$8,$9,$10,$11::numeric,$12::numeric,$13::numeric,$14::numeric,$15::jsonb,NOW())
+             status, is_electronic, subtotal, tax, total, balance, payload_json, updated_at, shopify_order_id)
+          VALUES ($1,$2,$3,$4,$5::date,$6::date,$7,$8,$9,$10,$11::numeric,$12::numeric,$13::numeric,$14::numeric,$15::jsonb,NOW(),
+                  -- De qué pedido salió. Si el pedido ya lo tiene anotado se
+                  -- copia; así una factura importada de Alegra queda ligada a
+                  -- su pedido sin depender de que alguien lo relacione a mano.
+                  (SELECT o.shopify_order_id FROM orders o
+                    WHERE o.organization_id = $1 AND o.alegra_invoice_id = $3
+                    LIMIT 1))
           ON CONFLICT (organization_id, store_id, alegra_invoice_id) DO UPDATE SET
             number = EXCLUDED.number,
             date = EXCLUDED.date,
@@ -99,7 +103,9 @@ export async function importAlegraInvoicesForStore(
             total = EXCLUDED.total,
             balance = EXCLUDED.balance,
             payload_json = EXCLUDED.payload_json,
-            updated_at = NOW()
+            updated_at = NOW(),
+            -- Nunca se borra un vínculo ya conocido.
+            shopify_order_id = COALESCE(alegra_invoices.shopify_order_id, EXCLUDED.shopify_order_id)
           `,
           [
             orgId,

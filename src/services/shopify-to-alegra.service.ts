@@ -254,6 +254,42 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
     invoiceSettings = { ...invoiceSettings, ...storeConfigFull.invoice };
   }
   const orderMode = options?.orderModeOverride || storeConfig.syncOrdersShopifyToAlegra || "invoice";
+
+  // UN PEDIDO NUNCA DEJA DE ENTRAR.
+  //
+  // Se registra con los datos que traiga, ANTES de intentar nada más. Si luego
+  // no se puede facturar —falta la cédula, hay un producto sin enlazar— el
+  // pedido ya está aquí y encima se le puede escribir el motivo.
+  //
+  // Antes sólo se guardaba en el modo "solo registrar" o DESPUÉS de facturar
+  // con éxito: un pedido que no se podía facturar no entraba, y el motivo del
+  // bloqueo se escribía con un UPDATE sobre una fila que no existía, así que se
+  // perdía en silencio.
+  if (orderId) {
+    const metaInicial = buildOrderMetaFromPayload(payload);
+    await upsertOrder({
+      shopDomain,
+      shopifyId: orderId,
+      orderNumber: metaInicial.orderNumber,
+      customerName: metaInicial.customerName,
+      customerEmail: metaInicial.customerEmail,
+      productsSummary: metaInicial.productsSummary,
+      processedAt: metaInicial.processedAt,
+      status: payload.financial_status || undefined,
+      total: payload.total_price ? Number(payload.total_price) : null,
+      currency: payload.currency || undefined,
+      alegraStatus: "pendiente",
+      sourceUpdatedAt: metaInicial.processedAt,
+      source: "shopify",
+    }).catch((error) => {
+      // Que falle el registro no debe impedir el resto: se deja constancia.
+      console.error(
+        `[pedidos] no se pudo registrar el pedido ${orderId} al entrar:`,
+        error instanceof Error ? error.message : error
+      );
+    });
+  }
+
   if (orderMode === "off") {
     return { handled: false, reason: "sync_disabled" };
   }
