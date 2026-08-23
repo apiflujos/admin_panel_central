@@ -33,8 +33,7 @@ export const GET = routeHandler(async () => {
     countEnabledModules(),
   ]);
 
-  const { activeConnections, pendingActions } =
-    summarizeConnectionHealth(connections);
+  const { activeConnections, pendingActions } = summarizeConnectionHealth(connections);
 
   return NextResponse.json(
     toSettingsOverviewDto({

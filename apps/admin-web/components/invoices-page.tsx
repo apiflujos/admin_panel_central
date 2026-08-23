@@ -10,6 +10,7 @@ import { BillingConfigButton } from "./billing-config-button";
 import { DataTable } from "./ui/data-table";
 import { PageHeader } from "./ui/page-header";
 import { PageToolbar } from "./ui/page-toolbar";
+import { Paginacion } from "./ui/paginacion";
 import { StatusPill } from "./ui/status-pill";
 
 function normalizeInvoiceStatus(status: string | null) {
@@ -33,7 +34,7 @@ function invoiceMatchesStatus(row: AdminWebInvoiceRowDto, view: string) {
   return true;
 }
 
-export function InvoicesPage({ result }: { result: AdminWebInvoicesListDto }) {
+export function InvoicesPage({ result, offset = 0 }: { result: AdminWebInvoicesListDto; offset?: number }) {
   const [rows, setRows] = useState(result);
   const [query, setQuery] = useState("");
   const [statusView, setStatusView] = useState<"" | "paid" | "pending">("");
@@ -213,6 +214,13 @@ export function InvoicesPage({ result }: { result: AdminWebInvoicesListDto }) {
           ]}
           rows={filteredRows}
           getRowKey={(row) => row.id}
+        />
+        <Paginacion
+          total={rows.total}
+          offset={offset}
+          porPagina={rows.limit || 20}
+          href={(nuevo) => `/invoices?offset=${nuevo}`}
+          etiqueta="facturas"
         />
       </section>
     </section>

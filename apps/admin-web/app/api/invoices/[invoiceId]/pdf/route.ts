@@ -9,7 +9,8 @@ export const GET = routeHandler(async (req: Request, ctx) => {
   const params = (await (ctx.params ?? Promise.resolve({}))) as Record<string, string>;
   const invoiceId = String(params.invoiceId || "").trim();
   const searchParams = new URL(req.url).searchParams;
-  const shopDomain = typeof searchParams.get("shopDomain") === "string" ? String(searchParams.get("shopDomain") || "") : "";
+  const shopDomain =
+    typeof searchParams.get("shopDomain") === "string" ? String(searchParams.get("shopDomain") || "") : "";
   const result = await getOrFetchInvoicePdf(invoiceId, shopDomain);
   const filenameBase = (result.invoiceNumber || invoiceId || "factura").replace(/[^\w.-]+/g, "_");
   return new NextResponse(new Uint8Array(result.content), {

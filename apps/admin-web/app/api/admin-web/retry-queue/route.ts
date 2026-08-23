@@ -126,10 +126,7 @@ export const POST = routeHandler(async (req: Request) => {
   }
 
   if (action === "requeue") {
-    await pool.query(
-      `UPDATE retry_queue SET status = 'pending', next_run_at = NOW() WHERE id = $1`,
-      [id]
-    );
+    await pool.query(`UPDATE retry_queue SET status = 'pending', next_run_at = NOW() WHERE id = $1`, [id]);
   } else {
     await pool.query(`UPDATE retry_queue SET status = 'skipped' WHERE id = $1`, [id]);
   }

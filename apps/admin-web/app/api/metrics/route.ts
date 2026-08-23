@@ -21,7 +21,8 @@ export const GET = routeHandler(async (req: Request) => {
     const searchParams = new URL(req.url).searchParams;
     const raw = typeof searchParams.get("range") === "string" ? String(searchParams.get("range") || "") : "";
     const range = isMetricsRange(raw) ? raw : undefined;
-    const shopDomain = typeof searchParams.get("shopDomain") === "string" ? String(searchParams.get("shopDomain") || "").trim() : "";
+    const shopDomain =
+      typeof searchParams.get("shopDomain") === "string" ? String(searchParams.get("shopDomain") || "").trim() : "";
     const result = await getMetrics({ range, shopDomain: shopDomain || undefined });
     await safeCreateLog({
       entity: "metrics_list",

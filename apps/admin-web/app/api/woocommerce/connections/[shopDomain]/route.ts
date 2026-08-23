@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { createSyncLog } from "../../../../../../../src/services/logs.service";
-import { deleteWooConnectionByDomain, listWooConnections } from "../../../../../../../src/services/woocommerce-connections.service";
+import {
+  deleteWooConnectionByDomain,
+  listWooConnections,
+} from "../../../../../../../src/services/woocommerce-connections.service";
 import { routeHandler } from "../../../../../lib/route-handler";
 import { requireRouteAdmin } from "../../../../../lib/route-auth";
 

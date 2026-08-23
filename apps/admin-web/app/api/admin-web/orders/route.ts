@@ -41,9 +41,7 @@ export const GET = routeHandler(async (req: Request) => {
       result,
       getOverride: (shopifyId) => overrides.get(shopifyId) || null,
       getMissing: (_shopifyId, override) =>
-        einvoiceEnabled
-          ? validateEinvoiceData((override as OrderInvoiceOverride | null) || null)
-          : [],
+        einvoiceEnabled ? validateEinvoiceData((override as OrderInvoiceOverride | null) || null) : [],
       einvoiceEnabled,
       getStoreName: (shopDomain) => storeNames.get(shopDomain.toLowerCase()) || null,
     })

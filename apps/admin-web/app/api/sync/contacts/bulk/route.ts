@@ -83,7 +83,8 @@ export const POST = routeHandler(async (req: Request) => {
       phases.push({
         direction: resolvedDirection,
         directionLabel: resolvedDirection === "alegra_to_shopify" ? "Alegra → Shopify" : "Shopify → Alegra",
-        createInDestination: createInDestination !== undefined ? parseBooleanLike(createInDestination, false) : undefined,
+        createInDestination:
+          createInDestination !== undefined ? parseBooleanLike(createInDestination, false) : undefined,
       });
     }
 

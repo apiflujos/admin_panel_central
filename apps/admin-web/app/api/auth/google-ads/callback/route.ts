@@ -4,7 +4,10 @@ import { getOrgId, getPool } from "../../../../../../../src/db";
 import { isTenantModuleEnabled } from "../../../../../../../src/sa/sa.repository";
 import { getAdsAppConfig } from "../../../../../../../src/services/ads-app-config.service";
 import { consumeOAuthState } from "../../../../../../../src/services/oauth-state.service";
-import { readGoogleAdsCredentials, upsertGoogleAdsCredentials } from "../../../../../../../src/services/store-connections.service";
+import {
+  readGoogleAdsCredentials,
+  upsertGoogleAdsCredentials,
+} from "../../../../../../../src/services/store-connections.service";
 import { routeHandler } from "../../../../../lib/route-handler";
 
 const GOOGLE_ADS_PROVIDER = "google_ads";

@@ -9,9 +9,7 @@ export const GET = routeHandler(async (req: Request) => {
   await requireRouteAdmin();
 
   const searchParams = new URL(req.url).searchParams;
-  const result = await listOperations(
-    normalizeOperationsDays({ days: searchParams.get("days") ?? undefined })
-  );
+  const result = await listOperations(normalizeOperationsDays({ days: searchParams.get("days") ?? undefined }));
 
   return NextResponse.json(toAdminWebOperationsListDto(result));
 });

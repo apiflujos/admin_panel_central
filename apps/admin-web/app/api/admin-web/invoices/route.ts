@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { normalizeInvoicesListFilters, toAdminWebInvoicesListDto } from "../../../../../../packages/domain/src/invoices";
+import {
+  normalizeInvoicesListFilters,
+  toAdminWebInvoicesListDto,
+} from "../../../../../../packages/domain/src/invoices";
 import { listInvoices } from "../../../../../../src/services/invoices.service";
 import { routeHandler } from "../../../../lib/route-handler";
 import { requireRouteAdmin } from "../../../../lib/route-auth";

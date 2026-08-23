@@ -44,9 +44,6 @@ export const GET = routeHandler(async (req: Request) => {
       monthlyPrice: plan.monthlyPrice,
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "billing_error" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: error instanceof Error ? error.message : "billing_error" }, { status: 400 });
   }
 });

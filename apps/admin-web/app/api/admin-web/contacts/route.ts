@@ -25,7 +25,5 @@ export const GET = routeHandler(async (req: Request) => {
   });
   const result = await listContacts(filters);
 
-  return NextResponse.json(
-    toAdminWebContactsListDto(result as ContactsListServiceResult)
-  );
+  return NextResponse.json(toAdminWebContactsListDto(result as ContactsListServiceResult));
 });

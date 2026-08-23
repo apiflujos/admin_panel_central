@@ -4,7 +4,10 @@ import { getOrgId } from "../../../../../../src/db";
 import { isTenantModuleEnabled } from "../../../../../../src/sa/sa.repository";
 import { createSyncLog } from "../../../../../../src/services/logs.service";
 import { upsertAlegraAccount } from "../../../../../../src/services/store-connections.service";
-import { listWooConnections, upsertWooConnection } from "../../../../../../src/services/woocommerce-connections.service";
+import {
+  listWooConnections,
+  upsertWooConnection,
+} from "../../../../../../src/services/woocommerce-connections.service";
 import { routeHandler } from "../../../../lib/route-handler";
 import { requireRouteAdmin } from "../../../../lib/route-auth";
 

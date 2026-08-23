@@ -74,7 +74,9 @@ function buildHmacMessage(searchParams: URLSearchParams) {
 }
 
 function validateHmac(searchParams: URLSearchParams, apiSecret: string) {
-  const provided = String(searchParams.get("hmac") || "").trim().toLowerCase();
+  const provided = String(searchParams.get("hmac") || "")
+    .trim()
+    .toLowerCase();
   if (!provided || !/^[a-f0-9]+$/.test(provided)) return false;
   const message = buildHmacMessage(searchParams);
   const digest = crypto.createHmac("sha256", apiSecret).update(message).digest("hex");
@@ -135,10 +137,9 @@ export const GET = routeHandler(async (req: Request) => {
     const env = ensureOAuthEnv(req);
     const searchParams = new URL(req.url).searchParams;
     if (searchParams.get("error")) {
-      return new NextResponse(
-        String(searchParams.get("error_description") || searchParams.get("error")),
-        { status: 400 }
-      );
+      return new NextResponse(String(searchParams.get("error_description") || searchParams.get("error")), {
+        status: 400,
+      });
     }
     const shop = String(searchParams.get("shop") || "").trim();
     const code = String(searchParams.get("code") || "").trim();
@@ -154,9 +155,7 @@ export const GET = routeHandler(async (req: Request) => {
     }
     const stateResult = await consumeOAuthState(shop, state, user.id);
     if (!stateResult.ok) {
-      const reason = stateResult.reason === "user_mismatch"
-        ? "State pertenece a otro usuario"
-        : "State invalido";
+      const reason = stateResult.reason === "user_mismatch" ? "State pertenece a otro usuario" : "State invalido";
       return new NextResponse(reason, { status: 400 });
     }
     const tokenResponse = await fetch(`https://${shop}/admin/oauth/access_token`, {

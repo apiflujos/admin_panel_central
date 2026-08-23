@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { createSyncLog } from "../../../../../../../src/services/logs.service";
-import { deleteAlegraAccountByStoreId, listStoreConnections } from "../../../../../../../src/services/store-connections.service";
+import {
+  deleteAlegraAccountByStoreId,
+  listStoreConnections,
+} from "../../../../../../../src/services/store-connections.service";
 import { routeHandler } from "../../../../../lib/route-handler";
 import { requireRouteAdmin } from "../../../../../lib/route-auth";
 

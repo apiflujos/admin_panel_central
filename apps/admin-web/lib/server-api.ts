@@ -617,13 +617,17 @@ export async function getServerContactsCatalog(filters?: {
   return toAdminWebContactsListDto(result as ContactsListServiceResult);
 }
 
-export async function getServerInvoicesCatalog(): Promise<AdminWebInvoicesListDto> {
+export async function getServerInvoicesCatalog(offset = 0): Promise<AdminWebInvoicesListDto> {
   const [{ normalizeInvoicesListFilters, toAdminWebInvoicesListDto }, { listInvoices }] = await Promise.all([
     import("../../../packages/domain/src/invoices"),
     import("../../../src/services/invoices.service"),
   ]);
 
-  const result = await listInvoices(normalizeInvoicesListFilters({ limit: "20", offset: "0" }));
+  // El desplazamiento estaba FIJO en 0: con 660 facturas en producción se
+  // veían las 20 primeras, sin paginación y sin decir que había más.
+  const result = await listInvoices(
+    normalizeInvoicesListFilters({ limit: "20", offset: String(Math.max(0, Math.floor(offset))) })
+  );
 
   return toAdminWebInvoicesListDto(result);
 }

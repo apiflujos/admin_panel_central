@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { normalizeProductsListFilters, toAdminWebProductsListDto } from "../../../../../../packages/domain/src/products";
+import {
+  normalizeProductsListFilters,
+  toAdminWebProductsListDto,
+} from "../../../../../../packages/domain/src/products";
 import { listProducts } from "../../../../../../src/services/products.service";
 import { routeHandler } from "../../../../lib/route-handler";
 import { requireRouteAdmin } from "../../../../lib/route-auth";

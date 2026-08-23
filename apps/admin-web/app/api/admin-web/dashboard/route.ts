@@ -31,18 +31,16 @@ async function countEnabledModules() {
 export const GET = routeHandler(async () => {
   await requireRouteAdmin();
 
-  const [company, connections, moduleCount, products, orders, logs] =
-    await Promise.all([
-      getCompanyProfile(),
-      listStoreConnections(),
-      countEnabledModules(),
-      listProducts({ limit: 3, offset: 0 }),
-      listOrders({ limit: 3, offset: 0 }),
-      listSyncLogs({}),
-    ]);
+  const [company, connections, moduleCount, products, orders, logs] = await Promise.all([
+    getCompanyProfile(),
+    listStoreConnections(),
+    countEnabledModules(),
+    listProducts({ limit: 3, offset: 0 }),
+    listOrders({ limit: 3, offset: 0 }),
+    listSyncLogs({}),
+  ]);
 
-  const { activeConnections, pendingActions } =
-    summarizeConnectionHealth(connections);
+  const { activeConnections, pendingActions } = summarizeConnectionHealth(connections);
 
   return NextResponse.json(
     toAdminWebDashboardOverviewDto({

@@ -711,31 +711,10 @@ export function SettingsConnectionsPage({
           más que cualquier ajuste de más abajo. */}
       <WebhooksSinAsociarPanel />
 
-      <MatrizAutomatizacionPanel workspace={workspace} />
-
-      <PageToolbar
-        views={
-          <>
-            <button
-              className={`btn ${activeStage === "channels" ? "primary" : "ghost"} btn-compact`}
-              type="button"
-              onClick={() => setActiveStage("channels")}
-            >
-              Conexiones
-            </button>
-            <button
-              className={`btn ${isOperationalStage ? "primary" : "ghost"} btn-compact`}
-              type="button"
-              onClick={() => setActiveStage(isOperationalStage ? activeStage : "operations")}
-            >
-              Configuración operativa
-            </button>
-          </>
-        }
-      />
-
-      <ShopifyAppCredentialsForm storeId={selectedStore?.id ?? null} storeName={selectedStore?.name} />
-
+      {/* La tienda activa manda sobre TODO lo de abajo, así que se elige
+          antes de mirar nada. Estaba después de las pestañas y del
+          formulario de credenciales, o sea después de lo que ya dependía
+          de ella. */}
       <section className="page-module-shell page-module-shell-compact config-active-store-shell">
         <div className="page-module-head">
           <div>
@@ -839,8 +818,45 @@ export function SettingsConnectionsPage({
         {statusMessage ? <p className="connection-inline-note">{statusMessage}</p> : null}
       </section>
 
+      <MatrizAutomatizacionPanel workspace={workspace} />
+
+      {/* Los trabajos van PEGADOS a la matriz: son la misma pregunta
+          —qué corre y qué no—. Estaban 900 líneas más abajo, al final
+          del todo, separados de lo que explican. */}
+      <WorkersPanel />
+
+      {/* Pestañas de verdad, no dos botones sueltos: ahora van pegadas a lo
+          que abren, y dicen QUÉ hay dentro en vez de nombrar una categoría.
+          «Configuración operativa» no le decía nada a nadie. */}
+      <div className="config-pestanas" role="tablist" aria-label="Secciones de configuración">
+        <button
+          className={`config-pestana${activeStage === "channels" ? " is-activa" : ""}`}
+          type="button"
+          role="tab"
+          aria-selected={activeStage === "channels"}
+          onClick={() => setActiveStage("channels")}
+        >
+          <strong>Conectar tiendas y contabilidad</strong>
+          <span>Shopify, Alegra y sus credenciales</span>
+        </button>
+        <button
+          className={`config-pestana${isOperationalStage ? " is-activa" : ""}`}
+          type="button"
+          role="tab"
+          aria-selected={isOperationalStage}
+          onClick={() => setActiveStage(isOperationalStage ? activeStage : "operations")}
+        >
+          <strong>Ajustes finos</strong>
+          <span>Bodegas, listas de precio, horarios y acciones manuales</span>
+        </button>
+      </div>
+
       {activeStage === "channels" ? (
         <section className="page-module-shell connection-section-shell">
+          {/* Las credenciales son parte de CONECTAR. Se pintaban fuera de
+              las dos pestañas, así que parecían pertenecer a cualquiera de
+              las dos. */}
+          <ShopifyAppCredentialsForm storeId={selectedStore?.id ?? null} storeName={selectedStore?.name} />
           <section className="integration-hub-grid">
             <article className="card integration-hub-card">
               <div className="integration-hub-head">
@@ -1642,8 +1658,6 @@ export function SettingsConnectionsPage({
           </div>
         </div>
       ) : null}
-
-      <WorkersPanel />
     </section>
   );
 }

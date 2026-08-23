@@ -2446,3 +2446,57 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+/* ── Pestañas de Configuración ────────────────────────────────────────────
+   Eran dos botones sueltos en la barra de acciones, con etiquetas que no
+   decían qué había dentro («Configuración operativa»). Ahora son pestañas
+   reales, pegadas a su contenido, y cada una explica lo que abre. */
+.config-pestanas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-2);
+  margin: var(--space-5) 0 0;
+}
+
+.config-pestana {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  cursor: pointer;
+  font: inherit;
+  color: var(--text-body);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.config-pestana:hover {
+  border-color: var(--stroke-strong);
+  background: var(--bg-hover);
+}
+
+.config-pestana strong {
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+}
+
+.config-pestana span {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+/* La activa se marca con una barra a la izquierda, no cambiando de color
+   entera: así se lee cuál está abierta sin que grite. */
+.config-pestana.is-activa {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.config-pestana.is-activa strong {
+  color: var(--brand-primary-700);
+}
