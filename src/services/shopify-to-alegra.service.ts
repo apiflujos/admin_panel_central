@@ -1153,7 +1153,7 @@ function buildInvoiceSettingsWarnings(settings: InvoiceSettings) {
   return warnings;
 }
 
-function buildOrderMetaFromPayload(payload: ShopifyOrderPayload) {
+export function buildOrderMetaFromPayload(payload: ShopifyOrderPayload) {
   const customerName = buildContactName(payload);
   const customerEmail = payload.customer?.email || payload.email || null;
   const orderNumber = payload.name ? String(payload.name) : payload.id ? String(payload.id) : null;

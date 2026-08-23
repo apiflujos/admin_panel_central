@@ -27,7 +27,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "workers:estado": "node scripts/estado-workers.js"
+    "workers:estado": "node scripts/estado-workers.js",
+    "pedidos:perdidos": "node dist/src/scripts/recuperar-pedidos-perdidos.js"
   },
   "dependencies": {
     "bullmq": "^5.67.3",
