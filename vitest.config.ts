@@ -14,6 +14,10 @@ export default defineConfig({
       "apps/admin-web/**/*.test.ts",
       "apps/admin-web/**/*.test.tsx",
       "packages/**/*.test.ts",
+      // Y `apps/workers/**`, que también estaba fuera: es donde viven los
+      // pollers y la retención, o sea el código que corre solo y sin nadie
+      // mirando. Una prueba puesta ahí se ignoraba en silencio.
+      "apps/workers/**/*.test.ts",
     ],
     coverage: {
       provider: "v8",

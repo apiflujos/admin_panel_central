@@ -7,7 +7,27 @@ import { isWorkerEnabled } from "../../../../src/services/worker-settings.servic
  * Días de retención configurables por env.
  */
 const NOISE_DAYS = Number(process.env.NOISE_LOGS_RETENTION_DAYS || 3);
-const TABLES: Array<{ table: string; tsColumn: string; days: number; where?: string; label?: string }> = [
+
+/**
+ * `retry_queue` apunta a `sync_logs` con clave foránea, así que borrar un
+ * registro al que todavía apunta un reintento hace fallar el DELETE ENTERO.
+ * Eso llevaba pasando en cada pasada desde hace un mes: la tabla nunca se
+ * podó y llegó a 188 MB con 52.312 filas.
+ *
+ * `protegido` excluye del borrado los registros que aún sostienen un reintento
+ * VIVO. Un reintento pendiente o en curso no se toca jamás: perderlo
+ * significaría perder un pedido.
+ */
+const REINTENTO_VIVO = "NOT EXISTS (SELECT 1 FROM retry_queue rq WHERE rq.sync_log_id = sync_logs.id)";
+
+const TABLES: Array<{
+  table: string;
+  tsColumn: string;
+  days: number;
+  where?: string;
+  label?: string;
+  protegido?: string;
+}> = [
   // Logs de ALTO volumen y bajo valor (churn del poller / warns repetidos): se
   // retienen pocos días. Son ~78% de sync_logs.
   {
@@ -16,6 +36,7 @@ const TABLES: Array<{ table: string; tsColumn: string; days: number; where?: str
     days: NOISE_DAYS,
     where: "entity = 'orders_sync'",
     label: "sync_logs[orders_sync]",
+    protegido: REINTENTO_VIVO,
   },
   {
     table: "sync_logs",
@@ -23,9 +44,15 @@ const TABLES: Array<{ table: string; tsColumn: string; days: number; where?: str
     days: NOISE_DAYS,
     where: "message LIKE 'Invoice settings incomplete%'",
     label: "sync_logs[invoice-settings-warn]",
+    protegido: REINTENTO_VIVO,
   },
   // Retención general.
-  { table: "sync_logs", tsColumn: "created_at", days: Number(process.env.SYNC_LOGS_RETENTION_DAYS || 30) },
+  {
+    table: "sync_logs",
+    tsColumn: "created_at",
+    days: Number(process.env.SYNC_LOGS_RETENTION_DAYS || 30),
+    protegido: REINTENTO_VIVO,
+  },
   {
     table: "inventory_transfer_decisions",
     tsColumn: "created_at",
@@ -42,11 +69,43 @@ const TABLES: Array<{ table: string; tsColumn: string; days: number; where?: str
 const BATCH = 5000;
 const MAX_BATCHES_PER_RUN = 60; // hasta 300k filas por regla por corrida
 
-async function purge(table: string, tsColumn: string, days: number, where?: string, label?: string) {
+/**
+ * Suelta los reintentos ya TERMINADOS que anclan registros viejos.
+ *
+ * Sólo `done`, `failed` y `skipped`: son finales, no van a volver a
+ * ejecutarse y lo único que hacen es impedir que se pode el registro.
+ * `pending` y `processing` NO se tocan — ahí vive trabajo por hacer.
+ */
+async function soltarReintentosTerminados(days: number) {
+  const res = await getPool().query(
+    `
+    DELETE FROM retry_queue
+     WHERE status IN ('done', 'failed', 'skipped')
+       AND sync_log_id IN (
+         SELECT id FROM sync_logs WHERE created_at < now() - ($1 || ' days')::interval
+       )
+    `,
+    [String(days)]
+  );
+  if (res.rowCount) console.log(`[log-retention] retry_queue: ${res.rowCount} reintentos terminados liberados`);
+}
+
+async function purge(
+  table: string,
+  tsColumn: string,
+  days: number,
+  where?: string,
+  label?: string,
+  protegido?: string
+) {
   if (!(days > 0)) return;
   const pool = getPool();
-  // `table`/`tsColumn`/`where` son constantes internas (no entran del usuario) → sin inyección.
-  const cond = `${tsColumn} < now() - ($1 || ' days')::interval${where ? ` AND ${where}` : ""}`;
+  // `table`/`tsColumn`/`where`/`protegido` son constantes internas (no entran
+  // del usuario) → sin inyección.
+  const cond =
+    `${tsColumn} < now() - ($1 || ' days')::interval` +
+    `${where ? ` AND ${where}` : ""}` +
+    `${protegido ? ` AND ${protegido}` : ""}`;
   let total = 0;
   for (let i = 0; i < MAX_BATCHES_PER_RUN; i += 1) {
     const res = await pool.query(
@@ -67,9 +126,19 @@ export function startLogRetentionWorker() {
     // Interruptor de Super Admin. Se consulta en CADA pasada (no sólo al
     // arrancar) para que encender o apagar surta efecto sin reiniciar.
     if (!(await isWorkerEnabled("log-retention"))) return;
-    for (const { table, tsColumn, days, where, label } of TABLES) {
+    // Primero se sueltan los reintentos terminados; si no, el borrado de
+    // `sync_logs` choca contra la clave foránea y no se poda nada.
+    try {
+      await soltarReintentosTerminados(Number(process.env.SYNC_LOGS_RETENTION_DAYS || 30));
+    } catch (error) {
+      console.error(
+        "[log-retention] no se pudieron liberar reintentos:",
+        error instanceof Error ? error.message : error
+      );
+    }
+    for (const { table, tsColumn, days, where, label, protegido } of TABLES) {
       try {
-        await purge(table, tsColumn, days, where, label);
+        await purge(table, tsColumn, days, where, label, protegido);
       } catch (error) {
         console.error(`[log-retention] ${label || table} falló:`, error instanceof Error ? error.message : error);
       }
