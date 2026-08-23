@@ -547,7 +547,6 @@ export function StoreConfigsCriticalPanel({
         <div className="settings-subsection store-config-field-span-2">
           <div className="settings-subsection-head">
             <strong>Flujo core</strong>
-            
           </div>
           <div className="store-configs-grid">
             <BooleanChoice
@@ -589,7 +588,6 @@ export function StoreConfigsCriticalPanel({
         <details className="settings-collapsible store-config-field-span-2">
           <summary className="settings-collapsible-summary">
             <strong>Traslados y destino</strong>
-            
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
@@ -604,7 +602,7 @@ export function StoreConfigsCriticalPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help="Activa traslados entre bodegas."
+                help="Cuando una bodega se queda sin unidades, se genera el traslado desde otra que sí tenga."
               />
 
               <label className="store-config-field">
@@ -624,7 +622,6 @@ export function StoreConfigsCriticalPanel({
                   <option value="auto">Auto</option>
                   <option value="rule">Por regla</option>
                 </select>
-                
               </label>
 
               <BooleanChoice
@@ -751,7 +748,6 @@ export function StoreConfigsCriticalPanel({
         <details className="settings-collapsible store-config-field-span-2" open>
           <summary className="settings-collapsible-summary">
             <strong>Inventario y automatización</strong>
-            
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
@@ -801,11 +797,11 @@ export function StoreConfigsCriticalPanel({
                 }
                 positive="Activo"
                 negative="Inactivo"
-                help="Si está activo, fuerza el sync."
+                help="Con esto apagado, esta tienda no se sincroniza con Alegra aunque todo lo demás esté puesto."
               />
 
               <BooleanChoice
-                label="Permitir sobreventa"
+                label="Dejar vender sin existencias"
                 value={draft.trackInventory ? draft.allowOversell : false}
                 onChange={(next) =>
                   setDraft((current) => ({
@@ -820,7 +816,7 @@ export function StoreConfigsCriticalPanel({
               />
 
               <BooleanChoice
-                label="Automatizar por webhook"
+                label="Reaccionar a los avisos de Alegra"
                 value={draft.webhookItemsEnabled}
                 onChange={(next) =>
                   setDraft((current) => ({
@@ -830,7 +826,7 @@ export function StoreConfigsCriticalPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help="Webhooks disparan automatizaciones."
+                help="Alegra avisa en el momento en que cambia un producto, y la tienda se actualiza sin esperar al repaso periódico."
               />
 
               <BooleanChoice
@@ -872,7 +868,7 @@ export function StoreConfigsCriticalPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help="No publica sin imágenes."
+                help="Un producto sin fotos no se publica en la tienda, aunque tenga existencias."
               />
             </div>
           </div>
@@ -881,7 +877,6 @@ export function StoreConfigsCriticalPanel({
         <details className="settings-collapsible store-config-field-span-2">
           <summary className="settings-collapsible-summary">
             <strong>Bodegas y publicación final</strong>
-            
           </summary>
           <div className="settings-subsection">
             <div className="store-configs-grid">
@@ -1075,7 +1070,7 @@ export function StoreConfigsCriticalPanel({
               />
 
               <BooleanChoice
-                label="Publicar desde webhook"
+                label="Publicar al recibir un aviso"
                 value={draft.autoPublishOnWebhook}
                 onChange={(next) =>
                   setDraft((current) => ({
@@ -1085,11 +1080,11 @@ export function StoreConfigsCriticalPanel({
                 }
                 positive="Sí"
                 negative="No"
-                help="Auto-publica al recibir webhook."
+                help="Cuando Alegra avisa de un cambio, se aplica también la publicación del producto en la tienda."
               />
 
               <label className="store-config-field">
-                <span>Estado de auto-publicación</span>
+                <span>Con qué estado nace un producto nuevo</span>
                 <select
                   className="input"
                   value={draft.autoPublishStatus}

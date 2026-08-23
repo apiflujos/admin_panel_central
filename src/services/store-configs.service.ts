@@ -488,6 +488,11 @@ async function getStoreConfigForStoreId(storeId: number) {
   return {
     storeId,
     shopDomain: row.shop_domain,
+    // Se expone igual que en el listado. El SQL ya la resolvía —se usaba sólo
+    // para `hasAlegraConnection`— pero el objeto no la devolvía, así que
+    // `getStoreConfigForDomain(...).alegraAccountId` daba undefined mientras la
+    // pantalla mostraba la cuenta. Las dos formas tienen que decir lo mismo.
+    alegraAccountId: row.alegra_account_id || undefined,
     // Quién manda sobre cada área.
     //
     // ESTA es la función que alimenta a `buildSyncContext` (vía

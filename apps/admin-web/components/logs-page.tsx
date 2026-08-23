@@ -42,13 +42,15 @@ export function LogsPage({ result }: { result: AdminWebLogsListDto }) {
               <input type="hidden" name="entity" value={result.filters.entity || ""} />
               <input type="hidden" name="direction" value={result.filters.direction || ""} />
               <div className="input-with-icon">
-                <span className="input-icon" aria-hidden="true"><Search size={14} strokeWidth={1.75} /></span>
+                <span className="input-icon" aria-hidden="true">
+                  <Search size={14} strokeWidth={1.75} />
+                </span>
                 <input
                   className="input"
                   type="search"
                   name="orderId"
                   defaultValue={result.filters.orderId || ""}
-                  placeholder="Buscar orderId..."
+                  placeholder="Buscar por número de pedido..."
                   aria-label="Buscar log"
                 />
               </div>
