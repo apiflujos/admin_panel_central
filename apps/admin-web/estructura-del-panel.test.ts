@@ -26,8 +26,22 @@ function paginasDelPanel(dir = PANEL): string[] {
 describe("estructura del panel", () => {
   const paginas = paginasDelPanel();
 
-  it("hay páginas dentro del grupo (panel)", () => {
-    expect(paginas.length).toBeGreaterThanOrEqual(15);
+  it("las pantallas del panel viven dentro del grupo", () => {
+    // Sin número mágico: quitar o añadir una pantalla es legítimo. Lo que se
+    // vigila es que las principales estén DENTRO del grupo, que es lo que hace
+    // que compartan el shell.
+    const rutas = paginas.map((p) => path.relative(PANEL, p).replace(/\\/g, "/"));
+    for (const esperada of [
+      "page.tsx",
+      "orders/page.tsx",
+      "invoices/page.tsx",
+      "products/page.tsx",
+      "superadmin/page.tsx",
+      "superadmin/workers/page.tsx",
+      "settings/connections/page.tsx",
+    ]) {
+      expect(rutas, esperada).toContain(esperada);
+    }
   });
 
   it("el layout del panel monta el shell y resuelve la sesión", () => {
@@ -50,9 +64,9 @@ describe("estructura del panel", () => {
   });
 
   it("las pantallas que autorizan por rol siguen pidiendo la sesión", () => {
-    // El layout resuelve la sesión para el shell, pero estas tres DECIDEN con
-    // ella: si se les quita, cualquier usuario entraría.
-    for (const ruta of ["ai-assistants", "company", "users"]) {
+    // El layout resuelve la sesión para el shell, pero éstas DECIDEN con ella:
+    // si se les quita, cualquier usuario entraría.
+    for (const ruta of ["company", "users"]) {
       const fuente = fs.readFileSync(path.join(PANEL, ruta, "page.tsx"), "utf8");
       expect(fuente, ruta).toContain("requireServerSessionProfile()");
       expect(fuente, ruta).toMatch(/session\.role !== "admin"/);

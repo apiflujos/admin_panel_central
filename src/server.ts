@@ -111,7 +111,6 @@ async function initAdminWeb(): Promise<(req: Request, res: Response) => void> {
     throw new Error(`Next.js build not found at ${nextBuildDir}. Run npm run build:admin-web`);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const next = require(nextModulePath);
   const nextApp = next({ dev: false, dir: adminWebDir });
   const handle = nextApp.getRequestHandler();
@@ -167,7 +166,6 @@ app.get("/login.html", (_req, res) => res.redirect(302, "/auth/login"));
 app.get("/index.html", (_req, res) => res.redirect(302, "/"));
 app.get("/company.html", (_req, res) => res.redirect(302, "/company"));
 app.get("/users.html", (_req, res) => res.redirect(302, "/users"));
-app.get("/ai-assistants.html", (_req, res) => res.redirect(302, "/ai-assistants"));
 
 // ---------------------------------------------------------------------------
 // 3. Legacy OAuth endpoints (must stay in Express).
@@ -268,7 +266,9 @@ function renderIndex(req: Request, res: Response, bodyClass?: string) {
 app.get("/dashboard", (_req, res) => res.redirect(302, "/"));
 app.get("/settings", (_req, res) => res.redirect(302, "/settings/connections"));
 app.get("/settings/:pane", (req, res, next) => {
-  const pane = String(req.params.pane || "").trim().toLowerCase();
+  const pane = String(req.params.pane || "")
+    .trim()
+    .toLowerCase();
   // These settings panes are handled by the new admin-web.
   if (pane === "connections" || pane === "stores") {
     next();
@@ -286,7 +286,9 @@ app.get("/legacy/login", (_req, res) => {
 });
 app.get("/legacy/settings", requirePageSession, (_req, res) => res.redirect(302, "/legacy/settings/connections"));
 app.get("/legacy/settings/:pane", requirePageSession, (req, res) => {
-  const pane = String(req.params.pane || "").trim().toLowerCase();
+  const pane = String(req.params.pane || "")
+    .trim()
+    .toLowerCase();
   if (pane === "connections") {
     if (pane !== "connections") {
       res.redirect(302, "/legacy/settings/connections");
@@ -297,7 +299,9 @@ app.get("/legacy/settings/:pane", requirePageSession, (req, res) => {
   }
   renderIndex(req, res, "force-settings legacy-surface");
 });
-app.get("/legacy/__sa", requirePageSuperAdmin, requirePageSession, (req, res) => renderIndex(req, res, "legacy-surface"));
+app.get("/legacy/__sa", requirePageSuperAdmin, requirePageSession, (req, res) =>
+  renderIndex(req, res, "legacy-surface")
+);
 
 // Serve remaining legacy static files (app.js, styles.css, login.js, etc.)
 // without allowing index.html to be used as a fallback.

@@ -814,56 +814,6 @@ export async function deleteTenantUser(userId: number): Promise<{ ok: true }> {
   });
 }
 
-export type AdminWebAiAssistant = {
-  id: number;
-  organization_id: number;
-  name: string;
-  avatar_url: string | null;
-  description: string | null;
-  n8n_url: string | null;
-  politicas: string | null;
-  instruccion: string | null;
-  identidad: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-};
-
-export async function getAiAssistants(): Promise<{ ok: true; data: AdminWebAiAssistant[] }> {
-  return requestJson<{ ok: true; data: AdminWebAiAssistant[] }>({
-    path: "/ai-assistants",
-    method: "GET",
-  });
-}
-
-export async function createAiAssistant(
-  payload: Partial<AdminWebAiAssistant>
-): Promise<{ ok: true; data: AdminWebAiAssistant }> {
-  return requestJson<{ ok: true; data: AdminWebAiAssistant }>({
-    path: "/ai-assistants",
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function updateAiAssistant(
-  id: number,
-  payload: Partial<AdminWebAiAssistant>
-): Promise<{ ok: true; data: AdminWebAiAssistant }> {
-  return requestJson<{ ok: true; data: AdminWebAiAssistant }>({
-    path: `/ai-assistants/${encodeURIComponent(String(id))}`,
-    method: "PUT",
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function deleteAiAssistant(id: number): Promise<{ ok: true }> {
-  return requestJson<{ ok: true }>({
-    path: `/ai-assistants/${encodeURIComponent(String(id))}`,
-    method: "DELETE",
-  });
-}
-
 export type AdminWebProfile = {
   user: {
     id: number;

@@ -121,11 +121,6 @@ export async function AppShell({ children, session }: { children: ReactNode; ses
                   Usuarios
                 </Link>
               ) : null}
-              {showAdminShortcuts ? (
-                <Link className="topbarQuickPill" href="/ai-assistants">
-                  IA
-                </Link>
-              ) : null}
             </div>
             <button className="topbarBellBtn" type="button" aria-label="Alertas">
               <span aria-hidden="true">◌</span>

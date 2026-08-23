@@ -748,26 +748,6 @@ export async function getServerTenantUsers(): Promise<
   }));
 }
 
-export async function getServerAiAssistants(): Promise<
-  Array<{
-    id: number;
-    organization_id: number;
-    name: string;
-    avatar_url: string | null;
-    description: string | null;
-    n8n_url: string | null;
-    politicas: string | null;
-    instruccion: string | null;
-    identidad: string | null;
-    is_active: boolean;
-    created_at: string;
-    updated_at: string;
-  }>
-> {
-  const { listAiAssistants } = await import("../../../src/services/ai-assistants.service");
-  return listAiAssistants();
-}
-
 export async function getServerProfile(): Promise<{
   id: number;
   organizationId: number;

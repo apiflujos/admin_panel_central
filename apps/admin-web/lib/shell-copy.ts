@@ -13,7 +13,6 @@ export function resolveShellTitle(activeHref: string) {
   if (activeHref === "/profile") return "Perfil";
   if (activeHref === "/company") return "Empresa";
   if (activeHref === "/users") return "Usuarios";
-  if (activeHref === "/ai-assistants") return "Asistentes IA";
   if (activeHref.startsWith("/superadmin")) return "Super Admin";
   if (activeHref.startsWith("/settings")) return "Configuración";
   return "Admin Central";
@@ -34,7 +33,6 @@ export function resolveShellSubtitle(activeHref: string) {
   if (activeHref === "/profile") return "Preferencias personales y seguridad.";
   if (activeHref === "/company") return "Identidad del cliente y datos corporativos.";
   if (activeHref === "/users") return "Usuarios internos y roles autorizados.";
-  if (activeHref === "/ai-assistants") return "Asistentes operativos y automatización guiada.";
   return "Superficie operativa estandarizada para todos los clientes.";
 }
 

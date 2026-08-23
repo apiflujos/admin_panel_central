@@ -12,7 +12,6 @@ import {
   requireAdmin,
   requireSuperAdmin,
 } from "./auth.controller";
-import { assistantExecuteHandler, assistantQueryHandler } from "./assistant.controller";
 import { listLogs, retryFailed } from "./logs.controller";
 import {
   listAlegraCatalog,
@@ -147,12 +146,6 @@ import {
   saListUsersHandler,
   saUpdateUserHandler,
 } from "./superadmin-users.controller";
-import {
-  listAiAssistantsHandler,
-  createAiAssistantHandler,
-  updateAiAssistantHandler,
-  deleteAiAssistantHandler,
-} from "./ai-assistants.controller";
 
 export const router = Router();
 
@@ -257,14 +250,8 @@ router.put("/settings/shopify-app", requireAdmin, wrap(saveShopifyAppCredentials
 router.get("/settings/resolutions", wrap(listResolutions));
 router.get("/alegra/:catalog", wrap(listAlegraCatalog));
 router.get("/metrics", wrap(listMetrics));
-router.get("/ai-assistants", wrap(listAiAssistantsHandler));
-router.post("/ai-assistants", requireAdmin, wrap(createAiAssistantHandler));
-router.put("/ai-assistants/:id", requireAdmin, wrap(updateAiAssistantHandler));
-router.delete("/ai-assistants/:id", requireAdmin, wrap(deleteAiAssistantHandler));
 router.get("/reports/commerce.csv", wrap(downloadCommerceReportCsvHandler));
 router.get("/checkpoints/inventory-adjustments", wrap(getInventoryAdjustmentsCheckpoint));
-router.post("/assistant/query", wrap(assistantQueryHandler));
-router.post("/assistant/execute", wrap(assistantExecuteHandler));
 router.post("/shopify/publish", wrap(publishShopifyHandler));
 router.post("/shopify/unpublish", wrap(unpublishShopifyHandler));
 router.post("/alegra/items/:itemId/status", requireAdmin, wrap(setAlegraItemStatusHandler));
