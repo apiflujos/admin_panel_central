@@ -241,6 +241,11 @@ export async function listOrders(options: {
            currency,
            alegra_status,
            invoice_number,
+           -- Por qué este pedido no se puede facturar. Se escribe en el prever
+           -- (migración 021) y hay que poder verlo EN EL PEDIDO, que es donde
+           -- lo busca quien tiene que arreglarlo.
+           sync_status,
+           sync_block_reason,
            source,
            shop_domain,
            updated_at

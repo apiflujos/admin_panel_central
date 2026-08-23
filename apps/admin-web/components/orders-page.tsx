@@ -43,7 +43,9 @@ export function OrdersPage({
         search={
           <form method="get">
             <div className="input-with-icon">
-              <span className="input-icon" aria-hidden="true"><Search size={14} strokeWidth={1.75} /></span>
+              <span className="input-icon" aria-hidden="true">
+                <Search size={14} strokeWidth={1.75} />
+              </span>
               <input
                 className="input"
                 type="search"
@@ -88,7 +90,8 @@ export function OrdersPage({
 
       <section className="card page-module-shell page-module-shell-compact">
         <p className="connection-inline-note">
-          Mostrando {offset + 1}–{Math.min(offset + PAGE_SIZE, result.total)} de {result.total} · Página {Math.floor(offset / PAGE_SIZE) + 1}
+          Mostrando {offset + 1}–{Math.min(offset + PAGE_SIZE, result.total)} de {result.total} · Página{" "}
+          {Math.floor(offset / PAGE_SIZE) + 1}
         </p>
         <DataTable
           columns={[
@@ -151,10 +154,27 @@ export function OrdersPage({
               header: "Estado",
               render: (row) => (
                 <div className="status-stack">
-                  <StatusPill tone={toneForStatus(row.alegraStatus)} small>
-                    {row.alegraStatus}
-                  </StatusPill>
+                  {row.bloqueo ? (
+                    <StatusPill tone="error" small>
+                      No se puede facturar
+                    </StatusPill>
+                  ) : (
+                    <StatusPill tone={toneForStatus(row.alegraStatus)} small>
+                      {row.alegraStatus}
+                    </StatusPill>
+                  )}
                   {row.einvoiceRequested ? <span className="pill pill-sm">E-invoice solicitada</span> : null}
+                  {/* El motivo va EN EL PEDIDO, que es donde lo busca quien
+                      tiene que arreglarlo: si sólo dijera "pendiente", nadie
+                      sabría que falta la cédula del cliente. */}
+                  {row.bloqueo
+                    ? row.bloqueo.motivos.map((b) => (
+                        <span className="pedido-bloqueo" key={b.motivo}>
+                          <strong>{b.motivo}</strong>
+                          {b.comoSeArregla ? <em>{b.comoSeArregla}</em> : null}
+                        </span>
+                      ))
+                    : null}
                 </div>
               ),
             },

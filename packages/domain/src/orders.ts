@@ -21,6 +21,8 @@ type OrdersListServiceItem = {
   updated_at?: unknown;
   alegra_status?: unknown;
   invoice_number?: unknown;
+  sync_status?: unknown;
+  sync_block_reason?: unknown;
   total?: unknown;
   currency?: unknown;
   shop_domain?: unknown;
@@ -52,7 +54,9 @@ function coerceOptionalNumber(value: unknown): number | undefined {
 
 function parseBooleanLike(value: unknown, fallback: boolean) {
   if (typeof value === "boolean") return value;
-  const lowered = String(value ?? "").trim().toLowerCase();
+  const lowered = String(value ?? "")
+    .trim()
+    .toLowerCase();
   if (!lowered) return fallback;
   if (["1", "true", "yes", "on"].includes(lowered)) return true;
   if (["0", "false", "no", "off"].includes(lowered)) return false;
@@ -82,6 +86,26 @@ export function normalizeOrdersListFilters(input: OrdersListFiltersInput): Norma
     limit: typeof limit === "number" && limit > 0 ? limit : 20,
     offset: typeof offset === "number" && offset >= 0 ? offset : 0,
   };
+}
+
+/**
+ * Motivo por el que un pedido NO se puede facturar, listo para pintar.
+ *
+ * Vive en `orders.sync_block_reason` desde el prever de facturación. Sin
+ * sacarlo aquí, el pedido aparece "pendiente" sin más y nadie sabe que le falta
+ * la cédula del cliente ni que hay que completarla para que avance.
+ */
+function extraerBloqueo(estado: unknown, motivo: unknown) {
+  if (String(estado || "") !== "no_facturable") return null;
+  const raw = motivo && typeof motivo === "object" ? (motivo as Record<string, unknown>) : {};
+  const lista = Array.isArray(raw.bloqueos) ? (raw.bloqueos as Record<string, unknown>[]) : [];
+  const motivos = lista
+    .map((b) => ({
+      motivo: String(b.motivo || ""),
+      comoSeArregla: String(b.comoSeArregla || ""),
+    }))
+    .filter((b) => b.motivo);
+  return motivos.length ? { motivos } : { motivos: [{ motivo: "No se pudo facturar.", comoSeArregla: "" }] };
 }
 
 export function toAdminWebOrderRowDto(params: {
@@ -117,6 +141,7 @@ export function toAdminWebOrderRowDto(params: {
     invoiceNumber: row.invoice_number ? String(row.invoice_number) : null,
     einvoiceRequested: einvoiceEnabled ? parseBooleanLike(override?.einvoiceRequested, false) : false,
     einvoiceMissing: missing,
+    bloqueo: extraerBloqueo(row.sync_status, row.sync_block_reason),
   };
 }
 

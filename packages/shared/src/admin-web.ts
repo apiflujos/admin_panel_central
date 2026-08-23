@@ -85,6 +85,8 @@ export type AdminWebOrderRowDto = {
   invoiceNumber: string | null;
   einvoiceRequested: boolean;
   einvoiceMissing: string[];
+  /** Por qué no se puede facturar, y cómo se arregla. Null si no está bloqueado. */
+  bloqueo: { motivos: { motivo: string; comoSeArregla: string }[] } | null;
 };
 
 export type AdminWebOrdersListDto = {
