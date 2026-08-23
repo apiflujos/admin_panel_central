@@ -197,9 +197,7 @@ export async function listWooConnections() {
     stores: normalized.map((store) => ({
       shopDomain: store.shopDomain,
       storeName:
-        (Number.isFinite(store.storeId as number) ? nameMap.get(Number(store.storeId)) : "") ||
-        store.storeName ||
-        "",
+        (Number.isFinite(store.storeId as number) ? nameMap.get(Number(store.storeId)) : "") || store.storeName || "",
       storeId: store.storeId,
       hasConsumerKey: Boolean(store.consumerKey),
       hasConsumerSecret: Boolean(store.consumerSecret),
@@ -279,7 +277,8 @@ export async function upsertWooConnection(input: WooCommerceStoreInput) {
   } catch (error) {
     const upstream = error instanceof Error ? error.message : "";
     throw new Error(
-      `WooCommerce rechazó las credenciales antes de guardar. ${upstream ? `Detalle: ${upstream}` : ""}`.trim()
+      `WooCommerce rechazó las credenciales antes de guardar. ${upstream ? `Detalle: ${upstream}` : ""}`.trim(),
+      { cause: error }
     );
   }
 

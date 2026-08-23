@@ -106,7 +106,9 @@ export function ProductsPage({
           search={
             <form method="get">
               <div className="input-with-icon">
-                <span className="input-icon" aria-hidden="true"><Search size={14} strokeWidth={1.75} /></span>
+                <span className="input-icon" aria-hidden="true">
+                  <Search size={14} strokeWidth={1.75} />
+                </span>
                 <input
                   className="input"
                   type="search"
@@ -151,8 +153,8 @@ export function ProductsPage({
         />
 
         <div className="table-meta">
-          Mostrando {start + 1}–{Math.min(start + PAGE_SIZE, result.total)} de {result.total} · {groups.length} productos
-          padre
+          Mostrando {start + 1}–{Math.min(start + PAGE_SIZE, result.total)} de {result.total} · {groups.length}{" "}
+          productos padre
         </div>
 
         {groups.length ? (
@@ -183,9 +185,13 @@ export function ProductsPage({
                     <span className="products-table-col-toggle" aria-hidden="true">
                       ▸
                     </span>
-                    <span className="products-table-cell-name" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span
+                      className="products-table-cell-name"
+                      style={{ display: "flex", alignItems: "center", gap: 8 }}
+                    >
                       {groupImage ? (
-                        // eslint-disable-next-line @next/next/no-img-element
+                        // <img> a proposito: la miniatura viene de un CDN externo
+                        // y no pasa por el optimizador de imagenes de Next.
                         <img
                           src={groupImage}
                           alt=""
@@ -281,15 +287,9 @@ export function ProductsPage({
                         </span>
                         <span>{variant.alegraItemId || "—"}</span>
                         <span>{variant.shopifyProductId || "—"}</span>
-                        <span className="products-table-col-num">
-                          {variant.inventoryQuantity ?? 0}
-                        </span>
+                        <span className="products-table-col-num">{variant.inventoryQuantity ?? 0}</span>
                         <span>
-                          {variant.alegraStatus ? (
-                            <span className="pill pill-mini">{variant.alegraStatus}</span>
-                          ) : (
-                            "—"
-                          )}
+                          {variant.alegraStatus ? <span className="pill pill-mini">{variant.alegraStatus}</span> : "—"}
                         </span>
                         <span>
                           <ProductPublishButton

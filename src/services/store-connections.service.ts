@@ -918,7 +918,8 @@ export async function upsertStoreConnection(input: ShopifyStoreInput) {
     } catch (error) {
       const upstream = error instanceof Error ? error.message : "";
       throw new Error(
-        `Shopify rechazó las credenciales antes de guardar. ${upstream ? `Detalle: ${upstream}` : ""}`.trim()
+        `Shopify rechazó las credenciales antes de guardar. ${upstream ? `Detalle: ${upstream}` : ""}`.trim(),
+        { cause: error }
       );
     }
   }
@@ -1209,7 +1210,8 @@ async function resolveAlegraAccountId(pool: ReturnType<typeof getPool>, orgId: n
         } catch (error) {
           const upstream = error instanceof Error ? error.message : "";
           throw new Error(
-            `Alegra rechazó las credenciales antes de guardar. ${upstream ? `Detalle: ${upstream}` : ""}`.trim()
+            `Alegra rechazó las credenciales antes de guardar. ${upstream ? `Detalle: ${upstream}` : ""}`.trim(),
+            { cause: error }
           );
         }
       }
@@ -1253,7 +1255,8 @@ async function resolveAlegraAccountId(pool: ReturnType<typeof getPool>, orgId: n
   } catch (error) {
     const upstream = error instanceof Error ? error.message : "";
     throw new Error(
-      `Alegra rechazó las credenciales antes de guardar. ${upstream ? `Detalle: ${upstream}` : ""}`.trim()
+      `Alegra rechazó las credenciales antes de guardar. ${upstream ? `Detalle: ${upstream}` : ""}`.trim(),
+      { cause: error }
     );
   }
 

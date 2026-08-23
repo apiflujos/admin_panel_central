@@ -44,11 +44,6 @@ const normalizeAutoStatus = (value: unknown, fallback: unknown) => {
   return value === "active" ? "active" : value === "draft" ? "draft" : resolvedFallback;
 };
 
-const normalizeInvoiceStatus = (value: unknown, fallback: unknown): "draft" | "active" => {
-  const resolvedFallback = fallback === "active" ? "active" : "draft";
-  return value === "active" ? "active" : value === "draft" ? "draft" : resolvedFallback;
-};
-
 // Trigger de facturación POR TIENDA: on_create (al crear el pedido) u on_fulfilled
 // (cuando el pedido está preparado). Permite que Becam facture al preparar y Belia
 // al crear. Si la tienda no lo define, usa el valor global (fallback).
@@ -383,10 +378,6 @@ export async function listStoreConfigs() {
           invoice.generateInvoice,
           normalizeBoolean(invoiceDefaults.generateInvoice, false)
         ),
-        invoiceStatus: normalizeInvoiceStatus(
-          invoice.invoiceStatus,
-          (invoiceDefaults as Record<string, unknown>)?.invoiceStatus
-        ),
         resolutionId: normalizeText(invoice.resolutionId, normalizeText(invoiceDefaults.resolutionId, "")),
         costCenterId: normalizeText(invoice.costCenterId, normalizeText(invoiceDefaults.costCenterId, "")),
         warehouseId: normalizeText(invoice.warehouseId, normalizeText(invoiceDefaults.warehouseId, "")),
@@ -572,10 +563,6 @@ async function getStoreConfigForStoreId(storeId: number) {
       generateInvoice: normalizeBoolean(
         invoice.generateInvoice,
         normalizeBoolean(invoiceDefaults.generateInvoice, false)
-      ),
-      invoiceStatus: normalizeInvoiceStatus(
-        invoice.invoiceStatus,
-        (invoiceDefaults as Record<string, unknown>)?.invoiceStatus
       ),
       resolutionId: normalizeText(invoice.resolutionId, normalizeText(invoiceDefaults.resolutionId, "")),
       costCenterId: normalizeText(invoice.costCenterId, normalizeText(invoiceDefaults.costCenterId, "")),

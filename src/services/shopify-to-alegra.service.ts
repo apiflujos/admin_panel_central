@@ -440,7 +440,7 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
   // Evita colapsar clientes distintos que comparten email (ej: guest checkouts con mismo correo).
   const customerId = payload.customer?.id ? String(payload.customer.id) : "";
   const contactMappingRow = customerId ? await getMappingByShopifyId("contact", customerId) : undefined;
-  let existing: Array<{ id: string | number }> = [];
+  let existing: Array<{ id: string | number }>;
   if (contactMappingRow?.alegraId) {
     existing = [{ id: contactMappingRow.alegraId }];
   } else {
@@ -1321,7 +1321,6 @@ function resolveInvoiceWarehouseId(
 
 type InvoiceSettings = {
   generateInvoice: boolean;
-  invoiceStatus?: "draft" | "active";
   // Cuándo facturar: "on_create" (al entrar el pedido, default) u "on_fulfilled"
   // (solo cuando el pedido está preparado/fulfilled en Shopify).
   invoiceTrigger?: "on_create" | "on_fulfilled";

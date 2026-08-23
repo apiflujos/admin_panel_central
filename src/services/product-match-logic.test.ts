@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   getMappingByShopifyIdMock,
@@ -46,14 +46,37 @@ vi.mock("./products.service", () => ({
   upsertProduct: vi.fn(),
 }));
 
+// `withVariantCreateLock` toma un advisory lock de Postgres antes de crear el
+// ítem. Sin este simulacro la prueba muere con "DATABASE_URL is required": el
+// candado se añadió después de escribirse la prueba y nadie la actualizó.
+vi.mock("../db", () => ({
+  getPool: () => ({
+    connect: async () => ({
+      query: async () => ({ rows: [] }),
+      release: () => undefined,
+    }),
+  }),
+}));
+
 // Las escrituras de catálogo consultan el interruptor de Super Admin.
 vi.mock("./worker-settings.service", () => ({
   isWorkerEnabled: isWorkerEnabledMock,
 }));
 
 describe("product match logic", () => {
+  // `ALLOW_ALEGRA_ITEM_WRITES` esta APAGADO por omision: escribir items de
+  // Alegra desde Shopify colapsaba el stock. Esta prueba mide el emparejamiento,
+  // que ocurre despues del kill switch, asi que lo enciende explicitamente y lo
+  // devuelve a su sitio al terminar.
+  const killSwitchOriginal = process.env.ALLOW_ALEGRA_ITEM_WRITES;
+  afterEach(() => {
+    if (killSwitchOriginal === undefined) delete process.env.ALLOW_ALEGRA_ITEM_WRITES;
+    else process.env.ALLOW_ALEGRA_ITEM_WRITES = killSwitchOriginal;
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.ALLOW_ALEGRA_ITEM_WRITES = "true";
     isWorkerEnabledMock.mockResolvedValue(true);
     getMappingByShopifyIdMock.mockResolvedValue(undefined);
     getMappingByAlegraIdMock.mockResolvedValue(undefined);
@@ -96,9 +119,13 @@ describe("product match logic", () => {
 
     expect(alegraCtx.alegra.searchItems).toHaveBeenCalled();
     const attemptedParams = alegraCtx.alegra.searchItems.mock.calls.map((call) => call[0]);
-    expect(
-      attemptedParams.every((params) => !("barcode" in params) && String(params.query || "").indexOf("barcode:") === -1)
-    ).toBe(true);
+    // Lo prohibido es emparejar por el codigo de barras DE LA VARIANTE
+    // ("BAR-999"): es un identificador distinto del SKU y produce
+    // emparejamientos falsos. Buscar el VALOR del SKU dentro del campo
+    // `barcode` de Alegra si es legitimo -- muchas cuentas guardan ahi el SKU.
+    const serializado = JSON.stringify(attemptedParams);
+    expect(serializado).not.toContain("BAR-999");
+    expect(attemptedParams.every((params) => params.barcode !== "BAR-999")).toBe(true);
     expect(attemptedParams.some((params) => params.reference === "SKU-123")).toBe(true);
     expect(result).toMatchObject({
       ok: false,
@@ -106,6 +133,35 @@ describe("product match logic", () => {
       reason: "create_disabled",
       identifier: "SKU-123",
     });
+  }, 30000);
+
+  it("con el kill switch APAGADO no se escribe nada en Alegra", async () => {
+    process.env.ALLOW_ALEGRA_ITEM_WRITES = "false";
+    const alegraCtx = { alegra: { searchItems: vi.fn().mockResolvedValue({ items: [] }) } };
+    const { syncShopifyVariantToAlegra } = await import("./shopify-products-to-alegra-items.service");
+
+    const result = await syncShopifyVariantToAlegra({
+      ctx: alegraCtx as never,
+      shopDomain: "olivashoes.myshopify.com",
+      product: { id: "gid://shopify/Product/1", title: "Zapato" },
+      variant: {
+        id: "gid://shopify/ProductVariant/1",
+        title: "Default Title",
+        sku: "SKU-123",
+        price: "100",
+        inventoryQuantity: 5,
+      } as never,
+      config: {
+        enabled: true,
+        createInAlegra: true,
+        updateInAlegra: true,
+        includeInventory: true,
+        warehouseId: undefined,
+        matchPriority: ["sku"],
+      },
+    });
+
+    expect(result).toMatchObject({ ok: false, skipped: true, reason: "alegra_writes_disabled" });
   }, 30000);
 
   it("matches Alegra -> Shopify using exact SKU first and broader identifier fallback", async () => {

@@ -6,7 +6,11 @@ describe("connections modal state contract", () => {
       fs.readFile(new URL("./settings-connections-page.tsx", import.meta.url), "utf8")
     );
 
-    expect(source).toContain('type ConnectionModalState = { kind: "closed" }');
+    // Se compara con los ESPACIOS NORMALIZADOS: la asercion original exigia la
+    // declaracion en una sola linea y el formateador la partio en varias, asi
+    // que fallaba pese a estar el contrato cumplido.
+    const plano = source.replace(/\s+/g, " ");
+    expect(plano).toContain('type ConnectionModalState = | { kind: "closed" }');
     expect(source).toContain("const [modal, setModal] = useState<ConnectionModalState>");
     expect(source).not.toContain("isConnectionFlowOpen");
     expect(source).not.toContain("isCreateStoreOpen");

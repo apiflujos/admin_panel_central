@@ -86,22 +86,24 @@ describe("orders-sync poller", () => {
       shopDomain: "olivashoes.myshopify.com",
       accessToken: "token",
     });
+    // Dentro de la ventana de lookback (180 min desde las 12:00): asi la
+    // consulta arranca en el CHECKPOINT y no en el suelo de tiempo.
     getSyncCheckpointMock.mockResolvedValue({
-      lastStart: Date.parse("2026-04-26T10:00:00.000Z"),
+      lastStart: Date.parse("2026-04-28T11:00:00.000Z"),
       total: 2,
     });
     listAllOrdersByQueryMock.mockResolvedValue([
       {
         id: "2",
         name: "#1002",
-        updatedAt: "2026-04-26T12:00:00.000Z",
-        processedAt: "2026-04-26T12:00:00.000Z",
+        updatedAt: "2026-04-28T11:40:00.000Z",
+        processedAt: "2026-04-28T11:40:00.000Z",
       },
       {
         id: "1",
         name: "#1001",
-        updatedAt: "2026-04-26T11:00:00.000Z",
-        processedAt: "2026-04-26T11:00:00.000Z",
+        updatedAt: "2026-04-28T11:30:00.000Z",
+        processedAt: "2026-04-28T11:30:00.000Z",
       },
     ]);
     mapOrderToPayloadMock.mockImplementation((order) => ({
@@ -129,7 +131,7 @@ describe("orders-sync poller", () => {
     });
 
     expect(listAllOrdersByQueryMock).toHaveBeenCalledWith(
-      "status:any updated_at:>='2026-04-26T10:00:00.000Z'",
+      "status:any updated_at:>='2026-04-28T11:00:00.000Z'",
       undefined
     );
     expect(syncShopifyOrderToAlegraMock).toHaveBeenNthCalledWith(1, {
@@ -144,7 +146,7 @@ describe("orders-sync poller", () => {
     });
     expect(saveSyncCheckpointMock).toHaveBeenCalledWith({
       entity: "orders_sync:olivashoes.myshopify.com",
-      lastStart: Date.parse("2026-04-26T12:00:00.000Z"),
+      lastStart: Date.parse("2026-04-28T11:40:00.000Z"),
       total: 2,
     });
     expect(createSyncLogMock).toHaveBeenCalledWith(
@@ -154,5 +156,27 @@ describe("orders-sync poller", () => {
         status: "success",
       })
     );
+  });
+
+  it("un checkpoint viejo NO hace consultar mas atras que la ventana de lookback", async () => {
+    // Sin este tope, un pedido que falla siempre (sin cedula, sin match) ancla
+    // el checkpoint en su `updatedAt` y el poller lo reprocesa en cada tick para
+    // siempre. El suelo corta ese churn.
+    getSyncCheckpointMock.mockResolvedValue({
+      lastStart: Date.parse("2026-04-26T10:00:00.000Z"),
+      total: 2,
+    });
+
+    startOrdersSyncPoller();
+
+    await vi.waitFor(() => {
+      expect(listAllOrdersByQueryMock).toHaveBeenCalled();
+    });
+
+    const consulta = String(listAllOrdersByQueryMock.mock.calls[0][0]);
+    const desde = Date.parse(consulta.replace(/^.*>='/, "").replace(/'$/, ""));
+    // 12:00 menos 180 min = 09:00. Nunca antes de eso, pese al checkpoint del dia 26.
+    expect(desde).toBeGreaterThanOrEqual(Date.parse("2026-04-28T09:00:00.000Z"));
+    expect(desde).toBeLessThan(Date.parse("2026-04-28T09:01:00.000Z"));
   });
 });

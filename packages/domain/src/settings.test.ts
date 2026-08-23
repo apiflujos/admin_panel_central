@@ -68,8 +68,41 @@ describe("domain/settings", () => {
         tiktokAds: {},
       })
     ).toEqual({
+      // Activas (3): tienda 1 Shopify + tienda 1 Alegra + Google Ads.
       activeConnections: 3,
-      pendingActions: 4,
+      // Pendientes (3): Woo caido de la tienda 1 + Shopify a reconectar de la
+      // tienda 2 + Meta Ads a reconectar. Esta cifra nacio en 4 por un error
+      // de cuentas de quien escribio la prueba: la implementacion nunca
+      // devolvio 4 y no ha cambiado desde que se introdujo.
+      pendingActions: 3,
     });
+  });
+
+  it("una tienda SIN Alegra no cuenta como pendiente: es que no la usa", () => {
+    // Ausencia != averia. Lo que falta por configurar se dice en la matriz de
+    // automatizacion con su motivo; este contador es solo para averias
+    // declaradas, para no reportar el mismo problema dos veces.
+    expect(
+      summarizeConnectionHealth({
+        storesCatalog: [{ shopify: { shopifyConnected: true, shopifyNeedsReconnect: false } }],
+      })
+    ).toEqual({ activeConnections: 1, pendingActions: 0 });
+  });
+
+  it("cuenta una averia por cada conexion declarada que la tenga", () => {
+    expect(
+      summarizeConnectionHealth({
+        storesCatalog: [
+          {
+            shopify: { shopifyConnected: false, shopifyNeedsReconnect: true },
+            alegra: { needsReconnect: true },
+            woo: { ok: false },
+          },
+        ],
+        googleAds: { needsReconnect: true },
+        metaAds: { needsReconnect: true },
+        tiktokAds: { needsReconnect: true },
+      })
+    ).toEqual({ activeConnections: 0, pendingActions: 6 });
   });
 });

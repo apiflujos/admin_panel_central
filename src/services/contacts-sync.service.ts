@@ -44,12 +44,18 @@ const isEmail = (value: string) => value.includes("@");
 
 const normalizePhone = (value?: string) => (value ? value.replace(/[^\d+]/g, "").trim() : "");
 
-const normalizeDocument = (value?: string) => (value ? value.replace(/[^\da-zA-Z]/g, "").trim().toUpperCase() : "");
+const normalizeDocument = (value?: string) =>
+  value
+    ? value
+        .replace(/[^\da-zA-Z]/g, "")
+        .trim()
+        .toUpperCase()
+    : "";
 
 const extractDocumentFromShopifyNote = (value?: string | null) => {
   const note = String(value || "").trim();
   if (!note) return "";
-  const match = note.match(/(?:^|\b)DOC:\s*([A-Z0-9.\-]+)/i);
+  const match = note.match(/(?:^|\b)DOC:\s*([A-Z0-9.-]+)/i);
   return normalizeDocument(match?.[1] || "");
 };
 
@@ -221,10 +227,7 @@ async function findShopifyCustomerByIdentifier(
   );
 }
 
-async function findAlegraContactByIdentifier(
-  ctx: Awaited<ReturnType<typeof buildSyncContext>>,
-  identifier: string
-) {
+async function findAlegraContactByIdentifier(ctx: Awaited<ReturnType<typeof buildSyncContext>>, identifier: string) {
   const rawIdentifier = identifier.trim();
   if (!rawIdentifier) return null;
   if (isEmail(rawIdentifier)) {

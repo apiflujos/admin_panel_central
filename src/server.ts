@@ -111,6 +111,10 @@ async function initAdminWeb(): Promise<(req: Request, res: Response) => void> {
     throw new Error(`Next.js build not found at ${nextBuildDir}. Run npm run build:admin-web`);
   }
 
+  // require() y no import(): Next se resuelve en tiempo de ejecucion desde una
+  // ruta calculada, y su paquete es CommonJS. Cambiarlo tocaria el arranque
+  // del servidor de produccion.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const next = require(nextModulePath);
   const nextApp = next({ dev: false, dir: adminWebDir });
   const handle = nextApp.getRequestHandler();

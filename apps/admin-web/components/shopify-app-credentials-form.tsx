@@ -40,7 +40,8 @@ export function ShopifyAppCredentialsForm({ storeId, storeName }: { storeId?: nu
 
   useEffect(() => {
     void loadStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // A proposito solo storeId/scope: recargar tambien al cambiar loadStatus
+    // dispararia la peticion en cada render.
   }, [storeId, scope]);
 
   async function save() {
@@ -109,7 +110,12 @@ export function ShopifyAppCredentialsForm({ storeId, storeName }: { storeId?: nu
       <p className="connection-inline-note" style={{ marginTop: 8 }}>
         Estas claves habilitan “Conectar Shopify”. Se guardan cifradas en la base de datos (no en el .env). Se obtienen
         en el Partner Dashboard de Shopify → tu app → Client credentials.
-        {status?.apiKeyMasked ? <> Actual: <code>{status.apiKeyMasked}</code></> : null}
+        {status?.apiKeyMasked ? (
+          <>
+            {" "}
+            Actual: <code>{status.apiKeyMasked}</code>
+          </>
+        ) : null}
       </p>
 
       <div className="page-module-actions" style={{ marginBottom: 8 }}>

@@ -175,6 +175,9 @@ export async function listAlegraInvoices(options: {
   if (options.query) {
     where.push(`(number ILIKE $${idx} OR client_name ILIKE $${idx} OR client_identification ILIKE $${idx})`);
     params.push(`%${options.query}%`);
+    // Se mantiene el incremento aunque hoy nadie lo lea: sin el, el proximo
+    // filtro que se agregue reutilizaria el mismo $n y romperia la consulta.
+    // eslint-disable-next-line no-useless-assignment
     idx += 1;
   }
   const limit = Number.isFinite(options.limit) && Number(options.limit) > 0 ? Number(options.limit) : 20;

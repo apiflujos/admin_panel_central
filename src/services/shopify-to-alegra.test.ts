@@ -59,7 +59,9 @@ describe("shopify-to-alegra mapping logic", () => {
       const contact = mapShopifyToAlegraContact(mockPayload, "customer@example.com", {});
       expect(contact.name).toBe("John Doe");
       expect(contact.email).toBe("customer@example.com");
-      expect(contact.identification).toBe("3101234567"); // 57 stripped
+      // 3101234567 es un CELULAR colombiano: no se toma como cédula. Antes se
+      // facturaba a esos clientes con su número de móvil en el documento.
+      expect(contact.identification).toBe("");
       expect(contact.identificationType).toBe("CC");
     });
 
@@ -114,7 +116,7 @@ describe("shopify-to-alegra mapping logic", () => {
     });
 
     it("should handle draft status if configured", () => {
-      const settings = { ...mockSettings, invoiceStatus: "draft" as const };
+      const settings = { ...mockSettings, einvoiceEnabled: false };
       const invoice = buildInvoicePayload(mockPayload, "999", settings);
       expect(invoice.status).toBe("draft");
     });

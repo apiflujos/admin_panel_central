@@ -74,30 +74,37 @@ describe("sync-context", () => {
       .mockReturnValueOnce(JSON.stringify({ accessToken: "shop-token" }))
       .mockReturnValueOnce(JSON.stringify({ apiKey: "alegra-key" }));
     getPrimaryLocationIdMock.mockResolvedValue("gid://shopify/Location/1");
+    // Se responde SEGÚN LA CONSULTA, no por orden de llamada.
+    //
+    // Antes era una cadena de `mockResolvedValueOnce`: al añadirse una cuarta
+    // consulta al código (la del `store_id`), la cadena se quedó corta y
+    // devolvía undefined. Con el despacho por texto, añadir una consulta nueva
+    // no rompe la prueba.
     getPoolMock.mockReturnValue({
-      query: vi
-        .fn()
-        .mockResolvedValueOnce({
-          rows: [
-            {
-              shop_domain: "olivashoes.myshopify.com",
-              access_token_encrypted: "enc-shop",
-            },
-          ],
-        })
-        .mockResolvedValueOnce({
-          rows: [
-            {
-              alegra_account_id: 99,
-              user_email: "store@example.com",
-              api_key_encrypted: "enc-alegra",
-              environment: "prod",
-            },
-          ],
-        })
-        .mockResolvedValueOnce({
-          rows: [{ warehouse_id: "12" }],
-        }),
+      query: vi.fn(async (sql: string) => {
+        // ORDEN POR ESPECIFICIDAD: las dos consultas van a `shopify_stores`,
+        // así que la del token se comprueba ANTES que la del store_id.
+        if (/access_token_encrypted/i.test(sql)) {
+          return {
+            rows: [{ shop_domain: "olivashoes.myshopify.com", access_token_encrypted: "enc-shop" }],
+          };
+        }
+        if (/api_key_encrypted/i.test(sql)) {
+          return {
+            rows: [
+              {
+                alegra_account_id: 99,
+                user_email: "store@example.com",
+                api_key_encrypted: "enc-alegra",
+                environment: "prod",
+              },
+            ],
+          };
+        }
+        if (/SELECT store_id/i.test(sql)) return { rows: [{ store_id: 7 }] };
+        if (/warehouse_id/i.test(sql)) return { rows: [{ warehouse_id: "12" }] };
+        return { rows: [] };
+      }),
     });
   });
 

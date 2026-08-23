@@ -55,7 +55,9 @@ export function isPlausibleHostname(host: string): boolean {
 }
 
 export async function assertPublicHostname(host: string): Promise<void> {
-  const value = String(host || "").trim().toLowerCase();
+  const value = String(host || "")
+    .trim()
+    .toLowerCase();
   if (!value) {
     throw new UnsafeHostError("Dominio requerido.");
   }
@@ -68,7 +70,7 @@ export async function assertPublicHostname(host: string): Promise<void> {
   if (process.env.ALLOW_INTERNAL_HOSTS === "true") {
     return;
   }
-  let addresses: string[] = [];
+  let addresses: string[];
   try {
     const [v4, v6] = await Promise.all([
       dns.resolve4(value).catch(() => [] as string[]),

@@ -12,10 +12,33 @@ const basePayload = {
 };
 
 describe("mapShopifyToAlegraContact — identification fail-closed", () => {
-  it("marca hasRealIdentification=true cuando el teléfono tiene ≥6 dígitos", () => {
+  it("un CELULAR colombiano NO se toma como cédula", () => {
+    // 10 dígitos que empiezan por 3 es un móvil, no un documento. Antes se
+    // usaba como identificación y a esos clientes se les facturaba con su
+    // número de celular en el campo de la cédula.
     const result = mapShopifyToAlegraContact(basePayload as never, "cliente@ejemplo.com", {});
+    expect(result.hasRealIdentification).toBe(false);
+    expect(result.identification).toBe("");
+  });
+
+  it("un teléfono que NO parece móvil sí sirve de identificación", () => {
+    const payload = { customer: { ...basePayload.customer, phone: "6011234567" } };
+    const result = mapShopifyToAlegraContact(payload as never, "cliente@ejemplo.com", {});
     expect(result.hasRealIdentification).toBe(true);
-    expect(result.identification).toBe("3001234567");
+    expect(result.identification).toBe("6011234567");
+  });
+
+  it("la cédula recogida en `company` manda sobre el teléfono", () => {
+    // Es el campo donde Becam la pide en el checkout.
+    const payload = {
+      customer: {
+        ...basePayload.customer,
+        default_address: { ...basePayload.customer.default_address, company: "1028024790" },
+      },
+    };
+    const result = mapShopifyToAlegraContact(payload as never, "cliente@ejemplo.com", {});
+    expect(result.identification).toBe("1028024790");
+    expect(result.hasRealIdentification).toBe(true);
   });
 
   it("marca hasRealIdentification=false cuando el teléfono está vacío", () => {
@@ -31,11 +54,19 @@ describe("mapShopifyToAlegraContact — identification fail-closed", () => {
     expect(result.hasRealIdentification).toBe(false);
   });
 
-  it("strippea el prefijo +57 en teléfonos colombianos", () => {
+  it("quita el prefijo +57 antes de decidir, y sigue siendo un móvil", () => {
+    // Se normaliza el prefijo para reconocer el móvil: sin quitarlo, +57 300…
+    // tendría 12 dígitos y no se detectaría como celular.
     const payload = { customer: { ...basePayload.customer, phone: "+57 300 123 4567" } };
     const result = mapShopifyToAlegraContact(payload as never, "cliente@ejemplo.com", {});
-    expect(result.identification).toBe("3001234567");
-    expect(result.hasRealIdentification).toBe(true);
+    expect(result.hasRealIdentification).toBe(false);
+    expect(result.identification).toBe("");
+  });
+
+  it("con prefijo +57, un fijo sí sirve", () => {
+    const payload = { customer: { ...basePayload.customer, phone: "+57 601 123 4567" } };
+    const result = mapShopifyToAlegraContact(payload as never, "cliente@ejemplo.com", {});
+    expect(result.identification).toBe("6011234567");
   });
 
   it("respeta override e-invoice con idNumber", () => {

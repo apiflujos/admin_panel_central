@@ -84,7 +84,10 @@ describe("buildInvoicePayload", () => {
     expect(buildInvoicePayload(paid, "1", baseSettings).paymentForm).toBe("CASH");
     expect(buildInvoicePayload(paid, "1", baseSettings).paymentMethod).toBe("CASH");
     const credit = { line_items: [] } as never; // sin financial_status → CREDIT
-    const creditResult = buildInvoicePayload(credit, "1", baseSettings) as { paymentForm: string; paymentMethod?: string };
+    const creditResult = buildInvoicePayload(credit, "1", baseSettings) as {
+      paymentForm: string;
+      paymentMethod?: string;
+    };
     expect(creditResult.paymentForm).toBe("CREDIT");
     expect(creditResult.paymentMethod).toBeUndefined();
   });
@@ -135,17 +138,24 @@ describe("buildInvoicePayload", () => {
     expect(result.client).toBe(42);
   });
 
-  it("invoiceStatus draft se refleja en el payload", () => {
-    const result = buildInvoicePayload(
-      { line_items: [] } as never,
-      "1",
-      { ...baseSettings, invoiceStatus: "draft" }
-    );
+  // El estado de la factura lo decide `einvoiceEnabled`, NO una perilla aparte:
+  //  - OFF -> "draft": pruebas desde Shopify que NO se emiten a la DIAN.
+  //  - ON  -> "open": se emite electronicamente.
+  // Habia un `invoiceStatus` configurable que el motor jamas leia; se elimino
+  // en vez de dejar en la pantalla un ajuste que no mandaba nada.
+  it("factura electronica APAGADA -> borrador, no se emite a la DIAN", () => {
+    const result = buildInvoicePayload({ line_items: [] } as never, "1", {
+      ...baseSettings,
+      einvoiceEnabled: false,
+    });
     expect(result.status).toBe("draft");
   });
 
-  it("invoiceStatus active (default) NO agrega status field", () => {
-    const result = buildInvoicePayload({ line_items: [] } as never, "1", baseSettings);
-    expect(result.status).toBeUndefined();
+  it("factura electronica ENCENDIDA -> open, se emite", () => {
+    const result = buildInvoicePayload({ line_items: [] } as never, "1", {
+      ...baseSettings,
+      einvoiceEnabled: true,
+    });
+    expect(result.status).toBe("open");
   });
 });
