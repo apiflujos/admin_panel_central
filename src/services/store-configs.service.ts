@@ -141,10 +141,16 @@ function buildNormalizedSyncConfig(params: {
     orderSync.shopifyToAlegra === undefined && pairConnected
       ? "db_only"
       : normalizeShopifyOrderMode(orderSync.shopifyToAlegra);
-  const alegraToShopify =
-    orderSync.alegraToShopify === undefined && pairConnected
-      ? "draft"
-      : normalizeAlegraOrderMode(orderSync.alegraToShopify);
+  // Sin valor guardado: APAGADO.
+  //
+  // Este ajuste CREA PEDIDOS en la tienda a partir de facturas de Alegra. Tenía
+  // por omisión "draft", así que en cuanto había conexión quedaba activo sin que
+  // nadie lo eligiera: las dos tiendas de Becam lo tenían así, sin estar guardado.
+  //
+  // Es la misma forma del fallo que despublicó el catálogo el 2026-08-20: un
+  // valor por omisión permisivo que ESCRIBE. Escribir en la tienda tiene que ser
+  // siempre una decisión explícita.
+  const alegraToShopify = normalizeAlegraOrderMode(orderSync.alegraToShopify);
   const contactsFromCommerce = normalizeBoolean(contactSync.fromShopify, hasCommerceConnection);
   const contactsFromAlegra = normalizeBoolean(contactSync.fromAlegra, hasAlegraConnection);
 
