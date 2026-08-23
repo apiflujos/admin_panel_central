@@ -178,6 +178,9 @@ export function startOrdersSyncWorker() {
         status: "fail",
         message,
       });
+      // Se deja el registro en pantalla Y se relanza: si sólo se registrara,
+      // la salud del trabajo diría "ok" mientras la pasada fracasa.
+      throw error;
     } finally {
       running = false;
     }

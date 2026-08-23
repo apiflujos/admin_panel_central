@@ -8,7 +8,7 @@ import {
   type WebhookDispatchJob,
 } from "../../../../src/services/webhook-queue";
 import { isPermanentIntegrationError } from "../../../../src/connectors/shopify-errors";
-import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
+import { conRegistroDeSalud, isWorkerEnabled } from "../../../../src/services/worker-settings.service";
 
 /**
  * Consumidor de la cola de webhooks y red de seguridad de los rezagados.
@@ -66,9 +66,13 @@ async function reapStalledWebhookEvents() {
       `,
       [REAPER_MIN_AGE_MINUTES, REAPER_MAX_AGE_HOURS, REAPER_BATCH]
     )
-    .catch((error) => {
-      console.error("[webhook-reaper] no se pudo consultar pendientes:", error?.message || error);
-      return null;
+    // El error se PROPAGA. Antes se tragaba aquí y el barrido terminaba "bien"
+    // sin haber consultado nada: exactamente el punto ciego que dejó a
+    // `log-retention` fallando un mes sin que nadie lo viera.
+    .catch((error: unknown) => {
+      throw new Error(
+        `no se pudieron consultar los webhooks pendientes: ${error instanceof Error ? error.message : String(error)}`
+      );
     });
 
   if (!rows?.rows.length) return;
@@ -169,10 +173,13 @@ export function startWebhookDispatchWorker() {
     void aplicarInterruptor();
   }, WORKER_SWITCH_POLL_MS);
 
-  const barrerAtascados = async () => {
-    if (!(await isWorkerEnabled("webhook-dispatch"))) return;
-    await reapStalledWebhookEvents();
-  };
+  // El barrido de rezagados es la pasada periódica de este trabajo, y es la
+  // que puede fallar en silencio. El interruptor se relee cada 15s aparte;
+  // eso no es una pasada de trabajo y no se registra.
+  const barrerAtascados = () =>
+    conRegistroDeSalud("webhook-dispatch", async () => {
+      await reapStalledWebhookEvents();
+    });
   void barrerAtascados();
   setInterval(() => {
     void barrerAtascados();

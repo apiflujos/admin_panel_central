@@ -1,5 +1,5 @@
 import { processRetryQueue } from "../../../../src/services/retry-queue.service";
-import { isWorkerEnabled } from "../../../../src/services/worker-settings.service";
+import { conRegistroDeSalud, isWorkerEnabled } from "../../../../src/services/worker-settings.service";
 
 const DEFAULT_POLL_MS = 60_000;
 
@@ -23,7 +23,7 @@ export function startRetryQueueWorker() {
   console.log(`[retry-queue] worker activo — poll cada ${intervalMs}ms`);
 
   let running = false;
-  const run = async () => {
+  const pasada = async () => {
     // Interruptor de Super Admin. Se consulta en CADA pasada (no sólo al
     // arrancar) para que encender o apagar surta efecto sin reiniciar.
     if (!(await isWorkerEnabled("retry-queue"))) return;
@@ -31,12 +31,15 @@ export function startRetryQueueWorker() {
     running = true;
     try {
       await processRetryQueue();
-    } catch (error) {
-      console.error("Retry queue poll failed:", error);
     } finally {
+      // El error YA NO se traga aquí: sale para que quede registrado como
+      // avería y se vea en la pantalla. Antes moría en un `console.error`.
       running = false;
     }
   };
+
+  // Toda pasada deja constancia de cómo terminó.
+  const run = () => conRegistroDeSalud("retry-queue", pasada);
 
   void run();
   setInterval(() => {

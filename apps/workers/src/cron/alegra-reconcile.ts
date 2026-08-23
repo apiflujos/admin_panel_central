@@ -97,11 +97,9 @@ export function startAlegraReconcileWorker() {
     // Interruptor de Super Admin. Se consulta en CADA pasada (no sólo al
     // arrancar) para que encender o apagar surta efecto sin reiniciar.
     if (!(await isWorkerEnabled("alegra-reconcile"))) return;
-    try {
-      await withEachOrganization(reconcileOrg);
-    } catch (error) {
-      console.error("[alegra-reconcile] falló:", error instanceof Error ? error.message : error);
-    }
+    // Sin `try`: que el fallo salga para que quede registrado como avería. Antes
+    // moría en un `console.error` y la pasada figuraba como correcta.
+    await withEachOrganization(reconcileOrg);
   };
 
   // Toda pasada deja constancia de cómo terminó. `log-retention` falló

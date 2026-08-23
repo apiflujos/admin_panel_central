@@ -80,16 +80,10 @@ export function startHealthMonitorWorker() {
     // Interruptor de Super Admin. Se consulta en CADA pasada (no sólo al
     // arrancar) para que encender o apagar surta efecto sin reiniciar.
     if (!(await isWorkerEnabled("health-monitor"))) return;
-    let m: Metrics;
-    try {
-      m = await collect();
-    } catch (error) {
-      console.error(
-        "[health-monitor] no se pudieron calcular métricas:",
-        error instanceof Error ? error.message : error
-      );
-      return;
-    }
+    // Sin `try`: si el vigilante no puede medir, eso tiene que verse. Antes se
+    // tragaba el error y el monitor se quedaba mudo pareciendo sano — el peor
+    // punto ciego posible, porque es justo el que debería avisar de los demás.
+    const m: Metrics = await collect();
 
     const breaches: string[] = [];
     if (m.fails_1h > THRESHOLDS.fails_1h) breaches.push(`fails_1h=${m.fails_1h} (>${THRESHOLDS.fails_1h})`);
