@@ -414,7 +414,7 @@ do_deploy() {
   test -f "$admin_deps_stage/node_modules/next/dist/compiled/cookie/index.js"
   atomic_replace_dir node_modules "$root_deps_stage/node_modules"
   atomic_replace_dir apps/admin-web/node_modules "$admin_deps_stage/node_modules"
-  rmdir "$root_deps_stage" "$admin_deps_stage"
+  rm -rf -- "$root_deps_stage" "$admin_deps_stage"
   root_deps_stage=""
   admin_deps_stage=""
   ok "Dependencias completas intercambiadas de forma atómica"

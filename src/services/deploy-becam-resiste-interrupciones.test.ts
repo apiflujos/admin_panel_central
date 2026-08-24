@@ -12,6 +12,8 @@ describe("el deploy de Becam no rompe el sitio activo si se interrumpe", () => {
     expect(deploy).toContain(".deploy-admin-deps.XXXXXX");
     expect(deploy).toContain("atomic_replace_dir node_modules");
     expect(deploy).toContain("atomic_replace_dir apps/admin-web/node_modules");
+    expect(deploy).toContain('rm -rf -- "$root_deps_stage" "$admin_deps_stage"');
+    expect(deploy).not.toContain('rmdir "$root_deps_stage" "$admin_deps_stage"');
   });
 
   it("construye backend y frontend fuera de los directorios activos", () => {
