@@ -60,7 +60,7 @@ describe("retry-queue webhook processing", () => {
       connect: connectMock,
       query: poolQueryMock,
     });
-    retryInvoiceFromLogMock.mockResolvedValue(undefined);
+    retryInvoiceFromLogMock.mockResolvedValue({ status: "created", invoiceId: "900" });
     processQueuedWebhookEventMock.mockResolvedValue(undefined);
     updateSyncLogMock.mockResolvedValue(undefined);
   });
@@ -136,5 +136,68 @@ describe("retry-queue webhook processing", () => {
     expect(result).toEqual({ processed: 1 });
     expect(processQueuedWebhookEventMock).not.toHaveBeenCalled();
     expect(poolQueryMock).toHaveBeenCalledWith(`UPDATE retry_queue SET status = 'skipped' WHERE id = $1`, [11]);
+    expect(updateSyncLogMock).toHaveBeenCalledWith(21, {
+      status: "fail",
+      message: "Reintento no ejecutado: el registro no contiene una operación recuperable",
+    });
+  });
+
+  it("solo marca done cuando el reintento de factura realmente termina", async () => {
+    clientQueryMock.mockReset();
+    clientQueryMock
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 12,
+            organization_id: 1,
+            sync_log_id: 22,
+            entity: "order",
+            request_json: { orderId: "123", invoicePayload: { client: 5 } },
+            retry_count: 0,
+          },
+        ],
+      })
+      .mockResolvedValueOnce(undefined);
+
+    retryInvoiceFromLogMock.mockResolvedValue({ status: "missing_payload" });
+    await processRetryQueue(5);
+
+    expect(poolQueryMock).toHaveBeenCalledWith(`UPDATE retry_queue SET status = 'skipped' WHERE id = $1`, [12]);
+    expect(poolQueryMock).not.toHaveBeenCalledWith(`UPDATE retry_queue SET status = 'done' WHERE id = $1`, [12]);
+    expect(updateSyncLogMock).toHaveBeenCalledWith(22, {
+      status: "fail",
+      message: "Reintento no ejecutado: missing_payload",
+      response: { status: "missing_payload" },
+    });
+  });
+
+  it("cierra también el sync_log original cuando la factura se recupera", async () => {
+    clientQueryMock.mockReset();
+    clientQueryMock
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 13,
+            organization_id: 1,
+            sync_log_id: 23,
+            entity: "order",
+            request_json: { orderId: "456", invoicePayload: { client: 8 } },
+            retry_count: 1,
+          },
+        ],
+      })
+      .mockResolvedValueOnce(undefined);
+
+    retryInvoiceFromLogMock.mockResolvedValue({ status: "created", invoiceId: "901" });
+    await processRetryQueue(5);
+
+    expect(updateSyncLogMock).toHaveBeenCalledWith(23, {
+      status: "success",
+      message: "Reintento completado: created",
+      response: { status: "created", invoiceId: "901" },
+    });
+    expect(poolQueryMock).toHaveBeenCalledWith(`UPDATE retry_queue SET status = 'done' WHERE id = $1`, [13]);
   });
 });

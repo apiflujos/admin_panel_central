@@ -1,6 +1,10 @@
 import type { Request, Response } from "express";
 import { listOrders, upsertOrder } from "../services/orders.service";
-import { listOrderInvoiceOverrides, validateEinvoiceData } from "../services/order-invoice-overrides.service";
+import {
+  listOrderInvoiceOverrides,
+  orderOverrideKey,
+  validateEinvoiceData,
+} from "../services/order-invoice-overrides.service";
 import { ensureInvoiceSettingsColumns, getOrgId, getPool } from "../db";
 import { consumeLimitOrBlock } from "../sa/consume";
 import { getAlegraCredential, getShopifyCredential } from "../services/settings.service";
@@ -98,13 +102,20 @@ export async function listOrdersHandler(req: Request, res: Response) {
       offset: Number.isFinite(offset) && offset > 0 ? offset : 0,
     });
 
-    const orderIds = result.items.map((row) => row.shopify_order_id).filter(Boolean) as string[];
-    const overrides = await listOrderInvoiceOverrides(orderIds);
+    const orderRefs = result.items
+      .filter((row) => Boolean(row.shopify_order_id))
+      .map((row) => ({
+        orderId: String(row.shopify_order_id),
+        shopDomain: row.shop_domain ? String(row.shop_domain) : "",
+      }));
+    const overrides = await listOrderInvoiceOverrides(orderRefs);
     const einvoiceEnabled = await loadEinvoiceEnabled();
 
     const items = result.items.map((row) => {
       const shopifyId = row.shopify_order_id ? String(row.shopify_order_id) : "";
-      const override = shopifyId ? overrides.get(shopifyId) || null : null;
+      const override = shopifyId
+        ? overrides.get(orderOverrideKey(shopifyId, row.shop_domain ? String(row.shop_domain) : "")) || null
+        : null;
       const missing = einvoiceEnabled ? validateEinvoiceData(override) : [];
       const alegraStatus = row.alegra_status || (row.alegra_invoice_id ? "facturado" : "pendiente");
       return {

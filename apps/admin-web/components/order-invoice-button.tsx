@@ -6,7 +6,15 @@ import { apiFetch } from "../lib/api";
 
 type Phase = "idle" | "sending" | "done" | "error";
 
-export function OrderInvoiceButton({ orderId, alreadyInvoiced }: { orderId: string | null; alreadyInvoiced: boolean }) {
+export function OrderInvoiceButton({
+  orderId,
+  shopDomain,
+  alreadyInvoiced,
+}: {
+  orderId: string | null;
+  shopDomain?: string | null;
+  alreadyInvoiced: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState("");
@@ -34,7 +42,10 @@ export function OrderInvoiceButton({ orderId, alreadyInvoiced }: { orderId: stri
         body.idNumber = idNumber;
         body.fiscalName = fiscalName;
       }
-      const res = await apiFetch(`/api/operations/${encodeURIComponent(orderId!)}/generate-invoice`, {
+      const search = new URLSearchParams();
+      if (shopDomain) search.set("shopDomain", shopDomain);
+      const suffix = search.toString() ? `?${search.toString()}` : "";
+      const res = await apiFetch(`/api/operations/${encodeURIComponent(orderId!)}/generate-invoice${suffix}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

@@ -94,7 +94,11 @@ export async function getMappingByAlegraId(entity: string, alegraId: string, sho
     WHERE organization_id = $1 AND entity = $2 AND alegra_id = $3
       -- Si se pide una tienda concreta, se descartan los mapeos que declaran
       -- pertenecer a OTRA. Los que no declaran ninguna se conservan.
-      AND ($4 = '' OR metadata_json->>'shopDomain' IS NULL OR metadata_json->>'shopDomain' = $4)
+      AND (
+        $4 = ''
+        OR metadata_json->>'shopDomain' = $4
+        OR ($2 <> 'order' AND metadata_json->>'shopDomain' IS NULL)
+      )
     ORDER BY
       -- Primero el de la tienda pedida, después el genérico, y ante empate el
       -- más reciente.
@@ -126,26 +130,39 @@ export async function deleteMappingByAlegraId(entity: string, alegraId: string, 
     `
     DELETE FROM sync_mappings
     WHERE organization_id = $1 AND entity = $2 AND alegra_id = $3
-      AND ($4 = '' OR metadata_json->>'shopDomain' IS NULL OR metadata_json->>'shopDomain' = $4)
+      AND (
+        $4 = ''
+        OR metadata_json->>'shopDomain' = $4
+        OR ($2 <> 'order' AND metadata_json->>'shopDomain' IS NULL)
+      )
     `,
     [orgId, entity, alegraId, domain]
   );
   return result.rowCount || 0;
 }
 
-export async function getMappingByShopifyId(entity: string, shopifyId: string) {
+export async function getMappingByShopifyId(entity: string, shopifyId: string, shopDomain?: string) {
   const pool = getPool();
   const orgId = getOrgId();
   const candidates = buildShopifyIdCandidates(entity, shopifyId);
   if (!candidates.length) return undefined;
+  const domain = String(shopDomain || "").trim();
   const result = await pool.query<MappingRow>(
     `
     SELECT id, entity, alegra_id, shopify_id, parent_id, metadata_json
     FROM sync_mappings
     WHERE organization_id = $1 AND entity = $2 AND shopify_id = ANY($3::text[])
+      AND (
+        $4 = ''
+        OR metadata_json->>'shopDomain' = $4
+        OR ($2 <> 'order' AND metadata_json->>'shopDomain' IS NULL)
+      )
+    ORDER BY
+      CASE WHEN metadata_json->>'shopDomain' = $4 THEN 0 ELSE 1 END,
+      id DESC
     LIMIT 1
     `,
-    [orgId, entity, candidates]
+    [orgId, entity, candidates, domain]
   );
   if (!result.rows.length) {
     return undefined;
@@ -235,7 +252,11 @@ async function findExistingMappingId(record: MappingRecord, orgId: number) {
       SELECT id
       FROM sync_mappings
       WHERE organization_id = $1 AND entity = $2 AND alegra_id = $3
-        AND ($4 = '' OR metadata_json->>'shopDomain' IS NULL OR metadata_json->>'shopDomain' = $4)
+        AND (
+          $4 = ''
+          OR metadata_json->>'shopDomain' = $4
+          OR ($2 <> 'order' AND metadata_json->>'shopDomain' IS NULL)
+        )
       ORDER BY
         CASE WHEN metadata_json->>'shopDomain' = $4 THEN 0 ELSE 1 END,
         id DESC
@@ -254,9 +275,17 @@ async function findExistingMappingId(record: MappingRecord, orgId: number) {
       SELECT id
       FROM sync_mappings
       WHERE organization_id = $1 AND entity = $2 AND shopify_id = $3
+        AND (
+          $4 = ''
+          OR metadata_json->>'shopDomain' = $4
+          OR ($2 <> 'order' AND metadata_json->>'shopDomain' IS NULL)
+        )
+      ORDER BY
+        CASE WHEN metadata_json->>'shopDomain' = $4 THEN 0 ELSE 1 END,
+        id DESC
       LIMIT 1
       `,
-      [orgId, record.entity, record.shopifyId]
+      [orgId, record.entity, record.shopifyId, domain]
     );
     if (result.rows.length) {
       return result.rows[0].id;

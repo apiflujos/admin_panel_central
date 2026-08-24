@@ -42,10 +42,10 @@ describe("un pedido siempre entra", () => {
     expect(posRegistro).toBeLessThan(posOff);
   });
 
-  it("un fallo al registrarlo no tumba el resto del flujo", () => {
+  it("un fallo al registrarlo detiene el flujo antes de tocar Alegra", () => {
     const trozo = cuerpo.slice(cuerpo.indexOf("await upsertOrder("), cuerpo.indexOf('if (orderMode === "off")'));
-    expect(trozo).toContain(".catch(");
-    expect(trozo).toContain("[pedidos] no se pudo registrar");
+    expect(trozo).not.toContain(".catch(");
+    expect(FUENTE).toContain("Esta escritura es la barrera antes de tocar Alegra");
   });
 
   it("el motivo del bloqueo se escribe sobre un pedido que YA existe", () => {

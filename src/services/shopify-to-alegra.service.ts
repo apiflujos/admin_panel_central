@@ -5,11 +5,11 @@ import {
   alegraPaymentPayloadSchema,
   validateAlegraPayload,
 } from "../contracts/alegra";
-import { getMappingByShopifyId, saveMapping, updateMappingMetadata } from "./mapping.service";
+import { getMappingByShopifyId, saveMapping } from "./mapping.service";
 import { upsertContact } from "./contacts.service";
 import { upsertOrder } from "./orders.service";
 import { createSyncLog } from "./logs.service";
-import { acquireIdempotencyKey, markIdempotencyKey } from "./idempotency.service";
+import { acquireIdempotencyKey, markIdempotencyCompleted, markIdempotencyKey } from "./idempotency.service";
 import { getOrderInvoiceOverride, validateEinvoiceData } from "./order-invoice-overrides.service";
 import { resolveStoreConfig } from "./store-config.service";
 import type { ShopifyOrderMode } from "./store-config.service";
@@ -268,6 +268,9 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
   // perdía en silencio.
   if (orderId) {
     const metaInicial = buildOrderMetaFromPayload(payload);
+    // Esta escritura es la barrera antes de tocar Alegra. Si falla, el error se
+    // propaga para que el webhook/cola vuelva a intentarlo; continuar podría
+    // crear una factura externa sin pedido local, sin estado y sin reparación.
     await upsertOrder({
       shopDomain,
       shopifyId: orderId,
@@ -282,12 +285,6 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
       alegraStatus: "pendiente",
       sourceUpdatedAt: metaInicial.processedAt,
       source: "shopify",
-    }).catch((error) => {
-      // Que falle el registro no debe impedir el resto: se deja constancia.
-      console.error(
-        `[pedidos] no se pudo registrar el pedido ${orderId} al entrar:`,
-        error instanceof Error ? error.message : error
-      );
     });
   }
 
@@ -416,7 +413,7 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
       request: { orderId: orderId || null, warnings: invoiceWarnings },
     });
   }
-  const override = orderId ? await getOrderInvoiceOverride(orderId) : null;
+  const override = orderId ? await getOrderInvoiceOverride(orderId, shopDomain) : null;
   const einvoiceActive = Boolean(effectiveInvoiceSettings.einvoiceEnabled && override?.einvoiceRequested);
   const missingEinvoice = einvoiceActive ? validateEinvoiceData(override) : [];
   if (missingEinvoice.length) {
@@ -434,8 +431,8 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
     return { handled: false, reason: "missing_customer_email" };
   }
   const existingMapping = orderId
-    ? (await getMappingByShopifyId("order", orderId)) ||
-      (orderGid ? await getMappingByShopifyId("order", orderGid) : undefined)
+    ? (await getMappingByShopifyId("order", orderId, shopDomain)) ||
+      (orderGid ? await getMappingByShopifyId("order", orderGid, shopDomain) : undefined)
     : undefined;
   // Contact matching: primero por mapping (customerId → alegraContactId), luego email como fallback.
   // Evita colapsar clientes distintos que comparten email (ej: guest checkouts con mismo correo).
@@ -727,21 +724,34 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
 
   let invoice = null;
   let invoiceId = existingMapping?.alegraId;
-  const idempotencyKey = orderId ? `invoice:${orderId}` : undefined;
+  const idempotencyKey = orderId ? `invoice:${shopDomain}:${orderId}` : undefined;
   if (invoiceId && idempotencyKey) {
     await markIdempotencyKey(idempotencyKey, "completed");
   }
   if (!invoiceId && idempotencyKey) {
     const idempotency = await acquireIdempotencyKey(idempotencyKey);
     if (!idempotency.acquired) {
-      return {
-        handled: true,
-        contactId,
-        invoice: null,
-        payment: null,
-        adjustment: null,
-        skipped: idempotency.status === "completed" ? "already_completed" : "already_processing",
-      };
+      const recoveredInvoiceId = idempotency.result?.invoiceId ? String(idempotency.result.invoiceId) : "";
+      if (idempotency.status === "completed" && orderId && recoveredInvoiceId) {
+        await persistCreatedInvoice({
+          orderId,
+          orderGid,
+          shopDomain,
+          invoiceId: recoveredInvoiceId,
+          invoiceNumber: idempotency.result?.invoiceNumber ? String(idempotency.result.invoiceNumber) : null,
+          payload,
+        });
+        invoiceId = recoveredInvoiceId;
+      } else {
+        return {
+          handled: true,
+          contactId,
+          invoice: null,
+          payment: null,
+          adjustment: null,
+          skipped: idempotency.status === "completed" ? "already_completed" : "already_processing",
+        };
+      }
     }
   }
   if (!invoiceId) {
@@ -761,7 +771,7 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
         }
       }
     } catch (error) {
-      await safeCreateInvoiceLog(orderId, invoicePayload, "fail", error);
+      await safeCreateInvoiceLog(orderId, shopDomain, invoicePayload, "fail", error);
       if (idempotencyKey) {
         await markIdempotencyKey(
           idempotencyKey,
@@ -772,46 +782,25 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
       throw error;
     }
     invoiceId = invoice?.id ? String(invoice.id) : undefined;
-    await safeCreateInvoiceLog(orderId, invoicePayload, "success", null, invoice);
+    await safeCreateInvoiceLog(orderId, shopDomain, invoicePayload, "success", null, invoice);
     if (orderId && invoiceId) {
       const invoiceNumber = resolveInvoiceNumber(invoice);
-      await saveMapping({
-        entity: "order",
-        shopifyId: orderId,
-        alegraId: invoiceId,
-        metadata: invoiceNumber ? { invoiceNumber } : undefined,
-      });
-      if (orderGid) {
-        await saveMapping({
-          entity: "order",
-          shopifyId: orderGid,
-          alegraId: invoiceId,
-          metadata: invoiceNumber ? { invoiceNumber } : undefined,
-        });
+      // Primero cerramos la idempotencia con el ID que devolvió Alegra. Si una
+      // escritura local falla después, el siguiente intento repara el mapping
+      // usando este resultado y NO crea una segunda factura.
+      if (idempotencyKey) {
+        await markIdempotencyCompleted(idempotencyKey, { invoiceId, invoiceNumber });
       }
-      if (invoiceNumber) {
-        await updateMappingMetadata("order", invoiceId, { invoiceNumber });
-      }
-      const orderMeta = buildOrderMetaFromPayload(payload);
-      await upsertOrder({
+      await persistCreatedInvoice({
+        orderId,
+        orderGid,
         shopDomain,
-        shopifyId: orderId,
-        alegraId: invoiceId,
-        orderNumber: orderMeta.orderNumber,
-        customerName: orderMeta.customerName,
-        customerEmail: orderMeta.customerEmail,
-        productsSummary: orderMeta.productsSummary,
-        processedAt: orderMeta.processedAt,
-        status: payload.financial_status || undefined,
-        total: payload.total_price ? Number(payload.total_price) : null,
-        currency: payload.currency || undefined,
-        alegraStatus: "facturado",
+        invoiceId,
         invoiceNumber,
-        sourceUpdatedAt: orderMeta.processedAt,
-        source: "shopify",
+        payload,
       });
     }
-    if (idempotencyKey) {
+    if (idempotencyKey && !invoiceId) {
       await markIdempotencyKey(idempotencyKey, "completed");
     }
   }
@@ -856,7 +845,7 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
         request: { orderId: orderId || null },
       });
     } else {
-      const paymentKey = orderId ? `payment:${orderId}` : undefined;
+      const paymentKey = orderId ? `payment:${shopDomain}:${orderId}` : undefined;
       if (paymentKey) {
         const idempotency = await acquireIdempotencyKey(paymentKey);
         if (!idempotency.acquired) {
@@ -903,7 +892,7 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
   }
 
   const adjustmentWarehouseId = resolvedWarehouseId ? String(resolvedWarehouseId) : ctx.alegraWarehouseId;
-  const adjustmentKey = orderId ? `inventory-adjust:${orderId}` : undefined;
+  const adjustmentKey = orderId ? `inventory-adjust:${shopDomain}:${orderId}` : undefined;
   let adjustment = null;
   // Ajuste de inventario DESACTIVADO a propósito: cuando Alegra EMITE la factura
   // ya descuenta el stock de los ítems (bodega Principal por defecto). Un ajuste
@@ -941,6 +930,51 @@ async function syncShopifyOrderToAlegraInner(payload: ShopifyOrderPayload, optio
   return { handled: true, contactId, invoice, payment, adjustment };
 }
 
+async function persistCreatedInvoice(input: {
+  orderId: string;
+  orderGid?: string;
+  shopDomain: string;
+  invoiceId: string;
+  invoiceNumber: string | null;
+  payload: ShopifyOrderPayload;
+}) {
+  const { orderId, orderGid, shopDomain, invoiceId, invoiceNumber, payload } = input;
+  await saveMapping({
+    entity: "order",
+    shopifyId: orderId,
+    alegraId: invoiceId,
+    shopDomain,
+    metadata: invoiceNumber ? { invoiceNumber } : undefined,
+  });
+  if (orderGid) {
+    await saveMapping({
+      entity: "order",
+      shopifyId: orderGid,
+      alegraId: invoiceId,
+      shopDomain,
+      metadata: invoiceNumber ? { invoiceNumber } : undefined,
+    });
+  }
+  const orderMeta = buildOrderMetaFromPayload(payload);
+  await upsertOrder({
+    shopDomain,
+    shopifyId: orderId,
+    alegraId: invoiceId,
+    orderNumber: orderMeta.orderNumber,
+    customerName: orderMeta.customerName,
+    customerEmail: orderMeta.customerEmail,
+    productsSummary: orderMeta.productsSummary,
+    processedAt: orderMeta.processedAt,
+    status: payload.financial_status || undefined,
+    total: payload.total_price ? Number(payload.total_price) : null,
+    currency: payload.currency || undefined,
+    alegraStatus: "facturado",
+    invoiceNumber,
+    sourceUpdatedAt: orderMeta.processedAt,
+    source: "shopify",
+  });
+}
+
 function resolveInvoiceNumber(invoice: Record<string, unknown> | null) {
   const template = invoice?.numberTemplate as Record<string, unknown> | undefined;
   const full = template?.fullNumber ? String(template.fullNumber) : "";
@@ -955,6 +989,7 @@ function resolveInvoiceNumber(invoice: Record<string, unknown> | null) {
 
 async function safeCreateInvoiceLog(
   orderId: string | undefined,
+  shopDomain: string,
   invoicePayload: Record<string, unknown>,
   status: "success" | "fail",
   error?: unknown,
@@ -970,6 +1005,7 @@ async function safeCreateInvoiceLog(
       message,
       request: {
         orderId: orderId || null,
+        shopDomain,
         invoicePayload,
       },
       response: invoice ? { invoiceId: invoice.id || null, invoice } : undefined,

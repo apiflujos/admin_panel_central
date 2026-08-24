@@ -42,6 +42,7 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [einvoiceModal, setEinvoiceModal] = useState<{
     orderId: string;
+    shopDomain: string;
     orderNumber: string;
     missing: string[];
     draft: AdminWebEinvoiceOverride;
@@ -109,9 +110,10 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
     }
   }
 
-  function openEinvoice(orderId: string, orderNumber: string, missing: string[]) {
+  function openEinvoice(orderId: string, shopDomain: string, orderNumber: string, missing: string[]) {
     setEinvoiceModal({
       orderId,
+      shopDomain,
       orderNumber,
       missing,
       draft: { orderId, einvoiceRequested: false },
@@ -120,7 +122,7 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
       saving: false,
       status: "Cargando...",
     });
-    void getEinvoiceOverride(orderId)
+    void getEinvoiceOverride(orderId, shopDomain)
       .then((response) => {
         setEinvoiceModal((current) =>
           current && current.orderId === orderId
@@ -153,7 +155,7 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
     if (!einvoiceModal) return;
     setEinvoiceModal((current) => (current ? { ...current, saving: true, status: "Guardando..." } : current));
     try {
-      await saveEinvoiceOverride(einvoiceModal.orderId, einvoiceModal.draft);
+      await saveEinvoiceOverride(einvoiceModal.orderId, einvoiceModal.draft, einvoiceModal.shopDomain);
       await refreshRows();
       setEinvoiceModal((current) => (current ? { ...current, saving: false, status: "Guardado." } : current));
       setSuccess(`Override de e-factura guardado para ${einvoiceModal.orderNumber}.`);
@@ -333,7 +335,7 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
                         void runOperationTask(
                           `invoice:${row.id}`,
                           async () => {
-                            const response = await retryOperationInvoice(row.id);
+                            const response = await retryOperationInvoice(row.id, row.shopDomain || undefined);
                             await refreshRows();
                             return `Factura manual para ${row.orderNumber}: ${String(response.status || "ok")}.`;
                           },
@@ -349,7 +351,7 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
                     type="button"
                     disabled={busyAction !== null || !row.actionability.editEinvoice.enabled}
                     title={row.actionability.editEinvoice.reason}
-                    onClick={() => openEinvoice(row.id, row.orderNumber, row.einvoiceMissing)}
+                    onClick={() => openEinvoice(row.id, row.shopDomain || "", row.orderNumber, row.einvoiceMissing)}
                   >
                     e-Factura
                   </button>
@@ -362,7 +364,7 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
                       void runOperationTask(
                         `sync:${row.id}`,
                         async () => {
-                          const response = await syncOperation(row.id);
+                          const response = await syncOperation(row.id, row.shopDomain || undefined);
                           await refreshRows();
                           return `Sincronización ejecutada para ${row.orderNumber}: ${String(response.status || "ok")}.`;
                         },
@@ -381,7 +383,7 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
                       void runOperationTask(
                         `payment:${row.id}`,
                         async () => {
-                          const response = await emitOperationPayment(row.id);
+                          const response = await emitOperationPayment(row.id, row.shopDomain || undefined);
                           await refreshRows();
                           return `Pago para ${row.orderNumber}: ${String(response.status || "ok")}.`;
                         },
@@ -401,7 +403,7 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
                       void runOperationTask(
                         `cancel:${row.id}`,
                         async () => {
-                          const response = await cancelOperationInvoice(row.id);
+                          const response = await cancelOperationInvoice(row.id, row.shopDomain || undefined);
                           await refreshRows();
                           return `Anulación para ${row.orderNumber}: ${String(response.status || "ok")}.`;
                         },
@@ -416,7 +418,7 @@ export function OperationsPage({ result }: { result: AdminWebOperationsListDto }
             },
           ]}
           rows={filteredRows}
-          getRowKey={(row) => row.id}
+          getRowKey={(row) => `${row.shopDomain}:${row.id}`}
         />
       </section>
 

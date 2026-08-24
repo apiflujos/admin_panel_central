@@ -185,6 +185,7 @@ export function OrdersPage({
               render: (row) => (
                 <OrderInvoiceButton
                   orderId={row.shopifyId}
+                  shopDomain={row.shopDomain}
                   alreadyInvoiced={row.alegraStatus === "facturado" || Boolean(row.invoiceId)}
                 />
               ),

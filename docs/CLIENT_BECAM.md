@@ -14,7 +14,7 @@ Branch dedicado: `client/becam` (derivado de `client/olivashoes`, hereda todas l
 
 | Servicio | Olivashoes | **Becam** |
 |---|---|---|
-| admin-web | 3100 | **3200** |
+| app + admin-web | — | **3007** |
 | app | 3006 | **3007** |
 
 Ambos clientes pueden correr en paralelo en la misma máquina. Postgres y Redis son internos al stack de cada cliente (volúmenes `postgres_data_becam` y `redis_data_becam`).
@@ -61,10 +61,11 @@ docker compose -f docker-compose.becam.yml down -v
 
 ```bash
 curl -sS http://localhost:3007/health
-curl -sS http://localhost:3200/api/health
+curl -sS http://localhost:3007/health/ready
+curl -sS http://localhost:3007/api/health
 ```
 
-Login en `http://localhost:3200/auth/login` con `ADMIN_EMAIL` / `ADMIN_PASSWORD` definidos en `.env.becam`.
+Login en `http://localhost:3007/auth/login` con `ADMIN_EMAIL` / `ADMIN_PASSWORD` definidos en `.env.becam`.
 
 ## Deploy producción con PM2
 
@@ -114,7 +115,7 @@ El script hace automáticamente:
 5. `npm run build` + `SKIP_NEXT_VALIDATION=1 npm run build:admin-web`
 6. `npm run db:migrate`
 7. `pm2 start` o `pm2 reload ecosystem.config.js`
-8. Smoke tests (`/health` y `/api/health`)
+8. Smoke tests (`/health`, `/health/ready`, proceso workers y `/api/health`)
 
 Para que PM2 sobreviva reboots:
 
@@ -124,12 +125,11 @@ pm2 startup   # seguir las instrucciones que imprime
 
 ### Procesos PM2
 
-`ecosystem.config.js` levanta 3 procesos:
+`ecosystem.config.js` levanta 2 procesos:
 
 | Nombre PM2 | Puerto | Script |
 |---|---|---|
-| `becam-api` | 3007 | `dist/src/server.js` |
-| `becam-admin-web` | 3200 | `apps/admin-web/.next/standalone/.../server.js` |
+| `becam-api` | 3007 | `dist/src/server.js` (Express + Next.js embebido) |
 | `becam-workers` | — | `dist/apps/workers/src/bootstrap.js` |
 
 ### Despliegues posteriores
@@ -156,7 +156,6 @@ cd /srv/apiflujos/becam/admin_panel_central
 ```bash
 pm2 status
 pm2 logs becam-api --lines 200
-pm2 logs becam-admin-web --lines 200
 pm2 logs becam-workers --lines 200
 pm2 monit                # vista TUI con CPU/memoria
 ```
@@ -169,14 +168,8 @@ server {
   listen 443 ssl http2;
   # ... ssl_certificate y ssl_certificate_key ...
 
-  location /api/webhooks/ {
-    proxy_pass http://127.0.0.1:3007;   # backend recibe webhooks directamente
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Forwarded-Host $host;
-  }
-
   location / {
-    proxy_pass http://127.0.0.1:3200;   # admin-web sirve el resto
+    proxy_pass http://127.0.0.1:3007;   # API, webhooks y admin-web en un puerto
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header X-Forwarded-Host $host;
   }

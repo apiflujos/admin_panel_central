@@ -112,7 +112,12 @@ export async function isWorkerEnabled(key: WorkerKey): Promise<boolean> {
 
 export async function listWorkerSettings(): Promise<WorkerSetting[]> {
   const pool = getPool();
-  const result = await pool.query<Row>(`SELECT worker_key, enabled, updated_at, updated_by FROM worker_settings`);
+  const result = await pool.query<Row>(
+    `SELECT worker_key, enabled, updated_at, updated_by,
+            ultima_ejecucion_at, ultimo_resultado, ultimo_error,
+            ultimo_exito_at, fallos_seguidos
+       FROM worker_settings`
+  );
   const rows = new Map<string, Row>(
     result.rows.filter((row) => isWorkerKey(row.worker_key)).map((row) => [row.worker_key, row] as const)
   );

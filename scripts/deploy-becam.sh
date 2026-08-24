@@ -96,8 +96,16 @@ if [ ! -f "package.json" ]; then
   exit 1
 fi
 
+REQUESTED_ACTION="${1:-deploy}"
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if [ "${CURRENT_BRANCH}" != "${REQUIRED_BRANCH}" ]; then
+# Un rollback deja el árbol en detached HEAD. El siguiente deploy vuelve a la
+# rama declarada de manera explícita; si hay cambios locales, git se negará y
+# el script se detendrá sin descartarlos.
+if [ "${REQUESTED_ACTION}" = "deploy" ] && [ "${CURRENT_BRANCH}" = "HEAD" ]; then
+  git checkout "${REQUIRED_BRANCH}"
+  CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+fi
+if [ "${REQUESTED_ACTION}" != "smoke" ] && [ "${CURRENT_BRANCH}" != "${REQUIRED_BRANCH}" ]; then
   err "Debes estar en la branch ${REQUIRED_BRANCH}. Actual: ${CURRENT_BRANCH}"
   exit 1
 fi
@@ -432,6 +440,20 @@ do_smoke() {
     err "API /health NO responde en puerto ${APP_PORT}"
   fi
 
+  if curl -fsS "http://127.0.0.1:${APP_PORT}/health/ready" >/dev/null 2>&1; then
+    ok "Postgres, migraciones y Redis están listos"
+  else
+    err "Readiness falló: Postgres, migraciones o Redis no están disponibles"
+    api_ok=false
+  fi
+
+  if pm2 pid becam-workers 2>/dev/null | grep -qE '^[1-9][0-9]*$'; then
+    ok "Proceso becam-workers está en ejecución"
+  else
+    err "Proceso becam-workers no está en ejecución"
+    api_ok=false
+  fi
+
   if curl -fsS "http://127.0.0.1:${APP_PORT}/auth/login" >/dev/null 2>&1; then
     ok "Admin-web responde en el puerto único ${APP_PORT}"
     web_ok=true
@@ -493,6 +515,8 @@ do_rollback() {
   npm run db:migrate
   pm2 reload ecosystem.config.js
   pm2 save || true
+  sleep 10
+  do_smoke
   ok "Rollback completado a ${commit}"
 }
 
@@ -504,6 +528,7 @@ case "${1:-deploy}" in
     do_deploy
     ;;
   smoke)
+    load_deploy_config
     do_smoke
     ;;
   rollback)

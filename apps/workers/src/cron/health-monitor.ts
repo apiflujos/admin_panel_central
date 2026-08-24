@@ -22,11 +22,30 @@ type Metrics = {
 };
 
 const THRESHOLDS = {
-  fails_1h: Number(process.env.ALERT_FAILS_PER_HOUR || 200),
+  fails_1h: Number(process.env.ALERT_FAILS_PER_HOUR || 10),
   ordersSyncChurn_1h: Number(process.env.ALERT_CHURN_PER_HOUR || 400),
   retryPending: Number(process.env.ALERT_RETRY_PENDING || 500),
   syncLogsRows: Number(process.env.ALERT_SYNC_LOGS_ROWS || 500_000),
 };
+
+async function notificarFueraDelPanel(message: string, metrics: Metrics) {
+  const url = String(process.env.OPS_ALERT_WEBHOOK_URL || "").trim();
+  if (!url) return;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      source: "admin-central-becam",
+      severity: "error",
+      text: message,
+      message,
+      metrics,
+      occurredAt: new Date().toISOString(),
+    }),
+    signal: AbortSignal.timeout(5_000),
+  });
+  if (!response.ok) throw new Error(`OPS_ALERT_WEBHOOK_URL respondió HTTP ${response.status}`);
+}
 
 /**
  * Vigilar los propios trabajos, no sólo las métricas del negocio.
@@ -119,6 +138,10 @@ export function startHealthMonitorWorker() {
       } catch {
         /* el log de alerta no debe tumbar el monitor */
       }
+      // La alerta no puede depender de que alguien abra el mismo panel que está
+      // fallando. Si el canal externo está configurado y no recibe el aviso, la
+      // pasada queda marcada como fallo para que esa avería también sea visible.
+      await notificarFueraDelPanel(message, m);
     }
   };
 

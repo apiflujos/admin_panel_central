@@ -254,6 +254,7 @@ CREATE TABLE IF NOT EXISTS idempotency_keys (
   key TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'processing',
   last_error TEXT,
+  result_json JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (organization_id, key)
@@ -262,6 +263,7 @@ CREATE TABLE IF NOT EXISTS idempotency_keys (
 CREATE TABLE IF NOT EXISTS order_invoice_overrides (
   id SERIAL PRIMARY KEY,
   organization_id INTEGER NOT NULL REFERENCES organizations(id),
+  shop_domain TEXT NOT NULL DEFAULT '',
   order_id TEXT NOT NULL,
   einvoice_requested BOOLEAN NOT NULL DEFAULT false,
   id_type TEXT,
@@ -275,7 +277,7 @@ CREATE TABLE IF NOT EXISTS order_invoice_overrides (
   country TEXT,
   zip TEXT,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (organization_id, order_id)
+  UNIQUE (organization_id, shop_domain, order_id)
 );
 
 CREATE TABLE IF NOT EXISTS users (

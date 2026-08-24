@@ -536,7 +536,7 @@ export async function getServerOrdersCatalog(params?: {
 }): Promise<AdminWebOrdersListDto> {
   const [
     { normalizeOrdersListFilters, toAdminWebOrdersListDto },
-    { listOrderInvoiceOverrides, validateEinvoiceData },
+    { listOrderInvoiceOverrides, orderOverrideKey, validateEinvoiceData },
     { listOrders },
     { ensureInvoiceSettingsColumns, getOrgId, getPool },
   ] = await Promise.all([
@@ -554,9 +554,12 @@ export async function getServerOrdersCatalog(params?: {
     })
   );
 
-  const orderIds = result.items
-    .map((row: (typeof result.items)[number]) => row.shopify_order_id)
-    .filter(Boolean) as string[];
+  const orderRefs = result.items
+    .filter((row: (typeof result.items)[number]) => Boolean(row.shopify_order_id))
+    .map((row: (typeof result.items)[number]) => ({
+      orderId: String(row.shopify_order_id),
+      shopDomain: row.shop_domain ? String(row.shop_domain) : "",
+    }));
   const loadEinvoiceEnabled = async () => {
     const pool = getPool();
     const orgId = getOrgId();
@@ -577,11 +580,12 @@ export async function getServerOrdersCatalog(params?: {
     return Boolean(invoiceSettings.rows[0].einvoice_enabled);
   };
 
-  const [overrides, einvoiceEnabled] = await Promise.all([listOrderInvoiceOverrides(orderIds), loadEinvoiceEnabled()]);
+  const [overrides, einvoiceEnabled] = await Promise.all([listOrderInvoiceOverrides(orderRefs), loadEinvoiceEnabled()]);
 
   return toAdminWebOrdersListDto({
     result,
-    getOverride: (shopifyId) => overrides.get(shopifyId) || null,
+    getOverride: (shopifyId, row) =>
+      overrides.get(orderOverrideKey(shopifyId, row.shop_domain ? String(row.shop_domain) : "")) || null,
     getMissing: (_shopifyId, override) =>
       einvoiceEnabled ? validateEinvoiceData((override as OrderInvoiceOverride | null) || null) : [],
     einvoiceEnabled,

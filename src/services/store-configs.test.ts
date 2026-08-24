@@ -134,4 +134,57 @@ describe("store-configs boolean normalization", () => {
     expect(result.sync.products.updateInAlegra).toBe(false);
     expect(result.sync.products.includeInventory).toBe(true);
   });
+
+  it("rechaza activar factura electrónica sin resolución antes de escribir", async () => {
+    const { validarConfiguracionFacturacionAlGuardar } = await import("./store-configs.service");
+    expect(() =>
+      validarConfiguracionFacturacionAlGuardar({
+        invoice: { generateInvoice: true, einvoiceEnabled: true, resolutionId: "" },
+        orderMode: "invoice",
+      })
+    ).toThrow("No se puede activar la facturación: falta Resolución de facturación");
+  });
+
+  it("no exige datos de factura a una tienda en modo solo registrar", async () => {
+    const { validarConfiguracionFacturacionAlGuardar } = await import("./store-configs.service");
+    const revision = validarConfiguracionFacturacionAlGuardar({
+      invoice: { generateInvoice: true, einvoiceEnabled: true, resolutionId: "" },
+      orderMode: "db_only",
+    });
+    expect(revision.noAplica).toBe(true);
+  });
+
+  it("saveStoreConfig no alcanza el UPDATE si la tienda quedaría bloqueada", async () => {
+    const queryMock = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ shop_domain: "becam.myshopify.com" }] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 9,
+            config_json: {},
+            transfer_destination_warehouse_id: null,
+            transfer_origin_warehouse_ids: null,
+            transfer_priority_warehouse_id: null,
+            transfer_strategy: null,
+            price_list_general_id: null,
+            price_list_discount_id: null,
+            price_list_wholesale_id: null,
+            currency: null,
+          },
+        ],
+      });
+    getPoolMock.mockReturnValue({ query: queryMock });
+    getSettingsMock.mockResolvedValue({ invoice: { generateInvoice: false }, rules: {} });
+    const { saveStoreConfig } = await import("./store-configs.service");
+
+    await expect(
+      saveStoreConfig("10", {
+        invoice: { generateInvoice: true, einvoiceEnabled: true, resolutionId: "" },
+        sync: { orders: { shopifyToAlegra: "invoice" } },
+      })
+    ).rejects.toThrow("Resolución de facturación");
+    expect(queryMock).toHaveBeenCalledTimes(2);
+    expect(queryMock.mock.calls.some((call) => String(call[0]).includes("UPDATE shopify_store_configs"))).toBe(false);
+  });
 });

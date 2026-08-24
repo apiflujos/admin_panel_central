@@ -2,7 +2,9 @@ import { getOrgId, getPool } from "../db";
 
 export type IdempotencyStatus = "processing" | "completed" | "failed";
 
-export async function acquireIdempotencyKey(key: string): Promise<{ status: IdempotencyStatus; acquired: boolean }> {
+export async function acquireIdempotencyKey(
+  key: string
+): Promise<{ status: IdempotencyStatus; acquired: boolean; result?: Record<string, unknown> }> {
   const pool = getPool();
   const orgId = getOrgId();
 
@@ -20,9 +22,13 @@ export async function acquireIdempotencyKey(key: string): Promise<{ status: Idem
     return { status: "processing", acquired: true };
   }
 
-  const existing = await pool.query<{ status: IdempotencyStatus; updated_at: Date | null }>(
+  const existing = await pool.query<{
+    status: IdempotencyStatus;
+    updated_at: Date | null;
+    result_json: Record<string, unknown> | null;
+  }>(
     `
-    SELECT status, updated_at
+    SELECT status, updated_at, result_json
     FROM idempotency_keys
     WHERE organization_id = $1 AND key = $2
     `,
@@ -30,11 +36,12 @@ export async function acquireIdempotencyKey(key: string): Promise<{ status: Idem
   );
   const status = existing.rows[0]?.status || "processing";
   const updatedAt = existing.rows[0]?.updated_at;
+  const result = existing.rows[0]?.result_json || undefined;
   const staleProcessing =
     status === "processing" && updatedAt && Date.now() - new Date(updatedAt).getTime() > 15 * 60 * 1000;
 
   if (status !== "failed" && !staleProcessing) {
-    return { status, acquired: false };
+    return { status, acquired: false, result };
   }
 
   const retryCondition = status === "failed" ? "status = 'failed'" : "status = 'processing'";
@@ -60,5 +67,21 @@ export async function markIdempotencyKey(key: string, status: IdempotencyStatus,
     WHERE organization_id = $1 AND key = $2
     `,
     [orgId, key, status, lastError || null]
+  );
+}
+
+/**
+ * Registra el resultado externo antes de continuar con escrituras locales.
+ * Si el proceso cae después de que Alegra creó la factura, el siguiente intento
+ * puede reconstruir el mapping sin volver a facturar.
+ */
+export async function markIdempotencyCompleted(key: string, result: Record<string, unknown>) {
+  const pool = getPool();
+  const orgId = getOrgId();
+  await pool.query(
+    `UPDATE idempotency_keys
+        SET status = 'completed', result_json = $3, last_error = NULL, updated_at = NOW()
+      WHERE organization_id = $1 AND key = $2`,
+    [orgId, key, result]
   );
 }

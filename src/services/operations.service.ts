@@ -1,18 +1,20 @@
 import { buildSyncContext } from "./sync-context";
 import { syncShopifyOrderToAlegra } from "./shopify-to-alegra.service";
 import { getMappingByShopifyId, saveMapping } from "./mapping.service";
-import { listLatestOrderLogs, getLatestInvoicePayload } from "./logs.service";
+import { listLatestOrderLogs, getLatestInvoicePayload, orderLogKey } from "./logs.service";
 import { createSyncLog } from "./logs.service";
-import { acquireIdempotencyKey, markIdempotencyKey } from "./idempotency.service";
+import { acquireIdempotencyKey, markIdempotencyCompleted, markIdempotencyKey } from "./idempotency.service";
 import {
   getOrderInvoiceOverride,
   listOrderInvoiceOverrides,
+  orderOverrideKey,
   validateEinvoiceData,
   OrderInvoiceOverride,
 } from "./order-invoice-overrides.service";
 import { ensureInvoiceSettingsColumns, getOrgId, getPool } from "../db";
 import { ShopifyOrder } from "../connectors/shopify";
 import { reactivarPedidoDescartado } from "./shopify-to-alegra.service";
+import { getStoreConfigForDomain } from "./store-configs.service";
 
 export async function listOperations(days = 7) {
   const updatedAtMin = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
@@ -80,19 +82,21 @@ async function listOperationsByQuery(query: string) {
     })
   );
 
-  const orderIds = tagged.map((entry) => entry.order.id);
-  const latestLogs = await listLatestOrderLogs(orderIds);
-  const overrides = await listOrderInvoiceOverrides(orderIds);
-  const invoiceSettings = await loadInvoiceSettings();
-  const einvoiceEnabled = invoiceSettings.einvoiceEnabled;
-
+  const latestLogs = await listLatestOrderLogs(
+    tagged.map((entry) => ({ orderId: entry.order.id, shopDomain: entry.shopDomain }))
+  );
+  const overrides = await listOrderInvoiceOverrides(
+    tagged.map((entry) => ({ orderId: entry.order.id, shopDomain: entry.shopDomain }))
+  );
   const items = await Promise.all(
     tagged.map(async ({ order, shopDomain, storeName }) => {
-      const mapping = await getMappingByShopifyId("order", order.id);
-      const log = latestLogs.get(order.id);
+      const invoiceSettings = await loadInvoiceSettings(shopDomain);
+      const einvoiceEnabled = invoiceSettings.einvoiceEnabled;
+      const mapping = await getMappingByShopifyId("order", order.id, shopDomain);
+      const log = latestLogs.get(orderLogKey(order.id, shopDomain));
       const invoiceNumber = (mapping?.metadata?.invoiceNumber as string | undefined) || null;
       const status = mapping?.alegraId ? "facturado" : log?.status === "fail" ? "fallo" : "pendiente";
-      const override = overrides.get(order.id) || null;
+      const override = overrides.get(orderOverrideKey(order.id, shopDomain)) || null;
       const missing = einvoiceEnabled ? validateEinvoiceData(override) : [];
       const actionability = buildOperationActionability({
         orderId: order.id,
@@ -142,9 +146,9 @@ async function resolveOrderShopDomain(orderId: string): Promise<string | undefin
 
 export async function syncOperation(
   orderId: string,
-  options?: { generateInvoice?: boolean; skipRules?: boolean; forceEinvoice?: boolean }
+  options?: { generateInvoice?: boolean; skipRules?: boolean; forceEinvoice?: boolean; shopDomain?: string }
 ) {
-  const shopDomain = await resolveOrderShopDomain(orderId);
+  const shopDomain = options?.shopDomain || (await resolveOrderShopDomain(orderId));
   const ctx = await buildSyncContext(shopDomain);
   const data = await ctx.shopify.getOrderById(orderId);
   const order = data.order as ShopifyOrder;
@@ -174,27 +178,30 @@ export async function syncOperation(
         }
       : { forceSync: true }
   );
+  if (result && typeof result === "object" && "handled" in result && result.handled === false) {
+    return { status: "not_synced", result };
+  }
   return { status: "synced", result };
 }
 
-export async function retryInvoiceFromLog(orderId: string) {
+export async function retryInvoiceFromLog(orderId: string, requestedShopDomain?: string) {
   // Resuelve el dominio de la tienda del pedido para usar las credenciales Shopify
   // correctas. Sin esto, buildSyncContext() cae al credential legacy `shopify`
   // (que NO existe en setups multi-tienda con shopify_stores) y lanza
   // "Missing Shopify credentials in DB", disparando reintentos infinitos.
-  const shopDomain = await resolveOrderShopDomain(orderId);
+  const shopDomain = requestedShopDomain || (await resolveOrderShopDomain(orderId));
   const ctx = await buildSyncContext(shopDomain);
-  const existing = await getMappingByShopifyId("order", orderId);
+  const existing = await getMappingByShopifyId("order", orderId, shopDomain);
   if (existing?.alegraId) {
-    await markIdempotencyKey(`invoice:${orderId}`, "completed");
+    await markIdempotencyKey(`invoice:${shopDomain || ""}:${orderId}`, "completed");
     return { status: "already_invoiced", invoiceId: existing.alegraId };
   }
-  const invoicePayload = await getLatestInvoicePayload(orderId);
+  const invoicePayload = await getLatestInvoicePayload(orderId, shopDomain);
   if (!invoicePayload) {
     return { status: "missing_payload" };
   }
-  const invoiceSettings = await loadInvoiceSettings();
-  const override = await getOrderInvoiceOverride(orderId);
+  const invoiceSettings = await loadInvoiceSettings(shopDomain);
+  const override = await getOrderInvoiceOverride(orderId, shopDomain);
   if (invoiceSettings.einvoiceEnabled && override?.einvoiceRequested) {
     const missing = validateEinvoiceData(override);
     if (missing.length) {
@@ -212,23 +219,30 @@ export async function retryInvoiceFromLog(orderId: string) {
       await ctx.alegra.updateContact(contactId, buildContactOverride(override));
     }
   }
-  const idempotency = await acquireIdempotencyKey(`invoice:${orderId}`);
+  const invoiceKey = `invoice:${shopDomain || ""}:${orderId}`;
+  const idempotency = await acquireIdempotencyKey(invoiceKey);
   if (!idempotency.acquired) {
+    const recoveredInvoiceId = idempotency.result?.invoiceId ? String(idempotency.result.invoiceId) : "";
+    if (idempotency.status === "completed" && recoveredInvoiceId) {
+      const recoveredInvoiceNumber = idempotency.result?.invoiceNumber
+        ? String(idempotency.result.invoiceNumber)
+        : null;
+      await persistManualInvoice(orderId, shopDomain, recoveredInvoiceId, recoveredInvoiceNumber);
+      return { status: "recovered", invoiceId: recoveredInvoiceId, invoiceNumber: recoveredInvoiceNumber };
+    }
     return {
       status: idempotency.status === "completed" ? "already_completed" : "already_processing",
     };
   }
+  let externalInvoiceId = "";
   try {
     const invoice = await ctx.alegra.createInvoice(invoicePayload);
     const invoiceId = invoice?.id ? String(invoice.id) : undefined;
     const invoiceNumber = resolveInvoiceNumber(invoice);
     if (invoiceId) {
-      await saveMapping({
-        entity: "order",
-        shopifyId: orderId,
-        alegraId: invoiceId,
-        metadata: invoiceNumber ? { invoiceNumber } : undefined,
-      });
+      externalInvoiceId = invoiceId;
+      await markIdempotencyCompleted(invoiceKey, { invoiceId, invoiceNumber });
+      await persistManualInvoice(orderId, shopDomain, invoiceId, invoiceNumber);
     }
     await createSyncLog({
       entity: "order",
@@ -238,7 +252,7 @@ export async function retryInvoiceFromLog(orderId: string) {
       request: { orderId, invoicePayload },
       response: { invoiceId, invoiceNumber },
     });
-    await markIdempotencyKey(`invoice:${orderId}`, "completed");
+    if (!invoiceId) await markIdempotencyKey(invoiceKey, "completed");
     return { status: "created", invoiceId, invoiceNumber };
   } catch (error) {
     await createSyncLog({
@@ -248,16 +262,42 @@ export async function retryInvoiceFromLog(orderId: string) {
       message: (error as { message?: string })?.message || "Manual invoice failed",
       request: { orderId, invoicePayload },
     });
-    await markIdempotencyKey(
-      `invoice:${orderId}`,
-      "failed",
-      (error as { message?: string })?.message || "Manual invoice failed"
-    );
+    if (!externalInvoiceId) {
+      await markIdempotencyKey(
+        invoiceKey,
+        "failed",
+        (error as { message?: string })?.message || "Manual invoice failed"
+      );
+    }
     throw error;
   }
 }
 
-async function loadInvoiceSettings() {
+async function persistManualInvoice(
+  orderId: string,
+  shopDomain: string | undefined,
+  invoiceId: string,
+  invoiceNumber: string | null
+) {
+  await saveMapping({
+    entity: "order",
+    shopifyId: orderId,
+    alegraId: invoiceId,
+    shopDomain,
+    metadata: invoiceNumber ? { invoiceNumber } : undefined,
+  });
+  await getPool().query(
+    `UPDATE orders
+        SET alegra_invoice_id = $3, invoice_number = $4,
+            alegra_status = 'facturado', sync_status = 'synced',
+            last_sync_at = NOW(), updated_at = NOW()
+      WHERE organization_id = $1 AND shopify_order_id = $2
+        AND ($5 = '' OR shop_domain = $5)`,
+    [getOrgId(), orderId, invoiceId, invoiceNumber, shopDomain || ""]
+  );
+}
+
+async function loadInvoiceSettings(shopDomain?: string) {
   const pool = getPool();
   const orgId = getOrgId();
   await ensureInvoiceSettingsColumns(pool);
@@ -275,14 +315,16 @@ async function loadInvoiceSettings() {
     `,
     [orgId]
   );
-  if (!result.rows.length) {
-    return { einvoiceEnabled: false, applyPayment: false, bankAccountId: "" };
-  }
-  return {
-    einvoiceEnabled: Boolean(result.rows[0].einvoice_enabled),
-    applyPayment: Boolean(result.rows[0].apply_payment),
-    bankAccountId: result.rows[0].bank_account_id || "",
-  };
+  const global = result.rows.length
+    ? {
+        einvoiceEnabled: Boolean(result.rows[0].einvoice_enabled),
+        applyPayment: Boolean(result.rows[0].apply_payment),
+        bankAccountId: result.rows[0].bank_account_id || "",
+      }
+    : { einvoiceEnabled: false, applyPayment: false, bankAccountId: "" };
+  if (!shopDomain) return global;
+  const store = await getStoreConfigForDomain(shopDomain);
+  return store?.invoice ? { ...global, ...store.invoice } : global;
 }
 
 function buildOperationActionability(params: {
@@ -380,7 +422,7 @@ export async function seedOperations() {
   for (const batch of batches) {
     const batchResults = await Promise.allSettled(
       batch.map(async (order) => {
-        const mapping = await getMappingByShopifyId("order", order.id);
+        const mapping = await getMappingByShopifyId("order", order.id, ctx.shopDomain);
         if (mapping?.alegraId) {
           return { orderId: order.id, status: "skipped_mapping" };
         }

@@ -30,7 +30,9 @@ export function ConfiguracionObligatoriaPanel({ workspace }: { workspace: Connec
           storeId: config.storeId,
           nombre: config.storeName || config.shopDomain || "Tienda",
           revision: revisarConfiguracionObligatoria({
-            generateInvoice: Boolean(invoice.generateInvoice),
+            // El motor apaga generateInvoice cuando el modo de esta tienda no
+            // es "invoice". La pantalla debe evaluar exactamente ese estado.
+            generateInvoice: config.sync.orders.shopifyToAlegra === "invoice" && Boolean(invoice.generateInvoice),
             einvoiceEnabled: Boolean(invoice.einvoiceEnabled),
             resolutionId: String(invoice.resolutionId || ""),
             warehouseId: String(invoice.warehouseId || ""),

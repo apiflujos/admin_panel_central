@@ -3,6 +3,7 @@ import { decryptString } from "../utils/crypto";
 import { getOrgId, getPool } from "../db";
 import { normalizeOutOfStockBehavior } from "../../packages/shared/src/inventory";
 import { normalizeSourceOfTruth } from "../../packages/shared/src/source-of-truth";
+import { revisarConfiguracionObligatoria } from "../../packages/shared/src/configuracion-obligatoria";
 
 const normalizeShopDomain = (value: string) =>
   value
@@ -110,6 +111,37 @@ const normalizeShopifyOrderMode = (value: unknown) => {
   }
   return "db_only";
 };
+
+export function validarConfiguracionFacturacionAlGuardar(input: {
+  invoice: Record<string, unknown>;
+  invoiceDefaults?: Record<string, unknown>;
+  orderMode: unknown;
+}) {
+  const defaults = input.invoiceDefaults || {};
+  const mode = normalizeShopifyOrderMode(input.orderMode);
+  const revision = revisarConfiguracionObligatoria({
+    // Una tienda en db_only/contact_only/off no factura aunque el valor global
+    // conserve generateInvoice=true.
+    generateInvoice:
+      mode === "invoice" &&
+      normalizeBoolean(input.invoice.generateInvoice, normalizeBoolean(defaults.generateInvoice, false)),
+    einvoiceEnabled: normalizeBoolean(input.invoice.einvoiceEnabled, normalizeBoolean(defaults.einvoiceEnabled, false)),
+    resolutionId: normalizeText(input.invoice.resolutionId, normalizeText(defaults.resolutionId, "")),
+    warehouseId: normalizeText(input.invoice.warehouseId, normalizeText(defaults.warehouseId, "")),
+    applyPayment: normalizeBoolean(input.invoice.applyPayment, normalizeBoolean(defaults.applyPayment, false)),
+    paymentMethod: normalizeText(input.invoice.paymentMethod, normalizeText(defaults.paymentMethod, "")),
+    bankAccountId: normalizeText(input.invoice.bankAccountId, normalizeText(defaults.bankAccountId, "")),
+  });
+
+  if (!revision.listo) {
+    const faltan = revision.faltantes
+      .filter((item) => item.gravedad === "bloquea")
+      .map((item) => item.que)
+      .join(", ");
+    throw new Error(`No se puede activar la facturación: falta ${faltan}. Completa el dato antes de guardar.`);
+  }
+  return revision;
+}
 
 const normalizeAlegraOrderMode = (value: unknown) => {
   if (value === "draft" || value === "active" || value === "off") return value;
@@ -768,6 +800,20 @@ export async function saveStoreConfig(storeKey: string, payload: Record<string, 
   // llega a la base, y lo que no venga en el payload conserva lo que había.
   // Sin esta línea la elección se perdía: `configJson` es una lista blanca.
   const sourceOfTruth = normalizeSourceOfTruth({ ...existingSourceOfTruth, ...(payloadSourceOfTruth || {}) });
+
+  // La advertencia visual no es una barrera. La misma regla se ejecuta aquí,
+  // antes del UPDATE/INSERT, para que una tienda no pueda quedar activada en un
+  // estado que el motor rechazará cuando llegue la siguiente venta.
+  if (payloadInvoice || payloadSync) {
+    const settings = await getSettings();
+    const defaults = ((settings.invoice as Record<string, unknown>) || {}) as Record<string, unknown>;
+    const orderSync = ((sync.orders as Record<string, unknown>) || {}) as Record<string, unknown>;
+    validarConfiguracionFacturacionAlGuardar({
+      invoice,
+      invoiceDefaults: defaults,
+      orderMode: orderSync.shopifyToAlegra,
+    });
+  }
 
   const configJson = {
     transfers,

@@ -15,6 +15,8 @@ type RetryRow = {
 
 type JsonObject = Record<string, unknown>;
 
+const INVOICE_RETRY_COMPLETED = new Set(["created", "recovered", "already_invoiced", "already_completed"]);
+
 type QueuedWebhookEvent = WebhookEvent & {
   webhookEventId: number | null;
   meta: JsonObject;
@@ -130,9 +132,32 @@ export async function processRetryQueue(limit = 50) {
         });
       } else if (row.entity === "order" && (typeof orderId === "string" || typeof orderId === "number")) {
         // Retry manual sin payload de webhook: reintenta desde el pedido guardado.
-        await retryInvoiceFromLog(String(orderId));
+        const result = await retryInvoiceFromLog(String(orderId));
+        if (INVOICE_RETRY_COMPLETED.has(result.status)) {
+          await updateSyncLog(row.sync_log_id, {
+            status: "success",
+            message: `Reintento completado: ${result.status}`,
+            response: result as unknown as Record<string, unknown>,
+          });
+        } else if (result.status === "already_processing") {
+          // Sigue siendo transitorio: pasa por el backoff normal en vez de
+          // declarar la fila terminada cuando la factura aún está en proceso.
+          throw new Error("La factura sigue siendo procesada por otro intento");
+        } else {
+          await pool.query(`UPDATE retry_queue SET status = 'skipped' WHERE id = $1`, [row.id]);
+          await updateSyncLog(row.sync_log_id, {
+            status: "fail",
+            message: `Reintento no ejecutado: ${result.status}`,
+            response: result as unknown as Record<string, unknown>,
+          });
+          return "skipped" as const;
+        }
       } else {
         await pool.query(`UPDATE retry_queue SET status = 'skipped' WHERE id = $1`, [row.id]);
+        await updateSyncLog(row.sync_log_id, {
+          status: "fail",
+          message: "Reintento no ejecutado: el registro no contiene una operación recuperable",
+        });
         return "skipped" as const;
       }
       await pool.query(`UPDATE retry_queue SET status = 'done' WHERE id = $1`, [row.id]);

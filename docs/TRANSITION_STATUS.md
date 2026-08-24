@@ -2,7 +2,7 @@
 
 ## Branch actual
 
-- Rama operativa: `client/olivashoes`
+- Rama operativa revisada: `client/becam`
 - Runtime restaurado y activo:
   - `src/server.ts`
   - `src/api/*`

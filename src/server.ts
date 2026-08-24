@@ -18,6 +18,7 @@ import { getPool } from "./db";
 import { createCsrfToken } from "./utils/csrf";
 import { assertStartupEnv } from "./utils/env-check";
 import { getSessionUser } from "./services/auth.service";
+import { checkReadiness } from "./services/readiness.service";
 
 // Fail-fast: si faltan env vars críticas, no arrancar. Los pollers Shopify usan APP_HOST
 // para construir redirect_uri, así que lo requerimos si se planea recibir OAuth callbacks.
@@ -128,6 +129,11 @@ async function initAdminWeb(): Promise<(req: Request, res: Response) => void> {
 // ---------------------------------------------------------------------------
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
+});
+
+app.get("/health/ready", async (_req, res) => {
+  const result = await checkReadiness();
+  res.status(result.ready ? 200 : 503).json({ status: result.ready ? "ready" : "not_ready", ...result });
 });
 
 app.get("/health/db", async (_req, res) => {

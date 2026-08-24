@@ -14,7 +14,7 @@ Plataforma multi-tenant que sincroniza catálogo, inventario, contactos, órdene
 | Cliente | Rama | DB | Compose | Puertos local |
 |---|---|---|---|---|
 | **olivashoes** | `client/olivashoes` | `admin-central-olivashoes` | `docker-compose.yml` | app **3006**, admin-web **3100** |
-| **becam** | `client/becam` | `admin-central-becam` | `docker-compose.becam.yml` | app **3007**, admin-web **3200** |
+| **becam** | `client/becam` | `admin-central-becam` | `docker-compose.becam.yml` | puerto único **3007** |
 
 > Ambos clientes pueden correr a la vez en la misma máquina sin chocar (puertos, contenedores y volúmenes separados).
 
@@ -40,11 +40,12 @@ docker compose -f docker-compose.becam.yml up -d --build
 docker compose -f docker-compose.becam.yml exec app npm run db:migrate
 
 # 5. Smoke
-curl http://localhost:3007/health           # backend
-curl http://localhost:3200/api/health       # admin-web
+curl http://localhost:3007/health
+curl http://localhost:3007/health/ready     # Postgres + migraciones + Redis
+curl http://localhost:3007/api/health       # admin-web embebido
 ```
 
-Login en `http://localhost:3200/auth/login`.
+Login en `http://localhost:3007/auth/login`.
 
 ---
 
@@ -55,7 +56,7 @@ Login en `http://localhost:3200/auth/login`.
 - PM2 global (`npm i -g pm2`)
 - Postgres ≥ 14 accesible (BD `admin-central-becam` creada)
 - Redis ≥ 6 accesible
-- HTTPS público (Nginx/Caddy/Cloudflare) apuntando al puerto del admin-web
+- HTTPS público (Nginx/Caddy/Cloudflare) apuntando al puerto único de la aplicación
 
 ### Primera instalación
 
@@ -88,7 +89,8 @@ pm2 startup    # seguir las instrucciones que imprime para systemd
 
 # 7. Verificar
 curl http://localhost:3007/health
-curl http://localhost:3200/api/health
+curl http://localhost:3007/health/ready
+curl http://localhost:3007/api/health
 pm2 status
 ```
 
@@ -98,11 +100,10 @@ Definidos en `ecosystem.config.js`:
 
 | Nombre PM2 | Script | Puerto | Notas |
 |---|---|---|---|
-| `becam-api` | `dist/src/server.js` | 3007 | Backend Express + rutas legacy |
-| `becam-admin-web` | `apps/admin-web/.next/standalone/apps/admin-web/server.js` | 3200 | Next.js standalone |
+| `becam-api` | `dist/src/server.js` | 3007 | Express + Next.js embebido + rutas legacy |
 | `becam-workers` | `dist/apps/workers/src/bootstrap.js` | — | Pollers + BullMQ |
 
-> `ecosystem.config.js` precarga `.env` desde la raíz del repo y lo propaga a los 3 procesos como `env`. Esto es indispensable para el admin-web standalone (Next.js no lee `.env` en runtime) y refuerza al backend/workers.
+> `ecosystem.config.js` precarga `.env` desde la raíz y lo propaga a los dos procesos. Next.js corre dentro de `becam-api`; no existe un proceso ni puerto admin-web separado.
 
 ### Despliegues subsiguientes
 
@@ -159,6 +160,7 @@ Ver `.env.becam.example` para la lista completa. Mínimas para arrancar:
 | `DATABASE_URL` | Postgres (admin-central-becam) |
 | `REDIS_URL` | **Obligatorio**, sin esto el app no arranca |
 | `CRYPTO_KEY_BASE64` | 32 bytes b64. **No cambiar** una vez hay credenciales cifradas en BD |
+| `OPS_ALERT_WEBHOOK_URL` | Receptor externo de alertas operativas; recomendado en producción |
 | `CSRF_SECRET` | String largo aleatorio |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap del admin inicial |
 | `SHOPIFY_API_KEY/SECRET/WEBHOOK_SECRET` | Shopify OAuth + webhooks |
@@ -197,7 +199,6 @@ Rutas para revisar manualmente en producción:
 # Estado de procesos
 pm2 status
 pm2 logs becam-api --lines 100
-pm2 logs becam-admin-web --lines 100
 pm2 logs becam-workers --lines 100
 
 # Recargar sin downtime
@@ -247,7 +248,7 @@ La rama `client/becam` (derivada de `client/olivashoes`) incluye:
 │   ├── CLIENT_BECAM.md     Guía específica de becam
 │   └── INTEGRATIONS.md     Integraciones Shopify/Alegra
 ├── docker-compose.yml      Stack local olivashoes (3006/3100)
-├── docker-compose.becam.yml Stack local becam (3007/3200)
+├── docker-compose.becam.yml Stack local becam (puerto único 3007)
 ├── ecosystem.config.js     Configuración PM2 para becam
 ├── scripts/deploy-becam.sh Script de deploy + rollback
 └── .env.becam.example      Template de variables becam

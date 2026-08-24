@@ -107,6 +107,7 @@ GET /api/health   # si admin-web está desplegado
 - `.env` completo (usar `.env.example` como fuente de verdad).
 - `APP_HOST` apunta al dominio correcto del cliente.
 - `REDIS_URL` configurado (obligatorio).
+- `OPS_ALERT_WEBHOOK_URL` configurado para que una avería avise fuera del propio panel.
 - `DATABASE_URL` apunta a `admin-central-<CLIENTE>`.
 - Si despliegas workers dedicados, el web debe llevar `RUN_WORKERS_IN_WEB=false`.
 

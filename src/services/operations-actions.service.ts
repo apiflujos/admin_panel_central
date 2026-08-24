@@ -2,10 +2,22 @@ import { buildSyncContext } from "./sync-context";
 import { getMappingByShopifyId } from "./mapping.service";
 import { ensureInvoiceSettingsColumns, getPool, getOrgId } from "../db";
 import type { ShopifyOrder } from "../connectors/shopify";
+import { getStoreConfigForDomain } from "./store-configs.service";
 
-export async function emitPaymentForOrder(orderId: string) {
-  const ctx = await buildSyncContext();
-  const mapping = await getMappingByShopifyId("order", orderId);
+async function resolveOrderShopDomain(orderId: string) {
+  const result = await getPool().query<{ shop_domain: string | null }>(
+    `SELECT shop_domain FROM orders
+      WHERE organization_id = $1 AND shopify_order_id = $2
+      ORDER BY updated_at DESC LIMIT 1`,
+    [getOrgId(), orderId]
+  );
+  return result.rows[0]?.shop_domain || "";
+}
+
+export async function emitPaymentForOrder(orderId: string, requestedShopDomain?: string) {
+  const shopDomain = requestedShopDomain || (await resolveOrderShopDomain(orderId));
+  const ctx = await buildSyncContext(shopDomain || undefined);
+  const mapping = await getMappingByShopifyId("order", orderId, shopDomain);
   if (!mapping?.alegraId) {
     return { status: "missing_invoice" };
   }
@@ -23,19 +35,18 @@ export async function emitPaymentForOrder(orderId: string) {
 
   const pool = getPool();
   const orgId = getOrgId();
-  const invoiceSettings = await loadInvoiceSettings(pool, orgId);
+  const invoiceSettings = await loadInvoiceSettings(pool, orgId, shopDomain);
   if (!invoiceSettings.applyPayment) {
     return { status: "payment_disabled" };
   }
-  if (!invoiceSettings.bankAccountId) {
-    return { status: "missing_bank_account" };
-  }
-
   const orderInfo = await resolveOrderPaymentGateways(ctx, orderId);
   const sourceMapping = await resolvePaymentMappingBySource(pool, orgId, orderInfo.gateways);
   const paymentMethod = sourceMapping?.paymentMethod || invoiceSettings.paymentMethod;
   const bankAccountId =
     sourceMapping?.accountId || (await resolveBankAccountId(pool, orgId, paymentMethod, invoiceSettings.bankAccountId));
+  if (!bankAccountId) {
+    return { status: "missing_bank_account" };
+  }
 
   const paymentPayload = {
     date: new Date().toISOString().slice(0, 10),
@@ -60,14 +71,15 @@ export async function emitPaymentForOrder(orderId: string) {
   return { status: "created", result };
 }
 
-export async function voidInvoiceForOrder(orderId: string) {
-  const ctx = await buildSyncContext();
-  const mapping = await getMappingByShopifyId("order", orderId);
+export async function voidInvoiceForOrder(orderId: string, requestedShopDomain?: string) {
+  const shopDomain = requestedShopDomain || (await resolveOrderShopDomain(orderId));
+  const ctx = await buildSyncContext(shopDomain || undefined);
+  const mapping = await getMappingByShopifyId("order", orderId, shopDomain);
   if (!mapping?.alegraId) {
     return { status: "missing_invoice" };
   }
 
-  const voidKey = `void:${orderId}`;
+  const voidKey = `void:${shopDomain}:${orderId}`;
   const { acquireIdempotencyKey, markIdempotencyKey } = await import("./idempotency.service");
   const idempotency = await acquireIdempotencyKey(voidKey);
   if (!idempotency.acquired) {
@@ -96,7 +108,11 @@ type InvoiceSettings = {
   applyPayment: boolean;
 };
 
-async function loadInvoiceSettings(pool: ReturnType<typeof getPool>, orgId: number): Promise<InvoiceSettings> {
+async function loadInvoiceSettings(
+  pool: ReturnType<typeof getPool>,
+  orgId: number,
+  shopDomain?: string
+): Promise<InvoiceSettings> {
   await ensureInvoiceSettingsColumns(pool);
   const result = await pool.query<{
     payment_method: string | null;
@@ -113,16 +129,18 @@ async function loadInvoiceSettings(pool: ReturnType<typeof getPool>, orgId: numb
     `,
     [orgId]
   );
-  if (!result.rows.length) {
-    return { paymentMethod: "", bankAccountId: "", observationsTemplate: "", applyPayment: false };
-  }
   const row = result.rows[0];
-  return {
-    paymentMethod: row.payment_method || "",
-    bankAccountId: row.bank_account_id || "",
-    observationsTemplate: row.observations_template || "",
-    applyPayment: Boolean(row.apply_payment),
-  };
+  const global: InvoiceSettings = row
+    ? {
+        paymentMethod: row.payment_method || "",
+        bankAccountId: row.bank_account_id || "",
+        observationsTemplate: row.observations_template || "",
+        applyPayment: Boolean(row.apply_payment),
+      }
+    : { paymentMethod: "", bankAccountId: "", observationsTemplate: "", applyPayment: false };
+  if (!shopDomain) return global;
+  const store = await getStoreConfigForDomain(shopDomain);
+  return store?.invoice ? { ...global, ...store.invoice } : global;
 }
 
 async function resolveBankAccountId(

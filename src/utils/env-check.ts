@@ -21,7 +21,7 @@ import { validateEnvFormats } from "../config/env";
 const isProd = () => String(process.env.NODE_ENV || "").toLowerCase() === "production";
 
 // Sin estas la app literalmente no puede persistir nada — fail-fast.
-const HARD_REQUIRED = ["DATABASE_URL", "CRYPTO_KEY_BASE64"] as const;
+const HARD_REQUIRED = ["DATABASE_URL", "CRYPTO_KEY_BASE64", "REDIS_URL"] as const;
 
 // App Shopify (para OAuth flow desde el wizard). Sin ellas el modo OAuth no funciona,
 // pero el modo "token manual" sí. Warning, no fail.
@@ -35,6 +35,7 @@ const RECOMMENDED_FOR_PROD = [
   "RETRY_QUEUE_POLL_MS",
   "MARKETING_CRON_TIMEZONE",
   "SYNC_ORDERS_MAX_BULK",
+  "OPS_ALERT_WEBHOOK_URL",
 ] as const;
 
 function isSet(name: string): boolean {

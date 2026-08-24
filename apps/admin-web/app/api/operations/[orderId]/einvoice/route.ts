@@ -30,12 +30,13 @@ const asOptionalString = (value: unknown) => {
   return normalized ? normalized : undefined;
 };
 
-export const GET = routeHandler(async (_req: Request, ctx) => {
+export const GET = routeHandler(async (req: Request, ctx) => {
   await requireRouteAdmin();
   try {
     const params = (await (ctx.params ?? Promise.resolve({}))) as Record<string, string>;
     const orderId = String(params.orderId || "");
-    const override = await getOrderInvoiceOverride(orderId);
+    const shopDomain = new URL(req.url).searchParams.get("shopDomain")?.trim() || "";
+    const override = await getOrderInvoiceOverride(orderId, shopDomain);
     const pool = getPool();
     const orgId = getOrgId();
     await ensureInvoiceSettingsColumns(pool);
@@ -62,21 +63,27 @@ export const PUT = routeHandler(async (req: Request, ctx) => {
   try {
     const params = (await (ctx.params ?? Promise.resolve({}))) as Record<string, string>;
     const orderId = String(params.orderId || "");
+    const shopDomain = new URL(req.url).searchParams.get("shopDomain")?.trim() || "";
     const payload = (await req.json()) as Record<string, unknown>;
-    const result = await upsertOrderInvoiceOverride(orderId, {
+    const result = await upsertOrderInvoiceOverride(
       orderId,
-      einvoiceRequested: parseBooleanLike(payload.einvoiceRequested),
-      idType: asOptionalString(payload.idType),
-      idNumber: asOptionalString(payload.idNumber),
-      fiscalName: asOptionalString(payload.fiscalName),
-      email: asOptionalString(payload.email),
-      phone: asOptionalString(payload.phone),
-      address: asOptionalString(payload.address),
-      city: asOptionalString(payload.city),
-      state: asOptionalString(payload.state),
-      country: asOptionalString(payload.country),
-      zip: asOptionalString(payload.zip),
-    });
+      {
+        orderId,
+        shopDomain,
+        einvoiceRequested: parseBooleanLike(payload.einvoiceRequested),
+        idType: asOptionalString(payload.idType),
+        idNumber: asOptionalString(payload.idNumber),
+        fiscalName: asOptionalString(payload.fiscalName),
+        email: asOptionalString(payload.email),
+        phone: asOptionalString(payload.phone),
+        address: asOptionalString(payload.address),
+        city: asOptionalString(payload.city),
+        state: asOptionalString(payload.state),
+        country: asOptionalString(payload.country),
+        zip: asOptionalString(payload.zip),
+      },
+      shopDomain
+    );
     return NextResponse.json(result);
   } catch (error) {
     const message = getErrorMessage(error);

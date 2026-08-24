@@ -23,26 +23,32 @@ export const POST = routeHandler(async (req: Request, ctx) => {
   await requireRouteAdmin();
   const params = (await (ctx.params ?? Promise.resolve({}))) as Record<string, string>;
   const orderId = String(params.orderId || "");
+  const shopDomain = new URL(req.url).searchParams.get("shopDomain")?.trim() || undefined;
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const electronic = Boolean(body.electronic);
   try {
     if (electronic) {
-      await upsertOrderInvoiceOverride(orderId, {
+      await upsertOrderInvoiceOverride(
         orderId,
-        einvoiceRequested: true,
-        idType: body.idType as string | undefined,
-        idNumber: body.idNumber as string | undefined,
-        fiscalName: body.fiscalName as string | undefined,
-        email: body.email as string | undefined,
-        phone: body.phone as string | undefined,
-        address: body.address as string | undefined,
-        city: body.city as string | undefined,
-        state: body.state as string | undefined,
-        country: body.country as string | undefined,
-        zip: body.zip as string | undefined,
-      });
+        {
+          orderId,
+          shopDomain,
+          einvoiceRequested: true,
+          idType: body.idType as string | undefined,
+          idNumber: body.idNumber as string | undefined,
+          fiscalName: body.fiscalName as string | undefined,
+          email: body.email as string | undefined,
+          phone: body.phone as string | undefined,
+          address: body.address as string | undefined,
+          city: body.city as string | undefined,
+          state: body.state as string | undefined,
+          country: body.country as string | undefined,
+          zip: body.zip as string | undefined,
+        },
+        shopDomain
+      );
     }
-    const result = await syncOperation(orderId, { generateInvoice: true, forceEinvoice: electronic });
+    const result = await syncOperation(orderId, { generateInvoice: true, forceEinvoice: electronic, shopDomain });
     const inner = (result as { result?: { reason?: string; missing?: string[] } }).result;
     if (inner?.reason === "missing_einvoice_data") {
       await safeCreateLog({
@@ -50,16 +56,27 @@ export const POST = routeHandler(async (req: Request, ctx) => {
         direction: "shopify->alegra",
         status: "warn",
         message: "Faltan datos de factura electrónica",
-        request: { orderId },
+        request: { orderId, shopDomain },
       });
       return NextResponse.json({ error: "missing_einvoice_data", missing: inner.missing || [] }, { status: 422 });
+    }
+    if (result.status !== "synced") {
+      await safeCreateLog({
+        entity: "invoice_manual",
+        direction: "shopify->alegra",
+        status: "fail",
+        message: `Factura no generada: ${inner?.reason || result.status}`,
+        request: { orderId, shopDomain, electronic },
+        response: result as Record<string, unknown>,
+      });
+      return NextResponse.json({ error: inner?.reason || result.status, result }, { status: 422 });
     }
     await safeCreateLog({
       entity: "invoice_manual",
       direction: "shopify->alegra",
       status: "success",
       message: electronic ? "Factura electrónica generada (manual)" : "Factura generada (manual)",
-      request: { orderId, electronic },
+      request: { orderId, shopDomain, electronic },
       response: result as Record<string, unknown>,
     });
     return NextResponse.json(result);
@@ -70,7 +87,7 @@ export const POST = routeHandler(async (req: Request, ctx) => {
       direction: "shopify->alegra",
       status: "fail",
       message,
-      request: { orderId },
+      request: { orderId, shopDomain },
     });
     return NextResponse.json({ error: message }, { status: 400 });
   }

@@ -147,14 +147,14 @@ export function toAdminWebOrderRowDto(params: {
 
 export function toAdminWebOrdersListDto(params: {
   result: OrdersListServiceResult;
-  getOverride: (shopifyId: string) => OrderInvoiceOverrideLike | null;
+  getOverride: (shopifyId: string, row: OrdersListServiceItem) => OrderInvoiceOverrideLike | null;
   getMissing: (shopifyId: string, override: OrderInvoiceOverrideLike | null) => string[];
   einvoiceEnabled: boolean;
   getStoreName?: (shopDomain: string) => string | null;
 }): AdminWebOrdersListDto {
   const items = params.result.items.map((row) => {
     const shopifyId = row.shopify_order_id ? String(row.shopify_order_id) : "";
-    const override = shopifyId ? params.getOverride(shopifyId) : null;
+    const override = shopifyId ? params.getOverride(shopifyId, row) : null;
     const missing = shopifyId ? params.getMissing(shopifyId, override) : [];
     return toAdminWebOrderRowDto({
       row,

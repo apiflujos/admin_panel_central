@@ -84,4 +84,37 @@ describe("arranque de un despliegue", () => {
     expect(escriben.map((w) => w.key).sort()).toEqual(["inventory-adjustments", "products-sync"]);
     expect(escriben.every((w) => !w.enabled)).toBe(true);
   });
+
+  it("listWorkerSettings devuelve la salud persistida y marca una avería", async () => {
+    const ultimaEjecucion = new Date("2026-08-24T14:00:00.000Z");
+    const ultimoExito = new Date("2026-08-24T12:00:00.000Z");
+    queryMock.mockResolvedValue({
+      rows: [
+        {
+          worker_key: "log-retention",
+          enabled: true,
+          updated_at: new Date("2026-08-24T10:00:00.000Z"),
+          updated_by: "deploy",
+          ultima_ejecucion_at: ultimaEjecucion,
+          ultimo_resultado: "fallo",
+          ultimo_error: "foreign key violation",
+          ultimo_exito_at: ultimoExito,
+          fallos_seguidos: 4,
+        },
+      ],
+    });
+
+    const listado = await listWorkerSettings();
+    const worker = listado.find((item) => item.key === "log-retention");
+    expect(worker).toMatchObject({
+      ultimaEjecucion: ultimaEjecucion.toISOString(),
+      ultimoResultado: "fallo",
+      ultimoError: "foreign key violation",
+      ultimoExito: ultimoExito.toISOString(),
+      fallosSeguidos: 4,
+      averiado: true,
+    });
+    expect(String(queryMock.mock.calls[0]?.[0])).toContain("ultima_ejecucion_at");
+    expect(String(queryMock.mock.calls[0]?.[0])).toContain("fallos_seguidos");
+  });
 });

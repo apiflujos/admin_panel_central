@@ -19,21 +19,28 @@ export type SyncLogListItem = {
   response_json: Record<string, unknown> | null;
 };
 
-export async function listLatestOrderLogs(orderIds: string[]) {
+export const orderLogKey = (orderId: string, shopDomain = "") => `${shopDomain}:${orderId}`;
+
+export async function listLatestOrderLogs(orders: Array<string | { orderId: string; shopDomain?: string }>) {
   const { getOrgId, getPool } = await import("../db");
   const pool = getPool();
   const orgId = getOrgId();
-  if (!orderIds.length) {
+  if (!orders.length) {
     return new Map<string, { status: string; message?: string | null }>();
   }
+  const refs = orders.map((entry) =>
+    typeof entry === "string" ? { orderId: entry, shopDomain: "" } : { ...entry, shopDomain: entry.shopDomain || "" }
+  );
   const result = await pool.query<{
     order_id: string;
+    shop_domain: string;
     status: string;
     message: string | null;
   }>(
     `
-    SELECT DISTINCT ON (request_json->>'orderId')
+    SELECT DISTINCT ON (request_json->>'orderId', COALESCE(request_json->>'shopDomain', ''))
       request_json->>'orderId' AS order_id,
+      COALESCE(request_json->>'shopDomain', '') AS shop_domain,
       status,
       message
     FROM sync_logs
@@ -41,18 +48,34 @@ export async function listLatestOrderLogs(orderIds: string[]) {
       AND entity = 'order'
       AND request_json ? 'orderId'
       AND request_json->>'orderId' = ANY($2::text[])
-    ORDER BY request_json->>'orderId', created_at DESC
+    ORDER BY request_json->>'orderId', COALESCE(request_json->>'shopDomain', ''), created_at DESC
     `,
-    [orgId, orderIds]
+    [orgId, refs.map((entry) => entry.orderId)]
   );
   const map = new Map<string, { status: string; message?: string | null }>();
+  const domainsPerOrder = new Map<string, Set<string>>();
+  refs.forEach((entry) => {
+    const domains = domainsPerOrder.get(entry.orderId) || new Set<string>();
+    domains.add(entry.shopDomain);
+    domainsPerOrder.set(entry.orderId, domains);
+  });
   for (const row of result.rows) {
-    map.set(row.order_id, { status: row.status, message: row.message });
+    const value = { status: row.status, message: row.message };
+    if (row.shop_domain) {
+      map.set(orderLogKey(row.order_id, row.shop_domain), value);
+    } else if ((domainsPerOrder.get(row.order_id)?.size || 0) === 1) {
+      const domain = Array.from(domainsPerOrder.get(row.order_id) || [""])[0] || "";
+      map.set(orderLogKey(row.order_id, domain), value);
+    }
+    if (orders.every((entry) => typeof entry === "string")) map.set(row.order_id, value);
   }
   return map;
 }
 
-export async function getLatestInvoicePayload(orderId: string): Promise<Record<string, unknown> | null> {
+export async function getLatestInvoicePayload(
+  orderId: string,
+  shopDomain?: string
+): Promise<Record<string, unknown> | null> {
   const { getOrgId, getPool } = await import("../db");
   const pool = getPool();
   const orgId = getOrgId();
@@ -66,10 +89,11 @@ export async function getLatestInvoicePayload(orderId: string): Promise<Record<s
       AND entity = 'order'
       AND request_json->>'orderId' = $2
       AND request_json ? 'invoicePayload'
-    ORDER BY created_at DESC
+      AND ($3::text IS NULL OR request_json->>'shopDomain' = $3 OR NOT (request_json ? 'shopDomain'))
+    ORDER BY (request_json->>'shopDomain' = $3) DESC, created_at DESC
     LIMIT 1
     `,
-    [orgId, orderId]
+    [orgId, orderId, shopDomain || null]
   );
   if (!result.rows.length) {
     return null;
@@ -219,9 +243,17 @@ export async function retryFailedLogs() {
   const pool = getPool();
   const orgId = getOrgId();
 
-  const failed = await pool.query<{ id: number }>(
+  const failed = await pool.query<{ id: number; eligible: boolean }>(
     `
-    SELECT id
+    SELECT id,
+           (
+             request_json ? 'webhookEvent'
+             OR (
+               entity = 'order'
+               AND NULLIF(request_json->>'orderId', '') IS NOT NULL
+               AND request_json ? 'invoicePayload'
+             )
+           ) AS eligible
     FROM sync_logs
     WHERE organization_id = $1 AND status = 'fail'
     `,
@@ -232,7 +264,13 @@ export async function retryFailedLogs() {
     return { retried: 0 };
   }
 
-  const ids = failed.rows.map((row: { id: number }) => row.id);
+  // No todo fallo es reintentable. Configuración incompleta, validaciones de
+  // negocio y acciones administrativas no deben convertirse en trabajo ciego.
+  const ids = failed.rows.filter((row) => row.eligible).map((row) => row.id);
+  const ignored = failed.rows.length - ids.length;
+  if (!ids.length) {
+    return { retried: 0, ignored };
+  }
 
   const inserted = await pool.query<{ sync_log_id: number }>(
     `
@@ -250,7 +288,7 @@ export async function retryFailedLogs() {
 
   const insertedIds = inserted.rows.map((row: { sync_log_id: number }) => row.sync_log_id);
   if (!insertedIds.length) {
-    return { retried: 0 };
+    return { retried: 0, ignored };
   }
 
   await pool.query(
@@ -262,7 +300,7 @@ export async function retryFailedLogs() {
     [insertedIds]
   );
 
-  return { retried: insertedIds.length };
+  return { retried: insertedIds.length, ignored };
 }
 
 export async function createSyncLog(payload: {

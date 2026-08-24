@@ -264,47 +264,64 @@ export type AdminWebEinvoiceResponse = {
   einvoiceEnabled: boolean;
 };
 
-export async function syncOperation(orderId: string): Promise<AdminWebOperationActionResult> {
+const operationPath = (orderId: string, action: string, shopDomain?: string) => {
+  const search = new URLSearchParams();
+  if (shopDomain) search.set("shopDomain", shopDomain);
+  const suffix = search.toString() ? `?${search.toString()}` : "";
+  return `/operations/${encodeURIComponent(orderId)}/${action}${suffix}`;
+};
+
+export async function syncOperation(orderId: string, shopDomain?: string): Promise<AdminWebOperationActionResult> {
   return requestJson<AdminWebOperationActionResult>({
-    path: `/operations/${encodeURIComponent(orderId)}/sync`,
+    path: operationPath(orderId, "sync", shopDomain),
     method: "POST",
   });
 }
 
-export async function retryOperationInvoice(orderId: string): Promise<AdminWebOperationActionResult> {
+export async function retryOperationInvoice(
+  orderId: string,
+  shopDomain?: string
+): Promise<AdminWebOperationActionResult> {
   return requestJson<AdminWebOperationActionResult>({
-    path: `/operations/${encodeURIComponent(orderId)}/invoice`,
+    path: operationPath(orderId, "invoice", shopDomain),
     method: "POST",
   });
 }
 
-export async function emitOperationPayment(orderId: string): Promise<AdminWebOperationActionResult> {
+export async function emitOperationPayment(
+  orderId: string,
+  shopDomain?: string
+): Promise<AdminWebOperationActionResult> {
   return requestJson<AdminWebOperationActionResult>({
-    path: `/operations/${encodeURIComponent(orderId)}/payment`,
+    path: operationPath(orderId, "payment", shopDomain),
     method: "POST",
   });
 }
 
-export async function cancelOperationInvoice(orderId: string): Promise<AdminWebOperationActionResult> {
+export async function cancelOperationInvoice(
+  orderId: string,
+  shopDomain?: string
+): Promise<AdminWebOperationActionResult> {
   return requestJson<AdminWebOperationActionResult>({
-    path: `/operations/${encodeURIComponent(orderId)}/cancel`,
+    path: operationPath(orderId, "cancel", shopDomain),
     method: "POST",
   });
 }
 
-export async function getEinvoiceOverride(orderId: string): Promise<AdminWebEinvoiceResponse> {
+export async function getEinvoiceOverride(orderId: string, shopDomain?: string): Promise<AdminWebEinvoiceResponse> {
   return requestJson<AdminWebEinvoiceResponse>({
-    path: `/operations/${encodeURIComponent(orderId)}/einvoice`,
+    path: operationPath(orderId, "einvoice", shopDomain),
     method: "GET",
   });
 }
 
 export async function saveEinvoiceOverride(
   orderId: string,
-  payload: AdminWebEinvoiceOverride
+  payload: AdminWebEinvoiceOverride,
+  shopDomain?: string
 ): Promise<{ saved: true }> {
   return requestJson<{ saved: true }>({
-    path: `/operations/${encodeURIComponent(orderId)}/einvoice`,
+    path: operationPath(orderId, "einvoice", shopDomain),
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -314,11 +331,15 @@ export async function getLogsCatalog(params?: {
   status?: string;
   entity?: string;
   direction?: string;
+  limit?: number;
+  offset?: number;
 }): Promise<AdminWebLogsListDto> {
   const search = new URLSearchParams();
   if (params?.status) search.set("status", params.status);
   if (params?.entity) search.set("entity", params.entity);
   if (params?.direction) search.set("direction", params.direction);
+  if (params?.limit) search.set("limit", String(params.limit));
+  if (params?.offset) search.set("offset", String(params.offset));
   const suffix = search.toString() ? `?${search.toString()}` : "";
   return requestJson<AdminWebLogsListDto>({ path: `/admin-web/logs${suffix}`, method: "GET" });
 }
