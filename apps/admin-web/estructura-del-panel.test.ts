@@ -74,6 +74,20 @@ describe("estructura del panel", () => {
     expect(shell).not.toContain("resolveShellSubtitle");
   });
 
+  it("en móvil el menú es un cajón accesible y no empuja el contenido", () => {
+    const shell = fs.readFileSync(path.resolve(__dirname, "components/app-shell.tsx"), "utf8");
+    const toggle = fs.readFileSync(path.resolve(__dirname, "components/mobile-navigation-toggle.tsx"), "utf8");
+    const layoutCss = fs.readFileSync(path.resolve(__dirname, "styles/layout.css"), "utf8");
+
+    expect(shell).toContain('id="primary-sidebar"');
+    expect(shell).toContain("<MobileNavigationToggle");
+    expect(toggle).toContain('aria-controls="primary-sidebar"');
+    expect(toggle).toContain("aria-expanded={open}");
+    expect(toggle).toContain('event.key === "Escape"');
+    expect(layoutCss).toContain("transform: translateX(-105%)");
+    expect(layoutCss).toContain(".mobile-nav-open .sidebar");
+  });
+
   it("cada pantalla tiene UN solo titulo, el de PageHeader", () => {
     // PageHeader es el único que pinta <h1>. Si una pantalla añade otro, vuelve
     // el «título del título».

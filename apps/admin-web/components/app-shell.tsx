@@ -5,6 +5,7 @@ import { AppShellNav } from "./app-shell-nav";
 import { getServerCompanyBrand } from "../lib/server-api";
 import type { AuthSessionDto } from "../../../packages/shared/src/admin-web";
 import { LogoutButton } from "./logout-button";
+import { MobileNavigationToggle } from "./mobile-navigation-toggle";
 import { BrandLogo } from "./ui/brand-logo";
 
 function renderSection(section: "operacion" | "sistema") {
@@ -51,7 +52,7 @@ export async function AppShell({ children, session }: { children: ReactNode; ses
 
   return (
     <div className="app-shell">
-      <aside className="sidebar" aria-label="Navegación principal">
+      <aside id="primary-sidebar" className="sidebar" aria-label="Navegación principal">
         <div className="sidebarShell">
           <div className="sidebarBrandMeta">
             <BrandLogo variant="full" height={26} subtitle="Admin Central" />
@@ -89,9 +90,7 @@ export async function AppShell({ children, session }: { children: ReactNode; ses
       <div className="content">
         <header className="topbar">
           <div className="topbarLeft">
-            <div className="sidebarToggleBtn" aria-hidden="true">
-              ‹
-            </div>
+            <MobileNavigationToggle />
             <div className="topbarBrand">
               <BrandLogo
                 variant="mark"
