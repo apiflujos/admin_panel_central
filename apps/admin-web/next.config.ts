@@ -7,11 +7,13 @@ import type { NextConfig } from "next";
 // builds succeed on every platform (Windows checkouts use CRLF, which the
 // prettier/prettier rule rejects and would otherwise abort the build, leaving no
 // .next output and breaking server startup). Opt back in with NEXT_BUILD_VALIDATION=1.
-const skipBuildValidation =
-  process.env.NEXT_BUILD_VALIDATION !== "1" || process.env.SKIP_NEXT_VALIDATION === "1";
+const skipBuildValidation = process.env.NEXT_BUILD_VALIDATION !== "1" || process.env.SKIP_NEXT_VALIDATION === "1";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Producción construye en un directorio temporal y sólo lo intercambia al
+  // terminar. Así un Ctrl+C no borra el build que está atendiendo usuarios.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // The admin-web runs as a middleware inside the Express backend (single-port
   // architecture: `initAdminWeb` in src/server.ts serves the standard `.next`
   // build), so no standalone output is required.

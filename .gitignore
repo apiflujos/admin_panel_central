@@ -2,6 +2,13 @@ node_modules
 dist
 *.tsbuildinfo
 .next
+dist.build.*
+.deploy-root-deps.*
+apps/admin-web/.next.build.*
+apps/admin-web/.deploy-admin-deps.*
+apps/admin-web/.deploy-next-env.*
+apps/admin-web/.deploy-tsconfig.*
+.playwright-cli
 .env
 .env.local
 .env.*

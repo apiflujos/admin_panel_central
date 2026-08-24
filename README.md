@@ -112,7 +112,10 @@ cd /opt/apps/admin-central-becam
 ./scripts/deploy-becam.sh
 ```
 
-El script hace `git pull` → `npm ci` → `build` → `db:migrate` → `pm2 reload` → smoke.
+El script prepara dependencias y builds en directorios de staging, los intercambia
+atómicamente y después ejecuta `db:migrate` → `pm2 reload` → smoke. Interrumpirlo
+con `Ctrl+C` antes del intercambio no altera la versión que está atendiendo
+usuarios.
 
 ### Rollback
 
@@ -180,6 +183,10 @@ desde **Configuración** y se guardan cifradas en PostgreSQL. No se duplican en 
 # Salud básica
 curl https://<dominio-cliente>/health
 curl https://<dominio-cliente>/api/health
+
+# Sin sesión deben redirigir al login, nunca responder 500
+curl -o /dev/null -w '%{http_code}\n' https://<dominio-cliente>/settings/connections
+curl -o /dev/null -w '%{http_code}\n' https://<dominio-cliente>/orders
 
 # Login + endpoints (necesita .env del cliente)
 npm run qa:smoke

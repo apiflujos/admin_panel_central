@@ -19,6 +19,17 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ["dist/", "node_modules/", "public/", "scripts/"],
+    ignores: [
+      "dist/",
+      "dist.build.*/",
+      "**/node_modules/",
+      "**/.next/",
+      "**/.next.build.*/",
+      ".playwright-cli/",
+      "ecosystem.config.js",
+      "apps/admin-web/next-env.d.ts",
+      "public/",
+      "scripts/",
+    ],
   }
 );

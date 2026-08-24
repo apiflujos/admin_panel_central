@@ -40,6 +40,8 @@ Valida:
 
 - `/health`
 - `/auth/login`
+- páginas privadas principales sin sesión → redirección 3xx, nunca 500
+  (`/settings/connections`, `/orders`, `/products`, `/contacts`)
 - `/`
 - `/api/profile`
 - `/api/settings`, `/api/connections`, `/api/store-configs`, `/api/shopify/webhooks/status`

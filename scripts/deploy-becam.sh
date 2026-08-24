@@ -334,7 +334,66 @@ do_deploy() {
   local registro="/srv/apiflujos/becam/deploy-$(date +%Y%m%d-%H%M%S).log"
   mkdir -p "$(dirname "$registro")" 2>/dev/null || true
   exec > >(tee -a "$registro") 2>&1
-  trap 'echo ""; err "DESPLIEGUE INTERRUMPIDO. El detalle completo está en: $registro"' ERR
+  local root_deps_stage=""
+  local admin_deps_stage=""
+  local backend_build_stage=""
+  local admin_build_stage=""
+  local next_env_backup=""
+  local tsconfig_backup=""
+
+  restore_next_config_files() {
+    if [ -n "$next_env_backup" ] && [ -f "$next_env_backup" ]; then
+      mv "$next_env_backup" apps/admin-web/next-env.d.ts
+    fi
+    if [ -n "$tsconfig_backup" ] && [ -f "$tsconfig_backup" ]; then
+      mv "$tsconfig_backup" apps/admin-web/tsconfig.json
+    fi
+    next_env_backup=""
+    tsconfig_backup=""
+  }
+
+  cleanup_staging() {
+    local path
+    restore_next_config_files
+    for path in "$root_deps_stage" "$admin_deps_stage" "$backend_build_stage" "$admin_build_stage"; do
+      if [ -n "$path" ] && [ -e "$path" ]; then
+        rm -rf -- "$path"
+      fi
+    done
+  }
+
+  interrupted_deploy() {
+    trap - INT TERM
+    cleanup_staging
+    echo ""
+    err "DESPLIEGUE INTERRUMPIDO sin alterar las dependencias ni builds activos."
+    err "El detalle completo está en: $registro"
+    exit 130
+  }
+
+  failed_deploy() {
+    cleanup_staging
+    echo ""
+    err "DESPLIEGUE INTERRUMPIDO. El detalle completo está en: $registro"
+  }
+
+  # npm ci y next build son destructivos sobre sus carpetas destino. Todo se
+  # prepara al lado y sólo se intercambia cuando ya está completo.
+  atomic_replace_dir() {
+    local current="$1"
+    local replacement="$2"
+    local previous="${current}.previous.$$"
+    trap '' INT TERM
+    if [ -e "$current" ]; then
+      mv "$current" "$previous"
+    fi
+    mv "$replacement" "$current"
+    rm -rf -- "$previous"
+    trap interrupted_deploy INT TERM
+  }
+
+  trap failed_deploy ERR
+  trap interrupted_deploy INT TERM
 
   log "Deploy ${APP_NAME}"
   log "Registro de esta ejecución: $registro"
@@ -344,33 +403,54 @@ do_deploy() {
   log "Pull de origin/${REQUIRED_BRANCH}..."
   git pull origin "${REQUIRED_BRANCH}"
 
-  log "Instalando dependencias (npm ci)..."
-  npm ci
-  npm ci --prefix apps/admin-web
+  log "Preparando dependencias sin tocar la versión activa..."
+  root_deps_stage=$(mktemp -d "${PWD}/.deploy-root-deps.XXXXXX")
+  admin_deps_stage=$(mktemp -d "${PWD}/apps/admin-web/.deploy-admin-deps.XXXXXX")
+  cp package.json package-lock.json "$root_deps_stage/"
+  cp apps/admin-web/package.json apps/admin-web/package-lock.json "$admin_deps_stage/"
+  npm ci --prefix "$root_deps_stage"
+  npm ci --prefix "$admin_deps_stage"
+  test -f "$root_deps_stage/node_modules/typescript/bin/tsc"
+  test -f "$admin_deps_stage/node_modules/next/dist/compiled/cookie/index.js"
+  atomic_replace_dir node_modules "$root_deps_stage/node_modules"
+  atomic_replace_dir apps/admin-web/node_modules "$admin_deps_stage/node_modules"
+  rmdir "$root_deps_stage" "$admin_deps_stage"
+  root_deps_stage=""
+  admin_deps_stage=""
+  ok "Dependencias completas intercambiadas de forma atómica"
 
   ensure_database_exists
   ensure_env
 
-  log "Compilando backend..."
-  npm run build
+  log "Compilando backend en staging..."
+  backend_build_stage="dist.build.$$"
+  npm run build -- --outDir "$backend_build_stage"
 
-  log "Compilando admin-web..."
-  # Clean previous build so Next.js does not reuse stale ADMIN_WEB_URL values.
-  rm -rf apps/admin-web/.next
-  SKIP_NEXT_VALIDATION=1 npm run build:admin-web
+  log "Compilando admin-web en staging..."
+  admin_build_stage="apps/admin-web/.next.build.$$"
+  next_env_backup="apps/admin-web/.deploy-next-env.$$"
+  tsconfig_backup="apps/admin-web/.deploy-tsconfig.$$"
+  cp apps/admin-web/next-env.d.ts "$next_env_backup"
+  cp apps/admin-web/tsconfig.json "$tsconfig_backup"
+  NEXT_DIST_DIR=".next.build.$$" SKIP_NEXT_VALIDATION=1 npm run build:admin-web
+  restore_next_config_files
 
   # Sanity check: the generated HTML must not reference localhost.
-  if grep -rE 'https?://localhost:3200' apps/admin-web/.next 2>/dev/null | head -1; then
+  if grep -rE 'https?://localhost:3200' "$admin_build_stage" 2>/dev/null | head -1; then
     err "El build de admin-web aún contiene referencias a localhost:3200."
     err "Verifica que ADMIN_WEB_URL en .env sea https://becam.apiflujos.com"
     exit 1
   fi
 
-  log "Validando artefactos de build..."
-  test -f dist/src/server.js || { err "No se encontró dist/src/server.js"; exit 1; }
-  test -f dist/apps/workers/src/bootstrap.js || { err "No se encontró dist/apps/workers/src/bootstrap.js"; exit 1; }
-  test -d apps/admin-web/.next || { err "No se encontró el build de admin-web"; exit 1; }
-  ok "Artefactos de build validados"
+  log "Validando artefactos antes de publicarlos..."
+  test -f "$backend_build_stage/src/server.js" || { err "No se generó server.js"; exit 1; }
+  test -f "$backend_build_stage/apps/workers/src/bootstrap.js" || { err "No se generó bootstrap.js"; exit 1; }
+  test -f "$admin_build_stage/BUILD_ID" || { err "No se generó BUILD_ID de admin-web"; exit 1; }
+  atomic_replace_dir dist "$backend_build_stage"
+  atomic_replace_dir apps/admin-web/.next "$admin_build_stage"
+  backend_build_stage=""
+  admin_build_stage=""
+  ok "Builds completos publicados de forma atómica"
 
   log "Ejecutando migraciones..."
   npm run db:migrate
@@ -423,6 +503,7 @@ do_deploy() {
   sleep 10
 
   do_smoke
+  trap - ERR INT TERM
 }
 
 # ---------------------------------------------------------------------------
@@ -462,6 +543,20 @@ do_smoke() {
     err "Admin-web NO responde en el puerto ${APP_PORT}"
   fi
 
+  # Una portada sana no demuestra que Next pueda cargar sus módulos internos.
+  # Estas rutas privadas deben redirigir al login sin sesión. Un 500 aquí fue
+  # exactamente lo que dejó pasar el smoke del 2026-08-24.
+  local protected_route protected_status
+  for protected_route in /settings/connections /orders /products /contacts; do
+    protected_status=$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:${APP_PORT}${protected_route}")
+    if echo "$protected_status" | grep -qE '^30[2378]$'; then
+      ok "${protected_route} carga y protege la sesión (${protected_status})"
+    else
+      err "${protected_route} respondió ${protected_status}; se esperaba redirección al login"
+      web_ok=false
+    fi
+  done
+
   # Verify that a real Next.js static asset is served with the correct MIME type.
   local css_file
   css_file=$(find apps/admin-web/.next/static/css -name '*.css' | head -n 1 | sed 's|apps/admin-web/.next/static||')
@@ -472,7 +567,8 @@ do_smoke() {
   fi
 
   # Verify the admin-web login/session endpoint is reachable.
-  if curl -fsS -X POST "http://127.0.0.1:${APP_PORT}/api/session/login" -o /dev/null -w '%{http_code}' | grep -qE '30[23]|400'; then
+  if curl -fsS -X POST -H 'Content-Type: application/x-www-form-urlencoded' --data '' \
+    "http://127.0.0.1:${APP_PORT}/api/session/login" -o /dev/null -w '%{http_code}' | grep -qE '30[23]|400'; then
     ok "Endpoint /api/session/login es alcanzable"
   else
     warn "Endpoint /api/session/login no respondió como se esperaba"

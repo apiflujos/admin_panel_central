@@ -33,7 +33,7 @@ Estructura recomendada:
 
 ### Despliegue automatizado
 
-Cada cliente puede tener su propio script de deploy. Para **Becam** existe `scripts/deploy-becam.sh` que automatiza todo el flujo: pull, instalación, creación de base de datos, generación de `.env`, build, migraciones y recarga PM2.
+Cada cliente puede tener su propio script de deploy. Para **Becam** existe `scripts/deploy-becam.sh` que automatiza todo el flujo: pull, instalación, creación de base de datos, generación de `.env`, build, migraciones y recarga PM2. Dependencias y builds se preparan fuera de los directorios activos y sólo se intercambian cuando están completos; un `Ctrl+C` durante la preparación no deja el panel sin módulos ni sin build.
 
 Ver instrucciones detalladas en [`docs/CLIENT_BECAM.md`](CLIENT_BECAM.md#deploy-producción-con-pm2).
 
@@ -100,6 +100,10 @@ GET /health
 GET /api/profile
 GET /api/health   # si admin-web está desplegado
 ```
+
+En Becam el smoke también abre, sin sesión, `/settings/connections`, `/orders`,
+`/products` y `/contacts`. Todas deben responder con redirección 3xx al login;
+un 500 invalida el despliegue aunque `/health` esté verde.
 
 ## Preflight (antes de subir)
 
