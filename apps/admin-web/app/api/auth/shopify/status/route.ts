@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { resolveShopifyOAuthConfig } from "../../../../../../../src/services/shopify-app-credentials.service";
 import { routeHandler } from "../../../../../lib/route-handler";
 import { requireRouteAdmin } from "../../../../../lib/route-auth";
 
@@ -21,14 +22,14 @@ function resolveAppHost(req: Request) {
 
 export const GET = routeHandler(async (req: Request) => {
   await requireRouteAdmin();
-  const apiKey = String(process.env.SHOPIFY_API_KEY || "").trim();
-  const apiSecret = String(process.env.SHOPIFY_API_SECRET || "").trim();
-  const scopes = String(process.env.SHOPIFY_SCOPES || "").trim();
+  const storeIdParam = Number(new URL(req.url).searchParams.get("storeId") || "");
+  const storeId = Number.isFinite(storeIdParam) && storeIdParam > 0 ? storeIdParam : null;
+  const { apiKey, apiSecret, scopes } = await resolveShopifyOAuthConfig(storeId);
   const appHost = resolveAppHost(req);
   const missing: string[] = [];
-  if (!apiKey) missing.push("SHOPIFY_API_KEY");
-  if (!apiSecret) missing.push("SHOPIFY_API_SECRET");
-  if (!scopes) missing.push("SHOPIFY_SCOPES");
+  if (!apiKey) missing.push("Client ID en base de datos");
+  if (!apiSecret) missing.push("Client secret en base de datos");
+  if (!scopes) missing.push("permisos OAuth en base de datos");
   if (!appHost) missing.push("APP_HOST");
   return NextResponse.json({
     enabled: missing.length === 0,

@@ -11,11 +11,12 @@ import {
   isValidShopDomain,
   normalizeShopDomainForOAuth,
 } from "../../../../../../../src/services/shopify-oauth.service";
+import { resolveShopifyOAuthConfig } from "../../../../../../../src/services/shopify-app-credentials.service";
 import { resolveShopifyApiVersion } from "../../../../../../../src/utils/shopify";
 import { routeHandler } from "../../../../../lib/route-handler";
 import { requireRouteAdmin } from "../../../../../lib/route-auth";
 
-type OAuthEnv = {
+type OAuthConfig = {
   apiKey: string;
   apiSecret: string;
   scopes: string;
@@ -45,16 +46,14 @@ function resolveAppHost(_req: Request) {
   return explicit.replace(/\/$/, "");
 }
 
-function ensureOAuthEnv(req: Request): OAuthEnv {
-  const apiKey = String(process.env.SHOPIFY_API_KEY || "").trim();
-  const apiSecret = String(process.env.SHOPIFY_API_SECRET || "").trim();
-  const scopes = String(process.env.SHOPIFY_SCOPES || "").trim();
+async function ensureOAuthConfig(req: Request, storeId?: number | null): Promise<OAuthConfig> {
+  const { apiKey, apiSecret, scopes } = await resolveShopifyOAuthConfig(storeId);
   const appHost = resolveAppHost(req);
 
   const missing: string[] = [];
-  if (!apiKey) missing.push("SHOPIFY_API_KEY");
-  if (!apiSecret) missing.push("SHOPIFY_API_SECRET");
-  if (!scopes) missing.push("SHOPIFY_SCOPES");
+  if (!apiKey) missing.push("Client ID en base de datos");
+  if (!apiSecret) missing.push("Client secret en base de datos");
+  if (!scopes) missing.push("permisos OAuth en base de datos");
   if (!appHost) missing.push("APP_HOST");
   if (missing.length) {
     throw new Error(`Configuracion OAuth incompleta. Falta: ${missing.join(", ")}`);
@@ -134,7 +133,6 @@ export const GET = routeHandler(async (req: Request) => {
   const user = await requireRouteAdmin();
   try {
     await assertModuleEnabled("shopify");
-    const env = ensureOAuthEnv(req);
     const searchParams = new URL(req.url).searchParams;
     if (searchParams.get("error")) {
       return new NextResponse(String(searchParams.get("error_description") || searchParams.get("error")), {
@@ -150,13 +148,14 @@ export const GET = routeHandler(async (req: Request) => {
     if (!isValidShopDomain(shop)) {
       return new NextResponse("Shop domain invalido", { status: 400 });
     }
-    if (!validateHmac(searchParams, env.apiSecret)) {
-      return new NextResponse("HMAC invalido", { status: 400 });
-    }
     const stateResult = await consumeOAuthState(shop, state, user.id);
     if (!stateResult.ok) {
       const reason = stateResult.reason === "user_mismatch" ? "State pertenece a otro usuario" : "State invalido";
       return new NextResponse(reason, { status: 400 });
+    }
+    const env = await ensureOAuthConfig(req, stateResult.storeId);
+    if (!validateHmac(searchParams, env.apiSecret)) {
+      return new NextResponse("HMAC invalido", { status: 400 });
     }
     const tokenResponse = await fetch(`https://${shop}/admin/oauth/access_token`, {
       method: "POST",

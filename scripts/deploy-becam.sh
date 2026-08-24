@@ -293,25 +293,26 @@ ensure_env() {
     ok "ADMIN_WEB_PORT obsoleto eliminado de .env"
   fi
 
+  # Shopify tiene una sola fuente de verdad: credenciales cifradas en BD, por
+  # tienda o globales. Retira variables antiguas para que nunca contradigan a
+  # las dos conexiones que administra el panel.
+  local obsolete_shopify_env=()
+  for skey in SHOPIFY_API_KEY SHOPIFY_API_SECRET SHOPIFY_SCOPES SHOPIFY_WEBHOOK_SECRET ALLOW_UNVERIFIED_SHOPIFY_WEBHOOKS; do
+    if grep -qE "^${skey}=" .env; then
+      sed -i "/^${skey}=/d" .env
+      obsolete_shopify_env+=("${skey}")
+      env_changed=true
+    fi
+  done
+  if [ "${#obsolete_shopify_env[@]}" -gt 0 ]; then
+    ok "Variables Shopify obsoletas retiradas de .env: ${obsolete_shopify_env[*]}"
+  fi
+
   chmod 600 .env
   if [ "$env_changed" = true ]; then
     ok ".env actualizado en $(pwd)/.env"
   else
     ok ".env ya existe y está completo, no se modifica"
-  fi
-
-  # Aviso no-fatal: variables de Shopify necesarias para el OAuth. El script NO
-  # las inyecta (son secretos); se agregan a mano una vez y aquí se preservan.
-  local missing_shopify=()
-  for skey in SHOPIFY_API_KEY SHOPIFY_API_SECRET SHOPIFY_SCOPES; do
-    if ! grep -qE "^${skey}=.+" .env; then
-      missing_shopify+=("${skey}")
-    fi
-  done
-  if [ "${#missing_shopify[@]}" -gt 0 ]; then
-    warn "Faltan variables de Shopify en .env: ${missing_shopify[*]}"
-    warn "Sin ellas, 'Conectar Shopify' dará: 'Configuración OAuth incompleta'."
-    warn "Agrégalas a $(pwd)/.env y vuelve a ejecutar (o solo 'pm2 reload ecosystem.config.js')."
   fi
 
   echo ""

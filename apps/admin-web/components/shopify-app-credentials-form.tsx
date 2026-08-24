@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { apiFetch } from "../lib/api";
 
-type Status = { configured: boolean; source: "store" | "db" | "env" | "none"; apiKeyMasked: string };
+type Status = { configured: boolean; source: "store" | "db" | "none"; apiKeyMasked: string };
 
 const DEFAULT_SCOPES =
   "read_orders,write_orders,read_products,write_products,read_customers,write_customers,read_inventory,write_inventory";
@@ -13,7 +13,7 @@ const DEFAULT_SCOPES =
  * Configura las credenciales del app OAuth de Shopify (API key + secret + scopes).
  * Se guardan cifradas en la base de datos, POR TIENDA (cada tienda puede usar su
  * propio app de Shopify) o de forma global. Resolución en runtime:
- * por-tienda → global → variables de entorno.
+ * por-tienda → global, siempre desde la base de datos.
  */
 export function ShopifyAppCredentialsForm({ storeId, storeName }: { storeId?: number | null; storeName?: string }) {
   const [status, setStatus] = useState<Status | null>(null);
@@ -92,9 +92,7 @@ export function ShopifyAppCredentialsForm({ storeId, storeName }: { storeId?: nu
       ? "por tienda (base de datos)"
       : status?.source === "db"
         ? "globales (base de datos)"
-        : status?.source === "env"
-          ? "variables de entorno (.env)"
-          : "sin configurar";
+        : "sin configurar";
 
   return (
     <details className="page-module-shell page-module-shell-compact">

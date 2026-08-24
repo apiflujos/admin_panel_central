@@ -36,9 +36,9 @@ export async function shopifyOAuthStatus(req: Request, res: Response) {
   const { apiKey, apiSecret, scopes } = await resolveShopifyOAuthConfig();
   const appHost = resolveAppHost(req);
   const missing: string[] = [];
-  if (!apiKey) missing.push("SHOPIFY_API_KEY");
-  if (!apiSecret) missing.push("SHOPIFY_API_SECRET");
-  if (!scopes) missing.push("SHOPIFY_SCOPES");
+  if (!apiKey) missing.push("Client ID en base de datos");
+  if (!apiSecret) missing.push("Client secret en base de datos");
+  if (!scopes) missing.push("permisos OAuth en base de datos");
   if (!appHost) missing.push("APP_HOST");
   res.status(200).json({
     enabled: missing.length === 0,
@@ -87,9 +87,9 @@ async function ensureOAuthEnv(req: Request, storeId?: number | null): Promise<OA
   const appHost = resolveAppHost(req);
 
   const missing: string[] = [];
-  if (!apiKey) missing.push("SHOPIFY_API_KEY");
-  if (!apiSecret) missing.push("SHOPIFY_API_SECRET");
-  if (!scopes) missing.push("SHOPIFY_SCOPES");
+  if (!apiKey) missing.push("Client ID en base de datos");
+  if (!apiSecret) missing.push("Client secret en base de datos");
+  if (!scopes) missing.push("permisos OAuth en base de datos");
   if (!appHost) missing.push("APP_HOST");
   if (missing.length) {
     throw new Error(`Configuracion OAuth incompleta. Falta: ${missing.join(", ")}`);
@@ -136,7 +136,7 @@ export async function startShopifyOAuth(req: Request, res: Response) {
     await assertModuleEnabled("shopify");
     const storeIdParam = Number(req.query.storeId || "");
     const storeId = Number.isFinite(storeIdParam) ? storeIdParam : null;
-    // Per-store OAuth app credentials (falls back to global → env).
+    // Credenciales OAuth por tienda, con respaldo global en la misma BD.
     const env = await ensureOAuthEnv(req, storeId);
     const user = (req as { user?: { id?: number } }).user;
     const shopParam = String(req.query.shop || "").trim();

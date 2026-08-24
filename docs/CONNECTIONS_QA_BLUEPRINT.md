@@ -153,7 +153,7 @@ Pendiente explícito (arrastra a Etapa 8 o post-QA):
 - `recordWebhookReceipt` (`webhook_receipts` table) llamado en el Shopify handler Express — duplicados de Shopify → 200 sin re-procesar.
 - Alegra: dedupe por firma HMAC como surrogate webhookId.
 - Idempotency guards añadidos a `handleShopifyRefund` (key `refund-adjust:${shop}:${refundId}`) y `handleShopifyInventory` (key `inventory-update:${shop}:${itemId}:${updatedAt}`) — reintentos ya no crean adjustments/inventory dobles.
-- `verifyShopifyHmac` / `verifyAlegraSignature`: bypass `ALLOW_UNVERIFIED_*_WEBHOOKS` **solo dev** — en prod se ignora con warning.
+- Shopify valida siempre el HMAC con el secreto cifrado de la tienda o el global en BD; no existe bypass ni secreto alterno en ENV. `verifyAlegraSignature` conserva su bypass exclusivo de desarrollo.
 
 ## Etapa 11 — Endpoints /sync/* protegidos + retry queue vivo ✅
 
@@ -204,7 +204,7 @@ Pendiente confirmación con ops antes de borrar (candidatos MEDIUM confianza):
 ## Etapa 17 — Robustness operativa ✅
 
 - Nuevo `src/utils/env-check.ts` con `assertStartupEnv()` — fail-fast al startup:
-  - Obligatorias: `DATABASE_URL`, `CRYPTO_KEY_BASE64` (+ `SHOPIFY_API_KEY/SECRET/SCOPES` + `APP_HOST` para web con OAuth + `SHOPIFY_WEBHOOK_SECRET` en prod).
+  - Obligatorias: `DATABASE_URL`, `CRYPTO_KEY_BASE64` y `REDIS_URL`. Shopify se configura cifrado en BD; `APP_HOST` sólo aporta la URL pública del callback.
   - Recomendadas (warning): `APP_ORG_ID`, `RETRY_QUEUE_POLL_MS`, `MARKETING_CRON_TIMEZONE`, `SYNC_ORDERS_MAX_BULK`.
   - Warnings de seguridad: `ALLOW_UNVERIFIED_*_WEBHOOKS=true` y `ALLOW_INTERNAL_HOSTS=true` en prod.
 - Cableado en `src/server.ts` (`requireShopifyOAuth: true`) y `apps/workers/src/bootstrap.ts` (`requireShopifyOAuth: false`).

@@ -31,7 +31,7 @@ git checkout client/becam
 # 2. Configurar variables del cliente
 cp .env.becam.example .env.becam
 # Editar .env.becam con: ADMIN_EMAIL, ADMIN_PASSWORD, CRYPTO_KEY_BASE64,
-# SHOPIFY_API_KEY/SECRET, SHOPIFY_WEBHOOK_SECRET, ALEGRA_WEBHOOK_SECRET, etc.
+# ALEGRA_WEBHOOK_SECRET, etc. Shopify se configura cifrado en la BD desde el panel.
 
 # 3. Levantar el stack aislado
 docker compose -f docker-compose.becam.yml up -d --build
@@ -163,12 +163,14 @@ Ver `.env.becam.example` para la lista completa. Mínimas para arrancar:
 | `OPS_ALERT_WEBHOOK_URL` | Receptor externo de alertas operativas; recomendado en producción |
 | `CSRF_SECRET` | String largo aleatorio |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap del admin inicial |
-| `SHOPIFY_API_KEY/SECRET/WEBHOOK_SECRET` | Shopify OAuth + webhooks |
 | `ALEGRA_WEBHOOK_SECRET` | Verificación de webhooks Alegra |
 | `RUN_WORKERS_IN_WEB` | `false` cuando los workers corren en proceso aparte |
 
 > Generar `CRYPTO_KEY_BASE64`:
 > `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
+
+Las dos cuentas Shopify, sus tokens y las credenciales de sus apps se administran
+desde **Configuración** y se guardan cifradas en PostgreSQL. No se duplican en `.env`.
 
 ---
 

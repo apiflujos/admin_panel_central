@@ -10,10 +10,8 @@
  *    NUNCA se leen de env vars: se cargan desde el wizard de conexiones y se guardan
  *    cifradas en DB. No hay nada que validar acá para ellas.
  *
- *  - Las credenciales de LA APP Shopify (SHOPIFY_API_KEY/SECRET/SCOPES + APP_HOST) solo
- *    se necesitan si el operador va a usar el flow OAuth desde el wizard. Si prefiere el
- *    flow "token manual" (pegar un access_token de una custom app de la tienda), no hacen
- *    falta. Por eso son warning, no fail.
+ *  - Las credenciales de la app OAuth Shopify también se guardan cifradas en DB,
+ *    por tienda o globales. El entorno no es una fuente de credenciales Shopify.
  */
 
 import { validateEnvFormats } from "../config/env";
@@ -22,13 +20,6 @@ const isProd = () => String(process.env.NODE_ENV || "").toLowerCase() === "produ
 
 // Sin estas la app literalmente no puede persistir nada — fail-fast.
 const HARD_REQUIRED = ["DATABASE_URL", "CRYPTO_KEY_BASE64", "REDIS_URL"] as const;
-
-// App Shopify (para OAuth flow desde el wizard). Sin ellas el modo OAuth no funciona,
-// pero el modo "token manual" sí. Warning, no fail.
-const SHOPIFY_OAUTH_ENV = ["SHOPIFY_API_KEY", "SHOPIFY_API_SECRET", "SHOPIFY_SCOPES", "APP_HOST"] as const;
-
-// Solo para deploys que reciben webhooks Shopify directos.
-const SHOPIFY_WEBHOOK_ENV = ["SHOPIFY_WEBHOOK_SECRET"] as const;
 
 const RECOMMENDED_FOR_PROD = [
   "APP_ORG_ID",
@@ -65,37 +56,7 @@ export function assertStartupEnv(_options: { requireShopifyOAuth?: boolean } = {
     console.warn(`[env-check] Formato inválido en env: ${formatIssues.join("; ")}`);
   }
 
-  // Todo lo demás es warning informativo.
-  const missingOAuth = SHOPIFY_OAUTH_ENV.filter((k) => !isSet(k));
-  if (missingOAuth.length) {
-    console.info(
-      `[env-check] Shopify OAuth desactivado — faltan: ${missingOAuth.join(", ")}. ` +
-        `El wizard puede seguir conectando tiendas mediante "token manual" (custom app).`
-    );
-  }
-
   if (isProd()) {
-    const missingWebhook = SHOPIFY_WEBHOOK_ENV.filter((k) => !isSet(k));
-    if (missingWebhook.length) {
-      // OJO: este aviso NO significa que los webhooks fallen.
-      //
-      // El secreto de la app de Shopify se guarda CIFRADO EN BASE DE DATOS, por
-      // tienda (`credentials.provider = 'shopify_oauth_app:store:<id>'`), y la
-      // verificación de HMAC lo resuelve en este orden:
-      //     tienda -> global en BD -> env -> ninguno
-      // (ver `shopify-app-credentials.service.ts` y `utils/webhook.ts`).
-      // El env es el ÚLTIMO recurso, no la fuente principal.
-      //
-      // La redacción anterior afirmaba que los webhooks "serán rechazados por
-      // HMAC inválido", lo cual es falso cuando las credenciales están en BD —
-      // y llevó a diagnosticar como avería activa lo que era ruido de arranque.
-      console.info(
-        `[env-check] ${missingWebhook.join(", ")} no está en el entorno. Es lo normal: ` +
-          `el secreto se toma de las credenciales por tienda en base de datos. ` +
-          `Sólo importa si una tienda no tiene credenciales cargadas — revísalo en Configuración, no aquí.`
-      );
-    }
-
     const missingRecommended = RECOMMENDED_FOR_PROD.filter((k) => !isSet(k));
     if (missingRecommended.length) {
       console.info(
@@ -104,11 +65,6 @@ export function assertStartupEnv(_options: { requireShopifyOAuth?: boolean } = {
       );
     }
 
-    if (String(process.env.ALLOW_UNVERIFIED_SHOPIFY_WEBHOOKS || "").toLowerCase() === "true") {
-      console.warn(
-        `[env-check] ALLOW_UNVERIFIED_SHOPIFY_WEBHOOKS=true está seteado en producción — será ignorado por seguridad.`
-      );
-    }
     if (String(process.env.ALLOW_INTERNAL_HOSTS || "").toLowerCase() === "true") {
       console.warn(
         `[env-check] ALLOW_INTERNAL_HOSTS=true está seteado en producción — permite SSRF a red interna, revisá si es intencional.`

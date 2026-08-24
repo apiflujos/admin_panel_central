@@ -120,9 +120,8 @@ export async function saveShopifyAppCredentials(input: ShopifyAppCredentials, st
 
 /**
  * Resolve the effective Shopify OAuth config with a per-field fallback chain:
- * per-store credentials (when `storeId` is given) → global DB credentials →
- * the SHOPIFY_API_KEY / SHOPIFY_API_SECRET / SHOPIFY_SCOPES environment
- * variables. All values are trimmed.
+ * per-store credentials (when `storeId` is given) → global DB credentials.
+ * Shopify credentials never come from environment variables.
  */
 export async function resolveShopifyOAuthConfig(storeId?: number | null): Promise<{
   apiKey: string;
@@ -132,23 +131,17 @@ export async function resolveShopifyOAuthConfig(storeId?: number | null): Promis
   const fromStore = storeId != null ? await getShopifyAppCredentials(storeId).catch(() => null) : null;
   const fromGlobal = await getShopifyAppCredentials().catch(() => null);
 
-  const envApiKey = String(process.env.SHOPIFY_API_KEY || "").trim();
-  const envApiSecret = String(process.env.SHOPIFY_API_SECRET || "").trim();
-  const envScopes = String(process.env.SHOPIFY_SCOPES || "").trim();
-
-  const apiKey = String(fromStore?.apiKey || "").trim() || String(fromGlobal?.apiKey || "").trim() || envApiKey;
-  const apiSecret =
-    String(fromStore?.apiSecret || "").trim() || String(fromGlobal?.apiSecret || "").trim() || envApiSecret;
-  const scopes = String(fromStore?.scopes || "").trim() || String(fromGlobal?.scopes || "").trim() || envScopes;
+  const apiKey = String(fromStore?.apiKey || "").trim() || String(fromGlobal?.apiKey || "").trim();
+  const apiSecret = String(fromStore?.apiSecret || "").trim() || String(fromGlobal?.apiSecret || "").trim();
+  const scopes = String(fromStore?.scopes || "").trim() || String(fromGlobal?.scopes || "").trim();
 
   return { apiKey, apiSecret, scopes };
 }
 
 /**
  * Resolve the app secret used to verify incoming Shopify webhook HMACs for a
- * given store: per-store credentials → global DB credentials → env
- * (SHOPIFY_API_SECRET). Returns "" when nothing is configured. Callers should
- * keep SHOPIFY_WEBHOOK_SECRET as an additional fallback.
+ * given store: per-store credentials → global DB credentials. Returns "" when
+ * nothing is configured.
  */
 export async function getShopifyAppSecretForStore(storeId?: number | null): Promise<string> {
   const { apiSecret } = await resolveShopifyOAuthConfig(storeId);
@@ -158,13 +151,11 @@ export async function getShopifyAppSecretForStore(storeId?: number | null): Prom
 /**
  * Verify an incoming Shopify webhook HMAC using the store's own app secret.
  * Resolves the store by its shop domain (header `x-shopify-shop-domain`) →
- * catalog storeId → per-store app secret (falling back to global → env). Runs
+ * catalog storeId → per-store app secret (falling back to global DB). Runs
  * inside the resolved org context so the credential lookups are tenant-scoped.
  *
- * This is a per-store fallback: callers should first try the env/global secret
- * (`verifyShopifyHmac`, no DB) and only call this when that fails, so that the
- * common case keeps the existing "HMAC before any DB query" DoS protection and
- * only per-store custom apps incur the extra lookup.
+ * Shopify identifies the store in the signed request, so the correct secret is
+ * resolved from that store before validating the signature.
  */
 export async function verifyShopifyWebhookHmacForShop(
   rawBody: Buffer,
@@ -186,21 +177,18 @@ export async function verifyShopifyWebhookHmacForShop(
 /**
  * Report where the Shopify OAuth app credentials come from and a masked preview
  * of the API key. When `storeId` is provided and the store has its own
- * credentials, source is "store"; otherwise it falls back to global DB ("db"),
- * then env ("env"), then "none".
+ * credentials, source is "store"; otherwise it falls back to global DB ("db")
+ * and finally "none".
  */
 export async function hasShopifyAppCredentials(storeId?: number | null): Promise<{
   configured: boolean;
-  source: "store" | "db" | "env" | "none";
+  source: "store" | "db" | "none";
   apiKeyMasked: string;
 }> {
   const fromStore = storeId != null ? await getShopifyAppCredentials(storeId).catch(() => null) : null;
   const fromGlobal = await getShopifyAppCredentials().catch(() => null);
 
-  const envApiKey = String(process.env.SHOPIFY_API_KEY || "").trim();
-  const envApiSecret = String(process.env.SHOPIFY_API_SECRET || "").trim();
-
-  let source: "store" | "db" | "env" | "none";
+  let source: "store" | "db" | "none";
   let apiKey: string;
   if (fromStore) {
     source = "store";
@@ -208,9 +196,6 @@ export async function hasShopifyAppCredentials(storeId?: number | null): Promise
   } else if (fromGlobal) {
     source = "db";
     apiKey = fromGlobal.apiKey;
-  } else if (envApiKey && envApiSecret) {
-    source = "env";
-    apiKey = envApiKey;
   } else {
     source = "none";
     apiKey = "";

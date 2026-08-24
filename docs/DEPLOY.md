@@ -171,16 +171,16 @@ Solo estas dos. Sin ellas la app literalmente no puede persistir datos:
 - `DATABASE_URL` — Postgres principal
 - `CRYPTO_KEY_BASE64` — clave AES-256-GCM (32 bytes en base64) para cifrar credenciales de tenants
 
+### Configuración Shopify — exclusivamente en base de datos
+
+Los access tokens, Client ID, Client secret, scopes y secretos usados para validar
+webhooks se guardan cifrados por tienda —o como respaldo global— desde el panel de
+Configuración. Ninguna credencial Shopify se configura en `.env`.
+
+`APP_HOST` sigue siendo configuración general del despliegue: sólo define la URL
+pública usada como callback, no contiene credenciales Shopify.
+
 ### Opcionales por feature — el server arranca sin ellas, pero la feature no funciona
-
-**Para OAuth Shopify** (si vas a usar el flow OAuth desde el wizard):
-- `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SHOPIFY_SCOPES` — la app Shopify de tu equipo
-- `APP_HOST` — URL pública para el redirect_uri del OAuth callback
-
-Si no las setás, el wizard sigue permitiendo conectar tiendas Shopify por "token manual" (custom app creada en la tienda del cliente). El endpoint `/api/auth/shopify` devuelve `501 Not Implemented` con mensaje claro.
-
-**Para recibir webhooks Shopify:**
-- `SHOPIFY_WEBHOOK_SECRET` — sin ella los webhooks entrantes se rechazan por HMAC inválido. En `NODE_ENV=production` la app loguea warning al startup si falta.
 
 **Para recibir webhooks Alegra:**
 - `ALEGRA_WEBHOOK_SECRET` — mismo criterio.
@@ -202,7 +202,6 @@ Si no las setás, el wizard sigue permitiendo conectar tiendas Shopify por "toke
 
 Estas se ignoran en `NODE_ENV=production` con warning en logs:
 
-- `ALLOW_UNVERIFIED_SHOPIFY_WEBHOOKS=true` — acepta webhooks Shopify sin firma (solo dev)
 - `ALLOW_UNVERIFIED_ALEGRA_WEBHOOKS=true` — idem Alegra (solo dev)
 - `ALLOW_INTERNAL_HOSTS=true` — permite Woo a hostnames privados/localhost (solo dev)
 - `ALEGRA_ITEM_CACHE_BOOTSTRAP_ON_WEBHOOK=true` — siembra cache Alegra items al recibir webhook aunque no estén tracked (útil al arrancar tenant nuevo)

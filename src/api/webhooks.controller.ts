@@ -3,7 +3,7 @@ import { runWithOrg } from "../db";
 import { resolveOrgIdByAlegraAccountId, resolveOrgIdByShopDomain } from "../services/organizations.service";
 import { shopifyStoreExists } from "../services/store-connections.service";
 import { recordWebhookReceipt } from "../services/webhook-receipts.service";
-import { verifyAlegraSignature, verifyShopifyHmac } from "../utils/webhook";
+import { verifyAlegraSignature } from "../utils/webhook";
 import { verifyShopifyWebhookHmacForShop } from "../services/shopify-app-credentials.service";
 import { enqueueWebhookEvent } from "../services/sync.service";
 import { registrarWebhookSinAsociar } from "../services/webhooks-sin-asociar.service";
@@ -53,15 +53,10 @@ export async function handleShopifyWebhook(req: Request, res: Response) {
   const shopDomain = req.header("X-Shopify-Shop-Domain") || "";
   const webhookId = req.header("X-Shopify-Webhook-Id") || "";
 
-  // HMAC PRIMERO sobre el body crudo. Fast path: secret env/global (sin DB) —
-  // mantiene la protección "sin queries antes de validar" para el caso común.
-  // Fallback per-tienda: si falla y hay shop domain, resolvemos el secret propio
-  // de la app de esa tienda (store→global→env) y reintentamos.
+  // La firma se valida con el secreto cifrado de la tienda (o el global) en BD.
+  // No existe una segunda fuente en .env que pueda discrepar de la conexión.
   const rawBuffer = getRawBuffer(req);
-  let hmacOk = verifyShopifyHmac(rawBuffer, signature || "");
-  if (!hmacOk && shopDomain) {
-    hmacOk = await verifyShopifyWebhookHmacForShop(rawBuffer, signature || "", shopDomain);
-  }
+  const hmacOk = shopDomain ? await verifyShopifyWebhookHmacForShop(rawBuffer, signature || "", shopDomain) : false;
   if (!hmacOk) {
     console.warn(`[webhook][shopify] invalid HMAC topic=${topic} shopDomain=${shopDomain}`);
     // Se deja constancia SIN el cuerpo. Importa el hecho y el volumen: si sube

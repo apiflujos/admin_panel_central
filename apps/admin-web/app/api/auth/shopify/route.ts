@@ -1,7 +1,6 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 
-import { ShopifyClient } from "../../../../../../src/connectors/shopify";
 import { getOrgId } from "../../../../../../src/db";
 import { isTenantModuleEnabled } from "../../../../../../src/sa/sa.repository";
 import { getStoreById } from "../../../../../../src/services/stores.service";
@@ -10,10 +9,11 @@ import {
   isValidShopDomain,
   normalizeShopDomainForOAuth,
 } from "../../../../../../src/services/shopify-oauth.service";
+import { resolveShopifyOAuthConfig } from "../../../../../../src/services/shopify-app-credentials.service";
 import { routeHandler } from "../../../../lib/route-handler";
 import { requireRouteAdmin } from "../../../../lib/route-auth";
 
-type OAuthEnv = {
+type OAuthConfig = {
   apiKey: string;
   apiSecret: string;
   scopes: string;
@@ -33,23 +33,17 @@ function resolveAppHost(_req: Request) {
   return explicit.replace(/\/$/, "");
 }
 
-function ensureOAuthEnv(req: Request): OAuthEnv {
-  const apiKey = String(process.env.SHOPIFY_API_KEY || "").trim();
-  const apiSecret = String(process.env.SHOPIFY_API_SECRET || "").trim();
-  const scopes = String(process.env.SHOPIFY_SCOPES || "").trim();
+async function ensureOAuthConfig(req: Request, storeId?: number | null): Promise<OAuthConfig> {
+  const { apiKey, apiSecret, scopes } = await resolveShopifyOAuthConfig(storeId);
   const appHost = resolveAppHost(req);
 
   const missing: string[] = [];
-  if (!apiKey) missing.push("SHOPIFY_API_KEY");
-  if (!apiSecret) missing.push("SHOPIFY_API_SECRET");
-  if (!scopes) missing.push("SHOPIFY_SCOPES");
+  if (!apiKey) missing.push("Client ID en base de datos");
+  if (!apiSecret) missing.push("Client secret en base de datos");
+  if (!scopes) missing.push("permisos OAuth en base de datos");
   if (!appHost) missing.push("APP_HOST");
   if (missing.length) {
-    const err = new Error(
-      `El flow OAuth de Shopify no está configurado en este deploy. Faltan variables de entorno: ${missing.join(
-        ", "
-      )}. Alternativa: en el wizard elegí "Conectar con access token manual" y pegá el access_token de una custom app creada en tu tienda Shopify.`
-    );
+    const err = new Error(`La conexión OAuth de Shopify está incompleta. Falta: ${missing.join(", ")}.`);
     (err as { statusCode?: number }).statusCode = 501;
     throw err;
   }
@@ -61,7 +55,6 @@ export const GET = routeHandler(async (req: Request) => {
   const user = await requireRouteAdmin();
   try {
     await assertModuleEnabled("shopify");
-    const env = ensureOAuthEnv(req);
     const searchParams = new URL(req.url).searchParams;
     const shopParam = String(searchParams.get("shop") || "").trim();
     const storeNameParam = String(searchParams.get("storeName") || "").trim();
@@ -74,6 +67,7 @@ export const GET = routeHandler(async (req: Request) => {
     const nonce = crypto.randomBytes(16).toString("hex");
     let resolvedStoreName = storeNameParam || null;
     const storeId = Number.isFinite(storeIdParam) ? storeIdParam : null;
+    const env = await ensureOAuthConfig(req, storeId);
     const alegraAccountId = Number.isFinite(alegraAccountIdParam) ? alegraAccountIdParam : null;
     if (!resolvedStoreName && storeId) {
       const store = await getStoreById(storeId);

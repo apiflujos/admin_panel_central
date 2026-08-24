@@ -68,7 +68,7 @@ Flujo (invoice):
 Implementado:
 
 - OAuth con HMAC y validación de dominio.
-- Webhooks (firma con `SHOPIFY_WEBHOOK_SECRET`).
+- Webhooks con firma validada contra el secreto cifrado de la tienda en la base de datos.
 - Admin API (GraphQL): orders, customers, products, inventory, webhooks.
 - Sync de pedidos (Shopify -> Alegra).
 

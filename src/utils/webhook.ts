@@ -16,9 +16,8 @@ function allowUnverified(envKey: string): boolean {
 
 /**
  * Compare a Shopify webhook HMAC (base64) against a specific app secret. Used
- * both for the env/global fast path and for the per-store fallback. Returns
- * false on any missing input — it never falls back to allowing unverified
- * traffic (that policy lives only in `verifyShopifyHmac`).
+ * for the per-store credential loaded from the database. Returns false on any
+ * missing input and never permits unsigned traffic.
  */
 export function verifyShopifyHmacWithSecret(rawBody: Buffer, signature: string, secret: string) {
   const normalizedSecret = String(secret || "").trim();
@@ -37,17 +36,6 @@ export function verifyShopifyHmacWithSecret(rawBody: Buffer, signature: string, 
     return false;
   }
   return crypto.timingSafeEqual(digestBuffer, signatureBuffer);
-}
-
-export function verifyShopifyHmac(rawBody: Buffer, signature: string) {
-  const secret = String(process.env.SHOPIFY_WEBHOOK_SECRET || process.env.SHOPIFY_API_SECRET || "").trim();
-  if (!secret) {
-    if (allowUnverified("ALLOW_UNVERIFIED_SHOPIFY_WEBHOOKS")) {
-      return true;
-    }
-    return false;
-  }
-  return verifyShopifyHmacWithSecret(rawBody, signature, secret);
 }
 
 export function verifyAlegraSignature(rawBody: Buffer, signature: string) {
