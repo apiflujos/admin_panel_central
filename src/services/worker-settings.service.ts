@@ -176,20 +176,30 @@ export async function setWorkerEnabled(key: string, enabled: boolean, actor?: st
 export async function registrarEjecucionTrabajo(key: string, ok: boolean, error?: unknown) {
   if (!isWorkerKey(key)) return;
   const detalle = ok ? null : (error instanceof Error ? error.message : String(error ?? "error")).slice(0, 2000);
+  const enabledByDefault = getWorkerDefinition(key).enabledByDefault;
   try {
     await getPool().query(
       `
-      UPDATE worker_settings
-         SET ultima_ejecucion_at = NOW(),
-             ultimo_resultado = $2,
-             ultimo_error = $3,
-             ultimo_exito_at = CASE WHEN $2 = 'ok' THEN NOW() ELSE ultimo_exito_at END,
-             -- Vuelve a cero en cuanto una pasada termina bien: lo que importa
-             -- es si está roto AHORA, no cuántas veces falló en su vida.
-             fallos_seguidos = CASE WHEN $2 = 'ok' THEN 0 ELSE fallos_seguidos + 1 END
-       WHERE worker_key = $1
+      INSERT INTO worker_settings (
+        worker_key, enabled, ultima_ejecucion_at, ultimo_resultado,
+        ultimo_error, ultimo_exito_at, fallos_seguidos
+      )
+      VALUES (
+        $1, $4, NOW(), $2, $3,
+        CASE WHEN $2 = 'ok' THEN NOW() ELSE NULL END,
+        CASE WHEN $2 = 'ok' THEN 0 ELSE 1 END
+      )
+      ON CONFLICT (worker_key)
+      DO UPDATE SET
+        ultima_ejecucion_at = NOW(),
+        ultimo_resultado = $2,
+        ultimo_error = $3,
+        ultimo_exito_at = CASE WHEN $2 = 'ok' THEN NOW() ELSE worker_settings.ultimo_exito_at END,
+        -- Vuelve a cero en cuanto una pasada termina bien: lo que importa
+        -- es si está roto AHORA, no cuántas veces falló en su vida.
+        fallos_seguidos = CASE WHEN $2 = 'ok' THEN 0 ELSE worker_settings.fallos_seguidos + 1 END
       `,
-      [key, ok ? "ok" : "fallo", detalle]
+      [key, ok ? "ok" : "fallo", detalle, enabledByDefault]
     );
   } catch (e) {
     console.error(`[salud] no se pudo registrar la ejecución de ${key}:`, e instanceof Error ? e.message : e);

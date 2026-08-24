@@ -42,10 +42,12 @@ const TEXTO: Record<EstadoCruce, string> = {
 export function MatrizAutomatizacionPanel({
   workspace,
   atascados,
+  activeStoreId,
 }: {
   workspace: ConnectionsWorkspace;
   /** Pedidos atascados por dominio de tienda. */
   atascados?: Record<string, { sinIdentificacion: number; productoSinEnlazar: number; otros: number }>;
+  activeStoreId?: number | null;
 }) {
   const [workers, setWorkers] = useState<WorkerSettingDto[] | null>(null);
 
@@ -62,27 +64,29 @@ export function MatrizAutomatizacionPanel({
   const motores = useMemo(() => Object.fromEntries((workers || []).map((w) => [w.key, w.enabled])), [workers]);
 
   const filas = useMemo(() => {
-    const tiendas: DatosTienda[] = (workspace.storeConfigs || []).map((c) => {
-      const sot = normalizeSourceOfTruth(c.sourceOfTruth);
-      const dominio = c.shopDomain || "";
-      const at = atascados?.[dominio] || { sinIdentificacion: 0, productoSinEnlazar: 0, otros: 0 };
-      return {
-        storeId: c.storeId,
-        storeName: c.storeName,
-        tieneShopify: Boolean(c.shopDomain),
-        tieneCuentaAlegra: Boolean(c.alegraAccountId),
-        facturaPedidos: c.sync?.orders?.shopifyToAlegra === "invoice",
-        creaClienteEnAlegra: Boolean(c.sync?.contacts?.createInAlegra),
-        tieneListaDePrecios: Boolean(c.priceLists?.generalId || c.priceLists?.wholesaleId),
-        tieneBodega: Boolean(c.rules?.warehouseIds?.length || c.sync?.products?.warehouseId),
-        mandaAlegraEnPrecios: sot.prices === "alegra",
-        mandaAlegraEnPublicacion: sot.publication === "alegra",
-        mandaAlegraEnInventario: sot.inventory === "alegra",
-        pedidosAtascados: at,
-      };
-    });
+    const tiendas: DatosTienda[] = (workspace.storeConfigs || [])
+      .filter((c) => !activeStoreId || c.storeId === activeStoreId)
+      .map((c) => {
+        const sot = normalizeSourceOfTruth(c.sourceOfTruth);
+        const dominio = c.shopDomain || "";
+        const at = atascados?.[dominio] || { sinIdentificacion: 0, productoSinEnlazar: 0, otros: 0 };
+        return {
+          storeId: c.storeId,
+          storeName: c.storeName,
+          tieneShopify: Boolean(c.shopDomain),
+          tieneCuentaAlegra: Boolean(c.alegraAccountId),
+          facturaPedidos: c.sync?.orders?.shopifyToAlegra === "invoice",
+          creaClienteEnAlegra: Boolean(c.sync?.contacts?.createInAlegra),
+          tieneListaDePrecios: Boolean(c.priceLists?.generalId || c.priceLists?.wholesaleId),
+          tieneBodega: Boolean(c.rules?.warehouseIds?.length || c.sync?.products?.warehouseId),
+          mandaAlegraEnPrecios: sot.prices === "alegra",
+          mandaAlegraEnPublicacion: sot.publication === "alegra",
+          mandaAlegraEnInventario: sot.inventory === "alegra",
+          pedidosAtascados: at,
+        };
+      });
     return construirMatriz(tiendas, motores);
-  }, [workspace.storeConfigs, motores, atascados]);
+  }, [workspace.storeConfigs, motores, atascados, activeStoreId]);
 
   const resumen = useMemo(() => resumirMatriz(filas), [filas]);
 

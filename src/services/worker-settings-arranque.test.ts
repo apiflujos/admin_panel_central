@@ -6,7 +6,12 @@ vi.mock("../db", () => ({
   getPool: () => ({ query: queryMock }),
 }));
 
-import { isWorkerEnabled, listWorkerSettings, resetWorkerSettingsCacheForTests } from "./worker-settings.service";
+import {
+  isWorkerEnabled,
+  listWorkerSettings,
+  registrarEjecucionTrabajo,
+  resetWorkerSettingsCacheForTests,
+} from "./worker-settings.service";
 
 /**
  * Qué ocurre EN EL ARRANQUE DE UN DESPLIEGUE, que es el momento de riesgo:
@@ -116,5 +121,17 @@ describe("arranque de un despliegue", () => {
     });
     expect(String(queryMock.mock.calls[0]?.[0])).toContain("ultima_ejecucion_at");
     expect(String(queryMock.mock.calls[0]?.[0])).toContain("fallos_seguidos");
+  });
+
+  it("crea la fila de salud si falta sin sobrescribir un interruptor existente", async () => {
+    queryMock.mockResolvedValue({ rows: [] });
+
+    await registrarEjecucionTrabajo("log-retention", false, new Error("falló la limpieza"));
+
+    const [sql, params] = queryMock.mock.calls[0] || [];
+    expect(String(sql)).toContain("INSERT INTO worker_settings");
+    expect(String(sql)).toContain("ON CONFLICT (worker_key)");
+    expect(String(sql).split("DO UPDATE SET")[1]).not.toMatch(/\benabled\s*=/);
+    expect(params).toEqual(["log-retention", "fallo", "falló la limpieza", true]);
   });
 });

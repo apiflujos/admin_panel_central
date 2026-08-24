@@ -30,7 +30,13 @@ const fecha = (iso: string) => {
  * Aquí se ve qué llegó, cuántas veces, por qué no se pudo procesar y qué hay
  * que hacer para arreglarlo.
  */
-export function WebhooksSinAsociarPanel({ superAdmin = false }: { superAdmin?: boolean }) {
+export function WebhooksSinAsociarPanel({
+  superAdmin = false,
+  hideWhenEmpty = false,
+}: {
+  superAdmin?: boolean;
+  hideWhenEmpty?: boolean;
+}) {
   const [datos, setDatos] = useState<WebhooksSinAsociarRespuesta | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<number | null>(null);
@@ -75,6 +81,7 @@ export function WebhooksSinAsociarPanel({ superAdmin = false }: { superAdmin?: b
   // está procesando» es información, y su ausencia se leería como que nadie
   // lo está mirando.
   if (!datos.items.length) {
+    if (hideWhenEmpty) return null;
     return (
       <section className="card" aria-label="Lo que recibimos y no pudimos procesar">
         <h3 className="worker-group-title">

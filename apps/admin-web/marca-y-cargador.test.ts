@@ -89,6 +89,6 @@ describe("el cargador se ve, y se ve como un modal", () => {
     expect(CSS).toContain("@keyframes af-spin");
     expect(CSS).toContain("@keyframes af-breathe");
     const reduce = CSS.slice(CSS.indexOf("@media (prefers-reduced-motion: reduce)"));
-    expect(reduce).toContain(".af-loader { animation: none; }");
+    expect(reduce).toMatch(/\.af-loader\s*{\s*animation:\s*none;\s*}/);
   });
 });

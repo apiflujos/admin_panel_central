@@ -13,7 +13,6 @@ import { StoreSyncAutomationPanel } from "./store-sync-automation-panel";
 import { StoreSyncModulesPanel } from "./store-sync-modules-panel";
 import { ShopifyAppCredentialsForm } from "./shopify-app-credentials-form";
 import { PageHeader } from "./ui/page-header";
-import { PageToolbar } from "./ui/page-toolbar";
 import { ProviderMark } from "./ui/provider-mark";
 import { StatusPill } from "./ui/status-pill";
 import { ResumenAutomatizacionPanel } from "./resumen-automatizacion-panel";
@@ -22,7 +21,7 @@ import { MatrizAutomatizacionPanel } from "./matriz-automatizacion-panel";
 import { WebhooksSinAsociarPanel } from "./webhooks-sin-asociar-panel";
 import { ConfiguracionObligatoriaPanel } from "./configuracion-obligatoria-panel";
 
-type ConfigFlowStage = "channels" | "operations";
+type ConfigFlowStage = "overview" | "channels" | "operations" | "workers";
 type ConnectionWizardStep = "store" | "group" | "platform" | "form";
 type ConnectionWizardGroup = "commerce" | "accounting" | "ads";
 type ConnectionWizardPlatform = "shopify" | "woocommerce" | "alegra" | "google-ads" | "meta-ads" | "tiktok-ads";
@@ -84,7 +83,7 @@ export function SettingsConnectionsPage({
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [actionLoadingKey, setActionLoadingKey] = useState<string>("");
   const [modal, setModal] = useState<ConnectionModalState>({ kind: "closed" });
-  const [activeStage, setActiveStage] = useState<ConfigFlowStage>("channels");
+  const [activeStage, setActiveStage] = useState<ConfigFlowStage>("overview");
   const [connectionWizardStep, setConnectionWizardStep] = useState<ConnectionWizardStep>("store");
   const [connectionWizardGroup, setConnectionWizardGroup] = useState<ConnectionWizardGroup | null>(null);
   const [connectionWizardPlatform, setConnectionWizardPlatform] = useState<ConnectionWizardPlatform | null>(null);
@@ -190,7 +189,15 @@ export function SettingsConnectionsPage({
   const connectedCommerceCount = [selectedShopifyProvider, selectedWooProvider].filter(
     (provider) => provider?.status === "connected"
   ).length;
-  const isOperationalStage = activeStage !== "channels";
+  useEffect(() => {
+    const syncStageWithHash = () => {
+      if (window.location.hash === "#trabajos") setActiveStage("workers");
+      if (window.location.hash === "#pedidos-y-facturacion") setActiveStage("operations");
+    };
+    syncStageWithHash();
+    window.addEventListener("hashchange", syncStageWithHash);
+    return () => window.removeEventListener("hashchange", syncStageWithHash);
+  }, []);
 
   function handleStoreConfigSaved(nextConfig: ConnectionsWorkspace["storeConfigs"][number]) {
     setWorkspaceState((current) => {
@@ -696,71 +703,10 @@ export function SettingsConnectionsPage({
     <section className="page-stack">
       <PageHeader
         title="Configuración"
-        subtitle="Qué hace la automatización con esta tienda, y con qué reglas."
-        breadcrumbs={
-          <>
-            <a href="/">Inicio</a>
-            <span>/</span>
-            <span>Configuración</span>
-          </>
-        }
-      />
-
-      <ResumenAutomatizacionPanel workspace={workspace} activeStoreId={selectedStoreId} />
-
-      {/* Va arriba a propósito: si algo llegó y no se pudo procesar, eso pesa
-          más que cualquier ajuste de más abajo. */}
-      {/* Lo obligatorio va justo detrás de «qué va a pasar»: es la diferencia
-          entre que ocurra y que no. Antes sólo se descubría al fallar la
-          factura, en un registro que nadie lee. */}
-      <ConfiguracionObligatoriaPanel workspace={workspace} />
-
-      <WebhooksSinAsociarPanel />
-
-      {/* La tienda activa manda sobre TODO lo de abajo, así que se elige
-          antes de mirar nada. Estaba después de las pestañas y del
-          formulario de credenciales, o sea después de lo que ya dependía
-          de ella. */}
-      <section className="page-module-shell page-module-shell-compact config-active-store-shell">
-        <div className="page-module-head">
-          <div>
-            <h3>Tienda que estás configurando</h3>
-            <p className="worker-group-description">Todo lo de abajo se aplica sólo a esta tienda.</p>
-          </div>
-          <div className="page-module-actions">
-            <button
-              className="btn ghost btn-compact"
-              type="button"
-              onClick={() => {
-                void refreshWorkspace();
-              }}
-            >
-              Refrescar
-            </button>
-            <button className="btn primary btn-compact" type="button" onClick={openCreateStore}>
-              Crear tienda
-            </button>
-            <button className="btn ghost btn-compact" type="button" disabled={!selectedStore} onClick={openEditStore}>
-              Editar
-            </button>
-            <button
-              className="btn ghost btn-compact"
-              type="button"
-              disabled={!selectedStore || actionLoadingKey === "store:delete"}
-              onClick={() => {
-                void deleteStore();
-              }}
-            >
-              Eliminar
-            </button>
-            <button className="btn primary btn-compact" type="button" onClick={() => openConnectionFlow()}>
-              Nueva conexión
-            </button>
-          </div>
-        </div>
-        <div className="config-active-store-grid">
-          <label className="field">
-            <span>Elige la tienda</span>
+        subtitle={`Conexiones, reglas y automatización de ${selectedStore?.name || "la tienda seleccionada"}.`}
+        actions={
+          <label className="config-store-picker">
+            <span>Tienda</span>
             <select
               className="input"
               value={selectedStore?.id ?? ""}
@@ -776,86 +722,127 @@ export function SettingsConnectionsPage({
               ))}
             </select>
           </label>
-          <div className="config-active-store-meta">
-            {selectedStore?.providers.shopify ? <ProviderMark provider="Shopify" /> : null}
-            {selectedStore?.providers.woocommerce ? <ProviderMark provider="WooCommerce" /> : null}
-            {selectedStore?.providers.alegra ? <ProviderMark provider="Alegra" /> : null}
-            {!selectedStore?.providers.shopify &&
-            !selectedStore?.providers.woocommerce &&
-            !selectedStore?.providers.alegra ? (
-              <span className="pill">Esta tienda aún no tiene ninguna conexión</span>
-            ) : null}
-            {workspaceState.securityMisconfigured ? (
-              <span className="pill pill-bad">Hay credenciales que hay que volver a conectar</span>
-            ) : null}
-          </div>
-          <label className="field">
-            <span>Copiar los ajustes de otra tienda</span>
-            <select
-              className="input"
-              value={copySourceStoreId ?? ""}
-              disabled={!copyableSourceStores.length || !selectedStore}
-              onChange={(event) => {
-                const parsed = Number(event.target.value);
-                setCopySourceStoreId(Number.isFinite(parsed) && parsed > 0 ? parsed : null);
-              }}
-            >
-              {!copyableSourceStores.length ? <option value="">Sin origen disponible</option> : null}
-              {copyableSourceStores.map((store) => (
-                <option key={`copy-source:${store.storeId}`} value={store.storeId}>
-                  {store.storeName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="page-module-actions config-active-store-copy">
-            <button
-              className="btn ghost btn-compact"
-              type="button"
-              disabled={
-                !selectedStore || !copySourceStoreId || actionLoadingKey === `copy-config:${selectedStore?.id ?? ""}`
-              }
-              onClick={() => void copyStoreConfig()}
-            >
-              {actionLoadingKey === `copy-config:${selectedStore?.id ?? ""}` ? "Copiando..." : "Aplicar copia"}
-            </button>
-          </div>
+        }
+      />
+
+      <section className="config-store-context" aria-label="Contexto de la tienda">
+        <div className="config-store-connections">
+          <strong>{selectedStore?.name || "Sin tienda"}</strong>
+          {selectedStore?.providers.shopify ? <ProviderMark provider="Shopify" /> : null}
+          {selectedStore?.providers.woocommerce ? <ProviderMark provider="WooCommerce" /> : null}
+          {selectedStore?.providers.alegra ? <ProviderMark provider="Alegra" /> : null}
+          {!selectedStore?.providers.shopify &&
+          !selectedStore?.providers.woocommerce &&
+          !selectedStore?.providers.alegra ? (
+            <span className="pill">Sin conexiones</span>
+          ) : null}
+          {workspaceState.securityMisconfigured ? (
+            <span className="pill pill-bad">Hay credenciales que requieren reconexión</span>
+          ) : null}
         </div>
-        {statusMessage ? <p className="connection-inline-note">{statusMessage}</p> : null}
+        <div className="page-module-actions">
+          <button className="btn primary btn-compact" type="button" onClick={() => openConnectionFlow()}>
+            Nueva conexión
+          </button>
+          <details className="config-store-admin">
+            <summary className="btn ghost btn-compact">Administrar tienda</summary>
+            <div className="config-store-admin-menu">
+              <button className="btn ghost btn-compact" type="button" onClick={openCreateStore}>
+                Crear otra tienda
+              </button>
+              <button className="btn ghost btn-compact" type="button" disabled={!selectedStore} onClick={openEditStore}>
+                Editar nombre
+              </button>
+              <div className="config-store-copy-row">
+                <label className="field">
+                  <span>Copiar ajustes desde</span>
+                  <select
+                    className="input"
+                    value={copySourceStoreId ?? ""}
+                    disabled={!copyableSourceStores.length || !selectedStore}
+                    onChange={(event) => {
+                      const parsed = Number(event.target.value);
+                      setCopySourceStoreId(Number.isFinite(parsed) && parsed > 0 ? parsed : null);
+                    }}
+                  >
+                    {!copyableSourceStores.length ? <option value="">Sin origen disponible</option> : null}
+                    {copyableSourceStores.map((store) => (
+                      <option key={`copy-source:${store.storeId}`} value={store.storeId}>
+                        {store.storeName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  className="btn ghost btn-compact"
+                  type="button"
+                  disabled={
+                    !selectedStore ||
+                    !copySourceStoreId ||
+                    actionLoadingKey === `copy-config:${selectedStore?.id ?? ""}`
+                  }
+                  onClick={() => void copyStoreConfig()}
+                >
+                  {actionLoadingKey === `copy-config:${selectedStore?.id ?? ""}` ? "Copiando…" : "Copiar"}
+                </button>
+              </div>
+              <button
+                className="btn ghost btn-compact config-store-delete"
+                type="button"
+                disabled={!selectedStore || actionLoadingKey === "store:delete"}
+                onClick={() => void deleteStore()}
+              >
+                Eliminar tienda
+              </button>
+            </div>
+          </details>
+          <button className="btn ghost btn-compact" type="button" onClick={() => void refreshWorkspace()}>
+            Refrescar
+          </button>
+        </div>
+        {statusMessage ? <p className="connection-inline-note config-store-status">{statusMessage}</p> : null}
       </section>
 
-      <MatrizAutomatizacionPanel workspace={workspace} />
-
-      {/* Los trabajos van PEGADOS a la matriz: son la misma pregunta
-          —qué corre y qué no—. Estaban 900 líneas más abajo, al final
-          del todo, separados de lo que explican. */}
-      <WorkersPanel />
-
-      {/* Pestañas de verdad, no dos botones sueltos: ahora van pegadas a lo
-          que abren, y dicen QUÉ hay dentro en vez de nombrar una categoría.
-          «Configuración operativa» no le decía nada a nadie. */}
       <div className="config-pestanas" role="tablist" aria-label="Secciones de configuración">
-        <button
-          className={`config-pestana${activeStage === "channels" ? " is-activa" : ""}`}
-          type="button"
-          role="tab"
-          aria-selected={activeStage === "channels"}
-          onClick={() => setActiveStage("channels")}
-        >
-          <strong>Conectar tiendas y contabilidad</strong>
-          <span>Shopify, Alegra y sus credenciales</span>
-        </button>
-        <button
-          className={`config-pestana${isOperationalStage ? " is-activa" : ""}`}
-          type="button"
-          role="tab"
-          aria-selected={isOperationalStage}
-          onClick={() => setActiveStage(isOperationalStage ? activeStage : "operations")}
-        >
-          <strong>Ajustes finos</strong>
-          <span>Bodegas, listas de precio, horarios y acciones manuales</span>
-        </button>
+        {(
+          [
+            ["overview", "Resumen", "Qué ocurrirá y qué falta"],
+            ["channels", "Conexiones", "Shopify, Alegra y credenciales"],
+            ["operations", "Reglas", "Pedidos, bodegas y precios"],
+            ["workers", "Trabajos", "Motores, estado y ejecución"],
+          ] as const
+        ).map(([stage, label, detail]) => (
+          <button
+            className={`config-pestana${activeStage === stage ? " is-activa" : ""}`}
+            type="button"
+            role="tab"
+            aria-selected={activeStage === stage}
+            key={stage}
+            onClick={() => setActiveStage(stage)}
+          >
+            <strong>{label}</strong>
+            <span>{detail}</span>
+          </button>
+        ))}
       </div>
+
+      {activeStage === "overview" ? (
+        <div className="config-overview-grid">
+          <ResumenAutomatizacionPanel workspace={workspaceState} activeStoreId={selectedStoreId} />
+          <ConfiguracionObligatoriaPanel workspace={workspaceState} activeStoreId={selectedStoreId} />
+
+          <div className="config-overview-wide">
+            <WebhooksSinAsociarPanel hideWhenEmpty />
+          </div>
+        </div>
+      ) : null}
+
+      {activeStage === "workers" ? (
+        <section className="config-workers-stage">
+          <MatrizAutomatizacionPanel workspace={workspaceState} activeStoreId={selectedStoreId} />
+          <WorkersPanel />
+        </section>
+      ) : null}
 
       {activeStage === "channels" ? (
         <section className="page-module-shell connection-section-shell">
@@ -954,7 +941,7 @@ export function SettingsConnectionsPage({
         </section>
       ) : null}
 
-      {isOperationalStage ? (
+      {activeStage === "operations" ? (
         <section className="page-module-shell operational-workspace-shell">
           <div className="operations-panels">
             <details className="settings-panel-collapse" open>

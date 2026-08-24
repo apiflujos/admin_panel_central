@@ -29,4 +29,31 @@ describe("connections modal state contract", () => {
     expect(source).toContain('providers.alegra?.status !== "connected"');
     expect(source.match(/closeConnectionFlow\(\);/g)?.length).toBeGreaterThanOrEqual(3);
   });
+
+  it("separa el diagnóstico, las conexiones, las reglas y los trabajos", async () => {
+    const source = await import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("./settings-connections-page.tsx", import.meta.url), "utf8")
+    );
+
+    expect(source).toContain('type ConfigFlowStage = "overview" | "channels" | "operations" | "workers"');
+    expect(source).toContain('useState<ConfigFlowStage>("overview")');
+    expect(source).toContain('["overview", "Resumen", "Qué ocurrirá y qué falta"]');
+    expect(source).toContain('["workers", "Trabajos", "Motores, estado y ejecución"]');
+    expect(source).not.toContain("config-active-store-shell");
+  });
+
+  it("muestra sólo el diagnóstico de la tienda elegida y no repite el título", async () => {
+    const source = await import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("./settings-connections-page.tsx", import.meta.url), "utf8")
+    );
+
+    expect(source).toContain(
+      "<ConfiguracionObligatoriaPanel workspace={workspaceState} activeStoreId={selectedStoreId} />"
+    );
+    expect(source).toContain(
+      "<MatrizAutomatizacionPanel workspace={workspaceState} activeStoreId={selectedStoreId} />"
+    );
+    expect(source).toContain("<WebhooksSinAsociarPanel hideWhenEmpty />");
+    expect(source).not.toMatch(/<PageHeader[\s\S]*?breadcrumbs=/);
+  });
 });

@@ -21,28 +21,36 @@ import {
  * Aquí se dice ANTES, con la MISMA regla que usa el motor —importada, no
  * copiada— para que las dos no puedan discrepar.
  */
-export function ConfiguracionObligatoriaPanel({ workspace }: { workspace: ConnectionsWorkspace }) {
+export function ConfiguracionObligatoriaPanel({
+  workspace,
+  activeStoreId,
+}: {
+  workspace: ConnectionsWorkspace;
+  activeStoreId?: number | null;
+}) {
   const porTienda = useMemo(
     () =>
-      (workspace.storeConfigs || []).map((config) => {
-        const invoice = (config.invoice || {}) as Record<string, unknown>;
-        return {
-          storeId: config.storeId,
-          nombre: config.storeName || config.shopDomain || "Tienda",
-          revision: revisarConfiguracionObligatoria({
-            // El motor apaga generateInvoice cuando el modo de esta tienda no
-            // es "invoice". La pantalla debe evaluar exactamente ese estado.
-            generateInvoice: config.sync.orders.shopifyToAlegra === "invoice" && Boolean(invoice.generateInvoice),
-            einvoiceEnabled: Boolean(invoice.einvoiceEnabled),
-            resolutionId: String(invoice.resolutionId || ""),
-            warehouseId: String(invoice.warehouseId || ""),
-            applyPayment: Boolean(invoice.applyPayment),
-            paymentMethod: String(invoice.paymentMethod || ""),
-            bankAccountId: String(invoice.bankAccountId || ""),
-          }),
-        };
-      }),
-    [workspace.storeConfigs]
+      (workspace.storeConfigs || [])
+        .filter((config) => !activeStoreId || config.storeId === activeStoreId)
+        .map((config) => {
+          const invoice = (config.invoice || {}) as Record<string, unknown>;
+          return {
+            storeId: config.storeId,
+            nombre: config.storeName || config.shopDomain || "Tienda",
+            revision: revisarConfiguracionObligatoria({
+              // El motor apaga generateInvoice cuando el modo de esta tienda no
+              // es "invoice". La pantalla debe evaluar exactamente ese estado.
+              generateInvoice: config.sync.orders.shopifyToAlegra === "invoice" && Boolean(invoice.generateInvoice),
+              einvoiceEnabled: Boolean(invoice.einvoiceEnabled),
+              resolutionId: String(invoice.resolutionId || ""),
+              warehouseId: String(invoice.warehouseId || ""),
+              applyPayment: Boolean(invoice.applyPayment),
+              paymentMethod: String(invoice.paymentMethod || ""),
+              bankAccountId: String(invoice.bankAccountId || ""),
+            }),
+          };
+        }),
+    [workspace.storeConfigs, activeStoreId]
   );
 
   if (!porTienda.length) return null;

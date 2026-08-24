@@ -167,6 +167,6 @@ describe("salud de los trabajos automaticos", () => {
   it("los fallos seguidos vuelven a cero cuando una pasada termina bien", () => {
     const servicio = readFileSync(path.join(RAIZ, "../../../src/services/worker-settings.service.ts"), "utf8");
     // Lo que importa es si está roto AHORA, no cuántas veces falló en su vida.
-    expect(servicio).toContain("WHEN $2 = 'ok' THEN 0 ELSE fallos_seguidos + 1");
+    expect(servicio).toContain("WHEN $2 = 'ok' THEN 0 ELSE worker_settings.fallos_seguidos + 1");
   });
 });

@@ -8,12 +8,12 @@ export function PageHeader({
 }: {
   title: string;
   subtitle: string;
-  breadcrumbs: ReactNode;
+  breadcrumbs?: ReactNode;
   actions?: ReactNode;
 }) {
   return (
     <header className="page-header-standard">
-      <div className="breadcrumbs">{breadcrumbs}</div>
+      {breadcrumbs ? <div className="breadcrumbs">{breadcrumbs}</div> : null}
       <div className="page-header-row">
         <div>
           <h1>{title}</h1>
