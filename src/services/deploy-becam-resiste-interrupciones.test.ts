@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = path.resolve(__dirname, "..", "..");
 const deploy = fs.readFileSync(path.join(ROOT, "scripts/deploy-becam.sh"), "utf8");
 const nextConfig = fs.readFileSync(path.join(ROOT, "apps/admin-web/next.config.ts"), "utf8");
+const adminQa = fs.readFileSync(path.join(ROOT, "scripts/qa-admin-web.js"), "utf8");
 
 describe("el deploy de Becam no rompe el sitio activo si se interrumpe", () => {
   it("instala las dependencias en staging antes de intercambiarlas", () => {
@@ -39,4 +40,16 @@ describe("el deploy de Becam no rompe el sitio activo si se interrumpe", () => {
       expect(deploy).toContain(route);
     }
   );
+});
+
+describe("el QA autenticado coincide con las rutas que Becam sirve", () => {
+  it("comprueba la salud del puerto único y el texto actual del login", () => {
+    expect(adminQa).toContain('httpRequest(baseUrl, "/health")');
+    expect(adminQa).toContain('body.includes("Bienvenido")');
+    expect(adminQa).not.toContain('httpRequest(baseUrl, "/api/health")');
+  });
+
+  it.each(["/ai-assistants", "/settings/marketing", "/marketing"])("no exige la ruta retirada %s", (route) => {
+    expect(adminQa).not.toContain(`path: "${route}"`);
+  });
 });

@@ -75,7 +75,7 @@ BASE_URL=http://localhost:3100 ADMIN_EMAIL=<email> ADMIN_PASSWORD=<pass> npm run
 
 Valida:
 
-- `/api/health`
+- `/health` (en Becam, Express y Next comparten el mismo puerto)
 - `/auth/login`
 - login real por `/api/session/login`
 - páginas privadas principales:
@@ -83,15 +83,12 @@ Valida:
   - `/profile`
   - `/company`
   - `/users`
-  - `/ai-assistants`
   - `/settings/connections`
   - `/settings/stores`
-  - `/settings/marketing`
   - `/products`
   - `/orders`
   - `/contacts`
   - `/invoices`
-  - `/marketing`
 - `/operations`
 - `/superadmin`
 

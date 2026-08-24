@@ -8,15 +8,12 @@ const PAGE_CHECKS = [
   { path: "/profile", label: "Perfil", marker: "Perfil" },
   { path: "/company", label: "Empresa", marker: "Empresa" },
   { path: "/users", label: "Usuarios", marker: "Usuarios" },
-  { path: "/ai-assistants", label: "Asistentes IA", marker: "Asistentes IA" },
-  { path: "/settings/connections", label: "Conexiones", marker: "Conexiones" },
-  { path: "/settings/stores", label: "Tiendas", marker: "Stores" },
-  { path: "/settings/marketing", label: "Marketing settings", marker: "Marketing" },
+  { path: "/settings/connections", label: "Configuración", marker: "Configuración" },
+  { path: "/settings/stores", label: "Tiendas", marker: "Tiendas" },
   { path: "/products", label: "Productos", marker: "Productos" },
   { path: "/orders", label: "Pedidos", marker: "Pedidos" },
   { path: "/contacts", label: "Contactos", marker: "Contactos" },
   { path: "/invoices", label: "Facturas", marker: "Facturas" },
-  { path: "/marketing", label: "Marketing", marker: "Marketing" },
   { path: "/operations", label: "Operaciones", marker: "Operaciones" },
   { path: "/superadmin", label: "Super Admin", marker: "Super Admin" },
 ];
@@ -68,14 +65,14 @@ async function main() {
   record("BASE_URL", true, baseUrl);
 
   {
-    const { response, body } = await httpRequest(baseUrl, "/api/health");
-    const ok = response.ok && body && body.status === "ok" && body.app === "admin-web";
-    record("GET /api/health", ok, ok ? "" : `status=${response.status}`);
+    const { response, body } = await httpRequest(baseUrl, "/health");
+    const ok = response.ok && body && body.status === "ok";
+    record("GET /health", ok, ok ? "" : `status=${response.status}`);
   }
 
   {
     const { response, body } = await httpRequest(baseUrl, "/auth/login");
-    const ok = response.ok && typeof body === "string" && body.includes("Nuevo acceso del admin central");
+    const ok = response.ok && typeof body === "string" && body.includes("Bienvenido");
     record("GET /auth/login", ok, ok ? "" : `status=${response.status}`);
   }
 
